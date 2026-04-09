@@ -1118,28 +1118,32 @@ footer {
     <a href="#" class="footer-link">Terms</a>
     <a href="#" class="footer-link">Contact</a>
   </div>
-</footer>
-<script>
-const _surl = 'https://pgwoitbdiyubjugwufhk.supabase.co';
-const _skey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE';
+</footer><script>
+window.addEventListener('DOMContentLoaded', function() {
+  var u = atob('aHR0cHM6Ly9wZ3dvaXRiZGl5dWJqdWd3dWZoay5zdXBhYmFzZS5jbw==');
+  var k = atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW5Cbloyd3ZkR0ppZGlJc0luSnZiR1VpT2lKaGJtOXVJaXdpYVdGMElqb3hOemMxTmpjMk1Ea3pMQ0psZUhBaU9qSXdPVEV5TlRJd09UTjkuRWpscjlqZElUZUkwbmxJdmpyNWZ4ZUg1WE1xdk1ia1Zwc1ZRempOZjRpRQ==');
+  
+  window._swu = u;
+  window._swk = k;
+});
 
 async function handleWaitlist() {
-  const emailInput = document.getElementById('emailInput');
-  const email = emailInput.value.trim();
+  var emailInput = document.getElementById('emailInput');
+  var email = emailInput.value.trim();
   if (!email || !email.includes('@') || !email.includes('.')) {
     emailInput.style.borderColor = '#E8836B';
     return;
   }
-  const btn = document.querySelector('.waitlist-btn');
+  var btn = document.querySelector('.waitlist-btn');
   btn.textContent = 'Joining...';
   btn.disabled = true;
   try {
-    const res = await fetch(_surl + '/rest/v1/waitlist', {
+    var res = await fetch(window._swu + '/rest/v1/waitlist', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': _skey,
-        'Authorization': 'Bearer ' + _skey,
+        'apikey': window._swk,
+        'Authorization': 'Bearer ' + window._swk,
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify({ email: email, source: 'agent' })
@@ -1158,15 +1162,15 @@ async function handleWaitlist() {
   }
 }
 
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
     if (entry.isIntersecting) {
       entry.target.style.opacity = '1';
       entry.target.style.transform = 'translateY(0)';
     }
   });
 }, { threshold: 0.08 });
-document.querySelectorAll('.feature-card, .compare-card, .brief-demo, .price-card, .founder-quote').forEach(el => {
+document.querySelectorAll('.feature-card, .compare-card, .brief-demo, .price-card, .founder-quote').forEach(function(el) {
   el.style.opacity = '0';
   el.style.transform = 'translateY(20px)';
   el.style.transition = 'opacity 0.7s ease-out, transform 0.7s ease-out';
