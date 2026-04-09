@@ -630,7 +630,7 @@ footer {
         <li><span class="price-check">✓</span> Dedicated onboarding</li>
         <li><span class="price-check">✓</span> SLA & compliance reporting</li>
       </ul>
-      <a href="mailto:heath@meetdossie.com" class="price-btn outlined">Contact Us</a>
+      <a href="/cdn-cgi/l/email-protection#1e767b7f6a765e737b7b6a7a716d6d777b307d7173" class="price-btn outlined">Contact Us</a>
     </div>
   </div>
 </section>
@@ -667,11 +667,11 @@ footer {
     <a href="/" class="footer-link">For Agents</a>
     <a href="#" class="footer-link">Privacy</a>
     <a href="#" class="footer-link">Terms</a>
-    <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
+    <a href="/cdn-cgi/l/email-protection#86eee3e7f2eec6ebe3e3f2e2e9f5f5efe3a8e5e9eb" class="footer-link">Contact</a>
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const _surl = 'https://pgwoitbdiyubjugwufhk.supabase.co';
 const _skey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE';
@@ -688,7 +688,7 @@ async function handleWaitlist() {
   btn.textContent = 'Joining...';
   btn.disabled = true;
   try {
-    const { error } = await _db.from('waitlist').insert([{ email: email, source: 'tc-page' }]);
+    const { error } = await _db.from('waitlist').insert([{ email: email, source: 'tc' }]);
     if (error && error.code !== '23505') {
       btn.textContent = 'Try Again';
       btn.disabled = false;
@@ -712,11 +712,4 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.08 });
 document.querySelectorAll('.feature-card, .pain-card, .price-card, .calc-box').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(20px)';
-  el.style.transition = 'opacity 0.7s ease-out, transform 0.7s ease-out';
-  observer.observe(el);
-});
-</script>
-</body>
-</html>
+  e
