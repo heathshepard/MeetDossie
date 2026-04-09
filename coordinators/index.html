@@ -670,12 +670,9 @@ footer {
     <a href="/cdn-cgi/l/email-protection#86eee3e7f2eec6ebe3e3f2e2e9f5f5efe3a8e5e9eb" class="footer-link">Contact</a>
   </div>
 </footer>
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const _surl = 'https://pgwoitbdiyubjugwufhk.supabase.co';
 const _skey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE';
-const _db = window.supabase.createClient(_surl, _skey, { auth: { persistSession: false } });
 
 async function handleWaitlist() {
   const emailInput = document.getElementById('emailInput');
@@ -688,14 +685,23 @@ async function handleWaitlist() {
   btn.textContent = 'Joining...';
   btn.disabled = true;
   try {
-    const { error } = await _db.from('waitlist').insert([{ email: email, source: 'tc' }]);
-    if (error && error.code !== '23505') {
+    const res = await fetch(_surl + '/rest/v1/waitlist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': _skey,
+        'Authorization': 'Bearer ' + _skey,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ email: email, source: 'tc' })
+    });
+    if (res.ok || res.status === 201 || res.status === 409) {
+      document.getElementById('waitlistForm').style.display = 'none';
+      document.getElementById('waitlistSuccess').style.display = 'block';
+    } else {
       btn.textContent = 'Try Again';
       btn.disabled = false;
       emailInput.style.borderColor = '#E8836B';
-    } else {
-      document.getElementById('waitlistForm').style.display = 'none';
-      document.getElementById('waitlistSuccess').style.display = 'block';
     }
   } catch (err) {
     btn.textContent = 'Try Again';
@@ -711,5 +717,12 @@ const observer = new IntersectionObserver((entries) => {
     }
   });
 }, { threshold: 0.08 });
-document.querySelectorAll('.feature-card, .pain-card, .price-card, .calc-box').forEach(el => {
-  e
+document.querySelectorAll('.feature-card, .compare-card, .brief-demo, .price-card, .founder-quote').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.7s ease-out, transform 0.7s ease-out';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
