@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Enter Dossie</title>
-<meta name="description" content="Phase-one entry page for Dossie.">
+<meta name="description" content="Phase-one app entry for Dossie.">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +12,7 @@
  --bg: #FDFCFA; --bg-warm: #F9F6F1; --card: rgba(255,255,255,0.94);
  --border: #E8E2D9; --border-light: #F0EBE3;
  --text: #2D2A26; --text-soft: #7A7468; --text-light: #A39E94;
- --blush: #D4A0A0; --blush-deep: #C08080;
+ --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
  --sage: #8BA888; --sage-deep: #6B8E68;
 }
 body {
@@ -99,7 +99,7 @@ body::after {
  box-shadow: 0 26px 80px rgba(26,26,46,0.08);
  padding: 42px;
  display: grid;
- grid-template-columns: 1.1fr 0.9fr;
+ grid-template-columns: 1.05fr 0.95fr;
  gap: 32px;
  position: relative;
  z-index: 1;
@@ -134,13 +134,12 @@ body::after {
  line-height: 1.9;
  max-width: 540px;
 }
-.points {
- list-style: none;
- margin-top: 22px;
+.meta {
  display: grid;
  gap: 12px;
+ margin-top: 24px;
 }
-.points li {
+.meta-item {
  display: flex;
  align-items: flex-start;
  gap: 10px;
@@ -148,7 +147,7 @@ body::after {
  font-size: 14px;
  line-height: 1.7;
 }
-.points strong {
+.meta-item strong {
  color: var(--text);
 }
 .tick {
@@ -175,9 +174,37 @@ body::after {
  line-height: 1.8;
  margin-bottom: 18px;
 }
+.field {
+ display: flex;
+ flex-direction: column;
+ gap: 7px;
+ margin-bottom: 14px;
+}
+.field label {
+ font-size: 12px;
+ font-weight: 700;
+ letter-spacing: 0.3px;
+ color: var(--text-soft);
+}
+.field input {
+ width: 100%;
+ border: 1px solid var(--border);
+ border-radius: 16px;
+ padding: 14px 16px;
+ font-size: 14px;
+ font-family: inherit;
+ color: var(--text);
+ background: white;
+ outline: none;
+}
+.field input:focus {
+ border-color: var(--sage);
+ box-shadow: 0 0 0 4px rgba(139,168,136,0.12);
+}
 .button-stack {
  display: grid;
  gap: 12px;
+ margin-top: 8px;
 }
 .button {
  display: inline-flex;
@@ -202,13 +229,13 @@ body::after {
  color: var(--text);
 }
 .helper {
- margin-top: 16px;
+ margin-top: 14px;
  font-size: 12px;
  color: var(--text-light);
  line-height: 1.7;
 }
 .status {
- margin-top: 22px;
+ margin-top: 20px;
  padding-top: 18px;
  border-top: 1px solid var(--border-light);
  font-size: 13px;
@@ -246,34 +273,43 @@ body::after {
   <main class="main">
     <section class="card">
       <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span>Phase-One App Entry</div>
-        <h1 class="title">You’re in the right place.</h1>
-        <p class="sub">This is the phase-one entry point for Dossie. The full authenticated app experience is being connected next, but this page gives users a real branded destination instead of a dead end.</p>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>App Entry</div>
+        <h1 class="title">Welcome back to Dossie.</h1>
+        <p class="sub">This page is for people already trying to enter the product. It is intentionally separate from the public homepage so the experience feels like app access, not another marketing page.</p>
 
-        <ul class="points">
-          <li><span class="tick">✓</span><span><strong>Agents</strong> can keep exploring the platform and join the right path without losing momentum.</span></li>
-          <li><span class="tick">✓</span><span><strong>TCs</strong> can continue through the coordinator experience and see how Dossie fits their workflow.</span></li>
-          <li><span class="tick">✓</span><span><strong>The product flow</strong> now has a real entry page while the full app routing and authentication are finalized.</span></li>
-        </ul>
+        <div class="meta">
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Existing users</strong> get a clear place to enter instead of bouncing back through the homepage.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Phase one</strong> uses a lightweight access flow while full authentication is still being wired.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Next step</strong> is connecting this screen to the real hosted Dossie app.</span></div>
+        </div>
       </div>
 
       <div class="panel">
         <div>
-          <div class="panel-title">Choose your next step</div>
-          <p class="panel-copy">Use the most relevant path below. This keeps the site usable today while we finish wiring the full app experience behind the scenes.</p>
-        </div>
+          <div class="panel-title">Enter Dossie</div>
+          <p class="panel-copy">Use your work email to continue. For now, this is a phase-one access screen — not full production authentication yet.</p>
 
-        <div class="button-stack">
-          <a class="button button-primary" href="/agents">I’m an Agent</a>
-          <a class="button button-secondary" href="/coordinators">I’m a Transaction Coordinator</a>
-          <a class="button button-secondary" href="mailto:heath@meetdossie.com?subject=Dossie%20App%20Access">Request App Access</a>
-        </div>
+          <form action="mailto:heath@meetdossie.com" method="get">
+            <div class="field">
+              <label for="entry-email">Email</label>
+              <input id="entry-email" name="subject" type="email" placeholder="you@meetdossie.com" required>
+            </div>
+            <div class="field">
+              <label for="entry-password">Password</label>
+              <input id="entry-password" name="body" type="password" placeholder="Enter password" required>
+            </div>
+            <div class="button-stack">
+              <button class="button button-primary" type="submit">Enter Dossie</button>
+              <a class="button button-secondary" href="mailto:heath@meetdossie.com?subject=Dossie%20Magic%20Link%20Request">Email me a magic link</a>
+            </div>
+          </form>
 
-        <div class="helper">Phase one note: this page is intentionally lightweight and does not yet require full login credentials.</div>
+          <div class="helper">Phase one note: this page is designed to feel like product entry now, while the real login system is connected next.</div>
+        </div>
 
         <div class="status">
-          <strong>Current status:</strong> branded entry page is live.<br>
-          <strong>Next step:</strong> connect this page to the real hosted Dossie app and authentication flow.
+          <strong>Current status:</strong> real app-entry screen is live.<br>
+          <strong>Next step:</strong> connect this entry screen to the hosted Dossie app and production authentication.
         </div>
       </div>
     </section>
