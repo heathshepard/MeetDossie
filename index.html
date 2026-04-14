@@ -14,7 +14,6 @@
  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
  --sage: #8BA888; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
- --gold: #C9A96E; --gold-light: #F5EDD8; --coral: #E8836B;
 }
 html { scroll-behavior: smooth; }
 body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
@@ -26,8 +25,7 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
 .nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
 .nav-actions { display: flex; align-items: center; gap: 12px; }
-.nav-link { text-decoration: none; color: var(--text-secondary); font-size: 14px; font-weight: 600; }
-.nav-enter { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: var(--sage-deep); color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(107, 142, 104, 0.18); }
+.nav-signin { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: var(--sage-deep); color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(107, 142, 104, 0.18); }
 
 .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 28px 80px; position: relative; overflow: hidden; }
 .hero::before { content: ''; position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.8; }
@@ -37,11 +35,7 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); animation: pulse 2.5s ease-in-out infinite; }
 .hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(44px, 8vw, 88px); font-weight: 600; line-height: 1.0; letter-spacing: -2px; color: var(--text-primary); animation: fadeInUp 0.5s ease-out 0.1s both; }
 .hero-title em { font-style: italic; background: linear-gradient(135deg, var(--blush-deep) 0%, var(--sage-deep) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.hero-sub { font-size: clamp(15px, 2vw, 18px); color: var(--text-secondary); max-width: 540px; margin: 24px auto 0; line-height: 1.7; animation: fadeInUp 0.5s ease-out 0.2s both; }
-.hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 28px; animation: fadeInUp 0.5s ease-out 0.26s both; }
-.hero-primary { display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px; background: var(--sage-deep); color: #fff; text-decoration: none; font-size: 14px; font-weight: 700; }
-.hero-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); text-decoration: none; font-size: 14px; font-weight: 700; }
-.enter-note { margin-top: 14px; font-size: 13px; color: var(--text-light); animation: fadeInUp 0.5s ease-out 0.3s both; }
+.hero-sub { font-size: clamp(15px, 2vw, 18px); color: var(--text-secondary); max-width: 500px; margin: 24px auto 0; line-height: 1.7; animation: fadeInUp 0.5s ease-out 0.2s both; }
 .divider { display: flex; align-items: center; gap: 16px; margin: 52px auto; max-width: 300px; animation: fadeInUp 0.5s ease-out 0.35s both; }
 .divider-line { flex: 1; height: 1px; background: var(--border); }
 .divider-text { font-size: 12px; color: var(--text-light); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
@@ -74,24 +68,6 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .door.tc .door-cta { background: var(--sage-deep); color: #fff; }
 .door:hover .door-cta { gap: 14px; }
 
-.entry-panel { max-width: 920px; margin: 0 auto 72px; padding: 0 28px; }
-.entry-card { background: linear-gradient(135deg, rgba(255,255,255,0.94), rgba(249,246,241,0.98)); border: 1px solid var(--border); border-radius: 32px; padding: 34px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; box-shadow: 0 18px 48px rgba(26,26,46,0.06); }
-.entry-eyebrow { font-size: 12px; color: var(--blush-deep); font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 14px; }
-.entry-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(32px, 4vw, 46px); font-weight: 600; line-height: 1.02; margin-bottom: 12px; }
-.entry-copy { color: var(--text-secondary); line-height: 1.8; font-size: 15px; }
-.entry-points { list-style: none; margin-top: 18px; display: grid; gap: 10px; }
-.entry-points li { font-size: 14px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
-.entry-points span { color: var(--sage-deep); font-weight: 800; }
-.entry-form { background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); border-radius: 24px; padding: 22px; }
-.entry-form h3 { font-size: 18px; margin-bottom: 8px; }
-.entry-form p { font-size: 13px; color: var(--text-light); line-height: 1.7; margin-bottom: 16px; }
-.entry-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
-.entry-field label { font-size: 12px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.3px; }
-.entry-field input { border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; font-size: 14px; background: #fff; color: var(--text-primary); outline: none; }
-.entry-field input:focus { border-color: var(--sage); box-shadow: 0 0 0 4px rgba(139,168,136,0.12); }
-.entry-submit { width: 100%; border: none; border-radius: 999px; padding: 14px 18px; background: var(--sage-deep); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
-.entry-footnote { margin-top: 12px; font-size: 12px; color: var(--text-light); line-height: 1.6; }
-
 .proof-bar { display: flex; justify-content: center; gap: 48px; margin-top: 64px; flex-wrap: wrap; animation: fadeInUp 0.5s ease-out 0.5s both; }
 .proof-item { text-align: center; }
 .proof-num { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--text-primary); line-height: 1; }
@@ -109,20 +85,11 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 .footer-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
 .footer-link:hover { color: var(--text-primary); }
 
-@media (max-width: 900px) {
- .entry-card { grid-template-columns: 1fr; }
-}
-
 @media (max-width: 680px) {
- nav { padding: 12px 18px; }
- .nav-actions { gap: 10px; }
- .nav-link { display: none; }
  .doors { grid-template-columns: 1fr; max-width: 420px; }
  .proof-bar { gap: 28px; }
  .hero-title { letter-spacing: -1px; }
  .door { padding: 32px 28px; }
- .entry-panel { padding: 0 18px; }
- .entry-card { padding: 24px; border-radius: 24px; }
 }
 </style>
 </head>
@@ -130,118 +97,82 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 
 <nav>
  <a href="#" class="nav-logo">
- <div class="nav-mark">D</div>
- <span class="nav-name">Dossie</span>
+  <div class="nav-mark">D</div>
+  <span class="nav-name">Dossie</span>
  </a>
  <div class="nav-actions">
-  <a href="#entry" class="nav-link">Enter Dossie</a>
-  <a href="/app.html" class="nav-enter">Open App</a>
+  <a href="app.html" class="nav-signin">Sign In</a>
  </div>
 </nav>
 
 <section class="hero">
  <div class="hero-badge">
- <div class="hero-badge-dot"></div>
- Built for Texas Real Estate · TREC Compliant
+  <div class="hero-badge-dot"></div>
+  Built for Texas Real Estate · TREC Compliant
  </div>
  <h1 class="hero-title">Transaction coordination,<br><em>handled.</em></h1>
- <p class="hero-sub">Dossie is the AI platform that brings order to real estate transactions — whoever's running them. Explore the public site, then enter the app when you're ready.</p>
- <div class="hero-actions">
-  <a href="#entry" class="hero-primary">Enter Dossie</a>
-  <a href="#doors" class="hero-secondary">See who it's for</a>
- </div>
- <div class="enter-note">Phase-one app entry is live. Full authentication can be layered in next.</div>
+ <p class="hero-sub">Dossie is the AI platform that brings order to real estate transactions — whoever’s running them.</p>
 
  <div class="divider">
- <div class="divider-line"></div>
- <span class="divider-text">Who are you?</span>
- <div class="divider-line"></div>
+  <div class="divider-line"></div>
+  <span class="divider-text">Who are you?</span>
+  <div class="divider-line"></div>
  </div>
 
  <div class="doors" id="doors">
- <a href="/agents" class="door agent">
- <span class="door-tag"><span class="door-tag-dot"></span>For Agents</span>
- <span class="door-emoji">🏡</span>
- <div class="door-title">I want to run my own transactions</div>
- <p class="door-desc">Take control of your deals without hiring a TC. Dossie handles the deadlines, follow-ups, and paperwork — you focus on clients and closings.</p>
- <ul class="door-benefits">
- <li><span class="door-check">✓</span> Save $350–500 per transaction</li>
- <li><span class="door-check">✓</span> AI fills TREC contracts by voice</li>
- <li><span class="door-check">✓</span> Automated follow-ups from your email</li>
- <li><span class="door-check">✓</span> Morning Brief every single day</li>
- </ul>
- <span class="door-cta">I'm an Agent →</span>
- </a>
+  <a href="/agents" class="door agent">
+   <span class="door-tag"><span class="door-tag-dot"></span>For Agents</span>
+   <span class="door-emoji">🏡</span>
+   <div class="door-title">I want to run my own transactions</div>
+   <p class="door-desc">Take control of your deals without hiring a TC. Dossie handles the deadlines, follow-ups, and paperwork — you focus on clients and closings.</p>
+   <ul class="door-benefits">
+    <li><span class="door-check">✓</span> Save $350–500 per transaction</li>
+    <li><span class="door-check">✓</span> AI fills TREC contracts by voice</li>
+    <li><span class="door-check">✓</span> Automated follow-ups from your email</li>
+    <li><span class="door-check">✓</span> Morning Brief every single day</li>
+   </ul>
+   <span class="door-cta">I’m an Agent →</span>
+  </a>
 
- <a href="/coordinators" class="door tc">
- <span class="door-tag"><span class="door-tag-dot"></span>For Transaction Coordinators</span>
- <span class="door-emoji">📋</span>
- <div class="door-title">I want to scale my TC business</div>
- <p class="door-desc">Handle 3x the transactions with the same team. Dossie automates the follow-ups, deadline tracking, and admin that caps your capacity.</p>
- <ul class="door-benefits">
- <li><span class="door-check">✓</span> Triple your transaction capacity</li>
- <li><span class="door-check">✓</span> Automated follow-up sequences</li>
- <li><span class="door-check">✓</span> Never miss another deadline</li>
- <li><span class="door-check">✓</span> Keep disorganized agents in line</li>
- </ul>
- <span class="door-cta">I'm a TC →</span>
- </a>
+  <a href="/coordinators" class="door tc">
+   <span class="door-tag"><span class="door-tag-dot"></span>For Transaction Coordinators</span>
+   <span class="door-emoji">📋</span>
+   <div class="door-title">I want to scale my TC business</div>
+   <p class="door-desc">Handle 3x the transactions with the same team. Dossie automates the follow-ups, deadline tracking, and admin that caps your capacity.</p>
+   <ul class="door-benefits">
+    <li><span class="door-check">✓</span> Triple your transaction capacity</li>
+    <li><span class="door-check">✓</span> Automated follow-up sequences</li>
+    <li><span class="door-check">✓</span> Never miss another deadline</li>
+    <li><span class="door-check">✓</span> Keep disorganized agents in line</li>
+   </ul>
+   <span class="door-cta">I’m a TC →</span>
+  </a>
  </div>
 
  <div class="proof-bar">
- <div class="proof-item"><div class="proof-num">96%</div><div class="proof-label">Cost savings vs. human TC</div></div>
- <div class="proof-item"><div class="proof-num">3x</div><div class="proof-label">TC capacity increase</div></div>
- <div class="proof-item"><div class="proof-num">0</div><div class="proof-label">Missed deadlines</div></div>
- <div class="proof-item"><div class="proof-num">$39</div><div class="proof-label">Starting per month</div></div>
- </div>
-</section>
-
-<section class="entry-panel" id="entry">
- <div class="entry-card">
-  <div>
-   <div class="entry-eyebrow">Phase-One App Entry</div>
-   <h2 class="entry-title">Already using Dossie?<br>Enter the app here.</h2>
-   <p class="entry-copy">The public site stays open for visitors, while active users get a clear path into the app. For this phase, this is an entry experience only — full authentication can be connected next.</p>
-   <ul class="entry-points">
-    <li><span>•</span> Keeps the marketing site public</li>
-    <li><span>•</span> Gives existing users a clear app entrance</li>
-    <li><span>•</span> Sets up a clean future handoff to real auth</li>
-   </ul>
-  </div>
-  <form class="entry-form" action="/app.html" method="get">
-   <h3>Enter Dossie</h3>
-   <p>Use this phase-one entry form to move from the public homepage into the app.</p>
-   <div class="entry-field">
-    <label for="entry-name">Name</label>
-    <input id="entry-name" name="name" type="text" placeholder="Heath Shepard" required>
-   </div>
-   <div class="entry-field">
-    <label for="entry-email">Email</label>
-    <input id="entry-email" name="email" type="email" placeholder="you@meetdossie.com" required>
-   </div>
-   <button type="submit" class="entry-submit">Enter Dossie</button>
-   <div class="entry-footnote">Phase one only: this routes into <strong>/app</strong> and does not yet perform real authentication.</div>
-  </form>
+  <div class="proof-item"><div class="proof-num">96%</div><div class="proof-label">Cost savings vs. human TC</div></div>
+  <div class="proof-item"><div class="proof-num">3x</div><div class="proof-label">TC capacity increase</div></div>
+  <div class="proof-item"><div class="proof-num">0</div><div class="proof-label">Missed deadlines</div></div>
+  <div class="proof-item"><div class="proof-num">$39</div><div class="proof-label">Starting per month</div></div>
  </div>
 </section>
 
 <div class="tagline-section">
- <p class="tagline">"I built Dossie because I was tired of choosing between <strong>growing my business</strong> and managing my transactions. <strong>Now I don't have to choose.</strong>"</p>
+ <p class="tagline">“I built Dossie because I was tired of choosing between <strong>growing my business</strong> and managing my transactions. <strong>Now I don’t have to choose.</strong>”</p>
  <p class="tagline-attr">— Heath Shepard, Texas REALTOR® & Founder</p>
 </div>
 <footer>
  <div class="footer-logo">
- <div class="nav-mark" style="width:30px;height:30px;font-size:13px;">D</div>
- <span class="footer-name">Dossie</span>
+  <div class="nav-mark" style="width:30px;height:30px;font-size:13px;">D</div>
+  <span class="footer-name">Dossie</span>
  </div>
  <div class="footer-text">Built by a Texas REALTOR® who needed a better way.<br>© 2026 Dossie AI. All rights reserved.</div>
  <div class="footer-links">
- <a href="#" class="footer-link">Privacy</a>
- <a href="#" class="footer-link">Terms</a>
- <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
+  <a href="#" class="footer-link">Privacy</a>
+  <a href="#" class="footer-link">Terms</a>
+  <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
  </div>
 </footer>
 
 </body>
 </html>
-
