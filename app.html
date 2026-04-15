@@ -94,26 +94,35 @@ body::after {
   <main class="main">
     <section class="card">
       <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span>Magic Link Entry</div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>App Entry</div>
         <h1 class="title">Welcome back to Dossie.</h1>
-        <p class="sub">This is the real phase-one app entry point. Use your work email and Dossie will send you a secure magic link to sign in.</p>
+        <p class="sub">This is the real phase-one app entry point. Magic link stays the intended production path, but temporary password sign-in is available too so testing can keep moving while email auth is throttled.</p>
 
         <div class="meta">
-          <div class="meta-item"><span class="tick">✓</span><span><strong>No password friction</strong> for phase one — just a secure email sign-in.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>One clear entry point</strong> that feels like product access, not another marketing screen.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Magic link</strong> remains the preferred phase-one sign-in experience.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Password sign-in</strong> is available temporarily for testing and debugging.</span></div>
           <div class="meta-item"><span class="tick">✓</span><span><strong>Next step after sign-in</strong> is landing in the real Dossie app with your saved files.</span></div>
         </div>
       </div>
 
       <div class="panel">
         <div>
-          <div class="panel-title">Email me a magic link</div>
-          <p class="panel-copy">Enter the email you want to use for Dossie. We’ll send a sign-in link you can open from your inbox.</p>
+          <div class="panel-title">Sign in to Dossie</div>
+          <p class="panel-copy">Use magic link for the intended phase-one flow, or use password temporarily while email testing is rate-limited.</p>
 
-          <form id="magic-link-form">
+          <div class="button-stack" style="grid-template-columns: 1fr 1fr; margin-bottom: 14px;">
+            <button id="mode-magic" class="button button-secondary" type="button">Magic Link</button>
+            <button id="mode-password" class="button button-secondary" type="button">Password</button>
+          </div>
+
+          <form id="auth-form">
             <div class="field">
               <label for="entry-email">Email</label>
               <input id="entry-email" name="email" type="email" placeholder="you@meetdossie.com" autocomplete="email" required>
+            </div>
+            <div id="password-wrap" class="field" style="display:none;">
+              <label for="entry-password">Password</label>
+              <input id="entry-password" name="password" type="password" placeholder="Enter password" autocomplete="current-password">
             </div>
             <div id="notice" class="notice"></div>
             <div class="button-stack">
@@ -122,7 +131,7 @@ body::after {
             </div>
           </form>
 
-          <div class="helper">Phase one uses secure Supabase magic-link sign-in. After you click the link from your email, you’ll return into the app.</div>
+          <div class="helper">Magic link is still the intended production sign-in. Password access is enabled temporarily for testing while Supabase email limits are blocking repeated auth requests.</div>
         </div>
 
         <div class="status">
@@ -151,10 +160,15 @@ body::after {
     }
   );
 
-  const form = document.getElementById('magic-link-form');
+  const form = document.getElementById('auth-form');
   const emailInput = document.getElementById('entry-email');
+  const passwordInput = document.getElementById('entry-password');
+  const passwordWrap = document.getElementById('password-wrap');
   const submitBtn = document.getElementById('submit-btn');
   const notice = document.getElementById('notice');
+  const magicBtn = document.getElementById('mode-magic');
+  const passwordBtn = document.getElementById('mode-password');
+  let authMode = 'magic';
 
   const setNotice = (message, type = '') => {
     notice.textContent = message;
@@ -162,15 +176,61 @@ body::after {
     notice.style.display = message ? 'block' : 'none';
   };
 
+  const updateModeUi = () => {
+    const activeStyle = 'background: var(--sage-deep); color: white; border-color: var(--sage-deep);';
+    const inactiveStyle = '';
+    magicBtn.style.cssText = authMode === 'magic' ? activeStyle : inactiveStyle;
+    passwordBtn.style.cssText = authMode === 'password' ? activeStyle : inactiveStyle;
+    passwordWrap.style.display = authMode === 'password' ? 'flex' : 'none';
+    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : 'Email Me a Magic Link';
+    setNotice('');
+  };
+
+  magicBtn.addEventListener('click', () => {
+    authMode = 'magic';
+    updateModeUi();
+  });
+
+  passwordBtn.addEventListener('click', () => {
+    authMode = 'password';
+    updateModeUi();
+  });
+
+  updateModeUi();
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const email = emailInput.value.trim();
+    const password = passwordInput.value;
     if (!email) {
       setNotice('Add your email first.', 'error');
       return;
     }
 
     submitBtn.disabled = true;
+
+    if (authMode === 'password') {
+      if (!password) {
+        setNotice('Add your password too.', 'error');
+        submitBtn.disabled = false;
+        return;
+      }
+      submitBtn.textContent = 'Signing in...';
+      setNotice('Signing you in...');
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setNotice(error.message || 'Password sign-in failed.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In with Password';
+        return;
+      }
+      setNotice('Welcome back. Opening Dossie...', 'success');
+      setTimeout(() => {
+        window.location.href = '/app.html';
+      }, 1000);
+      return;
+    }
+
     submitBtn.textContent = 'Sending...';
     setNotice('Sending your magic link...');
 
