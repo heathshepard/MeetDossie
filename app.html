@@ -107,12 +107,13 @@ body::after {
 
       <div class="panel">
         <div>
-          <div class="panel-title">Sign in to Dossie</div>
-          <p class="panel-copy">Use magic link for the intended phase-one flow, or use password temporarily while email testing is rate-limited.</p>
+          <div class="panel-title">Enter Dossie</div>
+          <p class="panel-copy">Use magic link for the intended phase-one flow, use password temporarily for testing, or create a test account directly if you do not have one yet.</p>
 
-          <div class="button-stack" style="grid-template-columns: 1fr 1fr; margin-bottom: 14px;">
+          <div class="button-stack" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 14px;">
             <button id="mode-magic" class="button button-secondary" type="button">Magic Link</button>
             <button id="mode-password" class="button button-secondary" type="button">Password</button>
+            <button id="mode-signup" class="button button-secondary" type="button">Create Account</button>
           </div>
 
           <form id="auth-form">
@@ -168,6 +169,7 @@ body::after {
   const notice = document.getElementById('notice');
   const magicBtn = document.getElementById('mode-magic');
   const passwordBtn = document.getElementById('mode-password');
+  const signupBtn = document.getElementById('mode-signup');
   let authMode = 'magic';
 
   const setNotice = (message, type = '') => {
@@ -181,8 +183,9 @@ body::after {
     const inactiveStyle = '';
     magicBtn.style.cssText = authMode === 'magic' ? activeStyle : inactiveStyle;
     passwordBtn.style.cssText = authMode === 'password' ? activeStyle : inactiveStyle;
-    passwordWrap.style.display = authMode === 'password' ? 'flex' : 'none';
-    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : 'Email Me a Magic Link';
+    signupBtn.style.cssText = authMode === 'signup' ? activeStyle : inactiveStyle;
+    passwordWrap.style.display = authMode === 'password' || authMode === 'signup' ? 'flex' : 'none';
+    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : authMode === 'signup' ? 'Create Account' : 'Email Me a Magic Link';
     setNotice('');
   };
 
@@ -193,6 +196,11 @@ body::after {
 
   passwordBtn.addEventListener('click', () => {
     authMode = 'password';
+    updateModeUi();
+  });
+
+  signupBtn.addEventListener('click', () => {
+    authMode = 'signup';
     updateModeUi();
   });
 
@@ -209,12 +217,31 @@ body::after {
 
     submitBtn.disabled = true;
 
-    if (authMode === 'password') {
+    if (authMode === 'password' || authMode === 'signup') {
       if (!password) {
-        setNotice('Add your password too.', 'error');
+        setNotice(authMode === 'signup' ? 'Create a password too.' : 'Add your password too.', 'error');
         submitBtn.disabled = false;
         return;
       }
+
+      if (authMode === 'signup') {
+        submitBtn.textContent = 'Creating account...';
+        setNotice('Creating your account...');
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          setNotice(error.message || 'Account creation failed.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+          return;
+        }
+        setNotice('Account created. You can now sign in with your password.', 'success');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+        authMode = 'password';
+        updateModeUi();
+        return;
+      }
+
       submitBtn.textContent = 'Signing in...';
       setNotice('Signing you in...');
       const { error } = await supabase.auth.signInWithPassword({ email, password });
