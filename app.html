@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Enter Dossie</title>
-<meta name="description" content="Phase-one app entry for Dossie.">
+<meta name="description" content="Phase-one magic-link entry for Dossie.">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,8 +12,9 @@
  --bg: #FDFCFA; --bg-warm: #F9F6F1; --card: rgba(255,255,255,0.94);
  --border: #E8E2D9; --border-light: #F0EBE3;
  --text: #2D2A26; --text-soft: #7A7468; --text-light: #A39E94;
- --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
- --sage: #8BA888; --sage-deep: #6B8E68;
+ --blush: #D4A0A0; --blush-deep: #C08080;
+ --sage: #8BA888; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+ --red: #D95C52;
 }
 body {
  font-family: 'Plus Jakarta Sans', sans-serif;
@@ -42,222 +43,42 @@ body::after {
  background: radial-gradient(circle, rgba(139,168,136,0.18) 0%, transparent 66%);
  pointer-events: none;
 }
-.page {
- min-height: 100vh;
- padding: 28px;
- display: flex;
- flex-direction: column;
-}
-.nav {
- display: flex;
- align-items: center;
- justify-content: space-between;
- gap: 16px;
- margin-bottom: 40px;
-}
-.brand {
- display: inline-flex;
- align-items: center;
- gap: 10px;
- text-decoration: none;
- color: inherit;
-}
-.mark {
- width: 40px;
- height: 40px;
- border-radius: 12px;
- display: grid;
- place-items: center;
- background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%);
- color: white;
- font-family: 'Cormorant Garamond', serif;
- font-size: 16px;
- font-weight: 700;
-}
-.brand-name {
- font-family: 'Cormorant Garamond', serif;
- font-size: 24px;
- font-weight: 600;
-}
-.back-link {
- text-decoration: none;
- color: var(--text-soft);
- font-size: 14px;
- font-weight: 600;
-}
-.main {
- flex: 1;
- display: grid;
- place-items: center;
-}
-.card {
- width: 100%;
- max-width: 980px;
- background: var(--card);
- border: 1px solid var(--border);
- border-radius: 32px;
- box-shadow: 0 26px 80px rgba(26,26,46,0.08);
- padding: 42px;
- display: grid;
- grid-template-columns: 1.05fr 0.95fr;
- gap: 32px;
- position: relative;
- z-index: 1;
-}
-.eyebrow {
- display: inline-flex;
- align-items: center;
- gap: 8px;
- font-size: 12px;
- text-transform: uppercase;
- letter-spacing: 1.8px;
- font-weight: 800;
- color: var(--blush-deep);
- margin-bottom: 18px;
-}
-.eyebrow-dot {
- width: 7px;
- height: 7px;
- border-radius: 999px;
- background: var(--sage);
-}
-.title {
- font-family: 'Cormorant Garamond', serif;
- font-size: clamp(40px, 6vw, 64px);
- line-height: 0.98;
- letter-spacing: -1.5px;
- margin-bottom: 16px;
-}
-.sub {
- color: var(--text-soft);
- font-size: 15px;
- line-height: 1.9;
- max-width: 540px;
-}
-.meta {
- display: grid;
- gap: 12px;
- margin-top: 24px;
-}
-.meta-item {
- display: flex;
- align-items: flex-start;
- gap: 10px;
- color: var(--text-soft);
- font-size: 14px;
- line-height: 1.7;
-}
-.meta-item strong {
- color: var(--text);
-}
-.tick {
- color: var(--sage-deep);
- font-weight: 800;
-}
-.panel {
- background: rgba(255,255,255,0.78);
- border: 1px solid var(--border-light);
- border-radius: 26px;
- padding: 24px;
- display: flex;
- flex-direction: column;
- justify-content: space-between;
-}
-.panel-title {
- font-size: 20px;
- font-weight: 700;
- margin-bottom: 8px;
-}
-.panel-copy {
- color: var(--text-soft);
- font-size: 14px;
- line-height: 1.8;
- margin-bottom: 18px;
-}
-.field {
- display: flex;
- flex-direction: column;
- gap: 7px;
- margin-bottom: 14px;
-}
-.field label {
- font-size: 12px;
- font-weight: 700;
- letter-spacing: 0.3px;
- color: var(--text-soft);
-}
-.field input {
- width: 100%;
- border: 1px solid var(--border);
- border-radius: 16px;
- padding: 14px 16px;
- font-size: 14px;
- font-family: inherit;
- color: var(--text);
- background: white;
- outline: none;
-}
-.field input:focus {
- border-color: var(--sage);
- box-shadow: 0 0 0 4px rgba(139,168,136,0.12);
-}
-.button-stack {
- display: grid;
- gap: 12px;
- margin-top: 8px;
-}
-.button {
- display: inline-flex;
- align-items: center;
- justify-content: center;
- width: 100%;
- border: none;
- border-radius: 999px;
- padding: 15px 18px;
- font-size: 14px;
- font-weight: 700;
- text-decoration: none;
- cursor: pointer;
-}
-.button-primary {
- background: var(--sage-deep);
- color: white;
-}
-.button-secondary {
- background: white;
- border: 1px solid var(--border);
- color: var(--text);
-}
-.helper {
- margin-top: 14px;
- font-size: 12px;
- color: var(--text-light);
- line-height: 1.7;
-}
-.status {
- margin-top: 20px;
- padding-top: 18px;
- border-top: 1px solid var(--border-light);
- font-size: 13px;
- color: var(--text-soft);
- line-height: 1.8;
-}
-.footer {
- margin-top: 28px;
- text-align: center;
- color: var(--text-light);
- font-size: 12px;
- line-height: 1.7;
-}
-@media (max-width: 860px) {
- .card { grid-template-columns: 1fr; padding: 28px; }
-}
-@media (max-width: 640px) {
- .page { padding: 18px; }
- .nav { margin-bottom: 24px; }
- .card { padding: 24px; border-radius: 24px; }
- .title { letter-spacing: -1px; }
-}
+.page { min-height: 100vh; padding: 28px; display: flex; flex-direction: column; }
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 40px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); color: white; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 700; }
+.brand-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; }
+.back-link { text-decoration: none; color: var(--text-soft); font-size: 14px; font-weight: 600; }
+.main { flex: 1; display: grid; place-items: center; }
+.card { width: 100%; max-width: 980px; background: var(--card); border: 1px solid var(--border); border-radius: 32px; box-shadow: 0 26px 80px rgba(26,26,46,0.08); padding: 42px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 32px; position: relative; z-index: 1; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.8px; font-weight: 800; color: var(--blush-deep); margin-bottom: 18px; }
+.eyebrow-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--sage); }
+.title { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 6vw, 64px); line-height: 0.98; letter-spacing: -1.5px; margin-bottom: 16px; }
+.sub { color: var(--text-soft); font-size: 15px; line-height: 1.9; max-width: 540px; }
+.meta { display: grid; gap: 12px; margin-top: 24px; }
+.meta-item { display: flex; align-items: flex-start; gap: 10px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
+.meta-item strong { color: var(--text); }
+.tick { color: var(--sage-deep); font-weight: 800; }
+.panel { background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); border-radius: 26px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; }
+.panel-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.panel-copy { color: var(--text-soft); font-size: 14px; line-height: 1.8; margin-bottom: 18px; }
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.field label { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: var(--text-soft); }
+.field input { width: 100%; border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none; }
+.field input:focus { border-color: var(--sage); box-shadow: 0 0 0 4px rgba(139,168,136,0.12); }
+.button-stack { display: grid; gap: 12px; margin-top: 8px; }
+.button { display: inline-flex; align-items: center; justify-content: center; width: 100%; border: none; border-radius: 999px; padding: 15px 18px; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.button-primary { background: var(--sage-deep); color: white; }
+.button-primary:disabled { opacity: 0.7; cursor: wait; }
+.button-secondary { background: white; border: 1px solid var(--border); color: var(--text); }
+.helper { margin-top: 14px; font-size: 12px; color: var(--text-light); line-height: 1.7; }
+.status { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-light); font-size: 13px; color: var(--text-soft); line-height: 1.8; }
+.notice { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--bg-warm); color: var(--text); font-size: 13px; line-height: 1.6; display: none; }
+.notice.error { background: #FCE8E6; color: var(--red); }
+.notice.success { background: var(--sage-light); color: var(--sage-deep); }
+.footer { margin-top: 28px; text-align: center; color: var(--text-light); font-size: 12px; line-height: 1.7; }
+@media (max-width: 860px) { .card { grid-template-columns: 1fr; padding: 28px; } }
+@media (max-width: 640px) { .page { padding: 18px; } .nav { margin-bottom: 24px; } .card { padding: 24px; border-radius: 24px; } .title { letter-spacing: -1px; } }
 </style>
 </head>
 <body>
@@ -273,43 +94,40 @@ body::after {
   <main class="main">
     <section class="card">
       <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span>App Entry</div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Magic Link Entry</div>
         <h1 class="title">Welcome back to Dossie.</h1>
-        <p class="sub">This page is for people already trying to enter the product. It is intentionally separate from the public homepage so the experience feels like app access, not another marketing page.</p>
+        <p class="sub">This is the real phase-one app entry point. Use your work email and Dossie will send you a secure magic link to sign in.</p>
 
         <div class="meta">
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Existing users</strong> get a clear place to enter instead of bouncing back through the homepage.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Phase one</strong> uses a lightweight access flow while full authentication is still being wired.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Next step</strong> is connecting this screen to the real hosted Dossie app.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>No password friction</strong> for phase one — just a secure email sign-in.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>One clear entry point</strong> that feels like product access, not another marketing screen.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Next step after sign-in</strong> is landing in the real Dossie app with your saved files.</span></div>
         </div>
       </div>
 
       <div class="panel">
         <div>
-          <div class="panel-title">Enter Dossie</div>
-          <p class="panel-copy">Use your work email to continue. For now, this is a phase-one access screen — not full production authentication yet.</p>
+          <div class="panel-title">Email me a magic link</div>
+          <p class="panel-copy">Enter the email you want to use for Dossie. We’ll send a sign-in link you can open from your inbox.</p>
 
-          <form action="mailto:heath@meetdossie.com" method="get">
+          <form id="magic-link-form">
             <div class="field">
               <label for="entry-email">Email</label>
-              <input id="entry-email" name="subject" type="email" placeholder="you@meetdossie.com" required>
+              <input id="entry-email" name="email" type="email" placeholder="you@meetdossie.com" autocomplete="email" required>
             </div>
-            <div class="field">
-              <label for="entry-password">Password</label>
-              <input id="entry-password" name="body" type="password" placeholder="Enter password" required>
-            </div>
+            <div id="notice" class="notice"></div>
             <div class="button-stack">
-              <button class="button button-primary" type="submit">Enter Dossie</button>
-              <a class="button button-secondary" href="mailto:heath@meetdossie.com?subject=Dossie%20Magic%20Link%20Request">Email me a magic link</a>
+              <button id="submit-btn" class="button button-primary" type="submit">Email Me a Magic Link</button>
+              <a class="button button-secondary" href="/">Back to homepage</a>
             </div>
           </form>
 
-          <div class="helper">Phase one note: this page is designed to feel like product entry now, while the real login system is connected next.</div>
+          <div class="helper">Phase one uses secure Supabase magic-link sign-in. After you click the link from your email, you’ll return into the app.</div>
         </div>
 
         <div class="status">
-          <strong>Current status:</strong> real app-entry screen is live.<br>
-          <strong>Next step:</strong> connect this entry screen to the hosted Dossie app and production authentication.
+          <strong>Current status:</strong> real magic-link entry is live.<br>
+          <strong>Next step:</strong> sign in from your email and continue into the Dossie app.
         </div>
       </div>
     </section>
@@ -317,5 +135,71 @@ body::after {
 
   <div class="footer">Built by a Texas REALTOR® who needed a better way. © 2026 Dossie AI.</div>
 </div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const supabase = createClient(
+    'https://pgwoitbdiyubjugwufhk.supabase.co',
+    'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    }
+  );
+
+  const form = document.getElementById('magic-link-form');
+  const emailInput = document.getElementById('entry-email');
+  const submitBtn = document.getElementById('submit-btn');
+  const notice = document.getElementById('notice');
+
+  const setNotice = (message, type = '') => {
+    notice.textContent = message;
+    notice.className = `notice${type ? ` ${type}` : ''}`;
+    notice.style.display = message ? 'block' : 'none';
+  };
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = emailInput.value.trim();
+    if (!email) {
+      setNotice('Add your email first.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    setNotice('Sending your magic link...');
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app.html`,
+      },
+    });
+
+    if (error) {
+      setNotice(error.message || 'Magic link failed.', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Email Me a Magic Link';
+      return;
+    }
+
+    setNotice('Magic link sent. Check your email and open the link to enter Dossie.', 'success');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Email Me a Magic Link';
+  });
+
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) {
+    setNotice('You are already signed in. Opening the app...', 'success');
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1200);
+  }
+</script>
 </body>
 </html>
