@@ -125,6 +125,10 @@ body::after {
               <label for="entry-password">Password</label>
               <input id="entry-password" name="password" type="password" placeholder="Enter password" autocomplete="current-password">
             </div>
+            <div id="confirm-wrap" class="field" style="display:none;">
+              <label for="entry-confirm-password">Confirm password</label>
+              <input id="entry-confirm-password" name="confirmPassword" type="password" placeholder="Confirm password" autocomplete="new-password">
+            </div>
             <div id="notice" class="notice"></div>
             <div class="button-stack">
               <button id="submit-btn" class="button button-primary" type="submit">Email Me a Magic Link</button>
@@ -164,7 +168,9 @@ body::after {
   const form = document.getElementById('auth-form');
   const emailInput = document.getElementById('entry-email');
   const passwordInput = document.getElementById('entry-password');
+  const confirmPasswordInput = document.getElementById('entry-confirm-password');
   const passwordWrap = document.getElementById('password-wrap');
+  const confirmWrap = document.getElementById('confirm-wrap');
   const submitBtn = document.getElementById('submit-btn');
   const notice = document.getElementById('notice');
   const magicBtn = document.getElementById('mode-magic');
@@ -185,6 +191,7 @@ body::after {
     passwordBtn.style.cssText = authMode === 'password' ? activeStyle : inactiveStyle;
     signupBtn.style.cssText = authMode === 'signup' ? activeStyle : inactiveStyle;
     passwordWrap.style.display = authMode === 'password' || authMode === 'signup' ? 'flex' : 'none';
+    confirmWrap.style.display = authMode === 'signup' ? 'flex' : 'none';
     submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : authMode === 'signup' ? 'Create Account' : 'Email Me a Magic Link';
     setNotice('');
   };
@@ -210,6 +217,7 @@ body::after {
     event.preventDefault();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
     if (!email) {
       setNotice('Add your email first.', 'error');
       return;
@@ -225,16 +233,34 @@ body::after {
       }
 
       if (authMode === 'signup') {
+        if (!confirmPassword) {
+          setNotice('Confirm your password too.', 'error');
+          submitBtn.disabled = false;
+          return;
+        }
+        if (password !== confirmPassword) {
+          setNotice('Passwords do not match yet.', 'error');
+          submitBtn.disabled = false;
+          return;
+        }
+
         submitBtn.textContent = 'Creating account...';
         setNotice('Creating your account...');
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) {
           setNotice(error.message || 'Account creation failed.', 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Create Account';
           return;
         }
-        setNotice('Account created. You can now sign in with your password.', 'success');
+
+        const needsEmailConfirmation = !data?.session;
+        if (needsEmailConfirmation) {
+          setNotice('Account created. Check your email to confirm your account before signing in.', 'success');
+        } else {
+          setNotice('Account created. You can sign in with your password now.', 'success');
+        }
+
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Account';
         authMode = 'password';
