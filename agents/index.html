@@ -403,7 +403,100 @@ nav {
   font-size: 24px;
   margin-bottom: 18px;
   flex-shrink: 0;
+  position: relative;
+  color: var(--text-primary);
 }
+
+.feature-icon::before,
+.feature-icon::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.feature-icon.icon-brief::before {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(201,169,110,0.95);
+}
+
+.feature-icon.icon-brief::after {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(201,169,110,0.95);
+  box-shadow: 0 -12px 0 -1px rgba(201,169,110,0.95), 0 12px 0 -1px rgba(201,169,110,0.95), 12px 0 0 -1px rgba(201,169,110,0.95), -12px 0 0 -1px rgba(201,169,110,0.95);
+}
+
+.feature-icon.icon-chat::before {
+  width: 24px; height: 18px;
+  border: 2px solid rgba(192,128,128,0.95);
+  border-radius: 10px;
+  top: 13px; left: 14px;
+  background: transparent;
+}
+
+.feature-icon.icon-chat::after {
+  width: 8px; height: 8px;
+  border-left: 2px solid rgba(192,128,128,0.95);
+  border-bottom: 2px solid rgba(192,128,128,0.95);
+  transform: rotate(-35deg);
+  left: 18px; top: 27px;
+}
+
+.feature-icon.icon-mail::before {
+  width: 24px; height: 18px;
+  border: 2px solid rgba(107,142,104,0.95);
+  border-radius: 6px;
+}
+
+.feature-icon.icon-mail::after {
+  width: 16px; height: 16px;
+  border-left: 2px solid rgba(107,142,104,0.95);
+  border-bottom: 2px solid rgba(107,142,104,0.95);
+  transform: rotate(-45deg);
+  top: 12px;
+}
+
+.feature-icon.icon-clock::before {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(120,111,166,0.95);
+}
+
+.feature-icon.icon-clock::after {
+  width: 10px; height: 10px;
+  border-top: 2px solid rgba(120,111,166,0.95);
+  border-right: 2px solid rgba(120,111,166,0.95);
+  top: 14px; left: 24px;
+  transform: rotate(35deg);
+  transform-origin: top left;
+}
+
+.feature-icon.icon-grid::before {
+  width: 8px; height: 8px; background: rgba(201,169,110,0.95);
+  border-radius: 3px; left: 14px; top: 14px;
+  box-shadow: 14px 0 0 rgba(201,169,110,0.95), 0 14px 0 rgba(201,169,110,0.95), 14px 14px 0 rgba(201,169,110,0.95);
+}
+
+.feature-icon.icon-grid::after { display: none; }
+
+.feature-icon.icon-voice::before {
+  width: 10px; height: 18px;
+  border: 2px solid rgba(192,128,128,0.95);
+  border-radius: 10px;
+  top: 12px; left: 20px;
+}
+
+.feature-icon.icon-voice::after {
+  width: 18px; height: 12px;
+  border: 2px solid rgba(192,128,128,0.95);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  top: 26px; left: 17px;
+}
+
+.brief-demo-icon { position: relative; display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; color: transparent; }
+.brief-demo-icon::before { content: ""; position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(201,169,110,0.95); }
+.brief-demo-icon::after { content: ""; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: rgba(201,169,110,0.95); box-shadow: 0 -11px 0 -1px rgba(201,169,110,0.95), 0 11px 0 -1px rgba(201,169,110,0.95), 11px 0 0 -1px rgba(201,169,110,0.95), -11px 0 0 -1px rgba(201,169,110,0.95); }
+
+.compare-icon { font-size: 14px; flex-shrink: 0; margin-top: 3px; font-weight: 700; }
 
 .feature-icon.blush { background: var(--blush-light); }
 .feature-icon.sage { background: var(--sage-light); }
@@ -910,7 +1003,7 @@ footer {
   <div class="feature-grid">
     <div class="feature-card featured">
       <div>
-        <div class="feature-icon gold" style="margin-bottom: 0;">&#9728;</div>
+        <div class="feature-icon gold icon-brief" style="margin-bottom: 0;" aria-hidden="true"></div>
       </div>
       <div>
         <div class="feature-title">Morning Brief</div>
@@ -922,7 +1015,7 @@ footer {
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon blush">&#9998;</div>
+      <div class="feature-icon blush icon-chat" aria-hidden="true"></div>
       <div class="feature-title">Chat-to-Contract</div>
       <div class="feature-desc">
         Tell Dossie the deal details in plain English - or by voice. She fills out the TREC contract, asks for anything missing, and hands you a ready-to-sign PDF.
@@ -930,7 +1023,7 @@ footer {
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon sage">&#9993;</div>
+      <div class="feature-icon sage icon-mail" aria-hidden="true"></div>
       <div class="feature-title">Auto Follow-Ups</div>
       <div class="feature-desc">
         Dossie sends emails from YOUR address - welcome notes, lender check-ins, title requests, closing reminders. She drafts. You approve with one tap.
@@ -938,7 +1031,7 @@ footer {
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon lavender">&#9201;</div>
+      <div class="feature-icon lavender icon-clock" aria-hidden="true"></div>
       <div class="feature-title">TREC Deadline Engine</div>
       <div class="feature-desc">
         Upload a contract or tell Dossie the terms. She calculates every critical TREC deadline - option, financing, title, survey, closing - automatically.
@@ -946,7 +1039,7 @@ footer {
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon gold">&#9783;</div>
+      <div class="feature-icon gold icon-grid" aria-hidden="true"></div>
       <div class="feature-title">Pipeline View</div>
       <div class="feature-desc">
         All your deals at a glance. See which stage they're in, who's involved, and what's next. Click any deal for the full timeline.
@@ -954,7 +1047,7 @@ footer {
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon blush">&#127908;</div>
+      <div class="feature-icon blush icon-voice" aria-hidden="true"></div>
       <div class="feature-title">"Hey Dossie"</div>
       <div class="feature-desc">
         Voice-first design. Talk to Dossie from your car, your showing, or your kitchen table. She listens, understands, and takes action. Coming soon.
@@ -972,7 +1065,7 @@ footer {
 
     <div class="brief-demo">
       <div class="brief-demo-header">
-        <span class="brief-demo-icon">&#9728;</span>
+        <span class="brief-demo-icon" aria-hidden="true"></span>
         <div>
           <div class="brief-demo-title">Morning Brief</div>
           <div class="brief-demo-date">Tuesday, April 8, 2026</div>
