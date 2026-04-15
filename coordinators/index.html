@@ -273,6 +273,91 @@ nav {
   width: 48px; height: 48px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; margin-bottom: 20px;
+  position: relative;
+  color: transparent;
+}
+
+.feature-icon::before,
+.feature-icon::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.feature-icon.icon-mail::before {
+  width: 24px; height: 18px;
+  border: 2px solid rgba(107,142,104,0.95);
+  border-radius: 6px;
+}
+
+.feature-icon.icon-mail::after {
+  width: 16px; height: 16px;
+  border-left: 2px solid rgba(107,142,104,0.95);
+  border-bottom: 2px solid rgba(107,142,104,0.95);
+  transform: rotate(-45deg);
+  top: 11px;
+}
+
+.feature-icon.icon-clock::before {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(192,128,128,0.95);
+}
+
+.feature-icon.icon-clock::after {
+  width: 10px; height: 10px;
+  border-top: 2px solid rgba(192,128,128,0.95);
+  border-right: 2px solid rgba(192,128,128,0.95);
+  top: 14px; left: 23px;
+  transform: rotate(35deg);
+  transform-origin: top left;
+}
+
+.feature-icon.icon-brief::before {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(201,169,110,0.95);
+}
+
+.feature-icon.icon-brief::after {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(201,169,110,0.95);
+  box-shadow: 0 -11px 0 -1px rgba(201,169,110,0.95), 0 11px 0 -1px rgba(201,169,110,0.95), 11px 0 0 -1px rgba(201,169,110,0.95), -11px 0 0 -1px rgba(201,169,110,0.95);
+}
+
+.feature-icon.icon-grid::before {
+  width: 8px; height: 8px; background: rgba(107,142,104,0.95);
+  border-radius: 3px; left: 13px; top: 13px;
+  box-shadow: 14px 0 0 rgba(107,142,104,0.95), 0 14px 0 rgba(107,142,104,0.95), 14px 14px 0 rgba(107,142,104,0.95);
+}
+
+.feature-icon.icon-grid::after { display: none; }
+
+.feature-icon.icon-chat::before {
+  width: 24px; height: 18px;
+  border: 2px solid rgba(192,128,128,0.95);
+  border-radius: 10px;
+  top: 12px; left: 13px;
+}
+
+.feature-icon.icon-chat::after {
+  width: 8px; height: 8px;
+  border-left: 2px solid rgba(192,128,128,0.95);
+  border-bottom: 2px solid rgba(192,128,128,0.95);
+  transform: rotate(-35deg);
+  left: 17px; top: 26px;
+}
+
+.feature-icon.icon-reply::before {
+  width: 20px; height: 20px;
+  border-top: 2px solid rgba(201,169,110,0.95);
+  border-left: 2px solid rgba(201,169,110,0.95);
+  transform: rotate(-45deg);
+  left: 18px; top: 14px;
+}
+
+.feature-icon.icon-reply::after {
+  width: 14px; height: 2px;
+  background: rgba(201,169,110,0.95);
+  left: 18px; top: 24px;
 }
 .feature-icon.sage { background: var(--sage-light); }
 .feature-icon.blush { background: var(--blush-light); }
@@ -505,32 +590,32 @@ footer {
 
   <div class="features-grid">
     <div class="feature-card">
-      <div class="feature-icon sage">📬</div>
+      <div class="feature-icon sage icon-mail" aria-hidden="true"></div>
       <div class="feature-title">Automated Follow-Up Sequences</div>
       <div class="feature-desc">Dossie sends timely, professional follow-ups to lenders, title companies, and agents on your behalf — with your name on them. No more chasing. No more manual emails.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon blush">⚡</div>
+      <div class="feature-icon blush icon-clock" aria-hidden="true"></div>
       <div class="feature-title">TREC Deadline Engine</div>
       <div class="feature-desc">Every critical deadline is auto-calculated from the contract effective date. Option period, financing, title commitment, survey, closing — tracked and alerted automatically.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon gold">☀️</div>
+      <div class="feature-icon gold icon-brief" aria-hidden="true"></div>
       <div class="feature-title">Morning Brief for Every Client</div>
       <div class="feature-desc">Each morning, get a clear summary of every active transaction — what's urgent, what's on track, and what needs your attention. One view. Total clarity.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon sage">📊</div>
+      <div class="feature-icon sage icon-grid" aria-hidden="true"></div>
       <div class="feature-title">Multi-Transaction Pipeline</div>
       <div class="feature-desc">Manage all your clients' deals in one dashboard. See every transaction, every stage, every outstanding task — without juggling spreadsheets or sticky notes.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon blush">🎙️</div>
+      <div class="feature-icon blush icon-chat" aria-hidden="true"></div>
       <div class="feature-title">Chat-Based Contract Entry</div>
       <div class="feature-desc">Describe a new deal in plain language and Dossie fills in the details, calculates the deadlines, and sets up the checklist. No manual data entry.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon gold">👁️</div>
+      <div class="feature-icon gold icon-reply" aria-hidden="true"></div>
       <div class="feature-title">Reply Monitoring</div>
       <div class="feature-desc">Dossie watches your email threads and flags when a lender or title company hasn't responded. No more manually checking if someone got back to you.</div>
     </div>
