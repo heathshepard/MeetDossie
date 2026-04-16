@@ -1,11 +1,29 @@
 FIELD_MAP = {
     # Phase-one starter mapping for the resale contract.
-    # These keys are the PDF field names discovered from the actual TREC PDF.
-    # Values are the normalized dossier keys Dossie will supply.
+    # Keys are actual discovered PDF field names.
+    # Values are normalized dossier keys.
 
-    # Parties / property identity
-    # TODO: confirm exact field names from PDF field list and expand systematically.
+    # Parties / property
+    "1 PARTIES The parties to this contract are": "buyer_name",
+    "Seller and": "seller_name",
+    "Address of Property": "property_address",
+    "Address of Property_2": "property_address",
+    "County of": "county",
 
-    # Contract dates / economics
-    # TODO
+    # Timing / money
+    "A The closing of the sale will be on or before": "closing_date",
+    "earnest money of": "earnest_money",
+    "Option Fee in the form of": "option_fee",
+    "Date": "contract_effective_date",
+    "Date_2": "closing_date",
+
+    # Title / closing
+    "Escrow Agent": "title_company",
+    "insurance Title Policy issued by": "title_company",
+}
+
+BUTTON_MAP = {
+    # Addenda / checkbox controls
+    # Turn on the financing addendum when lender data exists.
+    "B Sum of all financing described in the attached": "financing_addendum",
 }
