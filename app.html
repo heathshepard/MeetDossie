@@ -290,8 +290,16 @@ body::after {
               <div id="what-matters-now">Select a file to see Dossie’s read on the next most important move.</div>
             </div>
             <div class="helper-box">
+              <strong>Deadline pressure</strong>
+              <div id="deadline-pressure">Select a file to see what deadline or timing pressure Dossie thinks matters most.</div>
+            </div>
+            <div class="helper-box">
               <strong>File checklist</strong>
               <div id="task-list" class="task-list"></div>
+            </div>
+            <div class="helper-box">
+              <strong>Dossie read</strong>
+              <div id="dossie-read">Select a file to see Dossie’s current confidence read on how the file is moving.</div>
             </div>
           </div>
           <button class="primary-btn" type="submit">Save dossier changes</button>
@@ -349,6 +357,8 @@ const detailSub = document.getElementById('detail-sub');
 const detailBadge = document.getElementById('detail-badge');
 const detailStatusText = document.getElementById('detail-status-text');
 const whatMattersNow = document.getElementById('what-matters-now');
+const deadlinePressure = document.getElementById('deadline-pressure');
+const dossieRead = document.getElementById('dossie-read');
 const taskList = document.getElementById('task-list');
 
 let activeSession = null;
@@ -361,6 +371,14 @@ const STAGE_TASKS = {
   'financing': ['Check lender progress', 'Confirm appraisal status', 'Watch financing deadline'],
   'clear-to-close': ['Confirm final CD timing', 'Verify closing logistics', 'Prepare final reminder email'],
   'closed': ['Confirm the file is archived', 'Log the closing outcome', 'Wrap post-close follow-up'],
+};
+
+const STAGE_DEADLINE_HINTS = {
+  'under-contract': 'This file is newly opened. Make sure the core contract and handoff pieces are clean before the timeline gets crowded.',
+  'option-period': 'Option-period timing is your live deadline pressure point right now. Inspection and amendment decisions should not drift.',
+  'financing': 'Financing progress is the critical watch item. Lender silence is usually the thing that creates surprise risk here.',
+  'clear-to-close': 'The file is near the finish line. Final confirmation and closing logistics matter more than adding new complexity.',
+  'closed': 'This file is complete. Focus on archive quality and post-close wrap-up instead of operational movement.',
 };
 
 const formatStage = (stage) => stage.replace(/-/g, ' ');
@@ -426,7 +444,16 @@ const updateWhatMattersNow = (row) => {
     'clear-to-close': 'This file is almost over the line. Final confirmations and closing logistics are the main thing now.',
     'closed': 'This one is closed. The main job now is clean wrap-up, archive, and any post-close follow-up you want handled.',
   };
+  const reads = {
+    'under-contract': 'This file looks newly active. Dossie’s confidence is highest when the handoff is clean and the contract details are visible early.',
+    'option-period': 'This file is in a decision-heavy stage. Dossie sees the biggest risk here when inspection or amendment conversations go quiet.',
+    'financing': 'This file is moving, but financing-stage silence is where surprises usually build. Dossie should keep this one watched closely.',
+    'clear-to-close': 'This file is trending healthy. The goal now is clean execution, not more complexity.',
+    'closed': 'This file is complete and stable. Dossie reads it as an archive-ready file, not an active risk.',
+  };
   whatMattersNow.textContent = messages[row.stage] || 'Dossie is keeping the file organized and ready for the next move.';
+  deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
+  dossieRead.textContent = reads[row.stage] || 'Dossie is keeping a stable read on this file.';
 };
 
 const selectDossier = (id) => {
