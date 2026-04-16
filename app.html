@@ -353,10 +353,29 @@ body::after {
 
   const { data } = await supabase.auth.getSession();
   if (data?.session) {
-    setNotice('You are already signed in. Opening the app...', 'success');
-    setTimeout(() => {
+    const userEmail = data.session.user?.email || 'your account';
+    document.querySelector('.panel').innerHTML = `
+      <div>
+        <div class="panel-title">You’re signed in.</div>
+        <p class="panel-copy">Dossie recognizes this session for <strong>${userEmail}</strong>. This temporary authenticated landing confirms auth is working while we finish wiring the full in-app destination.</p>
+        <div class="notice success" style="display:block;">Authenticated session detected successfully.</div>
+        <div class="button-stack">
+          <a class="button button-primary" href="/">Back to homepage</a>
+          <button id="sign-out-btn" class="button button-secondary" type="button">Sign Out</button>
+        </div>
+        <div class="helper">Next implementation step: replace this temporary authenticated landing with the real Dossie app destination.</div>
+      </div>
+      <div class="status">
+        <strong>Current status:</strong> authenticated session is live.<br>
+        <strong>What this proves:</strong> account creation/sign-in can work when auth state is valid.<br>
+        <strong>Next step:</strong> wire this authenticated state into the real app surface.
+      </div>
+    `;
+
+    document.getElementById('sign-out-btn')?.addEventListener('click', async () => {
+      await supabase.auth.signOut();
       window.location.href = '/app.html';
-    }, 1200);
+    });
   }
 </script>
 </body>
