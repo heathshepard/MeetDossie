@@ -84,6 +84,12 @@ Preferred first implementation path:
 - if yes: fill PDF fields directly
 - if not: use a template-based overlay/render approach
 
+Current implementation decision:
+- treat the Resale Contract as the first flagship document
+- inspection confirmed the starter PDFs expose fillable form fields
+- generation-path decision: start with direct PDF field fill for the Resale Contract
+- keep overlay/template generation as fallback only if field behavior or output quality proves unreliable
+
 ### 7. Add document-generation UI to the authenticated workspace
 Need in selected dossier:
 - Generate Contract
