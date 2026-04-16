@@ -1,5 +1,6 @@
 from pathlib import Path
 from pypdf import PdfReader, PdfWriter
+from resale_contract_field_map import FIELD_MAP
 
 BASE_DIR = Path(r"C:\Users\Heath Shepard\Desktop\MeetDossie")
 SOURCE_PDF = Path(r"C:\Users\Heath Shepard\Desktop\dossie\Dossie Forms\TREC Base\One-to-Four-Family-Residential-Contract-Resale.pdf")
@@ -7,46 +8,57 @@ OUTPUT_DIR = BASE_DIR / "generated-docs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SAMPLE_DATA = {
-    "BuyerName": "Marcus Patterson",
-    "SellerName": "Heath Shepard",
-    "PropertyAddress": "4521 Meadow Creek Dr, San Antonio, TX 78230",
-    "County": "Bexar",
-    "LegalDescription": "Lot 12, Block 4, Oak Hollow Subdivision",
-    "SalesPrice": "425000",
-    "EarnestMoney": "5000",
-    "OptionFee": "200",
-    "EffectiveDate": "04/16/2026",
-    "ClosingDate": "05/24/2026",
-    "TitleCompany": "Alamo Title",
-    "LenderName": "Prime Lending",
-}
-
-# This is the phase-one start: inspectable direct field-fill pipeline.
-# Actual field-name mapping must be refined against the PDF's true field names.
-FIELD_MAP = {
-    # placeholder initial mapping keys to be replaced with true PDF field names
+    "buyer_name": "Marcus Patterson",
+    "seller_name": "Heath Shepard",
+    "property_address": "4521 Meadow Creek Dr",
+    "city_state_zip": "San Antonio, TX 78230",
+    "county": "Bexar",
+    "legal_description": "Lot 12, Block 4, Oak Hollow Subdivision",
+    "sale_price": "425000",
+    "earnest_money": "5000",
+    "option_fee": "200",
+    "contract_effective_date": "04/16/2026",
+    "closing_date": "05/24/2026",
+    "title_company": "Alamo Title",
+    "lender_name": "Prime Lending",
 }
 
 
-def main():
-    reader = PdfReader(str(SOURCE_PDF))
+def fill_pdf(source_pdf: Path, output_pdf: Path, values: dict):
+    reader = PdfReader(str(source_pdf))
     writer = PdfWriter()
+
     for page in reader.pages:
         writer.add_page(page)
 
-    if FIELD_MAP:
-        writer.update_page_form_field_values(writer.pages[0], {
-            pdf_field: SAMPLE_DATA[data_key]
-            for pdf_field, data_key in FIELD_MAP.items()
-            if data_key in SAMPLE_DATA
+    if "/AcroForm" in reader.trailer["/Root"]:
+        writer._root_object.update({
+            NameObject("/AcroForm"): reader.trailer["/Root"]["/AcroForm"]
         })
 
-    output_path = OUTPUT_DIR / "sample-resale-contract.pdf"
-    with output_path.open("wb") as f:
+    for page in writer.pages:
+        writer.update_page_form_field_values(page, values)
+
+    with output_pdf.open("wb") as f:
         writer.write(f)
 
+
+# pypdf NameObject import placed late to keep the file simple for edits
+from pypdf.generic import NameObject
+
+
+def main():
+    output_path = OUTPUT_DIR / "sample-resale-contract.pdf"
+    mapped_values = {
+        pdf_field: SAMPLE_DATA[data_key]
+        for pdf_field, data_key in FIELD_MAP.items()
+        if data_key in SAMPLE_DATA
+    }
+    fill_pdf(SOURCE_PDF, output_path, mapped_values)
     print(f"Generated: {output_path}")
-    print("Phase-one script created. Next step: replace FIELD_MAP with the actual PDF field names from inspection output.")
+    print(f"Mapped fields used: {len(mapped_values)}")
+    for key in mapped_values:
+        print(f" - {key}: {mapped_values[key]}")
 
 
 if __name__ == "__main__":

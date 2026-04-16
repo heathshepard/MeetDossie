@@ -111,6 +111,9 @@ Completed so far:
 - real form inventory confirmed
 - phase-one starter document set chosen
 - current live schema gap identified
+- live dossier schema expanded toward the Resale Contract
+- starter PDFs confirmed fillable via pypdf field inspection
+- first actual filled contract output generated as a probe PDF for field discovery
 
 Next implementation step:
-- expand the authenticated dossier workspace to capture the missing phase-one contract fields needed for the One-to-Four-Family Residential Contract (Resale)
+- use the probe output plus field list to map the first real dossier-driven resale contract fields into `resale_contract_field_map.py`
