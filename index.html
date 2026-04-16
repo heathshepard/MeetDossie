@@ -19,18 +19,15 @@ html { scroll-behavior: smooth; }
 body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
 nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border-light); }
 .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
 .nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
 .nav-actions { display: flex; align-items: center; gap: 12px; }
 .nav-signin { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: var(--sage-deep); color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(107, 142, 104, 0.18); }
-
 .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 28px 80px; position: relative; overflow: hidden; }
 .hero::before { content: ''; position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.8; }
 .hero::after { content: ''; position: absolute; bottom: -200px; left: -100px; width: 500px; height: 500px; background: radial-gradient(circle, var(--sage-light) 0%, transparent 65%); pointer-events: none; opacity: 0.6; }
-
 .hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 100px; font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 36px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); animation: fadeInUp 0.5s ease-out both; }
 .hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); animation: pulse 2.5s ease-in-out infinite; }
 .hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(44px, 8vw, 88px); font-weight: 600; line-height: 1.0; letter-spacing: -2px; color: var(--text-primary); animation: fadeInUp 0.5s ease-out 0.1s both; }
@@ -39,7 +36,6 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .divider { display: flex; align-items: center; gap: 16px; margin: 52px auto; max-width: 300px; animation: fadeInUp 0.5s ease-out 0.35s both; }
 .divider-line { flex: 1; height: 1px; background: var(--border); }
 .divider-text { font-size: 12px; color: var(--text-light); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
-
 .doors { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 820px; width: 100%; margin: 0 auto; animation: fadeInUp 0.5s ease-out 0.4s both; position: relative; z-index: 1; }
 .door { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 28px; padding: 44px 40px 40px; text-align: left; text-decoration: none; color: var(--text-primary); transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s; cursor: pointer; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 .door::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s; border-radius: 26px; }
@@ -64,15 +60,12 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .door.agent .door-check { color: var(--blush-deep); font-weight: 700; }
 .door.tc .door-check { color: var(--sage-deep); font-weight: 700; }
 .door-cta { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 100px; font-size: 14px; font-weight: 600; width: fit-content; margin-top: auto; transition: gap 0.2s; }
-.door.agent .door-cta { background: var(--sage-deep); color: #fff; }
-.door.tc .door-cta { background: var(--sage-deep); color: #fff; }
+.door.agent .door-cta, .door.tc .door-cta { background: var(--sage-deep); color: #fff; }
 .door:hover .door-cta { gap: 14px; }
-
 .proof-bar { display: flex; justify-content: center; gap: 48px; margin-top: 64px; flex-wrap: wrap; animation: fadeInUp 0.5s ease-out 0.5s both; }
 .proof-item { text-align: center; }
 .proof-num { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--text-primary); line-height: 1; }
 .proof-label { font-size: 12px; color: var(--text-light); margin-top: 4px; font-weight: 500; }
-
 .tagline-section { padding: 80px 28px; text-align: center; border-top: 1px solid var(--border-light); background: var(--bg-warm); }
 .tagline { font-family: 'Cormorant Garamond', serif; font-size: clamp(20px, 3vw, 34px); font-weight: 500; font-style: italic; color: var(--text-secondary); max-width: 620px; margin: 0 auto; line-height: 1.5; }
 .tagline strong { color: var(--text-primary); font-style: normal; font-weight: 600; }
@@ -84,7 +77,6 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 .footer-links { display: flex; gap: 24px; justify-content: center; margin-top: 14px; }
 .footer-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
 .footer-link:hover { color: var(--text-primary); }
-
 @media (max-width: 680px) {
  .doors { grid-template-columns: 1fr; max-width: 420px; }
  .proof-bar { gap: 28px; }
@@ -94,7 +86,6 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 </style>
 </head>
 <body>
-
 <nav>
  <a href="/" class="nav-logo">
   <div class="nav-mark">D</div>
@@ -104,7 +95,6 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <a href="app.html" class="nav-signin">Sign In</a>
  </div>
 </nav>
-
 <section class="hero">
  <div class="hero-badge">
   <div class="hero-badge-dot"></div>
@@ -112,13 +102,11 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
  </div>
  <h1 class="hero-title">Transaction coordination,<br><em>handled.</em></h1>
  <p class="hero-sub">Dossie is the AI platform that brings order to real estate transactions — whoever’s running them.</p>
-
  <div class="divider">
   <div class="divider-line"></div>
   <span class="divider-text">Who are you?</span>
   <div class="divider-line"></div>
  </div>
-
  <div class="doors" id="doors">
   <a href="/agents" class="door agent">
    <span class="door-tag"><span class="door-tag-dot"></span>For Agents</span>
@@ -133,7 +121,6 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
    </ul>
    <span class="door-cta">I’m an Agent →</span>
   </a>
-
   <a href="/coordinators" class="door tc">
    <span class="door-tag"><span class="door-tag-dot"></span>For Transaction Coordinators</span>
    <span class="door-emoji">📋</span>
@@ -148,7 +135,6 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
    <span class="door-cta">I’m a TC →</span>
   </a>
  </div>
-
  <div class="proof-bar">
   <div class="proof-item"><div class="proof-num">96%</div><div class="proof-label">Cost savings vs. human TC</div></div>
   <div class="proof-item"><div class="proof-num">3x</div><div class="proof-label">TC capacity increase</div></div>
@@ -156,7 +142,6 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="proof-item"><div class="proof-num">$39</div><div class="proof-label">Starting per month</div></div>
  </div>
 </section>
-
 <div class="tagline-section">
  <p class="tagline">“I built Dossie because I was tired of choosing between <strong>growing my business</strong> and managing my transactions. <strong>Now I don’t have to choose.</strong>”</p>
  <p class="tagline-attr">— Heath Shepard, Texas REALTOR® & Founder</p>
@@ -173,6 +158,5 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
  </div>
 </footer>
-
 </body>
 </html>
