@@ -54,292 +54,60 @@ body::after {
   background: radial-gradient(circle, rgba(139,168,136,0.14) 0%, transparent 66%);
   pointer-events: none;
 }
-.page {
-  min-height: 100vh;
-  padding: 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 18px;
-  padding: 16px 20px;
-  background: rgba(255,255,255,0.82);
-  border: 1px solid var(--border-light);
-  border-radius: 24px;
-  backdrop-filter: blur(14px);
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: inherit;
-}
-.mark {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%);
-  color: white;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 18px;
-  font-weight: 700;
-}
-.brand-copy strong {
-  display: block;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 26px;
-  font-weight: 600;
-  color: var(--navy);
-}
-.brand-copy span {
-  display: block;
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--text-soft);
-}
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ghost-btn, .primary-btn {
-  border: none;
-  border-radius: 999px;
-  padding: 12px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-}
-.ghost-btn {
-  background: white;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-.primary-btn {
-  background: var(--sage-deep);
-  color: white;
-}
-.shell {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 22px;
-  flex: 1;
-}
-.sidebar {
-  background: rgba(255,255,255,0.86);
-  border: 1px solid var(--border-light);
-  border-radius: 28px;
-  padding: 22px;
-  backdrop-filter: blur(14px);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.section-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.8px;
-  color: var(--blush-deep);
-  font-weight: 800;
-}
-.sidebar-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 34px;
-  line-height: 0.98;
-  color: var(--navy);
-}
-.sidebar-copy {
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--text-soft);
-}
-.user-card, .status-card {
-  background: var(--surface-solid);
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
-  padding: 16px;
-}
-.user-card strong, .status-card strong {
-  display: block;
-  font-size: 14px;
-  color: var(--navy);
-}
-.user-card span, .status-card span {
-  display: block;
-  margin-top: 6px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-soft);
-}
-.main {
-  display: grid;
-  gap: 20px;
-}
-.hero-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92));
-  border: 1px solid var(--border);
-  border-radius: 30px;
-  padding: 28px;
-  box-shadow: 0 20px 60px rgba(26,26,46,0.06);
-}
-.hero-card h1 {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(40px, 5vw, 60px);
-  line-height: 0.98;
-  color: var(--navy);
-}
-.hero-card p {
-  margin-top: 14px;
-  max-width: 760px;
-  color: var(--text-soft);
-  font-size: 15px;
-  line-height: 1.9;
-}
-.notice {
-  margin-top: 18px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: var(--sage-light);
-  color: var(--sage-deep);
-  font-size: 13px;
-  line-height: 1.7;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 20px;
-}
-.card {
-  background: rgba(255,255,255,0.9);
-  border: 1px solid var(--border-light);
-  border-radius: 24px;
-  padding: 22px;
-  backdrop-filter: blur(12px);
-}
-.card h2 {
-  font-size: 20px;
-  color: var(--navy);
-  margin-bottom: 10px;
-}
-.card-sub {
-  color: var(--text-soft);
-  font-size: 13px;
-  line-height: 1.7;
-  margin-bottom: 18px;
-}
-.form-grid {
-  display: grid;
-  gap: 12px;
-}
-.field {
-  display: grid;
-  gap: 6px;
-}
-.field label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-soft);
-}
-.field input, .field textarea, .field select {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 13px 15px;
-  font-size: 14px;
-  font-family: inherit;
-  color: var(--text);
-  background: white;
-  outline: none;
-}
+.page { min-height: 100vh; padding: 26px; display: flex; flex-direction: column; gap: 22px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 16px 20px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); border-radius: 24px; backdrop-filter: blur(14px); }
+.brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+.mark { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); color: white; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; }
+.brand-copy strong { display: block; font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; color: var(--navy); }
+.brand-copy span { display: block; margin-top: 2px; font-size: 13px; color: var(--text-soft); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.ghost-btn, .primary-btn { border: none; border-radius: 999px; padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.ghost-btn { background: white; color: var(--text); border: 1px solid var(--border); }
+.primary-btn { background: var(--sage-deep); color: white; }
+.shell { display: grid; grid-template-columns: 280px 1fr; gap: 22px; flex: 1; }
+.sidebar { background: rgba(255,255,255,0.86); border: 1px solid var(--border-light); border-radius: 28px; padding: 22px; backdrop-filter: blur(14px); display: flex; flex-direction: column; gap: 18px; }
+.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.8px; color: var(--blush-deep); font-weight: 800; }
+.sidebar-title { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 0.98; color: var(--navy); }
+.sidebar-copy { font-size: 14px; line-height: 1.8; color: var(--text-soft); }
+.user-card, .status-card { background: var(--surface-solid); border: 1px solid var(--border-light); border-radius: 20px; padding: 16px; }
+.user-card strong, .status-card strong { display: block; font-size: 14px; color: var(--navy); }
+.user-card span, .status-card span { display: block; margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
+.main { display: grid; gap: 20px; }
+.hero-card { background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92)); border: 1px solid var(--border); border-radius: 30px; padding: 28px; box-shadow: 0 20px 60px rgba(26,26,46,0.06); }
+.hero-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 5vw, 60px); line-height: 0.98; color: var(--navy); }
+.hero-card p { margin-top: 14px; max-width: 760px; color: var(--text-soft); font-size: 15px; line-height: 1.9; }
+.notice { margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--sage-light); color: var(--sage-deep); font-size: 13px; line-height: 1.7; }
+.grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
+.workspace-grid { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 20px; }
+.card { background: rgba(255,255,255,0.9); border: 1px solid var(--border-light); border-radius: 24px; padding: 22px; backdrop-filter: blur(12px); }
+.card h2 { font-size: 20px; color: var(--navy); margin-bottom: 10px; }
+.card-sub { color: var(--text-soft); font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
+.form-grid { display: grid; gap: 12px; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 12px; font-weight: 700; color: var(--text-soft); }
+.field input, .field textarea, .field select { width: 100%; border: 1px solid var(--border); border-radius: 16px; padding: 13px 15px; font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none; }
 .field textarea { min-height: 100px; resize: vertical; }
-.field input:focus, .field textarea:focus, .field select:focus {
-  border-color: var(--sage);
-  box-shadow: 0 0 0 4px rgba(139,168,136,0.12);
-}
-.status-text {
-  margin-top: 14px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--text-soft);
-}
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--sage); box-shadow: 0 0 0 4px rgba(139,168,136,0.12); }
+.status-text { margin-top: 14px; font-size: 13px; line-height: 1.7; color: var(--text-soft); }
 .status-text.error { color: var(--red); }
 .status-text.success { color: var(--sage-deep); }
-.dossier-list {
-  display: grid;
-  gap: 14px;
-}
-.dossier-item {
-  background: white;
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  padding: 16px;
-}
-.dossier-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-.dossier-id {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.6px;
-  color: var(--blush-deep);
-  font-weight: 800;
-}
-.dossier-address {
-  margin-top: 6px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--navy);
-}
-.dossier-meta {
-  margin-top: 10px;
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-soft);
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  background: var(--gold-light);
-  color: #8d6a25;
-}
-.empty {
-  padding: 18px;
-  border: 1px dashed var(--border);
-  border-radius: 18px;
-  color: var(--text-light);
-  font-size: 14px;
-  line-height: 1.7;
-  background: rgba(255,255,255,0.6);
-}
-@media (max-width: 1020px) {
-  .shell, .grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-  .page { padding: 16px; }
-  .topbar { flex-direction: column; align-items: flex-start; }
-  .topbar-actions { width: 100%; flex-wrap: wrap; }
-  .ghost-btn, .primary-btn { width: 100%; justify-content: center; }
-}
+.dossier-list { display: grid; gap: 14px; }
+.dossier-item { background: white; border: 1px solid var(--border-light); border-radius: 18px; padding: 16px; cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.dossier-item:hover { border-color: var(--blush); box-shadow: 0 14px 32px rgba(26,26,46,0.06); transform: translateY(-2px); }
+.dossier-item.active { border-color: var(--sage-deep); box-shadow: 0 14px 32px rgba(107,142,104,0.12); }
+.dossier-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.dossier-id { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--blush-deep); font-weight: 800; }
+.dossier-address { margin-top: 6px; font-size: 18px; font-weight: 700; color: var(--navy); }
+.dossier-meta { margin-top: 10px; display: grid; gap: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
+.badge { display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: var(--gold-light); color: #8d6a25; }
+.empty { padding: 18px; border: 1px dashed var(--border); border-radius: 18px; color: var(--text-light); font-size: 14px; line-height: 1.7; background: rgba(255,255,255,0.6); }
+.detail-panel { display: grid; gap: 16px; }
+.detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.detail-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; line-height: 0.98; color: var(--navy); }
+.detail-sub { margin-top: 8px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1180px) { .shell, .grid, .workspace-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -363,7 +131,7 @@ body::after {
       <div>
         <div class="section-label">Authenticated</div>
         <div class="sidebar-title">Welcome into Dossie.</div>
-        <p class="sidebar-copy">You’re in the first real logged-in Dossie workspace. This version is focused on the essentials: session detection, your files, and creating your first saved dossier.</p>
+        <p class="sidebar-copy">You’re in the first real logged-in Dossie workspace. This version now handles session detection, saved dossiers, a real Morning Brief, and an editable dossier detail view.</p>
       </div>
       <div class="user-card">
         <strong id="user-email">Signed in</strong>
@@ -371,7 +139,7 @@ body::after {
       </div>
       <div class="status-card">
         <strong>What works now</strong>
-        <span>Authenticated session, Supabase-backed dossier storage, and a real saved workspace surface.</span>
+        <span>Authenticated session, Supabase-backed dossier storage, Morning Brief summary, dossier creation, and dossier editing in one live signed-in surface.</span>
       </div>
     </aside>
 
@@ -379,13 +147,13 @@ body::after {
       <section class="hero-card">
         <div class="section-label">Dossie Workspace</div>
         <h1>Your files. Your flow. Actually saved.</h1>
-        <p>This is the first real authenticated Dossie app surface. Morning Brief, your saved dossiers, and a real create-and-save flow now live in the signed-in workspace.</p>
+        <p>This is the first real authenticated Dossie app surface. Morning Brief, your saved dossiers, and an editable dossier workspace now live in the signed-in product.</p>
         <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
       </section>
 
       <section class="card">
         <h2>Morning Brief</h2>
-        <div class="card-sub">The first version of the live signed-in brief. It summarizes what Dossie sees in your current saved file set.</div>
+        <div class="card-sub">The live signed-in brief summarizes what Dossie sees in your current saved file set.</div>
         <div id="brief-grid" class="grid" style="grid-template-columns: repeat(3, 1fr);"></div>
       </section>
 
@@ -434,12 +202,72 @@ body::after {
 
         <section class="card">
           <h2>Your saved dossiers</h2>
-          <div class="card-sub">These are loaded from the signed-in user’s `transactions` table in Supabase.</div>
+          <div class="card-sub">These are loaded from the signed-in user’s `transactions` table in Supabase. Click one to open it.</div>
           <div id="dossier-list" class="dossier-list">
             <div class="empty">Loading your saved dossiers...</div>
           </div>
         </section>
       </div>
+
+      <section class="card detail-panel">
+        <div class="detail-header">
+          <div>
+            <div class="section-label">Dossier Detail</div>
+            <div id="detail-title" class="detail-title">Select a saved dossier</div>
+            <div id="detail-sub" class="detail-sub">Choose a dossier from the list to open the editable transaction workspace.</div>
+          </div>
+          <div id="detail-badge" class="badge" style="display:none;">Under contract</div>
+        </div>
+
+        <form id="detail-form" class="form-grid" style="display:none;">
+          <div class="info-grid">
+            <div class="field">
+              <label for="detail-address">Property address</label>
+              <input id="detail-address" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-city">City / state / ZIP</label>
+              <input id="detail-city" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-client">Client name</label>
+              <input id="detail-client" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-role">Side</label>
+              <select id="detail-role">
+                <option value="listing">Listing</option>
+                <option value="buyer">Buyer</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="detail-stage">Stage</label>
+              <select id="detail-stage">
+                <option value="under-contract">Under Contract</option>
+                <option value="option-period">Option Period</option>
+                <option value="financing">Financing</option>
+                <option value="clear-to-close">Clear to Close</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="detail-status">Status</label>
+              <select id="detail-status">
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="detail-notes">Notes</label>
+            <textarea id="detail-notes"></textarea>
+          </div>
+          <button class="primary-btn" type="submit">Save dossier changes</button>
+          <div id="detail-status-text" class="status-text"></div>
+        </form>
+
+        <div id="detail-empty" class="empty">No dossier selected yet. Create a file or click one from the saved list to open its detail view.</div>
+      </section>
     </main>
   </div>
 
@@ -481,8 +309,16 @@ const dossierForm = document.getElementById('dossier-form');
 const dossierList = document.getElementById('dossier-list');
 const formStatus = document.getElementById('form-status');
 const signOutBtn = document.getElementById('sign-out-btn');
+const detailForm = document.getElementById('detail-form');
+const detailEmpty = document.getElementById('detail-empty');
+const detailTitle = document.getElementById('detail-title');
+const detailSub = document.getElementById('detail-sub');
+const detailBadge = document.getElementById('detail-badge');
+const detailStatusText = document.getElementById('detail-status-text');
 
 let activeSession = null;
+let currentRows = [];
+let selectedDossierId = null;
 
 const formatStage = (stage) => stage.replace(/-/g, ' ');
 
@@ -496,7 +332,7 @@ const renderBrief = (rows) => {
     { label: 'Closing / closed', value: closing.length, tone: '#FCE8E6', color: 'var(--red)' },
   ];
   briefGrid.innerHTML = cards.map((card) => `
-    <div class="dossier-item" style="background:${card.tone}; border-color: transparent;">
+    <div class="dossier-item" style="background:${card.tone}; border-color: transparent; cursor:default; transform:none;">
       <div class="dossier-id" style="color:${card.color};">Morning Brief</div>
       <div class="dossier-address" style="margin-top:8px;">${card.value}</div>
       <div class="dossier-meta"><div><strong>${card.label}</strong></div></div>
@@ -504,15 +340,51 @@ const renderBrief = (rows) => {
   `).join('');
 };
 
-const renderDossiers = (rows) => {
-  renderBrief(rows);
-  if (!rows.length) {
-    dossierList.innerHTML = `<div class="empty">No dossiers saved yet. Create your first one and it should stay here for this signed-in account.</div>`;
+const selectDossier = (id) => {
+  selectedDossierId = id;
+  renderDossiers(currentRows);
+  const row = currentRows.find((item) => item.id === id);
+  if (!row) {
+    detailForm.style.display = 'none';
+    detailEmpty.style.display = 'block';
+    detailBadge.style.display = 'none';
+    detailTitle.textContent = 'Select a saved dossier';
+    detailSub.textContent = 'Choose a dossier from the list to open the editable transaction workspace.';
     return;
   }
 
+  detailEmpty.style.display = 'none';
+  detailForm.style.display = 'grid';
+  detailTitle.textContent = row.property_address;
+  detailSub.textContent = `Dossier ${row.dossier_number} · ${row.city_state_zip || 'No city/state/ZIP yet'}`;
+  detailBadge.style.display = 'inline-flex';
+  detailBadge.textContent = formatStage(row.stage);
+  document.getElementById('detail-address').value = row.property_address || '';
+  document.getElementById('detail-city').value = row.city_state_zip || '';
+  document.getElementById('detail-client').value = row.role === 'buyer' ? (row.buyer_name || '') : (row.seller_name || '');
+  document.getElementById('detail-role').value = row.role || 'listing';
+  document.getElementById('detail-stage').value = row.stage || 'under-contract';
+  document.getElementById('detail-status').value = row.status || 'active';
+  document.getElementById('detail-notes').value = row.notes || '';
+  detailStatusText.textContent = '';
+  detailStatusText.className = 'status-text';
+};
+
+const renderDossiers = (rows) => {
+  currentRows = rows;
+  renderBrief(rows);
+  if (!rows.length) {
+    dossierList.innerHTML = `<div class="empty">No dossiers saved yet. Create your first one and it should stay here for this signed-in account.</div>`;
+    selectDossier(null);
+    return;
+  }
+
+  if (!selectedDossierId || !rows.find((row) => row.id === selectedDossierId)) {
+    selectedDossierId = rows[0].id;
+  }
+
   dossierList.innerHTML = rows.map((row) => `
-    <article class="dossier-item">
+    <article class="dossier-item ${row.id === selectedDossierId ? 'active' : ''}" data-dossier-id="${row.id}">
       <div class="dossier-top">
         <div>
           <div class="dossier-id">Dossier ${row.dossier_number}</div>
@@ -528,6 +400,12 @@ const renderDossiers = (rows) => {
       </div>
     </article>
   `).join('');
+
+  dossierList.querySelectorAll('[data-dossier-id]').forEach((item) => {
+    item.addEventListener('click', () => selectDossier(item.getAttribute('data-dossier-id')));
+  });
+
+  selectDossier(selectedDossierId);
 };
 
 const loadDossiers = async () => {
@@ -560,6 +438,8 @@ const showSignedIn = async (session) => {
 
 const showSignedOut = () => {
   activeSession = null;
+  currentRows = [];
+  selectedDossierId = null;
   authShell.style.display = 'none';
   signedOutShell.style.display = 'grid';
 };
@@ -581,7 +461,6 @@ dossierForm.addEventListener('submit', async (event) => {
   const role = document.getElementById('role').value;
   const stage = document.getElementById('stage').value;
   const notes = document.getElementById('notes').value.trim();
-
   const dossierNumber = String(Date.now()).slice(-6);
 
   const payload = {
@@ -619,6 +498,47 @@ dossierForm.addEventListener('submit', async (event) => {
   dossierForm.reset();
   document.getElementById('role').value = 'listing';
   document.getElementById('stage').value = 'under-contract';
+  await loadDossiers();
+});
+
+detailForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!activeSession?.user?.id || !selectedDossierId) {
+    detailStatusText.textContent = 'No dossier selected to update yet.';
+    detailStatusText.className = 'status-text error';
+    return;
+  }
+
+  detailStatusText.textContent = 'Saving changes...';
+  detailStatusText.className = 'status-text';
+
+  const role = document.getElementById('detail-role').value;
+  const clientName = document.getElementById('detail-client').value.trim();
+  const payload = {
+    property_address: document.getElementById('detail-address').value.trim(),
+    city_state_zip: document.getElementById('detail-city').value.trim(),
+    role,
+    stage: document.getElementById('detail-stage').value,
+    status: document.getElementById('detail-status').value,
+    notes: document.getElementById('detail-notes').value.trim(),
+    buyer_name: role === 'buyer' ? clientName : null,
+    seller_name: role === 'listing' ? clientName : null,
+  };
+
+  const { error } = await supabase
+    .from('transactions')
+    .update(payload)
+    .eq('id', selectedDossierId)
+    .eq('user_id', activeSession.user.id);
+
+  if (error) {
+    detailStatusText.textContent = `Could not save changes: ${error.message}`;
+    detailStatusText.className = 'status-text error';
+    return;
+  }
+
+  detailStatusText.textContent = 'Dossier changes saved.';
+  detailStatusText.className = 'status-text success';
   await loadDossiers();
 });
 
