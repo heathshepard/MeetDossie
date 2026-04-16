@@ -214,6 +214,14 @@ body::after {
               </select>
             </div>
             <div class="field">
+              <label for="effective-date">Effective date</label>
+              <input id="effective-date" type="date">
+            </div>
+            <div class="field">
+              <label for="closing-date">Closing date</label>
+              <input id="closing-date" type="date">
+            </div>
+            <div class="field">
               <label for="notes">Notes</label>
               <textarea id="notes" placeholder="Anything Dossie should know about this file?"></textarea>
             </div>
@@ -278,6 +286,14 @@ body::after {
                 <option value="active">Active</option>
                 <option value="closed">Closed</option>
               </select>
+            </div>
+            <div class="field">
+              <label for="detail-effective-date">Effective date</label>
+              <input id="detail-effective-date" type="date">
+            </div>
+            <div class="field">
+              <label for="detail-closing-date">Closing date</label>
+              <input id="detail-closing-date" type="date">
             </div>
           </div>
           <div class="field">
@@ -396,6 +412,18 @@ const STAGE_DEADLINE_HINTS = {
 };
 
 const formatStage = (stage) => stage.replace(/-/g, ' ');
+const formatDate = (value) => {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+const daysUntil = (value) => {
+  if (!value) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(`${value}T00:00:00`);
+  return Math.round((target - now) / 86400000);
+};
 
 const buildBriefGroups = (rows) => {
   const active = rows.filter((row) => row.status !== 'closed');
@@ -495,7 +523,20 @@ const updateWhatMattersNow = (row) => {
     'closed': 'This file is complete and stable. Dossie reads it as an archive-ready file, not an active risk.',
   };
   whatMattersNow.textContent = messages[row.stage] || 'Dossie is keeping the file organized and ready for the next move.';
-  deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
+  const closingDays = daysUntil(row.closing_date);
+  const effectiveLabel = formatDate(row.contract_effective_date);
+  const closingLabel = formatDate(row.closing_date);
+  if (closingDays !== null && closingLabel) {
+    if (closingDays < 0) {
+      deadlinePressure.textContent = `Closing date ${closingLabel} has already passed. Dossie should treat this file as needing immediate review.`;
+    } else if (closingDays <= 3) {
+      deadlinePressure.textContent = `Closing is in ${closingDays} day${closingDays === 1 ? '' : 's'} on ${closingLabel}. This file is now in a true deadline window.`;
+    } else {
+      deadlinePressure.textContent = `Closing is set for ${closingLabel}${effectiveLabel ? ` · contract effective ${effectiveLabel}` : ''}. ${STAGE_DEADLINE_HINTS[row.stage] || 'Dossie is tracking the timeline.'}`;
+    }
+  } else {
+    deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
+  }
   dossieRead.textContent = reads[row.stage] || 'Dossie is keeping a stable read on this file.';
 
   const notes = Array.isArray(row.notes_log) ? row.notes_log : [];
@@ -532,6 +573,8 @@ const selectDossier = (id) => {
   document.getElementById('detail-role').value = row.role || 'listing';
   document.getElementById('detail-stage').value = row.stage || 'under-contract';
   document.getElementById('detail-status').value = row.status || 'active';
+  document.getElementById('detail-effective-date').value = row.contract_effective_date || '';
+  document.getElementById('detail-closing-date').value = row.closing_date || '';
   document.getElementById('detail-notes').value = row.notes || '';
   updateWhatMattersNow(row);
   updateTaskList(row);
@@ -645,6 +688,8 @@ dossierForm.addEventListener('submit', async (event) => {
     buyer_name: role === 'buyer' ? clientName : null,
     seller_name: role === 'listing' ? clientName : null,
     notes,
+    contract_effective_date: document.getElementById('effective-date').value || null,
+    closing_date: document.getElementById('closing-date').value || null,
     sale_price: 0,
     earnest_money: 0,
     option_fee: 0,
@@ -692,6 +737,8 @@ detailForm.addEventListener('submit', async (event) => {
     stage: document.getElementById('detail-stage').value,
     status: document.getElementById('detail-status').value,
     notes: document.getElementById('detail-notes').value.trim(),
+    contract_effective_date: document.getElementById('detail-effective-date').value || null,
+    closing_date: document.getElementById('detail-closing-date').value || null,
     buyer_name: role === 'buyer' ? clientName : null,
     seller_name: role === 'listing' ? clientName : null,
   };
