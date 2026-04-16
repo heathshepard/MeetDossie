@@ -199,6 +199,22 @@ body::after {
               <input id="client-name" type="text" placeholder="Marcus Patterson">
             </div>
             <div class="field">
+              <label for="county">County</label>
+              <input id="county" type="text" placeholder="Bexar">
+            </div>
+            <div class="field">
+              <label for="legal-description">Legal description</label>
+              <input id="legal-description" type="text" placeholder="Lot 12, Block 4, Oak Hollow Subdivision">
+            </div>
+            <div class="field">
+              <label for="title-company">Title company</label>
+              <input id="title-company" type="text" placeholder="Alamo Title">
+            </div>
+            <div class="field">
+              <label for="lender-name">Lender name</label>
+              <input id="lender-name" type="text" placeholder="Prime Lending">
+            </div>
+            <div class="field">
               <label for="role">Side</label>
               <select id="role">
                 <option value="listing">Listing</option>
@@ -265,6 +281,22 @@ body::after {
             <div class="field">
               <label for="detail-client">Client name</label>
               <input id="detail-client" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-county">County</label>
+              <input id="detail-county" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-legal-description">Legal description</label>
+              <input id="detail-legal-description" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-title-company">Title company</label>
+              <input id="detail-title-company" type="text">
+            </div>
+            <div class="field">
+              <label for="detail-lender-name">Lender name</label>
+              <input id="detail-lender-name" type="text">
             </div>
             <div class="field">
               <label for="detail-role">Side</label>
@@ -606,6 +638,10 @@ const selectDossier = (id) => {
   document.getElementById('detail-address').value = row.property_address || '';
   document.getElementById('detail-city').value = row.city_state_zip || '';
   document.getElementById('detail-client').value = row.role === 'buyer' ? (row.buyer_name || '') : (row.seller_name || '');
+  document.getElementById('detail-county').value = row.county || '';
+  document.getElementById('detail-legal-description').value = row.legal_description || '';
+  document.getElementById('detail-title-company').value = row.title_company || '';
+  document.getElementById('detail-lender-name').value = row.lender_name || '';
   document.getElementById('detail-role').value = row.role || 'listing';
   document.getElementById('detail-stage').value = row.stage || 'under-contract';
   document.getElementById('detail-status').value = row.status || 'active';
@@ -721,6 +757,10 @@ dossierForm.addEventListener('submit', async (event) => {
     role,
     property_address: propertyAddress,
     city_state_zip: cityStateZip,
+    county: document.getElementById('county').value.trim(),
+    legal_description: document.getElementById('legal-description').value.trim(),
+    title_company: document.getElementById('title-company').value.trim(),
+    lender_name: document.getElementById('lender-name').value.trim(),
     buyer_name: role === 'buyer' ? clientName : null,
     seller_name: role === 'listing' ? clientName : null,
     notes,
@@ -769,6 +809,10 @@ detailForm.addEventListener('submit', async (event) => {
   const payload = {
     property_address: document.getElementById('detail-address').value.trim(),
     city_state_zip: document.getElementById('detail-city').value.trim(),
+    county: document.getElementById('detail-county').value.trim(),
+    legal_description: document.getElementById('detail-legal-description').value.trim(),
+    title_company: document.getElementById('detail-title-company').value.trim(),
+    lender_name: document.getElementById('detail-lender-name').value.trim(),
     role,
     stage: document.getElementById('detail-stage').value,
     status: document.getElementById('detail-status').value,
