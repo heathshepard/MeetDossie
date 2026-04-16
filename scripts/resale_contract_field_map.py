@@ -9,6 +9,8 @@ FIELD_MAP = {
     "Address of Property": "property_address",
     "Address of Property_2": "property_address",
     "County of": "county",
+    "Addition City of": "city_state_zip",
+    "A LAND Lot": "legal_description",
 
     # Timing / money
     "A The closing of the sale will be on or before": "closing_date",
@@ -16,6 +18,7 @@ FIELD_MAP = {
     "Option Fee in the form of": "option_fee",
     "Date": "contract_effective_date",
     "Date_2": "closing_date",
+    "will not be credited to the Sales Price at closing Time is of the": "sale_price",
 
     # Title / closing
     "Escrow Agent": "title_company",
