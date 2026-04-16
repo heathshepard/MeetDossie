@@ -566,6 +566,8 @@ const renderDossiers = (rows) => {
         <div><strong>Client:</strong> ${row.buyer_name || row.seller_name || 'Not set yet'}</div>
         <div><strong>Location:</strong> ${row.city_state_zip || 'No city/state/ZIP yet'}</div>
         <div><strong>Notes:</strong> ${row.notes || 'No notes yet'}</div>
+        <div><strong>Checklist progress:</strong> ${normalizeChecklist(row).filter((task) => task.done).length}/${normalizeChecklist(row).length || 0}</div>
+        <div><strong>Activity:</strong> ${Array.isArray(row.notes_log) ? row.notes_log.length : 0} notes logged</div>
       </div>
     </article>
   `).join('');
