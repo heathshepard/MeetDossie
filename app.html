@@ -379,8 +379,14 @@ body::after {
       <section class="hero-card">
         <div class="section-label">Dossie Workspace</div>
         <h1>Your files. Your flow. Actually saved.</h1>
-        <p>This is the first real authenticated Dossie app surface. Create a dossier, refresh, and it should still be here because it’s stored for the signed-in user in Supabase.</p>
+        <p>This is the first real authenticated Dossie app surface. Morning Brief, your saved dossiers, and a real create-and-save flow now live in the signed-in workspace.</p>
         <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
+      </section>
+
+      <section class="card">
+        <h2>Morning Brief</h2>
+        <div class="card-sub">The first version of the live signed-in brief. It summarizes what Dossie sees in your current saved file set.</div>
+        <div id="brief-grid" class="grid" style="grid-template-columns: repeat(3, 1fr);"></div>
       </section>
 
       <div class="grid">
@@ -470,6 +476,7 @@ const signedOutShell = document.getElementById('signed-out-shell');
 const userEmail = document.getElementById('user-email');
 const userStatusCopy = document.getElementById('user-status-copy');
 const workspaceNotice = document.getElementById('workspace-notice');
+const briefGrid = document.getElementById('brief-grid');
 const dossierForm = document.getElementById('dossier-form');
 const dossierList = document.getElementById('dossier-list');
 const formStatus = document.getElementById('form-status');
@@ -479,7 +486,26 @@ let activeSession = null;
 
 const formatStage = (stage) => stage.replace(/-/g, ' ');
 
+const renderBrief = (rows) => {
+  const active = rows.filter((row) => row.status !== 'closed');
+  const urgent = rows.filter((row) => ['option-period', 'financing'].includes(row.stage));
+  const closing = rows.filter((row) => row.stage === 'clear-to-close' || row.stage === 'closed');
+  const cards = [
+    { label: 'Active dossiers', value: active.length, tone: 'var(--sage-light)', color: 'var(--sage-deep)' },
+    { label: 'Needs attention', value: urgent.length, tone: 'var(--gold-light)', color: '#8d6a25' },
+    { label: 'Closing / closed', value: closing.length, tone: '#FCE8E6', color: 'var(--red)' },
+  ];
+  briefGrid.innerHTML = cards.map((card) => `
+    <div class="dossier-item" style="background:${card.tone}; border-color: transparent;">
+      <div class="dossier-id" style="color:${card.color};">Morning Brief</div>
+      <div class="dossier-address" style="margin-top:8px;">${card.value}</div>
+      <div class="dossier-meta"><div><strong>${card.label}</strong></div></div>
+    </div>
+  `).join('');
+};
+
 const renderDossiers = (rows) => {
+  renderBrief(rows);
   if (!rows.length) {
     dossierList.innerHTML = `<div class="empty">No dossiers saved yet. Create your first one and it should stay here for this signed-in account.</div>`;
     return;
