@@ -301,6 +301,17 @@ body::after {
               <strong>Dossie read</strong>
               <div id="dossie-read">Select a file to see Dossie’s current confidence read on how the file is moving.</div>
             </div>
+            <div class="helper-box">
+              <strong>Activity log</strong>
+              <div id="activity-log" class="task-list"></div>
+            </div>
+            <div class="helper-box">
+              <strong>Add note</strong>
+              <div class="field" style="margin-top:0;">
+                <textarea id="activity-note" placeholder="Add a quick transaction note or update..."></textarea>
+              </div>
+              <button id="save-note-btn" class="ghost-btn" type="button">Save note to file</button>
+            </div>
           </div>
           <button class="primary-btn" type="submit">Save dossier changes</button>
           <div id="detail-status-text" class="status-text"></div>
@@ -359,6 +370,9 @@ const detailStatusText = document.getElementById('detail-status-text');
 const whatMattersNow = document.getElementById('what-matters-now');
 const deadlinePressure = document.getElementById('deadline-pressure');
 const dossieRead = document.getElementById('dossie-read');
+const activityLog = document.getElementById('activity-log');
+const activityNote = document.getElementById('activity-note');
+const saveNoteBtn = document.getElementById('save-note-btn');
 const taskList = document.getElementById('task-list');
 
 let activeSession = null;
@@ -454,6 +468,12 @@ const updateWhatMattersNow = (row) => {
   whatMattersNow.textContent = messages[row.stage] || 'Dossie is keeping the file organized and ready for the next move.';
   deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
   dossieRead.textContent = reads[row.stage] || 'Dossie is keeping a stable read on this file.';
+
+  const notes = Array.isArray(row.notes_log) ? row.notes_log : [];
+  activityLog.innerHTML = notes.length
+    ? notes.slice().reverse().map((entry) => `<div class="task-row" style="cursor:default;"><span>${entry}</span></div>`).join('')
+    : `<div class="empty">No activity logged yet for this file.</div>`;
+  activityNote.value = '';
 };
 
 const selectDossier = (id) => {
@@ -658,6 +678,35 @@ detailForm.addEventListener('submit', async (event) => {
   }
 
   detailStatusText.textContent = 'Dossier changes saved.';
+  detailStatusText.className = 'status-text success';
+  await loadDossiers();
+});
+
+saveNoteBtn.addEventListener('click', async () => {
+  if (!activeSession?.user?.id || !selectedDossierId) {
+    detailStatusText.textContent = 'Select a dossier before saving a note.';
+    detailStatusText.className = 'status-text error';
+    return;
+  }
+  const note = activityNote.value.trim();
+  if (!note) {
+    detailStatusText.textContent = 'Add a note before saving it.';
+    detailStatusText.className = 'status-text error';
+    return;
+  }
+  const row = currentRows.find((item) => item.id === selectedDossierId);
+  const nextLog = [...(Array.isArray(row?.notes_log) ? row.notes_log : []), note];
+  const { error } = await supabase
+    .from('transactions')
+    .update({ notes_log: nextLog })
+    .eq('id', selectedDossierId)
+    .eq('user_id', activeSession.user.id);
+  if (error) {
+    detailStatusText.textContent = `Could not save note: ${error.message}`;
+    detailStatusText.className = 'status-text error';
+    return;
+  }
+  detailStatusText.textContent = 'Note saved to activity log.';
   detailStatusText.className = 'status-text success';
   await loadDossiers();
 });
