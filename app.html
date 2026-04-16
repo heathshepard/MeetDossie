@@ -436,18 +436,47 @@ const renderBrief = (rows) => {
   `).join('');
 };
 
+const normalizeChecklist = (row) => {
+  if (Array.isArray(row.checklist) && row.checklist.length) return row.checklist;
+  return (STAGE_TASKS[row.stage] || []).map((label) => ({ label, done: false }));
+};
+
 const updateTaskList = (row) => {
-  const items = STAGE_TASKS[row.stage] || [];
+  const items = normalizeChecklist(row);
   if (!items.length) {
     taskList.innerHTML = `<div class="empty">No checklist items defined for this stage yet.</div>`;
     return;
   }
-  taskList.innerHTML = items.map((task) => `
-    <label class="task-row">
-      <input type="checkbox">
-      <span>${task}</span>
+  taskList.innerHTML = items.map((task, index) => `
+    <label class="task-row ${task.done ? 'done' : ''}" data-task-index="${index}">
+      <input type="checkbox" ${task.done ? 'checked' : ''}>
+      <span>${task.label}</span>
     </label>
   `).join('');
+
+  taskList.querySelectorAll('[data-task-index]').forEach((item) => {
+    item.addEventListener('click', async (event) => {
+      if (!selectedDossierId || !activeSession?.user?.id) return;
+      const rowData = currentRows.find((entry) => entry.id === selectedDossierId);
+      const checklist = normalizeChecklist(rowData).map((task) => ({ ...task }));
+      const idx = Number(item.getAttribute('data-task-index'));
+      checklist[idx].done = !checklist[idx].done;
+      const { error } = await supabase
+        .from('transactions')
+        .update({ checklist })
+        .eq('id', selectedDossierId)
+        .eq('user_id', activeSession.user.id);
+      if (error) {
+        detailStatusText.textContent = `Could not update checklist: ${error.message}`;
+        detailStatusText.className = 'status-text error';
+        return;
+      }
+      detailStatusText.textContent = 'Checklist updated.';
+      detailStatusText.className = 'status-text success';
+      await loadDossiers();
+      event.preventDefault();
+    });
+  });
 };
 
 const updateWhatMattersNow = (row) => {
