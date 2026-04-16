@@ -356,19 +356,20 @@ body::after {
     const userEmail = data.session.user?.email || 'your account';
     document.querySelector('.panel').innerHTML = `
       <div>
-        <div class="panel-title">You’re signed in.</div>
-        <p class="panel-copy">Dossie recognizes this session for <strong>${userEmail}</strong>. This temporary authenticated landing confirms auth is working while we finish wiring the full in-app destination.</p>
+        <div class="panel-title">Welcome into Dossie.</div>
+        <p class="panel-copy">Dossie recognizes this session for <strong>${userEmail}</strong>. You’re through the front door now. This is the first authenticated experience while we wire the full in-app workspace behind it.</p>
         <div class="notice success" style="display:block;">Authenticated session detected successfully.</div>
         <div class="button-stack">
-          <a class="button button-primary" href="/">Back to homepage</a>
+          <a class="button button-primary" href="/agents">Go to agent experience</a>
+          <a class="button button-secondary" href="/coordinators">Go to coordinator experience</a>
           <button id="sign-out-btn" class="button button-secondary" type="button">Sign Out</button>
         </div>
-        <div class="helper">Next implementation step: replace this temporary authenticated landing with the real Dossie app destination.</div>
+        <div class="helper">Use this authenticated landing as the current logged-in checkpoint while we connect the full Dossie app surface and saved transaction workspace.</div>
       </div>
       <div class="status">
         <strong>Current status:</strong> authenticated session is live.<br>
-        <strong>What this proves:</strong> account creation/sign-in can work when auth state is valid.<br>
-        <strong>Next step:</strong> wire this authenticated state into the real app surface.
+        <strong>What you can do now:</strong> continue into the public agent/coordinator product paths while staying authenticated.<br>
+        <strong>Next implementation step:</strong> replace these links with the real in-app transaction dashboard.
       </div>
     `;
 
