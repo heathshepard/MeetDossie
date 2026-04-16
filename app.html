@@ -173,6 +173,7 @@ body::after {
       </section>
 
       <section class="card">
+        <div class="section-label">Operating Overview</div>
         <h2>Morning Brief</h2>
         <div class="card-sub">The live signed-in brief summarizes what Dossie sees in your current saved file set.</div>
         <div id="brief-grid" class="grid" style="grid-template-columns: repeat(3, 1fr);"></div>
@@ -181,6 +182,7 @@ body::after {
 
       <div class="grid">
         <section class="card">
+          <div class="section-label">File Creation</div>
           <h2>Open a new dossier</h2>
           <div class="card-sub">Create a transaction record tied to your signed-in Dossie account.</div>
           <form id="dossier-form" class="form-grid">
@@ -231,6 +233,7 @@ body::after {
         </section>
 
         <section class="card">
+          <div class="section-label">Saved Files</div>
           <h2>Your saved dossiers</h2>
           <div class="card-sub">These are loaded from the signed-in user’s `transactions` table in Supabase. Click one to open it.</div>
           <div id="dossier-list" class="dossier-list">
@@ -242,7 +245,7 @@ body::after {
       <section class="card detail-panel">
         <div class="detail-header">
           <div>
-            <div class="section-label">Dossier Detail</div>
+            <div class="section-label">Live File Workspace</div>
             <div id="detail-title" class="detail-title">Select a saved dossier</div>
             <div id="detail-sub" class="detail-sub">Choose a dossier from the list to open the editable transaction workspace.</div>
           </div>
