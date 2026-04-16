@@ -78,7 +78,8 @@ body::after {
 .hero-card p { margin-top: 14px; max-width: 760px; color: var(--text-soft); font-size: 15px; line-height: 1.9; }
 .notice { margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--sage-light); color: var(--sage-deep); font-size: 13px; line-height: 1.7; }
 .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
-.workspace-grid { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 20px; }
+.app-nav { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.app-nav-chip { display: inline-flex; align-items: center; justify-content: center; padding: 9px 14px; border-radius: 999px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); color: var(--text-soft); font-size: 12px; font-weight: 700; letter-spacing: 0.2px; }
 .card { background: rgba(255,255,255,0.9); border: 1px solid var(--border-light); border-radius: 24px; padding: 22px; backdrop-filter: blur(12px); }
 .card h2 { font-size: 20px; color: var(--navy); margin-bottom: 10px; }
 .card-sub { color: var(--text-soft); font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
@@ -106,7 +107,15 @@ body::after {
 .detail-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; line-height: 0.98; color: var(--navy); }
 .detail-sub { margin-top: 8px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 1180px) { .shell, .grid, .workspace-grid { grid-template-columns: 1fr; } }
+.helper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.helper-box { background: white; border: 1px solid var(--border-light); border-radius: 18px; padding: 18px; }
+.helper-box strong { display: block; font-size: 13px; color: var(--navy); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.helper-box div { font-size: 13px; color: var(--text-soft); line-height: 1.7; }
+.task-list { display: grid; gap: 10px; }
+.task-row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); cursor: pointer; }
+.task-row.done { opacity: 0.6; }
+.task-row input { margin-top: 2px; }
+@media (max-width: 1180px) { .shell, .grid, .helper-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -131,7 +140,7 @@ body::after {
       <div>
         <div class="section-label">Authenticated</div>
         <div class="sidebar-title">Welcome into Dossie.</div>
-        <p class="sidebar-copy">You’re in the first real logged-in Dossie workspace. This version now handles session detection, saved dossiers, a real Morning Brief, and an editable dossier detail view.</p>
+        <p class="sidebar-copy">You’re in the first real logged-in Dossie workspace. This version now handles session detection, saved dossiers, a live Morning Brief, dossier editing, and concrete file-next-step guidance.</p>
       </div>
       <div class="user-card">
         <strong id="user-email">Signed in</strong>
@@ -139,7 +148,7 @@ body::after {
       </div>
       <div class="status-card">
         <strong>What works now</strong>
-        <span>Authenticated session, Supabase-backed dossier storage, Morning Brief summary, dossier creation, and dossier editing in one live signed-in surface.</span>
+        <span>Authenticated session, Supabase-backed dossier storage, Morning Brief summary, dossier creation, dossier editing, and working next-step guidance tied to the selected file.</span>
       </div>
     </aside>
 
@@ -147,13 +156,14 @@ body::after {
       <section class="hero-card">
         <div class="section-label">Dossie Workspace</div>
         <h1>Your files. Your flow. Actually saved.</h1>
-        <p>This is the first real authenticated Dossie app surface. Morning Brief, your saved dossiers, and an editable dossier workspace now live in the signed-in product.</p>
+        <p>This is the first real authenticated Dossie app surface. Morning Brief, your saved dossiers, an editable dossier workspace, and file-next-step guidance now live in the signed-in product.</p>
         <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
         <div class="app-nav">
           <div class="app-nav-chip">Morning Brief</div>
           <div class="app-nav-chip">Create Dossier</div>
           <div class="app-nav-chip">Saved Files</div>
           <div class="app-nav-chip">Dossier Detail</div>
+          <div class="app-nav-chip">What Matters Now</div>
         </div>
       </section>
 
@@ -269,6 +279,16 @@ body::after {
             <label for="detail-notes">Notes</label>
             <textarea id="detail-notes"></textarea>
           </div>
+          <div class="helper-grid">
+            <div class="helper-box">
+              <strong>What matters now</strong>
+              <div id="what-matters-now">Select a file to see Dossie’s read on the next most important move.</div>
+            </div>
+            <div class="helper-box">
+              <strong>File checklist</strong>
+              <div id="task-list" class="task-list"></div>
+            </div>
+          </div>
           <button class="primary-btn" type="submit">Save dossier changes</button>
           <div id="detail-status-text" class="status-text"></div>
         </form>
@@ -323,10 +343,20 @@ const detailTitle = document.getElementById('detail-title');
 const detailSub = document.getElementById('detail-sub');
 const detailBadge = document.getElementById('detail-badge');
 const detailStatusText = document.getElementById('detail-status-text');
+const whatMattersNow = document.getElementById('what-matters-now');
+const taskList = document.getElementById('task-list');
 
 let activeSession = null;
 let currentRows = [];
 let selectedDossierId = null;
+
+const STAGE_TASKS = {
+  'under-contract': ['Review the executed contract', 'Confirm earnest money timing', 'Open the title file'],
+  'option-period': ['Track option deadline', 'Confirm inspection scheduling', 'Prepare amendment if needed'],
+  'financing': ['Check lender progress', 'Confirm appraisal status', 'Watch financing deadline'],
+  'clear-to-close': ['Confirm final CD timing', 'Verify closing logistics', 'Prepare final reminder email'],
+  'closed': ['Confirm the file is archived', 'Log the closing outcome', 'Wrap post-close follow-up'],
+};
 
 const formatStage = (stage) => stage.replace(/-/g, ' ');
 
@@ -369,6 +399,31 @@ const renderBrief = (rows) => {
   `).join('');
 };
 
+const updateTaskList = (row) => {
+  const items = STAGE_TASKS[row.stage] || [];
+  if (!items.length) {
+    taskList.innerHTML = `<div class="empty">No checklist items defined for this stage yet.</div>`;
+    return;
+  }
+  taskList.innerHTML = items.map((task) => `
+    <label class="task-row">
+      <input type="checkbox">
+      <span>${task}</span>
+    </label>
+  `).join('');
+};
+
+const updateWhatMattersNow = (row) => {
+  const messages = {
+    'under-contract': 'Start by confirming the file is opened cleanly and the key dates are visible. This stage is about setting the deal up right so nothing slips later.',
+    'option-period': 'The option timeline is what matters most right now. Make sure inspections and any amendment decisions are moving before the clock runs out.',
+    'financing': 'Stay close to lender progress and anything that could threaten the financing deadline. Dossie should keep this file from going quiet.',
+    'clear-to-close': 'This file is almost over the line. Final confirmations and closing logistics are the main thing now.',
+    'closed': 'This one is closed. The main job now is clean wrap-up, archive, and any post-close follow-up you want handled.',
+  };
+  whatMattersNow.textContent = messages[row.stage] || 'Dossie is keeping the file organized and ready for the next move.';
+};
+
 const selectDossier = (id) => {
   selectedDossierId = id;
   renderDossiers(currentRows);
@@ -379,6 +434,8 @@ const selectDossier = (id) => {
     detailBadge.style.display = 'none';
     detailTitle.textContent = 'Select a saved dossier';
     detailSub.textContent = 'Choose a dossier from the list to open the editable transaction workspace.';
+    whatMattersNow.textContent = 'Select a file to see Dossie’s read on the next most important move.';
+    taskList.innerHTML = '';
     return;
   }
 
@@ -395,6 +452,8 @@ const selectDossier = (id) => {
   document.getElementById('detail-stage').value = row.stage || 'under-contract';
   document.getElementById('detail-status').value = row.status || 'active';
   document.getElementById('detail-notes').value = row.notes || '';
+  updateWhatMattersNow(row);
+  updateTaskList(row);
   detailStatusText.textContent = '';
   detailStatusText.className = 'status-text';
 };
