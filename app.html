@@ -318,6 +318,14 @@ body::after {
               <div id="dossie-read">Select a file to see Dossie’s current confidence read on how the file is moving.</div>
             </div>
             <div class="helper-box">
+              <strong>Suggested next action</strong>
+              <div id="next-action">Select a file to see the next action Dossie would take.</div>
+            </div>
+            <div class="helper-box">
+              <strong>Email draft prep</strong>
+              <div id="email-draft">Select a file to see a draft-ready follow-up note.</div>
+            </div>
+            <div class="helper-box">
               <strong>Activity log</strong>
               <div id="activity-log" class="task-list"></div>
             </div>
@@ -386,6 +394,8 @@ const detailStatusText = document.getElementById('detail-status-text');
 const whatMattersNow = document.getElementById('what-matters-now');
 const deadlinePressure = document.getElementById('deadline-pressure');
 const dossieRead = document.getElementById('dossie-read');
+const nextAction = document.getElementById('next-action');
+const emailDraft = document.getElementById('email-draft');
 const activityLog = document.getElementById('activity-log');
 const activityNote = document.getElementById('activity-note');
 const saveNoteBtn = document.getElementById('save-note-btn');
@@ -508,19 +518,40 @@ const updateTaskList = (row) => {
 };
 
 const updateWhatMattersNow = (row) => {
+  const roleLabel = row.role === 'buyer' ? 'buyer side' : 'listing side';
   const messages = {
-    'under-contract': 'Start by confirming the file is opened cleanly and the key dates are visible. This stage is about setting the deal up right so nothing slips later.',
-    'option-period': 'The option timeline is what matters most right now. Make sure inspections and any amendment decisions are moving before the clock runs out.',
-    'financing': 'Stay close to lender progress and anything that could threaten the financing deadline. Dossie should keep this file from going quiet.',
+    'under-contract': row.role === 'buyer'
+      ? 'Start by confirming the buyer-side file is opened cleanly and the key dates are visible. This stage is about preventing early confusion.'
+      : 'Start by confirming the listing-side file is opened cleanly and seller expectations are aligned with the contract timeline.',
+    'option-period': row.role === 'buyer'
+      ? 'The option timeline is what matters most right now. Keep inspections, repairs, and buyer decisions moving before the clock runs out.'
+      : 'The option timeline matters because seller-side response time can shape the whole tone of the file. Stay ready for amendments and inspection asks.',
+    'financing': row.role === 'buyer'
+      ? 'Stay close to lender progress and anything that could threaten financing. Buyer-side silence here creates risk fast.'
+      : 'Financing still matters on the listing side because unresolved lender issues can quietly stall the file. Keep pressure visible.',
     'clear-to-close': 'This file is almost over the line. Final confirmations and closing logistics are the main thing now.',
     'closed': 'This one is closed. The main job now is clean wrap-up, archive, and any post-close follow-up you want handled.',
   };
   const reads = {
-    'under-contract': 'This file looks newly active. Dossie’s confidence is highest when the handoff is clean and the contract details are visible early.',
-    'option-period': 'This file is in a decision-heavy stage. Dossie sees the biggest risk here when inspection or amendment conversations go quiet.',
-    'financing': 'This file is moving, but financing-stage silence is where surprises usually build. Dossie should keep this one watched closely.',
+    'under-contract': `This ${roleLabel} file looks newly active. Dossie’s confidence is highest when the handoff is clean and the contract details are visible early.`,
+    'option-period': `This ${roleLabel} file is in a decision-heavy stage. Dossie sees the biggest risk here when inspection or amendment conversations go quiet.`,
+    'financing': `This ${roleLabel} file is moving, but financing-stage silence is where surprises usually build. Dossie should keep this one watched closely.`,
     'clear-to-close': 'This file is trending healthy. The goal now is clean execution, not more complexity.',
     'closed': 'This file is complete and stable. Dossie reads it as an archive-ready file, not an active risk.',
+  };
+  const nextActions = {
+    'under-contract': row.role === 'buyer' ? 'Prompt the buyer-side file setup sequence and confirm earnest money timing.' : 'Prompt the listing-side kickoff sequence and make sure title and seller-side expectations are aligned.',
+    'option-period': row.role === 'buyer' ? 'Prepare an inspection / amendment follow-up draft and keep the option decision visible.' : 'Prepare a seller response / amendment follow-up draft and keep the option deadline visible.',
+    'financing': 'Draft a lender/title progress check and keep this file on the radar until financing risk drops.',
+    'clear-to-close': 'Prepare a final confirmation email and check that closing logistics are buttoned up.',
+    'closed': 'Archive the file cleanly and prepare any last follow-up or wrap-up note.',
+  };
+  const draftTargets = {
+    'under-contract': row.role === 'buyer' ? 'buyer + title' : 'seller + title',
+    'option-period': row.role === 'buyer' ? 'buyer + inspection side' : 'seller-side response thread',
+    'financing': 'lender + title',
+    'clear-to-close': 'all active parties',
+    'closed': 'client follow-up',
   };
   whatMattersNow.textContent = messages[row.stage] || 'Dossie is keeping the file organized and ready for the next move.';
   const closingDays = daysUntil(row.closing_date);
@@ -538,6 +569,8 @@ const updateWhatMattersNow = (row) => {
     deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
   }
   dossieRead.textContent = reads[row.stage] || 'Dossie is keeping a stable read on this file.';
+  nextAction.textContent = nextActions[row.stage] || 'Keep the file moving and confirm the next visible handoff.';
+  emailDraft.textContent = `Dossie would prepare the next follow-up draft for ${draftTargets[row.stage] || 'the active parties'} based on this file’s current stage.`;
 
   const notes = Array.isArray(row.notes_log) ? row.notes_log : [];
   activityLog.innerHTML = notes.length
