@@ -155,6 +155,7 @@ body::after {
         <h2>Morning Brief</h2>
         <div class="card-sub">The live signed-in brief summarizes what Dossie sees in your current saved file set.</div>
         <div id="brief-grid" class="grid" style="grid-template-columns: repeat(3, 1fr);"></div>
+        <div id="brief-rows" class="dossier-list" style="margin-top: 18px;"></div>
       </section>
 
       <div class="grid">
@@ -305,6 +306,7 @@ const userEmail = document.getElementById('user-email');
 const userStatusCopy = document.getElementById('user-status-copy');
 const workspaceNotice = document.getElementById('workspace-notice');
 const briefGrid = document.getElementById('brief-grid');
+const briefRows = document.getElementById('brief-rows');
 const dossierForm = document.getElementById('dossier-form');
 const dossierList = document.getElementById('dossier-list');
 const formStatus = document.getElementById('form-status');
@@ -322,20 +324,41 @@ let selectedDossierId = null;
 
 const formatStage = (stage) => stage.replace(/-/g, ' ');
 
-const renderBrief = (rows) => {
+const buildBriefGroups = (rows) => {
   const active = rows.filter((row) => row.status !== 'closed');
-  const urgent = rows.filter((row) => ['option-period', 'financing'].includes(row.stage));
-  const closing = rows.filter((row) => row.stage === 'clear-to-close' || row.stage === 'closed');
+  const firstThings = active.filter((row) => ['option-period', 'financing'].includes(row.stage));
+  const watch = active.filter((row) => row.stage === 'under-contract');
+  const movingCleanly = active.filter((row) => ['clear-to-close'].includes(row.stage));
+  return { active, firstThings, watch, movingCleanly };
+};
+
+const renderBrief = (rows) => {
+  const groups = buildBriefGroups(rows);
   const cards = [
-    { label: 'Active dossiers', value: active.length, tone: 'var(--sage-light)', color: 'var(--sage-deep)' },
-    { label: 'Needs attention', value: urgent.length, tone: 'var(--gold-light)', color: '#8d6a25' },
-    { label: 'Closing / closed', value: closing.length, tone: '#FCE8E6', color: 'var(--red)' },
+    { label: 'Active dossiers', value: groups.active.length, tone: 'var(--sage-light)', color: 'var(--sage-deep)' },
+    { label: 'First things first', value: groups.firstThings.length, tone: 'var(--gold-light)', color: '#8d6a25' },
+    { label: 'Moving cleanly', value: groups.movingCleanly.length, tone: '#FCE8E6', color: 'var(--red)' },
   ];
   briefGrid.innerHTML = cards.map((card) => `
     <div class="dossier-item" style="background:${card.tone}; border-color: transparent; cursor:default; transform:none;">
       <div class="dossier-id" style="color:${card.color};">Morning Brief</div>
       <div class="dossier-address" style="margin-top:8px;">${card.value}</div>
       <div class="dossier-meta"><div><strong>${card.label}</strong></div></div>
+    </div>
+  `).join('');
+
+  const sections = [
+    { title: 'First things first', items: groups.firstThings, empty: 'Nothing urgent is pressing right now. Dossie has the file stable.' },
+    { title: 'Worth watching', items: groups.watch, empty: 'Nothing needs close attention right now. The file is moving steadily.' },
+    { title: 'Moving cleanly', items: groups.movingCleanly, empty: 'Nothing is at the clear-to-close stage yet, but the files are progressing.' },
+  ];
+
+  briefRows.innerHTML = sections.map((section) => `
+    <div class="dossier-item" style="cursor:default;">
+      <div class="dossier-id">${section.title}</div>
+      <div class="dossier-meta" style="margin-top:12px;">
+        ${section.items.length ? section.items.map((row) => `<div><strong>${row.property_address}</strong> · ${formatStage(row.stage)} · ${row.buyer_name || row.seller_name || 'Client not set yet'}</div>`).join('') : `<div>${section.empty}</div>`}
+      </div>
     </div>
   `).join('');
 };
