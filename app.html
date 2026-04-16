@@ -128,6 +128,7 @@ body::after {
             <div id="confirm-wrap" class="field" style="display:none;">
               <label for="entry-confirm-password">Confirm password</label>
               <input id="entry-confirm-password" name="confirmPassword" type="password" placeholder="Confirm password" autocomplete="new-password">
+              <div id="match-note" class="helper" style="display:none; margin-top:4px;"></div>
             </div>
             <div id="notice" class="notice"></div>
             <div class="button-stack">
@@ -141,7 +142,8 @@ body::after {
 
         <div class="status">
           <strong>Current status:</strong> real magic-link entry is live.<br>
-          <strong>Next step:</strong> sign in from your email and continue into the Dossie app.
+          <strong>Important:</strong> if Supabase requires email confirmation, password sign-in will fail until you confirm the account from your inbox.<br>
+          <strong>Next step:</strong> confirm your email first if prompted, then sign in and continue into the Dossie app.
         </div>
       </div>
     </section>
@@ -171,6 +173,7 @@ body::after {
   const confirmPasswordInput = document.getElementById('entry-confirm-password');
   const passwordWrap = document.getElementById('password-wrap');
   const confirmWrap = document.getElementById('confirm-wrap');
+  const matchNote = document.getElementById('match-note');
   const submitBtn = document.getElementById('submit-btn');
   const notice = document.getElementById('notice');
   const magicBtn = document.getElementById('mode-magic');
@@ -184,7 +187,36 @@ body::after {
     notice.style.display = message ? 'block' : 'none';
   };
 
-  const updateModeUi = () => {
+  const updatePasswordMatchNote = () => {
+    if (authMode !== 'signup') {
+      matchNote.style.display = 'none';
+      matchNote.textContent = '';
+      matchNote.style.color = '';
+      return;
+    }
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+    if (!password && !confirmPassword) {
+      matchNote.style.display = 'none';
+      matchNote.textContent = '';
+      return;
+    }
+    matchNote.style.display = 'block';
+    if (!confirmPassword) {
+      matchNote.textContent = 'Confirm your password to finish creating the account.';
+      matchNote.style.color = 'var(--text-light)';
+      return;
+    }
+    if (password === confirmPassword) {
+      matchNote.textContent = 'Passwords match.';
+      matchNote.style.color = 'var(--sage-deep)';
+      return;
+    }
+    matchNote.textContent = 'Passwords do not match yet.';
+    matchNote.style.color = 'var(--red)';
+  };
+
+  const updateModeUi = (clearMessage = true) => {
     const activeStyle = 'background: var(--sage-deep); color: white; border-color: var(--sage-deep);';
     const inactiveStyle = '';
     magicBtn.style.cssText = authMode === 'magic' ? activeStyle : inactiveStyle;
@@ -193,7 +225,8 @@ body::after {
     passwordWrap.style.display = authMode === 'password' || authMode === 'signup' ? 'flex' : 'none';
     confirmWrap.style.display = authMode === 'signup' ? 'flex' : 'none';
     submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : authMode === 'signup' ? 'Create Account' : 'Email Me a Magic Link';
-    setNotice('');
+    updatePasswordMatchNote();
+    if (clearMessage) setNotice('');
   };
 
   magicBtn.addEventListener('click', () => {
@@ -210,6 +243,9 @@ body::after {
     authMode = 'signup';
     updateModeUi();
   });
+
+  passwordInput.addEventListener('input', updatePasswordMatchNote);
+  confirmPasswordInput.addEventListener('input', updatePasswordMatchNote);
 
   updateModeUi();
 
@@ -256,7 +292,7 @@ body::after {
 
         const needsEmailConfirmation = !data?.session;
         if (needsEmailConfirmation) {
-          setNotice('Account created. Check your email to confirm your account before signing in.', 'success');
+          setNotice('Account created. Supabase requires email confirmation before password sign-in will work. Check your inbox, confirm the account, then come back and sign in.', 'success');
         } else {
           setNotice('Account created. You can sign in with your password now.', 'success');
         }
@@ -264,7 +300,12 @@ body::after {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Account';
         authMode = 'password';
-        updateModeUi();
+        updateModeUi(false);
+        if (needsEmailConfirmation) {
+          passwordInput.value = '';
+          confirmPasswordInput.value = '';
+          updatePasswordMatchNote();
+        }
         return;
       }
 
@@ -272,7 +313,11 @@ body::after {
       setNotice('Signing you in...');
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setNotice(error.message || 'Password sign-in failed.', 'error');
+        const lower = (error.message || '').toLowerCase();
+        const message = lower.includes('invalid login credentials')
+          ? 'Invalid login credentials. If you just created this account, Supabase likely still requires email confirmation before password sign-in will work. Check your inbox and confirm the account first.'
+          : error.message || 'Password sign-in failed.';
+        setNotice(message, 'error');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign In with Password';
         return;
