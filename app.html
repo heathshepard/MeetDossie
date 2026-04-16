@@ -3,381 +3,618 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Enter Dossie</title>
-<meta name="description" content="Phase-one magic-link entry for Dossie.">
+<title>Dossie App</title>
+<meta name="description" content="The authenticated Dossie workspace.">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
- --bg: #FDFCFA; --bg-warm: #F9F6F1; --card: rgba(255,255,255,0.94);
- --border: #E8E2D9; --border-light: #F0EBE3;
- --text: #2D2A26; --text-soft: #7A7468; --text-light: #A39E94;
- --blush: #D4A0A0; --blush-deep: #C08080;
- --sage: #8BA888; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
- --red: #D95C52;
+  --bg: #FDFCFA;
+  --bg-soft: #F7F1EC;
+  --surface: rgba(255,255,255,0.92);
+  --surface-solid: #FFFFFF;
+  --border: #E8E2D9;
+  --border-light: #F0EBE3;
+  --text: #2D2A26;
+  --text-soft: #7A7468;
+  --text-light: #A39E94;
+  --blush: #D4A0A0;
+  --blush-deep: #C08080;
+  --sage: #8BA888;
+  --sage-light: #E4EDE2;
+  --sage-deep: #6B8E68;
+  --gold: #C9A96E;
+  --gold-light: #F5EDD8;
+  --navy: #1A1A2E;
+  --red: #D95C52;
 }
 body {
- font-family: 'Plus Jakarta Sans', sans-serif;
- background: linear-gradient(180deg, #FDFCFA 0%, #F7F1EC 100%);
- color: var(--text);
- min-height: 100vh;
- overflow-x: hidden;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+  color: var(--text);
+  min-height: 100vh;
 }
 body::before {
- content: '';
- position: fixed;
- top: -180px;
- right: -140px;
- width: 520px;
- height: 520px;
- background: radial-gradient(circle, rgba(212,160,160,0.22) 0%, transparent 66%);
- pointer-events: none;
+  content: '';
+  position: fixed;
+  top: -180px;
+  right: -160px;
+  width: 540px;
+  height: 540px;
+  background: radial-gradient(circle, rgba(212,160,160,0.18) 0%, transparent 66%);
+  pointer-events: none;
 }
 body::after {
- content: '';
- position: fixed;
- bottom: -180px;
- left: -120px;
- width: 460px;
- height: 460px;
- background: radial-gradient(circle, rgba(139,168,136,0.18) 0%, transparent 66%);
- pointer-events: none;
+  content: '';
+  position: fixed;
+  bottom: -220px;
+  left: -140px;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(139,168,136,0.14) 0%, transparent 66%);
+  pointer-events: none;
 }
-.page { min-height: 100vh; padding: 28px; display: flex; flex-direction: column; }
-.nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 40px; }
-.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
-.mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); color: white; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 700; }
-.brand-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; }
-.back-link { text-decoration: none; color: var(--text-soft); font-size: 14px; font-weight: 600; }
-.main { flex: 1; display: grid; place-items: center; }
-.card { width: 100%; max-width: 980px; background: var(--card); border: 1px solid var(--border); border-radius: 32px; box-shadow: 0 26px 80px rgba(26,26,46,0.08); padding: 42px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 32px; position: relative; z-index: 1; }
-.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.8px; font-weight: 800; color: var(--blush-deep); margin-bottom: 18px; }
-.eyebrow-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--sage); }
-.title { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 6vw, 64px); line-height: 0.98; letter-spacing: -1.5px; margin-bottom: 16px; }
-.sub { color: var(--text-soft); font-size: 15px; line-height: 1.9; max-width: 540px; }
-.meta { display: grid; gap: 12px; margin-top: 24px; }
-.meta-item { display: flex; align-items: flex-start; gap: 10px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
-.meta-item strong { color: var(--text); }
-.tick { color: var(--sage-deep); font-weight: 800; }
-.panel { background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); border-radius: 26px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; }
-.panel-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-.panel-copy { color: var(--text-soft); font-size: 14px; line-height: 1.8; margin-bottom: 18px; }
-.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
-.field label { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: var(--text-soft); }
-.field input { width: 100%; border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none; }
-.field input:focus { border-color: var(--sage); box-shadow: 0 0 0 4px rgba(139,168,136,0.12); }
-.button-stack { display: grid; gap: 12px; margin-top: 8px; }
-.button { display: inline-flex; align-items: center; justify-content: center; width: 100%; border: none; border-radius: 999px; padding: 15px 18px; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
-.button-primary { background: var(--sage-deep); color: white; }
-.button-primary:disabled { opacity: 0.7; cursor: wait; }
-.button-secondary { background: white; border: 1px solid var(--border); color: var(--text); }
-.helper { margin-top: 14px; font-size: 12px; color: var(--text-light); line-height: 1.7; }
-.status { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-light); font-size: 13px; color: var(--text-soft); line-height: 1.8; }
-.notice { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--bg-warm); color: var(--text); font-size: 13px; line-height: 1.6; display: none; }
-.notice.error { background: #FCE8E6; color: var(--red); }
-.notice.success { background: var(--sage-light); color: var(--sage-deep); }
-.footer { margin-top: 28px; text-align: center; color: var(--text-light); font-size: 12px; line-height: 1.7; }
-@media (max-width: 860px) { .card { grid-template-columns: 1fr; padding: 28px; } }
-@media (max-width: 640px) { .page { padding: 18px; } .nav { margin-bottom: 24px; } .card { padding: 24px; border-radius: 24px; } .title { letter-spacing: -1px; } }
+.page {
+  min-height: 100vh;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.82);
+  border: 1px solid var(--border-light);
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%);
+  color: white;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+.brand-copy strong {
+  display: block;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.brand-copy span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ghost-btn, .primary-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+.ghost-btn {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.primary-btn {
+  background: var(--sage-deep);
+  color: white;
+}
+.shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 22px;
+  flex: 1;
+}
+.sidebar {
+  background: rgba(255,255,255,0.86);
+  border: 1px solid var(--border-light);
+  border-radius: 28px;
+  padding: 22px;
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--blush-deep);
+  font-weight: 800;
+}
+.sidebar-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 34px;
+  line-height: 0.98;
+  color: var(--navy);
+}
+.sidebar-copy {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-soft);
+}
+.user-card, .status-card {
+  background: var(--surface-solid);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 16px;
+}
+.user-card strong, .status-card strong {
+  display: block;
+  font-size: 14px;
+  color: var(--navy);
+}
+.user-card span, .status-card span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+.main {
+  display: grid;
+  gap: 20px;
+}
+.hero-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92));
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(26,26,46,0.06);
+}
+.hero-card h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 0.98;
+  color: var(--navy);
+}
+.hero-card p {
+  margin-top: 14px;
+  max-width: 760px;
+  color: var(--text-soft);
+  font-size: 15px;
+  line-height: 1.9;
+}
+.notice {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--sage-light);
+  color: var(--sage-deep);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+}
+.card {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border-light);
+  border-radius: 24px;
+  padding: 22px;
+  backdrop-filter: blur(12px);
+}
+.card h2 {
+  font-size: 20px;
+  color: var(--navy);
+  margin-bottom: 10px;
+}
+.card-sub {
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+.field input, .field textarea, .field select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 13px 15px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: white;
+  outline: none;
+}
+.field textarea { min-height: 100px; resize: vertical; }
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 4px rgba(139,168,136,0.12);
+}
+.status-text {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-soft);
+}
+.status-text.error { color: var(--red); }
+.status-text.success { color: var(--sage-deep); }
+.dossier-list {
+  display: grid;
+  gap: 14px;
+}
+.dossier-item {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  padding: 16px;
+}
+.dossier-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dossier-id {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--blush-deep);
+  font-weight: 800;
+}
+.dossier-address {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.dossier-meta {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--gold-light);
+  color: #8d6a25;
+}
+.empty {
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  color: var(--text-light);
+  font-size: 14px;
+  line-height: 1.7;
+  background: rgba(255,255,255,0.6);
+}
+@media (max-width: 1020px) {
+  .shell, .grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .page { padding: 16px; }
+  .topbar { flex-direction: column; align-items: flex-start; }
+  .topbar-actions { width: 100%; flex-wrap: wrap; }
+  .ghost-btn, .primary-btn { width: 100%; justify-content: center; }
+}
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="nav">
+  <header class="topbar">
     <a href="/" class="brand">
       <div class="mark">D</div>
-      <span class="brand-name">Dossie</span>
+      <div class="brand-copy">
+        <strong>Dossie</strong>
+        <span>The authenticated transaction workspace</span>
+      </div>
     </a>
-    <a href="/" class="back-link">← Back to homepage</a>
+    <div class="topbar-actions">
+      <a class="ghost-btn" href="/">Back to homepage</a>
+      <button id="sign-out-btn" class="ghost-btn" type="button">Sign Out</button>
+    </div>
+  </header>
+
+  <div id="auth-shell" class="shell" style="display:none;">
+    <aside class="sidebar">
+      <div>
+        <div class="section-label">Authenticated</div>
+        <div class="sidebar-title">Welcome into Dossie.</div>
+        <p class="sidebar-copy">You’re in the first real logged-in Dossie workspace. This version is focused on the essentials: session detection, your files, and creating your first saved dossier.</p>
+      </div>
+      <div class="user-card">
+        <strong id="user-email">Signed in</strong>
+        <span id="user-status-copy">Your workspace is loading.</span>
+      </div>
+      <div class="status-card">
+        <strong>What works now</strong>
+        <span>Authenticated session, Supabase-backed dossier storage, and a real saved workspace surface.</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero-card">
+        <div class="section-label">Dossie Workspace</div>
+        <h1>Your files. Your flow. Actually saved.</h1>
+        <p>This is the first real authenticated Dossie app surface. Create a dossier, refresh, and it should still be here because it’s stored for the signed-in user in Supabase.</p>
+        <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Open a new dossier</h2>
+          <div class="card-sub">Create a transaction record tied to your signed-in Dossie account.</div>
+          <form id="dossier-form" class="form-grid">
+            <div class="field">
+              <label for="property-address">Property address</label>
+              <input id="property-address" type="text" placeholder="4521 Meadow Creek Dr" required>
+            </div>
+            <div class="field">
+              <label for="city-state-zip">City / state / ZIP</label>
+              <input id="city-state-zip" type="text" placeholder="San Antonio, TX 78230">
+            </div>
+            <div class="field">
+              <label for="client-name">Client name</label>
+              <input id="client-name" type="text" placeholder="Marcus Patterson">
+            </div>
+            <div class="field">
+              <label for="role">Side</label>
+              <select id="role">
+                <option value="listing">Listing</option>
+                <option value="buyer">Buyer</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="stage">Stage</label>
+              <select id="stage">
+                <option value="under-contract">Under Contract</option>
+                <option value="option-period">Option Period</option>
+                <option value="financing">Financing</option>
+                <option value="clear-to-close">Clear to Close</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="notes">Notes</label>
+              <textarea id="notes" placeholder="Anything Dossie should know about this file?"></textarea>
+            </div>
+            <button class="primary-btn" type="submit">Create Dossier</button>
+            <div id="form-status" class="status-text"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Your saved dossiers</h2>
+          <div class="card-sub">These are loaded from the signed-in user’s `transactions` table in Supabase.</div>
+          <div id="dossier-list" class="dossier-list">
+            <div class="empty">Loading your saved dossiers...</div>
+          </div>
+        </section>
+      </div>
+    </main>
   </div>
 
-  <main class="main">
-    <section class="card">
-      <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span>App Entry</div>
-        <h1 class="title">Welcome back to Dossie.</h1>
-        <p class="sub">This is the real phase-one app entry point. Magic link stays the intended production path, but temporary password sign-in is available too so testing can keep moving while email auth is throttled.</p>
-
-        <div class="meta">
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Magic link</strong> remains the preferred phase-one sign-in experience.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Password sign-in</strong> is available temporarily for testing and debugging.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Next step after sign-in</strong> is landing in the real Dossie app with your saved files.</span></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div>
-          <div class="panel-title">Enter Dossie</div>
-          <p class="panel-copy">Use magic link for the intended phase-one flow, use password temporarily for testing, or create a test account directly if you do not have one yet.</p>
-
-          <div class="button-stack" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 14px;">
-            <button id="mode-magic" class="button button-secondary" type="button">Magic Link</button>
-            <button id="mode-password" class="button button-secondary" type="button">Password</button>
-            <button id="mode-signup" class="button button-secondary" type="button">Create Account</button>
-          </div>
-
-          <form id="auth-form">
-            <div class="field">
-              <label for="entry-email">Email</label>
-              <input id="entry-email" name="email" type="email" placeholder="you@meetdossie.com" autocomplete="email" required>
-            </div>
-            <div id="password-wrap" class="field" style="display:none;">
-              <label for="entry-password">Password</label>
-              <input id="entry-password" name="password" type="password" placeholder="Enter password" autocomplete="current-password">
-            </div>
-            <div id="confirm-wrap" class="field" style="display:none;">
-              <label for="entry-confirm-password">Confirm password</label>
-              <input id="entry-confirm-password" name="confirmPassword" type="password" placeholder="Confirm password" autocomplete="new-password">
-              <div id="match-note" class="helper" style="display:none; margin-top:4px;"></div>
-            </div>
-            <div id="notice" class="notice"></div>
-            <div class="button-stack">
-              <button id="submit-btn" class="button button-primary" type="submit">Email Me a Magic Link</button>
-              <a class="button button-secondary" href="/">Back to homepage</a>
-            </div>
-          </form>
-
-          <div class="helper">Magic link is still the intended production sign-in. Password access is enabled temporarily for testing while Supabase email limits are blocking repeated auth requests.</div>
-        </div>
-
-        <div class="status">
-          <strong>Current status:</strong> real magic-link entry is live.<br>
-          <strong>Important:</strong> if Supabase requires email confirmation, password sign-in will fail until you confirm the account from your inbox.<br>
-          <strong>Next step:</strong> confirm your email first if prompted, then sign in and continue into the Dossie app.
-        </div>
+  <div id="signed-out-shell" class="shell" style="display:none; grid-template-columns: 1fr;">
+    <section class="hero-card">
+      <div class="section-label">App Entry</div>
+      <h1>You’re signed out.</h1>
+      <p>Return to the sign-in flow and enter Dossie again when you’re ready.</p>
+      <div class="button-stack" style="max-width: 320px; margin-top: 20px;">
+        <a class="primary-btn" href="/app.html">Reload app entry</a>
+        <a class="ghost-btn" href="/">Back to homepage</a>
       </div>
     </section>
-  </main>
-
-  <div class="footer">Built by a Texas REALTOR® who needed a better way. © 2026 Dossie AI.</div>
+  </div>
 </div>
 
 <script type="module">
-  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-  const supabase = createClient(
-    'https://pgwoitbdiyubjugwufhk.supabase.co',
-    'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    }
-  );
-
-  const form = document.getElementById('auth-form');
-  const emailInput = document.getElementById('entry-email');
-  const passwordInput = document.getElementById('entry-password');
-  const confirmPasswordInput = document.getElementById('entry-confirm-password');
-  const passwordWrap = document.getElementById('password-wrap');
-  const confirmWrap = document.getElementById('confirm-wrap');
-  const matchNote = document.getElementById('match-note');
-  const submitBtn = document.getElementById('submit-btn');
-  const notice = document.getElementById('notice');
-  const magicBtn = document.getElementById('mode-magic');
-  const passwordBtn = document.getElementById('mode-password');
-  const signupBtn = document.getElementById('mode-signup');
-  let authMode = 'magic';
-
-  const setNotice = (message, type = '') => {
-    notice.textContent = message;
-    notice.className = `notice${type ? ` ${type}` : ''}`;
-    notice.style.display = message ? 'block' : 'none';
-  };
-
-  const updatePasswordMatchNote = () => {
-    if (authMode !== 'signup') {
-      matchNote.style.display = 'none';
-      matchNote.textContent = '';
-      matchNote.style.color = '';
-      return;
-    }
-    const password = passwordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
-    if (!password && !confirmPassword) {
-      matchNote.style.display = 'none';
-      matchNote.textContent = '';
-      return;
-    }
-    matchNote.style.display = 'block';
-    if (!confirmPassword) {
-      matchNote.textContent = 'Confirm your password to finish creating the account.';
-      matchNote.style.color = 'var(--text-light)';
-      return;
-    }
-    if (password === confirmPassword) {
-      matchNote.textContent = 'Passwords match.';
-      matchNote.style.color = 'var(--sage-deep)';
-      return;
-    }
-    matchNote.textContent = 'Passwords do not match yet.';
-    matchNote.style.color = 'var(--red)';
-  };
-
-  const updateModeUi = (clearMessage = true) => {
-    const activeStyle = 'background: var(--sage-deep); color: white; border-color: var(--sage-deep);';
-    const inactiveStyle = '';
-    magicBtn.style.cssText = authMode === 'magic' ? activeStyle : inactiveStyle;
-    passwordBtn.style.cssText = authMode === 'password' ? activeStyle : inactiveStyle;
-    signupBtn.style.cssText = authMode === 'signup' ? activeStyle : inactiveStyle;
-    passwordWrap.style.display = authMode === 'password' || authMode === 'signup' ? 'flex' : 'none';
-    confirmWrap.style.display = authMode === 'signup' ? 'flex' : 'none';
-    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : authMode === 'signup' ? 'Create Account' : 'Email Me a Magic Link';
-    updatePasswordMatchNote();
-    if (clearMessage) setNotice('');
-  };
-
-  magicBtn.addEventListener('click', () => {
-    authMode = 'magic';
-    updateModeUi();
-  });
-
-  passwordBtn.addEventListener('click', () => {
-    authMode = 'password';
-    updateModeUi();
-  });
-
-  signupBtn.addEventListener('click', () => {
-    authMode = 'signup';
-    updateModeUi();
-  });
-
-  passwordInput.addEventListener('input', updatePasswordMatchNote);
-  confirmPasswordInput.addEventListener('input', updatePasswordMatchNote);
-
-  updateModeUi();
-
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
-    if (!email) {
-      setNotice('Add your email first.', 'error');
-      return;
-    }
-
-    submitBtn.disabled = true;
-
-    if (authMode === 'password' || authMode === 'signup') {
-      if (!password) {
-        setNotice(authMode === 'signup' ? 'Create a password too.' : 'Add your password too.', 'error');
-        submitBtn.disabled = false;
-        return;
-      }
-
-      if (authMode === 'signup') {
-        if (!confirmPassword) {
-          setNotice('Confirm your password too.', 'error');
-          submitBtn.disabled = false;
-          return;
-        }
-        if (password !== confirmPassword) {
-          setNotice('Passwords do not match yet.', 'error');
-          submitBtn.disabled = false;
-          return;
-        }
-
-        submitBtn.textContent = 'Creating account...';
-        setNotice('Creating your account...');
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) {
-          setNotice(error.message || 'Account creation failed.', 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
-          return;
-        }
-
-        const needsEmailConfirmation = !data?.session;
-        if (needsEmailConfirmation) {
-          setNotice('Account created. Supabase requires email confirmation before password sign-in will work. Check your inbox, confirm the account, then come back and sign in.', 'success');
-        } else {
-          setNotice('Account created. You can sign in with your password now.', 'success');
-        }
-
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account';
-        authMode = 'password';
-        updateModeUi(false);
-        if (needsEmailConfirmation) {
-          passwordInput.value = '';
-          confirmPasswordInput.value = '';
-          updatePasswordMatchNote();
-        }
-        return;
-      }
-
-      submitBtn.textContent = 'Signing in...';
-      setNotice('Signing you in...');
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        const lower = (error.message || '').toLowerCase();
-        const message = lower.includes('invalid login credentials')
-          ? 'Invalid login credentials. If you just created this account, Supabase likely still requires email confirmation before password sign-in will work. Check your inbox and confirm the account first.'
-          : error.message || 'Password sign-in failed.';
-        setNotice(message, 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign In with Password';
-        return;
-      }
-      setNotice('Welcome back. Opening Dossie...', 'success');
-      setTimeout(() => {
-        window.location.href = '/app.html';
-      }, 1000);
-      return;
-    }
-
-    submitBtn.textContent = 'Sending...';
-    setNotice('Sending your magic link...');
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app.html`,
-      },
-    });
-
-    if (error) {
-      setNotice(error.message || 'Magic link failed.', 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Email Me a Magic Link';
-      return;
-    }
-
-    setNotice('Magic link sent. Check your email and open the link to enter Dossie.', 'success');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Email Me a Magic Link';
-  });
-
-  const { data } = await supabase.auth.getSession();
-  if (data?.session) {
-    const userEmail = data.session.user?.email || 'your account';
-    document.querySelector('.panel').innerHTML = `
-      <div>
-        <div class="panel-title">Welcome into Dossie.</div>
-        <p class="panel-copy">Dossie recognizes this session for <strong>${userEmail}</strong>. You’re through the front door now. This is the first authenticated experience while we wire the full in-app workspace behind it.</p>
-        <div class="notice success" style="display:block;">Authenticated session detected successfully.</div>
-        <div class="button-stack">
-          <a class="button button-primary" href="/agents">Go to agent experience</a>
-          <a class="button button-secondary" href="/coordinators">Go to coordinator experience</a>
-          <button id="sign-out-btn" class="button button-secondary" type="button">Sign Out</button>
-        </div>
-        <div class="helper">Use this authenticated landing as the current logged-in checkpoint while we connect the full Dossie app surface and saved transaction workspace.</div>
-      </div>
-      <div class="status">
-        <strong>Current status:</strong> authenticated session is live.<br>
-        <strong>What you can do now:</strong> continue into the public agent/coordinator product paths while staying authenticated.<br>
-        <strong>Next implementation step:</strong> replace these links with the real in-app transaction dashboard.
-      </div>
-    `;
-
-    document.getElementById('sign-out-btn')?.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/app.html';
-    });
+const supabase = createClient(
+  'https://pgwoitbdiyubjugwufhk.supabase.co',
+  'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
   }
+);
+
+const authShell = document.getElementById('auth-shell');
+const signedOutShell = document.getElementById('signed-out-shell');
+const userEmail = document.getElementById('user-email');
+const userStatusCopy = document.getElementById('user-status-copy');
+const workspaceNotice = document.getElementById('workspace-notice');
+const dossierForm = document.getElementById('dossier-form');
+const dossierList = document.getElementById('dossier-list');
+const formStatus = document.getElementById('form-status');
+const signOutBtn = document.getElementById('sign-out-btn');
+
+let activeSession = null;
+
+const formatStage = (stage) => stage.replace(/-/g, ' ');
+
+const renderDossiers = (rows) => {
+  if (!rows.length) {
+    dossierList.innerHTML = `<div class="empty">No dossiers saved yet. Create your first one and it should stay here for this signed-in account.</div>`;
+    return;
+  }
+
+  dossierList.innerHTML = rows.map((row) => `
+    <article class="dossier-item">
+      <div class="dossier-top">
+        <div>
+          <div class="dossier-id">Dossier ${row.dossier_number}</div>
+          <div class="dossier-address">${row.property_address}</div>
+        </div>
+        <div class="badge">${formatStage(row.stage)}</div>
+      </div>
+      <div class="dossier-meta">
+        <div><strong>Side:</strong> ${row.role || 'listing'}</div>
+        <div><strong>Client:</strong> ${row.buyer_name || row.seller_name || 'Not set yet'}</div>
+        <div><strong>Location:</strong> ${row.city_state_zip || 'No city/state/ZIP yet'}</div>
+        <div><strong>Notes:</strong> ${row.notes || 'No notes yet'}</div>
+      </div>
+    </article>
+  `).join('');
+};
+
+const loadDossiers = async () => {
+  if (!activeSession?.user?.id) return;
+  dossierList.innerHTML = `<div class="empty">Loading your saved dossiers...</div>`;
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', activeSession.user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    dossierList.innerHTML = `<div class="empty">Could not load dossiers yet: ${error.message}</div>`;
+    return;
+  }
+
+  renderDossiers(data || []);
+};
+
+const showSignedIn = async (session) => {
+  activeSession = session;
+  signedOutShell.style.display = 'none';
+  authShell.style.display = 'grid';
+  userEmail.textContent = session.user.email || 'Signed in';
+  userStatusCopy.textContent = 'Your authenticated Dossie workspace is live and connected to your Supabase-backed dossiers.';
+  workspaceNotice.textContent = 'Authenticated session detected successfully.';
+  workspaceNotice.className = 'notice';
+  await loadDossiers();
+};
+
+const showSignedOut = () => {
+  activeSession = null;
+  authShell.style.display = 'none';
+  signedOutShell.style.display = 'grid';
+};
+
+dossierForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!activeSession?.user?.id) {
+    formStatus.textContent = 'You need to be signed in first.';
+    formStatus.className = 'status-text error';
+    return;
+  }
+
+  formStatus.textContent = 'Saving dossier...';
+  formStatus.className = 'status-text';
+
+  const propertyAddress = document.getElementById('property-address').value.trim();
+  const cityStateZip = document.getElementById('city-state-zip').value.trim();
+  const clientName = document.getElementById('client-name').value.trim();
+  const role = document.getElementById('role').value;
+  const stage = document.getElementById('stage').value;
+  const notes = document.getElementById('notes').value.trim();
+
+  const dossierNumber = String(Date.now()).slice(-6);
+
+  const payload = {
+    user_id: activeSession.user.id,
+    dossier_number: dossierNumber,
+    status: stage === 'closed' ? 'closed' : 'active',
+    stage,
+    role,
+    property_address: propertyAddress,
+    city_state_zip: cityStateZip,
+    buyer_name: role === 'buyer' ? clientName : null,
+    seller_name: role === 'listing' ? clientName : null,
+    notes,
+    sale_price: 0,
+    earnest_money: 0,
+    option_fee: 0,
+    option_days: 7,
+    financing_days: 21,
+    parties: {},
+    email_history: [],
+    checklist: [],
+    notes_log: [],
+  };
+
+  const { error } = await supabase.from('transactions').insert(payload);
+
+  if (error) {
+    formStatus.textContent = `Could not save dossier: ${error.message}`;
+    formStatus.className = 'status-text error';
+    return;
+  }
+
+  formStatus.textContent = 'Dossier saved successfully.';
+  formStatus.className = 'status-text success';
+  dossierForm.reset();
+  document.getElementById('role').value = 'listing';
+  document.getElementById('stage').value = 'under-contract';
+  await loadDossiers();
+});
+
+signOutBtn.addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  showSignedOut();
+});
+
+const { data } = await supabase.auth.getSession();
+if (data?.session) {
+  await showSignedIn(data.session);
+} else {
+  showSignedOut();
+}
+
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session) {
+    await showSignedIn(session);
+  } else {
+    showSignedOut();
+  }
+});
 </script>
 </body>
 </html>
