@@ -111,10 +111,40 @@ body::after {
 .helper-box { background: white; border: 1px solid var(--border-light); border-radius: 18px; padding: 18px; }
 .helper-box strong { display: block; font-size: 13px; color: var(--navy); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
 .helper-box div { font-size: 13px; color: var(--text-soft); line-height: 1.7; }
+.brief-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.brief-stat { background:linear-gradient(180deg,#ffffff 0%, #f8f3ec 100%); border:1px solid var(--border-light); border-radius:20px; padding:18px; }
+.brief-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.6px; color:var(--blush-deep); font-weight:800; }
+.brief-stat-value { margin-top:10px; font-family:'Cormorant Garamond', serif; font-size:36px; color:var(--navy); line-height:0.95; }
+.brief-stat-copy { margin-top:8px; font-size:13px; color:var(--text-soft); line-height:1.6; }
+.brief-focus-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:18px; margin-top:18px; }
+.brief-focus-card { background:white; border:1px solid var(--border-light); border-radius:22px; padding:18px; }
+.brief-focus-card h3 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+.brief-focus-card p { font-size:14px; line-height:1.75; color:var(--text-soft); }
+.intelligence-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.intelligence-pill { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#f7f1ec; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
+.intelligence-pill.urgent { background:#fdebec; color:var(--red); border-color:#f4c9cc; }
+.intelligence-pill.ready { background:var(--sage-light); color:var(--sage-deep); border-color:#d9ead7; }
+.intelligence-pill.watch { background:var(--gold-light); color:#8d6a25; border-color:#f0dfb2; }
+.brief-lane { display:grid; gap:12px; }
+.brief-lane-item { background:rgba(255,255,255,0.9); border:1px solid var(--border-light); border-radius:18px; padding:16px; }
+.brief-lane-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.brief-lane-address { font-size:17px; font-weight:700; color:var(--navy); }
+.brief-lane-copy { margin-top:10px; font-size:13px; line-height:1.7; color:var(--text-soft); }
+.brief-lane-meta { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
+.surface-grid { display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; }
+.surface-stack { display:grid; gap:20px; }
+.hero-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
+.hero-metric { background:rgba(255,255,255,0.82); border:1px solid var(--border-light); border-radius:18px; padding:14px; }
+.hero-metric strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--blush-deep); }
+.hero-metric span { display:block; margin-top:8px; font-size:14px; line-height:1.6; color:var(--navy); }
+.intelligence-card { background:linear-gradient(180deg,#fff 0%,#faf6f1 100%); border:1px solid var(--border-light); border-radius:22px; padding:18px; }
+.intelligence-card h3 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+.intelligence-card p { font-size:14px; line-height:1.75; color:var(--text-soft); }
 .task-list { display: grid; gap: 10px; }
 .task-row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); cursor: pointer; }
 .task-row.done { opacity: 0.6; }
 .task-row input { margin-top: 2px; }
+@media (max-width: 1180px) { .shell, .grid, .helper-grid, .surface-grid, .brief-focus-grid, .brief-strip, .hero-metrics { grid-template-columns: 1fr; } }
 @media (max-width: 1180px) { .shell, .grid, .helper-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } }
 </style>
@@ -160,27 +190,42 @@ body::after {
     <main class="main">
       <section class="hero-card">
         <div class="section-label">Dossie Workspace</div>
-        <h1>Your files. Your flow. Actually saved.</h1>
-        <p>This is the first real authenticated Dossie app surface. Morning Brief, your saved dossiers, an editable dossier workspace, and file-next-step guidance now live in the signed-in product.</p>
+        <h1>Dossie is actively reading your files.</h1>
+        <p>The signed-in workspace should feel like a real assistant, not a storage shell. Morning Brief now focuses on readiness, risk, and the next best move across the active file set.</p>
         <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
-        <div class="app-nav">
-          <div class="app-nav-chip">Morning Brief</div>
-          <div class="app-nav-chip">Create Dossier</div>
-          <div class="app-nav-chip">Saved Files</div>
-          <div class="app-nav-chip">Dossier Detail</div>
-          <div class="app-nav-chip">What Matters Now</div>
+        <div class="hero-metrics">
+          <div class="hero-metric">
+            <strong>Morning Brief</strong>
+            <span id="hero-metric-brief">Dossie is scanning your active files.</span>
+          </div>
+          <div class="hero-metric">
+            <strong>Readiness</strong>
+            <span id="hero-metric-readiness">Waiting for your live file state.</span>
+          </div>
+          <div class="hero-metric">
+            <strong>Next move</strong>
+            <span id="hero-metric-next">Dossie will surface the next most important action here.</span>
+          </div>
         </div>
       </section>
 
       <section class="card">
         <div class="section-label">Operating Overview</div>
         <h2>Morning Brief</h2>
-        <div class="card-sub">The live signed-in brief summarizes what Dossie sees in your current saved file set.</div>
-        <div id="brief-grid" class="grid" style="grid-template-columns: repeat(3, 1fr);"></div>
-        <div id="brief-rows" class="dossier-list" style="margin-top: 18px;"></div>
+        <div class="card-sub">Dossie now reads the file set for pressure, readiness, and what deserves attention first.</div>
+        <div id="brief-grid" class="brief-strip"></div>
+        <div class="brief-focus-grid">
+          <div id="brief-rows" class="brief-lane"></div>
+          <div class="brief-focus-card">
+            <div class="section-label">Smart read</div>
+            <h3 id="brief-focus-title">Waiting on active files</h3>
+            <p id="brief-focus-copy">Once your dossiers load, Dossie will summarize what matters most, what is fragile, and what is ready to move.</p>
+            <div id="brief-focus-pills" class="intelligence-pills"></div>
+          </div>
+        </div>
       </section>
 
-      <div class="grid">
+      <div class="surface-grid">
         <section class="card">
           <div class="section-label">File Creation</div>
           <h2>Open a new dossier</h2>
@@ -382,53 +427,57 @@ body::after {
             <label for="detail-notes">Notes</label>
             <textarea id="detail-notes"></textarea>
           </div>
-          <div class="helper-grid">
-            <div class="helper-box">
-              <strong>What matters now</strong>
-              <div id="what-matters-now">Select a file to see Dossie's read on the next most important move.</div>
+          <div class="surface-stack">
+            <div class="intelligence-card">
+              <div class="section-label">Priority read</div>
+              <h3>What matters now</h3>
+              <p id="what-matters-now">Select a file to see Dossie's read on the next most important move.</p>
+              <div id="priority-pills" class="intelligence-pills"></div>
             </div>
-            <div class="helper-box">
-              <strong>Transaction intelligence</strong>
-              <div id="transaction-intelligence" class="task-list"></div>
-            </div>
-            <div class="helper-box">
-              <strong>Deadline pressure</strong>
-              <div id="deadline-pressure">Select a file to see what deadline or timing pressure Dossie thinks matters most.</div>
-            </div>
-            <div class="helper-box">
-              <strong>File checklist</strong>
-              <div id="task-list" class="task-list"></div>
-            </div>
-            <div class="helper-box">
-              <strong>Dossie read</strong>
-              <div id="dossie-read">Select a file to see Dossie's current confidence read on how the file is moving.</div>
-            </div>
-            <div class="helper-box">
-              <strong>Suggested next action</strong>
-              <div id="next-action">Select a file to see the next action Dossie would take.</div>
-            </div>
-            <div class="helper-box">
-              <strong>Email draft prep</strong>
-              <div id="email-draft">Select a file to see a draft-ready follow-up note.</div>
-            </div>
-            <div class="helper-box">
-              <strong>Activity log</strong>
-              <div id="activity-log" class="task-list"></div>
-            </div>
-            <div class="helper-box">
-              <strong>Dossie conversation</strong>
-              <div class="field" style="margin-top:0;">
-                <textarea id="conversation-input" placeholder="Tell Dossie something naturally, like 'buyer is Marcus Patterson' or 'sale price is 425000'."></textarea>
+            <div class="helper-grid">
+              <div class="helper-box">
+                <strong>Transaction intelligence</strong>
+                <div id="transaction-intelligence" class="task-list"></div>
               </div>
-              <button id="conversation-send-btn" class="ghost-btn" type="button">Send to Dossie</button>
-              <div id="conversation-reply" class="status-text"></div>
-            </div>
-            <div class="helper-box">
-              <strong>Add note</strong>
-              <div class="field" style="margin-top:0;">
-                <textarea id="activity-note" placeholder="Add a quick transaction note or update..."></textarea>
+              <div class="helper-box">
+                <strong>Deadline pressure</strong>
+                <div id="deadline-pressure">Select a file to see what deadline or timing pressure Dossie thinks matters most.</div>
               </div>
-              <button id="save-note-btn" class="ghost-btn" type="button">Save note to file</button>
+              <div class="helper-box">
+                <strong>Dossie read</strong>
+                <div id="dossie-read">Select a file to see Dossie's current confidence read on how the file is moving.</div>
+              </div>
+              <div class="helper-box">
+                <strong>Suggested next action</strong>
+                <div id="next-action">Select a file to see the next action Dossie would take.</div>
+              </div>
+              <div class="helper-box">
+                <strong>Next best question</strong>
+                <div id="email-draft">Select a file to see Dossie's next question.</div>
+              </div>
+              <div class="helper-box">
+                <strong>File checklist</strong>
+                <div id="task-list" class="task-list"></div>
+              </div>
+              <div class="helper-box">
+                <strong>Activity log</strong>
+                <div id="activity-log" class="task-list"></div>
+              </div>
+              <div class="helper-box">
+                <strong>Dossie conversation</strong>
+                <div class="field" style="margin-top:0;">
+                  <textarea id="conversation-input" placeholder="Tell Dossie something naturally, like 'buyer is Marcus Patterson' or 'sale price is 425000'."></textarea>
+                </div>
+                <button id="conversation-send-btn" class="ghost-btn" type="button">Send to Dossie</button>
+                <div id="conversation-reply" class="status-text"></div>
+              </div>
+              <div class="helper-box">
+                <strong>Add note</strong>
+                <div class="field" style="margin-top:0;">
+                  <textarea id="activity-note" placeholder="Add a quick transaction note or update..."></textarea>
+                </div>
+                <button id="save-note-btn" class="ghost-btn" type="button">Save note to file</button>
+              </div>
             </div>
           </div>
           <div class="helper-box">
@@ -616,6 +665,12 @@ const userStatusCopy = document.getElementById('user-status-copy');
 const workspaceNotice = document.getElementById('workspace-notice');
 const briefGrid = document.getElementById('brief-grid');
 const briefRows = document.getElementById('brief-rows');
+const briefFocusTitle = document.getElementById('brief-focus-title');
+const briefFocusCopy = document.getElementById('brief-focus-copy');
+const briefFocusPills = document.getElementById('brief-focus-pills');
+const heroMetricBrief = document.getElementById('hero-metric-brief');
+const heroMetricReadiness = document.getElementById('hero-metric-readiness');
+const heroMetricNext = document.getElementById('hero-metric-next');
 const dossierForm = document.getElementById('dossier-form');
 const dossierList = document.getElementById('dossier-list');
 const formStatus = document.getElementById('form-status');
@@ -627,6 +682,7 @@ const detailSub = document.getElementById('detail-sub');
 const detailBadge = document.getElementById('detail-badge');
 const detailStatusText = document.getElementById('detail-status-text');
 const whatMattersNow = document.getElementById('what-matters-now');
+const priorityPills = document.getElementById('priority-pills');
 const deadlinePressure = document.getElementById('deadline-pressure');
 const dossieRead = document.getElementById('dossie-read');
 const nextAction = document.getElementById('next-action');
@@ -687,20 +743,73 @@ const buildBriefGroups = (rows) => {
   return { active, firstThings, watch, movingCleanly };
 };
 
+const buildPremiumBrief = (rows) => {
+  const total = rows.length;
+  const active = rows.filter((row) => row.status !== 'closed').length;
+  const financing = rows.filter((row) => row.stage === 'financing').length;
+  const closingSoon = rows.filter((row) => {
+    const days = daysUntil(row.closing_date);
+    return days !== null && days >= 0 && days <= 7;
+  }).length;
+  const missingCore = rows.filter((row) => !row.sale_price || !row.contract_effective_date || !row.title_company).length;
+  return { total, active, financing, closingSoon, missingCore };
+};
+
+const buildBriefNarrative = (rows) => {
+  if (!rows.length) {
+    return {
+      title: 'No active files yet',
+      copy: 'Once a dossier exists, Morning Brief will surface readiness, timing pressure, and the next best move automatically.',
+      pills: ['No active dossiers'],
+    };
+  }
+
+  const premium = buildPremiumBrief(rows);
+  if (premium.missingCore) {
+    return {
+      title: 'Dossie sees readiness gaps',
+      copy: `${premium.missingCore} file${premium.missingCore === 1 ? '' : 's'} still lack contract-critical details. Closing those gaps is the fastest way to make the workspace feel truly useful.`,
+      pills: ['Missing contract details', premium.closingSoon ? 'Closing soon' : 'No urgent closing pressure'],
+    };
+  }
+  if (premium.closingSoon) {
+    return {
+      title: 'Closing pressure is the priority',
+      copy: `${premium.closingSoon} file${premium.closingSoon === 1 ? '' : 's'} are inside a 7-day closing window. Dossie should act like a calm transaction desk, not a static form.` ,
+      pills: ['Closing window', premium.financing ? 'Financing still active' : 'Execution mode'],
+    };
+  }
+  return {
+    title: 'The file set is stable enough to move',
+    copy: 'Dossie now has enough structure to shift from cleanup into guidance, follow-up, and intelligent next-step recommendations.',
+    pills: ['Ready to move', premium.financing ? 'Financing in motion' : 'Low pressure'],
+  };
+};
+
 const renderBrief = (rows) => {
   const groups = buildBriefGroups(rows);
+  const premium = buildPremiumBrief(rows);
+  const narrative = buildBriefNarrative(rows);
   const cards = [
-    { label: 'Active dossiers', value: groups.active.length, tone: 'var(--sage-light)', color: 'var(--sage-deep)' },
-    { label: 'First things first', value: groups.firstThings.length, tone: 'var(--gold-light)', color: '#8d6a25' },
-    { label: 'Moving cleanly', value: groups.movingCleanly.length, tone: '#FCE8E6', color: 'var(--red)' },
+    { label: 'Active files', value: premium.active, copy: `${premium.total} total dossiers tracked right now.` },
+    { label: 'Need cleanup', value: premium.missingCore, copy: 'Files still missing contract-critical details.' },
+    { label: 'Financing watch', value: premium.financing, copy: 'Files sitting in lender-sensitive territory.' },
+    { label: 'Closing soon', value: premium.closingSoon, copy: 'Files inside a 7-day closing window.' },
   ];
   briefGrid.innerHTML = cards.map((card) => `
-    <div class="dossier-item" style="background:${card.tone}; border-color: transparent; cursor:default; transform:none;">
-      <div class="dossier-id" style="color:${card.color};">Morning Brief</div>
-      <div class="dossier-address" style="margin-top:8px;">${card.value}</div>
-      <div class="dossier-meta"><div><strong>${card.label}</strong></div></div>
+    <div class="brief-stat">
+      <div class="brief-stat-label">${card.label}</div>
+      <div class="brief-stat-value">${card.value}</div>
+      <div class="brief-stat-copy">${card.copy}</div>
     </div>
   `).join('');
+
+  heroMetricBrief.textContent = premium.total ? `${premium.active} active file${premium.active === 1 ? '' : 's'} are shaping today's brief.` : 'Create your first file to wake Morning Brief up.';
+  heroMetricReadiness.textContent = premium.missingCore ? `${premium.missingCore} file${premium.missingCore === 1 ? '' : 's'} still need contract cleanup.` : 'Core contract readiness looks stable.';
+  heroMetricNext.textContent = narrative.copy;
+  briefFocusTitle.textContent = narrative.title;
+  briefFocusCopy.textContent = narrative.copy;
+  briefFocusPills.innerHTML = narrative.pills.map((pill) => `<span class="intelligence-pill ${pill.toLowerCase().includes('missing') ? 'urgent' : pill.toLowerCase().includes('ready') ? 'ready' : 'watch'}">${pill}</span>`).join('');
 
   const sections = [
     { title: 'First things first', items: groups.firstThings, empty: 'Nothing urgent is pressing right now. Dossie has the file stable.' },
@@ -709,10 +818,13 @@ const renderBrief = (rows) => {
   ];
 
   briefRows.innerHTML = sections.map((section) => `
-    <div class="dossier-item" style="cursor:default;">
-      <div class="dossier-id">${section.title}</div>
-      <div class="dossier-meta" style="margin-top:12px;">
-        ${section.items.length ? section.items.map((row) => `<div><strong>${row.property_address}</strong> · ${formatStage(row.stage)} · ${row.buyer_name || row.seller_name || 'Client not set yet'}</div>`).join('') : `<div>${section.empty}</div>`}
+    <div class="brief-focus-card">
+      <div class="section-label">${section.title}</div>
+      <div class="brief-lane">
+        ${section.items.length ? section.items.map((row) => {
+          const readiness = !row.sale_price || !row.contract_effective_date || !row.title_company ? 'Needs contract cleanup' : 'Ready for guided next step';
+          return `<div class="brief-lane-item"><div class="brief-lane-top"><div><div class="brief-lane-address">${row.property_address}</div><div class="small">${formatStage(row.stage)} · ${row.buyer_name || row.seller_name || 'Client not set yet'}</div></div><span class="intelligence-pill ${readiness.includes('Needs') ? 'urgent' : 'ready'}">${readiness}</span></div><div class="brief-lane-copy">${row.stage === 'financing' ? 'Lender momentum and deadline confidence matter most on this file.' : row.stage === 'option-period' ? 'Decision timing and amendment readiness matter most here.' : 'This file is in setup mode and needs a clean contract baseline.'}</div><div class="brief-lane-meta"><span class="intelligence-pill watch">${row.status || 'active'}</span>${row.closing_date ? `<span class="intelligence-pill">Closing ${formatDate(row.closing_date)}</span>` : ''}</div></div>`;
+        }).join('') : `<div class="brief-lane-item"><div class="brief-lane-copy">${section.empty}</div></div>`}
       </div>
     </div>
   `).join('');
@@ -776,14 +888,18 @@ const analyzeTransactionIntelligence = async (row) => {
 
 const renderIntelligencePanel = (analysis) => {
   const entries = Object.entries(analysis.classification || {});
-  transactionIntelligence.innerHTML = entries.map(([key, item]) => `
-    <div class="task-row" style="cursor:default; align-items:flex-start;">
-      <div>
-        <strong>${item.label}</strong>
-        <div style="font-size:12px; color:var(--text-soft);">${item.status}${item.value ? ` · ${item.value}` : ''}</div>
+  transactionIntelligence.innerHTML = entries.map(([key, item]) => {
+    const tone = item.status === 'missing' || item.status === 'needs-confirmation' ? 'urgent' : item.status === 'known' ? 'ready' : 'watch';
+    return `
+      <div class="task-row" style="cursor:default; align-items:flex-start; justify-content:space-between;">
+        <div>
+          <strong>${item.label}</strong>
+          <div style="font-size:12px; color:var(--text-soft);">${item.value ? item.value : 'Not captured yet'}</div>
+        </div>
+        <span class="intelligence-pill ${tone}">${item.status}</span>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 };
 
 const updateWhatMattersNow = async (row) => {
@@ -793,6 +909,7 @@ const updateWhatMattersNow = async (row) => {
   const closingLabel = formatDate(row.closing_date);
 
   whatMattersNow.textContent = analysis.whatMattersNow || 'Dossie is keeping the file organized and ready for the next move.';
+  priorityPills.innerHTML = (analysis.recommendedDocuments || []).map((doc) => `<span class="intelligence-pill ready">${doc}</span>`).join('');
   if (closingDays !== null && closingLabel) {
     if (closingDays < 0) {
       deadlinePressure.textContent = `Closing date ${closingLabel} has already passed. Dossie should treat this file as needing immediate review.`;
@@ -862,6 +979,7 @@ const selectDossier = (id) => {
   document.getElementById('detail-notes').value = row.notes || '';
   updateWhatMattersNow(row).catch((error) => {
     whatMattersNow.textContent = `Could not refresh Dossie intelligence: ${error.message}`;
+    priorityPills.innerHTML = '<span class="intelligence-pill urgent">Intelligence offline</span>';
     dossieRead.textContent = 'Dossie needs the intelligence bridge available to evaluate this file.';
     nextAction.textContent = 'Bring the intelligence bridge back online and refresh the file.';
   });
