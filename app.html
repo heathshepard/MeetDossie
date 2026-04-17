@@ -141,7 +141,7 @@ body::after {
       <div>
         <div class="section-label">Authenticated</div>
         <div class="sidebar-title">Welcome into Dossie.</div>
-        <p class="sidebar-copy">You’re in the first real logged-in Dossie workspace. This version now handles session detection, saved dossiers, a live Morning Brief, dossier editing, and concrete file-next-step guidance.</p>
+        <p class="sidebar-copy">You're in the first real logged-in Dossie workspace. This version now handles session detection, saved dossiers, a live Morning Brief, dossier editing, and concrete file-next-step guidance.</p>
       </div>
       <div class="user-card">
         <strong id="user-email">Signed in</strong>
@@ -251,7 +251,7 @@ body::after {
         <section class="card">
           <div class="section-label">Saved Files</div>
           <h2>Your saved dossiers</h2>
-          <div class="card-sub">These are loaded from the signed-in user’s `transactions` table in Supabase. Click one to open it.</div>
+          <div class="card-sub">These are loaded from the signed-in user's `transactions` table in Supabase. Click one to open it.</div>
           <div id="dossier-list" class="dossier-list">
             <div class="empty">Loading your saved dossiers...</div>
           </div>
@@ -385,7 +385,11 @@ body::after {
           <div class="helper-grid">
             <div class="helper-box">
               <strong>What matters now</strong>
-              <div id="what-matters-now">Select a file to see Dossie’s read on the next most important move.</div>
+              <div id="what-matters-now">Select a file to see Dossie's read on the next most important move.</div>
+            </div>
+            <div class="helper-box">
+              <strong>Transaction intelligence</strong>
+              <div id="transaction-intelligence" class="task-list"></div>
             </div>
             <div class="helper-box">
               <strong>Deadline pressure</strong>
@@ -397,7 +401,7 @@ body::after {
             </div>
             <div class="helper-box">
               <strong>Dossie read</strong>
-              <div id="dossie-read">Select a file to see Dossie’s current confidence read on how the file is moving.</div>
+              <div id="dossie-read">Select a file to see Dossie's current confidence read on how the file is moving.</div>
             </div>
             <div class="helper-box">
               <strong>Suggested next action</strong>
@@ -410,6 +414,14 @@ body::after {
             <div class="helper-box">
               <strong>Activity log</strong>
               <div id="activity-log" class="task-list"></div>
+            </div>
+            <div class="helper-box">
+              <strong>Dossie conversation</strong>
+              <div class="field" style="margin-top:0;">
+                <textarea id="conversation-input" placeholder="Tell Dossie something naturally, like 'buyer is Marcus Patterson' or 'sale price is 425000'."></textarea>
+              </div>
+              <button id="conversation-send-btn" class="ghost-btn" type="button">Send to Dossie</button>
+              <div id="conversation-reply" class="status-text"></div>
             </div>
             <div class="helper-box">
               <strong>Add note</strong>
@@ -443,8 +455,8 @@ body::after {
   <div id="signed-out-shell" class="shell" style="display:none; grid-template-columns: 1fr;">
     <section class="hero-card">
       <div class="section-label">App Entry</div>
-      <h1>You’re signed out.</h1>
-      <p>Return to the sign-in flow and enter Dossie again when you’re ready.</p>
+      <h1>You're signed out.</h1>
+      <p>Return to the sign-in flow and enter Dossie again when you're ready.</p>
       <div class="button-stack" style="max-width: 320px; margin-top: 20px;">
         <a class="primary-btn" href="/app.html">Reload app entry</a>
         <a class="ghost-btn" href="/">Back to homepage</a>
@@ -490,7 +502,11 @@ const deadlinePressure = document.getElementById('deadline-pressure');
 const dossieRead = document.getElementById('dossie-read');
 const nextAction = document.getElementById('next-action');
 const emailDraft = document.getElementById('email-draft');
+const transactionIntelligence = document.getElementById('transaction-intelligence');
 const activityLog = document.getElementById('activity-log');
+const conversationInput = document.getElementById('conversation-input');
+const conversationSendBtn = document.getElementById('conversation-send-btn');
+const conversationReply = document.getElementById('conversation-reply');
 const activityNote = document.getElementById('activity-note');
 const saveNoteBtn = document.getElementById('save-note-btn');
 const generateResaleContractBtn = document.getElementById('generate-resale-contract-btn');
@@ -616,46 +632,38 @@ const updateTaskList = (row) => {
   });
 };
 
-const updateWhatMattersNow = (row) => {
-  const roleLabel = row.role === 'buyer' ? 'buyer side' : 'listing side';
-  const messages = {
-    'under-contract': row.role === 'buyer'
-      ? 'Start by confirming the buyer-side file is opened cleanly and the key dates are visible. This stage is about preventing early confusion.'
-      : 'Start by confirming the listing-side file is opened cleanly and seller expectations are aligned with the contract timeline.',
-    'option-period': row.role === 'buyer'
-      ? 'The option timeline is what matters most right now. Keep inspections, repairs, and buyer decisions moving before the clock runs out.'
-      : 'The option timeline matters because seller-side response time can shape the whole tone of the file. Stay ready for amendments and inspection asks.',
-    'financing': row.role === 'buyer'
-      ? 'Stay close to lender progress and anything that could threaten financing. Buyer-side silence here creates risk fast.'
-      : 'Financing still matters on the listing side because unresolved lender issues can quietly stall the file. Keep pressure visible.',
-    'clear-to-close': 'This file is almost over the line. Final confirmations and closing logistics are the main thing now.',
-    'closed': 'This one is closed. The main job now is clean wrap-up, archive, and any post-close follow-up you want handled.',
-  };
-  const reads = {
-    'under-contract': `This ${roleLabel} file looks newly active. Dossie’s confidence is highest when the handoff is clean and the contract details are visible early.`,
-    'option-period': `This ${roleLabel} file is in a decision-heavy stage. Dossie sees the biggest risk here when inspection or amendment conversations go quiet.`,
-    'financing': `This ${roleLabel} file is moving, but financing-stage silence is where surprises usually build. Dossie should keep this one watched closely.`,
-    'clear-to-close': 'This file is trending healthy. The goal now is clean execution, not more complexity.',
-    'closed': 'This file is complete and stable. Dossie reads it as an archive-ready file, not an active risk.',
-  };
-  const nextActions = {
-    'under-contract': row.role === 'buyer' ? 'Prompt the buyer-side file setup sequence and confirm earnest money timing.' : 'Prompt the listing-side kickoff sequence and make sure title and seller-side expectations are aligned.',
-    'option-period': row.role === 'buyer' ? 'Prepare an inspection / amendment follow-up draft and keep the option decision visible.' : 'Prepare a seller response / amendment follow-up draft and keep the option deadline visible.',
-    'financing': 'Draft a lender/title progress check and keep this file on the radar until financing risk drops.',
-    'clear-to-close': 'Prepare a final confirmation email and check that closing logistics are buttoned up.',
-    'closed': 'Archive the file cleanly and prepare any last follow-up or wrap-up note.',
-  };
-  const draftTargets = {
-    'under-contract': row.role === 'buyer' ? 'buyer + title' : 'seller + title',
-    'option-period': row.role === 'buyer' ? 'buyer + inspection side' : 'seller-side response thread',
-    'financing': 'lender + title',
-    'clear-to-close': 'all active parties',
-    'closed': 'client follow-up',
-  };
-  whatMattersNow.textContent = messages[row.stage] || 'Dossie is keeping the file organized and ready for the next move.';
+const analyzeTransactionIntelligence = async (row) => {
+  const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(row),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    throw new Error(result.error || 'Could not analyze transaction intelligence');
+  }
+  return result;
+};
+
+const renderIntelligencePanel = (analysis) => {
+  const entries = Object.entries(analysis.classification || {});
+  transactionIntelligence.innerHTML = entries.map(([key, item]) => `
+    <div class="task-row" style="cursor:default; align-items:flex-start;">
+      <div>
+        <strong>${item.label}</strong>
+        <div style="font-size:12px; color:var(--text-soft);">${item.status}${item.value ? ` · ${item.value}` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+};
+
+const updateWhatMattersNow = async (row) => {
+  const analysis = await analyzeTransactionIntelligence(row);
   const closingDays = daysUntil(row.closing_date);
   const effectiveLabel = formatDate(row.contract_effective_date);
   const closingLabel = formatDate(row.closing_date);
+
+  whatMattersNow.textContent = analysis.whatMattersNow || 'Dossie is keeping the file organized and ready for the next move.';
   if (closingDays !== null && closingLabel) {
     if (closingDays < 0) {
       deadlinePressure.textContent = `Closing date ${closingLabel} has already passed. Dossie should treat this file as needing immediate review.`;
@@ -667,9 +675,10 @@ const updateWhatMattersNow = (row) => {
   } else {
     deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
   }
-  dossieRead.textContent = reads[row.stage] || 'Dossie is keeping a stable read on this file.';
-  nextAction.textContent = nextActions[row.stage] || 'Keep the file moving and confirm the next visible handoff.';
-  emailDraft.textContent = `Dossie would prepare the next follow-up draft for ${draftTargets[row.stage] || 'the active parties'} based on this file’s current stage.`;
+  dossieRead.textContent = `Dossie sees ${analysis.recommendedDocuments.join(', ')} as the strongest next document path.`;
+  nextAction.textContent = analysis.nextAction || 'Keep the file moving and confirm the next visible handoff.';
+  emailDraft.textContent = `Next best question: ${analysis.nextQuestion}`;
+  renderIntelligencePanel(analysis);
 
   const notes = Array.isArray(row.notes_log) ? row.notes_log : [];
   activityLog.innerHTML = notes.length
@@ -688,7 +697,7 @@ const selectDossier = (id) => {
     detailBadge.style.display = 'none';
     detailTitle.textContent = 'Select a saved dossier';
     detailSub.textContent = 'Choose a dossier from the list to open the editable transaction workspace.';
-    whatMattersNow.textContent = 'Select a file to see Dossie’s read on the next most important move.';
+    whatMattersNow.textContent = 'Select a file to see Dossie's read on the next most important move.';
     taskList.innerHTML = '';
     return;
   }
@@ -722,13 +731,20 @@ const selectDossier = (id) => {
   document.getElementById('detail-option-days').value = row.option_days || '';
   document.getElementById('detail-financing-days').value = row.financing_days || '';
   document.getElementById('detail-notes').value = row.notes || '';
-  updateWhatMattersNow(row);
+  updateWhatMattersNow(row).catch((error) => {
+    whatMattersNow.textContent = `Could not refresh Dossie intelligence: ${error.message}`;
+    dossieRead.textContent = 'Dossie needs the intelligence bridge available to evaluate this file.';
+    nextAction.textContent = 'Bring the intelligence bridge back online and refresh the file.';
+  });
   updateTaskList(row);
   detailStatusText.textContent = '';
   detailStatusText.className = 'status-text';
   documentStatusText.textContent = '';
   documentStatusText.className = 'status-text';
   documentLinks.innerHTML = '';
+  conversationInput.value = '';
+  conversationReply.textContent = '';
+  conversationReply.className = 'status-text';
 };
 
 const renderDossiers = (rows) => {
@@ -1049,6 +1065,54 @@ generateDocumentCenterBtn.addEventListener('click', async () => {
   } catch (error) {
     documentStatusText.textContent = `Could not generate documents: ${error.message}`;
     documentStatusText.className = 'status-text error';
+  }
+});
+
+conversationSendBtn.addEventListener('click', async () => {
+  if (!activeSession?.user?.id || !selectedDossierId) {
+    conversationReply.textContent = 'Select a dossier before talking to Dossie.';
+    conversationReply.className = 'status-text error';
+    return;
+  }
+
+  const row = currentRows.find((item) => item.id === selectedDossierId);
+  const message = conversationInput.value.trim();
+  if (!row || !message) {
+    conversationReply.textContent = 'Add a real update for Dossie first.';
+    conversationReply.className = 'status-text error';
+    return;
+  }
+
+  conversationReply.textContent = 'Dossie is updating the file...';
+  conversationReply.className = 'status-text';
+
+  try {
+    const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transaction: row, message }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || 'Conversation update failed');
+    }
+
+    const updates = result.updates || {};
+    if (Object.keys(updates).length) {
+      const { error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', selectedDossierId)
+        .eq('user_id', activeSession.user.id);
+      if (error) throw error;
+    }
+
+    conversationReply.textContent = result.nextQuestion || 'Dossie updated the file.';
+    conversationReply.className = 'status-text success';
+    await loadDossiers();
+  } catch (error) {
+    conversationReply.textContent = `Dossie could not apply that update: ${error.message}`;
+    conversationReply.className = 'status-text error';
   }
 });
 
