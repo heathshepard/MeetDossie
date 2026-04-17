@@ -422,9 +422,13 @@ body::after {
           <div class="helper-box">
             <strong>Document generation</strong>
             <div style="display:grid; gap:10px;">
-              <div>Start generating real contract output from the dossier data you already have here.</div>
-              <button id="generate-resale-contract-btn" class="secondary-btn" type="button">Generate resale contract</button>
+              <div>Generate the core phase-one documents from this live dossier.</div>
+              <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
+                <button id="generate-resale-contract-btn" class="secondary-btn" type="button">Generate resale contract</button>
+                <button id="generate-document-center-btn" class="secondary-btn" type="button">Generate document center</button>
+              </div>
               <div id="document-status-text" class="status-text"></div>
+              <div id="document-links" class="task-list"></div>
             </div>
           </div>
           <button class="primary-btn" type="submit">Save dossier changes</button>
@@ -490,7 +494,9 @@ const activityLog = document.getElementById('activity-log');
 const activityNote = document.getElementById('activity-note');
 const saveNoteBtn = document.getElementById('save-note-btn');
 const generateResaleContractBtn = document.getElementById('generate-resale-contract-btn');
+const generateDocumentCenterBtn = document.getElementById('generate-document-center-btn');
 const documentStatusText = document.getElementById('document-status-text');
+const documentLinks = document.getElementById('document-links');
 const taskList = document.getElementById('task-list');
 
 let activeSession = null;
@@ -722,6 +728,7 @@ const selectDossier = (id) => {
   detailStatusText.className = 'status-text';
   documentStatusText.textContent = '';
   documentStatusText.className = 'status-text';
+  documentLinks.innerHTML = '';
 };
 
 const renderDossiers = (rows) => {
@@ -949,6 +956,58 @@ saveNoteBtn.addEventListener('click', async () => {
   await loadDossiers();
 });
 
+function renderDocumentLinks(documents) {
+  const entries = Object.entries(documents || {});
+  if (!entries.length) {
+    documentLinks.innerHTML = '';
+    return;
+  }
+  documentLinks.innerHTML = entries.map(([key, value]) => {
+    const filename = value.outputPath ? value.outputPath.split('\\').pop() : '';
+    const href = filename ? `${DOCUMENT_BRIDGE_URL}/download/${encodeURIComponent(filename)}` : '#';
+    const nice = key.replace(/-/g, ' ');
+    return `<div class="task-row"><div><strong>${nice}</strong><div style="font-size:12px; color:var(--text-soft);">${filename || 'No file returned'}</div></div><a href="${href}" target="_blank" rel="noopener">Download</a></div>`;
+  }).join('');
+}
+
+async function generateDocuments(endpoint, row, loadingText, successText) {
+  const required = [
+    ['property_address', 'property address'],
+    ['county', 'county'],
+    ['contract_effective_date', 'effective date'],
+    ['closing_date', 'closing date'],
+    ['title_company', 'title company'],
+    ['sale_price', 'sale price'],
+  ];
+  const missing = required.filter(([key]) => !row[key]).map(([, label]) => label);
+  if (missing.length) {
+    documentStatusText.textContent = `Missing before generation: ${missing.join(', ')}.`;
+    documentStatusText.className = 'status-text error';
+    documentLinks.innerHTML = '';
+    return;
+  }
+
+  documentStatusText.textContent = loadingText;
+  documentStatusText.className = 'status-text';
+  documentLinks.innerHTML = '';
+
+  const response = await fetch(`${DOCUMENT_BRIDGE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(row),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    throw new Error(result.error || 'Generation failed');
+  }
+  renderDocumentLinks(result.documents);
+  const recommendation = Array.isArray(result.recommendedDocuments) && result.recommendedDocuments.length
+    ? ` Recommended next docs: ${result.recommendedDocuments.join(', ')}.`
+    : '';
+  documentStatusText.textContent = `${successText}.${recommendation}`;
+  documentStatusText.className = 'status-text success';
+}
+
 generateResaleContractBtn.addEventListener('click', async () => {
   if (!activeSession?.user?.id || !selectedDossierId) {
     documentStatusText.textContent = 'Select a dossier before generating a contract.';
@@ -963,38 +1022,32 @@ generateResaleContractBtn.addEventListener('click', async () => {
     return;
   }
 
-  const required = [
-    ['property_address', 'property address'],
-    ['county', 'county'],
-    ['contract_effective_date', 'effective date'],
-    ['closing_date', 'closing date'],
-    ['title_company', 'title company'],
-  ];
-  const missing = required.filter(([key]) => !row[key]).map(([, label]) => label);
-  if (missing.length) {
-    documentStatusText.textContent = `Missing before generation: ${missing.join(', ')}.`;
+  try {
+    await generateDocuments('/generate/resale-contract', row, 'Generating resale contract...', 'Resale contract ready');
+  } catch (error) {
+    documentStatusText.textContent = `Could not generate contract: ${error.message}`;
+    documentStatusText.className = 'status-text error';
+  }
+});
+
+generateDocumentCenterBtn.addEventListener('click', async () => {
+  if (!activeSession?.user?.id || !selectedDossierId) {
+    documentStatusText.textContent = 'Select a dossier before generating documents.';
     documentStatusText.className = 'status-text error';
     return;
   }
 
-  documentStatusText.textContent = 'Generating resale contract...';
-  documentStatusText.className = 'status-text';
+  const row = currentRows.find((item) => item.id === selectedDossierId);
+  if (!row) {
+    documentStatusText.textContent = 'Could not find the selected dossier.';
+    documentStatusText.className = 'status-text error';
+    return;
+  }
 
   try {
-    const response = await fetch(`${DOCUMENT_BRIDGE_URL}/generate/resale-contract`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(row),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || 'Generation failed');
-    }
-    const downloadUrl = `${DOCUMENT_BRIDGE_URL}${result.downloadPath}`;
-    documentStatusText.innerHTML = `Resale contract ready. <a href="${downloadUrl}" target="_blank" rel="noopener">Download PDF</a>`;
-    documentStatusText.className = 'status-text success';
+    await generateDocuments('/generate/document-center', row, 'Generating document center...', 'Document center ready');
   } catch (error) {
-    documentStatusText.textContent = `Could not generate contract: ${error.message}`;
+    documentStatusText.textContent = `Could not generate documents: ${error.message}`;
     documentStatusText.className = 'status-text error';
   }
 });
