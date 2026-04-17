@@ -6,7 +6,8 @@ const { spawn } = require('child_process');
 const PORT = process.env.PORT || 8787;
 const BASE_DIR = __dirname;
 const GENERATED_DIR = path.join(BASE_DIR, 'generated-docs');
-const SCRIPT_PATH = path.join(BASE_DIR, 'scripts', 'generate_documents_from_transaction.py');
+const DOC_SCRIPT_PATH = path.join(BASE_DIR, 'scripts', 'generate_documents_from_transaction.py');
+const INTEL_SCRIPT_PATH = path.join(BASE_DIR, 'scripts', 'transaction_intelligence_cli.py');
 
 fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
@@ -35,12 +36,15 @@ function collectBody(req) {
   });
 }
 
-function runGenerator(transaction, documentKey = 'all') {
-  return new Promise((resolve, reject) => {
-    const tempInput = path.join(GENERATED_DIR, `transaction-${Date.now()}.json`);
-    fs.writeFileSync(tempInput, JSON.stringify(transaction, null, 2));
+function writeTempTransaction(transaction) {
+  const tempInput = path.join(GENERATED_DIR, `transaction-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+  fs.writeFileSync(tempInput, JSON.stringify(transaction, null, 2));
+  return tempInput;
+}
 
-    const child = spawn('python', [SCRIPT_PATH, tempInput, documentKey], {
+function runPython(scriptPath, args = []) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('python', [scriptPath, ...args], {
       cwd: BASE_DIR,
       windowsHide: true,
     });
@@ -51,14 +55,35 @@ function runGenerator(transaction, documentKey = 'all') {
     child.stderr.on('data', chunk => stderr += chunk.toString());
     child.on('error', reject);
     child.on('close', code => {
-      try { fs.unlinkSync(tempInput); } catch {}
       if (code !== 0) {
         reject(new Error(stderr || stdout || `Generator exited with code ${code}`));
         return;
       }
-      resolve(JSON.parse(stdout));
+      resolve(stdout);
     });
   });
+}
+
+async function runGenerator(transaction, documentKey = 'all') {
+  const tempInput = writeTempTransaction(transaction);
+  try {
+    const stdout = await runPython(DOC_SCRIPT_PATH, [tempInput, documentKey]);
+    return JSON.parse(stdout);
+  } finally {
+    try { fs.unlinkSync(tempInput); } catch {}
+  }
+}
+
+async function runIntelligence(transaction, command, message = '') {
+  const tempInput = writeTempTransaction(transaction);
+  try {
+    const args = [command, tempInput];
+    if (message) args.push(message);
+    const stdout = await runPython(INTEL_SCRIPT_PATH, args);
+    return JSON.parse(stdout);
+  } finally {
+    try { fs.unlinkSync(tempInput); } catch {}
+  }
 }
 
 function routeDocuments(payload) {
@@ -105,6 +130,30 @@ const server = http.createServer(async (req, res) => {
       const transaction = JSON.parse(body || '{}');
       const result = await runGenerator(transaction, 'all');
       sendJson(res, 200, { ok: true, recommendedDocuments: routeDocuments(transaction), ...result });
+    } catch (error) {
+      sendJson(res, 500, { ok: false, error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/intelligence/analyze') {
+    try {
+      const body = await collectBody(req);
+      const transaction = JSON.parse(body || '{}');
+      const result = await runIntelligence(transaction, 'analyze');
+      sendJson(res, 200, { ok: true, ...result });
+    } catch (error) {
+      sendJson(res, 500, { ok: false, error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/intelligence/conversation') {
+    try {
+      const body = await collectBody(req);
+      const payload = JSON.parse(body || '{}');
+      const result = await runIntelligence(payload.transaction || {}, 'conversation', payload.message || '');
+      sendJson(res, 200, { ok: true, ...result });
     } catch (error) {
       sendJson(res, 500, { ok: false, error: error.message });
     }
