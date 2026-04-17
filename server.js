@@ -8,6 +8,8 @@ const BASE_DIR = __dirname;
 const GENERATED_DIR = path.join(BASE_DIR, 'generated-docs');
 const DOC_SCRIPT_PATH = path.join(BASE_DIR, 'scripts', 'generate_documents_from_transaction.py');
 const INTEL_SCRIPT_PATH = path.join(BASE_DIR, 'scripts', 'transaction_intelligence_cli.py');
+const APP_HTML_PATH = path.join(BASE_DIR, 'app.html');
+const INDEX_HTML_PATH = path.join(BASE_DIR, 'index.html');
 
 fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
@@ -96,6 +98,18 @@ function routeDocuments(payload) {
   return docs;
 }
 
+function sendFile(res, filePath, contentType = 'text/html; charset=utf-8') {
+  if (!fs.existsSync(filePath)) {
+    sendJson(res, 404, { ok: false, error: 'File not found' });
+    return;
+  }
+  res.writeHead(200, {
+    'Content-Type': contentType,
+    'Access-Control-Allow-Origin': '*',
+  });
+  fs.createReadStream(filePath).pipe(res);
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -107,8 +121,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && req.url === '/health') {
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname;
+
+  if (req.method === 'GET' && pathname === '/health') {
     sendJson(res, 200, { ok: true, service: 'dossie-doc-bridge' });
+    return;
+  }
+
+  if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+    sendFile(res, INDEX_HTML_PATH);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/app.html') {
+    sendFile(res, APP_HTML_PATH);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/signin.html') {
+    sendFile(res, path.join(BASE_DIR, 'signin.html'));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/agents') {
+    sendFile(res, APP_HTML_PATH);
     return;
   }
 

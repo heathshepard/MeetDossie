@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossie Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#fdfcfa;color:#2d2a26;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}
+.card{width:min(100%,460px);background:#fff;border:1px solid #e8e2d9;border-radius:28px;padding:28px;box-shadow:0 20px 60px rgba(26,26,46,.08)}
+.label{font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:#c08080;font-weight:800}
+h1{font-family:'Cormorant Garamond',serif;font-size:48px;line-height:.95;margin:10px 0 12px;color:#1a1a2e}
+p{color:#7a7468;line-height:1.8;font-size:14px}
+label{display:block;margin:18px 0 6px;font-size:12px;font-weight:700;color:#7a7468}
+input{width:100%;padding:14px 16px;border:1px solid #e8e2d9;border-radius:16px;font-size:14px;box-sizing:border-box}
+button,a{display:inline-flex;justify-content:center;align-items:center;width:100%;padding:14px 18px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;border:none;cursor:pointer;box-sizing:border-box}
+button{background:#6b8e68;color:#fff;margin-top:16px}
+a{background:#fff;color:#2d2a26;border:1px solid #e8e2d9;margin-top:10px}
+#status{margin-top:14px;font-size:13px;line-height:1.7;color:#7a7468;white-space:pre-wrap}
+.success{color:#6b8e68}.error{color:#d95c52}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="label">Dossie recovery</div>
+    <h1>Sign back in.</h1>
+    <p>Use a magic link to restore your Dossie session on this device, then continue into the workspace.</p>
+    <label for="email">Email</label>
+    <input id="email" type="email" placeholder="you@example.com" />
+    <button id="send">Email me a sign-in link</button>
+    <a href="/app.html">Back to app</a>
+    <div id="status"></div>
+  </div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const statusEl = document.getElementById('status');
+const emailEl = document.getElementById('email');
+const sendBtn = document.getElementById('send');
+const supabase = createClient('https://pgwoitbdiyubjugwufhk.supabase.co','sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+async function bootstrap() {
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) {
+    statusEl.textContent = 'Session restored. Redirecting to Dossie...';
+    statusEl.className = 'success';
+    setTimeout(() => location.href = '/app.html', 800);
+  }
+}
+
+sendBtn.addEventListener('click', async () => {
+  const email = emailEl.value.trim();
+  if (!email) {
+    statusEl.textContent = 'Enter your email first.';
+    statusEl.className = 'error';
+    return;
+  }
+  statusEl.textContent = 'Sending magic link...';
+  statusEl.className = '';
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/signin.html` }
+    });
+    if (error) throw error;
+    statusEl.textContent = 'Magic link sent. Open it on this device, then you will be redirected back into Dossie.';
+    statusEl.className = 'success';
+  } catch (error) {
+    statusEl.textContent = `Could not send sign-in link: ${error.message}`;
+    statusEl.className = 'error';
+  }
+});
+
+bootstrap().catch((error) => {
+  statusEl.textContent = `Auth bootstrap failed: ${error.message}`;
+  statusEl.className = 'error';
+});
+</script>
+</body>
+</html>
