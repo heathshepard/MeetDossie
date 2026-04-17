@@ -452,15 +452,21 @@ body::after {
     </main>
   </div>
 
-  <div id="signed-out-shell" class="shell" style="display:none; grid-template-columns: 1fr;">
+  <div id="signed-out-shell" class="shell" style="display:grid; grid-template-columns: 1fr;">
     <section class="hero-card">
       <div class="section-label">App Entry</div>
       <h1>You're signed out.</h1>
-      <p>Return to the sign-in flow and enter Dossie again when you're ready.</p>
-      <div class="button-stack" style="max-width: 320px; margin-top: 20px;">
-        <a class="primary-btn" href="/app.html">Reload app entry</a>
+      <p id="signed-out-copy">Sign back in to reopen your Dossie workspace.</p>
+      <div class="field" style="max-width:420px; margin-top:18px;">
+        <label for="sign-in-email">Email</label>
+        <input id="sign-in-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="button-stack" style="max-width: 420px; margin-top: 20px; display:grid; gap:12px;">
+        <button id="email-sign-in-btn" class="primary-btn" type="button" onclick="window.__dossieSendMagicLinkSignIn && window.__dossieSendMagicLinkSignIn()">Email me a sign-in link</button>
+        <a class="ghost-btn" href="/app.html">Reload app entry</a>
         <a class="ghost-btn" href="/">Back to homepage</a>
       </div>
+      <div id="signed-out-status" class="status-text" style="margin-top:14px;"></div>
     </section>
   </div>
 </div>
@@ -482,6 +488,19 @@ const supabase = createClient(
 
 const authShell = document.getElementById('auth-shell');
 const signedOutShell = document.getElementById('signed-out-shell');
+const signedOutCopy = document.getElementById('signed-out-copy');
+const signInEmail = document.getElementById('sign-in-email');
+const emailSignInBtn = document.getElementById('email-sign-in-btn');
+const signedOutStatus = document.getElementById('signed-out-status');
+
+function showSafeFallback(message = 'Checking session…') {
+  authShell.style.display = 'none';
+  signedOutShell.style.display = 'grid';
+  const hero = signedOutShell.querySelector('.hero-card p');
+  if (hero) hero.textContent = message;
+}
+
+showSafeFallback();
 const userEmail = document.getElementById('user-email');
 const userStatusCopy = document.getElementById('user-status-copy');
 const workspaceNotice = document.getElementById('workspace-notice');
@@ -823,7 +842,7 @@ const showSignedOut = () => {
   signedOutShell.style.display = 'grid';
 };
 
-dossierForm.addEventListener('submit', async (event) => {
+dossierForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!activeSession?.user?.id) {
     formStatus.textContent = 'You need to be signed in first.';
@@ -886,7 +905,7 @@ dossierForm.addEventListener('submit', async (event) => {
   await loadDossiers();
 });
 
-detailForm.addEventListener('submit', async (event) => {
+detailForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!activeSession?.user?.id || !selectedDossierId) {
     detailStatusText.textContent = 'No dossier selected to update yet.';
@@ -943,7 +962,7 @@ detailForm.addEventListener('submit', async (event) => {
   await loadDossiers();
 });
 
-saveNoteBtn.addEventListener('click', async () => {
+saveNoteBtn?.addEventListener('click', async () => {
   if (!activeSession?.user?.id || !selectedDossierId) {
     detailStatusText.textContent = 'Select a dossier before saving a note.';
     detailStatusText.className = 'status-text error';
@@ -1024,7 +1043,7 @@ async function generateDocuments(endpoint, row, loadingText, successText) {
   documentStatusText.className = 'status-text success';
 }
 
-generateResaleContractBtn.addEventListener('click', async () => {
+generateResaleContractBtn?.addEventListener('click', async () => {
   if (!activeSession?.user?.id || !selectedDossierId) {
     documentStatusText.textContent = 'Select a dossier before generating a contract.';
     documentStatusText.className = 'status-text error';
@@ -1046,7 +1065,7 @@ generateResaleContractBtn.addEventListener('click', async () => {
   }
 });
 
-generateDocumentCenterBtn.addEventListener('click', async () => {
+generateDocumentCenterBtn?.addEventListener('click', async () => {
   if (!activeSession?.user?.id || !selectedDossierId) {
     documentStatusText.textContent = 'Select a dossier before generating documents.';
     documentStatusText.className = 'status-text error';
@@ -1068,7 +1087,7 @@ generateDocumentCenterBtn.addEventListener('click', async () => {
   }
 });
 
-conversationSendBtn.addEventListener('click', async () => {
+conversationSendBtn?.addEventListener('click', async () => {
   if (!activeSession?.user?.id || !selectedDossierId) {
     conversationReply.textContent = 'Select a dossier before talking to Dossie.';
     conversationReply.className = 'status-text error';
@@ -1116,23 +1135,65 @@ conversationSendBtn.addEventListener('click', async () => {
   }
 });
 
-signOutBtn.addEventListener('click', async () => {
+signOutBtn?.addEventListener('click', async () => {
   await supabase.auth.signOut();
   showSignedOut();
 });
 
-const { data } = await supabase.auth.getSession();
-if (data?.session) {
-  await showSignedIn(data.session);
-} else {
-  showSignedOut();
+async function sendMagicLinkSignIn() {
+  const email = signInEmail?.value.trim();
+  if (!email) {
+    signedOutStatus.textContent = 'Enter your email first.';
+    signedOutStatus.className = 'status-text error';
+    return;
+  }
+
+  signedOutStatus.textContent = 'Sending your sign-in link...';
+  signedOutStatus.className = 'status-text';
+
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app.html`,
+      },
+    });
+
+    if (error) throw error;
+
+    signedOutStatus.textContent = 'Magic link sent. Open it on this device to restore your Dossie session.';
+    signedOutStatus.className = 'status-text success';
+  } catch (error) {
+    signedOutStatus.textContent = `Could not send sign-in link: ${error.message}`;
+    signedOutStatus.className = 'status-text error';
+  }
+}
+
+emailSignInBtn?.addEventListener('click', sendMagicLinkSignIn);
+window.__dossieSendMagicLinkSignIn = sendMagicLinkSignIn;
+
+try {
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) {
+    await showSignedIn(data.session);
+  } else {
+    showSignedOut();
+  }
+} catch (error) {
+  console.error('Dossie session bootstrap failed', error);
+  showSafeFallback(`Dossie could not restore the session automatically. Reload or sign in again. (${error.message})`);
 }
 
 supabase.auth.onAuthStateChange(async (_event, session) => {
-  if (session) {
-    await showSignedIn(session);
-  } else {
-    showSignedOut();
+  try {
+    if (session) {
+      await showSignedIn(session);
+    } else {
+      showSignedOut();
+    }
+  } catch (error) {
+    console.error('Dossie auth state change failed', error);
+    showSafeFallback(`Dossie hit an auth-state error. Reload or sign in again. (${error.message})`);
   }
 });
 </script>
