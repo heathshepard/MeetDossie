@@ -502,6 +502,7 @@ const magicBtnEarly = document.getElementById('email-sign-in-btn');
 const statusEarly = document.getElementById('signed-out-status');
 
 window.__dossieAuthClient = authClient;
+window.__dossieAuthState = { signedInSession: null };
 window.__dossieSendMagicLinkSignIn = async function () {
   const email = emailEarly?.value.trim();
   if (!email) {
@@ -542,9 +543,10 @@ window.__dossieSignInWithPassword = async function () {
     statusEarly.className = 'status-text success';
     const { data } = await authClient.auth.getSession();
     if (data?.session) {
+      window.__dossieAuthState.signedInSession = data.session;
       signedOutShellEarly.style.display = 'none';
       authShellEarly.style.display = 'grid';
-      window.location.reload();
+      window.dispatchEvent(new CustomEvent('dossie-password-signin-success', { detail: data.session }));
     }
   } catch (error) {
     statusEarly.textContent = `Could not sign in with password: ${error.message}`;
@@ -1248,12 +1250,28 @@ signOutBtn?.addEventListener('click', async () => {
   showSignedOut();
 });
 
+window.addEventListener('dossie-password-signin-success', async (event) => {
+  try {
+    if (event.detail) {
+      await showSignedIn(event.detail);
+    }
+  } catch (error) {
+    console.error('Dossie password sign-in transition failed', error);
+    showSafeFallback(`Dossie signed in, but could not transition into the workspace. (${error.message})`);
+  }
+});
+
 try {
-  const { data } = await supabase.auth.getSession();
-  if (data?.session) {
-    await showSignedIn(data.session);
+  const cachedSession = window.__dossieAuthState?.signedInSession;
+  if (cachedSession) {
+    await showSignedIn(cachedSession);
   } else {
-    showSignedOut();
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) {
+      await showSignedIn(data.session);
+    } else {
+      showSignedOut();
+    }
   }
 } catch (error) {
   console.error('Dossie session bootstrap failed', error);
