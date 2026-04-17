@@ -461,8 +461,14 @@ body::after {
         <label for="sign-in-email">Email</label>
         <input id="sign-in-email" type="email" placeholder="you@example.com">
       </div>
+      <div class="field" style="max-width:420px; margin-top:18px;">
+        <label for="sign-in-password">Password</label>
+        <input id="sign-in-password" type="password" placeholder="Enter your password">
+      </div>
       <div class="button-stack" style="max-width: 420px; margin-top: 20px; display:grid; gap:12px;">
-        <button id="email-sign-in-btn" class="primary-btn" type="button" onclick="window.__dossieSendMagicLinkSignIn && window.__dossieSendMagicLinkSignIn()">Email me a sign-in link</button>
+        <button id="password-sign-in-btn" class="primary-btn" type="button">Sign in with password</button>
+        <button id="create-account-btn" class="secondary-btn" type="button">Create account with password</button>
+        <button id="email-sign-in-btn" class="ghost-btn" type="button" onclick="window.__dossieSendMagicLinkSignIn && window.__dossieSendMagicLinkSignIn()">Fallback: email me a sign-in link</button>
         <a class="ghost-btn" href="/app.html">Reload app entry</a>
         <a class="ghost-btn" href="/">Back to homepage</a>
       </div>
@@ -490,6 +496,9 @@ const authShell = document.getElementById('auth-shell');
 const signedOutShell = document.getElementById('signed-out-shell');
 const signedOutCopy = document.getElementById('signed-out-copy');
 const signInEmail = document.getElementById('sign-in-email');
+const signInPassword = document.getElementById('sign-in-password');
+const passwordSignInBtn = document.getElementById('password-sign-in-btn');
+const createAccountBtn = document.getElementById('create-account-btn');
 const emailSignInBtn = document.getElementById('email-sign-in-btn');
 const signedOutStatus = document.getElementById('signed-out-status');
 
@@ -1140,6 +1149,58 @@ signOutBtn?.addEventListener('click', async () => {
   showSignedOut();
 });
 
+async function signInWithPassword() {
+  const email = signInEmail?.value.trim();
+  const password = signInPassword?.value || '';
+  if (!email || !password) {
+    signedOutStatus.textContent = 'Enter both your email and password.';
+    signedOutStatus.className = 'status-text error';
+    return;
+  }
+
+  signedOutStatus.textContent = 'Signing in...';
+  signedOutStatus.className = 'status-text';
+
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    signedOutStatus.textContent = 'Signed in successfully.';
+    signedOutStatus.className = 'status-text success';
+  } catch (error) {
+    signedOutStatus.textContent = `Could not sign in with password: ${error.message}`;
+    signedOutStatus.className = 'status-text error';
+  }
+}
+
+async function createPasswordAccount() {
+  const email = signInEmail?.value.trim();
+  const password = signInPassword?.value || '';
+  if (!email || !password) {
+    signedOutStatus.textContent = 'Enter both your email and password to create the account.';
+    signedOutStatus.className = 'status-text error';
+    return;
+  }
+
+  signedOutStatus.textContent = 'Creating account...';
+  signedOutStatus.className = 'status-text';
+
+  try {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app.html`,
+      },
+    });
+    if (error) throw error;
+    signedOutStatus.textContent = 'Account created. If email confirmation is off, sign in right away with this password.';
+    signedOutStatus.className = 'status-text success';
+  } catch (error) {
+    signedOutStatus.textContent = `Could not create account: ${error.message}`;
+    signedOutStatus.className = 'status-text error';
+  }
+}
+
 async function sendMagicLinkSignIn() {
   const email = signInEmail?.value.trim();
   if (!email) {
@@ -1169,6 +1230,8 @@ async function sendMagicLinkSignIn() {
   }
 }
 
+passwordSignInBtn?.addEventListener('click', signInWithPassword);
+createAccountBtn?.addEventListener('click', createPasswordAccount);
 emailSignInBtn?.addEventListener('click', sendMagicLinkSignIn);
 window.__dossieSendMagicLinkSignIn = sendMagicLinkSignIn;
 
