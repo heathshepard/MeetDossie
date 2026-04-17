@@ -600,12 +600,6 @@ const supabase = window.__dossieAuthClient || createClient(
 const authShell = document.getElementById('auth-shell');
 const signedOutShell = document.getElementById('signed-out-shell');
 const signedOutCopy = document.getElementById('signed-out-copy');
-const signInEmail = document.getElementById('sign-in-email');
-const signInPassword = document.getElementById('sign-in-password');
-const passwordSignInBtn = document.getElementById('password-sign-in-btn');
-const createAccountBtn = document.getElementById('create-account-btn');
-const emailSignInBtn = document.getElementById('email-sign-in-btn');
-const signedOutStatus = document.getElementById('signed-out-status');
 
 function showSafeFallback(message = 'Checking session…') {
   authShell.style.display = 'none';
@@ -1253,92 +1247,6 @@ signOutBtn?.addEventListener('click', async () => {
   await supabase.auth.signOut();
   showSignedOut();
 });
-
-async function signInWithPassword() {
-  const email = signInEmail?.value.trim();
-  const password = signInPassword?.value || '';
-  if (!email || !password) {
-    signedOutStatus.textContent = 'Enter both your email and password.';
-    signedOutStatus.className = 'status-text error';
-    return;
-  }
-
-  signedOutStatus.textContent = 'Signing in...';
-  signedOutStatus.className = 'status-text';
-
-  try {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    signedOutStatus.textContent = 'Signed in successfully.';
-    signedOutStatus.className = 'status-text success';
-  } catch (error) {
-    signedOutStatus.textContent = `Could not sign in with password: ${error.message}`;
-    signedOutStatus.className = 'status-text error';
-  }
-}
-
-async function createPasswordAccount() {
-  const email = signInEmail?.value.trim();
-  const password = signInPassword?.value || '';
-  if (!email || !password) {
-    signedOutStatus.textContent = 'Enter both your email and password to create the account.';
-    signedOutStatus.className = 'status-text error';
-    return;
-  }
-
-  signedOutStatus.textContent = 'Creating account...';
-  signedOutStatus.className = 'status-text';
-
-  try {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app.html`,
-      },
-    });
-    if (error) throw error;
-    signedOutStatus.textContent = 'Account created. If email confirmation is off, sign in right away with this password.';
-    signedOutStatus.className = 'status-text success';
-  } catch (error) {
-    signedOutStatus.textContent = `Could not create account: ${error.message}`;
-    signedOutStatus.className = 'status-text error';
-  }
-}
-
-async function sendMagicLinkSignIn() {
-  const email = signInEmail?.value.trim();
-  if (!email) {
-    signedOutStatus.textContent = 'Enter your email first.';
-    signedOutStatus.className = 'status-text error';
-    return;
-  }
-
-  signedOutStatus.textContent = 'Sending your sign-in link...';
-  signedOutStatus.className = 'status-text';
-
-  try {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app.html`,
-      },
-    });
-
-    if (error) throw error;
-
-    signedOutStatus.textContent = 'Magic link sent. Open it on this device to restore your Dossie session.';
-    signedOutStatus.className = 'status-text success';
-  } catch (error) {
-    signedOutStatus.textContent = `Could not send sign-in link: ${error.message}`;
-    signedOutStatus.className = 'status-text error';
-  }
-}
-
-passwordSignInBtn?.addEventListener('click', signInWithPassword);
-createAccountBtn?.addEventListener('click', createPasswordAccount);
-emailSignInBtn?.addEventListener('click', sendMagicLinkSignIn);
-window.__dossieSendMagicLinkSignIn = sendMagicLinkSignIn;
 
 try {
   const { data } = await supabase.auth.getSession();
