@@ -112,25 +112,29 @@ body::after {
 .helper-box strong { display: block; font-size: 13px; color: var(--navy); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
 .helper-box div { font-size: 13px; color: var(--text-soft); line-height: 1.7; }
 .brief-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
-.brief-stat { background:linear-gradient(180deg,#ffffff 0%, #f8f3ec 100%); border:1px solid var(--border-light); border-radius:20px; padding:18px; }
+.brief-stat { background:linear-gradient(180deg,#ffffff 0%, #f8f3ec 100%); border:1px solid var(--border-light); border-radius:22px; padding:18px; box-shadow:0 18px 40px rgba(26,26,46,0.05); position:relative; overflow:hidden; }
+.brief-stat::after { content:''; position:absolute; inset:auto 0 0 0; height:4px; background:linear-gradient(90deg,var(--blush) 0%, var(--sage) 100%); opacity:.7; }
 .brief-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.6px; color:var(--blush-deep); font-weight:800; }
-.brief-stat-value { margin-top:10px; font-family:'Cormorant Garamond', serif; font-size:36px; color:var(--navy); line-height:0.95; }
-.brief-stat-copy { margin-top:8px; font-size:13px; color:var(--text-soft); line-height:1.6; }
-.brief-focus-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:18px; margin-top:18px; }
-.brief-focus-card { background:white; border:1px solid var(--border-light); border-radius:22px; padding:18px; }
-.brief-focus-card h3 { font-size:18px; color:var(--navy); margin-bottom:8px; }
-.brief-focus-card p { font-size:14px; line-height:1.75; color:var(--text-soft); }
+.brief-stat-value { margin-top:10px; font-family:'Cormorant Garamond', serif; font-size:40px; color:var(--navy); line-height:0.92; }
+.brief-stat-copy { margin-top:8px; font-size:13px; color:var(--text-soft); line-height:1.65; }
+.brief-focus-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:18px; margin-top:18px; align-items:start; }
+.brief-focus-card { background:white; border:1px solid var(--border-light); border-radius:24px; padding:20px; box-shadow:0 18px 40px rgba(26,26,46,0.04); }
+.brief-focus-card h3 { font-size:20px; color:var(--navy); margin-bottom:8px; }
+.brief-focus-card p { font-size:14px; line-height:1.8; color:var(--text-soft); }
 .intelligence-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .intelligence-pill { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#f7f1ec; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
 .intelligence-pill.urgent { background:#fdebec; color:var(--red); border-color:#f4c9cc; }
 .intelligence-pill.ready { background:var(--sage-light); color:var(--sage-deep); border-color:#d9ead7; }
 .intelligence-pill.watch { background:var(--gold-light); color:#8d6a25; border-color:#f0dfb2; }
 .brief-lane { display:grid; gap:12px; }
-.brief-lane-item { background:rgba(255,255,255,0.9); border:1px solid var(--border-light); border-radius:18px; padding:16px; }
+.brief-lane-item { background:rgba(255,255,255,0.92); border:1px solid var(--border-light); border-radius:20px; padding:18px; box-shadow:0 14px 30px rgba(26,26,46,0.04); }
 .brief-lane-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
-.brief-lane-address { font-size:17px; font-weight:700; color:var(--navy); }
-.brief-lane-copy { margin-top:10px; font-size:13px; line-height:1.7; color:var(--text-soft); }
+.brief-lane-address { font-size:18px; font-weight:700; color:var(--navy); }
+.brief-lane-copy { margin-top:10px; font-size:13px; line-height:1.75; color:var(--text-soft); }
 .brief-lane-meta { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
+.brief-section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+.brief-section-title { font-size:16px; color:var(--navy); font-weight:700; }
+.brief-section-count { font-size:12px; color:var(--text-soft); font-weight:700; }
 .surface-grid { display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; }
 .surface-stack { display:grid; gap:20px; }
 .hero-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
@@ -819,7 +823,13 @@ const renderBrief = (rows) => {
 
   briefRows.innerHTML = sections.map((section) => `
     <div class="brief-focus-card">
-      <div class="section-label">${section.title}</div>
+      <div class="brief-section-head">
+        <div>
+          <div class="section-label">Morning Brief lane</div>
+          <div class="brief-section-title">${section.title}</div>
+        </div>
+        <div class="brief-section-count">${section.items.length} ${section.items.length === 1 ? 'file' : 'files'}</div>
+      </div>
       <div class="brief-lane">
         ${section.items.length ? section.items.map((row) => {
           const readiness = !row.sale_price || !row.contract_effective_date || !row.title_company ? 'Needs contract cleanup' : 'Ready for guided next step';
