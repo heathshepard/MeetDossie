@@ -480,7 +480,112 @@ body::after {
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const supabase = createClient(
+const authClient = createClient(
+  'https://pgwoitbdiyubjugwufhk.supabase.co',
+  'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
+);
+
+const authShellEarly = document.getElementById('auth-shell');
+const signedOutShellEarly = document.getElementById('signed-out-shell');
+const emailEarly = document.getElementById('sign-in-email');
+const passwordEarly = document.getElementById('sign-in-password');
+const passwordBtnEarly = document.getElementById('password-sign-in-btn');
+const createBtnEarly = document.getElementById('create-account-btn');
+const magicBtnEarly = document.getElementById('email-sign-in-btn');
+const statusEarly = document.getElementById('signed-out-status');
+
+window.__dossieAuthClient = authClient;
+window.__dossieSendMagicLinkSignIn = async function () {
+  const email = emailEarly?.value.trim();
+  if (!email) {
+    statusEarly.textContent = 'Enter your email first.';
+    statusEarly.className = 'status-text error';
+    return;
+  }
+  statusEarly.textContent = 'Sending your sign-in link...';
+  statusEarly.className = 'status-text';
+  try {
+    const { error } = await authClient.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/app.html` },
+    });
+    if (error) throw error;
+    statusEarly.textContent = 'Magic link sent. Open it on this device to restore your Dossie session.';
+    statusEarly.className = 'status-text success';
+  } catch (error) {
+    statusEarly.textContent = `Could not send sign-in link: ${error.message}`;
+    statusEarly.className = 'status-text error';
+  }
+};
+
+window.__dossieSignInWithPassword = async function () {
+  const email = emailEarly?.value.trim();
+  const password = passwordEarly?.value || '';
+  if (!email || !password) {
+    statusEarly.textContent = 'Enter both your email and password.';
+    statusEarly.className = 'status-text error';
+    return;
+  }
+  statusEarly.textContent = 'Signing in...';
+  statusEarly.className = 'status-text';
+  try {
+    const { error } = await authClient.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    statusEarly.textContent = 'Signed in successfully. Loading workspace...';
+    statusEarly.className = 'status-text success';
+    const { data } = await authClient.auth.getSession();
+    if (data?.session) {
+      signedOutShellEarly.style.display = 'none';
+      authShellEarly.style.display = 'grid';
+      window.location.reload();
+    }
+  } catch (error) {
+    statusEarly.textContent = `Could not sign in with password: ${error.message}`;
+    statusEarly.className = 'status-text error';
+  }
+};
+
+window.__dossieCreatePasswordAccount = async function () {
+  const email = emailEarly?.value.trim();
+  const password = passwordEarly?.value || '';
+  if (!email || !password) {
+    statusEarly.textContent = 'Enter both your email and password to create the account.';
+    statusEarly.className = 'status-text error';
+    return;
+  }
+  statusEarly.textContent = 'Creating account...';
+  statusEarly.className = 'status-text';
+  try {
+    const { error } = await authClient.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/app.html` },
+    });
+    if (error) throw error;
+    statusEarly.textContent = 'Account created. If email confirmation is off, sign in right away with this password.';
+    statusEarly.className = 'status-text success';
+  } catch (error) {
+    statusEarly.textContent = `Could not create account: ${error.message}`;
+    statusEarly.className = 'status-text error';
+  }
+};
+
+passwordBtnEarly?.addEventListener('click', () => window.__dossieSignInWithPassword());
+createBtnEarly?.addEventListener('click', () => window.__dossieCreatePasswordAccount());
+magicBtnEarly?.addEventListener('click', () => window.__dossieSendMagicLinkSignIn());
+</script>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const supabase = window.__dossieAuthClient || createClient(
   'https://pgwoitbdiyubjugwufhk.supabase.co',
   'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
   {
