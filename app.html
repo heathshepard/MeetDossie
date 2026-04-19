@@ -72,6 +72,25 @@ body::after {
 .user-card, .status-card { background: var(--surface-solid); border: 1px solid var(--border-light); border-radius: 20px; padding: 16px; }
 .user-card strong, .status-card strong { display: block; font-size: 14px; color: var(--navy); }
 .user-card span, .status-card span { display: block; margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
+.signed-out-shell { display:grid; gap:22px; }
+.signed-out-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:20px; }
+.signed-out-panel { background:rgba(255,255,255,0.9); border:1px solid var(--border-light); border-radius:26px; padding:24px; box-shadow:0 20px 50px rgba(26,26,46,0.05); }
+.signed-out-kicker { font-size:11px; text-transform:uppercase; letter-spacing:1.8px; color:var(--blush-deep); font-weight:800; }
+.signed-out-title { font-family:'Cormorant Garamond', serif; font-size:46px; line-height:0.95; color:var(--navy); margin-top:10px; }
+.signed-out-copy { margin-top:14px; font-size:15px; line-height:1.85; color:var(--text-soft); max-width:580px; }
+.signed-out-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:22px; }
+.signed-out-metric { background:linear-gradient(180deg,#ffffff 0%, #faf6f1 100%); border:1px solid var(--border-light); border-radius:18px; padding:14px; }
+.signed-out-metric strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--blush-deep); }
+.signed-out-metric span { display:block; margin-top:8px; font-size:13px; line-height:1.65; color:var(--navy); }
+.signed-out-points { display:grid; gap:10px; margin-top:18px; }
+.signed-out-point { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:16px; background:#fff; border:1px solid var(--border-light); }
+.signed-out-point-mark { width:28px; height:28px; border-radius:999px; background:var(--sage-light); color:var(--sage-deep); display:grid; place-items:center; font-size:12px; font-weight:800; flex:0 0 auto; }
+.signed-out-sidecard { background:linear-gradient(180deg,#fff 0%, #f8f3ec 100%); border:1px solid var(--border-light); border-radius:26px; padding:24px; box-shadow:0 20px 50px rgba(26,26,46,0.04); }
+.signed-out-sidecard h3 { font-size:20px; color:var(--navy); margin-bottom:10px; }
+.signed-out-sidecard p { font-size:14px; line-height:1.8; color:var(--text-soft); }
+.signed-out-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.signed-out-pill { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#fff; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
+.signed-out-actions { display:grid; gap:12px; margin-top:20px; }
 .main { display: grid; gap: 20px; }
 .hero-card { background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92)); border: 1px solid var(--border); border-radius: 30px; padding: 28px; box-shadow: 0 20px 60px rgba(26,26,46,0.06); }
 .hero-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 5vw, 60px); line-height: 0.98; color: var(--navy); }
@@ -101,7 +120,7 @@ body::after {
 .dossier-address { margin-top: 6px; font-size: 18px; font-weight: 700; color: var(--navy); }
 .dossier-meta { margin-top: 10px; display: grid; gap: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
 .badge { display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: var(--gold-light); color: #8d6a25; }
-.empty { padding: 18px; border: 1px dashed var(--border); border-radius: 18px; color: var(--text-light); font-size: 14px; line-height: 1.7; background: rgba(255,255,255,0.6); }
+.empty { padding: 18px; border: 1px dashed var(--border); border-radius: 18px; color: var(--text-light); font-size: 14px; line-height: 1.7; background: rgba(255,255,255,0.6); }`r`n.empty-state { padding: 24px; border: 1px solid var(--border-light); border-radius: 22px; background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); box-shadow: 0 14px 30px rgba(26,26,46,0.04); }`r`n.empty-state h3 { font-size: 22px; color: var(--navy); margin-bottom: 10px; }`r`n.empty-state p { font-size: 14px; line-height: 1.8; color: var(--text-soft); }`r`n.empty-state ul { margin-top: 14px; padding-left: 18px; color: var(--text-soft); display: grid; gap: 8px; font-size: 13px; }`r`n.loading-skeleton { display:grid; gap:12px; }`r`n.loading-skeleton .skeleton-line { height:14px; border-radius:999px; background: linear-gradient(90deg, rgba(240,235,227,0.9) 0%, rgba(255,255,255,0.98) 50%, rgba(240,235,227,0.9) 100%); background-size:200% 100%; animation: shimmer 1.8s infinite; }`r`n.loading-skeleton .skeleton-line.large { height:18px; width:72%; }`r`n.loading-skeleton .skeleton-line.medium { width:54%; }`r`n.loading-skeleton .skeleton-line.small { width:38%; }`r`n@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .detail-panel { display: grid; gap: 16px; }
 .detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .detail-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; line-height: 0.98; color: var(--navy); }
@@ -144,13 +163,19 @@ body::after {
 .intelligence-card { background:linear-gradient(180deg,#fff 0%,#faf6f1 100%); border:1px solid var(--border-light); border-radius:22px; padding:18px; }
 .intelligence-card h3 { font-size:18px; color:var(--navy); margin-bottom:8px; }
 .intelligence-card p { font-size:14px; line-height:1.75; color:var(--text-soft); }
+.conversation-card { background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); border: 1px solid var(--border-light); border-radius: 22px; padding: 18px; }
+.conversation-hint { margin-top: 8px; font-size: 13px; line-height: 1.75; color: var(--text-soft); }
+.conversation-examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.conversation-chip { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#fff; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
+.conversation-reply { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); }
+.conversation-reply.success { background: #f7f3ee; color: var(--navy); }
+.conversation-reply.error { background: #fdebec; border-color: #f4c9cc; color: var(--red); }`r`n.voice-row { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }`r`n.voice-btn { min-width: 180px; }`r`n.voice-status { margin-top: 10px; font-size: 12px; color: var(--text-soft); }
 .task-list { display: grid; gap: 10px; }
 .task-row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); cursor: pointer; }
 .task-row.done { opacity: 0.6; }
 .task-row input { margin-top: 2px; }
-@media (max-width: 1180px) { .shell, .grid, .helper-grid, .surface-grid, .brief-focus-grid, .brief-strip, .hero-metrics { grid-template-columns: 1fr; } }
-@media (max-width: 1180px) { .shell, .grid, .helper-grid { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1180px) { .shell, .grid, .helper-grid, .surface-grid, .brief-focus-grid, .brief-strip, .hero-metrics, .signed-out-grid, .signed-out-metrics { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } .signed-out-title { font-size:38px; } }
 </style>
 </head>
 <body>
@@ -468,11 +493,11 @@ body::after {
                 <div id="activity-log" class="task-list"></div>
               </div>
               <div class="helper-box">
-                <strong>Dossie conversation</strong>
+                <strong>Talk to Dossie</strong>
                 <div class="field" style="margin-top:0;">
-                  <textarea id="conversation-input" placeholder="Tell Dossie something naturally, like 'buyer is Marcus Patterson' or 'sale price is 425000'."></textarea>
+                  <textarea id="conversation-input" placeholder="Talk naturally, like \"buyer name is Marcus Patterson\", \"we're still waiting on title\", or \"hold here for now\"."></textarea>
                 </div>
-                <button id="conversation-send-btn" class="ghost-btn" type="button">Send to Dossie</button>
+                <button id="conversation-send-btn" class="ghost-btn" type="button">Update the file</button>
                 <div id="conversation-reply" class="status-text"></div>
               </div>
               <div class="helper-box">
@@ -505,27 +530,63 @@ body::after {
     </main>
   </div>
 
-  <div id="signed-out-shell" class="shell" style="display:grid; grid-template-columns: 1fr;">
-    <section class="hero-card">
-      <div class="section-label">App Entry</div>
-      <h1>You're signed out.</h1>
-      <p id="signed-out-copy">Sign back in to reopen your Dossie workspace.</p>
-      <div class="field" style="max-width:420px; margin-top:18px;">
-        <label for="sign-in-email">Email</label>
-        <input id="sign-in-email" type="email" placeholder="you@example.com">
+  <div id="signed-out-shell" class="signed-out-shell" style="display:grid;">
+    <section class="signed-out-panel">
+      <div class="signed-out-kicker">Dossie App Entry</div>
+      <div class="signed-out-title">A calmer way to reopen your transaction desk.</div>
+      <p id="signed-out-copy" class="signed-out-copy">Sign back in to reopen your Dossie workspace, review live file intelligence, and move the next file step without hunting through a messy checklist.</p>
+      <div class="signed-out-metrics">
+        <div class="signed-out-metric">
+          <strong>Morning Brief</strong>
+          <span>Get a fast read on what is fragile, what is ready, and what needs attention first.</span>
+        </div>
+        <div class="signed-out-metric">
+          <strong>Document flow</strong>
+          <span>Keep contract generation, next questions, and file movement in one place.</span>
+        </div>
+        <div class="signed-out-metric">
+          <strong>Assistant feel</strong>
+          <span>Dossie should feel like an operator, not just a form wall.</span>
+        </div>
       </div>
-      <div class="field" style="max-width:420px; margin-top:18px;">
-        <label for="sign-in-password">Password</label>
-        <input id="sign-in-password" type="password" placeholder="Enter your password">
+      <div class="signed-out-grid" style="margin-top:22px;">
+        <div class="signed-out-sidecard">
+          <div class="section-label">Why sign back in</div>
+          <h3>Your workspace should feel alive the moment you return.</h3>
+          <p>Dossie is built to make the transaction desk feel cleaner, smarter, and easier to trust than a scattered checklist or a dead-looking chat window.</p>
+          <div class="signed-out-pills">
+            <span class="signed-out-pill">Live file state</span>
+            <span class="signed-out-pill">Contract readiness</span>
+            <span class="signed-out-pill">Next best question</span>
+            <span class="signed-out-pill">Document guidance</span>
+          </div>
+          <div class="signed-out-points">
+            <div class="signed-out-point"><div class="signed-out-point-mark">1</div><div>Reopen your workspace and pick up exactly where the file left off.</div></div>
+            <div class="signed-out-point"><div class="signed-out-point-mark">2</div><div>See what matters now without re-reading the whole file mentally.</div></div>
+            <div class="signed-out-point"><div class="signed-out-point-mark">3</div><div>Let Dossie guide the next move instead of making you reconstruct it from scratch.</div></div>
+          </div>
+        </div>
+        <div class="signed-out-panel">
+          <div class="section-label">Secure access</div>
+          <h3 style="margin-top:8px; color:var(--navy);">Re-enter Dossie</h3>
+          <div class="field" style="max-width:420px; margin-top:18px;">
+            <label for="sign-in-email">Email</label>
+            <input id="sign-in-email" type="email" placeholder="you@example.com">
+          </div>
+          <div class="field" style="max-width:420px; margin-top:18px;">
+            <label for="sign-in-password">Password</label>
+            <input id="sign-in-password" type="password" placeholder="Enter your password">
+          </div>
+          <div class="signed-out-actions" style="max-width: 420px;">
+            <button id="password-sign-in-btn" class="primary-btn" type="button">Sign in with password</button>
+            <button id="create-account-btn" class="secondary-btn" type="button">Create account with password</button>
+            <button id="email-sign-in-btn" class="ghost-btn" type="button" onclick="window.__dossieSendMagicLinkSignIn && window.__dossieSendMagicLinkSignIn()">Fallback: email me a sign-in link</button>
+            <a class="ghost-btn" href="/app.html">Reload app entry</a>
+            <a class="ghost-btn" href="/">Back to homepage</a>
+          </div>
+          <div id="signed-out-status" class="status-text" style="margin-top:14px;"></div>
+        </div>
       </div>
-      <div class="button-stack" style="max-width: 420px; margin-top: 20px; display:grid; gap:12px;">
-        <button id="password-sign-in-btn" class="primary-btn" type="button">Sign in with password</button>
-        <button id="create-account-btn" class="secondary-btn" type="button">Create account with password</button>
-        <button id="email-sign-in-btn" class="ghost-btn" type="button" onclick="window.__dossieSendMagicLinkSignIn && window.__dossieSendMagicLinkSignIn()">Fallback: email me a sign-in link</button>
-        <a class="ghost-btn" href="/app.html">Reload app entry</a>
-        <a class="ghost-btn" href="/">Back to homepage</a>
-      </div>
-      <div id="signed-out-status" class="status-text" style="margin-top:14px;"></div>
     </section>
   </div>
 </div>
@@ -696,6 +757,9 @@ const activityLog = document.getElementById('activity-log');
 const conversationInput = document.getElementById('conversation-input');
 const conversationSendBtn = document.getElementById('conversation-send-btn');
 const conversationReply = document.getElementById('conversation-reply');
+const voiceTalkBtn = document.getElementById('voice-talk-btn');
+const voicePlayBtn = document.getElementById('voice-play-btn');
+const voiceStatus = document.getElementById('voice-status');
 const activityNote = document.getElementById('activity-note');
 const saveNoteBtn = document.getElementById('save-note-btn');
 const generateResaleContractBtn = document.getElementById('generate-resale-contract-btn');
@@ -912,7 +976,7 @@ const renderIntelligencePanel = (analysis) => {
   }).join('');
 };
 
-const updateWhatMattersNow = async (row) => {
+const buildGuidanceCopy = (row, analysis) => {`r`n  const missing = Object.values(analysis.classification || {}).filter((item) => item.status === 'missing' || item.status === 'needs-confirmation');`r`n  const docs = Array.isArray(analysis.recommendedDocuments) ? analysis.recommendedDocuments : [];`r`n  const firstMissing = missing[0]?.label || null;`r`n  const roleLabel = row.role === 'buyer' ? 'buyer-side' : 'listing-side';`r`n  if (firstMissing) {`r`n    return {`r`n      summary: `Dossie is still protecting the ${roleLabel} file from a bad handoff. The next missing contract detail is ${firstMissing}.`, `r`n      next: `Ask for ${firstMissing}, capture it cleanly, then let Dossie refresh the document path.`, `r`n      draft: `Next best question: ${analysis.nextQuestion}`, `r`n      docs: docs.length ? `Document lane on hold until ${firstMissing} is confirmed. After that, Dossie should move into ${docs.join(', ')}.` : `Document lane is waiting on ${firstMissing} before Dossie can move with confidence.``r`n    };`r`n  }`r`n  if (row.stage === 'financing') {`r`n    return {`r`n      summary: 'Dossie sees a lender-sensitive file. The job now is keeping financing momentum visible without letting the deal go quiet.',`r`n      next: 'Confirm lender progress, keep the title/closing lane warm, and prepare the next party-facing follow-up.',`r`n      draft: `Suggested follow-up: confirm financing status and remind everyone what the next handoff is.`, `r`n      docs: docs.length ? `Recommended document lane: ${docs.join(', ')}.` : 'No immediate document push is stronger than coordination follow-up right now.'`r`n    };`r`n  }`r`n  if (row.stage === 'option-period') {`r`n    return {`r`n      summary: 'Dossie sees an option-period file. The priority is decision support, amendment readiness, and timing clarity.',`r`n      next: 'Keep the decision window visible and prepare the cleanest amendment or execution path before pressure builds.',`r`n      draft: `Suggested follow-up: confirm whether the client is moving forward as-is, requesting changes, or still deciding.`, `r`n      docs: docs.length ? `Recommended document lane: ${docs.join(', ')}.` : 'No immediate document recommendation yet — keep the decision path clean first.'`r`n    };`r`n  }`r`n  return {`r`n    summary: 'Dossie sees a file that is structurally complete enough to move from cleanup into calm transaction coordination.',`r`n    next: analysis.nextAction || 'Keep the file moving and confirm the next visible handoff.',`r`n    draft: `Next best question: ${analysis.nextQuestion}`, `r`n    docs: docs.length ? `Recommended document lane: ${docs.join(', ')}.` : 'No document recommendation is stronger than the next visible coordination move right now.'`r`n  };`r`n};`r`n`r`nconst updateWhatMattersNow = async (row) => {
   const analysis = await analyzeTransactionIntelligence(row);
   const closingDays = daysUntil(row.closing_date);
   const effectiveLabel = formatDate(row.contract_effective_date);
@@ -1001,7 +1065,7 @@ const selectDossier = (id) => {
   documentLinks.innerHTML = '';
   conversationInput.value = '';
   conversationReply.textContent = '';
-  conversationReply.className = 'status-text';
+  conversationReply.className = 'conversation-reply status-text';
 };
 
 const renderDossiers = (rows) => {
@@ -1044,6 +1108,97 @@ const renderDossiers = (rows) => {
   selectDossier(selectedDossierId);
 };
 
+let lastSpokenReply = '';
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let voiceRecognition = null;
+let isListening = false;
+
+const speakReply = (text) => {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.pitch = 1.05;
+  utterance.volume = 1;
+  window.speechSynthesis.speak(utterance);
+};
+
+const handleConversationSubmit = async (messageOverride = null, options = {}) => {
+  if (!activeSession?.user?.id || !selectedDossierId) {
+    conversationReply.textContent = 'Select a dossier before talking to Dossie.';
+    conversationReply.className = 'conversation-reply status-text error';
+    return;
+  }
+
+  const row = currentRows.find((item) => item.id === selectedDossierId);
+  const message = (messageOverride ?? conversationInput.value).trim();
+  if (!row || !message) {
+    conversationReply.textContent = 'Add a real update for Dossie first.';
+    conversationReply.className = 'conversation-reply status-text error';
+    return;
+  }
+
+  conversationReply.textContent = 'Dossie is updating the file...';
+  conversationReply.className = 'conversation-reply status-text';
+
+  try {
+    const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transaction: row, message }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || 'Conversation update failed');
+    }
+
+    const updates = result.updates || {};
+    if (Object.keys(updates).length) {
+      const { error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', selectedDossierId)
+        .eq('user_id', activeSession.user.id);
+      if (error) throw error;
+    }
+
+    const replyText = result.reply?.reply || result.nextQuestion || 'Dossie updated the file.';
+    lastSpokenReply = replyText;
+    conversationReply.textContent = replyText;
+    conversationReply.className = 'conversation-reply status-text success';
+    if (options.speak) speakReply(replyText);
+    await loadDossiers();
+  } catch (error) {
+    conversationReply.textContent = `Dossie could not apply that update: ${error.message}`;
+    conversationReply.className = 'conversation-reply status-text error';
+  }
+};
+
+if (SpeechRecognitionCtor) {
+  voiceRecognition = new SpeechRecognitionCtor();
+  voiceRecognition.lang = 'en-US';
+  voiceRecognition.interimResults = false;
+  voiceRecognition.maxAlternatives = 1;
+  voiceRecognition.onstart = () => {
+    isListening = true;
+    if (voiceStatus) voiceStatus.textContent = 'Listening... say the update naturally.';
+  };
+  voiceRecognition.onend = () => {
+    isListening = false;
+    if (voiceStatus) voiceStatus.textContent = 'Voice mode is phase-one: push to talk, then hear Dossie speak back.';
+  };
+  voiceRecognition.onerror = (event) => {
+    if (voiceStatus) voiceStatus.textContent = `Voice input error: ${event.error}`;
+  };
+  voiceRecognition.onresult = async (event) => {
+    const transcript = Array.from(event.results).map((result) => result[0]?.transcript || '').join(' ').trim();
+    if (transcript) {
+      conversationInput.value = transcript;
+      if (voiceStatus) voiceStatus.textContent = `Heard: ${transcript}`;
+      await handleConversationSubmit(transcript, { speak: true });
+    }
+  };
+}
 const loadDossiers = async () => {
   if (!activeSession?.user?.id) return;
   dossierList.innerHTML = `<div class="empty">Loading your saved dossiers...</div>`;
@@ -1063,8 +1218,12 @@ const loadDossiers = async () => {
 
 const showSignedIn = async (session) => {
   activeSession = session;
-  signedOutShell.style.display = 'none';
-  authShell.style.display = 'grid';
+  if (signedOutShell) signedOutShell.style.display = 'none';
+  if (authShell) authShell.style.display = 'grid';
+  const authShellEarly = document.getElementById('auth-shell');
+  const signedOutShellEarly = document.getElementById('signed-out-shell');
+  if (signedOutShellEarly) signedOutShellEarly.style.display = 'none';
+  if (authShellEarly) authShellEarly.style.display = 'grid';
   userEmail.textContent = session.user.email || 'Signed in';
   userStatusCopy.textContent = 'Your authenticated Dossie workspace is live and connected to your Supabase-backed dossiers.';
   workspaceNotice.textContent = 'Authenticated session detected successfully.';
@@ -1296,7 +1455,7 @@ generateResaleContractBtn?.addEventListener('click', async () => {
   }
 
   try {
-    await generateDocuments('/generate/resale-contract', row, 'Generating resale contract...', 'Resale contract ready');
+    await generateDocuments('/generate/resale-contract', row, 'Dossie is preparing the resale contract...', 'Resale contract ready for review');
   } catch (error) {
     documentStatusText.textContent = `Could not generate contract: ${error.message}`;
     documentStatusText.className = 'status-text error';
@@ -1318,7 +1477,7 @@ generateDocumentCenterBtn?.addEventListener('click', async () => {
   }
 
   try {
-    await generateDocuments('/generate/document-center', row, 'Generating document center...', 'Document center ready');
+    await generateDocuments('/generate/document-center', row, 'Dossie is assembling the document set...', 'Document set ready for review');
   } catch (error) {
     documentStatusText.textContent = `Could not generate documents: ${error.message}`;
     documentStatusText.className = 'status-text error';
@@ -1328,7 +1487,7 @@ generateDocumentCenterBtn?.addEventListener('click', async () => {
 conversationSendBtn?.addEventListener('click', async () => {
   if (!activeSession?.user?.id || !selectedDossierId) {
     conversationReply.textContent = 'Select a dossier before talking to Dossie.';
-    conversationReply.className = 'status-text error';
+    conversationReply.className = 'conversation-reply status-text error';
     return;
   }
 
@@ -1336,12 +1495,12 @@ conversationSendBtn?.addEventListener('click', async () => {
   const message = conversationInput.value.trim();
   if (!row || !message) {
     conversationReply.textContent = 'Add a real update for Dossie first.';
-    conversationReply.className = 'status-text error';
+    conversationReply.className = 'conversation-reply status-text error';
     return;
   }
 
   conversationReply.textContent = 'Dossie is updating the file...';
-  conversationReply.className = 'status-text';
+  conversationReply.className = 'conversation-reply status-text';
 
   try {
     const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
@@ -1364,12 +1523,13 @@ conversationSendBtn?.addEventListener('click', async () => {
       if (error) throw error;
     }
 
-    conversationReply.textContent = result.nextQuestion || 'Dossie updated the file.';
-    conversationReply.className = 'status-text success';
+    const replyText = result.reply?.reply || result.nextQuestion || 'Dossie updated the file.';
+    conversationReply.textContent = replyText;
+    conversationReply.className = 'conversation-reply status-text success';
     await loadDossiers();
   } catch (error) {
     conversationReply.textContent = `Dossie could not apply that update: ${error.message}`;
-    conversationReply.className = 'status-text error';
+    conversationReply.className = 'conversation-reply status-text error';
   }
 });
 
@@ -1421,3 +1581,26 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
