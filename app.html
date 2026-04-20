@@ -1093,13 +1093,19 @@ const handleConversationSubmit = async (messageOverride = null, options = {}) =>
       body: JSON.stringify({
         message,
         userId: activeSession.user.id,
-        userPlan: 'solo', // TODO: Get from user metadata/subscription
+        userPlan: 'solo',
         transactionContext: row || null,
       }),
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(errorData.error || `Server error (${response.status})`);
+    }
+    
     const result = await response.json();
     
-    if (!response.ok || !result.ok) {
+    if (!result.ok) {
       throw new Error(result.error || 'Conversation failed');
     }
 
@@ -1111,40 +1117,16 @@ const handleConversationSubmit = async (messageOverride = null, options = {}) =>
     conversationInputMain.value = '';
     
     // Show rate limit info in console
-    if (result.remaining !== null) {
-      console.log(`Dossie usage: ${result.remaining} messages remaining (${result.plan} plan)`);
+    if (result.remaining !== null && result.remaining !== undefined) {
+      console.log(`Dossie: ${result.remaining} messages remaining (${result.plan || 'solo'} plan)`);
     }
     
     if (options.speak) speakReply(replyText);
     
-    // If transaction was selected, check if Python intelligence should extract updates
-    if (row) {
-      try {
-        const intelligenceResponse = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transaction: row, message }),
-        });
-        const intelligenceResult = await intelligenceResponse.json();
-        
-        if (intelligenceResponse.ok && intelligenceResult.ok && intelligenceResult.updates) {
-          const updates = intelligenceResult.updates;
-          if (Object.keys(updates).length) {
-            const { error } = await supabase
-              .from('transactions')
-              .update(updates)
-              .eq('id', selectedDossierId)
-              .eq('user_id', activeSession.user.id);
-            if (error) throw error;
-            await loadDossiers();
-          }
-        }
-      } catch (extractError) {
-        console.warn('Could not extract transaction updates:', extractError);
-      }
-    }
   } catch (error) {
-    conversationReplyMain.textContent = `I couldn't process that: ${error.message}`;
+    console.error('Conversation error:', error);
+    const errorMsg = error.message || 'Could not connect to Dossie';
+    conversationReplyMain.textContent = `I couldn't respond: ${errorMsg}`;
     conversationReplyMain.className = 'conversation-reply error';
   }
 };
