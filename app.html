@@ -1086,33 +1086,63 @@ const handleConversationSubmit = async (messageOverride = null, options = {}) =>
   conversationReplyMain.className = 'conversation-reply';
 
   try {
-    const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
+    // Call Claude API via serverless function
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transaction: row || {}, message }),
+      body: JSON.stringify({
+        message,
+        userId: activeSession.user.id,
+        userPlan: 'solo', // TODO: Get from user metadata/subscription
+        transactionContext: row || null,
+      }),
     });
     const result = await response.json();
+    
     if (!response.ok || !result.ok) {
       throw new Error(result.error || 'Conversation failed');
     }
 
-    const updates = result.updates || {};
-    if (row && Object.keys(updates).length) {
-      const { error } = await supabase
-        .from('transactions')
-        .update(updates)
-        .eq('id', selectedDossierId)
-        .eq('user_id', activeSession.user.id);
-      if (error) throw error;
-    }
-
-    const replyText = result.reply?.reply || result.nextQuestion || (row ? 'Got it.' : 'I heard you. Select a transaction if you want me to update a file, or just keep talking.');
+    // Extract Dossie's reply
+    const replyText = result.reply;
     lastSpokenReply = replyText;
     conversationReplyMain.textContent = replyText;
     conversationReplyMain.className = 'conversation-reply success';
     conversationInputMain.value = '';
+    
+    // Show rate limit info in console
+    if (result.remaining !== null) {
+      console.log(`Dossie usage: ${result.remaining} messages remaining (${result.plan} plan)`);
+    }
+    
     if (options.speak) speakReply(replyText);
-    if (row) await loadDossiers();
+    
+    // If transaction was selected, check if Python intelligence should extract updates
+    if (row) {
+      try {
+        const intelligenceResponse = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transaction: row, message }),
+        });
+        const intelligenceResult = await intelligenceResponse.json();
+        
+        if (intelligenceResponse.ok && intelligenceResult.ok && intelligenceResult.updates) {
+          const updates = intelligenceResult.updates;
+          if (Object.keys(updates).length) {
+            const { error } = await supabase
+              .from('transactions')
+              .update(updates)
+              .eq('id', selectedDossierId)
+              .eq('user_id', activeSession.user.id);
+            if (error) throw error;
+            await loadDossiers();
+          }
+        }
+      } catch (extractError) {
+        console.warn('Could not extract transaction updates:', extractError);
+      }
+    }
   } catch (error) {
     conversationReplyMain.textContent = `I couldn't process that: ${error.message}`;
     conversationReplyMain.className = 'conversation-reply error';
