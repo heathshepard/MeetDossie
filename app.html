@@ -694,13 +694,10 @@ const signedOutShell = document.getElementById('signed-out-shell');
 const signedOutCopy = document.getElementById('signed-out-copy');
 
 function showSafeFallback(message = 'Checking sessionâ€¦') {
-  authShell.style.display = 'none';
-  signedOutShell.style.display = 'grid';
-  const hero = signedOutShell.querySelector('.hero-card p');
-  if (hero) hero.textContent = message;
+  if (authShell) authShell.style.display = 'none';
+  if (signedOutShell) signedOutShell.style.display = 'grid';
+  if (signedOutCopy) signedOutCopy.textContent = message;
 }
-
-showSafeFallback();
 const userEmail = document.getElementById('user-email');
 const userStatusCopy = document.getElementById('user-status-copy');
 const briefGrid = document.getElementById('brief-grid');
@@ -1473,22 +1470,24 @@ window.addEventListener('dossie-password-signin-success', async (event) => {
   }
 });
 
-try {
-  const cachedSession = window.__dossieAuthState?.signedInSession;
-  if (cachedSession) {
-    await showSignedIn(cachedSession);
-  } else {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) {
-      await showSignedIn(data.session);
+(async () => {
+  try {
+    const cachedSession = window.__dossieAuthState?.signedInSession;
+    if (cachedSession) {
+      await showSignedIn(cachedSession);
     } else {
-      showSignedOut();
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) {
+        await showSignedIn(data.session);
+      } else {
+        showSignedOut();
+      }
     }
+  } catch (error) {
+    console.error('Dossie session bootstrap failed', error);
+    showSafeFallback(`Dossie could not restore the session automatically. Reload or sign in again. (${error.message})`);
   }
-} catch (error) {
-  console.error('Dossie session bootstrap failed', error);
-  showSafeFallback(`Dossie could not restore the session automatically. Reload or sign in again. (${error.message})`);
-}
+})();
 
 supabase.auth.onAuthStateChange(async (_event, session) => {
   try {
