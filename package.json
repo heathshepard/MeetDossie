@@ -1,0 +1,16 @@
+{
+  "name": "meet-dossie",
+  "version": "1.0.0",
+  "description": "Dossie - AI Transaction Coordinator for Texas Real Estate",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
