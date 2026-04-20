@@ -1,6 +1,6 @@
 // Vercel Serverless Function: /api/chat
 // Routes conversation to Haiku (general) or Sonnet (transaction reasoning)
-// Rate limits: 50 messages per user per day on free tier
+// Rate limits by plan: Solo (200/day), Team (500/day), Brokerage (unlimited)
 
 const Anthropic = require('@anthropic-ai/sdk');
 
@@ -8,15 +8,31 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const RATE_LIMIT_MAX = 50;
+const RATE_LIMITS = {
+  solo: 200,
+  team: 500,
+  brokerage: null, // unlimited
+};
+
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // In-memory rate limit store (use Redis/Vercel KV for production)
 const rateLimitStore = new Map();
 
-function checkRateLimit(userId) {
+function checkRateLimit(userId, userPlan = 'solo') {
   const now = Date.now();
   const userKey = `user:${userId}`;
+  const maxMessages = RATE_LIMITS[userPlan] || RATE_LIMITS.solo;
+  
+  // Brokerage plan has unlimited messages
+  if (maxMessages === null) {
+    return {
+      allowed: true,
+      remaining: null,
+      resetAt: null,
+      plan: userPlan,
+    };
+  }
   
   if (!rateLimitStore.has(userKey)) {
     rateLimitStore.set(userKey, { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -31,11 +47,12 @@ function checkRateLimit(userId) {
   }
   
   // Check limit
-  if (userData.count >= RATE_LIMIT_MAX) {
+  if (userData.count >= maxMessages) {
     return {
       allowed: false,
       remaining: 0,
       resetAt: userData.resetAt,
+      plan: userPlan,
     };
   }
   
@@ -44,8 +61,9 @@ function checkRateLimit(userId) {
   
   return {
     allowed: true,
-    remaining: RATE_LIMIT_MAX - userData.count,
+    remaining: maxMessages - userData.count,
     resetAt: userData.resetAt,
+    plan: userPlan,
   };
 }
 
@@ -143,7 +161,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, userId, transactionContext } = req.body;
+    const { message, userId, transactionContext, userPlan } = req.body;
 
     // Validate input
     if (!message || typeof message !== 'string' || !message.trim()) {
@@ -168,16 +186,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check rate limit
-    const rateLimitResult = checkRateLimit(userId);
+    // Check rate limit (default to 'solo' plan)
+    const plan = userPlan && ['solo', 'team', 'brokerage'].includes(userPlan) ? userPlan : 'solo';
+    const rateLimitResult = checkRateLimit(userId, plan);
     
     if (!rateLimitResult.allowed) {
       const resetDate = new Date(rateLimitResult.resetAt).toISOString();
+      const limit = RATE_LIMITS[rateLimitResult.plan];
       return res.status(429).json({ 
         ok: false, 
-        error: `Rate limit exceeded. You've used your 50 daily messages. Resets at ${resetDate}.`,
+        error: `Rate limit exceeded. You've used your ${limit} daily messages (${rateLimitResult.plan} plan). Resets at ${resetDate}.`,
         remaining: 0,
         resetAt: rateLimitResult.resetAt,
+        plan: rateLimitResult.plan,
       });
     }
 
@@ -198,6 +219,7 @@ export default async function handler(req, res) {
       model,
       remaining: rateLimitResult.remaining,
       resetAt: rateLimitResult.resetAt,
+      plan: rateLimitResult.plan,
     });
 
   } catch (error) {

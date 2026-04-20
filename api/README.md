@@ -12,6 +12,7 @@ Serverless conversation backend for Dossie.
 {
   "message": "What documents do I need for a buyer side deal?",
   "userId": "user-uuid-from-supabase",
+  "userPlan": "solo",
   "transactionContext": {
     "buyer_name": "Sarah Martinez",
     "property_address": "123 Main St",
@@ -23,6 +24,7 @@ Serverless conversation backend for Dossie.
 **Fields:**
 - `message` (required): User's message as a string
 - `userId` (required): Unique user identifier for rate limiting
+- `userPlan` (optional): User's subscription plan (`solo`, `team`, or `brokerage`). Defaults to `solo`.
 - `transactionContext` (optional): Current transaction data if available
 
 ## Response
@@ -34,8 +36,9 @@ Serverless conversation backend for Dossie.
   "ok": true,
   "reply": "For a buyer side transaction, you'll typically need...",
   "model": "claude-haiku-4",
-  "remaining": 49,
-  "resetAt": 1713657600000
+  "remaining": 199,
+  "resetAt": 1713657600000,
+  "plan": "solo"
 }
 ```
 
@@ -43,17 +46,19 @@ Serverless conversation backend for Dossie.
 - `ok`: Boolean success indicator
 - `reply`: Dossie's response text
 - `model`: Which Claude model was used (haiku or sonnet)
-- `remaining`: Messages remaining in rate limit window
-- `resetAt`: Unix timestamp when rate limit resets
+- `remaining`: Messages remaining in rate limit window (`null` for brokerage/unlimited)
+- `resetAt`: Unix timestamp when rate limit resets (`null` for brokerage/unlimited)
+- `plan`: User's current plan (`solo`, `team`, or `brokerage`)
 
 ### Rate Limit Exceeded (429)
 
 ```json
 {
   "ok": false,
-  "error": "Rate limit exceeded. You've used your 50 daily messages. Resets at 2026-04-21T18:00:00.000Z.",
+  "error": "Rate limit exceeded. You've used your 200 daily messages (solo plan). Resets at 2026-04-21T18:00:00.000Z.",
   "remaining": 0,
-  "resetAt": 1713657600000
+  "resetAt": 1713657600000,
+  "plan": "solo"
 }
 ```
 
@@ -73,9 +78,17 @@ Serverless conversation backend for Dossie.
 
 ## Rate Limiting
 
-- **Free tier**: 50 messages per user per day
+Rate limits vary by subscription plan:
+
+- **Solo plan**: 200 messages per user per day
+- **Team plan**: 500 messages per user per day
+- **Brokerage plan**: Unlimited messages
+
+**Details:**
 - **Window**: 24 hours rolling
+- **Default**: Solo plan (200/day) if `userPlan` not specified
 - **Storage**: In-memory (use Redis/Vercel KV for production)
+- **Brokerage**: Returns `remaining: null` and `resetAt: null` (unlimited)
 
 ## Environment Variables
 
