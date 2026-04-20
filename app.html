@@ -703,7 +703,6 @@ function showSafeFallback(message = 'Checking sessionâ€¦') {
 showSafeFallback();
 const userEmail = document.getElementById('user-email');
 const userStatusCopy = document.getElementById('user-status-copy');
-const workspaceNotice = document.getElementById('workspace-notice');
 const briefGrid = document.getElementById('brief-grid');
 const briefHeadline = document.getElementById('brief-headline');
 const briefIntro = document.getElementById('brief-intro');
@@ -1174,8 +1173,6 @@ const showSignedIn = async (session) => {
   if (authShellEarly) authShellEarly.style.display = 'grid';
   userEmail.textContent = session.user.email || 'Signed in';
   userStatusCopy.textContent = 'Your authenticated Dossie workspace is live and connected to your Supabase-backed dossiers.';
-  workspaceNotice.textContent = 'Authenticated session detected successfully.';
-  workspaceNotice.className = 'notice';
   await loadDossiers();
 };
 
