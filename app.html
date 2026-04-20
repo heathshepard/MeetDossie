@@ -140,24 +140,24 @@ body::after {
 .helper-box { background: white; border: 1px solid var(--border-light); border-radius: 18px; padding: 18px; }
 .helper-box strong { display: block; font-size: 13px; color: var(--navy); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
 .helper-box div { font-size: 13px; color: var(--text-soft); line-height: 1.7; }
-.brief-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
-.brief-stat { background:linear-gradient(180deg,#ffffff 0%, #f8f3ec 100%); border:1px solid var(--border-light); border-radius:22px; padding:18px; box-shadow:0 18px 40px rgba(26,26,46,0.05); position:relative; overflow:hidden; }
-.brief-stat::after { content:''; position:absolute; inset:auto 0 0 0; height:4px; background:linear-gradient(90deg,var(--blush) 0%, var(--sage) 100%); opacity:.7; }
-.brief-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.6px; color:var(--blush-deep); font-weight:800; }
-.brief-stat-value { margin-top:10px; font-family:'Cormorant Garamond', serif; font-size:40px; color:var(--navy); line-height:0.92; }
-.brief-stat-copy { margin-top:8px; font-size:13px; color:var(--text-soft); line-height:1.65; }
+.brief-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top: 24px; }
+.brief-stat { background:linear-gradient(180deg,#ffffff 0%, #faf6f1 100%); border:1px solid var(--border-light); border-radius:24px; padding:20px; box-shadow:0 20px 44px rgba(26,26,46,0.06); position:relative; overflow:hidden; }
+.brief-stat::after { content:''; position:absolute; inset:auto 0 0 0; height:5px; background:linear-gradient(90deg,var(--blush) 0%, var(--sage) 100%); opacity:.75; }
+.brief-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.7px; color:var(--blush-deep); font-weight:800; }
+.brief-stat-value { margin-top:11px; font-family:'Cormorant Garamond', serif; font-size:44px; color:var(--navy); line-height:0.9; font-weight: 600; }
+.brief-stat-copy { margin-top:9px; font-size:13px; color:var(--text-soft); line-height:1.7; }
 .surface-grid { display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; order: 3; }
 .surface-stack { display:grid; gap:20px; }
-.morning-brief-card { background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92)); border: 1px solid var(--border); border-radius: 30px; padding: 28px; box-shadow: 0 20px 60px rgba(26,26,46,0.06); }
-.morning-brief-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 5vw, 58px); line-height: 0.98; color: var(--navy); }
-.morning-brief-card p { margin-top: 14px; max-width: 760px; color: var(--text-soft); font-size: 15px; line-height: 1.9; }
-.main-conversation-card { background: linear-gradient(180deg,#fff 0%, #f8f3ec 100%); border: 1px solid var(--border); border-radius: 28px; padding: 24px; box-shadow: 0 20px 50px rgba(26,26,46,0.05); order: 2; }
-.main-conversation-card h2 { font-size: 34px; font-family: 'Cormorant Garamond', serif; color: var(--navy); margin-bottom: 10px; }
-.main-conversation-card .card-sub { font-size: 15px; margin-bottom: 18px; max-width: 760px; }
+.morning-brief-card { background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(247,241,236,0.95)); border: 1px solid var(--border); border-radius: 30px; padding: 32px; box-shadow: 0 24px 60px rgba(26,26,46,0.08); margin-bottom: 6px; }
+.morning-brief-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(42px, 5.4vw, 64px); line-height: 0.96; color: var(--navy); }
+.morning-brief-card p { margin-top: 16px; max-width: 760px; color: var(--text-soft); font-size: 16px; line-height: 1.75; }
+.main-conversation-card { background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,243,236,0.94)); border: 1px solid var(--border); border-radius: 28px; padding: 28px; box-shadow: 0 20px 52px rgba(26,26,46,0.07); margin-bottom: 6px; }
+.main-conversation-card h2 { font-size: 38px; font-family: 'Cormorant Garamond', serif; color: var(--navy); margin-bottom: 10px; line-height: 1.1; }
+.main-conversation-card .card-sub { font-size: 15px; margin-bottom: 20px; max-width: 680px; line-height: 1.75; }
 .main-conversation-form { display: grid; gap: 14px; }
 .main-conversation-form textarea { min-height: 140px; }
-.voice-row { display:flex; gap:10px; margin-top:4px; flex-wrap:wrap; }
-.voice-btn { min-width: 180px; }
+.voice-row { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items: center; }
+.voice-btn { min-width: 200px; font-size: 14px; padding: 14px 20px; }
 .voice-status { margin-top: 2px; font-size: 12px; color: var(--text-soft); }
 .conversation-card { background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); border: 1px solid var(--border-light); border-radius: 22px; padding: 18px; }
 .conversation-hint { margin-top: 8px; font-size: 13px; line-height: 1.75; color: var(--text-soft); }
@@ -213,33 +213,32 @@ body::after {
     </aside>
 
     <main class="main">
-      <section class="morning-brief-card">
-        <div class="section-label">Morning Brief</div>
-        <h1 id="brief-headline">Dossie is reading your files this morning.</h1>
-        <p id="brief-intro">The workspace opens with a clean brief first: what is active, what needs cleanup, and what deserves attention next.</p>
-        <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
+      <section class="morning-brief-card" style="order: 1;">
+        <div class="section-label">Good morning</div>
+        <h1 id="brief-headline">Your files are ready.</h1>
+        <p id="brief-intro">Morning Brief shows what's active, what needs attention, and what you should handle first.</p>
         <div id="brief-grid" class="brief-strip"></div>
       </section>
 
-      <section class="main-conversation-card">
+      <section class="main-conversation-card" style="order: 2;">
         <div class="section-label">Talk to Dossie</div>
-        <h2>Update your files naturally</h2>
-        <div class="card-sub">Speak or type like you're talking to a transaction coordinator. Dossie reads what you say and updates the file.</div>
+        <h2>Speak or type naturally</h2>
+        <div class="card-sub">Tell me what changed—I'll update the file. Select a transaction below, then talk to me like you would a real coordinator.</div>
         <div class="main-conversation-form">
+          <div class="voice-row" style="margin-top: 0;">
+            <button id="voice-talk-btn-main" class="primary-btn voice-btn" type="button">🎤 Hold to talk</button>
+            <button id="voice-play-btn-main" class="ghost-btn voice-btn" type="button">🔊 Hear Dossie's reply</button>
+          </div>
+          <div id="voice-status-main" class="voice-status">Hold the button and speak. I'll update the file and reply.</div>
           <div class="field">
-            <textarea id="conversation-input-main" placeholder="Try something like: buyer name is Marcus Patterson, title says we close on May 14, or hold here until the lender replies."></textarea>
+            <textarea id="conversation-input-main" placeholder="Or type: buyer name is Marcus Patterson, we close May 14, lender needs appraisal by Friday..." rows="3"></textarea>
           </div>
-          <div class="voice-row">
-            <button id="voice-talk-btn-main" class="ghost-btn voice-btn" type="button">&#127908; Hold to talk</button>
-            <button id="voice-play-btn-main" class="ghost-btn voice-btn" type="button">&#128266; Play Dossie's reply</button>
-            <button id="conversation-send-btn-main" class="primary-btn" type="button">Send update</button>
-          </div>
-          <div id="voice-status-main" class="voice-status">Voice mode is phase-one: hold to talk, then hear Dossie speak back.</div>
-          <div id="conversation-reply-main" class="conversation-reply">Select a file, then tell Dossie what changed.</div>
+          <button id="conversation-send-btn-main" class="primary-btn" type="button">Send update</button>
+          <div id="conversation-reply-main" class="conversation-reply">Select a transaction, then tell me what changed.</div>
         </div>
       </section>
 
-      <div class="surface-grid">
+      <div class="surface-grid" style="order: 3;">
         <section class="card">
           <div class="section-label">File Creation</div>
           <h2>Open a new dossier</h2>
