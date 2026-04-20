@@ -234,7 +234,7 @@ body::after {
             <textarea id="conversation-input-main" placeholder="Or type: buyer name is Marcus Patterson, we close May 14, lender needs appraisal by Friday..." rows="3"></textarea>
           </div>
           <button id="conversation-send-btn-main" class="primary-btn" type="button">Send update</button>
-          <div id="conversation-reply-main" class="conversation-reply">Select a transaction, then tell me what changed.</div>
+          <div id="conversation-reply-main" class="conversation-reply">Go ahead—I'm listening. Select a transaction if you want me to update a file, or just talk to me.</div>
         </div>
       </section>
 
@@ -1006,9 +1006,9 @@ const selectDossier = (id) => {
   documentStatusText.className = 'status-text';
   documentLinks.innerHTML = '';
   conversationInputMain.value = '';
-  conversationReplyMain.textContent = 'Tell Dossie what changed and it will update this file.';
+  conversationReplyMain.textContent = row ? 'Tell me what changed and I'll update this file.' : 'Go ahead—I'm listening. Select a transaction if you want me to update a file, or just talk to me.';
   conversationReplyMain.className = 'conversation-reply';
-  if (voiceStatusMain) voiceStatusMain.textContent = 'Voice mode is phase-one: hold to talk, then hear Dossie speak back.';
+  if (voiceStatusMain) voiceStatusMain.textContent = 'Hold the button and speak. I'll update the file and reply.';
 };
 
 const renderDossiers = (rows) => {
@@ -1067,36 +1067,37 @@ const speakReply = (text) => {
 };
 
 const handleConversationSubmit = async (messageOverride = null, options = {}) => {
-  if (!activeSession?.user?.id || !selectedDossierId) {
-    conversationReplyMain.textContent = 'Select a dossier before talking to Dossie.';
+  if (!activeSession?.user?.id) {
+    conversationReplyMain.textContent = 'You need to be signed in to talk to Dossie.';
     conversationReplyMain.className = 'conversation-reply error';
     return;
   }
 
-  const row = currentRows.find((item) => item.id === selectedDossierId);
   const message = (messageOverride ?? conversationInputMain.value).trim();
-  if (!row || !message) {
-    conversationReplyMain.textContent = 'Add a real update for Dossie first.';
+  if (!message) {
+    conversationReplyMain.textContent = 'Tell me something first.';
     conversationReplyMain.className = 'conversation-reply error';
     return;
   }
 
-  conversationReplyMain.textContent = 'Dossie is updating the file...';
+  const row = selectedDossierId ? currentRows.find((item) => item.id === selectedDossierId) : null;
+
+  conversationReplyMain.textContent = row ? 'Updating the file...' : 'Listening...';
   conversationReplyMain.className = 'conversation-reply';
 
   try {
     const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transaction: row, message }),
+      body: JSON.stringify({ transaction: row || {}, message }),
     });
     const result = await response.json();
     if (!response.ok || !result.ok) {
-      throw new Error(result.error || 'Conversation update failed');
+      throw new Error(result.error || 'Conversation failed');
     }
 
     const updates = result.updates || {};
-    if (Object.keys(updates).length) {
+    if (row && Object.keys(updates).length) {
       const { error } = await supabase
         .from('transactions')
         .update(updates)
@@ -1105,15 +1106,15 @@ const handleConversationSubmit = async (messageOverride = null, options = {}) =>
       if (error) throw error;
     }
 
-    const replyText = result.reply?.reply || result.nextQuestion || 'Dossie updated the file.';
+    const replyText = result.reply?.reply || result.nextQuestion || (row ? 'Got it.' : 'I heard you. Select a transaction if you want me to update a file, or just keep talking.');
     lastSpokenReply = replyText;
     conversationReplyMain.textContent = replyText;
     conversationReplyMain.className = 'conversation-reply success';
     conversationInputMain.value = '';
     if (options.speak) speakReply(replyText);
-    await loadDossiers();
+    if (row) await loadDossiers();
   } catch (error) {
-    conversationReplyMain.textContent = `Dossie could not apply that update: ${error.message}`;
+    conversationReplyMain.textContent = `I couldn't process that: ${error.message}`;
     conversationReplyMain.className = 'conversation-reply error';
   }
 };
