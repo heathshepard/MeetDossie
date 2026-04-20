@@ -120,7 +120,17 @@ body::after {
 .dossier-address { margin-top: 6px; font-size: 18px; font-weight: 700; color: var(--navy); }
 .dossier-meta { margin-top: 10px; display: grid; gap: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
 .badge { display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: var(--gold-light); color: #8d6a25; }
-.empty { padding: 18px; border: 1px dashed var(--border); border-radius: 18px; color: var(--text-light); font-size: 14px; line-height: 1.7; background: rgba(255,255,255,0.6); }`r`n.empty-state { padding: 24px; border: 1px solid var(--border-light); border-radius: 22px; background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); box-shadow: 0 14px 30px rgba(26,26,46,0.04); }`r`n.empty-state h3 { font-size: 22px; color: var(--navy); margin-bottom: 10px; }`r`n.empty-state p { font-size: 14px; line-height: 1.8; color: var(--text-soft); }`r`n.empty-state ul { margin-top: 14px; padding-left: 18px; color: var(--text-soft); display: grid; gap: 8px; font-size: 13px; }`r`n.loading-skeleton { display:grid; gap:12px; }`r`n.loading-skeleton .skeleton-line { height:14px; border-radius:999px; background: linear-gradient(90deg, rgba(240,235,227,0.9) 0%, rgba(255,255,255,0.98) 50%, rgba(240,235,227,0.9) 100%); background-size:200% 100%; animation: shimmer 1.8s infinite; }`r`n.loading-skeleton .skeleton-line.large { height:18px; width:72%; }`r`n.loading-skeleton .skeleton-line.medium { width:54%; }`r`n.loading-skeleton .skeleton-line.small { width:38%; }`r`n@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.empty { padding: 18px; border: 1px dashed var(--border); border-radius: 18px; color: var(--text-light); font-size: 14px; line-height: 1.7; background: rgba(255,255,255,0.6); }
+.empty-state { padding: 24px; border: 1px solid var(--border-light); border-radius: 22px; background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); box-shadow: 0 14px 30px rgba(26,26,46,0.04); }
+.empty-state h3 { font-size: 22px; color: var(--navy); margin-bottom: 10px; }
+.empty-state p { font-size: 14px; line-height: 1.8; color: var(--text-soft); }
+.empty-state ul { margin-top: 14px; padding-left: 18px; color: var(--text-soft); display: grid; gap: 8px; font-size: 13px; }
+.loading-skeleton { display:grid; gap:12px; }
+.loading-skeleton .skeleton-line { height:14px; border-radius:999px; background: linear-gradient(90deg, rgba(240,235,227,0.9) 0%, rgba(255,255,255,0.98) 50%, rgba(240,235,227,0.9) 100%); background-size:200% 100%; animation: shimmer 1.8s infinite; }
+.loading-skeleton .skeleton-line.large { height:18px; width:72%; }
+.loading-skeleton .skeleton-line.medium { width:54%; }
+.loading-skeleton .skeleton-line.small { width:38%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .detail-panel { display: grid; gap: 16px; }
 .detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .detail-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; line-height: 0.98; color: var(--navy); }
@@ -136,46 +146,32 @@ body::after {
 .brief-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.6px; color:var(--blush-deep); font-weight:800; }
 .brief-stat-value { margin-top:10px; font-family:'Cormorant Garamond', serif; font-size:40px; color:var(--navy); line-height:0.92; }
 .brief-stat-copy { margin-top:8px; font-size:13px; color:var(--text-soft); line-height:1.65; }
-.brief-focus-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:18px; margin-top:18px; align-items:start; }
-.brief-focus-card { background:white; border:1px solid var(--border-light); border-radius:24px; padding:20px; box-shadow:0 18px 40px rgba(26,26,46,0.04); }
-.brief-focus-card h3 { font-size:20px; color:var(--navy); margin-bottom:8px; }
-.brief-focus-card p { font-size:14px; line-height:1.8; color:var(--text-soft); }
-.intelligence-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-.intelligence-pill { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#f7f1ec; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
-.intelligence-pill.urgent { background:#fdebec; color:var(--red); border-color:#f4c9cc; }
-.intelligence-pill.ready { background:var(--sage-light); color:var(--sage-deep); border-color:#d9ead7; }
-.intelligence-pill.watch { background:var(--gold-light); color:#8d6a25; border-color:#f0dfb2; }
-.brief-lane { display:grid; gap:12px; }
-.brief-lane-item { background:rgba(255,255,255,0.92); border:1px solid var(--border-light); border-radius:20px; padding:18px; box-shadow:0 14px 30px rgba(26,26,46,0.04); }
-.brief-lane-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
-.brief-lane-address { font-size:18px; font-weight:700; color:var(--navy); }
-.brief-lane-copy { margin-top:10px; font-size:13px; line-height:1.75; color:var(--text-soft); }
-.brief-lane-meta { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
-.brief-section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
-.brief-section-title { font-size:16px; color:var(--navy); font-weight:700; }
-.brief-section-count { font-size:12px; color:var(--text-soft); font-weight:700; }
-.surface-grid { display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; }
+.surface-grid { display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; order: 3; }
 .surface-stack { display:grid; gap:20px; }
-.hero-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
-.hero-metric { background:rgba(255,255,255,0.82); border:1px solid var(--border-light); border-radius:18px; padding:14px; }
-.hero-metric strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--blush-deep); }
-.hero-metric span { display:block; margin-top:8px; font-size:14px; line-height:1.6; color:var(--navy); }
-.intelligence-card { background:linear-gradient(180deg,#fff 0%,#faf6f1 100%); border:1px solid var(--border-light); border-radius:22px; padding:18px; }
-.intelligence-card h3 { font-size:18px; color:var(--navy); margin-bottom:8px; }
-.intelligence-card p { font-size:14px; line-height:1.75; color:var(--text-soft); }
+.morning-brief-card { background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92)); border: 1px solid var(--border); border-radius: 30px; padding: 28px; box-shadow: 0 20px 60px rgba(26,26,46,0.06); }
+.morning-brief-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 5vw, 58px); line-height: 0.98; color: var(--navy); }
+.morning-brief-card p { margin-top: 14px; max-width: 760px; color: var(--text-soft); font-size: 15px; line-height: 1.9; }
+.main-conversation-card { background: linear-gradient(180deg,#fff 0%, #f8f3ec 100%); border: 1px solid var(--border); border-radius: 28px; padding: 24px; box-shadow: 0 20px 50px rgba(26,26,46,0.05); order: 2; }
+.main-conversation-card h2 { font-size: 34px; font-family: 'Cormorant Garamond', serif; color: var(--navy); margin-bottom: 10px; }
+.main-conversation-card .card-sub { font-size: 15px; margin-bottom: 18px; max-width: 760px; }
+.main-conversation-form { display: grid; gap: 14px; }
+.main-conversation-form textarea { min-height: 140px; }
+.voice-row { display:flex; gap:10px; margin-top:4px; flex-wrap:wrap; }
+.voice-btn { min-width: 180px; }
+.voice-status { margin-top: 2px; font-size: 12px; color: var(--text-soft); }
 .conversation-card { background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); border: 1px solid var(--border-light); border-radius: 22px; padding: 18px; }
 .conversation-hint { margin-top: 8px; font-size: 13px; line-height: 1.75; color: var(--text-soft); }
 .conversation-examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .conversation-chip { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#fff; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
 .conversation-reply { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); }
 .conversation-reply.success { background: #f7f3ee; color: var(--navy); }
-.conversation-reply.error { background: #fdebec; border-color: #f4c9cc; color: var(--red); }`r`n.voice-row { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }`r`n.voice-btn { min-width: 180px; }`r`n.voice-status { margin-top: 10px; font-size: 12px; color: var(--text-soft); }
+.conversation-reply.error { background: #fdebec; border-color: #f4c9cc; color: var(--red); }
 .task-list { display: grid; gap: 10px; }
 .task-row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); cursor: pointer; }
 .task-row.done { opacity: 0.6; }
 .task-row input { margin-top: 2px; }
-@media (max-width: 1180px) { .shell, .grid, .helper-grid, .surface-grid, .brief-focus-grid, .brief-strip, .hero-metrics, .signed-out-grid, .signed-out-metrics { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } .signed-out-title { font-size:38px; } }
+@media (max-width: 1180px) { .shell, .grid, .helper-grid, .surface-grid, .brief-strip, .signed-out-grid, .signed-out-metrics { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } .signed-out-title { font-size:38px; } .main-conversation-card h2 { font-size: 28px; } }
 </style>
 </head>
 <body>
@@ -217,40 +213,29 @@ body::after {
     </aside>
 
     <main class="main">
-      <section class="hero-card">
-        <div class="section-label">Dossie Workspace</div>
-        <h1>Dossie is actively reading your files.</h1>
-        <p>The signed-in workspace should feel like a real assistant, not a storage shell. Morning Brief now focuses on readiness, risk, and the next best move across the active file set.</p>
+      <section class="morning-brief-card">
+        <div class="section-label">Morning Brief</div>
+        <h1 id="brief-headline">Dossie is reading your files this morning.</h1>
+        <p id="brief-intro">The workspace opens with a clean brief first: what is active, what needs cleanup, and what deserves attention next.</p>
         <div id="workspace-notice" class="notice">Authenticated session detected successfully.</div>
-        <div class="hero-metrics">
-          <div class="hero-metric">
-            <strong>Morning Brief</strong>
-            <span id="hero-metric-brief">Dossie is scanning your active files.</span>
-          </div>
-          <div class="hero-metric">
-            <strong>Readiness</strong>
-            <span id="hero-metric-readiness">Waiting for your live file state.</span>
-          </div>
-          <div class="hero-metric">
-            <strong>Next move</strong>
-            <span id="hero-metric-next">Dossie will surface the next most important action here.</span>
-          </div>
-        </div>
+        <div id="brief-grid" class="brief-strip"></div>
       </section>
 
-      <section class="card">
-        <div class="section-label">Operating Overview</div>
-        <h2>Morning Brief</h2>
-        <div class="card-sub">Dossie now reads the file set for pressure, readiness, and what deserves attention first.</div>
-        <div id="brief-grid" class="brief-strip"></div>
-        <div class="brief-focus-grid">
-          <div id="brief-rows" class="brief-lane"></div>
-          <div class="brief-focus-card">
-            <div class="section-label">Smart read</div>
-            <h3 id="brief-focus-title">Waiting on active files</h3>
-            <p id="brief-focus-copy">Once your dossiers load, Dossie will summarize what matters most, what is fragile, and what is ready to move.</p>
-            <div id="brief-focus-pills" class="intelligence-pills"></div>
+      <section class="main-conversation-card">
+        <div class="section-label">Talk to Dossie</div>
+        <h2>Update your files naturally</h2>
+        <div class="card-sub">Speak or type like you're talking to a transaction coordinator. Dossie reads what you say and updates the file.</div>
+        <div class="main-conversation-form">
+          <div class="field">
+            <textarea id="conversation-input-main" placeholder="Try something like: buyer name is Marcus Patterson, title says we close on May 14, or hold here until the lender replies."></textarea>
           </div>
+          <div class="voice-row">
+            <button id="voice-talk-btn-main" class="ghost-btn voice-btn" type="button">&#127908; Hold to talk</button>
+            <button id="voice-play-btn-main" class="ghost-btn voice-btn" type="button">&#128266; Play Dossie's reply</button>
+            <button id="conversation-send-btn-main" class="primary-btn" type="button">Send update</button>
+          </div>
+          <div id="voice-status-main" class="voice-status">Voice mode is phase-one: hold to talk, then hear Dossie speak back.</div>
+          <div id="conversation-reply-main" class="conversation-reply">Select a file, then tell Dossie what changed.</div>
         </div>
       </section>
 
@@ -332,7 +317,7 @@ body::after {
         </section>
       </div>
 
-      <section class="card detail-panel">
+      <section class="card detail-panel" id="detail-section" style="display: none;">
         <div class="detail-header">
           <div>
             <div class="section-label">Live File Workspace</div>
@@ -491,14 +476,6 @@ body::after {
               <div class="helper-box">
                 <strong>Activity log</strong>
                 <div id="activity-log" class="task-list"></div>
-              </div>
-              <div class="helper-box">
-                <strong>Talk to Dossie</strong>
-                <div class="field" style="margin-top:0;">
-                  <textarea id="conversation-input" placeholder="Talk naturally, like \"buyer name is Marcus Patterson\", \"we're still waiting on title\", or \"hold here for now\"."></textarea>
-                </div>
-                <button id="conversation-send-btn" class="ghost-btn" type="button">Update the file</button>
-                <div id="conversation-reply" class="status-text"></div>
               </div>
               <div class="helper-box">
                 <strong>Add note</strong>
@@ -717,7 +694,7 @@ const authShell = document.getElementById('auth-shell');
 const signedOutShell = document.getElementById('signed-out-shell');
 const signedOutCopy = document.getElementById('signed-out-copy');
 
-function showSafeFallback(message = 'Checking session…') {
+function showSafeFallback(message = 'Checking sessionâ€¦') {
   authShell.style.display = 'none';
   signedOutShell.style.display = 'grid';
   const hero = signedOutShell.querySelector('.hero-card p');
@@ -729,17 +706,13 @@ const userEmail = document.getElementById('user-email');
 const userStatusCopy = document.getElementById('user-status-copy');
 const workspaceNotice = document.getElementById('workspace-notice');
 const briefGrid = document.getElementById('brief-grid');
-const briefRows = document.getElementById('brief-rows');
-const briefFocusTitle = document.getElementById('brief-focus-title');
-const briefFocusCopy = document.getElementById('brief-focus-copy');
-const briefFocusPills = document.getElementById('brief-focus-pills');
-const heroMetricBrief = document.getElementById('hero-metric-brief');
-const heroMetricReadiness = document.getElementById('hero-metric-readiness');
-const heroMetricNext = document.getElementById('hero-metric-next');
+const briefHeadline = document.getElementById('brief-headline');
+const briefIntro = document.getElementById('brief-intro');
 const dossierForm = document.getElementById('dossier-form');
 const dossierList = document.getElementById('dossier-list');
 const formStatus = document.getElementById('form-status');
 const signOutBtn = document.getElementById('sign-out-btn');
+const detailSection = document.getElementById('detail-section');
 const detailForm = document.getElementById('detail-form');
 const detailEmpty = document.getElementById('detail-empty');
 const detailTitle = document.getElementById('detail-title');
@@ -754,12 +727,12 @@ const nextAction = document.getElementById('next-action');
 const emailDraft = document.getElementById('email-draft');
 const transactionIntelligence = document.getElementById('transaction-intelligence');
 const activityLog = document.getElementById('activity-log');
-const conversationInput = document.getElementById('conversation-input');
-const conversationSendBtn = document.getElementById('conversation-send-btn');
-const conversationReply = document.getElementById('conversation-reply');
-const voiceTalkBtn = document.getElementById('voice-talk-btn');
-const voicePlayBtn = document.getElementById('voice-play-btn');
-const voiceStatus = document.getElementById('voice-status');
+const conversationInputMain = document.getElementById('conversation-input-main');
+const conversationSendBtnMain = document.getElementById('conversation-send-btn-main');
+const conversationReplyMain = document.getElementById('conversation-reply-main');
+const voiceTalkBtnMain = document.getElementById('voice-talk-btn-main');
+const voicePlayBtnMain = document.getElementById('voice-play-btn-main');
+const voiceStatusMain = document.getElementById('voice-status-main');
 const activityNote = document.getElementById('activity-note');
 const saveNoteBtn = document.getElementById('save-note-btn');
 const generateResaleContractBtn = document.getElementById('generate-resale-contract-btn');
@@ -855,7 +828,6 @@ const buildBriefNarrative = (rows) => {
 };
 
 const renderBrief = (rows) => {
-  const groups = buildBriefGroups(rows);
   const premium = buildPremiumBrief(rows);
   const narrative = buildBriefNarrative(rows);
   const cards = [
@@ -864,6 +836,7 @@ const renderBrief = (rows) => {
     { label: 'Financing watch', value: premium.financing, copy: 'Files sitting in lender-sensitive territory.' },
     { label: 'Closing soon', value: premium.closingSoon, copy: 'Files inside a 7-day closing window.' },
   ];
+
   briefGrid.innerHTML = cards.map((card) => `
     <div class="brief-stat">
       <div class="brief-stat-label">${card.label}</div>
@@ -872,36 +845,8 @@ const renderBrief = (rows) => {
     </div>
   `).join('');
 
-  heroMetricBrief.textContent = premium.total ? `${premium.active} active file${premium.active === 1 ? '' : 's'} are shaping today's brief.` : 'Create your first file to wake Morning Brief up.';
-  heroMetricReadiness.textContent = premium.missingCore ? `${premium.missingCore} file${premium.missingCore === 1 ? '' : 's'} still need contract cleanup.` : 'Core contract readiness looks stable.';
-  heroMetricNext.textContent = narrative.copy;
-  briefFocusTitle.textContent = narrative.title;
-  briefFocusCopy.textContent = narrative.copy;
-  briefFocusPills.innerHTML = narrative.pills.map((pill) => `<span class="intelligence-pill ${pill.toLowerCase().includes('missing') ? 'urgent' : pill.toLowerCase().includes('ready') ? 'ready' : 'watch'}">${pill}</span>`).join('');
-
-  const sections = [
-    { title: 'First things first', items: groups.firstThings, empty: 'Nothing urgent is pressing right now. Dossie has the file stable.' },
-    { title: 'Worth watching', items: groups.watch, empty: 'Nothing needs close attention right now. The file is moving steadily.' },
-    { title: 'Moving cleanly', items: groups.movingCleanly, empty: 'Nothing is at the clear-to-close stage yet, but the files are progressing.' },
-  ];
-
-  briefRows.innerHTML = sections.map((section) => `
-    <div class="brief-focus-card">
-      <div class="brief-section-head">
-        <div>
-          <div class="section-label">Morning Brief lane</div>
-          <div class="brief-section-title">${section.title}</div>
-        </div>
-        <div class="brief-section-count">${section.items.length} ${section.items.length === 1 ? 'file' : 'files'}</div>
-      </div>
-      <div class="brief-lane">
-        ${section.items.length ? section.items.map((row) => {
-          const readiness = !row.sale_price || !row.contract_effective_date || !row.title_company ? 'Needs contract cleanup' : 'Ready for guided next step';
-          return `<div class="brief-lane-item"><div class="brief-lane-top"><div><div class="brief-lane-address">${row.property_address}</div><div class="small">${formatStage(row.stage)} · ${row.buyer_name || row.seller_name || 'Client not set yet'}</div></div><span class="intelligence-pill ${readiness.includes('Needs') ? 'urgent' : 'ready'}">${readiness}</span></div><div class="brief-lane-copy">${row.stage === 'financing' ? 'Lender momentum and deadline confidence matter most on this file.' : row.stage === 'option-period' ? 'Decision timing and amendment readiness matter most here.' : 'This file is in setup mode and needs a clean contract baseline.'}</div><div class="brief-lane-meta"><span class="intelligence-pill watch">${row.status || 'active'}</span>${row.closing_date ? `<span class="intelligence-pill">Closing ${formatDate(row.closing_date)}</span>` : ''}</div></div>`;
-        }).join('') : `<div class="brief-lane-item"><div class="brief-lane-copy">${section.empty}</div></div>`}
-      </div>
-    </div>
-  `).join('');
+  briefHeadline.textContent = narrative.title;
+  briefIntro.textContent = narrative.copy;
 };
 
 const normalizeChecklist = (row) => {
@@ -976,7 +921,7 @@ const renderIntelligencePanel = (analysis) => {
   }).join('');
 };
 
-const buildGuidanceCopy = (row, analysis) => {`r`n  const missing = Object.values(analysis.classification || {}).filter((item) => item.status === 'missing' || item.status === 'needs-confirmation');`r`n  const docs = Array.isArray(analysis.recommendedDocuments) ? analysis.recommendedDocuments : [];`r`n  const firstMissing = missing[0]?.label || null;`r`n  const roleLabel = row.role === 'buyer' ? 'buyer-side' : 'listing-side';`r`n  if (firstMissing) {`r`n    return {`r`n      summary: `Dossie is still protecting the ${roleLabel} file from a bad handoff. The next missing contract detail is ${firstMissing}.`, `r`n      next: `Ask for ${firstMissing}, capture it cleanly, then let Dossie refresh the document path.`, `r`n      draft: `Next best question: ${analysis.nextQuestion}`, `r`n      docs: docs.length ? `Document lane on hold until ${firstMissing} is confirmed. After that, Dossie should move into ${docs.join(', ')}.` : `Document lane is waiting on ${firstMissing} before Dossie can move with confidence.``r`n    };`r`n  }`r`n  if (row.stage === 'financing') {`r`n    return {`r`n      summary: 'Dossie sees a lender-sensitive file. The job now is keeping financing momentum visible without letting the deal go quiet.',`r`n      next: 'Confirm lender progress, keep the title/closing lane warm, and prepare the next party-facing follow-up.',`r`n      draft: `Suggested follow-up: confirm financing status and remind everyone what the next handoff is.`, `r`n      docs: docs.length ? `Recommended document lane: ${docs.join(', ')}.` : 'No immediate document push is stronger than coordination follow-up right now.'`r`n    };`r`n  }`r`n  if (row.stage === 'option-period') {`r`n    return {`r`n      summary: 'Dossie sees an option-period file. The priority is decision support, amendment readiness, and timing clarity.',`r`n      next: 'Keep the decision window visible and prepare the cleanest amendment or execution path before pressure builds.',`r`n      draft: `Suggested follow-up: confirm whether the client is moving forward as-is, requesting changes, or still deciding.`, `r`n      docs: docs.length ? `Recommended document lane: ${docs.join(', ')}.` : 'No immediate document recommendation yet � keep the decision path clean first.'`r`n    };`r`n  }`r`n  return {`r`n    summary: 'Dossie sees a file that is structurally complete enough to move from cleanup into calm transaction coordination.',`r`n    next: analysis.nextAction || 'Keep the file moving and confirm the next visible handoff.',`r`n    draft: `Next best question: ${analysis.nextQuestion}`, `r`n    docs: docs.length ? `Recommended document lane: ${docs.join(', ')}.` : 'No document recommendation is stronger than the next visible coordination move right now.'`r`n  };`r`n};`r`n`r`nconst updateWhatMattersNow = async (row) => {
+const updateWhatMattersNow = async (row) => {
   const analysis = await analyzeTransactionIntelligence(row);
   const closingDays = daysUntil(row.closing_date);
   const effectiveLabel = formatDate(row.contract_effective_date);
@@ -990,7 +935,7 @@ const buildGuidanceCopy = (row, analysis) => {`r`n  const missing = Object.value
     } else if (closingDays <= 3) {
       deadlinePressure.textContent = `Closing is in ${closingDays} day${closingDays === 1 ? '' : 's'} on ${closingLabel}. This file is now in a true deadline window.`;
     } else {
-      deadlinePressure.textContent = `Closing is set for ${closingLabel}${effectiveLabel ? ` · contract effective ${effectiveLabel}` : ''}. ${STAGE_DEADLINE_HINTS[row.stage] || 'Dossie is tracking the timeline.'}`;
+      deadlinePressure.textContent = `Closing is set for ${closingLabel}${effectiveLabel ? ` Â· contract effective ${effectiveLabel}` : ''}. ${STAGE_DEADLINE_HINTS[row.stage] || 'Dossie is tracking the timeline.'}`;
     }
   } else {
     deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
@@ -1012,20 +957,22 @@ const selectDossier = (id) => {
   renderDossiers(currentRows);
   const row = currentRows.find((item) => item.id === id);
   if (!row) {
+    if (detailSection) detailSection.style.display = 'none';
     detailForm.style.display = 'none';
     detailEmpty.style.display = 'block';
     detailBadge.style.display = 'none';
     detailTitle.textContent = 'Select a saved dossier';
     detailSub.textContent = 'Choose a dossier from the list to open the editable transaction workspace.';
-    whatMattersNow.textContent = 'Select a file to see Dossie's read on the next most important move.';
+    whatMattersNow.textContent = "Select a file to see Dossie's read on the next most important move.";
     taskList.innerHTML = '';
     return;
   }
 
+  if (detailSection) detailSection.style.display = 'grid';
   detailEmpty.style.display = 'none';
   detailForm.style.display = 'grid';
   detailTitle.textContent = row.property_address;
-  detailSub.textContent = `Dossier ${row.dossier_number} · ${row.city_state_zip || 'No city/state/ZIP yet'}`;
+  detailSub.textContent = `Dossier ${row.dossier_number} Â· ${row.city_state_zip || 'No city/state/ZIP yet'}`;
   detailBadge.style.display = 'inline-flex';
   detailBadge.textContent = formatStage(row.stage);
   document.getElementById('detail-address').value = row.property_address || '';
@@ -1063,9 +1010,10 @@ const selectDossier = (id) => {
   documentStatusText.textContent = '';
   documentStatusText.className = 'status-text';
   documentLinks.innerHTML = '';
-  conversationInput.value = '';
-  conversationReply.textContent = '';
-  conversationReply.className = 'conversation-reply status-text';
+  conversationInputMain.value = '';
+  conversationReplyMain.textContent = 'Tell Dossie what changed and it will update this file.';
+  conversationReplyMain.className = 'conversation-reply';
+  if (voiceStatusMain) voiceStatusMain.textContent = 'Voice mode is phase-one: hold to talk, then hear Dossie speak back.';
 };
 
 const renderDossiers = (rows) => {
@@ -1125,21 +1073,21 @@ const speakReply = (text) => {
 
 const handleConversationSubmit = async (messageOverride = null, options = {}) => {
   if (!activeSession?.user?.id || !selectedDossierId) {
-    conversationReply.textContent = 'Select a dossier before talking to Dossie.';
-    conversationReply.className = 'conversation-reply status-text error';
+    conversationReplyMain.textContent = 'Select a dossier before talking to Dossie.';
+    conversationReplyMain.className = 'conversation-reply error';
     return;
   }
 
   const row = currentRows.find((item) => item.id === selectedDossierId);
-  const message = (messageOverride ?? conversationInput.value).trim();
+  const message = (messageOverride ?? conversationInputMain.value).trim();
   if (!row || !message) {
-    conversationReply.textContent = 'Add a real update for Dossie first.';
-    conversationReply.className = 'conversation-reply status-text error';
+    conversationReplyMain.textContent = 'Add a real update for Dossie first.';
+    conversationReplyMain.className = 'conversation-reply error';
     return;
   }
 
-  conversationReply.textContent = 'Dossie is updating the file...';
-  conversationReply.className = 'conversation-reply status-text';
+  conversationReplyMain.textContent = 'Dossie is updating the file...';
+  conversationReplyMain.className = 'conversation-reply';
 
   try {
     const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
@@ -1164,13 +1112,14 @@ const handleConversationSubmit = async (messageOverride = null, options = {}) =>
 
     const replyText = result.reply?.reply || result.nextQuestion || 'Dossie updated the file.';
     lastSpokenReply = replyText;
-    conversationReply.textContent = replyText;
-    conversationReply.className = 'conversation-reply status-text success';
+    conversationReplyMain.textContent = replyText;
+    conversationReplyMain.className = 'conversation-reply success';
+    conversationInputMain.value = '';
     if (options.speak) speakReply(replyText);
     await loadDossiers();
   } catch (error) {
-    conversationReply.textContent = `Dossie could not apply that update: ${error.message}`;
-    conversationReply.className = 'conversation-reply status-text error';
+    conversationReplyMain.textContent = `Dossie could not apply that update: ${error.message}`;
+    conversationReplyMain.className = 'conversation-reply error';
   }
 };
 
@@ -1181,20 +1130,20 @@ if (SpeechRecognitionCtor) {
   voiceRecognition.maxAlternatives = 1;
   voiceRecognition.onstart = () => {
     isListening = true;
-    if (voiceStatus) voiceStatus.textContent = 'Listening... say the update naturally.';
+    if (voiceStatusMain) voiceStatusMain.textContent = 'Listening... say the update naturally.';
   };
   voiceRecognition.onend = () => {
     isListening = false;
-    if (voiceStatus) voiceStatus.textContent = 'Voice mode is phase-one: push to talk, then hear Dossie speak back.';
+    if (voiceStatusMain) voiceStatusMain.textContent = 'Voice mode is phase-one: hold to talk, then hear Dossie speak back.';
   };
   voiceRecognition.onerror = (event) => {
-    if (voiceStatus) voiceStatus.textContent = `Voice input error: ${event.error}`;
+    if (voiceStatusMain) voiceStatusMain.textContent = `Voice input error: ${event.error}`;
   };
   voiceRecognition.onresult = async (event) => {
     const transcript = Array.from(event.results).map((result) => result[0]?.transcript || '').join(' ').trim();
     if (transcript) {
-      conversationInput.value = transcript;
-      if (voiceStatus) voiceStatus.textContent = `Heard: ${transcript}`;
+      conversationInputMain.value = transcript;
+      if (voiceStatusMain) voiceStatusMain.textContent = `Heard: ${transcript}`;
       await handleConversationSubmit(transcript, { speak: true });
     }
   };
@@ -1235,6 +1184,7 @@ const showSignedOut = () => {
   activeSession = null;
   currentRows = [];
   selectedDossierId = null;
+  if (detailSection) detailSection.style.display = 'none';
   authShell.style.display = 'none';
   signedOutShell.style.display = 'grid';
 };
@@ -1484,53 +1434,31 @@ generateDocumentCenterBtn?.addEventListener('click', async () => {
   }
 });
 
-conversationSendBtn?.addEventListener('click', async () => {
-  if (!activeSession?.user?.id || !selectedDossierId) {
-    conversationReply.textContent = 'Select a dossier before talking to Dossie.';
-    conversationReply.className = 'conversation-reply status-text error';
+conversationSendBtnMain?.addEventListener('click', async () => {
+  await handleConversationSubmit();
+});
+
+voiceTalkBtnMain?.addEventListener('mousedown', () => {
+  if (!voiceRecognition || isListening) return;
+  voiceRecognition.start();
+});
+voiceTalkBtnMain?.addEventListener('touchstart', () => {
+  if (!voiceRecognition || isListening) return;
+  voiceRecognition.start();
+}, { passive: true });
+['mouseup', 'mouseleave', 'touchend'].forEach((eventName) => {
+  voiceTalkBtnMain?.addEventListener(eventName, () => {
+    if (!voiceRecognition || !isListening) return;
+    voiceRecognition.stop();
+  });
+});
+voicePlayBtnMain?.addEventListener('click', () => {
+  if (!lastSpokenReply) {
+    if (voiceStatusMain) voiceStatusMain.textContent = 'No Dossie reply yet. Send an update first.';
     return;
   }
-
-  const row = currentRows.find((item) => item.id === selectedDossierId);
-  const message = conversationInput.value.trim();
-  if (!row || !message) {
-    conversationReply.textContent = 'Add a real update for Dossie first.';
-    conversationReply.className = 'conversation-reply status-text error';
-    return;
-  }
-
-  conversationReply.textContent = 'Dossie is updating the file...';
-  conversationReply.className = 'conversation-reply status-text';
-
-  try {
-    const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/conversation`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transaction: row, message }),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || 'Conversation update failed');
-    }
-
-    const updates = result.updates || {};
-    if (Object.keys(updates).length) {
-      const { error } = await supabase
-        .from('transactions')
-        .update(updates)
-        .eq('id', selectedDossierId)
-        .eq('user_id', activeSession.user.id);
-      if (error) throw error;
-    }
-
-    const replyText = result.reply?.reply || result.nextQuestion || 'Dossie updated the file.';
-    conversationReply.textContent = replyText;
-    conversationReply.className = 'conversation-reply status-text success';
-    await loadDossiers();
-  } catch (error) {
-    conversationReply.textContent = `Dossie could not apply that update: ${error.message}`;
-    conversationReply.className = 'conversation-reply status-text error';
-  }
+  if (voiceStatusMain) voiceStatusMain.textContent = 'Playing Dossie reply...';
+  speakReply(lastSpokenReply);
 });
 
 signOutBtn?.addEventListener('click', async () => {
@@ -1581,6 +1509,7 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 </script>
 </body>
 </html>
+
 
 
 
