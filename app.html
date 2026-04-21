@@ -77,9 +77,9 @@ body::after {
 .notice.error { background: #FCE8E6; color: var(--red); }
 .notice.success { background: var(--sage-light); color: var(--sage-deep); }
 .footer { margin-top: 28px; text-align: center; color: var(--text-light); font-size: 12px; line-height: 1.7; }
-.loading-state { text-align: center; padding: 60px 20px; }
-.loading-state h2 { font-family: 'Cormorant Garamond', serif; font-size: 32px; margin-bottom: 12px; }
-.loading-state p { color: var(--text-soft); font-size: 15px; }
+.loading-card { width: 100%; max-width: 480px; background: var(--card); border: 1px solid var(--border); border-radius: 32px; box-shadow: 0 26px 80px rgba(26,26,46,0.08); padding: 60px 42px; text-align: center; position: relative; z-index: 1; }
+.loading-card h2 { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 600; margin-bottom: 12px; }
+.loading-card p { color: var(--text-soft); font-size: 15px; line-height: 1.8; }
 @media (max-width: 860px) { .card { grid-template-columns: 1fr; padding: 28px; } }
 @media (max-width: 640px) { .page { padding: 18px; } .nav { margin-bottom: 24px; } .card { padding: 24px; border-radius: 24px; } .title { letter-spacing: -1px; } }
 </style>
@@ -95,23 +95,24 @@ body::after {
   </div>
 
   <main class="main">
+
+    <!-- Auth card (shown by default) -->
     <section class="card" id="auth-card">
       <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span>App Entry</div>
-        <h1 class="title">Welcome back to Dossie.</h1>
-        <p class="sub">This is the real phase-one app entry point. Magic link stays the intended production path, but temporary password sign-in is available too so testing can keep moving while email auth is throttled.</p>
-
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Secure Access</div>
+        <h1 class="title">Re-enter Dossie.</h1>
+        <p class="sub">Your deals are waiting. Sign in to pick up exactly where you left off.</p>
         <div class="meta">
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Magic link</strong> remains the preferred phase-one sign-in experience.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Password sign-in</strong> is available temporarily for testing and debugging.</span></div>
-          <div class="meta-item"><span class="tick">✓</span><span><strong>Next step after sign-in</strong> is landing in the real Dossie app with your saved files.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Magic link</strong> is the preferred sign-in experience.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Password sign-in</strong> available for quick access.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Your workspace</strong> loads instantly after sign-in.</span></div>
         </div>
       </div>
 
       <div class="panel">
         <div>
           <div class="panel-title">Enter Dossie</div>
-          <p class="panel-copy">Use magic link for the intended phase-one flow, use password temporarily for testing, or create a test account directly if you do not have one yet.</p>
+          <p class="panel-copy">Use magic link for the cleanest experience, or password if you need quick access.</p>
 
           <div class="button-stack" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 14px;">
             <button id="mode-magic" class="button button-secondary" type="button">Magic Link</button>
@@ -122,14 +123,14 @@ body::after {
           <form id="auth-form">
             <div class="field">
               <label for="entry-email">Email</label>
-              <input id="entry-email" name="email" type="email" placeholder="you@meetdossie.com" autocomplete="email" required>
+              <input id="entry-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
             </div>
             <div id="password-wrap" class="field" style="display:none;">
               <label for="entry-password">Password</label>
               <input id="entry-password" name="password" type="password" placeholder="Enter password" autocomplete="current-password">
             </div>
             <div id="confirm-wrap" class="field" style="display:none;">
-              <label for="entry-confirm-password">Confirm password</label>
+              <label for="entry-confirm-password">Confirm Password</label>
               <input id="entry-confirm-password" name="confirmPassword" type="password" placeholder="Confirm password" autocomplete="new-password">
             </div>
             <div id="notice" class="notice"></div>
@@ -139,22 +140,22 @@ body::after {
             </div>
           </form>
 
-          <div class="helper">Magic link is still the intended production sign-in. Password access is enabled temporarily for testing while Supabase email limits are blocking repeated auth requests.</div>
+          <div class="helper">Magic link is the intended production sign-in. Password access is available for testing.</div>
         </div>
 
         <div class="status">
-          <strong>Current status:</strong> real magic-link entry is live.<br>
-          <strong>Next step:</strong> sign in from your email and continue into the Dossie app.
+          <strong>Current status:</strong> sign-in is live.<br>
+          <strong>Next step:</strong> sign in and enter your Dossie workspace.
         </div>
       </div>
     </section>
 
-    <section class="card loading-state" id="loading-card" style="display: none;">
-      <div>
-        <h2>✓ Signing in</h2>
-        <p>Redirecting to your Dossie workspace...</p>
-      </div>
+    <!-- Loading card (shown after successful auth) -->
+    <section class="loading-card" id="loading-card" style="display:none;">
+      <h2>Welcome back.</h2>
+      <p>Loading your Dossie workspace...</p>
     </section>
+
   </main>
 
   <div class="footer">Built by a Texas REALTOR® who needed a better way. © 2026 Dossie AI.</div>
@@ -172,176 +173,137 @@ body::after {
         autoRefreshToken: true,
         detectSessionInUrl: true,
         storage: window.localStorage,
-        storageKey: 'supabase.auth.token',
         flowType: 'pkce',
       },
     }
   );
 
-  const form = document.getElementById('auth-form');
-  const emailInput = document.getElementById('entry-email');
+  // ── DOM refs ──────────────────────────────────────────────
+  const authCard    = document.getElementById('auth-card');
+  const loadingCard = document.getElementById('loading-card');
+  const form        = document.getElementById('auth-form');
+  const emailInput  = document.getElementById('entry-email');
   const passwordInput = document.getElementById('entry-password');
   const confirmPasswordInput = document.getElementById('entry-confirm-password');
   const passwordWrap = document.getElementById('password-wrap');
-  const confirmWrap = document.getElementById('confirm-wrap');
-  const submitBtn = document.getElementById('submit-btn');
-  const notice = document.getElementById('notice');
-  const magicBtn = document.getElementById('mode-magic');
-  const passwordBtn = document.getElementById('mode-password');
-  const signupBtn = document.getElementById('mode-signup');
-  const authCard = document.getElementById('auth-card');
-  const loadingCard = document.getElementById('loading-card');
+  const confirmWrap  = document.getElementById('confirm-wrap');
+  const submitBtn    = document.getElementById('submit-btn');
+  const notice       = document.getElementById('notice');
+  const magicBtn     = document.getElementById('mode-magic');
+  const passwordBtn  = document.getElementById('mode-password');
+  const signupBtn    = document.getElementById('mode-signup');
+
   let authMode = 'magic';
+  let redirecting = false;
 
-
-
-  const setNotice = (message, type = '') => {
-    notice.textContent = message;
-    notice.className = `notice${type ? ` ${type}` : ''}`;
-    notice.style.display = message ? 'block' : 'none';
+  // ── Helpers ───────────────────────────────────────────────
+  const setNotice = (msg, type = '') => {
+    notice.textContent = msg;
+    notice.className = `notice${type ? ' ' + type : ''}`;
+    notice.style.display = msg ? 'block' : 'none';
   };
 
-  const showLoadingState = () => {
+  const showLoading = () => {
     authCard.style.display = 'none';
-    loadingCard.style.display = 'grid';
+    loadingCard.style.display = 'block';
+  };
+
+  const goToApp = () => {
+    if (redirecting) return;
+    redirecting = true;
+    showLoading();
+    window.location.replace('/signin.html');
   };
 
   const updateModeUi = () => {
-    const activeStyle = 'background: var(--sage-deep); color: white; border-color: var(--sage-deep);';
-    const inactiveStyle = '';
-    magicBtn.style.cssText = authMode === 'magic' ? activeStyle : inactiveStyle;
-    passwordBtn.style.cssText = authMode === 'password' ? activeStyle : inactiveStyle;
-    signupBtn.style.cssText = authMode === 'signup' ? activeStyle : inactiveStyle;
-    passwordWrap.style.display = authMode === 'password' || authMode === 'signup' ? 'flex' : 'none';
-    confirmWrap.style.display = authMode === 'signup' ? 'flex' : 'none';
-    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : authMode === 'signup' ? 'Create Account' : 'Email Me a Magic Link';
+    const active = 'background: var(--sage-deep); color: white; border-color: var(--sage-deep);';
+    magicBtn.style.cssText    = authMode === 'magic'    ? active : '';
+    passwordBtn.style.cssText = authMode === 'password' ? active : '';
+    signupBtn.style.cssText   = authMode === 'signup'   ? active : '';
+    passwordWrap.style.display = (authMode === 'password' || authMode === 'signup') ? 'flex' : 'none';
+    confirmWrap.style.display  = authMode === 'signup' ? 'flex' : 'none';
+    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password'
+                          : authMode === 'signup'   ? 'Create Account'
+                          : 'Email Me a Magic Link';
     setNotice('');
   };
 
-  magicBtn.addEventListener('click', () => {
-    authMode = 'magic';
-    updateModeUi();
-  });
-
-  passwordBtn.addEventListener('click', () => {
-    authMode = 'password';
-    updateModeUi();
-  });
-
-  signupBtn.addEventListener('click', () => {
-    authMode = 'signup';
-    updateModeUi();
-  });
-
+  // ── Mode buttons ──────────────────────────────────────────
+  magicBtn.addEventListener('click',    () => { authMode = 'magic';    updateModeUi(); });
+  passwordBtn.addEventListener('click', () => { authMode = 'password'; updateModeUi(); });
+  signupBtn.addEventListener('click',   () => { authMode = 'signup';   updateModeUi(); });
   updateModeUi();
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const email = emailInput.value.trim();
+  // ── Form submit ───────────────────────────────────────────
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email    = emailInput.value.trim();
     const password = passwordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
-    if (!email) {
-      setNotice('Add your email first.', 'error');
-      return;
-    }
+    const confirm  = confirmPasswordInput.value;
 
+    if (!email) { setNotice('Add your email first.', 'error'); return; }
     submitBtn.disabled = true;
 
-    if (authMode === 'password' || authMode === 'signup') {
-      if (!password) {
-        setNotice(authMode === 'signup' ? 'Create a password too.' : 'Add your password too.', 'error');
+    // ── Sign up ──
+    if (authMode === 'signup') {
+      if (!password) { setNotice('Create a password.', 'error'); submitBtn.disabled = false; return; }
+      if (password !== confirm) { setNotice('Passwords do not match.', 'error'); submitBtn.disabled = false; return; }
+      submitBtn.textContent = 'Creating account...';
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setNotice(error.message || 'Account creation failed.', 'error');
         submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
         return;
       }
-
-      if (authMode === 'signup') {
-        if (!confirmPassword) {
-          setNotice('Confirm your password too.', 'error');
-          submitBtn.disabled = false;
-          return;
-        }
-        if (password !== confirmPassword) {
-          setNotice('Passwords do not match yet.', 'error');
-          submitBtn.disabled = false;
-          return;
-        }
-
-        submitBtn.textContent = 'Creating account...';
-        setNotice('Creating your account...');
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) {
-          setNotice(error.message || 'Account creation failed.', 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
-          return;
-        }
-
-        const needsEmailConfirmation = !data?.session;
-        if (needsEmailConfirmation) {
-          setNotice('Account created. Check your email to confirm your account before signing in.', 'success');
-        } else {
-          setNotice('Account created. You can sign in with your password now.', 'success');
-        }
-
+      if (data?.session) {
+        goToApp();
+      } else {
+        setNotice('Account created. Check your email to confirm, then sign in.', 'success');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Account';
         authMode = 'password';
         updateModeUi();
-        return;
       }
+      return;
+    }
 
+    // ── Password sign-in ──
+    if (authMode === 'password') {
+      if (!password) { setNotice('Enter your password.', 'error'); submitBtn.disabled = false; return; }
       submitBtn.textContent = 'Signing in...';
-      setNotice('Signing you in...');
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setNotice(error.message || 'Password sign-in failed.', 'error');
+        setNotice(error.message || 'Sign-in failed.', 'error');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign In with Password';
         return;
       }
-      showLoadingState();
-      setTimeout(() => {
-        window.location.href = 'https://meetdossie.com/';
-      }, 800);
+      goToApp();
       return;
     }
 
+    // ── Magic link ──
     submitBtn.textContent = 'Sending...';
-    setNotice('Sending your magic link...');
-
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: 'https://meetdossie.com/app.html',
-      },
+      options: { emailRedirectTo: 'https://meetdossie.com/app.html' },
     });
-
     if (error) {
       setNotice(error.message || 'Magic link failed.', 'error');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Email Me a Magic Link';
       return;
     }
-
-    setNotice('Magic link sent. Check your email and open the link to enter Dossie.', 'success');
+    setNotice('Magic link sent. Check your email.', 'success');
     submitBtn.disabled = false;
     submitBtn.textContent = 'Email Me a Magic Link';
   });
 
-  // Session check: redirect to app if session exists
+  // ── On page load: check for existing session ──────────────
   const { data } = await supabase.auth.getSession();
   if (data?.session) {
-    showLoadingState();
-    setTimeout(() => {
-      window.location.href = 'https://meetdossie.com/app.html';
-    }, 600);
-  }
-  
-  // If on auth_redirect URL with valid session, show loading state (app content would load here in real app)
-  if (isAuthRedirect && data?.session) {
-    showLoadingState();
-    // In real app, this is where you'd load the actual app content
-    // For now, just show loading state to demonstrate loop is broken
+    goToApp();
   }
 </script>
 </body>
