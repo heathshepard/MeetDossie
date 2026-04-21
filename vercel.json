@@ -1,12 +1,14 @@
 {
-  "routes": [
+  "headers": [
     {
-      "src": "/app.html",
-      "dest": "/app.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/(.*).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
     }
+  ],
+  "routes": [
+    { "src": "/app.html", "dest": "/app.html" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
