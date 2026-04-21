@@ -301,7 +301,7 @@ body::after {
       }
       showLoadingState();
       setTimeout(() => {
-        window.location.href = 'https://dossie-app.vercel.app';
+        window.location.href = 'https://dossie-app.vercel.app/';
       }, 800);
       return;
     }
@@ -312,7 +312,7 @@ body::after {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'https://dossie-app.vercel.app',
+        emailRedirectTo: 'https://dossie-app.vercel.app/',
       },
     });
 
@@ -333,7 +333,7 @@ body::after {
   if (data?.session) {
     showLoadingState();
     setTimeout(() => {
-      window.location.href = 'https://dossie-app.vercel.app';
+      window.location.href = 'https://dossie-app.vercel.app/';
     }, 600);
   }
   
