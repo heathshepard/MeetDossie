@@ -3,1541 +3,320 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dossie App</title>
-<meta name="description" content="The authenticated Dossie workspace.">
+<title>Enter Dossie</title>
+<meta name="description" content="Phase-one magic-link entry for Dossie.">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --bg: #FDFCFA;
-  --bg-soft: #F7F1EC;
-  --surface: rgba(255,255,255,0.92);
-  --surface-solid: #FFFFFF;
-  --border: #E8E2D9;
-  --border-light: #F0EBE3;
-  --text: #2D2A26;
-  --text-soft: #7A7468;
-  --text-light: #A39E94;
-  --blush: #D4A0A0;
-  --blush-deep: #C08080;
-  --sage: #8BA888;
-  --sage-light: #E4EDE2;
-  --sage-deep: #6B8E68;
-  --gold: #C9A96E;
-  --gold-light: #F5EDD8;
-  --navy: #1A1A2E;
-  --red: #D95C52;
+ --bg: #FDFCFA; --bg-warm: #F9F6F1; --card: rgba(255,255,255,0.94);
+ --border: #E8E2D9; --border-light: #F0EBE3;
+ --text: #2D2A26; --text-soft: #7A7468; --text-light: #A39E94;
+ --blush: #D4A0A0; --blush-deep: #C08080;
+ --sage: #8BA888; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+ --red: #D95C52;
 }
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
-  color: var(--text);
-  min-height: 100vh;
+ font-family: 'Plus Jakarta Sans', sans-serif;
+ background: linear-gradient(180deg, #FDFCFA 0%, #F7F1EC 100%);
+ color: var(--text);
+ min-height: 100vh;
+ overflow-x: hidden;
 }
 body::before {
-  content: '';
-  position: fixed;
-  top: -180px;
-  right: -160px;
-  width: 540px;
-  height: 540px;
-  background: radial-gradient(circle, rgba(212,160,160,0.18) 0%, transparent 66%);
-  pointer-events: none;
+ content: '';
+ position: fixed;
+ top: -180px;
+ right: -140px;
+ width: 520px;
+ height: 520px;
+ background: radial-gradient(circle, rgba(212,160,160,0.22) 0%, transparent 66%);
+ pointer-events: none;
 }
 body::after {
-  content: '';
-  position: fixed;
-  bottom: -220px;
-  left: -140px;
-  width: 480px;
-  height: 480px;
-  background: radial-gradient(circle, rgba(139,168,136,0.14) 0%, transparent 66%);
-  pointer-events: none;
+ content: '';
+ position: fixed;
+ bottom: -180px;
+ left: -120px;
+ width: 460px;
+ height: 460px;
+ background: radial-gradient(circle, rgba(139,168,136,0.18) 0%, transparent 66%);
+ pointer-events: none;
 }
-.page { min-height: 100vh; padding: 26px; display: flex; flex-direction: column; gap: 22px; }
-.topbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 16px 20px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); border-radius: 24px; backdrop-filter: blur(14px); }
-.brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
-.mark { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); color: white; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; }
-.brand-copy strong { display: block; font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; color: var(--navy); }
-.brand-copy span { display: block; margin-top: 2px; font-size: 13px; color: var(--text-soft); }
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
-.ghost-btn, .primary-btn { border: none; border-radius: 999px; padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; }
-.ghost-btn { background: white; color: var(--text); border: 1px solid var(--border); }
-.primary-btn { background: var(--sage-deep); color: white; }
-.shell { display: grid; grid-template-columns: 280px 1fr; gap: 22px; flex: 1; }
-.sidebar { background: rgba(255,255,255,0.86); border: 1px solid var(--border-light); border-radius: 28px; padding: 22px; backdrop-filter: blur(14px); display: flex; flex-direction: column; gap: 18px; }
-.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.8px; color: var(--blush-deep); font-weight: 800; }
-.sidebar-title { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 0.98; color: var(--navy); }
-.sidebar-copy { font-size: 14px; line-height: 1.8; color: var(--text-soft); }
-.user-card, .status-card { background: var(--surface-solid); border: 1px solid var(--border-light); border-radius: 20px; padding: 16px; }
-.user-card strong, .status-card strong { display: block; font-size: 14px; color: var(--navy); }
-.user-card span, .status-card span { display: block; margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
-.signed-out-shell { display:grid; gap:22px; }
-.signed-out-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:20px; }
-.signed-out-panel { background:rgba(255,255,255,0.9); border:1px solid var(--border-light); border-radius:26px; padding:24px; box-shadow:0 20px 50px rgba(26,26,46,0.05); }
-.signed-out-kicker { font-size:11px; text-transform:uppercase; letter-spacing:1.8px; color:var(--blush-deep); font-weight:800; }
-.signed-out-title { font-family:'Cormorant Garamond', serif; font-size:46px; line-height:0.95; color:var(--navy); margin-top:10px; }
-.signed-out-copy { margin-top:14px; font-size:15px; line-height:1.85; color:var(--text-soft); max-width:580px; }
-.signed-out-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:22px; }
-.signed-out-metric { background:linear-gradient(180deg,#ffffff 0%, #faf6f1 100%); border:1px solid var(--border-light); border-radius:18px; padding:14px; }
-.signed-out-metric strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--blush-deep); }
-.signed-out-metric span { display:block; margin-top:8px; font-size:13px; line-height:1.65; color:var(--navy); }
-.signed-out-points { display:grid; gap:10px; margin-top:18px; }
-.signed-out-point { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:16px; background:#fff; border:1px solid var(--border-light); }
-.signed-out-point-mark { width:28px; height:28px; border-radius:999px; background:var(--sage-light); color:var(--sage-deep); display:grid; place-items:center; font-size:12px; font-weight:800; flex:0 0 auto; }
-.signed-out-sidecard { background:linear-gradient(180deg,#fff 0%, #f8f3ec 100%); border:1px solid var(--border-light); border-radius:26px; padding:24px; box-shadow:0 20px 50px rgba(26,26,46,0.04); }
-.signed-out-sidecard h3 { font-size:20px; color:var(--navy); margin-bottom:10px; }
-.signed-out-sidecard p { font-size:14px; line-height:1.8; color:var(--text-soft); }
-.signed-out-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
-.signed-out-pill { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#fff; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
-.signed-out-actions { display:grid; gap:12px; margin-top:20px; }
-.main { display: grid; gap: 20px; }
-.hero-card { background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,246,241,0.92)); border: 1px solid var(--border); border-radius: 30px; padding: 28px; box-shadow: 0 20px 60px rgba(26,26,46,0.06); }
-.hero-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 5vw, 60px); line-height: 0.98; color: var(--navy); }
-.hero-card p { margin-top: 14px; max-width: 760px; color: var(--text-soft); font-size: 15px; line-height: 1.9; }
-.notice { margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--sage-light); color: var(--sage-deep); font-size: 13px; line-height: 1.7; }
-.grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
-.app-nav { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-.app-nav-chip { display: inline-flex; align-items: center; justify-content: center; padding: 9px 14px; border-radius: 999px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); color: var(--text-soft); font-size: 12px; font-weight: 700; letter-spacing: 0.2px; }
-.card { background: rgba(255,255,255,0.9); border: 1px solid var(--border-light); border-radius: 24px; padding: 22px; backdrop-filter: blur(12px); }
-.card h2 { font-size: 20px; color: var(--navy); margin-bottom: 10px; }
-.card-sub { color: var(--text-soft); font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
-.form-grid { display: grid; gap: 12px; }
-.field { display: grid; gap: 6px; }
-.field label { font-size: 12px; font-weight: 700; color: var(--text-soft); }
-.field input, .field textarea, .field select { width: 100%; border: 1px solid var(--border); border-radius: 16px; padding: 13px 15px; font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none; }
-.field textarea { min-height: 100px; resize: vertical; }
-.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--sage); box-shadow: 0 0 0 4px rgba(139,168,136,0.12); }
-.status-text { margin-top: 14px; font-size: 13px; line-height: 1.7; color: var(--text-soft); }
-.status-text.error { color: var(--red); }
-.status-text.success { color: var(--sage-deep); }
-.dossier-list { display: grid; gap: 14px; }
-.dossier-item { background: white; border: 1px solid var(--border-light); border-radius: 18px; padding: 16px; cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .2s; }
-.dossier-item:hover { border-color: var(--blush); box-shadow: 0 14px 32px rgba(26,26,46,0.06); transform: translateY(-2px); }
-.dossier-item.active { border-color: var(--sage-deep); box-shadow: 0 14px 32px rgba(107,142,104,0.12); }
-.dossier-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.dossier-id { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--blush-deep); font-weight: 800; }
-.dossier-address { margin-top: 6px; font-size: 18px; font-weight: 700; color: var(--navy); }
-.dossier-meta { margin-top: 10px; display: grid; gap: 6px; font-size: 13px; line-height: 1.6; color: var(--text-soft); }
-.badge { display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: var(--gold-light); color: #8d6a25; }
-.empty { padding: 18px; border: 1px dashed var(--border); border-radius: 18px; color: var(--text-light); font-size: 14px; line-height: 1.7; background: rgba(255,255,255,0.6); }
-.empty-state { padding: 24px; border: 1px solid var(--border-light); border-radius: 22px; background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); box-shadow: 0 14px 30px rgba(26,26,46,0.04); }
-.empty-state h3 { font-size: 22px; color: var(--navy); margin-bottom: 10px; }
-.empty-state p { font-size: 14px; line-height: 1.8; color: var(--text-soft); }
-.empty-state ul { margin-top: 14px; padding-left: 18px; color: var(--text-soft); display: grid; gap: 8px; font-size: 13px; }
-.loading-skeleton { display:grid; gap:12px; }
-.loading-skeleton .skeleton-line { height:14px; border-radius:999px; background: linear-gradient(90deg, rgba(240,235,227,0.9) 0%, rgba(255,255,255,0.98) 50%, rgba(240,235,227,0.9) 100%); background-size:200% 100%; animation: shimmer 1.8s infinite; }
-.loading-skeleton .skeleton-line.large { height:18px; width:72%; }
-.loading-skeleton .skeleton-line.medium { width:54%; }
-.loading-skeleton .skeleton-line.small { width:38%; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-.detail-panel { display: grid; gap: 16px; }
-.detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.detail-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; line-height: 0.98; color: var(--navy); }
-.detail-sub { margin-top: 8px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.helper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.helper-box { background: white; border: 1px solid var(--border-light); border-radius: 18px; padding: 18px; }
-.helper-box strong { display: block; font-size: 13px; color: var(--navy); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-.helper-box div { font-size: 13px; color: var(--text-soft); line-height: 1.7; }
-.brief-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top: 24px; }
-.brief-stat { background:linear-gradient(180deg,#ffffff 0%, #faf6f1 100%); border:1px solid var(--border-light); border-radius:24px; padding:20px; box-shadow:0 20px 44px rgba(26,26,46,0.06); position:relative; overflow:hidden; }
-.brief-stat::after { content:''; position:absolute; inset:auto 0 0 0; height:5px; background:linear-gradient(90deg,var(--blush) 0%, var(--sage) 100%); opacity:.75; }
-.brief-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.7px; color:var(--blush-deep); font-weight:800; }
-.brief-stat-value { margin-top:11px; font-family:'Cormorant Garamond', serif; font-size:44px; color:var(--navy); line-height:0.9; font-weight: 600; }
-.brief-stat-copy { margin-top:9px; font-size:13px; color:var(--text-soft); line-height:1.7; }
-.surface-grid { display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; order: 3; }
-.surface-stack { display:grid; gap:20px; }
-.morning-brief-card { background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(247,241,236,0.95)); border: 1px solid var(--border); border-radius: 30px; padding: 32px; box-shadow: 0 24px 60px rgba(26,26,46,0.08); margin-bottom: 6px; }
-.morning-brief-card h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(42px, 5.4vw, 64px); line-height: 0.96; color: var(--navy); }
-.morning-brief-card p { margin-top: 16px; max-width: 760px; color: var(--text-soft); font-size: 16px; line-height: 1.75; }
-.main-conversation-card { background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,243,236,0.94)); border: 1px solid var(--border); border-radius: 28px; padding: 28px; box-shadow: 0 20px 52px rgba(26,26,46,0.07); margin-bottom: 6px; }
-.main-conversation-card h2 { font-size: 38px; font-family: 'Cormorant Garamond', serif; color: var(--navy); margin-bottom: 10px; line-height: 1.1; }
-.main-conversation-card .card-sub { font-size: 15px; margin-bottom: 20px; max-width: 680px; line-height: 1.75; }
-.main-conversation-form { display: grid; gap: 14px; }
-.main-conversation-form textarea { min-height: 140px; }
-.voice-row { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items: center; }
-.voice-btn { min-width: 200px; font-size: 14px; padding: 14px 20px; }
-.voice-status { margin-top: 2px; font-size: 12px; color: var(--text-soft); }
-.conversation-card { background: linear-gradient(180deg,#fff 0%, #faf6f1 100%); border: 1px solid var(--border-light); border-radius: 22px; padding: 18px; }
-.conversation-hint { margin-top: 8px; font-size: 13px; line-height: 1.75; color: var(--text-soft); }
-.conversation-examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-.conversation-chip { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:#fff; border:1px solid var(--border-light); color:var(--text-soft); font-size:12px; font-weight:700; }
-.conversation-reply { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); }
-.conversation-reply.success { background: #f7f3ee; color: var(--navy); }
-.conversation-reply.error { background: #fdebec; border-color: #f4c9cc; color: var(--red); }
-.task-list { display: grid; gap: 10px; }
-.task-row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.82); border: 1px solid var(--border-light); cursor: pointer; }
-.task-row.done { opacity: 0.6; }
-.task-row input { margin-top: 2px; }
-@media (max-width: 1180px) { .shell, .grid, .helper-grid, .surface-grid, .brief-strip, .signed-out-grid, .signed-out-metrics { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .page { padding: 16px; } .topbar { flex-direction: column; align-items: flex-start; } .topbar-actions { width: 100%; flex-wrap: wrap; } .ghost-btn, .primary-btn { width: 100%; justify-content: center; } .info-grid { grid-template-columns: 1fr; } .signed-out-title { font-size:38px; } .main-conversation-card h2 { font-size: 28px; } }
+.page { min-height: 100vh; padding: 28px; display: flex; flex-direction: column; }
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 40px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); color: white; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 700; }
+.brand-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; }
+.back-link { text-decoration: none; color: var(--text-soft); font-size: 14px; font-weight: 600; }
+.main { flex: 1; display: grid; place-items: center; }
+.card { width: 100%; max-width: 980px; background: var(--card); border: 1px solid var(--border); border-radius: 32px; box-shadow: 0 26px 80px rgba(26,26,46,0.08); padding: 42px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 32px; position: relative; z-index: 1; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.8px; font-weight: 800; color: var(--blush-deep); margin-bottom: 18px; }
+.eyebrow-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--sage); }
+.title { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 6vw, 64px); line-height: 0.98; letter-spacing: -1.5px; margin-bottom: 16px; }
+.sub { color: var(--text-soft); font-size: 15px; line-height: 1.9; max-width: 540px; }
+.meta { display: grid; gap: 12px; margin-top: 24px; }
+.meta-item { display: flex; align-items: flex-start; gap: 10px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
+.meta-item strong { color: var(--text); }
+.tick { color: var(--sage-deep); font-weight: 800; }
+.panel { background: rgba(255,255,255,0.78); border: 1px solid var(--border-light); border-radius: 26px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; }
+.panel-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.panel-copy { color: var(--text-soft); font-size: 14px; line-height: 1.8; margin-bottom: 18px; }
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.field label { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: var(--text-soft); }
+.field input { width: 100%; border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none; }
+.field input:focus { border-color: var(--sage); box-shadow: 0 0 0 4px rgba(139,168,136,0.12); }
+.button-stack { display: grid; gap: 12px; margin-top: 8px; }
+.button { display: inline-flex; align-items: center; justify-content: center; width: 100%; border: none; border-radius: 999px; padding: 15px 18px; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.button-primary { background: var(--sage-deep); color: white; }
+.button-primary:disabled { opacity: 0.7; cursor: wait; }
+.button-secondary { background: white; border: 1px solid var(--border); color: var(--text); }
+.helper { margin-top: 14px; font-size: 12px; color: var(--text-light); line-height: 1.7; }
+.status { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-light); font-size: 13px; color: var(--text-soft); line-height: 1.8; }
+.notice { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--bg-warm); color: var(--text); font-size: 13px; line-height: 1.6; display: none; }
+.notice.error { background: #FCE8E6; color: var(--red); }
+.notice.success { background: var(--sage-light); color: var(--sage-deep); }
+.footer { margin-top: 28px; text-align: center; color: var(--text-light); font-size: 12px; line-height: 1.7; }
+@media (max-width: 860px) { .card { grid-template-columns: 1fr; padding: 28px; } }
+@media (max-width: 640px) { .page { padding: 18px; } .nav { margin-bottom: 24px; } .card { padding: 24px; border-radius: 24px; } .title { letter-spacing: -1px; } }
 </style>
 </head>
 <body>
 <div class="page">
-  <header class="topbar">
+  <div class="nav">
     <a href="/" class="brand">
       <div class="mark">D</div>
-      <div class="brand-copy">
-        <strong>Dossie</strong>
-        <span>The authenticated transaction workspace</span>
-      </div>
+      <span class="brand-name">Dossie</span>
     </a>
-    <div class="topbar-actions">
-      <a class="ghost-btn" href="/">Back to homepage</a>
-      <a class="ghost-btn" href="/agents">View plans</a>
-      <button id="sign-out-btn" class="ghost-btn" type="button">Sign Out</button>
-    </div>
-  </header>
-
-  <div id="auth-shell" class="shell" style="display:none;">
-    <aside class="sidebar">
-      <div>
-        <div class="section-label">Authenticated</div>
-        <div class="sidebar-title">Welcome into Dossie.</div>
-        <p class="sidebar-copy">You're in the first real logged-in Dossie workspace. This version now handles session detection, saved dossiers, a live Morning Brief, dossier editing, and concrete file-next-step guidance.</p>
-      </div>
-      <div class="user-card">
-        <strong id="user-email">Signed in</strong>
-        <span id="user-status-copy">Your workspace is loading.</span>
-      </div>
-      <div class="status-card">
-        <strong>What works now</strong>
-        <span>Authenticated session, Supabase-backed dossier storage, Morning Brief summary, dossier creation, dossier editing, and working next-step guidance tied to the selected file.</span>
-      </div>
-      <div class="status-card">
-        <strong>Plan & access</strong>
-        <span>This phase-one workspace is ready for paid access flow next: pricing selection, Stripe checkout, and account-to-workspace handoff.</span>
-      </div>
-    </aside>
-
-    <main class="main">
-      <section class="morning-brief-card" style="order: 1;">
-        <div class="section-label">Good morning</div>
-        <h1 id="brief-headline">Your files are ready.</h1>
-        <p id="brief-intro">Morning Brief shows what's active, what needs attention, and what you should handle first.</p>
-        <div id="brief-grid" class="brief-strip"></div>
-      </section>
-
-      <section class="main-conversation-card" style="order: 2;">
-        <div class="section-label">Talk to Dossie</div>
-        <h2>Speak or type naturally</h2>
-        <div class="card-sub">Tell me what changed—I'll update the file. Select a transaction below, then talk to me like you would a real coordinator.</div>
-        <div class="main-conversation-form">
-          <div class="voice-row" style="margin-top: 0;">
-            <button id="voice-talk-btn-main" class="primary-btn voice-btn" type="button">🎤 Hold to talk</button>
-            <button id="voice-play-btn-main" class="ghost-btn voice-btn" type="button">🔊 Hear Dossie's reply</button>
-          </div>
-          <div id="voice-status-main" class="voice-status">Hold the button and speak. I'll update the file and reply.</div>
-          <div class="field">
-            <textarea id="conversation-input-main" placeholder="Or type: buyer name is Marcus Patterson, we close May 14, lender needs appraisal by Friday..." rows="3"></textarea>
-          </div>
-          <button id="conversation-send-btn-main" class="primary-btn" type="button">Send update</button>
-          <div id="conversation-reply-main" class="conversation-reply">Go ahead—I'm listening. Select a transaction if you want me to update a file, or just talk to me.</div>
-        </div>
-      </section>
-
-      <div class="surface-grid" style="order: 3;">
-        <section class="card">
-          <div class="section-label">File Creation</div>
-          <h2>Open a new dossier</h2>
-          <div class="card-sub">Create a transaction record tied to your signed-in Dossie account.</div>
-          <form id="dossier-form" class="form-grid">
-            <div class="field">
-              <label for="property-address">Property address</label>
-              <input id="property-address" type="text" placeholder="4521 Meadow Creek Dr" required>
-            </div>
-            <div class="field">
-              <label for="city-state-zip">City / state / ZIP</label>
-              <input id="city-state-zip" type="text" placeholder="San Antonio, TX 78230">
-            </div>
-            <div class="field">
-              <label for="client-name">Client name</label>
-              <input id="client-name" type="text" placeholder="Marcus Patterson">
-            </div>
-            <div class="field">
-              <label for="county">County</label>
-              <input id="county" type="text" placeholder="Bexar">
-            </div>
-            <div class="field">
-              <label for="legal-description">Legal description</label>
-              <input id="legal-description" type="text" placeholder="Lot 12, Block 4, Oak Hollow Subdivision">
-            </div>
-            <div class="field">
-              <label for="title-company">Title company</label>
-              <input id="title-company" type="text" placeholder="Alamo Title">
-            </div>
-            <div class="field">
-              <label for="lender-name">Lender name</label>
-              <input id="lender-name" type="text" placeholder="Prime Lending">
-            </div>
-            <div class="field">
-              <label for="role">Side</label>
-              <select id="role">
-                <option value="listing">Listing</option>
-                <option value="buyer">Buyer</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="stage">Stage</label>
-              <select id="stage">
-                <option value="under-contract">Under Contract</option>
-                <option value="option-period">Option Period</option>
-                <option value="financing">Financing</option>
-                <option value="clear-to-close">Clear to Close</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="effective-date">Effective date</label>
-              <input id="effective-date" type="date">
-            </div>
-            <div class="field">
-              <label for="closing-date">Closing date</label>
-              <input id="closing-date" type="date">
-            </div>
-            <div class="field">
-              <label for="notes">Notes</label>
-              <textarea id="notes" placeholder="Anything Dossie should know about this file?"></textarea>
-            </div>
-            <button class="primary-btn" type="submit">Create Dossier</button>
-            <div id="form-status" class="status-text"></div>
-          </form>
-        </section>
-
-        <section class="card">
-          <div class="section-label">Saved Files</div>
-          <h2>Your saved dossiers</h2>
-          <div class="card-sub">These are loaded from the signed-in user's `transactions` table in Supabase. Click one to open it.</div>
-          <div id="dossier-list" class="dossier-list">
-            <div class="empty">Loading your saved dossiers...</div>
-          </div>
-        </section>
-      </div>
-
-      <section class="card detail-panel" id="detail-section" style="display: none;">
-        <div class="detail-header">
-          <div>
-            <div class="section-label">Live File Workspace</div>
-            <div id="detail-title" class="detail-title">Select a saved dossier</div>
-            <div id="detail-sub" class="detail-sub">Choose a dossier from the list to open the editable transaction workspace.</div>
-          </div>
-          <div id="detail-badge" class="badge" style="display:none;">Under contract</div>
-        </div>
-
-        <form id="detail-form" class="form-grid" style="display:none;">
-          <div class="info-grid">
-            <div class="field">
-              <label for="detail-address">Property address</label>
-              <input id="detail-address" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-city">City / state / ZIP</label>
-              <input id="detail-city" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-client">Client name</label>
-              <input id="detail-client" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-county">County</label>
-              <input id="detail-county" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-legal-description">Legal description</label>
-              <input id="detail-legal-description" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-title-company">Title company</label>
-              <input id="detail-title-company" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-title-company-email">Title company email</label>
-              <input id="detail-title-company-email" type="email">
-            </div>
-            <div class="field">
-              <label for="detail-title-company-phone">Title company phone</label>
-              <input id="detail-title-company-phone" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-escrow-agent">Escrow officer / agent</label>
-              <input id="detail-escrow-agent" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-lender-name">Lender name</label>
-              <input id="detail-lender-name" type="text">
-            </div>
-            <div class="field">
-              <label for="detail-loan-amount">Loan amount</label>
-              <input id="detail-loan-amount" type="number" min="0" step="0.01">
-            </div>
-            <div class="field">
-              <label for="detail-financing-type">Financing type</label>
-              <select id="detail-financing-type">
-                <option value="">Select financing type</option>
-                <option value="conventional">Conventional</option>
-                <option value="fha">FHA</option>
-                <option value="va">VA</option>
-                <option value="cash">Cash</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="detail-role">Side</label>
-              <select id="detail-role">
-                <option value="listing">Listing</option>
-                <option value="buyer">Buyer</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="detail-stage">Stage</label>
-              <select id="detail-stage">
-                <option value="under-contract">Under Contract</option>
-                <option value="option-period">Option Period</option>
-                <option value="financing">Financing</option>
-                <option value="clear-to-close">Clear to Close</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="detail-status">Status</label>
-              <select id="detail-status">
-                <option value="active">Active</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="detail-effective-date">Effective date</label>
-              <input id="detail-effective-date" type="date">
-            </div>
-            <div class="field">
-              <label for="detail-closing-date">Closing date</label>
-              <input id="detail-closing-date" type="date">
-            </div>
-            <div class="field">
-              <label for="detail-sale-price">Sale price</label>
-              <input id="detail-sale-price" type="number" min="0" step="0.01">
-            </div>
-            <div class="field">
-              <label for="detail-earnest-money">Earnest money</label>
-              <input id="detail-earnest-money" type="number" min="0" step="0.01">
-            </div>
-            <div class="field">
-              <label for="detail-option-fee">Option fee</label>
-              <input id="detail-option-fee" type="number" min="0" step="0.01">
-            </div>
-            <div class="field">
-              <label for="detail-option-days">Option days</label>
-              <input id="detail-option-days" type="number" min="0" step="1">
-            </div>
-            <div class="field">
-              <label for="detail-financing-days">Financing days</label>
-              <input id="detail-financing-days" type="number" min="0" step="1">
-            </div>
-          </div>
-          <div class="field">
-            <label for="detail-notes">Notes</label>
-            <textarea id="detail-notes"></textarea>
-          </div>
-          <div class="surface-stack">
-            <div class="intelligence-card">
-              <div class="section-label">Priority read</div>
-              <h3>What matters now</h3>
-              <p id="what-matters-now">Select a file to see Dossie's read on the next most important move.</p>
-              <div id="priority-pills" class="intelligence-pills"></div>
-            </div>
-            <div class="helper-grid">
-              <div class="helper-box">
-                <strong>Transaction intelligence</strong>
-                <div id="transaction-intelligence" class="task-list"></div>
-              </div>
-              <div class="helper-box">
-                <strong>Deadline pressure</strong>
-                <div id="deadline-pressure">Select a file to see what deadline or timing pressure Dossie thinks matters most.</div>
-              </div>
-              <div class="helper-box">
-                <strong>Dossie read</strong>
-                <div id="dossie-read">Select a file to see Dossie's current confidence read on how the file is moving.</div>
-              </div>
-              <div class="helper-box">
-                <strong>Suggested next action</strong>
-                <div id="next-action">Select a file to see the next action Dossie would take.</div>
-              </div>
-              <div class="helper-box">
-                <strong>Next best question</strong>
-                <div id="email-draft">Select a file to see Dossie's next question.</div>
-              </div>
-              <div class="helper-box">
-                <strong>File checklist</strong>
-                <div id="task-list" class="task-list"></div>
-              </div>
-              <div class="helper-box">
-                <strong>Activity log</strong>
-                <div id="activity-log" class="task-list"></div>
-              </div>
-              <div class="helper-box">
-                <strong>Add note</strong>
-                <div class="field" style="margin-top:0;">
-                  <textarea id="activity-note" placeholder="Add a quick transaction note or update..."></textarea>
-                </div>
-                <button id="save-note-btn" class="ghost-btn" type="button">Save note to file</button>
-              </div>
-            </div>
-          </div>
-          <div class="helper-box">
-            <strong>Document generation</strong>
-            <div style="display:grid; gap:10px;">
-              <div>Generate the core phase-one documents from this live dossier.</div>
-              <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
-                <button id="generate-resale-contract-btn" class="secondary-btn" type="button">Generate resale contract</button>
-                <button id="generate-document-center-btn" class="secondary-btn" type="button">Generate document center</button>
-              </div>
-              <div id="document-status-text" class="status-text"></div>
-              <div id="document-links" class="task-list"></div>
-            </div>
-          </div>
-          <button class="primary-btn" type="submit">Save dossier changes</button>
-          <div id="detail-status-text" class="status-text"></div>
-        </form>
-
-        <div id="detail-empty" class="empty">No dossier selected yet. Create a file or click one from the saved list to open its detail view.</div>
-      </section>
-    </main>
+    <a href="/" class="back-link">← Back to homepage</a>
   </div>
 
-  <div id="signed-out-shell" class="signed-out-shell" style="display:grid;">
-    <section class="signed-out-panel">
-      <div class="signed-out-kicker">Dossie App Entry</div>
-      <div class="signed-out-title">A calmer way to reopen your transaction desk.</div>
-      <p id="signed-out-copy" class="signed-out-copy">Sign back in to reopen your Dossie workspace, review live file intelligence, and move the next file step without hunting through a messy checklist.</p>
-      <div class="signed-out-metrics">
-        <div class="signed-out-metric">
-          <strong>Morning Brief</strong>
-          <span>Get a fast read on what is fragile, what is ready, and what needs attention first.</span>
-        </div>
-        <div class="signed-out-metric">
-          <strong>Document flow</strong>
-          <span>Keep contract generation, next questions, and file movement in one place.</span>
-        </div>
-        <div class="signed-out-metric">
-          <strong>Assistant feel</strong>
-          <span>Dossie should feel like an operator, not just a form wall.</span>
+  <main class="main">
+    <section class="card">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>App Entry</div>
+        <h1 class="title">Welcome back to Dossie.</h1>
+        <p class="sub">This is the real phase-one app entry point. Magic link stays the intended production path, but temporary password sign-in is available too so testing can keep moving while email auth is throttled.</p>
+
+        <div class="meta">
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Magic link</strong> remains the preferred phase-one sign-in experience.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Password sign-in</strong> is available temporarily for testing and debugging.</span></div>
+          <div class="meta-item"><span class="tick">✓</span><span><strong>Next step after sign-in</strong> is landing in the real Dossie app with your saved files.</span></div>
         </div>
       </div>
-      <div class="signed-out-grid" style="margin-top:22px;">
-        <div class="signed-out-sidecard">
-          <div class="section-label">Why sign back in</div>
-          <h3>Your workspace should feel alive the moment you return.</h3>
-          <p>Dossie is built to make the transaction desk feel cleaner, smarter, and easier to trust than a scattered checklist or a dead-looking chat window.</p>
-          <div class="signed-out-pills">
-            <span class="signed-out-pill">Live file state</span>
-            <span class="signed-out-pill">Contract readiness</span>
-            <span class="signed-out-pill">Next best question</span>
-            <span class="signed-out-pill">Document guidance</span>
+
+      <div class="panel">
+        <div>
+          <div class="panel-title">Enter Dossie</div>
+          <p class="panel-copy">Use magic link for the intended phase-one flow, use password temporarily for testing, or create a test account directly if you do not have one yet.</p>
+
+          <div class="button-stack" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 14px;">
+            <button id="mode-magic" class="button button-secondary" type="button">Magic Link</button>
+            <button id="mode-password" class="button button-secondary" type="button">Password</button>
+            <button id="mode-signup" class="button button-secondary" type="button">Create Account</button>
           </div>
-          <div class="signed-out-points">
-            <div class="signed-out-point"><div class="signed-out-point-mark">1</div><div>Reopen your workspace and pick up exactly where the file left off.</div></div>
-            <div class="signed-out-point"><div class="signed-out-point-mark">2</div><div>See what matters now without re-reading the whole file mentally.</div></div>
-            <div class="signed-out-point"><div class="signed-out-point-mark">3</div><div>Let Dossie guide the next move instead of making you reconstruct it from scratch.</div></div>
-          </div>
+
+          <form id="auth-form">
+            <div class="field">
+              <label for="entry-email">Email</label>
+              <input id="entry-email" name="email" type="email" placeholder="you@meetdossie.com" autocomplete="email" required>
+            </div>
+            <div id="password-wrap" class="field" style="display:none;">
+              <label for="entry-password">Password</label>
+              <input id="entry-password" name="password" type="password" placeholder="Enter password" autocomplete="current-password">
+            </div>
+            <div id="confirm-wrap" class="field" style="display:none;">
+              <label for="entry-confirm-password">Confirm password</label>
+              <input id="entry-confirm-password" name="confirmPassword" type="password" placeholder="Confirm password" autocomplete="new-password">
+            </div>
+            <div id="notice" class="notice"></div>
+            <div class="button-stack">
+              <button id="submit-btn" class="button button-primary" type="submit">Email Me a Magic Link</button>
+              <a class="button button-secondary" href="/">Back to homepage</a>
+            </div>
+          </form>
+
+          <div class="helper">Magic link is still the intended production sign-in. Password access is enabled temporarily for testing while Supabase email limits are blocking repeated auth requests.</div>
         </div>
-        <div class="signed-out-panel">
-          <div class="section-label">Secure access</div>
-          <h3 style="margin-top:8px; color:var(--navy);">Re-enter Dossie</h3>
-          <div class="field" style="max-width:420px; margin-top:18px;">
-            <label for="sign-in-email">Email</label>
-            <input id="sign-in-email" type="email" placeholder="you@example.com">
-          </div>
-          <div class="field" style="max-width:420px; margin-top:18px;">
-            <label for="sign-in-password">Password</label>
-            <input id="sign-in-password" type="password" placeholder="Enter your password">
-          </div>
-          <div class="signed-out-actions" style="max-width: 420px;">
-            <button id="password-sign-in-btn" class="primary-btn" type="button">Sign in with password</button>
-            <button id="create-account-btn" class="secondary-btn" type="button">Create account with password</button>
-            <button id="email-sign-in-btn" class="ghost-btn" type="button" onclick="window.__dossieSendMagicLinkSignIn && window.__dossieSendMagicLinkSignIn()">Fallback: email me a sign-in link</button>
-            <a class="ghost-btn" href="/app.html">Reload app entry</a>
-            <a class="ghost-btn" href="/">Back to homepage</a>
-          </div>
-          <div id="signed-out-status" class="status-text" style="margin-top:14px;"></div>
+
+        <div class="status">
+          <strong>Current status:</strong> real magic-link entry is live.<br>
+          <strong>Next step:</strong> sign in from your email and continue into the Dossie app.
         </div>
       </div>
     </section>
-  </div>
+  </main>
+
+  <div class="footer">Built by a Texas REALTOR® who needed a better way. © 2026 Dossie AI.</div>
 </div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const authClient = createClient(
-  'https://pgwoitbdiyubjugwufhk.supabase.co',
-  'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  }
-);
-
-const authShellEarly = document.getElementById('auth-shell');
-const signedOutShellEarly = document.getElementById('signed-out-shell');
-const emailEarly = document.getElementById('sign-in-email');
-const passwordEarly = document.getElementById('sign-in-password');
-const passwordBtnEarly = document.getElementById('password-sign-in-btn');
-const createBtnEarly = document.getElementById('create-account-btn');
-const magicBtnEarly = document.getElementById('email-sign-in-btn');
-const statusEarly = document.getElementById('signed-out-status');
-
-window.__dossieAuthClient = authClient;
-window.__dossieAuthState = { signedInSession: null };
-window.__dossieSendMagicLinkSignIn = async function () {
-  const email = emailEarly?.value.trim();
-  if (!email) {
-    statusEarly.textContent = 'Enter your email first.';
-    statusEarly.className = 'status-text error';
-    return;
-  }
-  statusEarly.textContent = 'Sending your sign-in link...';
-  statusEarly.className = 'status-text';
-  try {
-    const { error } = await authClient.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/app.html` },
-    });
-    if (error) throw error;
-    statusEarly.textContent = 'Magic link sent. Open it on this device to restore your Dossie session.';
-    statusEarly.className = 'status-text success';
-  } catch (error) {
-    statusEarly.textContent = `Could not send sign-in link: ${error.message}`;
-    statusEarly.className = 'status-text error';
-  }
-};
-
-window.__dossieSignInWithPassword = async function () {
-  const email = emailEarly?.value.trim();
-  const password = passwordEarly?.value || '';
-  if (!email || !password) {
-    statusEarly.textContent = 'Enter both your email and password.';
-    statusEarly.className = 'status-text error';
-    return;
-  }
-  statusEarly.textContent = 'Signing in...';
-  statusEarly.className = 'status-text';
-  try {
-    const { error } = await authClient.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    statusEarly.textContent = 'Signed in successfully. Loading workspace...';
-    statusEarly.className = 'status-text success';
-    const { data } = await authClient.auth.getSession();
-    if (data?.session) {
-      window.__dossieAuthState.signedInSession = data.session;
-      signedOutShellEarly.style.display = 'none';
-      authShellEarly.style.display = 'grid';
-      window.dispatchEvent(new CustomEvent('dossie-password-signin-success', { detail: data.session }));
+  const supabase = createClient(
+    'https://pgwoitbdiyubjugwufhk.supabase.co',
+    'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     }
-  } catch (error) {
-    statusEarly.textContent = `Could not sign in with password: ${error.message}`;
-    statusEarly.className = 'status-text error';
-  }
-};
+  );
 
-window.__dossieCreatePasswordAccount = async function () {
-  const email = emailEarly?.value.trim();
-  const password = passwordEarly?.value || '';
-  if (!email || !password) {
-    statusEarly.textContent = 'Enter both your email and password to create the account.';
-    statusEarly.className = 'status-text error';
-    return;
-  }
-  statusEarly.textContent = 'Creating account...';
-  statusEarly.className = 'status-text';
-  try {
-    const { error } = await authClient.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/app.html` },
-    });
-    if (error) throw error;
-    statusEarly.textContent = 'Account created. If email confirmation is off, sign in right away with this password.';
-    statusEarly.className = 'status-text success';
-  } catch (error) {
-    statusEarly.textContent = `Could not create account: ${error.message}`;
-    statusEarly.className = 'status-text error';
-  }
-};
+  const form = document.getElementById('auth-form');
+  const emailInput = document.getElementById('entry-email');
+  const passwordInput = document.getElementById('entry-password');
+  const confirmPasswordInput = document.getElementById('entry-confirm-password');
+  const passwordWrap = document.getElementById('password-wrap');
+  const confirmWrap = document.getElementById('confirm-wrap');
+  const submitBtn = document.getElementById('submit-btn');
+  const notice = document.getElementById('notice');
+  const magicBtn = document.getElementById('mode-magic');
+  const passwordBtn = document.getElementById('mode-password');
+  const signupBtn = document.getElementById('mode-signup');
+  let authMode = 'magic';
 
-passwordBtnEarly?.addEventListener('click', () => window.__dossieSignInWithPassword());
-createBtnEarly?.addEventListener('click', () => window.__dossieCreatePasswordAccount());
-magicBtnEarly?.addEventListener('click', () => window.__dossieSendMagicLinkSignIn());
-</script>
-
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const supabase = window.__dossieAuthClient || createClient(
-  'https://pgwoitbdiyubjugwufhk.supabase.co',
-  'sb_publishable_a3t_ACtLUtat2lEmodNvzg_0bm-eUqP',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  }
-);
-
-const authShell = document.getElementById('auth-shell');
-const signedOutShell = document.getElementById('signed-out-shell');
-const signedOutCopy = document.getElementById('signed-out-copy');
-
-function showSafeFallback(message = 'Checking sessionâ€¦') {
-  if (authShell) authShell.style.display = 'none';
-  if (signedOutShell) signedOutShell.style.display = 'grid';
-  if (signedOutCopy) signedOutCopy.textContent = message;
-}
-const userEmail = document.getElementById('user-email');
-const userStatusCopy = document.getElementById('user-status-copy');
-const briefGrid = document.getElementById('brief-grid');
-const briefHeadline = document.getElementById('brief-headline');
-const briefIntro = document.getElementById('brief-intro');
-const dossierForm = document.getElementById('dossier-form');
-const dossierList = document.getElementById('dossier-list');
-const formStatus = document.getElementById('form-status');
-const signOutBtn = document.getElementById('sign-out-btn');
-const detailSection = document.getElementById('detail-section');
-const detailForm = document.getElementById('detail-form');
-const detailEmpty = document.getElementById('detail-empty');
-const detailTitle = document.getElementById('detail-title');
-const detailSub = document.getElementById('detail-sub');
-const detailBadge = document.getElementById('detail-badge');
-const detailStatusText = document.getElementById('detail-status-text');
-const whatMattersNow = document.getElementById('what-matters-now');
-const priorityPills = document.getElementById('priority-pills');
-const deadlinePressure = document.getElementById('deadline-pressure');
-const dossieRead = document.getElementById('dossie-read');
-const nextAction = document.getElementById('next-action');
-const emailDraft = document.getElementById('email-draft');
-const transactionIntelligence = document.getElementById('transaction-intelligence');
-const activityLog = document.getElementById('activity-log');
-const conversationInputMain = document.getElementById('conversation-input-main');
-const conversationSendBtnMain = document.getElementById('conversation-send-btn-main');
-const conversationReplyMain = document.getElementById('conversation-reply-main');
-const voiceTalkBtnMain = document.getElementById('voice-talk-btn-main');
-const voicePlayBtnMain = document.getElementById('voice-play-btn-main');
-const voiceStatusMain = document.getElementById('voice-status-main');
-const activityNote = document.getElementById('activity-note');
-const saveNoteBtn = document.getElementById('save-note-btn');
-const generateResaleContractBtn = document.getElementById('generate-resale-contract-btn');
-const generateDocumentCenterBtn = document.getElementById('generate-document-center-btn');
-const documentStatusText = document.getElementById('document-status-text');
-const documentLinks = document.getElementById('document-links');
-const taskList = document.getElementById('task-list');
-
-let activeSession = null;
-let currentRows = [];
-let selectedDossierId = null;
-const DOCUMENT_BRIDGE_URL = 'http://localhost:8787';
-
-const STAGE_TASKS = {
-  'under-contract': ['Review the executed contract', 'Confirm earnest money timing', 'Open the title file'],
-  'option-period': ['Track option deadline', 'Confirm inspection scheduling', 'Prepare amendment if needed'],
-  'financing': ['Check lender progress', 'Confirm appraisal status', 'Watch financing deadline'],
-  'clear-to-close': ['Confirm final CD timing', 'Verify closing logistics', 'Prepare final reminder email'],
-  'closed': ['Confirm the file is archived', 'Log the closing outcome', 'Wrap post-close follow-up'],
-};
-
-const STAGE_DEADLINE_HINTS = {
-  'under-contract': 'This file is newly opened. Make sure the core contract and handoff pieces are clean before the timeline gets crowded.',
-  'option-period': 'Option-period timing is your live deadline pressure point right now. Inspection and amendment decisions should not drift.',
-  'financing': 'Financing progress is the critical watch item. Lender silence is usually the thing that creates surprise risk here.',
-  'clear-to-close': 'The file is near the finish line. Final confirmation and closing logistics matter more than adding new complexity.',
-  'closed': 'This file is complete. Focus on archive quality and post-close wrap-up instead of operational movement.',
-};
-
-const formatStage = (stage) => stage.replace(/-/g, ' ');
-const formatDate = (value) => {
-  if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-const daysUntil = (value) => {
-  if (!value) return null;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const target = new Date(`${value}T00:00:00`);
-  return Math.round((target - now) / 86400000);
-};
-
-const buildBriefGroups = (rows) => {
-  const active = rows.filter((row) => row.status !== 'closed');
-  const firstThings = active.filter((row) => ['option-period', 'financing'].includes(row.stage));
-  const watch = active.filter((row) => row.stage === 'under-contract');
-  const movingCleanly = active.filter((row) => ['clear-to-close'].includes(row.stage));
-  return { active, firstThings, watch, movingCleanly };
-};
-
-const buildPremiumBrief = (rows) => {
-  const total = rows.length;
-  const active = rows.filter((row) => row.status !== 'closed').length;
-  const financing = rows.filter((row) => row.stage === 'financing').length;
-  const closingSoon = rows.filter((row) => {
-    const days = daysUntil(row.closing_date);
-    return days !== null && days >= 0 && days <= 7;
-  }).length;
-  const missingCore = rows.filter((row) => !row.sale_price || !row.contract_effective_date || !row.title_company).length;
-  return { total, active, financing, closingSoon, missingCore };
-};
-
-const buildBriefNarrative = (rows) => {
-  if (!rows.length) {
-    return {
-      title: 'No active files yet',
-      copy: 'Once a dossier exists, Morning Brief will surface readiness, timing pressure, and the next best move automatically.',
-      pills: ['No active dossiers'],
-    };
-  }
-
-  const premium = buildPremiumBrief(rows);
-  if (premium.missingCore) {
-    return {
-      title: 'Dossie sees readiness gaps',
-      copy: `${premium.missingCore} file${premium.missingCore === 1 ? '' : 's'} still lack contract-critical details. Closing those gaps is the fastest way to make the workspace feel truly useful.`,
-      pills: ['Missing contract details', premium.closingSoon ? 'Closing soon' : 'No urgent closing pressure'],
-    };
-  }
-  if (premium.closingSoon) {
-    return {
-      title: 'Closing pressure is the priority',
-      copy: `${premium.closingSoon} file${premium.closingSoon === 1 ? '' : 's'} are inside a 7-day closing window. Dossie should act like a calm transaction desk, not a static form.` ,
-      pills: ['Closing window', premium.financing ? 'Financing still active' : 'Execution mode'],
-    };
-  }
-  return {
-    title: 'The file set is stable enough to move',
-    copy: 'Dossie now has enough structure to shift from cleanup into guidance, follow-up, and intelligent next-step recommendations.',
-    pills: ['Ready to move', premium.financing ? 'Financing in motion' : 'Low pressure'],
+  const setNotice = (message, type = '') => {
+    notice.textContent = message;
+    notice.className = `notice${type ? ` ${type}` : ''}`;
+    notice.style.display = message ? 'block' : 'none';
   };
-};
 
-const renderBrief = (rows) => {
-  const premium = buildPremiumBrief(rows);
-  const narrative = buildBriefNarrative(rows);
-  const cards = [
-    { label: 'Active files', value: premium.active, copy: `${premium.total} total dossiers tracked right now.` },
-    { label: 'Need cleanup', value: premium.missingCore, copy: 'Files still missing contract-critical details.' },
-    { label: 'Financing watch', value: premium.financing, copy: 'Files sitting in lender-sensitive territory.' },
-    { label: 'Closing soon', value: premium.closingSoon, copy: 'Files inside a 7-day closing window.' },
-  ];
+  const updateModeUi = () => {
+    const activeStyle = 'background: var(--sage-deep); color: white; border-color: var(--sage-deep);';
+    const inactiveStyle = '';
+    magicBtn.style.cssText = authMode === 'magic' ? activeStyle : inactiveStyle;
+    passwordBtn.style.cssText = authMode === 'password' ? activeStyle : inactiveStyle;
+    signupBtn.style.cssText = authMode === 'signup' ? activeStyle : inactiveStyle;
+    passwordWrap.style.display = authMode === 'password' || authMode === 'signup' ? 'flex' : 'none';
+    confirmWrap.style.display = authMode === 'signup' ? 'flex' : 'none';
+    submitBtn.textContent = authMode === 'password' ? 'Sign In with Password' : authMode === 'signup' ? 'Create Account' : 'Email Me a Magic Link';
+    setNotice('');
+  };
 
-  briefGrid.innerHTML = cards.map((card) => `
-    <div class="brief-stat">
-      <div class="brief-stat-label">${card.label}</div>
-      <div class="brief-stat-value">${card.value}</div>
-      <div class="brief-stat-copy">${card.copy}</div>
-    </div>
-  `).join('');
+  magicBtn.addEventListener('click', () => {
+    authMode = 'magic';
+    updateModeUi();
+  });
 
-  briefHeadline.textContent = narrative.title;
-  briefIntro.textContent = narrative.copy;
-};
+  passwordBtn.addEventListener('click', () => {
+    authMode = 'password';
+    updateModeUi();
+  });
 
-const normalizeChecklist = (row) => {
-  if (Array.isArray(row.checklist) && row.checklist.length) return row.checklist;
-  return (STAGE_TASKS[row.stage] || []).map((label) => ({ label, done: false }));
-};
+  signupBtn.addEventListener('click', () => {
+    authMode = 'signup';
+    updateModeUi();
+  });
 
-const updateTaskList = (row) => {
-  const items = normalizeChecklist(row);
-  if (!items.length) {
-    taskList.innerHTML = `<div class="empty">No checklist items defined for this stage yet.</div>`;
-    return;
-  }
-  taskList.innerHTML = items.map((task, index) => `
-    <label class="task-row ${task.done ? 'done' : ''}" data-task-index="${index}">
-      <input type="checkbox" ${task.done ? 'checked' : ''}>
-      <span>${task.label}</span>
-    </label>
-  `).join('');
+  updateModeUi();
 
-  taskList.querySelectorAll('[data-task-index]').forEach((item) => {
-    item.addEventListener('click', async (event) => {
-      if (!selectedDossierId || !activeSession?.user?.id) return;
-      const rowData = currentRows.find((entry) => entry.id === selectedDossierId);
-      const checklist = normalizeChecklist(rowData).map((task) => ({ ...task }));
-      const idx = Number(item.getAttribute('data-task-index'));
-      checklist[idx].done = !checklist[idx].done;
-      const { error } = await supabase
-        .from('transactions')
-        .update({ checklist })
-        .eq('id', selectedDossierId)
-        .eq('user_id', activeSession.user.id);
-      if (error) {
-        detailStatusText.textContent = `Could not update checklist: ${error.message}`;
-        detailStatusText.className = 'status-text error';
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+    if (!email) {
+      setNotice('Add your email first.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+
+    if (authMode === 'password' || authMode === 'signup') {
+      if (!password) {
+        setNotice(authMode === 'signup' ? 'Create a password too.' : 'Add your password too.', 'error');
+        submitBtn.disabled = false;
         return;
       }
-      detailStatusText.textContent = 'Checklist updated.';
-      detailStatusText.className = 'status-text success';
-      await loadDossiers();
-      event.preventDefault();
-    });
-  });
-};
 
-const analyzeTransactionIntelligence = async (row) => {
-  const response = await fetch(`${DOCUMENT_BRIDGE_URL}/intelligence/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(row),
-  });
-  const result = await response.json();
-  if (!response.ok || !result.ok) {
-    throw new Error(result.error || 'Could not analyze transaction intelligence');
-  }
-  return result;
-};
+      if (authMode === 'signup') {
+        if (!confirmPassword) {
+          setNotice('Confirm your password too.', 'error');
+          submitBtn.disabled = false;
+          return;
+        }
+        if (password !== confirmPassword) {
+          setNotice('Passwords do not match yet.', 'error');
+          submitBtn.disabled = false;
+          return;
+        }
 
-const renderIntelligencePanel = (analysis) => {
-  const entries = Object.entries(analysis.classification || {});
-  transactionIntelligence.innerHTML = entries.map(([key, item]) => {
-    const tone = item.status === 'missing' || item.status === 'needs-confirmation' ? 'urgent' : item.status === 'known' ? 'ready' : 'watch';
-    return `
-      <div class="task-row" style="cursor:default; align-items:flex-start; justify-content:space-between;">
-        <div>
-          <strong>${item.label}</strong>
-          <div style="font-size:12px; color:var(--text-soft);">${item.value ? item.value : 'Not captured yet'}</div>
-        </div>
-        <span class="intelligence-pill ${tone}">${item.status}</span>
-      </div>
-    `;
-  }).join('');
-};
+        submitBtn.textContent = 'Creating account...';
+        setNotice('Creating your account...');
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          setNotice(error.message || 'Account creation failed.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+          return;
+        }
 
-const updateWhatMattersNow = async (row) => {
-  const analysis = await analyzeTransactionIntelligence(row);
-  const closingDays = daysUntil(row.closing_date);
-  const effectiveLabel = formatDate(row.contract_effective_date);
-  const closingLabel = formatDate(row.closing_date);
+        const needsEmailConfirmation = !data?.session;
+        if (needsEmailConfirmation) {
+          setNotice('Account created. Check your email to confirm your account before signing in.', 'success');
+        } else {
+          setNotice('Account created. You can sign in with your password now.', 'success');
+        }
 
-  whatMattersNow.textContent = analysis.whatMattersNow || 'Dossie is keeping the file organized and ready for the next move.';
-  priorityPills.innerHTML = (analysis.recommendedDocuments || []).map((doc) => `<span class="intelligence-pill ready">${doc}</span>`).join('');
-  if (closingDays !== null && closingLabel) {
-    if (closingDays < 0) {
-      deadlinePressure.textContent = `Closing date ${closingLabel} has already passed. Dossie should treat this file as needing immediate review.`;
-    } else if (closingDays <= 3) {
-      deadlinePressure.textContent = `Closing is in ${closingDays} day${closingDays === 1 ? '' : 's'} on ${closingLabel}. This file is now in a true deadline window.`;
-    } else {
-      deadlinePressure.textContent = `Closing is set for ${closingLabel}${effectiveLabel ? ` Â· contract effective ${effectiveLabel}` : ''}. ${STAGE_DEADLINE_HINTS[row.stage] || 'Dossie is tracking the timeline.'}`;
-    }
-  } else {
-    deadlinePressure.textContent = STAGE_DEADLINE_HINTS[row.stage] || 'No special deadline pressure is flagged right now.';
-  }
-  dossieRead.textContent = `Dossie sees ${analysis.recommendedDocuments.join(', ')} as the strongest next document path.`;
-  nextAction.textContent = analysis.nextAction || 'Keep the file moving and confirm the next visible handoff.';
-  emailDraft.textContent = `Next best question: ${analysis.nextQuestion}`;
-  renderIntelligencePanel(analysis);
-
-  const notes = Array.isArray(row.notes_log) ? row.notes_log : [];
-  activityLog.innerHTML = notes.length
-    ? notes.slice().reverse().map((entry) => `<div class="task-row" style="cursor:default;"><span>${entry}</span></div>`).join('')
-    : `<div class="empty">No activity logged yet for this file.</div>`;
-  activityNote.value = '';
-};
-
-const selectDossier = (id) => {
-  selectedDossierId = id;
-  renderDossiers(currentRows);
-  const row = currentRows.find((item) => item.id === id);
-  if (!row) {
-    if (detailSection) detailSection.style.display = 'none';
-    detailForm.style.display = 'none';
-    detailEmpty.style.display = 'block';
-    detailBadge.style.display = 'none';
-    detailTitle.textContent = 'Select a saved dossier';
-    detailSub.textContent = 'Choose a dossier from the list to open the editable transaction workspace.';
-    whatMattersNow.textContent = "Select a file to see Dossie's read on the next most important move.";
-    taskList.innerHTML = '';
-    return;
-  }
-
-  if (detailSection) detailSection.style.display = 'grid';
-  detailEmpty.style.display = 'none';
-  detailForm.style.display = 'grid';
-  detailTitle.textContent = row.property_address;
-  detailSub.textContent = `Dossier ${row.dossier_number} Â· ${row.city_state_zip || 'No city/state/ZIP yet'}`;
-  detailBadge.style.display = 'inline-flex';
-  detailBadge.textContent = formatStage(row.stage);
-  document.getElementById('detail-address').value = row.property_address || '';
-  document.getElementById('detail-city').value = row.city_state_zip || '';
-  document.getElementById('detail-client').value = row.role === 'buyer' ? (row.buyer_name || '') : (row.seller_name || '');
-  document.getElementById('detail-county').value = row.county || '';
-  document.getElementById('detail-legal-description').value = row.legal_description || '';
-  document.getElementById('detail-title-company').value = row.title_company || '';
-  document.getElementById('detail-title-company-email').value = row.title_company_email || '';
-  document.getElementById('detail-title-company-phone').value = row.title_company_phone || '';
-  document.getElementById('detail-escrow-agent').value = row.escrow_agent || '';
-  document.getElementById('detail-lender-name').value = row.lender_name || '';
-  document.getElementById('detail-loan-amount').value = row.loan_amount || '';
-  document.getElementById('detail-financing-type').value = row.financing_type || '';
-  document.getElementById('detail-role').value = row.role || 'listing';
-  document.getElementById('detail-stage').value = row.stage || 'under-contract';
-  document.getElementById('detail-status').value = row.status || 'active';
-  document.getElementById('detail-effective-date').value = row.contract_effective_date || '';
-  document.getElementById('detail-closing-date').value = row.closing_date || '';
-  document.getElementById('detail-sale-price').value = row.sale_price || '';
-  document.getElementById('detail-earnest-money').value = row.earnest_money || '';
-  document.getElementById('detail-option-fee').value = row.option_fee || '';
-  document.getElementById('detail-option-days').value = row.option_days || '';
-  document.getElementById('detail-financing-days').value = row.financing_days || '';
-  document.getElementById('detail-notes').value = row.notes || '';
-  updateWhatMattersNow(row).catch((error) => {
-    whatMattersNow.textContent = `Could not refresh Dossie intelligence: ${error.message}`;
-    priorityPills.innerHTML = '<span class="intelligence-pill urgent">Intelligence offline</span>';
-    dossieRead.textContent = 'Dossie needs the intelligence bridge available to evaluate this file.';
-    nextAction.textContent = 'Bring the intelligence bridge back online and refresh the file.';
-  });
-  updateTaskList(row);
-  detailStatusText.textContent = '';
-  detailStatusText.className = 'status-text';
-  documentStatusText.textContent = '';
-  documentStatusText.className = 'status-text';
-  documentLinks.innerHTML = '';
-  conversationInputMain.value = '';
-  conversationReplyMain.textContent = row ? 'Tell me what changed and I'll update this file.' : 'Go ahead—I'm listening. Select a transaction if you want me to update a file, or just talk to me.';
-  conversationReplyMain.className = 'conversation-reply';
-  if (voiceStatusMain) voiceStatusMain.textContent = 'Hold the button and speak. I'll update the file and reply.';
-};
-
-const renderDossiers = (rows) => {
-  currentRows = rows;
-  renderBrief(rows);
-  if (!rows.length) {
-    dossierList.innerHTML = `<div class="empty">No dossiers saved yet. Create your first one and it should stay here for this signed-in account.</div>`;
-    selectDossier(null);
-    return;
-  }
-
-  if (!selectedDossierId || !rows.find((row) => row.id === selectedDossierId)) {
-    selectedDossierId = rows[0].id;
-  }
-
-  dossierList.innerHTML = rows.map((row) => `
-    <article class="dossier-item ${row.id === selectedDossierId ? 'active' : ''}" data-dossier-id="${row.id}">
-      <div class="dossier-top">
-        <div>
-          <div class="dossier-id">Dossier ${row.dossier_number}</div>
-          <div class="dossier-address">${row.property_address}</div>
-        </div>
-        <div class="badge">${formatStage(row.stage)}</div>
-      </div>
-      <div class="dossier-meta">
-        <div><strong>Side:</strong> ${row.role || 'listing'}</div>
-        <div><strong>Client:</strong> ${row.buyer_name || row.seller_name || 'Not set yet'}</div>
-        <div><strong>Location:</strong> ${row.city_state_zip || 'No city/state/ZIP yet'}</div>
-        <div><strong>Notes:</strong> ${row.notes || 'No notes yet'}</div>
-        <div><strong>Checklist progress:</strong> ${normalizeChecklist(row).filter((task) => task.done).length}/${normalizeChecklist(row).length || 0}</div>
-        <div><strong>Activity:</strong> ${Array.isArray(row.notes_log) ? row.notes_log.length : 0} notes logged</div>
-      </div>
-    </article>
-  `).join('');
-
-  dossierList.querySelectorAll('[data-dossier-id]').forEach((item) => {
-    item.addEventListener('click', () => selectDossier(item.getAttribute('data-dossier-id')));
-  });
-
-  selectDossier(selectedDossierId);
-};
-
-let lastSpokenReply = '';
-const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-let voiceRecognition = null;
-let isListening = false;
-
-const speakReply = (text) => {
-  if (!text || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1;
-  utterance.pitch = 1.05;
-  utterance.volume = 1;
-  window.speechSynthesis.speak(utterance);
-};
-
-const handleConversationSubmit = async (messageOverride = null, options = {}) => {
-  if (!activeSession?.user?.id) {
-    conversationReplyMain.textContent = 'You need to be signed in to talk to Dossie.';
-    conversationReplyMain.className = 'conversation-reply error';
-    return;
-  }
-
-  const message = (messageOverride ?? conversationInputMain.value).trim();
-  if (!message) {
-    conversationReplyMain.textContent = 'Tell me something first.';
-    conversationReplyMain.className = 'conversation-reply error';
-    return;
-  }
-
-  const row = selectedDossierId ? currentRows.find((item) => item.id === selectedDossierId) : null;
-
-  conversationReplyMain.textContent = row ? 'Updating the file...' : 'Listening...';
-  conversationReplyMain.className = 'conversation-reply';
-
-  try {
-    // Call Claude API via serverless function
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        userId: activeSession.user.id,
-        userPlan: 'solo',
-        transactionContext: row || null,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-      throw new Error(errorData.error || `Server error (${response.status})`);
-    }
-    
-    const result = await response.json();
-    
-    if (!result.ok) {
-      throw new Error(result.error || 'Conversation failed');
-    }
-
-    // Extract Dossie's reply
-    const replyText = result.reply;
-    lastSpokenReply = replyText;
-    conversationReplyMain.textContent = replyText;
-    conversationReplyMain.className = 'conversation-reply success';
-    conversationInputMain.value = '';
-    
-    // Show rate limit info in console
-    if (result.remaining !== null && result.remaining !== undefined) {
-      console.log(`Dossie: ${result.remaining} messages remaining (${result.plan || 'solo'} plan)`);
-    }
-    
-    if (options.speak) speakReply(replyText);
-    
-  } catch (error) {
-    console.error('Conversation error:', error);
-    const errorMsg = error.message || 'Could not connect to Dossie';
-    conversationReplyMain.textContent = `I couldn't respond: ${errorMsg}`;
-    conversationReplyMain.className = 'conversation-reply error';
-  }
-};
-
-if (SpeechRecognitionCtor) {
-  voiceRecognition = new SpeechRecognitionCtor();
-  voiceRecognition.lang = 'en-US';
-  voiceRecognition.interimResults = false;
-  voiceRecognition.maxAlternatives = 1;
-  voiceRecognition.onstart = () => {
-    isListening = true;
-    if (voiceStatusMain) voiceStatusMain.textContent = 'Listening... say the update naturally.';
-  };
-  voiceRecognition.onend = () => {
-    isListening = false;
-    if (voiceStatusMain) voiceStatusMain.textContent = 'Voice mode is phase-one: hold to talk, then hear Dossie speak back.';
-  };
-  voiceRecognition.onerror = (event) => {
-    if (voiceStatusMain) voiceStatusMain.textContent = `Voice input error: ${event.error}`;
-  };
-  voiceRecognition.onresult = async (event) => {
-    const transcript = Array.from(event.results).map((result) => result[0]?.transcript || '').join(' ').trim();
-    if (transcript) {
-      conversationInputMain.value = transcript;
-      if (voiceStatusMain) voiceStatusMain.textContent = `Heard: ${transcript}`;
-      await handleConversationSubmit(transcript, { speak: true });
-    }
-  };
-}
-const loadDossiers = async () => {
-  if (!activeSession?.user?.id) return;
-  dossierList.innerHTML = `<div class="empty">Loading your saved dossiers...</div>`;
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', activeSession.user.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    dossierList.innerHTML = `<div class="empty">Could not load dossiers yet: ${error.message}</div>`;
-    return;
-  }
-
-  renderDossiers(data || []);
-};
-
-const showSignedIn = async (session) => {
-  activeSession = session;
-  if (signedOutShell) signedOutShell.style.display = 'none';
-  if (authShell) authShell.style.display = 'grid';
-  const authShellEarly = document.getElementById('auth-shell');
-  const signedOutShellEarly = document.getElementById('signed-out-shell');
-  if (signedOutShellEarly) signedOutShellEarly.style.display = 'none';
-  if (authShellEarly) authShellEarly.style.display = 'grid';
-  userEmail.textContent = session.user.email || 'Signed in';
-  userStatusCopy.textContent = 'Your authenticated Dossie workspace is live and connected to your Supabase-backed dossiers.';
-  await loadDossiers();
-};
-
-const showSignedOut = () => {
-  activeSession = null;
-  currentRows = [];
-  selectedDossierId = null;
-  if (detailSection) detailSection.style.display = 'none';
-  authShell.style.display = 'none';
-  signedOutShell.style.display = 'grid';
-};
-
-dossierForm?.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if (!activeSession?.user?.id) {
-    formStatus.textContent = 'You need to be signed in first.';
-    formStatus.className = 'status-text error';
-    return;
-  }
-
-  formStatus.textContent = 'Saving dossier...';
-  formStatus.className = 'status-text';
-
-  const propertyAddress = document.getElementById('property-address').value.trim();
-  const cityStateZip = document.getElementById('city-state-zip').value.trim();
-  const clientName = document.getElementById('client-name').value.trim();
-  const role = document.getElementById('role').value;
-  const stage = document.getElementById('stage').value;
-  const notes = document.getElementById('notes').value.trim();
-  const dossierNumber = String(Date.now()).slice(-6);
-
-  const payload = {
-    user_id: activeSession.user.id,
-    dossier_number: dossierNumber,
-    status: stage === 'closed' ? 'closed' : 'active',
-    stage,
-    role,
-    property_address: propertyAddress,
-    city_state_zip: cityStateZip,
-    county: document.getElementById('county').value.trim(),
-    legal_description: document.getElementById('legal-description').value.trim(),
-    title_company: document.getElementById('title-company').value.trim(),
-    lender_name: document.getElementById('lender-name').value.trim(),
-    buyer_name: role === 'buyer' ? clientName : null,
-    seller_name: role === 'listing' ? clientName : null,
-    notes,
-    contract_effective_date: document.getElementById('effective-date').value || null,
-    closing_date: document.getElementById('closing-date').value || null,
-    sale_price: 0,
-    earnest_money: 0,
-    option_fee: 0,
-    option_days: 7,
-    financing_days: 21,
-    parties: {},
-    email_history: [],
-    checklist: [],
-    notes_log: [],
-  };
-
-  const { error } = await supabase.from('transactions').insert(payload);
-
-  if (error) {
-    formStatus.textContent = `Could not save dossier: ${error.message}`;
-    formStatus.className = 'status-text error';
-    return;
-  }
-
-  formStatus.textContent = 'Dossier saved successfully.';
-  formStatus.className = 'status-text success';
-  dossierForm.reset();
-  document.getElementById('role').value = 'listing';
-  document.getElementById('stage').value = 'under-contract';
-  await loadDossiers();
-});
-
-detailForm?.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if (!activeSession?.user?.id || !selectedDossierId) {
-    detailStatusText.textContent = 'No dossier selected to update yet.';
-    detailStatusText.className = 'status-text error';
-    return;
-  }
-
-  detailStatusText.textContent = 'Saving changes...';
-  detailStatusText.className = 'status-text';
-
-  const role = document.getElementById('detail-role').value;
-  const clientName = document.getElementById('detail-client').value.trim();
-  const payload = {
-    property_address: document.getElementById('detail-address').value.trim(),
-    city_state_zip: document.getElementById('detail-city').value.trim(),
-    county: document.getElementById('detail-county').value.trim(),
-    legal_description: document.getElementById('detail-legal-description').value.trim(),
-    title_company: document.getElementById('detail-title-company').value.trim(),
-    title_company_email: document.getElementById('detail-title-company-email').value.trim(),
-    title_company_phone: document.getElementById('detail-title-company-phone').value.trim(),
-    escrow_agent: document.getElementById('detail-escrow-agent').value.trim(),
-    lender_name: document.getElementById('detail-lender-name').value.trim(),
-    loan_amount: Number(document.getElementById('detail-loan-amount').value || 0),
-    financing_type: document.getElementById('detail-financing-type').value,
-    role,
-    stage: document.getElementById('detail-stage').value,
-    status: document.getElementById('detail-status').value,
-    notes: document.getElementById('detail-notes').value.trim(),
-    contract_effective_date: document.getElementById('detail-effective-date').value || null,
-    closing_date: document.getElementById('detail-closing-date').value || null,
-    sale_price: Number(document.getElementById('detail-sale-price').value || 0),
-    earnest_money: Number(document.getElementById('detail-earnest-money').value || 0),
-    option_fee: Number(document.getElementById('detail-option-fee').value || 0),
-    option_days: Number(document.getElementById('detail-option-days').value || 0),
-    financing_days: Number(document.getElementById('detail-financing-days').value || 0),
-    buyer_name: role === 'buyer' ? clientName : null,
-    seller_name: role === 'listing' ? clientName : null,
-  };
-
-  const { error } = await supabase
-    .from('transactions')
-    .update(payload)
-    .eq('id', selectedDossierId)
-    .eq('user_id', activeSession.user.id);
-
-  if (error) {
-    detailStatusText.textContent = `Could not save changes: ${error.message}`;
-    detailStatusText.className = 'status-text error';
-    return;
-  }
-
-  detailStatusText.textContent = 'Dossier changes saved.';
-  detailStatusText.className = 'status-text success';
-  await loadDossiers();
-});
-
-saveNoteBtn?.addEventListener('click', async () => {
-  if (!activeSession?.user?.id || !selectedDossierId) {
-    detailStatusText.textContent = 'Select a dossier before saving a note.';
-    detailStatusText.className = 'status-text error';
-    return;
-  }
-  const note = activityNote.value.trim();
-  if (!note) {
-    detailStatusText.textContent = 'Add a note before saving it.';
-    detailStatusText.className = 'status-text error';
-    return;
-  }
-  const row = currentRows.find((item) => item.id === selectedDossierId);
-  const nextLog = [...(Array.isArray(row?.notes_log) ? row.notes_log : []), note];
-  const { error } = await supabase
-    .from('transactions')
-    .update({ notes_log: nextLog })
-    .eq('id', selectedDossierId)
-    .eq('user_id', activeSession.user.id);
-  if (error) {
-    detailStatusText.textContent = `Could not save note: ${error.message}`;
-    detailStatusText.className = 'status-text error';
-    return;
-  }
-  detailStatusText.textContent = 'Note saved to activity log.';
-  detailStatusText.className = 'status-text success';
-  await loadDossiers();
-});
-
-function renderDocumentLinks(documents) {
-  const entries = Object.entries(documents || {});
-  if (!entries.length) {
-    documentLinks.innerHTML = '';
-    return;
-  }
-  documentLinks.innerHTML = entries.map(([key, value]) => {
-    const filename = value.outputPath ? value.outputPath.split('\\').pop() : '';
-    const href = filename ? `${DOCUMENT_BRIDGE_URL}/download/${encodeURIComponent(filename)}` : '#';
-    const nice = key.replace(/-/g, ' ');
-    return `<div class="task-row"><div><strong>${nice}</strong><div style="font-size:12px; color:var(--text-soft);">${filename || 'No file returned'}</div></div><a href="${href}" target="_blank" rel="noopener">Download</a></div>`;
-  }).join('');
-}
-
-async function generateDocuments(endpoint, row, loadingText, successText) {
-  const required = [
-    ['property_address', 'property address'],
-    ['county', 'county'],
-    ['contract_effective_date', 'effective date'],
-    ['closing_date', 'closing date'],
-    ['title_company', 'title company'],
-    ['sale_price', 'sale price'],
-  ];
-  const missing = required.filter(([key]) => !row[key]).map(([, label]) => label);
-  if (missing.length) {
-    documentStatusText.textContent = `Missing before generation: ${missing.join(', ')}.`;
-    documentStatusText.className = 'status-text error';
-    documentLinks.innerHTML = '';
-    return;
-  }
-
-  documentStatusText.textContent = loadingText;
-  documentStatusText.className = 'status-text';
-  documentLinks.innerHTML = '';
-
-  const response = await fetch(`${DOCUMENT_BRIDGE_URL}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(row),
-  });
-  const result = await response.json();
-  if (!response.ok || !result.ok) {
-    throw new Error(result.error || 'Generation failed');
-  }
-  renderDocumentLinks(result.documents);
-  const recommendation = Array.isArray(result.recommendedDocuments) && result.recommendedDocuments.length
-    ? ` Recommended next docs: ${result.recommendedDocuments.join(', ')}.`
-    : '';
-  documentStatusText.textContent = `${successText}.${recommendation}`;
-  documentStatusText.className = 'status-text success';
-}
-
-generateResaleContractBtn?.addEventListener('click', async () => {
-  if (!activeSession?.user?.id || !selectedDossierId) {
-    documentStatusText.textContent = 'Select a dossier before generating a contract.';
-    documentStatusText.className = 'status-text error';
-    return;
-  }
-
-  const row = currentRows.find((item) => item.id === selectedDossierId);
-  if (!row) {
-    documentStatusText.textContent = 'Could not find the selected dossier.';
-    documentStatusText.className = 'status-text error';
-    return;
-  }
-
-  try {
-    await generateDocuments('/generate/resale-contract', row, 'Dossie is preparing the resale contract...', 'Resale contract ready for review');
-  } catch (error) {
-    documentStatusText.textContent = `Could not generate contract: ${error.message}`;
-    documentStatusText.className = 'status-text error';
-  }
-});
-
-generateDocumentCenterBtn?.addEventListener('click', async () => {
-  if (!activeSession?.user?.id || !selectedDossierId) {
-    documentStatusText.textContent = 'Select a dossier before generating documents.';
-    documentStatusText.className = 'status-text error';
-    return;
-  }
-
-  const row = currentRows.find((item) => item.id === selectedDossierId);
-  if (!row) {
-    documentStatusText.textContent = 'Could not find the selected dossier.';
-    documentStatusText.className = 'status-text error';
-    return;
-  }
-
-  try {
-    await generateDocuments('/generate/document-center', row, 'Dossie is assembling the document set...', 'Document set ready for review');
-  } catch (error) {
-    documentStatusText.textContent = `Could not generate documents: ${error.message}`;
-    documentStatusText.className = 'status-text error';
-  }
-});
-
-conversationSendBtnMain?.addEventListener('click', async () => {
-  await handleConversationSubmit();
-});
-
-voiceTalkBtnMain?.addEventListener('mousedown', () => {
-  if (!voiceRecognition || isListening) return;
-  voiceRecognition.start();
-});
-voiceTalkBtnMain?.addEventListener('touchstart', () => {
-  if (!voiceRecognition || isListening) return;
-  voiceRecognition.start();
-}, { passive: true });
-['mouseup', 'mouseleave', 'touchend'].forEach((eventName) => {
-  voiceTalkBtnMain?.addEventListener(eventName, () => {
-    if (!voiceRecognition || !isListening) return;
-    voiceRecognition.stop();
-  });
-});
-voicePlayBtnMain?.addEventListener('click', () => {
-  if (!lastSpokenReply) {
-    if (voiceStatusMain) voiceStatusMain.textContent = 'No Dossie reply yet. Send an update first.';
-    return;
-  }
-  if (voiceStatusMain) voiceStatusMain.textContent = 'Playing Dossie reply...';
-  speakReply(lastSpokenReply);
-});
-
-signOutBtn?.addEventListener('click', async () => {
-  await supabase.auth.signOut();
-  showSignedOut();
-});
-
-window.addEventListener('dossie-password-signin-success', async (event) => {
-  try {
-    if (event.detail) {
-      await showSignedIn(event.detail);
-    }
-  } catch (error) {
-    console.error('Dossie password sign-in transition failed', error);
-    showSafeFallback(`Dossie signed in, but could not transition into the workspace. (${error.message})`);
-  }
-});
-
-(async () => {
-  try {
-    const cachedSession = window.__dossieAuthState?.signedInSession;
-    if (cachedSession) {
-      await showSignedIn(cachedSession);
-    } else {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        await showSignedIn(data.session);
-      } else {
-        showSignedOut();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+        authMode = 'password';
+        updateModeUi();
+        return;
       }
-    }
-  } catch (error) {
-    console.error('Dossie session bootstrap failed', error);
-    showSafeFallback(`Dossie could not restore the session automatically. Reload or sign in again. (${error.message})`);
-  }
-})();
 
-supabase.auth.onAuthStateChange(async (_event, session) => {
-  try {
-    if (session) {
-      await showSignedIn(session);
-    } else {
-      showSignedOut();
+      submitBtn.textContent = 'Signing in...';
+      setNotice('Signing you in...');
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setNotice(error.message || 'Password sign-in failed.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In with Password';
+        return;
+      }
+      setNotice('Welcome back. Opening Dossie...', 'success');
+      if (!redirecting) {
+        setTimeout(() => {
+          window.location.href = '/app.html';
+        }, 1000);
+      }
+      return;
     }
-  } catch (error) {
-    console.error('Dossie auth state change failed', error);
-    showSafeFallback(`Dossie hit an auth-state error. Reload or sign in again. (${error.message})`);
+
+    submitBtn.textContent = 'Sending...';
+    setNotice('Sending your magic link...');
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app.html`,
+      },
+    });
+
+    if (error) {
+      setNotice(error.message || 'Magic link failed.', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Email Me a Magic Link';
+      return;
+    }
+
+    setNotice('Magic link sent. Check your email and open the link to enter Dossie.', 'success');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Email Me a Magic Link';
+  });
+
+  let redirecting = false;
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) {
+    redirecting = true;
+    setNotice('You are already signed in. Opening the app...', 'success');
+    setTimeout(() => {
+      window.location.href = '/app.html';
+    }, 1200);
   }
-});
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
