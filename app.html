@@ -151,12 +151,8 @@ body::after {
 
     <section class="card loading-state" id="loading-card" style="display: none;">
       <div>
-        <h2>✓ Signed in</h2>
-        <p style="margin-bottom: 24px;">Your session is active.</p>
-        <div style="text-align: center;">
-          <a href="/" class="button button-primary" style="display: inline-flex; max-width: 280px;">Return to homepage</a>
-          <p style="margin-top: 14px; font-size: 13px; color: var(--text-light);">App workspace coming soon.</p>
-        </div>
+        <h2>✓ Signing in</h2>
+        <p>Redirecting to your Dossie workspace...</p>
       </div>
     </section>
   </main>
@@ -194,8 +190,7 @@ body::after {
   const loadingCard = document.getElementById('loading-card');
   let authMode = 'magic';
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const isAuthRedirect = urlParams.has('auth_redirect');
+
 
   const setNotice = (message, type = '') => {
     notice.textContent = message;
@@ -303,7 +298,7 @@ body::after {
       }
       showLoadingState();
       setTimeout(() => {
-        window.location.href = window.location.pathname + '?auth_redirect=1';
+        window.location.href = 'https://dossie-app.vercel.app';
       }, 800);
       return;
     }
@@ -314,7 +309,7 @@ body::after {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/app.html?auth_redirect=1`,
+        emailRedirectTo: 'https://dossie-app.vercel.app',
       },
     });
 
@@ -330,12 +325,12 @@ body::after {
     submitBtn.textContent = 'Email Me a Magic Link';
   });
 
-  // Session check: only redirect if NOT already on auth_redirect URL
+  // Session check: redirect to app if session exists
   const { data } = await supabase.auth.getSession();
-  if (data?.session && !isAuthRedirect) {
+  if (data?.session) {
     showLoadingState();
     setTimeout(() => {
-      window.location.href = window.location.pathname + '?auth_redirect=1';
+      window.location.href = 'https://dossie-app.vercel.app';
     }, 600);
   }
   
