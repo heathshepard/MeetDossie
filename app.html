@@ -171,6 +171,9 @@ body::after {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        storage: window.localStorage,
+        storageKey: 'supabase.auth.token',
+        flowType: 'pkce',
       },
     }
   );
@@ -298,7 +301,7 @@ body::after {
       }
       showLoadingState();
       setTimeout(() => {
-        window.location.href = 'https://dossie-app.vercel.app';
+        window.location.href = 'https://app.meetdossie.com';
       }, 800);
       return;
     }
@@ -309,7 +312,7 @@ body::after {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'https://dossie-app.vercel.app',
+        emailRedirectTo: 'https://app.meetdossie.com',
       },
     });
 
@@ -330,7 +333,7 @@ body::after {
   if (data?.session) {
     showLoadingState();
     setTimeout(() => {
-      window.location.href = 'https://dossie-app.vercel.app';
+      window.location.href = 'https://app.meetdossie.com';
     }, 600);
   }
   
