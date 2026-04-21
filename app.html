@@ -140,7 +140,7 @@ body {
       going = true;
       authCard.style.display = 'none';
       loadingCard.style.display = 'block';
-      window.location.replace('/workspace.html');
+      window.location.replace('/index.html');
     };
 
     const setMode = (m) => {
@@ -192,7 +192,7 @@ body {
       submitBtn.textContent = 'Sending...';
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: 'https://meetdossie.com/workspace.html' }
+        options: { emailRedirectTo: 'https://meetdossie.com/index.html' }
       });
       if (error) { notify(error.message, 'error'); submitBtn.disabled=false; submitBtn.textContent='Email Me a Magic Link'; return; }
       notify('Magic link sent — check your email.', 'success');
