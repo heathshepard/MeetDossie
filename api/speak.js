@@ -15,11 +15,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { text } = req.body;
+    const { text, speed } = req.body;
 
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ ok: false, error: 'Text is required' });
     }
+
+    const speedValue = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.0;
 
     if (!process.env.ELEVENLABS_API_KEY) {
       console.error('ELEVENLABS_API_KEY not configured');
@@ -52,6 +54,7 @@ export default async function handler(req, res) {
           similarity_boost: 0.75,
           style: 0.25,
           use_speaker_boost: true,
+          speed: speedValue,
         },
       }),
     });
