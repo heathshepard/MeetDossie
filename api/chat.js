@@ -71,17 +71,17 @@ function determineModel(message, transactionContext) {
   const hasTransaction = transactionContext && Object.keys(transactionContext).length > 0;
   const lowerMessage = message.toLowerCase();
   
-  // Use Sonnet for transaction reasoning
-  const transactionKeywords = [
-    'update', 'change', 'buyer', 'seller', 'closing', 'contract', 'title',
-    'lender', 'earnest money', 'option', 'amendment', 'terminate',
-    'effective date', 'sale price', 'financing', 'document'
+  // Use Sonnet only for transaction data updates
+  const transactionUpdateKeywords = [
+    'update', 'change', 'set', 'buyer name', 'seller name', 'sale price',
+    'earnest money', 'option fee', 'closing date', 'effective date',
+    'lender name', 'title company'
   ];
   
-  const needsTransactionReasoning = hasTransaction || 
-    transactionKeywords.some(keyword => lowerMessage.includes(keyword));
+  const needsDataUpdate = hasTransaction && 
+    transactionUpdateKeywords.some(keyword => lowerMessage.includes(keyword));
   
-  return needsTransactionReasoning ? 'claude-sonnet-4-6' : 'claude-haiku-4';
+  return needsDataUpdate ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
 }
 
 function buildSystemPrompt(hasTransaction) {
@@ -106,7 +106,9 @@ Guidelines:
 - Use "I" and "you" naturally
 - Don't be overly formal or robotic
 - If you don't know something, say so
-- Default to being helpful, not defensive`;
+- Default to being helpful, not defensive
+- Never start responses with "Hey there", "Hi there", "Hello", "Sure", "Of course", or any filler phrase
+- Start with the actual response immediately`;
 
   if (hasTransaction) {
     return basePrompt + `
@@ -128,9 +130,11 @@ Don't force data entry. Just be a helpful coordinator they can talk to.`;
 }
 
 async function callClaude(model, message, systemPrompt) {
+  const maxTokens = model === 'claude-sonnet-4-6' ? 1024 : 400;
+  
   const response = await anthropic.messages.create({
     model,
-    max_tokens: 1024,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages: [
       {
