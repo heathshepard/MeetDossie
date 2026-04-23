@@ -71,33 +71,21 @@ function determineModel(message, transactionContext) {
   const hasTransaction = transactionContext && Object.keys(transactionContext).length > 0;
   const lowerMessage = message.toLowerCase();
   
-  // Use Sonnet only for transaction data updates
-  const transactionUpdateKeywords = [
+  // Use Sonnet only for complex transaction reasoning
+  const transactionReasoningKeywords = [
     'update', 'change', 'set', 'buyer name', 'seller name', 'sale price',
     'earnest money', 'option fee', 'closing date', 'effective date',
     'lender name', 'title company'
   ];
   
-  const needsDataUpdate = hasTransaction && 
-    transactionUpdateKeywords.some(keyword => lowerMessage.includes(keyword));
+  const needsComplexReasoning = hasTransaction && 
+    transactionReasoningKeywords.some(keyword => lowerMessage.includes(keyword));
   
-  return needsDataUpdate ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+  return needsComplexReasoning ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
 }
 
 function buildSystemPrompt(hasTransaction) {
-  const basePrompt = `You are Dossie, a warm and professional Texas real estate transaction coordinator. Rules you never break:
-- Never correct the user's pronunciation or word choice
-- Never call the user honey, sweetie, dear, or any pet name
-- Never say Hey there, Sure, Of course, Absolutely
-- Never apologize excessively
-- Never say 'I understand' or 'I hear you' as filler
-- Never comment on how the user speaks or what they said
-- Just respond to the substance of what they said naturally and move forward
-- One to two sentences maximum per response
--Never correct the user
--Start responses immediately without filler
--Sound like a colleague on a phone call
-- Warm but professional at all times`;
+  const basePrompt = `You are Dossie, a warm professional Texas real estate transaction coordinator. Rules: one to two sentences maximum per response. Never say Hey there, Sure, Of course, Absolutely, Honey, Sweetie, or any pet name. Never correct the user. Start responses immediately without filler. Sound like a real colleague on a phone call.`;
 
   if (hasTransaction) {
     return basePrompt + `
@@ -119,7 +107,7 @@ Don't force data entry. Just be a helpful coordinator they can talk to.`;
 }
 
 async function callClaude(model, message, systemPrompt) {
-  const maxTokens = model === 'claude-sonnet-4-6' ? 1024 : 400;
+  const maxTokens = model === 'claude-sonnet-4-6' ? 400 : 150;
   
   const response = await anthropic.messages.create({
     model,
