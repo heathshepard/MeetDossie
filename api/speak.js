@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Text is required' });
     }
 
-    const speedValue = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.15;
+    const speedValue = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.25;
 
     if (!process.env.ELEVENLABS_API_KEY) {
       console.error('ELEVENLABS_API_KEY not configured');
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         text: cleanText,
         model_id: 'eleven_flash_v2_5',
         voice_settings: {
-          stability: 0.45,
+          stability: 0.40,
           similarity_boost: 0.75,
           style: 0.25,
           use_speaker_boost: true,
