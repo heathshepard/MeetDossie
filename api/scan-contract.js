@@ -3,6 +3,12 @@
 // POST { pdfBase64 } -> { ok, extracted, confidence, warnings }
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { validatePdfBase64, ValidationError } = require('./_middleware/validate');
+const {
+  checkRateLimit,
+  RateLimitError,
+  clientIpFromReq,
+} = require('./_middleware/rateLimit');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -11,6 +17,30 @@ const anthropic = new Anthropic({
 const MODEL = 'claude-sonnet-4-5';
 const MAX_TOKENS = 4096;
 const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
+
+// CORS allowlist — production domains plus any localhost port for dev.
+const ALLOWED_ORIGINS = new Set([
+  'https://meetdossie.com',
+  'https://www.meetdossie.com',
+]);
+const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function applyCors(req, res) {
+  const origin = (req && req.headers && req.headers.origin) || '';
+  let allowOrigin = null;
+  if (typeof origin === 'string' && origin.length > 0) {
+    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
+      allowOrigin = origin;
+    }
+  }
+  if (allowOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  return Boolean(allowOrigin);
+}
 
 const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real Estate Commission (TREC) Form 20-17 "One to Four Family Residential Contract (Resale)".
 
@@ -159,18 +189,8 @@ function emptyResult(warning) {
 }
 
 async function scanContract(pdfBase64) {
-  if (!pdfBase64 || typeof pdfBase64 !== 'string') {
-    throw new Error('pdfBase64 is required and must be a string');
-  }
-
-  // Reject obviously bogus payloads early
-  const approxBytes = Math.floor((pdfBase64.length * 3) / 4);
-  if (approxBytes > MAX_PDF_BYTES) {
-    throw new Error(`PDF too large (~${approxBytes} bytes). Max ${MAX_PDF_BYTES} bytes.`);
-  }
-  if (approxBytes < 100) {
-    throw new Error('pdfBase64 payload is too small to be a valid PDF.');
-  }
+  // Centralized validation — throws ValidationError with .status set.
+  validatePdfBase64(pdfBase64);
 
   const response = await anthropic.messages.create({
     model: MODEL,
@@ -218,9 +238,7 @@ async function scanContract(pdfBase64) {
 }
 
 async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
@@ -235,6 +253,10 @@ async function handler(req, res) {
       console.error('ANTHROPIC_API_KEY not configured');
       return res.status(500).json({ ok: false, error: 'Server configuration error.' });
     }
+
+    // Rate limit by IP — 10 req/hour for scan-contract (heavy/expensive call).
+    const ip = clientIpFromReq(req);
+    await checkRateLimit(ip, 'scan-contract', 10, 60 * 60 * 1000);
 
     const body = req.body || {};
     const { pdfBase64 } = body;
@@ -251,13 +273,28 @@ async function handler(req, res) {
       warnings: result.warnings,
     });
   } catch (error) {
+    // Internal logging keeps the full detail.
     console.error('scan-contract error:', error);
-    const message = (error && error.message) ? error.message : 'Failed to scan contract';
-    const status = (error && error.status) || 500;
-    return res.status(status >= 400 && status < 600 ? status : 500).json({
-      ok: false,
-      error: message,
-    });
+
+    if (error instanceof ValidationError) {
+      return res.status(error.status || 400).json({ ok: false, error: error.message });
+    }
+    if (error instanceof RateLimitError) {
+      if (error.retryAfterSeconds) {
+        res.setHeader('Retry-After', String(error.retryAfterSeconds));
+      }
+      return res.status(429).json({ ok: false, error: 'Rate limit exceeded. Please try again later.' });
+    }
+
+    // Map upstream errors to a sanitized public message — do NOT leak SDK
+    // stack traces, API keys, prompts, or model details to the client.
+    const status = (error && Number.isInteger(error.status) && error.status >= 400 && error.status < 600)
+      ? error.status
+      : 500;
+    const publicMessage = status >= 500
+      ? 'Failed to scan contract.'
+      : 'Bad request.';
+    return res.status(status).json({ ok: false, error: publicMessage });
   }
 }
 
