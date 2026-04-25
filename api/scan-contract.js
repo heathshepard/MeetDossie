@@ -55,8 +55,26 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
 - Paragraph 22 AGREEMENT OF PARTIES: list of attached addenda — note whether "Third Party Financing Addendum" box is checked.
 - Paragraph 23 TERMINATION OPTION: number of option days (also referenced in 5).
 - Effective Date: bottom of contract near signatures, labeled "Effective Date".
-- Broker Information section (last page): Buyer's broker (firm + associate name + email + phone), Listing broker (firm + associate name + email + phone).
+- Broker Information section (last page): two side-by-side blocks — see BROKER BLOCK DISAMBIGUATION below.
 - Third Party Financing Addendum (if attached): financing approval period in days (notice deadline for financing).
+
+BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
+
+IMPORTANT: On TREC Form 20-17, the broker information page has TWO blocks:
+- LEFT block (labeled "Other Broker" or "Buyer's Representative"): This is the BUYER'S agent information → map to buyerAgent, buyerAgentEmail, buyerBrokerage
+- RIGHT block (labeled "Listing Broker"): This is the LISTING agent information → map to listingAgent, listingAgentEmail, listingBrokerage
+Do NOT confuse the two blocks.
+
+Additional aliases to recognize for the BUYER'S block: "Buyer's Agent", "Buyer's Broker", "Cooperating Broker", "Selling Broker" (because the buyer's agent "sells" the home to the buyer — this is NOT the listing side).
+Additional aliases to recognize for the LISTING block: "Listing Agent", "Seller's Broker", "Seller's Representative".
+
+Inside each block, the fields are typically laid out as:
+- "Broker/Firm Name" or just "Broker" → buyerBrokerage / listingBrokerage
+- "Associate" or "Licensed Supervisor" or "Listing Associate" → buyerAgent / listingAgent (this is the human agent's name, NOT the firm)
+- "Email" → buyerAgentEmail / listingAgentEmail
+- "Phone" or "Telephone" → buyerAgentPhone / listingAgentPhone
+
+If a block is empty (e.g. a deal where one side is unrepresented), set those fields to null and lower the confidence to 0. Do not fall back to copying values from the other block.
 
 EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) matching this schema:
 
@@ -127,7 +145,9 @@ RULES:
 4. Do NOT guess. If you can't read a field, return null and add a warning.
 5. If the entire form appears blank/unfilled, return all nulls and add the warning "PDF appears to be a blank/unfilled form".
 6. If signatures are visible but cannot be cryptographically verified, add the warning "Signatures detected but not verified".
-7. Return ONLY the JSON object. No commentary, no markdown code fences.`;
+7. Return ONLY the JSON object. No commentary, no markdown code fences.
+8. Cross-check broker blocks: if buyerAgent and listingAgent resolve to the same person (same name, or same email, or same phone), DO NOT silently pick one — populate the field that the contract clearly labels and add a warning like "Same name appears in both broker blocks — verify buyer vs listing agent assignment." The same rule applies if buyerBrokerage and listingBrokerage are identical.
+9. If the LEFT broker block ("Other Broker" / "Buyer's Representative") is filled, those values ALWAYS go into buyerAgent / buyerBrokerage / buyerAgentEmail / buyerAgentPhone — never into the listing fields, regardless of what role the user holds in the deal.`;
 
 function safeParseJson(text) {
   if (!text || typeof text !== 'string') return null;
