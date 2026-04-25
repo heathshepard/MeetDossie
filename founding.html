@@ -62,11 +62,13 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .price-new-label { font-size: 11px; letter-spacing: 1.6px; color: var(--coral-deep); text-transform: uppercase; font-weight: 700; margin-top: 6px; }
 
 .cta-row { margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: fadeInUp 0.5s ease-out 0.4s both; }
-.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 18px 36px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 18px 44px rgba(232,131,107,0.32); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; letter-spacing: 0.2px; }
-.cta-primary:hover { transform: translateY(-2px); background: var(--coral-deep); box-shadow: 0 22px 50px rgba(232,131,107,0.4); }
+.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 18px 36px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 18px 44px rgba(232,131,107,0.32); transition: transform 0.2s, box-shadow 0.2s, background 0.2s, opacity 0.2s; letter-spacing: 0.2px; font-family: inherit; }
+.cta-primary:hover:not(:disabled) { transform: translateY(-2px); background: var(--coral-deep); box-shadow: 0 22px 50px rgba(232,131,107,0.4); }
 .cta-primary:active { transform: translateY(0); }
+.cta-primary:disabled { cursor: progress; opacity: 0.78; }
 .cta-arrow { transition: transform 0.2s; }
-.cta-primary:hover .cta-arrow { transform: translateX(4px); }
+.cta-primary:hover:not(:disabled) .cta-arrow { transform: translateX(4px); }
+.cta-error { font-size: 13px; color: var(--coral-deep); min-height: 18px; max-width: 360px; text-align: center; line-height: 1.45; }
 
 .scarcity { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); font-weight: 500; }
 .scarcity-pip { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); animation: pulse 2s ease-in-out infinite; }
@@ -199,14 +201,15 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     </div>
 
     <div class="cta-row">
-      <a href="#claim" class="cta-primary">
-        Claim Your Founding Member Spot
+      <button type="button" class="cta-primary" id="hero-checkout">
+        <span class="cta-label">Claim Your Founding Member Spot</span>
         <span class="cta-arrow">→</span>
-      </a>
+      </button>
       <span class="scarcity">
         <span class="scarcity-pip"></span>
         50 spots available at this price
       </span>
+      <span class="cta-error" id="hero-checkout-error" role="status" aria-live="polite"></span>
     </div>
   </div>
 </section>
@@ -354,6 +357,42 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 </footer>
 
 <script>
+(function () {
+  var heroBtn = document.getElementById("hero-checkout");
+  if (!heroBtn) return;
+  var heroLabel = heroBtn.querySelector(".cta-label");
+  var heroError = document.getElementById("hero-checkout-error");
+
+  function setHeroLoading(loading) {
+    heroBtn.disabled = !!loading;
+    if (heroLabel) heroLabel.textContent = loading ? "Opening checkout..." : "Claim Your Founding Member Spot";
+  }
+
+  heroBtn.addEventListener("click", async function () {
+    if (heroError) heroError.textContent = "";
+    setHeroLoading(true);
+    try {
+      var response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      var json = null;
+      try { json = await response.json(); } catch (_) { json = null; }
+      if (!response.ok || !json || json.ok === false || !json.url) {
+        var msg = (json && json.error) ? json.error : "Couldn't open checkout. Try again or use the form below.";
+        if (heroError) heroError.textContent = msg;
+        setHeroLoading(false);
+        return;
+      }
+      window.location.href = json.url;
+    } catch (err) {
+      if (heroError) heroError.textContent = "Couldn't reach the server. Try again or use the form below.";
+      setHeroLoading(false);
+    }
+  });
+})();
+
 (function () {
   var form = document.getElementById("founding-form");
   if (!form) return;
