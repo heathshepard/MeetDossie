@@ -47,16 +47,33 @@ const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real 
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
 - Paragraph 2 PROPERTY: Street address (2A Land/Lot/Block), city, county, state, ZIP.
-- Paragraph 3 SALES PRICE: 3A cash portion, 3B sum financed, 3C total sales price.
+- Paragraph 3 SALES PRICE: 3A cash portion, 3B sum financed, 3C TOTAL sales price.
+  IMPORTANT: Paragraph 3C is the TOTAL Sales Price — the final number after adding 3A cash + 3B financed amount. Extract ONLY the 3C total into salePrice. Do NOT mistakenly extract 3A or 3B. Convert to plain number, no commas or dollar signs (e.g. "$350,000.00" -> 350000).
+  Sanity check: Sales price should typically be between $50,000 and $5,000,000 for Texas residential. If your value falls outside that range, look again at Paragraph 3C — you may have grabbed 3A or 3B by mistake. If after re-reading the value still falls outside that range, keep it but add a warning so the agent can verify.
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION: earnest money amount, additional earnest money amount and date, option fee amount, option period in days.
 - Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address.
 - Paragraph 9 CLOSING: closing date.
-- Paragraph 22 AGREEMENT OF PARTIES: list of attached addenda — note whether "Third Party Financing Addendum" box is checked.
+- Paragraph 22 AGREEMENT OF PARTIES — ATTACHED ADDENDA: a list of checkboxes for every standard TREC addendum. Look at each checkbox and record whether it is marked. Map each to the addenda.* schema below. Standard items in this list:
+  - "Third Party Financing Addendum" (TREC 40-x) -> addenda.hasThirdPartyFinancing
+  - "Addendum for Property Subject to Mandatory Membership in a Property Owners Association" / HOA disclosure (TREC 36-x) -> addenda.hasHOA
+  - "Addendum for Seller's Disclosure of Information on Lead-Based Paint" / Lead-Based Paint Addendum (TREC OP-L) -> addenda.hasLeadBasedPaint
+  - "Seller Financing Addendum" (TREC 26-x) -> addenda.hasSellerFinancing
+  - "Addendum for Sale of Other Property by Buyer" (TREC 10-x) -> addenda.hasSaleOfOtherProperty
+  - "Addendum for Back-Up Contract" (TREC 11-x) -> addenda.hasBackupContract
+  - "Addendum Concerning Right to Terminate Due to Lender's Appraisal" (TREC 49-x) -> addenda.hasAppraisalRightToTerminate
+  - "Condominium Resale Certificate Addendum" (TREC 32-x) -> addenda.hasCondoResale
+  - "Addendum for Coastal Area Property" (TREC 33-x) -> addenda.hasCoastalProperty
+  - "Addendum for Reservation of Oil, Gas and Other Minerals" (TREC 44-x) -> addenda.hasMineralsReservation
+  - Any "Other" line that is filled in or has its own attached page -> addenda.hasOther (and capture the description in addenda.notes)
+- Each addendum is typically a separate page following the contract. When an addendum box is checked, look at the attached page to pull the relevant details:
+  - Third Party Financing Addendum -> financing approval days (also goes into addenda.thirdPartyFinancingDays for back-compat with financingDays)
+  - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO YYYY-MM-DD)
+  - Right to Terminate Due to Lender's Appraisal -> number of days notice (addenda.appraisalTerminationDays)
+  - Back-Up Contract -> number of days the buyer has to deliver notice once the primary contract terminates (addenda.backupContractNoticeDays)
 - Paragraph 23 TERMINATION OPTION: number of option days (also referenced in 5).
 - Effective Date: bottom of contract near signatures, labeled "Effective Date".
 - Broker Information section (last page): two side-by-side blocks — see BROKER BLOCK DISAMBIGUATION below.
-- Third Party Financing Addendum (if attached): financing approval period in days (notice deadline for financing).
 
 BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
 
@@ -84,12 +101,12 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "cityStateZip": string | null,               // "Austin, TX 78701"
     "buyerName": string | null,                  // full buyer name(s), comma-separated if multiple
     "sellerName": string | null,                 // full seller name(s), comma-separated if multiple
-    "salePrice": number | null,                  // total sales price (3C) as a number, no $ or commas
+    "salePrice": number | null,                  // TOTAL sales price from Paragraph 3C as a number, no $ or commas (NOT 3A or 3B)
     "earnestMoney": number | null,               // earnest money in 5A as a number
     "optionFee": number | null,                  // option fee in 5D as a number
     "optionDays": number | null,                 // termination option period (paragraph 23) as integer
     "financingDays": number | null,              // financing approval days from Third Party Financing Addendum, null if no addendum
-    "hasFinancingAddendum": boolean,             // true if "Third Party Financing Addendum" box is checked in 22
+    "hasFinancingAddendum": boolean,             // legacy mirror of addenda.hasThirdPartyFinancing — keep both in sync
     "contractEffectiveDate": string | null,      // "YYYY-MM-DD"
     "closingDate": string | null,                // "YYYY-MM-DD"
     "titleCompany": string | null,               // company name from 6A
@@ -104,6 +121,26 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "listingAgentPhone": string | null,
       "listingBrokerage": string | null,
       "lender": string | null
+    },
+    "addenda": {
+      // Each has* boolean = whether the corresponding box in Paragraph 22 is checked.
+      // Detail fields below are pulled from the attached addendum page itself when present; null otherwise.
+      "hasThirdPartyFinancing": boolean,
+      "hasHOA": boolean,
+      "hasLeadBasedPaint": boolean,
+      "hasSellerFinancing": boolean,
+      "hasSaleOfOtherProperty": boolean,
+      "hasBackupContract": boolean,
+      "hasAppraisalRightToTerminate": boolean,
+      "hasCondoResale": boolean,
+      "hasCoastalProperty": boolean,
+      "hasMineralsReservation": boolean,
+      "hasOther": boolean,
+      "thirdPartyFinancingDays": number | null,        // mirrors top-level financingDays
+      "saleOfOtherPropertyDeadline": string | null,    // ISO YYYY-MM-DD
+      "appraisalTerminationDays": number | null,
+      "backupContractNoticeDays": number | null,
+      "notes": string | null                            // free-form description of any "Other" addendum or unusual terms
     }
   },
   "confidence": {
@@ -133,7 +170,22 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "parties.listingAgentEmail": number,
     "parties.listingAgentPhone": number,
     "parties.listingBrokerage": number,
-    "parties.lender": number
+    "parties.lender": number,
+    "addenda.hasThirdPartyFinancing": number,
+    "addenda.hasHOA": number,
+    "addenda.hasLeadBasedPaint": number,
+    "addenda.hasSellerFinancing": number,
+    "addenda.hasSaleOfOtherProperty": number,
+    "addenda.hasBackupContract": number,
+    "addenda.hasAppraisalRightToTerminate": number,
+    "addenda.hasCondoResale": number,
+    "addenda.hasCoastalProperty": number,
+    "addenda.hasMineralsReservation": number,
+    "addenda.hasOther": number,
+    "addenda.thirdPartyFinancingDays": number,
+    "addenda.saleOfOtherPropertyDeadline": number,
+    "addenda.appraisalTerminationDays": number,
+    "addenda.backupContractNoticeDays": number
   },
   "warnings": [string]   // human-readable notes: blank form, illegible handwriting, missing signatures, ambiguous dates, etc.
 }
@@ -202,6 +254,24 @@ function emptyResult(warning) {
         listingBrokerage: null,
         lender: null,
       },
+      addenda: {
+        hasThirdPartyFinancing: false,
+        hasHOA: false,
+        hasLeadBasedPaint: false,
+        hasSellerFinancing: false,
+        hasSaleOfOtherProperty: false,
+        hasBackupContract: false,
+        hasAppraisalRightToTerminate: false,
+        hasCondoResale: false,
+        hasCoastalProperty: false,
+        hasMineralsReservation: false,
+        hasOther: false,
+        thirdPartyFinancingDays: null,
+        saleOfOtherPropertyDeadline: null,
+        appraisalTerminationDays: null,
+        backupContractNoticeDays: null,
+        notes: null,
+      },
     },
     confidence: {},
     warnings: warning ? [warning] : [],
@@ -250,9 +320,31 @@ async function scanContract(pdfBase64) {
   const base = emptyResult();
   const extracted = { ...base.extracted, ...(parsed.extracted || {}) };
   extracted.parties = { ...base.extracted.parties, ...((parsed.extracted && parsed.extracted.parties) || {}) };
+  extracted.addenda = { ...base.extracted.addenda, ...((parsed.extracted && parsed.extracted.addenda) || {}) };
+
+  // Keep top-level financing fields in sync with addenda (back-compat for the
+  // existing frontend, which reads top-level `financingDays` / `hasFinancingAddendum`).
+  if (extracted.addenda.hasThirdPartyFinancing && !extracted.hasFinancingAddendum) {
+    extracted.hasFinancingAddendum = true;
+  }
+  if (extracted.addenda.thirdPartyFinancingDays && !extracted.financingDays) {
+    extracted.financingDays = extracted.addenda.thirdPartyFinancingDays;
+  }
 
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.filter((w) => typeof w === 'string') : [];
+
+  // Sales-price sanity-check warning (50k–5M for Texas residential).
+  // The model is instructed to add its own warning when out-of-range; we add
+  // one server-side as a backstop in case it doesn't.
+  if (typeof extracted.salePrice === 'number' && extracted.salePrice > 0) {
+    if (extracted.salePrice < 50000 || extracted.salePrice > 5000000) {
+      const already = warnings.some((w) => /sales? price/i.test(w));
+      if (!already) {
+        warnings.push(`Extracted sales price ($${extracted.salePrice.toLocaleString()}) is outside the typical $50,000–$5,000,000 Texas residential range — verify against Paragraph 3C.`);
+      }
+    }
+  }
 
   return { extracted, confidence, warnings };
 }
