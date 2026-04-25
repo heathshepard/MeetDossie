@@ -46,14 +46,21 @@ const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real 
 
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
-- Paragraph 2 PROPERTY: Street address (2A Land/Lot/Block), city, county, state, ZIP.
+- Paragraph 2 PROPERTY: Street address (2A Land/Lot/Block), city, county, state, ZIP. The 2A line typically reads "Lot ___ , Block ___ , of <Subdivision>, in the City of <city>, <county> County, Texas". Capture the legal description verbatim into propertyDetails.legalDescription, and pull lotNumber, blockNumber, subdivision, county into the matching propertyDetails sub-fields. If 2C "Reservations" or any deed restrictions are mentioned, capture them into propertyDetails.restrictions.
 - Paragraph 3 SALES PRICE: 3A cash portion, 3B sum financed, 3C TOTAL sales price.
   IMPORTANT: Paragraph 3C is the TOTAL Sales Price — the final number after adding 3A cash + 3B financed amount. Extract ONLY the 3C total into salePrice. Do NOT mistakenly extract 3A or 3B. Convert to plain number, no commas or dollar signs (e.g. "$350,000.00" -> 350000).
   Sanity check: Sales price should typically be between $50,000 and $5,000,000 for Texas residential. If your value falls outside that range, look again at Paragraph 3C — you may have grabbed 3A or 3B by mistake. If after re-reading the value still falls outside that range, keep it but add a warning so the agent can verify.
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION: earnest money amount, additional earnest money amount and date, option fee amount, option period in days.
+  Also pull the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (YYYY-MM-DD).
 - Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address.
-- Paragraph 9 CLOSING: closing date.
+- Paragraph 9 CLOSING and POSSESSION: closing date goes into closingDate (top-level) and is mirrored into paragraph9Closing.closingDate. Possession is in 9.B — there are checkbox options for "upon closing and funding", "upon closing", or "according to a temporary residential lease form" / a specific date.
+  - "upon closing and funding" or "upon closing" -> possession.type = "closing" (or "funding" if explicitly funding-only)
+  - A specific date -> possession.type = "specific_date" and possession.specificDate = YYYY-MM-DD
+  Mirror the same values into paragraph9Closing.possessionType and paragraph9Closing.possessionDate.
+- Paragraph 10 POSSESSION / FIXTURES (the "items included / not included" list): TREC 20-17 lists standard items (curtains, drapery rods, mounted TV brackets, etc.) and has write-in lines for additional inclusions and for exclusions. Capture each non-default included item into paragraph10.inclusions[] and each excluded item into paragraph10.exclusions[]. Don't enumerate items the form lists as included by default; only capture write-in additions/removals.
+- Paragraph 11 SPECIAL PROVISIONS: free-text block. Capture the entire content verbatim (including line breaks as \\n) into paragraph11SpecialProvisions. Trim leading/trailing whitespace. If the field is blank, return null.
+- Paragraph 12 SETTLEMENT AND OTHER EXPENSES: 12A.(1)(b) lists the seller's contribution to the buyer's expenses. The line is typically "Seller's Expenses (Buyer's Expenses): An amount not to exceed $___ ..." Capture the dollar amount into paragraph12Expenses.sellerPaysAmount, and any percentage into paragraph12Expenses.sellerPaysPercentage. paragraph12Expenses.buyerPaysClosingCosts is true unless the seller-pays line covers ALL of buyer's typical closing costs (rare).
 - Paragraph 22 AGREEMENT OF PARTIES — ATTACHED ADDENDA: a list of checkboxes for every standard TREC addendum. Look at each checkbox and record whether it is marked. Map each to the addenda.* schema below. Standard items in this list:
   - "Third Party Financing Addendum" (TREC 40-x) -> addenda.hasThirdPartyFinancing
   - "Addendum for Property Subject to Mandatory Membership in a Property Owners Association" / HOA disclosure (TREC 36-x) -> addenda.hasHOA
@@ -71,7 +78,7 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
   - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO YYYY-MM-DD)
   - Right to Terminate Due to Lender's Appraisal -> number of days notice (addenda.appraisalTerminationDays)
   - Back-Up Contract -> number of days the buyer has to deliver notice once the primary contract terminates (addenda.backupContractNoticeDays)
-- Paragraph 23 TERMINATION OPTION: number of option days (also referenced in 5).
+- Paragraph 23 TERMINATION OPTION: number of option days (also referenced in 5). Mirror into paragraph23TerminationOption.optionDays and paragraph23TerminationOption.optionFee. The option fee is usually payable to Seller, but the contract sometimes names the title company or another party — capture whoever appears on the "payable to" line into paragraph23TerminationOption.optionFeePayableTo.
 - Effective Date: bottom of contract near signatures, labeled "Effective Date".
 - Broker Information section (last page): two side-by-side blocks — see BROKER BLOCK DISAMBIGUATION below.
 
@@ -141,6 +148,44 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "appraisalTerminationDays": number | null,
       "backupContractNoticeDays": number | null,
       "notes": string | null                            // free-form description of any "Other" addendum or unusual terms
+    },
+    "possession": {
+      "type": "closing" | "funding" | "specific_date" | null,
+      "specificDate": string | null                     // YYYY-MM-DD when type === "specific_date"
+    },
+    "propertyDetails": {
+      "legalDescription": string | null,                // verbatim from Paragraph 2A
+      "lotNumber": string | null,
+      "blockNumber": string | null,
+      "subdivision": string | null,
+      "county": string | null,
+      "restrictions": string | null                     // any deed restrictions / HOA references mentioned
+    },
+    "paragraph5": {
+      "earnestMoneyHolder": string | null,              // title company / escrow agent named on 5A
+      "earnestMoneyDeadlineDays": number | null,        // days after effective date to deliver earnest money
+      "additionalEarnestMoney": number | null,
+      "additionalEarnestMoneyDate": string | null       // YYYY-MM-DD
+    },
+    "paragraph9Closing": {
+      "closingDate": string | null,                     // mirror of top-level closingDate
+      "possessionType": "closing" | "funding" | "specific_date" | null,
+      "possessionDate": string | null                   // YYYY-MM-DD when possessionType === "specific_date"
+    },
+    "paragraph10": {
+      "inclusions": [string],                           // write-in items beyond TREC standard list
+      "exclusions": [string]                            // items explicitly excluded from sale
+    },
+    "paragraph11SpecialProvisions": string | null,      // verbatim text of special provisions, line breaks as \\n
+    "paragraph12Expenses": {
+      "sellerPaysAmount": number | null,                // dollar amount seller agreed to credit toward buyer expenses
+      "sellerPaysPercentage": number | null,            // percentage if expressed that way (e.g. 3 means 3%)
+      "buyerPaysClosingCosts": boolean
+    },
+    "paragraph23TerminationOption": {
+      "optionDays": number | null,                      // mirror of top-level optionDays
+      "optionFee": number | null,                       // mirror of top-level optionFee
+      "optionFeePayableTo": string | null               // usually "Seller"; sometimes title company or named escrow agent
     }
   },
   "confidence": {
@@ -185,7 +230,31 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "addenda.thirdPartyFinancingDays": number,
     "addenda.saleOfOtherPropertyDeadline": number,
     "addenda.appraisalTerminationDays": number,
-    "addenda.backupContractNoticeDays": number
+    "addenda.backupContractNoticeDays": number,
+    "possession.type": number,
+    "possession.specificDate": number,
+    "propertyDetails.legalDescription": number,
+    "propertyDetails.lotNumber": number,
+    "propertyDetails.blockNumber": number,
+    "propertyDetails.subdivision": number,
+    "propertyDetails.county": number,
+    "propertyDetails.restrictions": number,
+    "paragraph5.earnestMoneyHolder": number,
+    "paragraph5.earnestMoneyDeadlineDays": number,
+    "paragraph5.additionalEarnestMoney": number,
+    "paragraph5.additionalEarnestMoneyDate": number,
+    "paragraph9Closing.closingDate": number,
+    "paragraph9Closing.possessionType": number,
+    "paragraph9Closing.possessionDate": number,
+    "paragraph10.inclusions": number,
+    "paragraph10.exclusions": number,
+    "paragraph11SpecialProvisions": number,
+    "paragraph12Expenses.sellerPaysAmount": number,
+    "paragraph12Expenses.sellerPaysPercentage": number,
+    "paragraph12Expenses.buyerPaysClosingCosts": number,
+    "paragraph23TerminationOption.optionDays": number,
+    "paragraph23TerminationOption.optionFee": number,
+    "paragraph23TerminationOption.optionFeePayableTo": number
   },
   "warnings": [string]   // human-readable notes: blank form, illegible handwriting, missing signatures, ambiguous dates, etc.
 }
@@ -272,6 +341,44 @@ function emptyResult(warning) {
         backupContractNoticeDays: null,
         notes: null,
       },
+      possession: {
+        type: null,
+        specificDate: null,
+      },
+      propertyDetails: {
+        legalDescription: null,
+        lotNumber: null,
+        blockNumber: null,
+        subdivision: null,
+        county: null,
+        restrictions: null,
+      },
+      paragraph5: {
+        earnestMoneyHolder: null,
+        earnestMoneyDeadlineDays: null,
+        additionalEarnestMoney: null,
+        additionalEarnestMoneyDate: null,
+      },
+      paragraph9Closing: {
+        closingDate: null,
+        possessionType: null,
+        possessionDate: null,
+      },
+      paragraph10: {
+        inclusions: [],
+        exclusions: [],
+      },
+      paragraph11SpecialProvisions: null,
+      paragraph12Expenses: {
+        sellerPaysAmount: null,
+        sellerPaysPercentage: null,
+        buyerPaysClosingCosts: true,
+      },
+      paragraph23TerminationOption: {
+        optionDays: null,
+        optionFee: null,
+        optionFeePayableTo: null,
+      },
     },
     confidence: {},
     warnings: warning ? [warning] : [],
@@ -319,8 +426,39 @@ async function scanContract(pdfBase64) {
   // Normalize shape
   const base = emptyResult();
   const extracted = { ...base.extracted, ...(parsed.extracted || {}) };
-  extracted.parties = { ...base.extracted.parties, ...((parsed.extracted && parsed.extracted.parties) || {}) };
-  extracted.addenda = { ...base.extracted.addenda, ...((parsed.extracted && parsed.extracted.addenda) || {}) };
+  const parsedExtracted = parsed.extracted || {};
+  extracted.parties = { ...base.extracted.parties, ...(parsedExtracted.parties || {}) };
+  extracted.addenda = { ...base.extracted.addenda, ...(parsedExtracted.addenda || {}) };
+  extracted.possession = { ...base.extracted.possession, ...(parsedExtracted.possession || {}) };
+  extracted.propertyDetails = { ...base.extracted.propertyDetails, ...(parsedExtracted.propertyDetails || {}) };
+  extracted.paragraph5 = { ...base.extracted.paragraph5, ...(parsedExtracted.paragraph5 || {}) };
+  extracted.paragraph9Closing = { ...base.extracted.paragraph9Closing, ...(parsedExtracted.paragraph9Closing || {}) };
+  extracted.paragraph10 = {
+    ...base.extracted.paragraph10,
+    ...(parsedExtracted.paragraph10 || {}),
+    inclusions: Array.isArray(parsedExtracted.paragraph10 && parsedExtracted.paragraph10.inclusions)
+      ? parsedExtracted.paragraph10.inclusions.filter((s) => typeof s === 'string')
+      : [],
+    exclusions: Array.isArray(parsedExtracted.paragraph10 && parsedExtracted.paragraph10.exclusions)
+      ? parsedExtracted.paragraph10.exclusions.filter((s) => typeof s === 'string')
+      : [],
+  };
+  extracted.paragraph12Expenses = { ...base.extracted.paragraph12Expenses, ...(parsedExtracted.paragraph12Expenses || {}) };
+  extracted.paragraph23TerminationOption = { ...base.extracted.paragraph23TerminationOption, ...(parsedExtracted.paragraph23TerminationOption || {}) };
+  if (typeof parsedExtracted.paragraph11SpecialProvisions === 'string') {
+    extracted.paragraph11SpecialProvisions = parsedExtracted.paragraph11SpecialProvisions.trim() || null;
+  }
+  // Keep paragraph9Closing.closingDate / paragraph23TerminationOption.* in sync
+  // with the top-level fields when one side is missing.
+  if (!extracted.paragraph9Closing.closingDate && extracted.closingDate) {
+    extracted.paragraph9Closing.closingDate = extracted.closingDate;
+  }
+  if (extracted.paragraph23TerminationOption.optionDays == null && typeof extracted.optionDays === 'number') {
+    extracted.paragraph23TerminationOption.optionDays = extracted.optionDays;
+  }
+  if (extracted.paragraph23TerminationOption.optionFee == null && typeof extracted.optionFee === 'number') {
+    extracted.paragraph23TerminationOption.optionFee = extracted.optionFee;
+  }
 
   // Keep top-level financing fields in sync with addenda (back-compat for the
   // existing frontend, which reads top-level `financingDays` / `hasFinancingAddendum`).
