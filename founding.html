@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Founding Member — Dossie AI</title>
+<meta name="description" content="Lock in $29/mo for life. Founding membership for the AI transaction coordinator built for Texas agents. Only 50 spots.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF; --bg-dark: #1A1A2E;
+  --border: #E8E2D9; --border-light: #F0EBE3;
+  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
+  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
+  --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+  --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+  --coral: #E8836B; --coral-light: #FCE4DC; --coral-deep: #C9624A;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border-light); }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
+.nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav-link { font-size: 14px; color: var(--text-secondary); text-decoration: none; font-weight: 500; padding: 10px 14px; }
+.nav-link:hover { color: var(--text-primary); }
+.nav-cta { display: inline-flex; align-items: center; justify-content: center; padding: 11px 20px; border-radius: 999px; text-decoration: none; background: var(--coral); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 28px rgba(232,131,107,0.28); transition: transform 0.2s, box-shadow 0.2s; }
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(232,131,107,0.36); }
+
+.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 140px 28px 80px; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: -220px; right: -180px; width: 620px; height: 620px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.85; }
+.hero::after { content: ''; position: absolute; bottom: -220px; left: -120px; width: 540px; height: 540px; background: radial-gradient(circle, var(--gold-light) 0%, transparent 65%); pointer-events: none; opacity: 0.7; }
+.hero-inner { position: relative; z-index: 1; max-width: 760px; width: 100%; }
+
+.hero-badge { display: inline-flex; align-items: center; gap: 10px; padding: 9px 22px; background: var(--bg-card); border: 1px solid var(--gold); border-radius: 100px; font-size: 13px; color: var(--gold-deep); font-weight: 700; letter-spacing: 0.6px; margin-bottom: 32px; box-shadow: 0 4px 18px rgba(201,168,76,0.14); animation: fadeInUp 0.5s ease-out both; text-transform: uppercase; }
+.hero-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); animation: pulse 2.4s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(232,131,107,0.18); }
+
+.hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(42px, 7.6vw, 84px); font-weight: 600; line-height: 1.02; letter-spacing: -1.6px; color: var(--text-primary); animation: fadeInUp 0.5s ease-out 0.1s both; }
+.hero-title em { font-style: italic; background: linear-gradient(135deg, var(--blush-deep) 0%, var(--coral-deep) 60%, var(--gold-deep) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero-tagline { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(18px, 2.4vw, 22px); color: var(--blush-deep); margin-top: 14px; animation: fadeInUp 0.5s ease-out 0.15s both; }
+.hero-sub { font-size: clamp(15px, 1.7vw, 17px); color: var(--text-secondary); max-width: 580px; margin: 22px auto 0; line-height: 1.75; animation: fadeInUp 0.5s ease-out 0.2s both; }
+
+.price-card { display: inline-flex; align-items: flex-end; justify-content: center; gap: 16px; margin-top: 38px; padding: 20px 32px; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 16px 50px rgba(45,42,38,0.08); animation: fadeInUp 0.5s ease-out 0.3s both; }
+.price-old { display: inline-flex; flex-direction: column; align-items: center; }
+.price-old-num { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--text-light); text-decoration: line-through; line-height: 1; }
+.price-old-label { font-size: 10px; letter-spacing: 1.5px; color: var(--text-light); text-transform: uppercase; margin-top: 4px; }
+.price-divider { width: 1px; height: 56px; background: var(--border); }
+.price-new { display: inline-flex; flex-direction: column; align-items: flex-start; }
+.price-new-row { display: inline-flex; align-items: baseline; gap: 4px; }
+.price-new-currency { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: var(--text-primary); line-height: 1; }
+.price-new-num { font-family: 'Cormorant Garamond', serif; font-size: clamp(56px, 7vw, 76px); font-weight: 600; color: var(--text-primary); line-height: 1; letter-spacing: -2px; }
+.price-new-period { font-size: 16px; color: var(--text-secondary); margin-left: 2px; }
+.price-new-label { font-size: 11px; letter-spacing: 1.6px; color: var(--coral-deep); text-transform: uppercase; font-weight: 700; margin-top: 6px; }
+
+.cta-row { margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: fadeInUp 0.5s ease-out 0.4s both; }
+.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 18px 36px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 18px 44px rgba(232,131,107,0.32); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; letter-spacing: 0.2px; }
+.cta-primary:hover { transform: translateY(-2px); background: var(--coral-deep); box-shadow: 0 22px 50px rgba(232,131,107,0.4); }
+.cta-primary:active { transform: translateY(0); }
+.cta-arrow { transition: transform 0.2s; }
+.cta-primary:hover .cta-arrow { transform: translateX(4px); }
+
+.scarcity { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.scarcity-pip { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); animation: pulse 2s ease-in-out infinite; }
+
+section { padding: 96px 28px; position: relative; }
+.section-narrow { max-width: 980px; margin: 0 auto; }
+.section-eyebrow { font-size: 12px; letter-spacing: 2.2px; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); margin-bottom: 16px; text-align: center; }
+.section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5vw, 56px); font-weight: 600; line-height: 1.05; letter-spacing: -1.2px; color: var(--text-primary); text-align: center; }
+.section-title em { font-style: italic; color: var(--blush-deep); }
+.section-sub { text-align: center; max-width: 620px; margin: 22px auto 0; color: var(--text-secondary); font-size: 16px; line-height: 1.7; }
+
+.benefits { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 56px; }
+.benefit { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 22px; padding: 28px 26px; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; position: relative; overflow: hidden; }
+.benefit:hover { transform: translateY(-4px); border-color: var(--blush); box-shadow: 0 18px 48px rgba(45,42,38,0.08); }
+.benefit-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 18px; background: var(--blush-light); }
+.benefit:nth-child(2) .benefit-icon { background: var(--sage-light); }
+.benefit:nth-child(3) .benefit-icon { background: var(--gold-light); }
+.benefit:nth-child(4) .benefit-icon { background: var(--coral-light); }
+.benefit:nth-child(5) .benefit-icon { background: var(--blush-light); }
+.benefit:nth-child(6) .benefit-icon { background: linear-gradient(135deg, var(--gold-light) 0%, var(--coral-light) 100%); }
+.benefit-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.2; }
+.benefit-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+.benefit-tag { position: absolute; top: 18px; right: 18px; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; padding: 4px 10px; border-radius: 100px; background: var(--gold-light); }
+
+.texas { background: var(--bg-warm); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 96px 28px; }
+.texas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 52px; max-width: 940px; margin-left: auto; margin-right: auto; }
+.texas-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 22px; padding: 32px 26px; text-align: center; }
+.texas-icon { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, var(--blush-light) 0%, var(--gold-light) 100%); display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 18px; }
+.texas-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; line-height: 1.25; }
+.texas-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+.faq { padding: 96px 28px; }
+.faq-list { max-width: 720px; margin: 52px auto 0; display: flex; flex-direction: column; gap: 12px; }
+.faq-item { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 18px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+.faq-item[open] { border-color: var(--blush); box-shadow: 0 14px 38px rgba(45,42,38,0.06); }
+.faq-question { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 26px; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 600; color: var(--text-primary); list-style: none; }
+.faq-question::-webkit-details-marker { display: none; }
+.faq-toggle { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-warm); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-secondary); flex-shrink: 0; transition: transform 0.25s, background 0.25s, color 0.25s; }
+.faq-item[open] .faq-toggle { transform: rotate(45deg); background: var(--coral-light); color: var(--coral-deep); }
+.faq-answer { padding: 0 26px 24px; font-size: 15px; color: var(--text-secondary); line-height: 1.75; }
+
+.signup { padding: 110px 28px; background: linear-gradient(180deg, var(--bg) 0%, var(--bg-warm) 100%); position: relative; overflow: hidden; }
+.signup::before { content: ''; position: absolute; top: -120px; right: -100px; width: 480px; height: 480px; background: radial-gradient(circle, var(--coral-light) 0%, transparent 65%); pointer-events: none; opacity: 0.6; }
+.signup-inner { position: relative; max-width: 560px; margin: 0 auto; text-align: center; }
+.signup-form { display: flex; flex-direction: column; gap: 12px; margin-top: 36px; padding: 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 20px 60px rgba(45,42,38,0.08); text-align: left; }
+.signup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.signup-field { display: flex; flex-direction: column; gap: 6px; }
+.signup-label { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+.signup-input { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 13px 16px; font-family: inherit; font-size: 15px; background: #fff; color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
+.signup-input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-light); }
+.signup-button { margin-top: 10px; padding: 16px 22px; border: none; border-radius: 999px; background: var(--coral); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 16px 38px rgba(232,131,107,0.3); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+.signup-button:hover:not(:disabled) { transform: translateY(-2px); background: var(--coral-deep); }
+.signup-button:disabled { opacity: 0.65; cursor: progress; }
+.signup-status { margin-top: 14px; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.55; background: var(--gold-light); color: var(--gold-deep); display: none; }
+.signup-status.is-success { background: var(--sage-light); color: var(--sage-deep); display: block; }
+.signup-status.is-error { background: var(--coral-light); color: var(--coral-deep); display: block; }
+.signup-status.is-loading { display: block; }
+.signup-fineprint { margin-top: 18px; font-size: 12px; color: var(--text-light); }
+
+footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(--border-light); }
+.footer-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 12px; }
+.footer-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 18px; }
+.footer-text { font-size: 13px; color: var(--text-light); line-height: 1.65; }
+.footer-links { display: flex; gap: 24px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.footer-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+.footer-link:hover { color: var(--text-primary); }
+
+@media (max-width: 760px) {
+  nav { padding: 12px 18px; }
+  .nav-link { display: none; }
+  .nav-cta { padding: 9px 14px; font-size: 12px; }
+  .hero { padding: 130px 22px 70px; }
+  .hero-title { letter-spacing: -1px; }
+  section, .texas, .faq, .signup { padding: 72px 22px; }
+  .benefits { grid-template-columns: 1fr; gap: 14px; margin-top: 40px; }
+  .benefit { padding: 24px 22px; }
+  .texas-grid { grid-template-columns: 1fr; gap: 14px; margin-top: 36px; }
+  .price-card { padding: 18px 22px; gap: 12px; }
+  .price-divider { height: 50px; }
+  .price-new-num { font-size: 56px; }
+  .price-old-num { font-size: 24px; }
+  .signup-row { grid-template-columns: 1fr; }
+  .signup-form { padding: 24px; }
+  .faq-question { font-size: 19px; padding: 18px 20px; }
+  .faq-answer { padding: 0 20px 20px; }
+  .cta-primary { padding: 16px 28px; font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-mark">D</div>
+    <span class="nav-name">Dossie</span>
+  </a>
+  <div class="nav-actions">
+    <a href="/" class="nav-link">Home</a>
+    <a href="#claim" class="nav-cta">Claim My Spot</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      🔒 Founding Member — 50 Spots Only
+    </div>
+
+    <h1 class="hero-title">Lock in your rate <em>before we launch.</em></h1>
+    <p class="hero-tagline">Your deals. Her job.</p>
+    <p class="hero-sub">
+      Dossie is the AI transaction coordinator built for Texas agents. Founding members get full access at <strong style="color: var(--text-primary); font-weight: 700;">$29/month</strong> — locked for life, no matter what the price becomes.
+    </p>
+
+    <div class="price-card">
+      <div class="price-old">
+        <span class="price-old-num">$49</span>
+        <span class="price-old-label">After Launch</span>
+      </div>
+      <div class="price-divider"></div>
+      <div class="price-new">
+        <div class="price-new-row">
+          <span class="price-new-currency">$</span>
+          <span class="price-new-num">29</span>
+          <span class="price-new-period">/mo</span>
+        </div>
+        <span class="price-new-label">Locked Forever</span>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <a href="#claim" class="cta-primary">
+        Claim Your Founding Member Spot
+        <span class="cta-arrow">→</span>
+      </a>
+      <span class="scarcity">
+        <span class="scarcity-pip"></span>
+        50 spots available at this price
+      </span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-narrow">
+    <div class="section-eyebrow">What you get</div>
+    <h2 class="section-title">Everything Dossie does, <em>handled for you.</em></h2>
+    <p class="section-sub">A full transaction coordinator's worth of work — distilled into a calm, branded workspace that never misses a deadline.</p>
+
+    <div class="benefits">
+      <div class="benefit">
+        <div class="benefit-icon">☀️</div>
+        <h3 class="benefit-title">Morning Brief</h3>
+        <p class="benefit-desc">AI reads your entire pipeline every morning in Luna's voice, so you know what to handle before your first showing.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">📄</div>
+        <h3 class="benefit-title">Contract Scanning</h3>
+        <p class="benefit-desc">Upload a PDF and Dossie fills the dossier automatically — addresses, parties, prices, deadlines.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">📜</div>
+        <h3 class="benefit-title">TREC Deadline Engine</h3>
+        <p class="benefit-desc">Every deadline calculated with paragraph citations from TREC Form 20-17 so you never have to guess.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">🎙️</div>
+        <h3 class="benefit-title">Talk to Dossie</h3>
+        <p class="benefit-desc">Voice-driven deal updates. Speak the change between showings, Dossie writes it into the file.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">✉️</div>
+        <h3 class="benefit-title">Email Drafting <span class="benefit-tag">Coming Soon</span></h3>
+        <p class="benefit-desc">AI writes your TC emails — option period reminders, lender intros, clear-to-close — in your voice.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">🔒</div>
+        <h3 class="benefit-title">Price Locked Forever</h3>
+        <p class="benefit-desc">$29/mo for as long as you keep your subscription active. New members will pay $49+ after the 50 founding spots fill.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="texas">
+  <div class="section-narrow">
+    <div class="section-eyebrow">Built for Texas</div>
+    <h2 class="section-title">A coordinator who <em>actually knows the contract.</em></h2>
+    <p class="section-sub">Most software treats Texas like an afterthought. Dossie was built around Texas — TREC paragraphs, holiday rollover, the way Texas deals actually run.</p>
+
+    <div class="texas-grid">
+      <div class="texas-card">
+        <div class="texas-icon">🤠</div>
+        <h3 class="texas-title">Built by a Texas REALTOR®</h3>
+        <p class="texas-desc">Designed by an active Texas agent who needed a TC who never sleeps and never forgets.</p>
+      </div>
+      <div class="texas-card">
+        <div class="texas-icon">📋</div>
+        <h3 class="texas-title">TREC Form 20-17 Native</h3>
+        <p class="texas-desc">Every deadline maps to a TREC paragraph. Option period, financing, closing, survey — every line cited.</p>
+      </div>
+      <div class="texas-card">
+        <div class="texas-icon">📅</div>
+        <h3 class="texas-title">Texas Holiday Rollover</h3>
+        <p class="texas-desc">Deadlines that land on weekends or Texas holidays roll forward automatically — exactly the way the contract reads them.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="section-narrow">
+    <div class="section-eyebrow">Questions</div>
+    <h2 class="section-title">A few <em>quick answers.</em></h2>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary class="faq-question">
+          What happens after the 50 spots are gone?
+          <span class="faq-toggle">+</span>
+        </summary>
+        <div class="faq-answer">Price goes to $49/month for new members. Your founding rate is locked for as long as you keep your subscription — even if pricing changes again later.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-question">
+          Is this live software?
+          <span class="faq-toggle">+</span>
+        </summary>
+        <div class="faq-answer">Yes — Dossie is in beta and shipping new features every week. Founding members get early access and a direct line to shape what we build next.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-question">
+          Can I cancel?
+          <span class="faq-toggle">+</span>
+        </summary>
+        <div class="faq-answer">Yes, anytime. No contracts, no minimums, no cancellation fees. If you ever come back, the founding rate is gone.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-question">
+          Is this TREC compliant?
+          <span class="faq-toggle">+</span>
+        </summary>
+        <div class="faq-answer">Built specifically for Texas TREC Form 20-17. Every deadline cites the paragraph it came from so you can audit any calculation in seconds.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="signup" id="claim">
+  <div class="signup-inner">
+    <div class="section-eyebrow">Reserve your spot</div>
+    <h2 class="section-title">Get on the <em>founding list.</em></h2>
+    <p class="section-sub">Drop your name and email. We'll send your founding member invite as soon as your spot is confirmed.</p>
+
+    <form class="signup-form" id="founding-form" novalidate>
+      <div class="signup-row">
+        <div class="signup-field">
+          <label class="signup-label" for="founding-name">Name</label>
+          <input class="signup-input" id="founding-name" name="name" type="text" placeholder="Your full name" autocomplete="name" required>
+        </div>
+        <div class="signup-field">
+          <label class="signup-label" for="founding-email">Email</label>
+          <input class="signup-input" id="founding-email" name="email" type="email" placeholder="you@brokerage.com" autocomplete="email" required>
+        </div>
+      </div>
+      <button class="signup-button" type="submit" id="founding-submit">Get Early Access</button>
+      <div class="signup-status" id="founding-status" role="status" aria-live="polite"></div>
+    </form>
+    <p class="signup-fineprint">No spam. We'll only reach out about your founding spot.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">
+    <div class="nav-mark" style="width:30px;height:30px;font-size:13px;">D</div>
+    <span class="footer-name">Dossie</span>
+  </div>
+  <div class="footer-text">Built by a Texas REALTOR® who needed a better way.<br>© 2026 Dossie AI. All rights reserved.</div>
+  <div class="footer-links">
+    <a href="/" class="footer-link">Home</a>
+    <a href="app.html" class="footer-link">Sign In</a>
+    <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById("founding-form");
+  if (!form) return;
+  var nameInput = document.getElementById("founding-name");
+  var emailInput = document.getElementById("founding-email");
+  var button = document.getElementById("founding-submit");
+  var status = document.getElementById("founding-status");
+
+  function showStatus(message, kind) {
+    status.textContent = message;
+    status.classList.remove("is-success", "is-error", "is-loading");
+    if (kind) status.classList.add("is-" + kind);
+  }
+
+  function clearStatus() {
+    status.textContent = "";
+    status.classList.remove("is-success", "is-error", "is-loading");
+  }
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var name = (nameInput.value || "").trim();
+    var email = (emailInput.value || "").trim();
+    if (!name || !email) {
+      showStatus("Add your name and email so we can save your spot.", "error");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showStatus("That email looks off. Mind double-checking it?", "error");
+      return;
+    }
+    button.disabled = true;
+    var originalLabel = button.textContent;
+    button.textContent = "Saving your spot...";
+    showStatus("Saving your spot...", "loading");
+    try {
+      var response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          role: "founding_member",
+          notes: "Founding member landing page",
+        }),
+      });
+      var json = null;
+      try { json = await response.json(); } catch (_) { json = null; }
+      if (!response.ok || (json && json.ok === false)) {
+        var serverMessage = json && json.error ? json.error : "Something went sideways. Try again in a moment.";
+        showStatus(serverMessage, "error");
+        button.disabled = false;
+        button.textContent = originalLabel;
+        return;
+      }
+      form.reset();
+      showStatus("You're on the list. Dossie will be in touch.", "success");
+      button.textContent = "You're In ✓";
+    } catch (error) {
+      showStatus("Couldn't reach the server. Check your connection and try again.", "error");
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
