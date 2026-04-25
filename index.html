@@ -26,6 +26,9 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
 .nav-actions { display: flex; align-items: center; gap: 12px; }
 .nav-signin { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: var(--sage-deep); color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(107, 142, 104, 0.18); }
+.nav-founding { display: inline-flex; align-items: center; gap: 6px; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: #E8836B; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(232, 131, 107, 0.24); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+.nav-founding:hover { transform: translateY(-1px); background: #C9624A; box-shadow: 0 14px 34px rgba(232, 131, 107, 0.32); }
+@media (max-width: 560px) { .nav-founding { padding: 10px 14px; font-size: 12px; } .nav-founding .nav-founding-full { display: none; } }
 
 .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 28px 80px; position: relative; overflow: hidden; }
 .hero::before { content: ''; position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.8; }
@@ -101,6 +104,7 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <span class="nav-name">Dossie</span>
  </a>
  <div class="nav-actions">
+  <a href="/founding.html" class="nav-founding">🔒 Founding<span class="nav-founding-full"> Members</span></a>
   <a href="app.html" class="nav-signin">Sign In</a>
  </div>
 </nav>
