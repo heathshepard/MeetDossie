@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Dossie — You're In</title>
+<meta name="description" content="Your Dossie founding member access is confirmed. Welcome aboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF;
+  --border: #E8E2D9; --border-light: #F0EBE3;
+  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
+  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
+  --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+  --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; }
+
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.04); opacity: 0.92; } }
+
+.shell { flex: 1; display: flex; align-items: center; justify-content: center; padding: 64px 28px; position: relative; overflow: hidden; }
+.shell::before { content: ''; position: absolute; top: -200px; right: -160px; width: 560px; height: 560px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.85; }
+.shell::after { content: ''; position: absolute; bottom: -200px; left: -120px; width: 540px; height: 540px; background: radial-gradient(circle, var(--gold-light) 0%, transparent 65%); pointer-events: none; opacity: 0.7; }
+
+.card { position: relative; z-index: 1; max-width: 560px; width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 32px; padding: 56px 48px; text-align: center; box-shadow: 0 30px 80px rgba(45,42,38,0.1); animation: fadeInUp 0.55s ease-out both; }
+.mark { width: 76px; height: 76px; border-radius: 24px; margin: 0 auto 28px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-weight: 600; color: #fff; font-size: 36px; box-shadow: 0 14px 38px rgba(212,160,160,0.32); animation: pulse 3s ease-in-out infinite; }
+.eyebrow { font-size: 12px; letter-spacing: 2.2px; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); margin-bottom: 18px; }
+h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(36px, 5.6vw, 54px); font-weight: 600; line-height: 1.05; letter-spacing: -1.2px; color: var(--text-primary); }
+h1 em { font-style: italic; color: var(--blush-deep); }
+.sub { margin: 22px auto 0; max-width: 440px; color: var(--text-secondary); font-size: 16px; line-height: 1.7; }
+.signature { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; color: var(--blush-deep); margin-top: 18px; }
+
+.cta-row { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; border-radius: 999px; background: var(--sage-deep); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 16px 38px rgba(107,142,104,0.28); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+.cta-primary:hover { transform: translateY(-2px); background: #5b7d58; box-shadow: 0 20px 42px rgba(107,142,104,0.36); }
+.cta-arrow { transition: transform 0.2s; }
+.cta-primary:hover .cta-arrow { transform: translateX(4px); }
+.secondary-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; }
+.secondary-link:hover { color: var(--text-primary); }
+
+.bullets { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 36px auto 0; max-width: 380px; text-align: left; }
+.bullet { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+.bullet-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--sage-light); color: var(--sage-deep); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; margin-top: 1px; }
+
+footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--border-light); }
+.footer-text { font-size: 13px; color: var(--text-light); }
+.footer-text a { color: var(--text-secondary); text-decoration: none; }
+.footer-text a:hover { color: var(--text-primary); }
+
+@media (max-width: 600px) {
+  .shell { padding: 56px 18px; }
+  .card { padding: 44px 28px; border-radius: 24px; }
+  .mark { width: 64px; height: 64px; font-size: 30px; }
+}
+</style>
+</head>
+<body>
+
+<main class="shell">
+  <div class="card">
+    <div class="mark">D</div>
+    <div class="eyebrow">🔒 Founding Member</div>
+    <h1>Welcome to Dossie. <em>You're in.</em></h1>
+    <p class="sub">Your founding member access is confirmed. We'll be in touch soon with your onboarding details and first Morning Brief.</p>
+
+    <div class="bullets">
+      <div class="bullet"><span class="bullet-dot">✓</span><span>$29/month locked for as long as you keep your subscription active.</span></div>
+      <div class="bullet"><span class="bullet-dot">✓</span><span>Early access to every feature we ship — and a direct line to shape what comes next.</span></div>
+      <div class="bullet"><span class="bullet-dot">✓</span><span>Receipt and subscription details are on the way to your inbox from Stripe.</span></div>
+    </div>
+
+    <div class="cta-row">
+      <a href="/app.html" class="cta-primary">
+        Go to your workspace
+        <span class="cta-arrow">→</span>
+      </a>
+      <a href="/" class="secondary-link">Back to the home page</a>
+    </div>
+
+    <p class="signature">— Heath &amp; Dossie</p>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-text">
+    Questions? <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a> · © 2026 Dossie AI
+  </div>
+</footer>
+
+</body>
+</html>
