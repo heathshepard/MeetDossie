@@ -1,10 +1,38 @@
 // Vercel Serverless Function: /api/speak
 // ElevenLabs TTS for Dossie's voice (Luna)
 
+import {
+  checkRateLimit,
+  RateLimitError,
+  clientIpFromReq,
+} from './_middleware/rateLimit.js';
+
+// CORS allowlist — production domains plus any localhost port for dev.
+const ALLOWED_ORIGINS = new Set([
+  'https://meetdossie.com',
+  'https://www.meetdossie.com',
+]);
+const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function applyCors(req, res) {
+  const origin = (req && req.headers && req.headers.origin) || '';
+  let allowOrigin = null;
+  if (typeof origin === 'string' && origin.length > 0) {
+    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
+      allowOrigin = origin;
+    }
+  }
+  if (allowOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  return Boolean(allowOrigin);
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
@@ -15,7 +43,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { text, speed } = req.body;
+    // IP-based rate limit: 100 requests/hour.
+    const ip = clientIpFromReq(req);
+    await checkRateLimit(ip, 'speak', 100, 60 * 60 * 1000);
+
+    const { text, speed } = req.body || {};
 
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ ok: false, error: 'Text is required' });
@@ -60,19 +92,33 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('ElevenLabs error:', error);
-      return res.status(response.status).json({ ok: false, error: 'TTS failed' });
+      // Log full upstream detail server-side; return a generic message.
+      const errorBody = await response.text().catch(() => '<no body>');
+      console.error('ElevenLabs error:', response.status, errorBody);
+      const status = response.status >= 500 ? 502 : response.status;
+      return res.status(status).json({ ok: false, error: 'TTS failed' });
     }
 
     const audioBuffer = await response.arrayBuffer();
-    
+
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', audioBuffer.byteLength);
     res.status(200).send(Buffer.from(audioBuffer));
 
   } catch (error) {
     console.error('Speak API error:', error);
+
+    if (error instanceof RateLimitError) {
+      if (error.retryAfterSeconds) {
+        res.setHeader('Retry-After', String(error.retryAfterSeconds));
+      }
+      return res.status(429).json({
+        ok: false,
+        error: 'Rate limit exceeded. Please try again later.'
+      });
+    }
+
+    // Generic sanitized response — never leak fetch errors / API keys.
     return res.status(500).json({ ok: false, error: 'Failed to generate speech' });
   }
 }
