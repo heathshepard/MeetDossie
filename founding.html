@@ -371,11 +371,19 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
   heroBtn.addEventListener("click", async function () {
     if (heroError) heroError.textContent = "";
     setHeroLoading(true);
+    var payload = {};
+    var emailField = document.getElementById("founding-email");
+    if (emailField && emailField.value) {
+      var emailValue = emailField.value.trim();
+      if (emailValue && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+        payload.email = emailValue;
+      }
+    }
     try {
       var response = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(payload),
       });
       var json = null;
       try { json = await response.json(); } catch (_) { json = null; }
