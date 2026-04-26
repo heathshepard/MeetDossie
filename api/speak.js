@@ -1,5 +1,5 @@
 // Vercel Serverless Function: /api/speak
-// ElevenLabs TTS for Dossie's voice (Luna)
+// ElevenLabs TTS for Dossie's voice (Jessica)
 
 import {
   checkRateLimit,
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'No text after cleaning' });
     }
 
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/6rOxfAnZpbM3VIEhFaeV', {
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc', {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
