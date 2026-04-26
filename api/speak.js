@@ -53,7 +53,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Text is required' });
     }
 
-    const speedValue = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.25;
+    // ElevenLabs caps voice_settings.speed at [0.7, 1.2]. Clamp any client-supplied
+    // value into that range; fall back to 1.20 (the fastest ElevenLabs allows).
+    const rawSpeed = typeof speed === 'number' ? speed : 1.20;
+    const speedValue = Math.min(1.2, Math.max(0.7, rawSpeed));
 
     if (!process.env.ELEVENLABS_API_KEY) {
       console.error('ELEVENLABS_API_KEY not configured');
