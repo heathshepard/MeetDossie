@@ -47,16 +47,11 @@ export default async function handler(req, res) {
     const ip = clientIpFromReq(req);
     await checkRateLimit(ip, 'speak', 100, 60 * 60 * 1000);
 
-    const { text, speed } = req.body || {};
+    const { text } = req.body || {};
 
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ ok: false, error: 'Text is required' });
     }
-
-    // ElevenLabs caps voice_settings.speed at [0.7, 1.2]. Clamp any client-supplied
-    // value into that range; fall back to 1.20 (the fastest ElevenLabs allows).
-    const rawSpeed = typeof speed === 'number' ? speed : 1.20;
-    const speedValue = Math.min(1.2, Math.max(0.7, rawSpeed));
 
     if (!process.env.ELEVENLABS_API_KEY) {
       console.error('ELEVENLABS_API_KEY not configured');
@@ -85,11 +80,11 @@ export default async function handler(req, res) {
         text: cleanText,
         model_id: 'eleven_flash_v2_5',
         voice_settings: {
-          stability: 0.40,
+          stability: 0.5,
           similarity_boost: 0.75,
           style: 0.25,
           use_speaker_boost: true,
-          speed: speedValue,
+          speed: 1.0,
         },
       }),
     });
