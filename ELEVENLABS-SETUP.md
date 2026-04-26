@@ -1,6 +1,6 @@
 # ElevenLabs API Setup for Dossie Voice
 
-Dossie uses ElevenLabs (Luna voice) for natural speech.
+Dossie uses ElevenLabs (Jessica voice) for natural speech.
 
 ## Get API Key
 
@@ -42,11 +42,11 @@ curl -X POST https://meetdossie.com/api/speak \
   --output test.mp3
 ```
 
-Should return an MP3 file with Luna's voice.
+Should return an MP3 file with Jessica's voice.
 
 ## Voice Settings
 
-- **Voice:** Luna (ID: 6rOxfAnZpbM3VIEhFaeV)
+- **Voice:** Jessica (ID: lxYfHSkYm1EzQzGhdbfc)
 - **Model:** eleven_turbo_v2 (fastest, lowest latency)
 - **Stability:** 0.5
 - **Similarity Boost:** 0.75
