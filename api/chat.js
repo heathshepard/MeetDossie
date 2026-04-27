@@ -135,19 +135,18 @@ No transaction is currently selected. Focus on being genuinely helpful:
 Don't force data entry. Just be a helpful coordinator they can talk to.`;
 }
 
-async function callClaude(model, message, systemPrompt) {
+async function callClaude(model, message, systemPrompt, history) {
   const maxTokens = model === 'claude-sonnet-4-6' ? 400 : 150;
+
+  const messagesArray = Array.isArray(history) && history.length > 0
+    ? history
+    : [{ role: 'user', content: message }];
 
   const response = await anthropic.messages.create({
     model,
     max_tokens: maxTokens,
     system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: message,
-      },
-    ],
+    messages: messagesArray,
   });
 
   return response.content[0].text;
@@ -284,23 +283,39 @@ function normalizeAction(parsed) {
   return { intent, dealIdentifier, field, value, confirmationMessage, clarificationNeeded };
 }
 
-async function handleActionMode({ message, deals }) {
+async function handleActionMode({ message, deals, messages }) {
   const today = new Date().toISOString().slice(0, 10);
   const systemPrompt = buildActionSystemPrompt(today);
   const compactDeals = compactDealsForAction(deals);
 
-  const userPayload = `User said: "${message}"
+  const decorate = (userText) => `User said: "${userText}"
 
 Current deals (JSON):
 ${JSON.stringify(compactDeals, null, 2)}
 
 Return ONLY the JSON object as specified. No prose, no markdown.`;
 
+  let finalMessages;
+  if (Array.isArray(messages) && messages.length > 0) {
+    const lastIdx = messages.length - 1;
+    const last = messages[lastIdx];
+    if (last && last.role === 'user' && typeof last.content === 'string') {
+      finalMessages = [
+        ...messages.slice(0, lastIdx),
+        { role: 'user', content: decorate(last.content) },
+      ];
+    } else {
+      finalMessages = messages;
+    }
+  } else {
+    finalMessages = [{ role: 'user', content: decorate(message) }];
+  }
+
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 600,
     system: systemPrompt,
-    messages: [{ role: 'user', content: userPayload }],
+    messages: finalMessages,
   });
 
   const textBlock = (response.content || []).find((b) => b.type === 'text');
@@ -329,10 +344,15 @@ export default async function handler(req, res) {
     const ip = clientIpFromReq(req);
     await checkIpRateLimit(ip, 'chat', 30, 60 * 60 * 1000);
 
-    const { message, userId, transactionContext, userPlan, mode, deals } = req.body;
+    const { message, userId, transactionContext, userPlan, mode, deals, messages } = req.body;
 
-    // Validate input
-    if (!message || typeof message !== 'string' || !message.trim()) {
+    const hasMessagesArray = Array.isArray(messages) && messages.length > 0;
+    const lastInArray = hasMessagesArray ? messages[messages.length - 1] : null;
+    const effectiveMessage = (typeof message === 'string' && message.trim())
+      ? message
+      : (lastInArray && lastInArray.role === 'user' && typeof lastInArray.content === 'string' ? lastInArray.content : '');
+
+    if (!effectiveMessage || !effectiveMessage.trim()) {
       return res.status(400).json({
         ok: false,
         error: 'Message is required and must be a non-empty string.'
@@ -371,7 +391,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const action = await handleActionMode({ message, deals });
+      const action = await handleActionMode({ message: effectiveMessage, deals, messages });
       return res.status(200).json({
         ok: true,
         action,
@@ -398,14 +418,14 @@ export default async function handler(req, res) {
     }
 
     // Determine model
-    const model = determineModel(message, transactionContext);
-    
+    const model = determineModel(effectiveMessage, transactionContext);
+
     // Build system prompt
     const hasTransaction = transactionContext && Object.keys(transactionContext).length > 0;
     const systemPrompt = buildSystemPrompt(hasTransaction);
-    
+
     // Call Claude
-    const reply = await callClaude(model, message, systemPrompt);
+    const reply = await callClaude(model, effectiveMessage, systemPrompt, messages);
 
     // Return response
     return res.status(200).json({
