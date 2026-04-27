@@ -7,4 +7,8 @@
   .bottom-tab-bar { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; justify-content: space-around; align-items: center; z-index: 100; }
   .pipeline-grid { grid-template-columns: 1fr !important; }
   .brief-stats-row { flex-direction: column !important; }
+  .email-step-grid { display: flex !important; flex-direction: column !important; }
+  .email-step-col { width: 100% !important; min-width: unset !important; }
+  .page-hero-title { font-size: 28px !important; line-height: 1.2 !important; }
+  .page-hero-cta { position: relative !important; float: right !important; margin-top: 8px !important; }
 }
