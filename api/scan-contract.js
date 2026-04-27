@@ -82,6 +82,17 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
 - Effective Date: bottom of contract near signatures, labeled "Effective Date".
 - Broker Information section (last page): two side-by-side blocks — see BROKER BLOCK DISAMBIGUATION below.
 
+EXTENDED FIELDS (top-level, look across the whole contract + any attached addenda):
+- titleCompany, titleOfficerName, titleOfficerEmail, titleOfficerPhone — the title company (Paragraph 6A) plus the named escrow / closing officer if listed (sometimes appears in 6A, in the title commitment block, or in special provisions). Email/phone are uncommon on TREC 20-17 itself but capture them when present.
+- lenderName, loanOfficerName, loanOfficerEmail, loanOfficerPhone — institution name and individual loan officer. Often blank on the contract; pull from the Third Party Financing Addendum if attached. Otherwise null.
+- hoaName, hoaManagementCompany — populated from the HOA Addendum (TREC 36-x) if attached: hoaName is the association name, hoaManagementCompany is the management company / agent that fulfills resale certificates. Both null when no HOA addendum.
+- mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
+- possessionDate — YYYY-MM-DD when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
+- appraisalDeadline — date by which appraisal/lender's right-to-terminate notice must be delivered, derived from the Right-to-Terminate-Due-to-Lender's-Appraisal addendum (effective date + appraisalTerminationDays) when present. Null otherwise.
+- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Sometimes specified in Paragraph 6C ("Survey"); typically a number of days after effective date. Convert to YYYY-MM-DD if both effective date and the day count are known. Null otherwise.
+- hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
+- loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
+
 BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
 
 IMPORTANT: On TREC Form 20-17, the broker information page has TWO blocks:
@@ -117,7 +128,26 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "contractEffectiveDate": string | null,      // "YYYY-MM-DD"
     "closingDate": string | null,                // "YYYY-MM-DD"
     "titleCompany": string | null,               // company name from 6A
-    "titleOfficer": string | null,               // escrow officer if listed, else null
+    "titleOfficer": string | null,               // legacy: escrow officer if listed, mirror of titleOfficerName
+    "titleOfficerName": string | null,           // named escrow / closing officer
+    "titleOfficerEmail": string | null,
+    "titleOfficerPhone": string | null,
+    "lenderName": string | null,                 // institution / lender name (Third Party Financing Addendum)
+    "loanOfficerName": string | null,
+    "loanOfficerEmail": string | null,
+    "loanOfficerPhone": string | null,
+    "hoaName": string | null,                    // from HOA Addendum (TREC 36-x)
+    "hoaManagementCompany": string | null,       // management agent that fulfills resale certs
+    "mlsNumber": string | null,                  // rarely on TREC 20-17 — only when written in
+    "bedrooms": number | null,
+    "bathrooms": number | null,
+    "sqft": number | null,
+    "yearBuilt": number | null,
+    "possessionDate": string | null,             // YYYY-MM-DD; mirror of possession.specificDate
+    "appraisalDeadline": string | null,          // YYYY-MM-DD; effective + appraisalTerminationDays
+    "surveyDeadline": string | null,             // YYYY-MM-DD if computable from 6C
+    "hoaDocumentDeadline": string | null,        // YYYY-MM-DD from HOA addendum
+    "loanApprovalDeadline": string | null,       // YYYY-MM-DD; effective + financingDays
     "buyerAgent": string | null,                 // buyer's associate/agent name from broker info block
     "listingAgent": string | null,               // listing associate/agent name from broker info block
     "parties": {
@@ -207,6 +237,25 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "closingDate": number,
     "titleCompany": number,
     "titleOfficer": number,
+    "titleOfficerName": number,
+    "titleOfficerEmail": number,
+    "titleOfficerPhone": number,
+    "lenderName": number,
+    "loanOfficerName": number,
+    "loanOfficerEmail": number,
+    "loanOfficerPhone": number,
+    "hoaName": number,
+    "hoaManagementCompany": number,
+    "mlsNumber": number,
+    "bedrooms": number,
+    "bathrooms": number,
+    "sqft": number,
+    "yearBuilt": number,
+    "possessionDate": number,
+    "appraisalDeadline": number,
+    "surveyDeadline": number,
+    "hoaDocumentDeadline": number,
+    "loanApprovalDeadline": number,
     "buyerAgent": number,
     "listingAgent": number,
     "parties.buyerAgentEmail": number,
@@ -312,6 +361,25 @@ function emptyResult(warning) {
       closingDate: null,
       titleCompany: null,
       titleOfficer: null,
+      titleOfficerName: null,
+      titleOfficerEmail: null,
+      titleOfficerPhone: null,
+      lenderName: null,
+      loanOfficerName: null,
+      loanOfficerEmail: null,
+      loanOfficerPhone: null,
+      hoaName: null,
+      hoaManagementCompany: null,
+      mlsNumber: null,
+      bedrooms: null,
+      bathrooms: null,
+      sqft: null,
+      yearBuilt: null,
+      possessionDate: null,
+      appraisalDeadline: null,
+      surveyDeadline: null,
+      hoaDocumentDeadline: null,
+      loanApprovalDeadline: null,
       buyerAgent: null,
       listingAgent: null,
       parties: {
@@ -467,6 +535,33 @@ async function scanContract(pdfBase64) {
   }
   if (extracted.addenda.thirdPartyFinancingDays && !extracted.financingDays) {
     extracted.financingDays = extracted.addenda.thirdPartyFinancingDays;
+  }
+
+  // Cross-field mirrors for the extended schema. Each rule fires only when the
+  // target is empty, so a directly-extracted value always wins.
+  if (!extracted.titleOfficerName && typeof extracted.titleOfficer === 'string' && extracted.titleOfficer.trim()) {
+    extracted.titleOfficerName = extracted.titleOfficer;
+  }
+  if (!extracted.possessionDate && extracted.possession && extracted.possession.specificDate) {
+    extracted.possessionDate = extracted.possession.specificDate;
+  }
+  if (!extracted.lenderName && extracted.parties && typeof extracted.parties.lender === 'string' && extracted.parties.lender.trim()) {
+    extracted.lenderName = extracted.parties.lender;
+  }
+  const addDays = (isoDate, days) => {
+    if (!isoDate || typeof days !== 'number' || !Number.isFinite(days)) return null;
+    const t = new Date(isoDate);
+    if (Number.isNaN(t.getTime())) return null;
+    t.setUTCDate(t.getUTCDate() + days);
+    return t.toISOString().slice(0, 10);
+  };
+  if (!extracted.loanApprovalDeadline) {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.financingDays);
+    if (calc) extracted.loanApprovalDeadline = calc;
+  }
+  if (!extracted.appraisalDeadline) {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.appraisalTerminationDays);
+    if (calc) extracted.appraisalDeadline = calc;
   }
 
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
