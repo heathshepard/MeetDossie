@@ -156,68 +156,123 @@ async function callClaude(model, message, systemPrompt, history) {
 // ACTION MODE — voice/text command -> structured intent JSON
 // =============================================================================
 
-const ACTION_INTENTS = new Set([
-  'update_field',
-  'advance_stage',
-  'archive_deal',
-  'answer_question',
-  'unknown',
-]);
+const TOOLS = [
+  {
+    name: 'create_dossier',
+    description: 'Create a new transaction dossier. Use when agent says anything like: open a file, new contract, new buyer, new listing, start a transaction, got a new deal',
+    input_schema: {
+      type: 'object',
+      properties: {
+        property_address: { type: 'string', description: 'Street address' },
+        buyer_name: { type: 'string', description: 'Buyer full name' },
+        seller_name: { type: 'string', description: 'Seller full name' },
+        sale_price: { type: 'number', description: 'Sale price in dollars' },
+        closing_date: { type: 'string', description: 'Closing date as YYYY-MM-DD' },
+        role: { type: 'string', enum: ['buyer', 'seller', 'both'], description: "Agent's role in transaction" },
+      },
+      required: ['property_address'],
+    },
+  },
+  {
+    name: 'archive_deal',
+    description: 'Archive or close a transaction. Use when agent says anything like: archive, close out, mark as closed, done with, finished with, move to closed',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address, buyer name, or seller name' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'update_deal_field',
+    description: 'Update any field on a transaction. Use when agent says anything like: change, update, set, move closing date, extend option period, update price',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address, buyer name, or seller name' },
+        field: { type: 'string', description: 'The field to update like closing_date, option_days, sale_price, buyer_name' },
+        value: { type: 'string', description: 'The new value' },
+      },
+      required: ['deal_identifier', 'field', 'value'],
+    },
+  },
+  {
+    name: 'advance_stage',
+    description: 'Move a deal to the next stage or a specific stage. Use when agent says anything like: advance, move to next stage, we passed inspection, under contract now, move to closing',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name' },
+        stage: { type: 'string', description: "Target stage name, or 'next' to advance to next stage" },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'get_deals',
+    description: 'Get information about deals. Use when agent asks anything like: what deals do I have, what is active, what is urgent, what closes soon, status of my pipeline, what needs attention',
+    input_schema: {
+      type: 'object',
+      properties: {
+        filter: { type: 'string', description: "Optional filter like 'active', 'urgent', 'closing_soon', 'all'" },
+      },
+    },
+  },
+  {
+    name: 'get_deal_details',
+    description: 'Get details about a specific deal. Use when agent asks about a specific property or transaction.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'draft_email',
+    description: 'Draft an email for a transaction. Use when agent says anything like: draft an email, send intro to lender, write the title order, email the buyer',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name' },
+        email_type: { type: 'string', description: 'Type of email like welcome, lender_intro, title_order, option_reminder, closing_confirmation' },
+      },
+      required: ['deal_identifier', 'email_type'],
+    },
+  },
+  {
+    name: 'answer_question',
+    description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        response: { type: 'string', description: 'The conversational response to give the agent' },
+      },
+      required: ['response'],
+    },
+  },
+];
 
-const ACTION_FIELDS = new Set([
-  'optionDays',
-  'financingDays',
-  'closingDate',
-  'contractEffectiveDate',
-  'salePrice',
-  'earnestMoney',
-  'optionFee',
-  'buyerName',
-  'sellerName',
-  'propertyAddress',
-  'cityStateZip',
-  'notes',
-  'stage',
-]);
+function buildActionSystemPrompt(today, dealsJson) {
+  return `You are Dossie, a warm professional Texas real estate transaction coordinator. Today is ${today}.
 
-function buildActionSystemPrompt(today) {
-  return `You are Dossie, an AI transaction coordinator. The user will give you a voice command about their real estate deals. Parse the intent and return ONLY valid JSON with no prose.
+The agent will give you voice or text commands or questions. ALWAYS respond by calling exactly one tool — never reply with plain text alone. If the agent is asking a general question or chatting and no other tool fits, use answer_question.
 
-Today's date is ${today} (use this to resolve relative dates like "next Friday" or "tomorrow").
+Rules:
+- Keep spoken/text replies short — one or two sentences max.
+- Never say "Sure", "Of course", "Absolutely", "honey", "sweetie", or any pet name.
+- For relative numeric updates ("extend by 2 days") read the current value from the deals JSON below and return the FINAL value, not the delta.
+- For relative dates ("next Friday", "tomorrow") resolve to a YYYY-MM-DD string using today (${today}).
+- For sale_price values: return a plain number, no $ or commas.
+- For deal_identifier: pass any part of the property address, buyer name, or seller name. The client fuzzy-matches.
+- If multiple deals could match, ask for clarification via answer_question with a clarifying question listing the candidates.
+- For advance_stage targets, the canonical stages are: active-listing, under-contract, option-period, inspection, financing, title-survey, clear-to-close, closed. The tool also accepts "next".
+- For update_deal_field "field": use snake_case names matching the schema — closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes.
 
-Return EXACTLY this JSON shape with no markdown fences and no commentary:
-{
-  "intent": "update_field" | "advance_stage" | "archive_deal" | "answer_question" | "unknown",
-  "dealIdentifier": "partial address or party name to match against existing deals" | null,
-  "field": "optionDays" | "financingDays" | "closingDate" | "contractEffectiveDate" | "salePrice" | "earnestMoney" | "optionFee" | "buyerName" | "sellerName" | "propertyAddress" | "cityStateZip" | "notes" | "stage" | null,
-  "value": "new value as string" | null,
-  "confirmationMessage": "What Dossie says back to the user after executing the action — one warm professional sentence, no filler",
-  "clarificationNeeded": "Question to ask if intent is unclear or the deal cannot be uniquely identified" | null
-}
-
-INTENT MEANINGS:
-- update_field: change one field on an existing deal (e.g. "extend the option period by 2 days", "change closing on 311 Main to May 15", "update earnest money to 7500")
-- advance_stage: move a deal to its next pipeline stage (e.g. "move Henderson to option period", "advance Rilla Vista", "Henderson is now under contract")
-- archive_deal: close/archive a deal (e.g. "close out the Henderson file", "archive 311 Main")
-- answer_question: the user is asking, not commanding (e.g. "what's urgent today?", "when does Rilla Vista close?")
-- unknown: command is ambiguous, deal can't be identified, or value can't be parsed — set clarificationNeeded
-
-FIELD CONVENTIONS:
-- For date fields (closingDate, contractEffectiveDate) return YYYY-MM-DD strings
-- For numeric fields (optionDays, financingDays, salePrice, earnestMoney, optionFee) return a number as a string ("7", "350000")
-- For relative numeric updates ("extend by 2 days") return the FINAL value, not the delta — read the current value from the deals context and add. If you can't compute the final value, return clarificationNeeded.
-- For salePrice strip "$" and commas ("$350,000" -> "350000")
-- For stage updates use one of: active-listing, under-contract, option-period, inspection, financing, title-survey, clear-to-close, closed
-
-DEAL MATCHING:
-- Match against propertyAddress (substring, case-insensitive), buyerName, or sellerName
-- If multiple deals match, set intent to "unknown" and ask clarificationNeeded with the candidates listed
-- If zero deals match, set intent to "unknown" and ask which deal they meant
-
-CONFIRMATION TONE:
-- One warm professional sentence, present tense, never filler
-- Reference the specific deal: "Done — option period on Rilla Vista is now 9 days."
-- Never say Sure, Of course, Absolutely, Honey, or any pet name`;
+Current deals (JSON):
+${dealsJson}`;
 }
 
 function compactDealsForAction(deals) {
@@ -244,84 +299,42 @@ function compactDealsForAction(deals) {
     }));
 }
 
-function safeParseActionJson(text) {
-  if (!text || typeof text !== 'string') return null;
-  let s = text.trim();
-  if (s.startsWith('```')) {
-    s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-  }
-  try {
-    return JSON.parse(s);
-  } catch (e) {
-    const start = s.indexOf('{');
-    const end = s.lastIndexOf('}');
-    if (start !== -1 && end > start) {
-      try { return JSON.parse(s.slice(start, end + 1)); } catch (e2) { return null; }
-    }
-    return null;
-  }
-}
-
-function normalizeAction(parsed) {
-  const fallback = {
-    intent: 'unknown',
-    dealIdentifier: null,
-    field: null,
-    value: null,
-    confirmationMessage: '',
-    clarificationNeeded: "I couldn't quite catch that. Could you rephrase?",
-  };
-  if (!parsed || typeof parsed !== 'object') return fallback;
-
-  const intent = ACTION_INTENTS.has(parsed.intent) ? parsed.intent : 'unknown';
-  const field = ACTION_FIELDS.has(parsed.field) ? parsed.field : null;
-  const dealIdentifier = (typeof parsed.dealIdentifier === 'string' && parsed.dealIdentifier.trim().length > 0) ? parsed.dealIdentifier.trim() : null;
-  const value = (parsed.value === null || parsed.value === undefined) ? null : String(parsed.value);
-  const confirmationMessage = typeof parsed.confirmationMessage === 'string' ? parsed.confirmationMessage : '';
-  const clarificationNeeded = (typeof parsed.clarificationNeeded === 'string' && parsed.clarificationNeeded.trim().length > 0) ? parsed.clarificationNeeded.trim() : null;
-
-  return { intent, dealIdentifier, field, value, confirmationMessage, clarificationNeeded };
-}
-
 async function handleActionMode({ message, deals, messages }) {
   const today = new Date().toISOString().slice(0, 10);
-  const systemPrompt = buildActionSystemPrompt(today);
   const compactDeals = compactDealsForAction(deals);
+  const dealsJson = JSON.stringify(compactDeals, null, 2);
+  const systemPrompt = buildActionSystemPrompt(today, dealsJson);
 
-  const decorate = (userText) => `User said: "${userText}"
-
-Current deals (JSON):
-${JSON.stringify(compactDeals, null, 2)}
-
-Return ONLY the JSON object as specified. No prose, no markdown.`;
-
-  let finalMessages;
-  if (Array.isArray(messages) && messages.length > 0) {
-    const lastIdx = messages.length - 1;
-    const last = messages[lastIdx];
-    if (last && last.role === 'user' && typeof last.content === 'string') {
-      finalMessages = [
-        ...messages.slice(0, lastIdx),
-        { role: 'user', content: decorate(last.content) },
-      ];
-    } else {
-      finalMessages = messages;
-    }
-  } else {
-    finalMessages = [{ role: 'user', content: decorate(message) }];
-  }
+  const finalMessages = (Array.isArray(messages) && messages.length > 0)
+    ? messages
+    : [{ role: 'user', content: message }];
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 600,
     system: systemPrompt,
+    tools: TOOLS,
+    tool_choice: { type: 'auto' },
     messages: finalMessages,
   });
 
-  const textBlock = (response.content || []).find((b) => b.type === 'text');
-  const rawText = textBlock ? textBlock.text : '';
-  const parsed = safeParseActionJson(rawText);
-  return normalizeAction(parsed);
+  const content = response.content || [];
+  const toolUse = content.find((b) => b.type === 'tool_use');
+  const textBlock = content.find((b) => b.type === 'text');
+
+  if (toolUse) {
+    return {
+      action: toolUse.name,
+      params: toolUse.input || {},
+      message: textBlock ? textBlock.text : '',
+    };
+  }
+
+  return {
+    action: null,
+    params: {},
+    message: textBlock ? textBlock.text : '',
+  };
 }
 
 export default async function handler(req, res) {
@@ -391,10 +404,12 @@ export default async function handler(req, res) {
         });
       }
 
-      const action = await handleActionMode({ message: effectiveMessage, deals, messages });
+      const result = await handleActionMode({ message: effectiveMessage, deals, messages });
       return res.status(200).json({
         ok: true,
-        action,
+        action: result.action,
+        params: result.params,
+        message: result.message,
         remaining: rateLimitResult.remaining,
         resetAt: rateLimitResult.resetAt,
         plan: rateLimitResult.plan,
