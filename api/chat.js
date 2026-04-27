@@ -306,9 +306,13 @@ async function handleActionMode({ message, deals, messages }) {
   const dealsJson = JSON.stringify(compactDeals, null, 2);
   const systemPrompt = buildActionSystemPrompt(today, dealsJson);
 
+  console.log('[Chat] prompt first 150 chars:', systemPrompt.slice(0, 150));
+
   const finalMessages = (Array.isArray(messages) && messages.length > 0)
     ? messages
     : [{ role: 'user', content: message }];
+
+  console.log('[Chat] messages array len:', finalMessages.length, 'preview:', finalMessages.map((m) => ({ role: m.role, contentLen: typeof m.content === 'string' ? m.content.length : 0, head: typeof m.content === 'string' ? m.content.slice(0, 80) : '<non-string>' })));
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
