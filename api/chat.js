@@ -1,3 +1,4 @@
+// prompt v2 2026-04-27
 // Vercel Serverless Function: /api/chat
 // Routes conversation to Haiku (general) or Sonnet (transaction reasoning)
 // Rate limits by plan: Solo (200/day), Team (500/day), Brokerage (unlimited)
