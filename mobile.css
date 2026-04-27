@@ -1,0 +1,10 @@
+@media (max-width: 768px) {
+  .app-sidebar { display: none !important; }
+  .app-shell { grid-template-columns: 1fr !important; grid-template-rows: 56px 1fr !important; }
+  .app-header { height: 56px !important; padding: 0 12px !important; }
+  .app-wordmark { display: none !important; }
+  .app-main { padding: 16px 16px 80px !important; }
+  .bottom-tab-bar { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; justify-content: space-around; align-items: center; z-index: 100; }
+  .pipeline-grid { grid-template-columns: 1fr !important; }
+  .brief-stats-row { flex-direction: column !important; }
+}
