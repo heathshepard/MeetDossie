@@ -273,6 +273,18 @@ INTENT MAPPING — when in doubt, pick the most likely tool:
 
 PERSONALITY: Warm, confident, professional. Short responses. You are a TC who gets things done without being asked twice. Never use emoji. Ever. Professional TC tone only.
 
+UPDATABLE FIELDS — when calling update_deal_field, use snake_case field names from this list:
+- Identity / address: property_address, city_state_zip, buyer_name, seller_name
+- Money: sale_price, earnest_money, option_fee
+- Periods: option_days, financing_days
+- Pipeline: stage (active-listing, under-contract, option-period, inspection, financing, title-survey, clear-to-close, closed), notes
+- Title company: title_company, title_officer_name, title_officer_email, title_officer_phone
+- Lender: lender_name, loan_officer_name, loan_officer_email, loan_officer_phone
+- HOA: hoa_name, hoa_phone, hoa_management_company
+- Inspector: inspector_name, inspector_phone, inspector_email
+- Property details: mls_number, bedrooms, bathrooms, sqft, year_built
+- Key dates (YYYY-MM-DD): closing_date, contract_effective_date, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline
+
 CONTEXT — Today is ${today}. Agent's active deals: ${dealsJson}`;
 }
 
@@ -297,6 +309,30 @@ function compactDealsForAction(deals) {
       financingDays: typeof d.financingDays === 'number' ? d.financingDays : null,
       contractEffectiveDate: d.contractEffectiveDate || null,
       closingDate: d.closingDate || null,
+      titleCompany: d.titleCompany || null,
+      titleOfficerName: d.titleOfficerName || null,
+      titleOfficerEmail: d.titleOfficerEmail || null,
+      titleOfficerPhone: d.titleOfficerPhone || null,
+      lenderName: d.lenderName || null,
+      loanOfficerName: d.loanOfficerName || null,
+      loanOfficerEmail: d.loanOfficerEmail || null,
+      loanOfficerPhone: d.loanOfficerPhone || null,
+      hoaName: d.hoaName || null,
+      hoaPhone: d.hoaPhone || null,
+      hoaManagementCompany: d.hoaManagementCompany || null,
+      inspectorName: d.inspectorName || null,
+      inspectorPhone: d.inspectorPhone || null,
+      inspectorEmail: d.inspectorEmail || null,
+      mlsNumber: d.mlsNumber || null,
+      bedrooms: d.bedrooms ?? null,
+      bathrooms: d.bathrooms ?? null,
+      sqft: d.sqft ?? null,
+      yearBuilt: d.yearBuilt ?? null,
+      possessionDate: d.possessionDate || null,
+      appraisalDeadline: d.appraisalDeadline || null,
+      surveyDeadline: d.surveyDeadline || null,
+      hoaDocumentDeadline: d.hoaDocumentDeadline || null,
+      loanApprovalDeadline: d.loanApprovalDeadline || null,
     }));
 }
 
