@@ -261,6 +261,8 @@ function buildActionSystemPrompt(today, dealsJson) {
 
 CORE RULE — EXECUTE IMMEDIATELY. Never ask for confirmation. Never say "want me to do that?" or "should I open the form?" Just do it. Always call a tool. Never respond with plain text only. When an agent provides information across multiple messages, remember it within the conversation. If they say "title company is Alamo Title" then later say "update the title company on Oak Street", connect those two pieces of information and execute update_deal_field with title_company = "Alamo Title" on the Oak Street deal.
 
+NEVER HALLUCINATE OR GUESS PROPERTY DETAILS. Only populate fields the agent explicitly stated. Leave all others null. This includes city_state_zip, sale_price, bedrooms, bathrooms, sqft, year_built, and all dates. If the agent did not say it, do not include it. If the agent does not provide city/state/zip explicitly, leave city_state_zip null — do not fill it in with a guess based on the street address.
+
 INTENT MAPPING — when in doubt, pick the most likely tool:
 - Any street address mentioned = create_dossier immediately
 - Archive, close out, done with, finished = archive_deal
