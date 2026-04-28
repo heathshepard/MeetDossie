@@ -58,8 +58,15 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: 'Server configuration error' });
     }
 
+    const preprocessText = (t) => t
+      .replace(/\bBoerne\b/gi, 'Bernie')
+      .replace(/\bBexar\b/gi, 'Bear')
+      .replace(/\bManor\b/gi, 'MAY-ner')
+      .replace(/\bPflugerville\b/gi, 'Flooger-ville')
+      .replace(/\bKylee\b/gi, 'Ky-lee');
+
     // Strip markdown, emoji, asterisks
-    const cleanText = text
+    const cleanText = preprocessText(text)
       .replace(/[*_~`]/g, '')
       .replace(/#+\s/g, '')
       .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
