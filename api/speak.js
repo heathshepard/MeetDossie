@@ -59,11 +59,16 @@ export default async function handler(req, res) {
     }
 
     const preprocessText = (t) => t
+      .replace(/\bTX\b/g, 'Texas')
       .replace(/\bBoerne\b/gi, 'Bernie')
       .replace(/\bBexar\b/gi, 'Bear')
       .replace(/\bManor\b/gi, 'MAY-ner')
       .replace(/\bPflugerville\b/gi, 'Flooger-ville')
-      .replace(/\bKylee\b/gi, 'Ky-lee');
+      .replace(/\bCibolo\b/gi, 'Sih-bolo')
+      .replace(/\bSchertz\b/gi, 'Sherts')
+      .replace(/\bSeguin\b/gi, 'Seh-geen')
+      .replace(/\bConverse\b/gi, 'CON-vers')
+      .replace(/\bHelotes\b/gi, 'Heh-LOW-tees');
 
     // Strip markdown, emoji, asterisks
     const cleanText = preprocessText(text)
