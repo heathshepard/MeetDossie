@@ -101,10 +101,6 @@ module.exports = async function handler(req, res) {
     res.status(corsAllowed ? 204 : 403).end();
     return;
   }
-  if (!corsAllowed) {
-    res.status(403).json({ ok: false, error: 'Origin not allowed.' });
-    return;
-  }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[documents] Supabase not configured.');
