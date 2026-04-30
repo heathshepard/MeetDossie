@@ -11,4 +11,5 @@
   .email-step-col { width: 100% !important; min-width: unset !important; }
   .page-hero-title { font-size: 28px !important; line-height: 1.2 !important; }
   .page-hero-cta { position: relative !important; float: right !important; margin-top: 8px !important; }
+  .floating-help-btn { bottom: 80px !important; left: 12px !important; }
 }
