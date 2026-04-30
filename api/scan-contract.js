@@ -76,6 +76,15 @@ This contract may have been signed via DocuSign or other electronic signature pl
 
 DO NOT flag a signature or initial as missing if there is a DocuSign block, timestamp, or any electronic signature indicator present for that party.
 
+DOCUSIGN DETECTION:
+If the document header contains "DocuSign Envelope ID:" this is a DocuSign-executed document. In DocuSign contracts:
+- Electronic initials appear as small text initials (like "KP", "MS") in boxes at the bottom of pages — these ARE valid initials, count them as present
+- The "Initialed for identification by Buyer [initials]" line with ANY text or mark counts as initialed
+- DocuSign signature blocks showing the signer's name and a timestamp are valid signatures
+- If you see "DocuSign Envelope ID:" at the top of the document, assume all parties who appear in the signature/initial blocks have properly executed their portions electronically unless a block is completely blank with no name or timestamp
+
+For DocuSign documents, only flag missing signatures/initials if a signature block is completely empty with no name, no timestamp, and no electronic mark of any kind.
+
 BROKER INFO BLOCK (Page 10):
 The broker information block says "Print name(s) only. Do not sign" — agents are NOT supposed to sign this block. Printed names are correct and compliant. Do NOT flag missing signatures on the broker info block.
 
