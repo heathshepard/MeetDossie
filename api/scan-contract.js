@@ -220,6 +220,52 @@ Return JSON:
   "summary": ""
 }`,
 
+  'trec-listing-agreement': `You are a Texas TC reviewing a Listing Agreement (TAR 1101 or similar).
+
+Extract these fields:
+- seller_name (property owner/client name)
+- seller_email
+- seller_phone
+- property_address
+- city_state_zip
+- list_price
+- listing_start_date
+- listing_end_date (expiration date)
+- agent_name (listing agent)
+- agent_email
+- agent_phone
+- brokerage_name
+- commission_rate
+
+REQUIRED signatures:
+- Seller signature and date
+- Listing agent signature and date
+- Broker signature if required
+
+Return compliance JSON:
+{
+  "passed": true/false,
+  "missingSignatures": [],
+  "blankRequiredFields": [],
+  "extractedFields": {
+    "sellerName": "",
+    "sellerEmail": "",
+    "sellerPhone": "",
+    "propertyAddress": "",
+    "cityStateZip": "",
+    "listPrice": 0,
+    "listingStartDate": "",
+    "listingEndDate": "",
+    "agentName": "",
+    "agentEmail": "",
+    "agentPhone": "",
+    "brokerageName": "",
+    "commissionRate": ""
+  },
+  "warnings": [],
+  "summary": ""
+}`,
+
   'trec-buyer-representation': `You are a Texas TC auditing a Buyer Representation Agreement for compliance.
 
 REQUIRED:
