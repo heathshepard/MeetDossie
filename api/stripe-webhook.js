@@ -1,7 +1,8 @@
 // Vercel Serverless Function: /api/stripe-webhook
-// Receives Stripe webhook events. On checkout.session.completed:
-//   - upserts a row in `subscriptions` (keyed by stripe_subscription_id)
-//   - flips the matching `profiles` row to plan="founding", subscription_status="active"
+// Handles Stripe webhook events:
+//   - checkout.session.completed → create Supabase auth user (if new),
+//     upsert profile + subscription rows, send welcome + password emails.
+//   - customer.subscription.deleted → mark profile subscription_status = 'cancelled'.
 // Returns 200 on success, 400 on signature failure.
 //
 // Environment:
@@ -9,6 +10,7 @@
 //   STRIPE_WEBHOOK_SECRET      — webhook signing secret (whsec_...)
 //   SUPABASE_URL               — Supabase project URL
 //   SUPABASE_SERVICE_ROLE_KEY  — service-role JWT (server-side only)
+//   RESEND_API_KEY             — Resend API key for transactional email
 
 const Stripe = require('stripe');
 
@@ -20,6 +22,16 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+const PRICE_TIERS = {
+  'price_1TPxxNL920SKTEEiN7Gphq8T': 'founding',
+};
+
+const generateTempPassword = () => {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
 
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -42,7 +54,10 @@ async function supabaseFetch(path, init = {}) {
   const res = await fetch(`${SUPABASE_URL}${path}`, { ...init, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Supabase ${init.method || 'GET'} ${path} failed (${res.status}): ${text.slice(0, 300)}`);
+    const err = new Error(`Supabase ${init.method || 'GET'} ${path} failed (${res.status}): ${text.slice(0, 300)}`);
+    err.status = res.status;
+    err.body = text;
+    throw err;
   }
   const text = await res.text();
   return text ? JSON.parse(text) : null;
@@ -56,6 +71,49 @@ async function findUserIdByEmail(email) {
   return null;
 }
 
+// Look up a Supabase auth user by email via the Admin API. Returns null if
+// none exists. Used as a recovery path when createUser reports a duplicate.
+async function findAuthUserIdByEmail(email) {
+  if (!email) return null;
+  try {
+    const encoded = encodeURIComponent(email);
+    const data = await supabaseFetch(`/auth/v1/admin/users?email=${encoded}`);
+    const users = Array.isArray(data?.users) ? data.users : (Array.isArray(data) ? data : []);
+    const match = users.find((u) => String(u.email || '').toLowerCase() === String(email).toLowerCase());
+    return match ? match.id : null;
+  } catch (err) {
+    console.warn('[stripe-webhook] findAuthUserIdByEmail failed:', err && err.message);
+    return null;
+  }
+}
+
+// Create a Supabase auth user. Returns { userId, created } where created=false
+// means the user already existed and we recovered their id by email lookup.
+async function createAuthUser({ email, password, fullName }) {
+  try {
+    const data = await supabaseFetch('/auth/v1/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName || '' },
+      }),
+    });
+    if (data && data.id) return { userId: data.id, created: true };
+    if (data && data.user && data.user.id) return { userId: data.user.id, created: true };
+    return { userId: null, created: false };
+  } catch (err) {
+    // Duplicate email — find the existing user instead of failing the whole webhook.
+    const body = String(err.body || '').toLowerCase();
+    if (err.status === 422 || body.includes('already') || body.includes('registered') || body.includes('exists')) {
+      const existing = await findAuthUserIdByEmail(email);
+      if (existing) return { userId: existing, created: false };
+    }
+    throw err;
+  }
+}
+
 async function upsertSubscription(payload) {
   await supabaseFetch('/rest/v1/subscriptions?on_conflict=stripe_subscription_id', {
     method: 'POST',
@@ -64,19 +122,91 @@ async function upsertSubscription(payload) {
   });
 }
 
-async function updateProfile(userId, patch) {
-  const encoded = encodeURIComponent(userId);
-  await supabaseFetch(`/rest/v1/profiles?id=eq.${encoded}`, {
+async function upsertProfile(payload) {
+  await supabaseFetch('/rest/v1/profiles?on_conflict=id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function updateProfileByEmail(email, patch) {
+  if (!email) return;
+  const encoded = encodeURIComponent(String(email).toLowerCase());
+  await supabaseFetch(`/rest/v1/profiles?email=eq.${encoded}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify(patch),
   });
 }
 
+const BRAND_BG = '#FDFCFA';
+const BRAND_NAVY = '#1C2B3A';
+const BRAND_TEXT_SOFT = '#5C6B7A';
+const BRAND_CORAL = '#E8927C';
+const BRAND_MUTED = '#9CA8B4';
+
+function welcomeEmailHtml(fullName) {
+  const name = (fullName || '').trim() || 'there';
+  return `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: ${BRAND_BG};">
+  <h1 style="font-size: 32px; color: ${BRAND_NAVY};">Hi ${name},</h1>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7;">I'm Dossie — your new AI transaction coordinator. I work nights, weekends, and holidays so your deals never stop moving.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7;">Here's how to get started:</p>
+  <ol style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 2;">
+    <li>Complete your agent profile in Settings</li>
+    <li>Open your first dossier — type it or just tell me</li>
+    <li>Upload your contract and I'll scan it automatically</li>
+    <li>Talk to me anytime — I'm always on</li>
+  </ol>
+  <a href="https://meetdossie.com/app.html" style="display: inline-block; margin-top: 24px; padding: 14px 28px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Open Dossie</a>
+  <p style="margin-top: 40px; font-size: 13px; color: ${BRAND_MUTED};">I've got the rest. — Dossie</p>
+</div>`;
+}
+
+function passwordEmailHtml(email, password) {
+  return `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+  <h2 style="color: ${BRAND_NAVY};">Your Dossie login details</h2>
+  <p style="color: ${BRAND_TEXT_SOFT};">Here are your temporary credentials. Please change your password after first login.</p>
+  <p><strong>Email:</strong> ${email}</p>
+  <p><strong>Temporary password:</strong> ${password}</p>
+  <a href="https://meetdossie.com/app.html" style="display: inline-block; margin-top: 24px; padding: 14px 28px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700;">Log in to Dossie</a>
+</div>`;
+}
+
+async function sendEmail({ to, subject, html }) {
+  if (!RESEND_API_KEY) {
+    console.warn('[stripe-webhook] RESEND_API_KEY not set — skipping email to', to);
+    return;
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Dossie <dossie@meetdossie.com>',
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('[stripe-webhook] Resend send failed', res.status, text.slice(0, 300));
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] Resend send threw:', err && err.message);
+  }
+}
+
 async function handleCheckoutSessionCompleted(stripe, session) {
-  const customerEmail = (session.customer_details && session.customer_details.email)
+  const customerEmailRaw = (session.customer_details && session.customer_details.email)
     || session.customer_email
     || null;
+  const customerEmail = customerEmailRaw ? String(customerEmailRaw).toLowerCase() : null;
+  const customerName = (session.customer_details && session.customer_details.name) || '';
   const stripeCustomerId = typeof session.customer === 'string'
     ? session.customer
     : (session.customer && session.customer.id) || null;
@@ -86,6 +216,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
 
   let currentPeriodStart = null;
   let currentPeriodEnd = null;
+  let priceId = null;
   if (stripeSubscriptionId) {
     try {
       const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
@@ -95,31 +226,67 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       if (sub && sub.current_period_end) {
         currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
       }
+      priceId = sub?.items?.data?.[0]?.price?.id || null;
     } catch (err) {
       console.warn('[stripe-webhook] subscriptions.retrieve failed:', err && err.message);
     }
   }
+  const tier = (priceId && PRICE_TIERS[priceId]) || 'founding';
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[stripe-webhook] Supabase not configured — skipping persistence.');
     return;
   }
+  if (!customerEmail) {
+    console.error('[stripe-webhook] checkout session has no email; cannot provision user.');
+    return;
+  }
 
+  // Find or create the auth user.
   let userId = null;
-  if (customerEmail) {
+  let tempPassword = null;
+  let createdNewUser = false;
+  try {
+    userId = await findUserIdByEmail(customerEmail);
+  } catch (err) {
+    console.warn('[stripe-webhook] profile lookup failed:', err && err.message);
+  }
+  if (!userId) {
+    tempPassword = generateTempPassword();
     try {
-      userId = await findUserIdByEmail(String(customerEmail).toLowerCase());
+      const result = await createAuthUser({ email: customerEmail, password: tempPassword, fullName: customerName });
+      userId = result.userId;
+      createdNewUser = result.created;
+      if (!createdNewUser) tempPassword = null; // user already existed; don't email a freshly-generated password
     } catch (err) {
-      console.warn('[stripe-webhook] profile lookup failed:', err && err.message);
+      console.error('[stripe-webhook] createAuthUser failed:', err && err.message);
     }
   }
 
+  // Upsert profile (covers both new-user and pre-existing-user cases).
+  if (userId) {
+    try {
+      await upsertProfile({
+        id: userId,
+        email: customerEmail,
+        full_name: customerName || null,
+        subscription_tier: tier,
+        subscription_status: 'active',
+        plan: tier,
+        stripe_customer_id: stripeCustomerId,
+      });
+    } catch (err) {
+      console.error('[stripe-webhook] profile upsert failed:', err && err.message);
+    }
+  }
+
+  // Upsert subscription row.
   try {
     await upsertSubscription({
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
-      plan: 'founding',
+      plan: tier,
       status: 'active',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
@@ -128,22 +295,68 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     console.error('[stripe-webhook] subscription upsert failed:', err && err.message);
   }
 
-  if (userId) {
+  // Send welcome email to everyone who completes checkout.
+  await sendEmail({
+    to: customerEmail,
+    subject: 'Welcome to Dossie',
+    html: welcomeEmailHtml(customerName),
+  });
+
+  // Send password email only to brand-new users.
+  if (createdNewUser && tempPassword) {
+    await sendEmail({
+      to: customerEmail,
+      subject: 'Your Dossie login details',
+      html: passwordEmailHtml(customerEmail, tempPassword),
+    });
+  }
+}
+
+async function handleSubscriptionDeleted(subscription) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping cancellation.');
+    return;
+  }
+  const stripeCustomerId = typeof subscription.customer === 'string'
+    ? subscription.customer
+    : (subscription.customer && subscription.customer.id) || null;
+
+  // Mark subscription row cancelled by stripe_subscription_id.
+  if (subscription.id) {
     try {
-      await updateProfile(userId, {
-        plan: 'founding',
-        subscription_status: 'active',
-        stripe_customer_id: stripeCustomerId,
+      const encoded = encodeURIComponent(subscription.id);
+      await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'cancelled' }),
       });
     } catch (err) {
-      console.error('[stripe-webhook] profile update failed:', err && err.message);
+      console.error('[stripe-webhook] subscription cancel patch failed:', err && err.message);
     }
-  } else if (customerEmail) {
-    console.warn(
-      '[stripe-webhook] no profiles row matched email',
-      customerEmail,
-      '— subscription row written without user_id.',
-    );
+  }
+
+  // Look up the customer's email via Stripe and mark profile cancelled.
+  let customerEmail = null;
+  if (stripeCustomerId) {
+    try {
+      const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (customer && !customer.deleted) {
+        customerEmail = customer.email ? String(customer.email).toLowerCase() : null;
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] customers.retrieve failed:', err && err.message);
+    }
+  }
+
+  if (customerEmail) {
+    try {
+      await updateProfileByEmail(customerEmail, { subscription_status: 'cancelled' });
+    } catch (err) {
+      console.error('[stripe-webhook] profile cancel patch failed:', err && err.message);
+    }
+  } else {
+    console.warn('[stripe-webhook] subscription deleted but customer email unknown; profile not updated.');
   }
 }
 
@@ -186,6 +399,8 @@ module.exports = async function handler(req, res) {
   try {
     if (event.type === 'checkout.session.completed') {
       await handleCheckoutSessionCompleted(stripe, event.data.object);
+    } else if (event.type === 'customer.subscription.deleted') {
+      await handleSubscriptionDeleted(event.data.object);
     }
     res.status(200).json({ ok: true, received: event.type });
   } catch (err) {
