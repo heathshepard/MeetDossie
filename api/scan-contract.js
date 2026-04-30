@@ -15,8 +15,218 @@ const anthropic = new Anthropic({
 });
 
 const MODEL = 'claude-sonnet-4-5';
+const IDENTIFY_MODEL = 'claude-haiku-4-5-20251001';
 const MAX_TOKENS = 4096;
 const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
+
+// =============================================================================
+// DOCUMENT IDENTIFICATION + COMPLIANCE AUDITING
+// =============================================================================
+
+const IDENTIFY_PROMPT = `You are a Texas real estate document expert. Look at this document and identify what type it is. Return ONLY a JSON object with no markdown:
+{
+  "documentType": "<type>",
+  "confidence": <0-1>
+}
+
+Document types:
+- "trec-20-17" (TREC One to Four Family Residential Contract)
+- "trec-financing-addendum" (Third Party Financing Addendum)
+- "trec-hoa-addendum" (HOA Addendum TREC 36-x)
+- "trec-lead-paint" (Lead Based Paint Disclosure)
+- "trec-buyer-representation" (Buyer Representation Agreement)
+- "trec-listing-agreement" (Listing Agreement)
+- "pre-approval-letter" (Lender pre-approval letter)
+- "title-commitment" (Title commitment/binder)
+- "survey" (Property survey)
+- "inspection-report" (Home inspection report)
+- "hoa-docs" (HOA documents package)
+- "closing-disclosure" (Closing disclosure)
+- "wire-instructions" (Wire transfer instructions)
+- "cma" (Comparative Market Analysis)
+- "other" (anything else)`;
+
+const DOCUMENT_LABELS = {
+  'trec-20-17': 'TREC One to Four Family Residential Contract',
+  'trec-financing-addendum': 'Third Party Financing Addendum',
+  'trec-hoa-addendum': 'HOA Addendum',
+  'trec-lead-paint': 'Lead Based Paint Disclosure',
+  'trec-buyer-representation': 'Buyer Representation Agreement',
+  'trec-listing-agreement': 'Listing Agreement',
+  'pre-approval-letter': 'Pre-Approval Letter',
+  'title-commitment': 'Title Commitment',
+  'survey': 'Property Survey',
+  'inspection-report': 'Inspection Report',
+  'hoa-docs': 'HOA Documents',
+  'closing-disclosure': 'Closing Disclosure',
+  'wire-instructions': 'Wire Instructions',
+  'cma': 'Comparative Market Analysis',
+  'other': 'Document',
+};
+
+const COMPLIANCE_PROMPTS = {
+  'trec-20-17': `You are an expert Texas real estate transaction coordinator auditing a TREC One to Four Family Residential Contract (TREC 20-17) for compliance.
+
+REQUIRED SIGNATURES AND INITIALS — check each one:
+- Buyer signature(s) on signature page
+- Seller signature(s) on signature page
+- Buyer initials on EVERY page that has an initials line
+- Seller initials on EVERY page that has an initials line
+- Buyer's agent signature on broker info block
+- Listing agent signature on broker info block
+- All signature dates filled in
+
+REQUIRED FIELDS — check each one:
+- Buyer name(s) filled in (Paragraph 1)
+- Seller name(s) filled in (Paragraph 1)
+- Property address filled in (Paragraph 2)
+- Legal description filled in (Paragraph 2)
+- Sales price filled in (Paragraph 3)
+- Earnest money amount filled in (Paragraph 5)
+- Earnest money holder filled in (Paragraph 5)
+- Option fee amount filled in (Paragraph 23)
+- Option days filled in (Paragraph 23)
+- Closing date filled in (Paragraph 9)
+- Title company filled in (Paragraph 6)
+- All checked addenda boxes have corresponding addenda attached
+
+ADDENDA VERIFICATION:
+- List every checkbox checked in Paragraph 22
+- For each checked box, note whether the corresponding addendum appears to be attached
+
+Return a JSON compliance report:
+{
+  "passed": true/false,
+  "missingSignatures": ["description of each missing signature"],
+  "missingInitials": ["page X - buyer initials missing", etc],
+  "blankRequiredFields": ["field name", etc],
+  "checkedAddenda": ["list of all checked addenda"],
+  "missingAddenda": ["addenda checked but not found attached"],
+  "warnings": ["any other issues"],
+  "summary": "Plain English summary of what needs to be fixed"
+}`,
+
+  'trec-financing-addendum': `You are a Texas TC auditing a Third Party Financing Addendum for compliance.
+
+REQUIRED:
+- Buyer initials
+- Seller initials
+- Loan type checked (Conventional/FHA/VA/USDA/Other)
+- Loan amount filled in
+- Financing days filled in
+- Interest rate or "prevailing rate" noted
+
+Extract also:
+- lender_name (if specified)
+- loan_amount
+- loan_type
+- financing_days
+- interest_rate
+
+Return compliance JSON:
+{
+  "passed": true/false,
+  "missingSignatures": [],
+  "blankRequiredFields": [],
+  "extractedFields": { "lenderName": "", "loanAmount": 0, "loanType": "", "financingDays": 0 },
+  "warnings": [],
+  "summary": ""
+}`,
+
+  'trec-hoa-addendum': `You are a Texas TC auditing an HOA Addendum (TREC 36-x) for compliance.
+
+REQUIRED:
+- Buyer initials
+- Seller initials
+- HOA name filled in
+- Assessment amounts filled in
+- HOA document delivery period filled in
+
+Extract also:
+- hoa_name
+- hoa_phone
+- hoa_management_company
+- hoa_assessment_amount
+- hoa_document_deadline_days
+
+Return compliance JSON:
+{
+  "passed": true/false,
+  "missingSignatures": [],
+  "blankRequiredFields": [],
+  "extractedFields": { "hoaName": "", "hoaPhone": "", "hoaManagementCompany": "", "hoaDocumentDeadlineDays": 0 },
+  "warnings": [],
+  "summary": ""
+}`,
+
+  'trec-lead-paint': `You are a Texas TC auditing a Lead Based Paint Disclosure for compliance.
+
+REQUIRED (for pre-1978 homes):
+- Buyer signature and date
+- Seller signature and date
+- Both agents signatures and dates
+- Buyer acknowledgment checkbox checked
+- Seller disclosure section completed
+- Agent acknowledgment checked
+
+Return compliance JSON:
+{
+  "passed": true/false,
+  "missingSignatures": [],
+  "blankRequiredFields": [],
+  "warnings": [],
+  "summary": ""
+}`,
+
+  'pre-approval-letter': `You are a Texas TC reviewing a mortgage pre-approval letter.
+
+Extract these fields:
+- lender_name (bank or mortgage company name)
+- loan_officer_name
+- loan_officer_email
+- loan_officer_phone
+- loan_amount (pre-approved amount)
+- loan_type (Conventional/FHA/VA/etc)
+- expiration_date (when pre-approval expires)
+- buyer_name (who the letter is for)
+
+Return JSON:
+{
+  "passed": true,
+  "extractedFields": { "lenderName": "", "loanOfficerName": "", "loanOfficerEmail": "", "loanOfficerPhone": "", "loanAmount": 0, "loanType": "", "expirationDate": "", "buyerName": "" },
+  "warnings": [],
+  "summary": ""
+}`,
+
+  'trec-buyer-representation': `You are a Texas TC auditing a Buyer Representation Agreement for compliance.
+
+REQUIRED:
+- Buyer signature and date
+- Agent signature and date
+- Broker name filled in
+- Commission terms filled in
+- Representation period dates filled in
+
+Return compliance JSON:
+{
+  "passed": true/false,
+  "missingSignatures": [],
+  "blankRequiredFields": [],
+  "warnings": [],
+  "summary": ""
+}`,
+
+  'other': `You are a Texas TC reviewing a real estate document. Extract any relevant fields you can find including names, dates, addresses, amounts, and contact information. Note the document type and purpose.
+
+Return JSON:
+{
+  "passed": true,
+  "documentDescription": "description of what this document is",
+  "extractedFields": {},
+  "warnings": [],
+  "summary": "brief description of document contents"
+}`,
+};
 
 // CORS allowlist — production domains plus any localhost port for dev.
 const ALLOWED_ORIGINS = new Set([
@@ -582,6 +792,116 @@ async function scanContract(pdfBase64) {
   return { extracted, confidence, warnings };
 }
 
+async function identifyDocument(pdfBase64) {
+  const response = await anthropic.messages.create({
+    model: IDENTIFY_MODEL,
+    max_tokens: 200,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+        { type: 'text', text: IDENTIFY_PROMPT },
+      ],
+    }],
+  });
+  const textBlock = (response.content || []).find((b) => b.type === 'text');
+  const parsed = safeParseJson(textBlock ? textBlock.text : '') || {};
+  const rawType = typeof parsed.documentType === 'string' ? parsed.documentType : 'other';
+  const documentType = DOCUMENT_LABELS[rawType] ? rawType : 'other';
+  return {
+    documentType,
+    confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+  };
+}
+
+function emptyComplianceReport(docLabel) {
+  return {
+    passed: false,
+    missingSignatures: [],
+    missingInitials: [],
+    blankRequiredFields: [],
+    checkedAddenda: [],
+    missingAddenda: [],
+    extractedFields: {},
+    warnings: [`Compliance check for ${docLabel} could not be parsed.`],
+    summary: 'Unable to complete compliance check — please review the document manually.',
+    documentDescription: null,
+  };
+}
+
+async function auditCompliance(pdfBase64, documentType) {
+  const prompt = COMPLIANCE_PROMPTS[documentType] || COMPLIANCE_PROMPTS.other;
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+        { type: 'text', text: prompt },
+      ],
+    }],
+  });
+  const textBlock = (response.content || []).find((b) => b.type === 'text');
+  const parsed = safeParseJson(textBlock ? textBlock.text : '');
+  if (!parsed || typeof parsed !== 'object') {
+    return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
+  }
+  const arr = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string') : []);
+  return {
+    passed: parsed.passed === true,
+    missingSignatures: arr(parsed.missingSignatures),
+    missingInitials: arr(parsed.missingInitials),
+    blankRequiredFields: arr(parsed.blankRequiredFields),
+    checkedAddenda: arr(parsed.checkedAddenda),
+    missingAddenda: arr(parsed.missingAddenda),
+    extractedFields: (parsed.extractedFields && typeof parsed.extractedFields === 'object') ? parsed.extractedFields : {},
+    warnings: arr(parsed.warnings),
+    summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+    documentDescription: typeof parsed.documentDescription === 'string' ? parsed.documentDescription : null,
+  };
+}
+
+async function runFullScan(pdfBase64) {
+  validatePdfBase64(pdfBase64);
+
+  // Stage 1: identify document type (cheap Haiku call).
+  const ident = await identifyDocument(pdfBase64);
+  const documentType = ident.documentType;
+  const documentLabel = DOCUMENT_LABELS[documentType] || 'Document';
+
+  // Stage 2: run the doc-type-specific compliance audit.
+  const complianceReport = await auditCompliance(pdfBase64, documentType);
+
+  // Stage 3: for TREC 20-17, also run the full extraction pass to populate the
+  // dossier form. Other types rely on the extractedFields embedded in the
+  // compliance prompt's response.
+  let trecExtraction = null;
+  if (documentType === 'trec-20-17') {
+    try {
+      trecExtraction = await scanContract(pdfBase64);
+    } catch (err) {
+      console.error('[scan-contract] TREC extraction failed:', err && err.message);
+    }
+  }
+
+  const extractedFields = trecExtraction
+    ? trecExtraction.extracted
+    : (complianceReport.extractedFields || {});
+
+  return {
+    documentType,
+    documentLabel,
+    documentTypeConfidence: ident.confidence,
+    complianceReport,
+    extractedFields,
+    // Backwards-compat fields — only populated for TREC 20-17.
+    extracted: trecExtraction ? trecExtraction.extracted : null,
+    confidence: trecExtraction ? trecExtraction.confidence : {},
+    warnings: trecExtraction ? trecExtraction.warnings : (complianceReport.warnings || []),
+  };
+}
+
 async function handler(req, res) {
   applyCors(req, res);
 
@@ -610,9 +930,15 @@ async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'pdfBase64 (string) is required in JSON body.' });
     }
 
-    const result = await scanContract(pdfBase64);
+    const result = await runFullScan(pdfBase64);
     return res.status(200).json({
       ok: true,
+      documentType: result.documentType,
+      documentLabel: result.documentLabel,
+      documentTypeConfidence: result.documentTypeConfidence,
+      complianceReport: result.complianceReport,
+      extractedFields: result.extractedFields,
+      // Legacy fields preserved for any client that hasn't been updated yet.
       extracted: result.extracted,
       confidence: result.confidence,
       warnings: result.warnings,
@@ -646,3 +972,7 @@ async function handler(req, res) {
 module.exports = handler;
 module.exports.default = handler;
 module.exports.scanContract = scanContract;
+module.exports.runFullScan = runFullScan;
+module.exports.identifyDocument = identifyDocument;
+module.exports.auditCompliance = auditCompliance;
+module.exports.DOCUMENT_LABELS = DOCUMENT_LABELS;
