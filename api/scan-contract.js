@@ -67,13 +67,26 @@ const DOCUMENT_LABELS = {
 const COMPLIANCE_PROMPTS = {
   'trec-20-17': `You are an expert Texas real estate transaction coordinator auditing a TREC One to Four Family Residential Contract (TREC 20-17) for compliance.
 
+IMPORTANT — ELECTRONIC SIGNATURES:
+This contract may have been signed via DocuSign or other electronic signature platforms. Electronic signatures are legally valid under ESIGN and UETA. When checking for signatures and initials, look for:
+- DocuSign signature blocks (showing signer name, date, and time like "4/8/2026 | 10:44 PDT")
+- DocuSign initial blocks (showing initials like "KP" in a box)
+- Any electronic signature indicator including timestamps, signer names, or digital signature marks
+- "Initialed for identification by Buyer [initials]" line at the bottom of each page with any mark or electronic initial present
+
+DO NOT flag a signature or initial as missing if there is a DocuSign block, timestamp, or any electronic signature indicator present for that party.
+
+BROKER INFO BLOCK (Page 10):
+The broker information block says "Print name(s) only. Do not sign" — agents are NOT supposed to sign this block. Printed names are correct and compliant. Do NOT flag missing signatures on the broker info block.
+
+OPTION DAYS:
+Look carefully at Paragraph 5B for the termination option period. It may show a number written in words or digits. Common values are 5, 7, 10 days. Do not flag as blank if any number is present.
+
 REQUIRED SIGNATURES AND INITIALS — check each one:
 - Buyer signature(s) on signature page
 - Seller signature(s) on signature page
 - Buyer initials on EVERY page that has an initials line
 - Seller initials on EVERY page that has an initials line
-- Buyer's agent signature on broker info block
-- Listing agent signature on broker info block
 - All signature dates filled in
 
 REQUIRED FIELDS — check each one:
