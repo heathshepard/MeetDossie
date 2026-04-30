@@ -40,6 +40,10 @@ Document types and their KEY IDENTIFIERS:
 - "trec-sellers-disclosure": Title says "SELLER'S DISCLOSURE NOTICE" or "OP-H". Asks about foundation, roof, plumbing, electrical, appliances, neighborhood conditions. THIS IS NOT THE LEAD PAINT FORM even though it may mention lead paint in one question.
 - "trec-buyer-representation": Title says "BUYER REPRESENTATION AGREEMENT" TAR 1501. Agent represents buyer.
 - "trec-listing-agreement": Title says "RESIDENTIAL REAL ESTATE LISTING AGREEMENT" or "EXCLUSIVE RIGHT TO SELL". TAR 1101. Agent represents seller/listing side.
+- "iabs-form": Information About Brokerage Services form (TREC IABS 1-0). Has "Information About Brokerage Services" as the title and lists broker contact information.
+- "wire-fraud-warning": Wire Fraud Warning notice. Warns about wire fraud, spoofed emails, and verifying wire instructions by phone.
+- "general-info-notice": General Information and Notice to Consumers form. Texas consumer protection notice.
+- "onsite-sewer-form": On-Site Sewer Facility or Septic System notice/disclosure (TXR-1407 or similar).
 - "pre-approval-letter": Letter from a lender or bank stating buyer is pre-approved for a loan amount. Not a TREC form.
 - "title-commitment": Title says "COMMITMENT FOR TITLE INSURANCE" or "TITLE COMMITMENT". From a title company.
 - "survey": Shows a property plat, boundary lines, measurements. Created by a licensed surveyor.
@@ -63,6 +67,10 @@ const DOCUMENT_LABELS = {
   'trec-sellers-disclosure': "Seller's Disclosure Notice",
   'trec-buyer-representation': 'Buyer Representation Agreement',
   'trec-listing-agreement': 'Listing Agreement',
+  'iabs-form': 'Information About Brokerage Services',
+  'wire-fraud-warning': 'Wire Fraud Warning',
+  'general-info-notice': 'General Information and Notice to Consumers',
+  'onsite-sewer-form': 'On-Site Sewer Facility Information',
   'pre-approval-letter': 'Pre-Approval Letter',
   'title-commitment': 'Title Commitment',
   'survey': 'Property Survey',
@@ -231,6 +239,14 @@ Return compliance JSON:
   "summary": "",
   "extractedFields": { "septic_present": true|false }
 }`,
+
+  'iabs-form': `You are a Texas TC reviewing an Information About Brokerage Services (IABS) form. Check that broker name, license number, and contact information are filled in. Return: { "passed": true/false, "missingSignatures": [], "blankRequiredFields": [], "warnings": [], "summary": "" }`,
+
+  'wire-fraud-warning': `You are a Texas TC reviewing a Wire Fraud Warning document. Check that it has been acknowledged or signed by the recipient. Return: { "passed": true/false, "missingSignatures": [], "blankRequiredFields": [], "warnings": [], "summary": "" }`,
+
+  'general-info-notice': `You are a Texas TC reviewing a General Information and Notice to Consumers form. Check for required signatures or acknowledgments. Return: { "passed": true/false, "missingSignatures": [], "blankRequiredFields": [], "warnings": [], "summary": "" }`,
+
+  'onsite-sewer-form': `You are a Texas TC reviewing an On-Site Sewer Facility or Septic System disclosure. Check for required signatures. Return: { "passed": true/false, "missingSignatures": [], "blankRequiredFields": [], "warnings": [], "summary": "" }`,
 
   'pre-approval-letter': `You are a Texas TC reviewing a mortgage pre-approval letter.
 
