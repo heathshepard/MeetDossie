@@ -23,34 +23,44 @@ const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
 // DOCUMENT IDENTIFICATION + COMPLIANCE AUDITING
 // =============================================================================
 
-const IDENTIFY_PROMPT = `You are a Texas real estate document expert. Look at this document and identify what type it is. Return ONLY a JSON object with no markdown:
+const IDENTIFY_PROMPT = `You are a Texas real estate document expert. Identify this document type precisely using the TREC form number, title, and key distinguishing features.
+
+Return ONLY a JSON object with no markdown:
 {
   "documentType": "<type>",
-  "confidence": <0-1>
+  "confidence": <0-1>,
+  "reasoning": "<one sentence explaining what you saw that led to this identification>"
 }
 
-Document types:
-- "trec-20-17" (TREC One to Four Family Residential Contract)
-- "trec-financing-addendum" (Third Party Financing Addendum)
-- "trec-hoa-addendum" (HOA Addendum TREC 36-x)
-- "trec-lead-paint" (Lead Based Paint Disclosure)
-- "trec-buyer-representation" (Buyer Representation Agreement)
-- "trec-listing-agreement" (Listing Agreement)
-- "pre-approval-letter" (Lender pre-approval letter)
-- "title-commitment" (Title commitment/binder)
-- "survey" (Property survey)
-- "inspection-report" (Home inspection report)
-- "hoa-docs" (HOA documents package)
-- "closing-disclosure" (Closing disclosure)
-- "wire-instructions" (Wire transfer instructions)
-- "cma" (Comparative Market Analysis)
-- "other" (anything else)`;
+Document types and their KEY IDENTIFIERS:
+- "trec-20-17": Title says "ONE TO FOUR FAMILY RESIDENTIAL CONTRACT" or "TREC NO. 20-18". Has paragraphs numbered 1-23. Has sales price, earnest money, option fee.
+- "trec-financing-addendum": Title says "THIRD PARTY FINANCING ADDENDUM". TREC NO. 40-11. Has checkboxes for Conventional/FHA/VA/USDA financing types.
+- "trec-hoa-addendum": Title says "ADDENDUM FOR PROPERTY SUBJECT TO MANDATORY MEMBERSHIP IN A PROPERTY OWNERS ASSOCIATION". TREC NO. 36-x.
+- "trec-lead-paint": Title says "ADDENDUM FOR SELLER'S DISCLOSURE OF INFORMATION ON LEAD-BASED PAINT". Federal law form. Specifically about lead paint hazards only.
+- "trec-sellers-disclosure": Title says "SELLER'S DISCLOSURE NOTICE" or "OP-H". Asks about foundation, roof, plumbing, electrical, appliances, neighborhood conditions. THIS IS NOT THE LEAD PAINT FORM even though it may mention lead paint in one question.
+- "trec-buyer-representation": Title says "BUYER REPRESENTATION AGREEMENT" TAR 1501. Agent represents buyer.
+- "trec-listing-agreement": Title says "RESIDENTIAL REAL ESTATE LISTING AGREEMENT" or "EXCLUSIVE RIGHT TO SELL". TAR 1101. Agent represents seller/listing side.
+- "pre-approval-letter": Letter from a lender or bank stating buyer is pre-approved for a loan amount. Not a TREC form.
+- "title-commitment": Title says "COMMITMENT FOR TITLE INSURANCE" or "TITLE COMMITMENT". From a title company.
+- "survey": Shows a property plat, boundary lines, measurements. Created by a licensed surveyor.
+- "inspection-report": Created by a home inspector. Lists property defects, conditions, recommendations.
+- "hoa-docs": Package of HOA rules, bylaws, financials, resale certificate from a homeowners association.
+- "closing-disclosure": Title says "CLOSING DISCLOSURE". Three-page federal form showing final loan terms and closing costs.
+- "wire-instructions": Shows bank routing number, account number for wire transfer of funds.
+- "cma": Comparative Market Analysis showing comparable property sales.
+- "other": Anything that does not clearly match the above.
+
+CRITICAL DISAMBIGUATION RULES:
+1. trec-sellers-disclosure vs trec-lead-paint: If the form mentions foundation, roof, plumbing, electrical — it is trec-sellers-disclosure. If the form ONLY discusses lead paint hazards and has federal law language — it is trec-lead-paint.
+2. trec-buyer-representation vs trec-listing-agreement: Buyer representation protects the buyer. Listing agreement gives agent the right to sell the property.
+3. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
 
 const DOCUMENT_LABELS = {
   'trec-20-17': 'TREC One to Four Family Residential Contract',
   'trec-financing-addendum': 'Third Party Financing Addendum',
   'trec-hoa-addendum': 'HOA Addendum',
   'trec-lead-paint': 'Lead Based Paint Disclosure',
+  'trec-sellers-disclosure': "Seller's Disclosure Notice",
   'trec-buyer-representation': 'Buyer Representation Agreement',
   'trec-listing-agreement': 'Listing Agreement',
   'pre-approval-letter': 'Pre-Approval Letter',
@@ -190,6 +200,24 @@ REQUIRED (for pre-1978 homes):
 - Buyer acknowledgment checkbox checked
 - Seller disclosure section completed
 - Agent acknowledgment checked
+
+Return compliance JSON:
+{
+  "passed": true/false,
+  "missingSignatures": [],
+  "blankRequiredFields": [],
+  "warnings": [],
+  "summary": ""
+}`,
+
+  'trec-sellers-disclosure': `You are a Texas TC auditing a Seller's Disclosure Notice (TREC OP-H) for compliance.
+
+IMPORTANT: This is NOT a lead paint disclosure. This is about property condition.
+
+REQUIRED:
+- Seller signature and date on final page
+- All sections answered — not left blank
+- Foundation, roof, plumbing, electrical sections completed
 
 Return compliance JSON:
 {
