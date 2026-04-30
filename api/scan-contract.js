@@ -219,13 +219,17 @@ REQUIRED:
 - All sections answered — not left blank
 - Foundation, roof, plumbing, electrical sections completed
 
+Also extract:
+- septic_present: true if the form indicates an on-site sewer/septic system is present, false otherwise. Look for the water/sewer section — septic, aerobic, on-site sewer facility, OSSF all count as septic_present=true. City sewer / public sewer = false.
+
 Return compliance JSON:
 {
   "passed": true/false,
   "missingSignatures": [],
   "blankRequiredFields": [],
   "warnings": [],
-  "summary": ""
+  "summary": "",
+  "extractedFields": { "septic_present": true|false }
 }`,
 
   'pre-approval-letter': `You are a Texas TC reviewing a mortgage pre-approval letter.
