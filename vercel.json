@@ -1,4 +1,13 @@
 {
+  "rewrites": [
+    { "source": "/founding", "destination": "/founding.html" },
+    { "source": "/welcome", "destination": "/welcome.html" },
+    { "source": "/set-password", "destination": "/set-password.html" },
+    { "source": "/forgot-password", "destination": "/forgot-password.html" },
+    { "source": "/signin", "destination": "/signin.html" },
+    { "source": "/workspace", "destination": "/workspace.html" },
+    { "source": "/app", "destination": "/app.html" }
+  ],
   "headers": [
     {
       "source": "/(.*).html",
