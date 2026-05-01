@@ -28,11 +28,6 @@ const PRICE_TIERS = {
   'price_1TPxxNL920SKTEEiN7Gphq8T': 'founding',
 };
 
-const generateTempPassword = () => {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
-  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-};
-
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -89,13 +84,17 @@ async function findAuthUserIdByEmail(email) {
 
 // Create a Supabase auth user. Returns { userId, created } where created=false
 // means the user already existed and we recovered their id by email lookup.
-async function createAuthUser({ email, password, fullName }) {
+async function createAuthUser({ email, fullName }) {
+  // Random unusable password — the user will set their own via the recovery link.
+  // Never sent to the user, never logged. 48 url-safe chars.
+  const buf = require('crypto').randomBytes(36);
+  const unusablePassword = buf.toString('base64').replace(/[+/=]/g, '').slice(0, 48);
   try {
     const data = await supabaseFetch('/auth/v1/admin/users', {
       method: 'POST',
       body: JSON.stringify({
         email,
-        password,
+        password: unusablePassword,
         email_confirm: true,
         user_metadata: { full_name: fullName || '' },
       }),
@@ -111,6 +110,30 @@ async function createAuthUser({ email, password, fullName }) {
       if (existing) return { userId: existing, created: false };
     }
     throw err;
+  }
+}
+
+// Generate a one-time recovery (password-set) link via Supabase Admin API.
+// Returns the action_link the user clicks to land on /set-password.html with
+// their session tokens in the URL hash.
+async function generateRecoveryLink(email) {
+  if (!email) return null;
+  try {
+    const data = await supabaseFetch('/auth/v1/admin/generate_link', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'recovery',
+        email,
+        options: { redirectTo: 'https://meetdossie.com/set-password.html' },
+      }),
+    });
+    if (!data) return null;
+    if (typeof data.action_link === 'string' && data.action_link) return data.action_link;
+    if (data.properties && typeof data.properties.action_link === 'string') return data.properties.action_link;
+    return null;
+  } catch (err) {
+    console.error('[stripe-webhook] generateRecoveryLink failed:', err && err.message);
+    return null;
   }
 }
 
@@ -163,13 +186,13 @@ function welcomeEmailHtml(fullName) {
 </div>`;
 }
 
-function passwordEmailHtml(email, password) {
-  return `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-  <h2 style="color: ${BRAND_NAVY};">Your Dossie login details</h2>
-  <p style="color: ${BRAND_TEXT_SOFT};">Here are your temporary credentials. Please change your password after first login.</p>
-  <p><strong>Email:</strong> ${email}</p>
-  <p><strong>Temporary password:</strong> ${password}</p>
-  <a href="https://meetdossie.com/app.html" style="display: inline-block; margin-top: 24px; padding: 14px 28px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700;">Log in to Dossie</a>
+function setPasswordEmailHtml(actionLink) {
+  return `<div style="font-family: 'Cormorant Garamond', Georgia, serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
+  <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; line-height: 1.15; margin: 0 0 16px; color: ${BRAND_NAVY};">Welcome to Dossie.</h1>
+  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">Your founding member access is confirmed. Click below to set your password and get started.</p>
+  <a href="${actionLink}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Set Your Password</a>
+  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; margin-top: 36px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 24 hours. If you didn't request this, ignore this email.</p>
 </div>`;
 }
 
@@ -244,7 +267,6 @@ async function handleCheckoutSessionCompleted(stripe, session) {
 
   // Find or create the auth user.
   let userId = null;
-  let tempPassword = null;
   let createdNewUser = false;
   try {
     userId = await findUserIdByEmail(customerEmail);
@@ -252,12 +274,10 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     console.warn('[stripe-webhook] profile lookup failed:', err && err.message);
   }
   if (!userId) {
-    tempPassword = generateTempPassword();
     try {
-      const result = await createAuthUser({ email: customerEmail, password: tempPassword, fullName: customerName });
+      const result = await createAuthUser({ email: customerEmail, fullName: customerName });
       userId = result.userId;
       createdNewUser = result.created;
-      if (!createdNewUser) tempPassword = null; // user already existed; don't email a freshly-generated password
     } catch (err) {
       console.error('[stripe-webhook] createAuthUser failed:', err && err.message);
     }
@@ -302,13 +322,20 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     html: welcomeEmailHtml(customerName),
   });
 
-  // Send password email only to brand-new users.
-  if (createdNewUser && tempPassword) {
-    await sendEmail({
-      to: customerEmail,
-      subject: 'Your Dossie login details',
-      html: passwordEmailHtml(customerEmail, tempPassword),
-    });
+  // For brand-new users, generate a one-time recovery link and send the
+  // "Set Your Password" email. Pre-existing users skip this step (they
+  // already have a password and can sign in).
+  if (createdNewUser) {
+    const actionLink = await generateRecoveryLink(customerEmail);
+    if (actionLink) {
+      await sendEmail({
+        to: customerEmail,
+        subject: 'Welcome to Dossie — Set Your Password',
+        html: setPasswordEmailHtml(actionLink),
+      });
+    } else {
+      console.error('[stripe-webhook] no action_link returned for', customerEmail, '— manual intervention needed.');
+    }
   }
 }
 
