@@ -115,24 +115,59 @@ async function createAuthUser({ email, fullName }) {
 
 // Generate a one-time recovery (password-set) link via Supabase Admin API.
 // Returns the action_link the user clicks to land on /set-password.html with
-// their session tokens in the URL hash.
+// their session tokens in the URL hash. The GoTrue admin endpoint expects
+// `redirect_to` at the top level (snake_case); options.redirectTo is the
+// JS SDK convention, not the raw HTTP body shape, so do not nest it.
 async function generateRecoveryLink(email) {
   if (!email) return null;
+  const url = `${SUPABASE_URL}/auth/v1/admin/generate_link`;
+  const body = {
+    type: 'recovery',
+    email,
+    redirect_to: 'https://meetdossie.com/set-password.html',
+  };
+  console.log('[stripe-webhook] generateRecoveryLink → POST /auth/v1/admin/generate_link type=recovery redirect_to=https://meetdossie.com/set-password.html');
   try {
-    const data = await supabaseFetch('/auth/v1/admin/generate_link', {
+    const res = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify({
-        type: 'recovery',
-        email,
-        options: { redirectTo: 'https://meetdossie.com/set-password.html' },
-      }),
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     });
-    if (!data) return null;
-    if (typeof data.action_link === 'string' && data.action_link) return data.action_link;
-    if (data.properties && typeof data.properties.action_link === 'string') return data.properties.action_link;
+    const text = await res.text();
+    console.log('[stripe-webhook] generateRecoveryLink ← status', res.status, 'body length', text.length);
+    if (!res.ok) {
+      console.error('[stripe-webhook] generateRecoveryLink non-OK', res.status, text.slice(0, 500));
+      return null;
+    }
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (parseErr) {
+      console.error('[stripe-webhook] generateRecoveryLink JSON parse failed:', parseErr && parseErr.message, '| raw:', text.slice(0, 200));
+      return null;
+    }
+    if (!data) {
+      console.error('[stripe-webhook] generateRecoveryLink empty response body');
+      return null;
+    }
+    const topKeys = Object.keys(data).join(',');
+    console.log('[stripe-webhook] generateRecoveryLink response keys:', topKeys);
+    if (typeof data.action_link === 'string' && data.action_link) {
+      console.log('[stripe-webhook] generateRecoveryLink: matched top-level action_link');
+      return data.action_link;
+    }
+    if (data.properties && typeof data.properties.action_link === 'string' && data.properties.action_link) {
+      console.log('[stripe-webhook] generateRecoveryLink: matched properties.action_link');
+      return data.properties.action_link;
+    }
+    console.error('[stripe-webhook] generateRecoveryLink: no action_link in response. Keys:', topKeys);
     return null;
   } catch (err) {
-    console.error('[stripe-webhook] generateRecoveryLink failed:', err && err.message);
+    console.error('[stripe-webhook] generateRecoveryLink threw:', err && err.message);
     return null;
   }
 }
@@ -267,7 +302,6 @@ async function handleCheckoutSessionCompleted(stripe, session) {
 
   // Find or create the auth user.
   let userId = null;
-  let createdNewUser = false;
   try {
     userId = await findUserIdByEmail(customerEmail);
   } catch (err) {
@@ -277,7 +311,6 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     try {
       const result = await createAuthUser({ email: customerEmail, fullName: customerName });
       userId = result.userId;
-      createdNewUser = result.created;
     } catch (err) {
       console.error('[stripe-webhook] createAuthUser failed:', err && err.message);
     }
@@ -322,20 +355,21 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     html: welcomeEmailHtml(customerName),
   });
 
-  // For brand-new users, generate a one-time recovery link and send the
-  // "Set Your Password" email. Pre-existing users skip this step (they
-  // already have a password and can sign in).
-  if (createdNewUser) {
-    const actionLink = await generateRecoveryLink(customerEmail);
-    if (actionLink) {
-      await sendEmail({
-        to: customerEmail,
-        subject: 'Welcome to Dossie — Set Your Password',
-        html: setPasswordEmailHtml(actionLink),
-      });
-    } else {
-      console.error('[stripe-webhook] no action_link returned for', customerEmail, '— manual intervention needed.');
-    }
+  // Always generate a recovery link and send the "Set Your Password" email.
+  // Recovery links work for both new users (initial password setup) and
+  // existing users (password reset), so this also covers customers whose
+  // auth record was created in a prior failed attempt — they were silently
+  // dropped before. If generation still fails, log loudly so we can recover
+  // them manually via the Supabase dashboard.
+  const actionLink = await generateRecoveryLink(customerEmail);
+  if (actionLink) {
+    await sendEmail({
+      to: customerEmail,
+      subject: 'Welcome to Dossie — Set Your Password',
+      html: setPasswordEmailHtml(actionLink),
+    });
+  } else {
+    console.error('[stripe-webhook] no action_link returned for', customerEmail, '— manual intervention needed.');
   }
 }
 
