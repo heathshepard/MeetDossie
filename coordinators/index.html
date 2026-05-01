@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+(function() {
+  var hash = window.location.hash || '';
+  if (hash.indexOf('access_token=') !== -1 && hash.indexOf('type=recovery') !== -1) {
+    window.location.replace('/set-password.html' + hash);
+  }
+  else if (hash.indexOf('access_token=') !== -1 && (hash.indexOf('type=invite') !== -1 || hash.indexOf('type=signup') !== -1)) {
+    window.location.replace('/set-password.html' + hash);
+  }
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dossie for Transaction Coordinators — Handle More. Stress Less.</title>
