@@ -260,6 +260,21 @@ const TOOLS = [
     },
   },
   {
+    name: 'send_email',
+    description: 'Send an email directly on behalf of the agent. Use when agent says: send an email, email them, reach out to, contact, follow up with, send a message to. Do not use for drafting — only when agent explicitly wants to send now.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        to_email: { type: 'string', description: 'Recipient email address' },
+        to_name: { type: 'string', description: 'Recipient name' },
+        subject: { type: 'string', description: 'Email subject line' },
+        body: { type: 'string', description: 'Email body in plain text. Write as Dossie speaking on behalf of the agent. Warm, professional, concise.' },
+        deal_identifier: { type: 'string', description: 'The deal this email is about — used to log it' },
+      },
+      required: ['to_email', 'subject', 'body'],
+    },
+  },
+  {
     name: 'answer_question',
     description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies.',
     input_schema: {
