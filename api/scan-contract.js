@@ -285,6 +285,8 @@ Extract these fields:
 - brokerage_name
 - commission_rate
 
+For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "104 Wild Cherry Lane" not "104 Wild Cherry Ln, Lot 7, Cherry Ridge, 2.236 acres".
+
 REQUIRED signatures:
 - Seller signature and date
 - Listing agent signature and date

@@ -89,7 +89,11 @@ module.exports = async function handler(req, res) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-  const htmlBody = `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">${escaped.replace(/\n/g, '<br>')}</div>`;
+  const escapedBody = escaped.replace(/\n/g, '<br>');
+  const footer = `<div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E0D8; font-size: 12px; color: #9CA8B4; line-height: 1.6;">
+  If you don't see future emails from Dossie, please check your spam folder and mark dossie@meetdossie.com as a safe sender.
+</div>`;
+  const htmlBody = `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">${escapedBody}${footer}</div>`;
 
   const emailPayload = {
     from: `${fromName} <dossie@meetdossie.com>`,
