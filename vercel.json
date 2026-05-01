@@ -13,8 +13,10 @@
       ]
     }
   ],
-  "routes": [
-    { "src": "/app.html", "dest": "/app.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+  "crons": [
+    {
+      "path": "/api/cron-followup",
+      "schedule": "0 12 * * *"
+    }
   ]
 }
