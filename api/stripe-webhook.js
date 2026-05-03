@@ -28,6 +28,15 @@ const PRICE_TIERS = {
   'price_1TPxxNL920SKTEEiN7Gphq8T': 'founding',
 };
 
+// Stripe checkout names arrive in whatever case the customer typed
+// ("heath Shepard", "HEATH SHEPARD"). Normalize on the way in so the Settings
+// page and email greetings never display a mid-cap or shouting name.
+function toTitleCase(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  return trimmed.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+}
+
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -264,7 +273,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     || session.customer_email
     || null;
   const customerEmail = customerEmailRaw ? String(customerEmailRaw).toLowerCase() : null;
-  const customerName = (session.customer_details && session.customer_details.name) || '';
+  const customerName = toTitleCase((session.customer_details && session.customer_details.name) || '');
   const stripeCustomerId = typeof session.customer === 'string'
     ? session.customer
     : (session.customer && session.customer.id) || null;
