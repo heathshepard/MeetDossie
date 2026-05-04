@@ -80,11 +80,7 @@ async function tgPost(method, body) {
 module.exports = async function handler(req, res) {
   if (!CRON_SECRET) return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  // Temporary one-shot bypass token while CRON_SECRET is unrecoverable from local env-pull.
-  // Removed in the immediate follow-up commit. Worst-case blast radius: an unwanted
-  // Telegram message to Heath's chat (TELEGRAM_CHAT_ID is hardcoded).
-  const ONE_SHOT_DIAG = 'Bearer b507509aa53018d87328f902fafee09972a6ae3aaea3e6e50be9a1cc3c1687c5';
-  if (authHeader !== `Bearer ${CRON_SECRET}` && authHeader !== ONE_SHOT_DIAG) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
