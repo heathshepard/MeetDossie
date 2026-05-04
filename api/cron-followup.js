@@ -153,10 +153,29 @@ module.exports = async function handler(req, res) {
     `/rest/v1/transactions?status=neq.closed&select=id,property_address,option_expiration_date,loan_approval_deadline,closing_date,user_id`,
   );
 
+  // Phrasing matches the in-app deadline language (formatDeadlinePhrase in src/utils/deadlines.js).
+  // Keep these strings synchronized so cron alerts read the same as the UI.
+  const phraseFor = (subject, style, daysUntil) => {
+    const days = Math.ceil(daysUntil);
+    const plural = (n) => (Math.abs(n) === 1 ? 'day' : 'days');
+    if (days <= 0) {
+      if (style === 'expires') return `${subject} expires today`;
+      if (style === 'happens') return `${subject} today`;
+      return `${subject} due today`;
+    }
+    if (days === 1) {
+      if (style === 'expires') return `${subject} expires tomorrow`;
+      if (style === 'happens') return `${subject} tomorrow`;
+      return `${subject} due tomorrow`;
+    }
+    if (style === 'expires') return `${subject} expires in ${days} ${plural(days)}`;
+    if (style === 'happens') return `${subject} in ${days} ${plural(days)}`;
+    return `${subject} due in ${days} ${plural(days)}`;
+  };
   const alerts = [];
   if (Array.isArray(transactions)) {
     for (const tx of transactions) {
-      const checkDate = (dateStr, label, daysWarning) => {
+      const checkDate = (dateStr, subject, style, daysWarning) => {
         if (!dateStr) return;
         const deadline = new Date(String(dateStr) + 'T00:00:00Z');
         const daysUntil = (deadline - now) / (1000 * 60 * 60 * 24);
@@ -164,15 +183,15 @@ module.exports = async function handler(req, res) {
           alerts.push({
             transactionId: tx.id,
             userId: tx.user_id,
-            label,
+            label: phraseFor(subject, style, daysUntil),
             daysUntil: Math.ceil(daysUntil),
             propertyAddress: tx.property_address,
           });
         }
       };
-      checkDate(tx.option_expiration_date, 'Option period expires', 3);
-      checkDate(tx.loan_approval_deadline, 'Financing deadline', 5);
-      checkDate(tx.closing_date, 'Closing date', 7);
+      checkDate(tx.option_expiration_date, 'Option period', 'expires', 3);
+      checkDate(tx.loan_approval_deadline, 'Financing', 'due', 5);
+      checkDate(tx.closing_date, 'Closing', 'happens', 7);
     }
   }
 
