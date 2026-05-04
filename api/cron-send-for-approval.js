@@ -9,7 +9,10 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Marketing approval flow uses a dedicated bot (DossieMarketingBot) so it
+// can hold a webhook without fighting Claudy's getUpdates loop. Falls back
+// to TELEGRAM_BOT_TOKEN only if the marketing-specific token isn't set.
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const MAX_PER_RUN = 12;
