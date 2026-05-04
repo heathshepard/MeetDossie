@@ -99,6 +99,15 @@ section { padding: 96px 28px; position: relative; }
 .texas-icon { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, var(--blush-light) 0%, var(--gold-light) 100%); display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 18px; }
 .texas-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; line-height: 1.25; }
 .texas-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+.texas-card.is-founder { border-color: var(--blush); background: linear-gradient(180deg, var(--bg-card) 0%, var(--blush-light) 220%); box-shadow: 0 12px 36px rgba(192,128,128,0.14); text-align: left; padding: 36px 30px; }
+.texas-card.is-founder .texas-icon { background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); color: #fff; margin-left: 0; }
+.texas-card.is-founder .texas-title { font-size: 24px; }
+.texas-card.is-founder .texas-desc { font-size: 14.5px; line-height: 1.7; }
+.founder-signature { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+.founder-sig-mark { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; flex-shrink: 0; }
+.founder-sig-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: var(--text-primary); line-height: 1.3; }
+.founder-sig-text small { display: block; font-size: 11px; font-style: normal; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-light); margin-top: 3px; font-family: 'Plus Jakarta Sans', sans-serif; }
+.faq-live { font-weight: 700; color: var(--coral-deep); }
 
 .faq { padding: 96px 28px; }
 .faq-list { max-width: 720px; margin: 52px auto 0; display: flex; flex-direction: column; gap: 12px; }
@@ -117,8 +126,13 @@ section { padding: 96px 28px; position: relative; }
 .signup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .signup-field { display: flex; flex-direction: column; gap: 6px; }
 .signup-label { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
-.signup-input { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 13px 16px; font-family: inherit; font-size: 15px; background: #fff; color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
-.signup-input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-light); }
+.signup-input, .signup-select, .signup-textarea { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 13px 16px; font-family: inherit; font-size: 15px; background: #fff; color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
+.signup-input:focus, .signup-select:focus, .signup-textarea:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-light); }
+.signup-textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+.signup-select { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%), linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 36px; cursor: pointer; }
+.signup-counter { font-size: 11px; color: var(--text-light); text-align: right; margin-top: -2px; }
+.signup-counter.is-near { color: var(--coral-deep); }
+.signup-help { margin-top: 10px; font-size: 12px; color: var(--text-light); text-align: center; line-height: 1.55; }
 .signup-button { margin-top: 10px; padding: 16px 22px; border: none; border-radius: 999px; background: var(--coral); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 16px 38px rgba(232,131,107,0.3); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
 .signup-button:hover:not(:disabled) { transform: translateY(-2px); background: var(--coral-deep); }
 .signup-button:disabled { opacity: 0.65; cursor: progress; }
@@ -167,7 +181,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
   </a>
   <div class="nav-actions">
     <a href="/" class="nav-link">Home</a>
-    <a href="#claim" class="nav-cta">Claim My Spot</a>
+    <a href="#claim" class="nav-cta">Apply Now</a>
   </div>
 </nav>
 
@@ -178,7 +192,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
       🔒 Founding Member — 50 Spots Only
     </div>
 
-    <h1 class="hero-title">Lock in your rate <em>before we launch.</em></h1>
+    <h1 class="hero-title">Lock in your rate <em>before we open to the public.</em></h1>
     <p class="hero-tagline">The TC That Never Sleeps.</p>
     <p class="hero-sub">
       Dossie is the AI transaction coordinator built for Texas agents. Founding members get full access at <strong style="color: var(--text-primary); font-weight: 700;">$29/month</strong> — locked for life, no matter what the price becomes.
@@ -201,15 +215,14 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     </div>
 
     <div class="cta-row">
-      <button type="button" class="cta-primary" id="hero-checkout">
-        <span class="cta-label">Claim Your Founding Member Spot</span>
+      <a href="#claim" class="cta-primary" id="hero-cta">
+        <span class="cta-label">Apply for Founding Member</span>
         <span class="cta-arrow">→</span>
-      </button>
+      </a>
       <span class="scarcity">
         <span class="scarcity-pip"></span>
         50 spots available at this price
       </span>
-      <span class="cta-error" id="hero-checkout-error" role="status" aria-live="polite"></span>
     </div>
   </div>
 </section>
@@ -262,10 +275,14 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     <p class="section-sub">Most software treats Texas like an afterthought. Dossie was built around Texas — TREC paragraphs, holiday rollover, the way Texas deals actually run.</p>
 
     <div class="texas-grid">
-      <div class="texas-card">
+      <div class="texas-card is-founder">
         <div class="texas-icon">🤠</div>
         <h3 class="texas-title">Built by a Texas REALTOR®</h3>
-        <p class="texas-desc">Designed by an active Texas agent who needed a TC who never sleeps and never forgets.</p>
+        <p class="texas-desc">Designed and built by Heath Shepard, an active Texas REALTOR® who got tired of paying $400/transaction to a TC and still doing half the work himself. Every feature in Dossie comes from a real deal.</p>
+        <div class="founder-signature">
+          <div class="founder-sig-mark">H</div>
+          <div class="founder-sig-text">— Heath Shepard<small>Founder · Texas REALTOR®</small></div>
+        </div>
       </div>
       <div class="texas-card">
         <div class="texas-icon">📋</div>
@@ -287,6 +304,13 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     <h2 class="section-title">A few <em>quick answers.</em></h2>
 
     <div class="faq-list">
+      <details class="faq-item" open>
+        <summary class="faq-question">
+          How many founding spots are left?
+          <span class="faq-toggle">+</span>
+        </summary>
+        <div class="faq-answer" id="faq-spots-answer">Limited founding spots remaining.</div>
+      </details>
       <details class="faq-item">
         <summary class="faq-question">
           What happens after the 50 spots are gone?
@@ -321,14 +345,14 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 
 <section class="signup" id="claim">
   <div class="signup-inner">
-    <div class="section-eyebrow">Reserve your spot</div>
-    <h2 class="section-title">Get on the <em>founding list.</em></h2>
-    <p class="section-sub">Drop your name and email. We'll send your founding member invite as soon as your spot is confirmed.</p>
+    <div class="section-eyebrow">Apply for a founding spot</div>
+    <h2 class="section-title">Apply for one of <em>50 founding spots.</em></h2>
+    <p class="section-sub">Tell us about your business. We'll review and email approved members a checkout link within 24 hours.</p>
 
     <form class="signup-form" id="founding-form" novalidate>
       <div class="signup-row">
         <div class="signup-field">
-          <label class="signup-label" for="founding-name">Name</label>
+          <label class="signup-label" for="founding-name">Full name</label>
           <input class="signup-input" id="founding-name" name="name" type="text" placeholder="Your full name" autocomplete="name" required>
         </div>
         <div class="signup-field">
@@ -336,10 +360,41 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
           <input class="signup-input" id="founding-email" name="email" type="email" placeholder="you@brokerage.com" autocomplete="email" required>
         </div>
       </div>
-      <button class="signup-button" type="submit" id="founding-submit">Get Early Access</button>
+      <div class="signup-row">
+        <div class="signup-field">
+          <label class="signup-label" for="founding-brokerage">Brokerage</label>
+          <input class="signup-input" id="founding-brokerage" name="brokerage" type="text" placeholder="e.g. Keller Williams" autocomplete="organization" required>
+        </div>
+        <div class="signup-field">
+          <label class="signup-label" for="founding-market">Texas market</label>
+          <input class="signup-input" id="founding-market" name="market" type="text" placeholder="Austin, DFW, Houston…" required>
+        </div>
+      </div>
+      <div class="signup-row">
+        <div class="signup-field">
+          <label class="signup-label" for="founding-tx">Transactions (last 12mo)</label>
+          <input class="signup-input" id="founding-tx" name="transactions_12mo" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 18" required>
+        </div>
+        <div class="signup-field">
+          <label class="signup-label" for="founding-sides">Sides you work</label>
+          <select class="signup-select" id="founding-sides" name="sides" required>
+            <option value="" disabled selected>Select…</option>
+            <option value="buyer">Buyer side</option>
+            <option value="listing">Listing side</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+      </div>
+      <div class="signup-field">
+        <label class="signup-label" for="founding-why">Why are you interested in Dossie?</label>
+        <textarea class="signup-textarea" id="founding-why" name="why" maxlength="500" placeholder="A few sentences on what's not working today and what you'd want Dossie to handle." required></textarea>
+        <div class="signup-counter" id="founding-why-counter">0 / 500</div>
+      </div>
+      <button class="signup-button" type="submit" id="founding-submit">Submit Application</button>
+      <p class="signup-help">No payment required to apply. Approved members get a Stripe checkout link locked at $29/mo for life.</p>
       <div class="signup-status" id="founding-status" role="status" aria-live="polite"></div>
     </form>
-    <p class="signup-fineprint">No spam. We'll only reach out about your founding spot.</p>
+    <p class="signup-fineprint">No spam. We only reach out about your application.</p>
   </div>
 </section>
 
@@ -359,55 +414,56 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 </footer>
 
 <script>
+// Live spot count in the FAQ — same fetch pattern as the homepage banner.
 (function () {
-  var heroBtn = document.getElementById("hero-checkout");
-  if (!heroBtn) return;
-  var heroLabel = heroBtn.querySelector(".cta-label");
-  var heroError = document.getElementById("hero-checkout-error");
-
-  function setHeroLoading(loading) {
-    heroBtn.disabled = !!loading;
-    if (heroLabel) heroLabel.textContent = loading ? "Opening checkout..." : "Claim Your Founding Member Spot";
-  }
-
-  heroBtn.addEventListener("click", async function () {
-    if (heroError) heroError.textContent = "";
-    setHeroLoading(true);
-    var payload = {};
-    var emailField = document.getElementById("founding-email");
-    if (emailField && emailField.value) {
-      var emailValue = emailField.value.trim();
-      if (emailValue && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
-        payload.email = emailValue;
+  var el = document.getElementById("faq-spots-answer");
+  if (!el) return;
+  fetch("/api/founding-count", { headers: { Accept: "application/json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      if (j && typeof j.remaining === "number" && j.remaining >= 0) {
+        var n = String(j.remaining);
+        el.innerHTML = "Currently <span class=\"faq-live\">" + n + "</span> of 50 spots remaining. Once they're gone, the founding rate is gone forever.";
       }
-    }
-    try {
-      var response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      var json = null;
-      try { json = await response.json(); } catch (_) { json = null; }
-      if (!response.ok || !json || json.ok === false || !json.url) {
-        var msg = (json && json.error) ? json.error : "Couldn't open checkout. Try again or use the form below.";
-        if (heroError) heroError.textContent = msg;
-        setHeroLoading(false);
-        return;
-      }
-      window.location.href = json.url;
-    } catch (err) {
-      if (heroError) heroError.textContent = "Couldn't reach the server. Try again or use the form below.";
-      setHeroLoading(false);
-    }
-  });
+    })
+    .catch(function () { /* keep "Limited founding spots remaining." fallback */ });
 })();
 
+// Why-textarea character counter.
 (function () {
+  var ta = document.getElementById("founding-why");
+  var counter = document.getElementById("founding-why-counter");
+  if (!ta || !counter) return;
+  var max = parseInt(ta.getAttribute("maxlength") || "500", 10);
+  function update() {
+    var n = ta.value.length;
+    counter.textContent = n + " / " + max;
+    if (n >= max - 40) counter.classList.add("is-near"); else counter.classList.remove("is-near");
+  }
+  ta.addEventListener("input", update);
+  update();
+})();
+
+// Application form submission.
+//   1. Direct INSERT into Supabase public.founding_applications via the anon
+//      key + Prefer: return=minimal (anon RLS allows INSERT only).
+//   2. POST { email } to /api/notify-founding-application — server looks up
+//      the row and pings Telegram with authoritative DB content.
+(function () {
+  var SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE";
+
   var form = document.getElementById("founding-form");
   if (!form) return;
-  var nameInput = document.getElementById("founding-name");
-  var emailInput = document.getElementById("founding-email");
+  var fields = {
+    name: document.getElementById("founding-name"),
+    email: document.getElementById("founding-email"),
+    brokerage: document.getElementById("founding-brokerage"),
+    market: document.getElementById("founding-market"),
+    transactions_12mo: document.getElementById("founding-tx"),
+    sides: document.getElementById("founding-sides"),
+    why: document.getElementById("founding-why"),
+  };
   var button = document.getElementById("founding-submit");
   var status = document.getElementById("founding-status");
 
@@ -417,52 +473,78 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     if (kind) status.classList.add("is-" + kind);
   }
 
-  function clearStatus() {
-    status.textContent = "";
-    status.classList.remove("is-success", "is-error", "is-loading");
+  function isValidEmail(e) { return typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+  function readPayload() {
+    return {
+      name: (fields.name.value || "").trim(),
+      email: (fields.email.value || "").trim().toLowerCase(),
+      brokerage: (fields.brokerage.value || "").trim(),
+      market: (fields.market.value || "").trim(),
+      transactions_12mo: parseInt(String(fields.transactions_12mo.value || "").replace(/[, ]/g, ""), 10),
+      sides: (fields.sides.value || "").trim().toLowerCase(),
+      why: (fields.why.value || "").trim(),
+    };
+  }
+
+  function validate(p) {
+    if (!p.name) return "Add your full name.";
+    if (!isValidEmail(p.email)) return "That email looks off. Mind double-checking it?";
+    if (!p.brokerage) return "Tell us your brokerage name.";
+    if (!p.market) return "What Texas market do you work?";
+    if (!Number.isFinite(p.transactions_12mo) || p.transactions_12mo < 0) return "Add a number for transactions in the last 12 months.";
+    if (["buyer", "listing", "both"].indexOf(p.sides) === -1) return "Pick which sides you work.";
+    if (!p.why || p.why.length < 10) return "Tell us a little about why you're interested.";
+    if (p.why.length > 500) return "Keep your answer under 500 characters.";
+    return null;
   }
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
-    var name = (nameInput.value || "").trim();
-    var email = (emailInput.value || "").trim();
-    if (!name || !email) {
-      showStatus("Add your name and email so we can save your spot.", "error");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showStatus("That email looks off. Mind double-checking it?", "error");
-      return;
-    }
-    button.disabled = true;
+    var payload = readPayload();
+    var err = validate(payload);
+    if (err) { showStatus(err, "error"); return; }
+
     var originalLabel = button.textContent;
-    button.textContent = "Saving your spot...";
-    showStatus("Saving your spot...", "loading");
+    button.disabled = true;
+    button.textContent = "Submitting…";
+    showStatus("Submitting your application…", "loading");
+
     try {
-      var response = await fetch("/api/leads", {
+      var insertRes = await fetch(SUPABASE_URL + "/rest/v1/founding_applications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name,
-          email: email,
-          role: "founding_member",
-          notes: "Founding member landing page",
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify(payload),
       });
-      var json = null;
-      try { json = await response.json(); } catch (_) { json = null; }
-      if (!response.ok || (json && json.ok === false)) {
-        var serverMessage = json && json.error ? json.error : "Something went sideways. Try again in a moment.";
-        showStatus(serverMessage, "error");
-        button.disabled = false;
-        button.textContent = originalLabel;
-        return;
+      if (!insertRes.ok) {
+        var detail = "";
+        try { detail = await insertRes.text(); } catch (_) {}
+        throw new Error("insert " + insertRes.status + " " + detail.slice(0, 200));
       }
+
+      // Best-effort Telegram ping. If it fails we still confirm success
+      // because the row is already saved and Heath can see it in the DB.
+      try {
+        await fetch("/api/notify-founding-application", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: payload.email }),
+        });
+      } catch (_) { /* swallow */ }
+
       form.reset();
-      showStatus("You're on the list. Dossie will be in touch.", "success");
-      button.textContent = "You're In ✓";
-    } catch (error) {
-      showStatus("Couldn't reach the server. Check your connection and try again.", "error");
+      var counter = document.getElementById("founding-why-counter");
+      if (counter) counter.textContent = "0 / 500";
+      showStatus("Got it. We'll review your application and email you within 24 hours.", "success");
+      button.textContent = "Application Submitted ✓";
+    } catch (e) {
+      console.error("[founding-form]", e && e.message);
+      showStatus("Couldn't submit your application. Try again in a moment, or email heath@meetdossie.com.", "error");
       button.disabled = false;
       button.textContent = originalLabel;
     }
