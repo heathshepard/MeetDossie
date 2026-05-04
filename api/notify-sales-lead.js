@@ -1,10 +1,17 @@
 // Vercel Serverless Function: /api/notify-sales-lead
 // Sends a Telegram notification to TELEGRAM_CHAT_ID for a freshly inserted
-// sales_leads row. The browser POSTs the inserted row's id; the server fetches
-// the row via the service role and uses the DB's authoritative content to
-// build the message — so a malicious caller cannot spoof message bodies.
+// sales_leads row. The browser POSTs the lead's email; the server looks up
+// the most recent matching row (within RECENT_WINDOW_MS) via the service
+// role and uses the DB's authoritative content for the message — so a
+// caller cannot spoof message bodies, and a Telegram ping cannot fire
+// without a corresponding DB row actually existing.
 //
-// POST { id }   (no auth — public from the marketing site, same-origin / CORS-restricted)
+// POST { email }   (no auth — public from the marketing site, CORS-restricted)
+//
+// Why email not id: the browser inserts with Prefer: return=minimal because
+// the RLS policy on sales_leads grants anon INSERT only (no SELECT), so
+// return=representation cannot read the inserted id back. Looking up by
+// email + recency is the next-best correlation key.
 //
 // Environment:
 //   SUPABASE_URL              — Supabase project URL
@@ -19,7 +26,10 @@ const ALLOWED_ORIGINS = new Set([
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const VERCEL_PREVIEW_ORIGIN_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// How recent the matching row must be to fire a notification. Generous so a
+// slow client that POSTs notify a few seconds after insert still hits.
+const RECENT_WINDOW_MS = 5 * 60 * 1000;
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
@@ -100,23 +110,28 @@ module.exports = async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const id = typeof body.id === 'string' ? body.id.trim() : '';
-  if (!UUID_RE.test(id)) {
-    return res.status(400).json({ ok: false, error: 'Invalid lead id.' });
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  if (!EMAIL_RE.test(email) || email.length > 320) {
+    return res.status(400).json({ ok: false, error: 'Invalid email.' });
   }
 
-  // Fetch the row using the service role (bypasses RLS).
+  // Look up the most recent row matching that email. Service role bypasses
+  // RLS. We require the row to be within RECENT_WINDOW_MS so an attacker
+  // can't trigger a re-notify for any old row by guessing emails.
+  const sinceIso = new Date(Date.now() - RECENT_WINDOW_MS).toISOString();
   let lead;
   try {
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/sales_leads?id=eq.${encodeURIComponent(id)}&select=*&limit=1`,
-      {
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      }
-    );
+    const url =
+      `${SUPABASE_URL}/rest/v1/sales_leads` +
+      `?email=eq.${encodeURIComponent(email)}` +
+      `&created_at=gte.${encodeURIComponent(sinceIso)}` +
+      `&select=*&order=created_at.desc&limit=1`;
+    const r = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    });
     if (!r.ok) {
       const text = await r.text().catch(() => '');
       console.error('[notify-sales-lead] supabase lookup failed', r.status, text.slice(0, 300));
@@ -130,7 +145,7 @@ module.exports = async function handler(req, res) {
   }
 
   if (!lead || !lead.id) {
-    return res.status(404).json({ ok: false, error: 'Lead not found.' });
+    return res.status(404).json({ ok: false, error: 'No recent lead matches that email.' });
   }
 
   const text = buildMessage(lead);

@@ -109,13 +109,15 @@
   }
 
   async function submitLead(payload) {
+    // INSERT with Prefer: return=minimal. RLS allows anon INSERT but not
+    // SELECT, so return=representation would 401 on the SELECT-back step.
     var insertRes = await fetch(SUPABASE_URL + '/rest/v1/sales_leads', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Prefer': 'return=representation'
+        'Prefer': 'return=minimal'
       },
       body: JSON.stringify(payload)
     });
@@ -124,23 +126,19 @@
       try { errText = await insertRes.text(); } catch (_e) {}
       throw new Error('insert ' + insertRes.status + ' ' + errText.slice(0, 200));
     }
-    var rows;
-    try { rows = await insertRes.json(); } catch (_e) { rows = null; }
-    var row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row || !row.id) throw new Error('insert returned no id');
 
-    // Fire-and-best-effort: tell our server to ping Telegram. If this fails
-    // we still show success to the user — the row is already saved.
+    // Fire-and-best-effort Telegram ping. The endpoint will look up the row
+    // server-side using email + recent created_at and use the DB content as
+    // the source of truth for the message body.
     try {
       await fetch('/api/notify-sales-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id })
+        body: JSON.stringify({ email: payload.email })
       });
     } catch (_e) {
-      // Swallowed intentionally. Row is in DB; Heath can retry from there.
+      // Swallowed: the row is already in the DB; Heath can find it there.
     }
-    return row;
   }
 
   function buildModal(opts) {
