@@ -221,7 +221,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
       </a>
       <span class="scarcity">
         <span class="scarcity-pip"></span>
-        50 spots available at this price
+        <span id="hero-scarcity-text"><span id="hero-scarcity-count">49</span> of 50 spots available</span>
       </span>
     </div>
   </div>
@@ -414,19 +414,23 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 </footer>
 
 <script>
-// Live spot count in the FAQ — same fetch pattern as the homepage banner.
+// Live spot count — single fetch updates both the hero scarcity line and
+// the FAQ answer. Same fetch pattern as the homepage banner.
 (function () {
-  var el = document.getElementById("faq-spots-answer");
-  if (!el) return;
+  var faq = document.getElementById("faq-spots-answer");
+  var heroCount = document.getElementById("hero-scarcity-count");
+  if (!faq && !heroCount) return;
   fetch("/api/founding-count", { headers: { Accept: "application/json" } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) {
-      if (j && typeof j.remaining === "number" && j.remaining >= 0) {
-        var n = String(j.remaining);
-        el.innerHTML = "Currently <span class=\"faq-live\">" + n + "</span> of 50 spots remaining. Once they're gone, the founding rate is gone forever.";
+      if (!j || typeof j.remaining !== "number" || j.remaining < 0) return;
+      var n = String(j.remaining);
+      if (heroCount) heroCount.textContent = n;
+      if (faq) {
+        faq.innerHTML = "Currently <span class=\"faq-live\">" + n + "</span> of 50 spots remaining. Once they're gone, the founding rate is gone forever.";
       }
     })
-    .catch(function () { /* keep "Limited founding spots remaining." fallback */ });
+    .catch(function () { /* keep SSR fallbacks ("49 of 50 spots available" / "Limited founding spots remaining.") */ });
 })();
 
 // Why-textarea character counter.
