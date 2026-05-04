@@ -1204,7 +1204,7 @@ footer {
         <li><span class="price-check">-</span> Custom branding</li>
         <li><span class="price-check">-</span> Dedicated onboarding</li>
       </ul>
-      <a href="mailto:hello@meetdossie.com?subject=Dossie%20Brokerage%20Pricing" class="price-btn outlined">Contact Sales</a>
+      <button type="button" class="price-btn outlined" style="font: inherit;" onclick="openSalesModal({ source: 'agents' })">Contact Sales</button>
     </div>
   </div>
 
@@ -1316,5 +1316,6 @@ document.querySelectorAll('.feature-card,.compare-card,.brief-demo,.price-card,.
   _obs.observe(el);
 });
 </script>
+<script src="/sales-modal.js"></script>
 </body>
 </html>

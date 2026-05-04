@@ -3,9 +3,11 @@
 //
 // GET → { ok: true, total: 50, taken: <n>, remaining: <50-n> }
 //
-// "Taken" is defined as profiles where plan='founding' AND
-// subscription_status='active'. No auth — the count is intentionally public so
-// the homepage scarcity banner can read it.
+// "Taken" is read from the subscriptions table (source of truth for billing
+// state) where plan='founding' AND status='active'. Subscriptions cascade
+// from auth.users on delete and Stripe webhook updates the row directly, so
+// this auto-reflects cancellations without a separate profiles-sync hop.
+// No auth — the count is intentionally public so the homepage banner reads it.
 //
 // Environment:
 //   SUPABASE_URL              — Supabase project URL
@@ -33,7 +35,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const url = `${SUPABASE_URL}/rest/v1/profiles?select=id&plan=eq.founding&subscription_status=eq.active`;
+    const url = `${SUPABASE_URL}/rest/v1/subscriptions?select=user_id&plan=eq.founding&status=eq.active`;
     const r = await fetch(url, {
       method: 'GET',
       headers: {

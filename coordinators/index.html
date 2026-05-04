@@ -743,7 +743,7 @@ footer {
         <li><span class="price-check">✓</span> Dedicated onboarding</li>
         <li><span class="price-check">✓</span> SLA & compliance reporting</li>
       </ul>
-      <a href="mailto:hello@meetdossie.com?subject=Dossie%20Enterprise%20Pricing" class="price-btn outlined">Contact Sales</a>
+      <button type="button" class="price-btn outlined" style="font: inherit;" onclick="openSalesModal({ source: 'coordinators' })">Contact Sales</button>
     </div>
   </div>
 </section>
@@ -820,5 +820,6 @@ async function handleWaitlist() {
 var _obs = new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.style.opacity='1';x.target.style.transform='translateY(0)';}});},{threshold:0.08});
 document.querySelectorAll('.feature-card,.compare-card,.brief-demo,.price-card,.founder-quote').forEach(function(el){el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition='opacity 0.7s ease-out,transform 0.7s ease-out';_obs.observe(el);});
 </script>
+<script src="/sales-modal.js"></script>
 </body>
 </html>
