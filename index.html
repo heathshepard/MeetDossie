@@ -25,23 +25,32 @@
  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
  --sage: #8BA888; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+ --coral: #E8836B; --coral-deep: #C9624A;
+ --banner-h: 40px;
+}
+@media (max-width: 560px) {
+ :root { --banner-h: 36px; }
 }
 html { scroll-behavior: smooth; }
 body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border-light); }
+.scarcity-banner { position: fixed; top: 0; left: 0; right: 0; height: var(--banner-h); display: flex; align-items: center; justify-content: center; padding: 0 16px; background: var(--blush); color: var(--bg-dark); font-size: 14px; font-weight: 700; letter-spacing: 0.2px; text-align: center; z-index: 110; box-shadow: 0 1px 0 rgba(26,26,46,0.06); }
+.scarcity-banner-text { display: inline-block; line-height: 1.25; }
+.scarcity-count { font-weight: 800; }
+@media (max-width: 560px) {
+ .scarcity-banner { font-size: 11.5px; padding: 0 10px; }
+}
+
+nav { position: fixed; top: var(--banner-h); left: 0; right: 0; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border-light); }
 .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
 .nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
 .nav-actions { display: flex; align-items: center; gap: 12px; }
 .nav-signin { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: var(--sage-deep); color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(107, 142, 104, 0.18); }
-.nav-founding { display: inline-flex; align-items: center; gap: 6px; padding: 12px 20px; border-radius: 999px; text-decoration: none; background: #E8836B; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 30px rgba(232, 131, 107, 0.24); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
-.nav-founding:hover { transform: translateY(-1px); background: #C9624A; box-shadow: 0 14px 34px rgba(232, 131, 107, 0.32); }
-@media (max-width: 560px) { .nav-founding { padding: 10px 14px; font-size: 12px; } .nav-founding .nav-founding-full { display: none; } }
 
-.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 28px 80px; position: relative; overflow: hidden; }
+.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: calc(120px + var(--banner-h)) 28px 80px; position: relative; overflow: hidden; }
 .hero::before { content: ''; position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.8; }
 .hero::after { content: ''; position: absolute; bottom: -200px; left: -100px; width: 500px; height: 500px; background: radial-gradient(circle, var(--sage-light) 0%, transparent 65%); pointer-events: none; opacity: 0.6; }
 
@@ -50,6 +59,15 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(44px, 8vw, 88px); font-weight: 600; line-height: 1.0; letter-spacing: -2px; color: var(--text-primary); animation: fadeInUp 0.5s ease-out 0.1s both; }
 .hero-title em { font-style: italic; background: linear-gradient(135deg, var(--blush-deep) 0%, var(--sage-deep) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .hero-sub { font-size: clamp(15px, 2vw, 18px); color: var(--text-secondary); max-width: 500px; margin: 24px auto 0; line-height: 1.7; animation: fadeInUp 0.5s ease-out 0.2s both; }
+.hero-cta-founding { display: inline-flex; align-items: center; gap: 10px; margin-top: 32px; padding: 18px 36px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 17px; font-weight: 700; text-decoration: none; box-shadow: 0 16px 40px rgba(232, 131, 107, 0.32); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; animation: fadeInUp 0.5s ease-out 0.25s both; }
+.hero-cta-founding:hover { transform: translateY(-2px); background: var(--coral-deep); box-shadow: 0 22px 48px rgba(232, 131, 107, 0.4); }
+.hero-cta-arrow { transition: transform 0.2s; }
+.hero-cta-founding:hover .hero-cta-arrow { transform: translateX(4px); }
+.hero-cta-sub { font-size: 13px; color: var(--text-light); margin-top: 12px; font-weight: 500; animation: fadeInUp 0.5s ease-out 0.3s both; }
+@media (max-width: 560px) {
+ .hero-cta-founding { padding: 15px 24px; font-size: 15px; gap: 8px; }
+ .hero-cta-sub { font-size: 12px; }
+}
 .divider { display: flex; align-items: center; gap: 16px; margin: 52px auto; max-width: 300px; animation: fadeInUp 0.5s ease-out 0.35s both; }
 .divider-line { flex: 1; height: 1px; background: var(--border); }
 .divider-text { font-size: 12px; color: var(--text-light); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
@@ -86,6 +104,7 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 .proof-item { text-align: center; }
 .proof-num { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--text-primary); line-height: 1; }
 .proof-label { font-size: 12px; color: var(--text-light); margin-top: 4px; font-weight: 500; }
+.proof-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; font-weight: 500; opacity: 0.85; }
 
 .tagline-section { padding: 80px 28px; text-align: center; border-top: 1px solid var(--border-light); background: var(--bg-warm); }
 .tagline { font-family: 'Cormorant Garamond', serif; font-size: clamp(20px, 3vw, 34px); font-weight: 500; font-style: italic; color: var(--text-secondary); max-width: 620px; margin: 0 auto; line-height: 1.5; }
@@ -109,13 +128,16 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 </head>
 <body>
 
+<div class="scarcity-banner" role="status" aria-live="polite">
+ <span class="scarcity-banner-text">🔥 Founding Member: $29/mo locked for life — only <span class="scarcity-count" id="scarcityCount">46</span> of 50 spots left</span>
+</div>
+
 <nav>
  <a href="/" class="nav-logo">
   <div class="nav-mark">D</div>
   <span class="nav-name">Dossie</span>
  </a>
  <div class="nav-actions">
-  <a href="/founding.html" class="nav-founding">Founding<span class="nav-founding-full"> Members</span> 🔒</a>
   <a href="app.html" class="nav-signin">Sign In</a>
  </div>
 </nav>
@@ -127,6 +149,9 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
  </div>
  <h1 class="hero-title">Transaction coordination,<br><em>handled.</em></h1>
  <p class="hero-sub">Dossie is the AI platform that brings order to real estate transactions — whoever’s running them.</p>
+
+ <a href="/founding" class="hero-cta-founding">Become a Founding Member — $29/mo <span class="hero-cta-arrow">→</span></a>
+ <p class="hero-cta-sub">Locked-for-life pricing. Only 50 spots.</p>
 
  <div class="divider">
   <div class="divider-line"></div>
@@ -168,7 +193,7 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="proof-item"><div class="proof-num">96%</div><div class="proof-label">Cost savings vs. human TC</div></div>
   <div class="proof-item"><div class="proof-num">3x</div><div class="proof-label">TC capacity increase</div></div>
   <div class="proof-item"><div class="proof-num">0</div><div class="proof-label">Missed deadlines</div></div>
-  <div class="proof-item"><div class="proof-num">$39</div><div class="proof-label">Starting per month</div></div>
+  <div class="proof-item"><div class="proof-num">$29</div><div class="proof-label">Founding member</div><div class="proof-sub">or $49/mo standard</div></div>
  </div>
 </section>
 
@@ -188,6 +213,21 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
  </div>
 </footer>
+
+<script>
+(function() {
+ var el = document.getElementById('scarcityCount');
+ if (!el) return;
+ fetch('/api/founding-count', { headers: { Accept: 'application/json' } })
+  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(j) {
+   if (j && typeof j.remaining === 'number' && j.remaining >= 0) {
+    el.textContent = String(j.remaining);
+   }
+  })
+  .catch(function() { /* keep server-rendered fallback */ });
+})();
+</script>
 
 </body>
 </html>
