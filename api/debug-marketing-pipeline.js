@@ -105,14 +105,21 @@ module.exports = async function handler(req, res) {
   // 0. Optional: register the webhook URL (fixes the empty-URL bug after token rotation).
   let registered = null;
   if (url.searchParams.get('register_webhook') === '1') {
+    // Clear any stale getUpdates session (Telegram returns 409 on setWebhook
+    // if a polling client is still alive on this bot).
+    const deleted = await tgPost('deleteWebhook', { drop_pending_updates: true });
     const setBody = {
       url: 'https://meetdossie.com/api/telegram-webhook',
       allowed_updates: ['callback_query', 'message'],
+      drop_pending_updates: true,
     };
     const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
     if (secret) setBody.secret_token = secret;
     const r = await tgPost('setWebhook', setBody);
-    registered = { ok: r.ok, status: r.status, response: r.data };
+    registered = {
+      delete_first: { ok: deleted.ok, status: deleted.status, response: deleted.data },
+      set: { ok: r.ok, status: r.status, response: r.data },
+    };
   }
 
   // 1. getWebhookInfo
