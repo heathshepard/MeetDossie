@@ -38,6 +38,10 @@
     {
       "path": "/api/cron-publish-approved",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-content-brief",
+      "schedule": "0 14 * * 1-5"
     }
   ]
 }
