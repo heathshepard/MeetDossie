@@ -71,12 +71,15 @@ const TOPICS = [
   },
 ];
 
+// Connected zernio_accounts as of 2026-05-04: facebook, instagram, tiktok, twitter.
+// LinkedIn intentionally not in this plan — without a connected zernio_account
+// row those posts can never publish, so we don't generate them.
 const POST_PLAN = [
-  { persona: 'brenda', platform: 'linkedin', length: 'long', notes: '200-450 words. Story-shaped. Emotional honesty.' },
+  { persona: 'brenda', platform: 'facebook', length: 'long', notes: '200-450 words. Story-shaped. Emotional honesty.' },
   { persona: 'brenda', platform: 'twitter', length: 'short', notes: 'Under 280 chars. One punchline.' },
   { persona: 'patricia', platform: 'facebook', length: 'long', notes: '150-300 words. Conversational. Real-numbers focus.' },
   { persona: 'patricia', platform: 'instagram', length: 'short', notes: 'Under 220 chars caption. Plainspoken.' },
-  { persona: 'victor', platform: 'linkedin', length: 'long', notes: '250-450 words. Operational/strategic framing.' },
+  { persona: 'victor', platform: 'facebook', length: 'long', notes: '250-450 words. Operational/strategic framing.' },
   { persona: 'victor', platform: 'tiktok', length: 'short', notes: 'Under 200 chars caption. Confident, not cocky.' },
 ];
 

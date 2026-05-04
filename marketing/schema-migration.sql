@@ -12,6 +12,13 @@ ALTER TABLE social_posts
   ADD COLUMN IF NOT EXISTS approved_at         TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS generated_at        TIMESTAMPTZ;
 
+-- The original status_check constraint omitted 'rejected', which silently
+-- failed every Reject button tap from the Telegram approval webhook.
+-- Re-create the constraint with the full set the code actually writes.
+ALTER TABLE social_posts DROP CONSTRAINT IF EXISTS social_posts_status_check;
+ALTER TABLE social_posts ADD CONSTRAINT social_posts_status_check
+  CHECK (status IN ('draft','approved','rejected','scheduled','posted','failed'));
+
 -- Helpful indexes for the cron queries.
 CREATE INDEX IF NOT EXISTS social_posts_status_telegram_sent_idx
   ON social_posts (status, telegram_sent_at)
