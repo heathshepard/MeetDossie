@@ -102,8 +102,26 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'linkedin has no zernio_account; pick another platform' });
   }
 
+  // 0. Optional: register the webhook URL (fixes the empty-URL bug after token rotation).
+  let registered = null;
+  if (url.searchParams.get('register_webhook') === '1') {
+    const setBody = {
+      url: 'https://meetdossie.com/api/telegram-webhook',
+      allowed_updates: ['callback_query', 'message'],
+    };
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (secret) setBody.secret_token = secret;
+    const r = await tgPost('setWebhook', setBody);
+    registered = { ok: r.ok, status: r.status, response: r.data };
+  }
+
   // 1. getWebhookInfo
   const webhook = await tgGet('getWebhookInfo');
+
+  // Allow skipping the send step (e.g. when only registering the webhook).
+  if (url.searchParams.get('send') === '0') {
+    return res.status(200).json({ ok: true, webhook_registered: registered, webhook_info: webhook.data });
+  }
 
   // 2. Pick the newest draft for that platform.
   const filter = `status=eq.draft&platform=eq.${encodeURIComponent(platform)}&order=created_at.desc&limit=1`;
@@ -142,6 +160,7 @@ module.exports = async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
+    webhook_registered: registered,
     webhook_info: webhook.data,
     post: {
       id: post.id,
