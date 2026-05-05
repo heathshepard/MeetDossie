@@ -6,7 +6,8 @@
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
     { "source": "/signin", "destination": "/signin.html" },
     { "source": "/workspace", "destination": "/workspace.html" },
-    { "source": "/app", "destination": "/app.html" }
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/calculator", "destination": "/calculator.html" }
   ],
   "headers": [
     {
@@ -42,6 +43,10 @@
     {
       "path": "/api/cron-content-brief",
       "schedule": "0 14 * * 1-5"
+    },
+    {
+      "path": "/api/cron-deadline-reminders",
+      "schedule": "0 13 * * *"
     }
   ]
 }
