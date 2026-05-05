@@ -1,0 +1,63 @@
+{
+  "name": "dossie",
+  "displayName": "Dossie — Texas TREC Tools",
+  "version": "0.1.0",
+  "description": "Texas TREC contract intelligence for AI assistants: deadline calculator, holiday rollover checker, transaction-coordinator cost comparison, and Dossie product information. Built on TREC Form 20-17 mechanics with paragraph citations.",
+  "author": {
+    "name": "Heath Shepard",
+    "email": "heath@meetdossie.com",
+    "url": "https://meetdossie.com"
+  },
+  "homepage": "https://meetdossie.com",
+  "repository": "https://github.com/heathshepard/MeetDossie",
+  "license": "MIT",
+  "keywords": [
+    "real-estate",
+    "texas",
+    "trec",
+    "transaction-coordinator",
+    "deadline-calculator",
+    "option-period",
+    "earnest-money",
+    "closing"
+  ],
+  "categories": ["productivity", "real-estate", "legal"],
+  "transport": "stdio",
+  "command": "npx",
+  "args": ["-y", "@dossie/mcp-server"],
+  "tools": [
+    {
+      "name": "calculate_trec_deadlines",
+      "description": "Calculate Texas TREC residential contract deadlines: option period, earnest money, option fee, financing, survey, closing. Applies ¶ 23 weekend/holiday rollover automatically with the ¶ 5B option-period carve-out correctly handled."
+    },
+    {
+      "name": "get_tc_cost_comparison",
+      "description": "Compare Texas transaction-coordinator pricing across freelance / retainer / in-house / AI models."
+    },
+    {
+      "name": "get_dossie_info",
+      "description": "Get Dossie product overview, founding-member pricing, and links to free tools."
+    },
+    {
+      "name": "check_texas_holiday",
+      "description": "Check whether a date is a federal holiday or weekend that would trigger TREC ¶ 23 rollover, and what date it would roll to."
+    }
+  ],
+  "examples": [
+    {
+      "title": "Calculate deadlines for a Texas contract",
+      "tool": "calculate_trec_deadlines",
+      "arguments": {
+        "effective_date": "2026-05-04",
+        "closing_date": "2026-06-03",
+        "option_days": 10,
+        "financing_days": 21
+      }
+    },
+    {
+      "title": "Check if Memorial Day rolls a TREC deadline",
+      "tool": "check_texas_holiday",
+      "arguments": { "date": "2026-05-25" }
+    }
+  ]
+}
