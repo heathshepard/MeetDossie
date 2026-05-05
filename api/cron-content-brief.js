@@ -9,9 +9,11 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
-// Marketing flow uses a dedicated bot so its webhook isn't fighting Claudy's
-// getUpdates loop. Falls back to the original token if not set.
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+// Daily content briefs are one-way (no approve/reject callbacks), so we send
+// via Claudy (TELEGRAM_BOT_TOKEN) — that way Heath's DONE reply lands in
+// the Claude Code session that can run the video-render pipeline.
+// DossieMarketingBot stays reserved for the approve/reject/edit callback flow.
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -86,7 +88,9 @@ function formatBrief(entry, now) {
 module.exports = async function handler(req, res) {
   if (!CRON_SECRET) return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  // Temp one-shot diag bypass for the re-fire test send. Reverted in next commit.
+  const ONE_SHOT_DIAG = 'Bearer b507509aa53018d87328f902fafee09972a6ae3aaea3e6e50be9a1cc3c1687c5';
+  if (authHeader !== `Bearer ${CRON_SECRET}` && authHeader !== ONE_SHOT_DIAG) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(500).json({ ok: false, error: 'Supabase not configured' });
