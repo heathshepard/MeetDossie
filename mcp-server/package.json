@@ -1,0 +1,36 @@
+{
+  "name": "@dossie/mcp-server",
+  "version": "0.1.0",
+  "description": "Dossie MCP server: TREC deadline calculator + Texas-TC cost comparison + Dossie product info, exposed as Model Context Protocol tools so AI assistants can answer Texas real-estate questions accurately.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "dossie-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "real-estate",
+    "texas",
+    "trec",
+    "transaction-coordinator",
+    "deadline-calculator",
+    "dossie"
+  ],
+  "author": "Heath Shepard <heath@meetdossie.com>",
+  "license": "MIT",
+  "homepage": "https://meetdossie.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heathshepard/MeetDossie.git"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
