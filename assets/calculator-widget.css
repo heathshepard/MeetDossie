@@ -1,0 +1,49 @@
+/* Calculator widget styles — used by /calculator and /guides/* */
+.dc-grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 24px; }
+@media (max-width: 880px) { .dc-grid { grid-template-columns: 1fr; } }
+
+.dc-panel { background: #FFFFFF; border: 1px solid #F0EBE3; border-radius: 22px; padding: 28px 24px; box-shadow: 0 6px 24px rgba(45,42,38,0.04); }
+.dc-panel-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: #2D2A26; margin-bottom: 4px; }
+.dc-panel-sub { font-size: 13px; color: #7A7468; margin-bottom: 20px; }
+
+.dc-field { display: block; margin-bottom: 16px; }
+.dc-field-label { display: block; font-size: 12px; font-weight: 700; color: #7A7468; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.dc-field-input { width: 100%; padding: 11px 14px; font: inherit; font-size: 15px; color: #2D2A26; background: #FDFCFA; border: 1px solid #E8E2D9; border-radius: 10px; transition: border-color 0.15s, box-shadow 0.15s; }
+.dc-field-input:focus { outline: none; border-color: #D4A0A0; box-shadow: 0 0 0 3px rgba(212,160,160,0.14); }
+.dc-field-hint { font-size: 12px; color: #A39E94; margin-top: 4px; }
+.dc-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.dc-deadlines { display: flex; flex-direction: column; gap: 10px; }
+.dc-row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 14px; background: #FDFCFA; border: 1px solid #F0EBE3; }
+.dc-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #F2E4E4; flex-shrink: 0; }
+.dc-row[data-tone="overdue"] .dc-icon, .dc-row[data-tone="due-today"] .dc-icon { background: #FCE5E2; }
+.dc-row[data-tone="urgent"] .dc-icon { background: #FCE4DC; }
+.dc-row[data-tone="upcoming"] .dc-icon { background: #F5EDD8; }
+.dc-body .dc-label { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: #2D2A26; line-height: 1.2; }
+.dc-body .dc-meta { font-size: 13px; color: #7A7468; margin-top: 2px; }
+.dc-body .dc-paragraph { font-size: 11px; color: #A39E94; margin-top: 2px; letter-spacing: 0.4px; }
+.dc-pill { padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+.dc-pill[data-tone="overdue"], .dc-pill[data-tone="due-today"] { background: #FCE5E2; color: #C44536; }
+.dc-pill[data-tone="urgent"] { background: #FCE4DC; color: #C9624A; }
+.dc-pill[data-tone="upcoming"] { background: #F5EDD8; color: #A48531; }
+.dc-pill[data-tone="far"] { background: #E4EDE2; color: #6B8E68; }
+.dc-warning { grid-column: 1 / -1; margin-top: 8px; padding: 10px 12px; background: #FCE4DC; border-radius: 10px; font-size: 12.5px; color: #C9624A; line-height: 1.5; }
+.dc-rollover { grid-column: 1 / -1; margin-top: 6px; font-size: 12px; color: #A39E94; font-style: italic; }
+
+.dc-empty { padding: 48px 24px; text-align: center; color: #7A7468; font-size: 14px; }
+.dc-empty-emoji { font-size: 30px; margin-bottom: 8px; }
+
+.dc-email-capture { margin-top: 24px; padding: 24px; border-radius: 18px; background: linear-gradient(180deg, #FFFFFF 0%, #F2E4E4 220%); border: 1px solid #D4A0A0; }
+.dc-email-capture h3 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: #2D2A26; }
+.dc-email-capture p { font-size: 14px; color: #7A7468; margin-top: 4px; line-height: 1.6; }
+.dc-email-form { display: flex; gap: 8px; margin-top: 14px; }
+.dc-email-form input { flex: 1; min-width: 0; padding: 11px 14px; font: inherit; font-size: 15px; border: 1px solid #E8E2D9; border-radius: 10px; background: #fff; }
+.dc-email-form input:focus { outline: none; border-color: #D4A0A0; box-shadow: 0 0 0 3px rgba(212,160,160,0.14); }
+.dc-email-form button { padding: 11px 22px; border: none; border-radius: 10px; background: #E8836B; color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(232,131,107,0.24); transition: transform 0.15s, background 0.15s; white-space: nowrap; }
+.dc-email-form button:hover:not(:disabled) { transform: translateY(-1px); background: #C9624A; }
+.dc-email-form button:disabled { opacity: 0.7; cursor: progress; }
+.dc-email-result { font-size: 13px; margin-top: 8px; min-height: 16px; }
+.dc-email-result.ok { color: #6B8E68; }
+.dc-email-result.err { color: #C9624A; }
+.dc-email-cta-fallback { display: inline-block; margin-top: 12px; font-size: 13px; color: #7A7468; text-decoration: none; }
+.dc-email-cta-fallback a { color: #C9624A; font-weight: 700; }

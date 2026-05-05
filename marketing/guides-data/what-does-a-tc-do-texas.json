@@ -1,0 +1,36 @@
+{
+  "slug": "what-does-a-tc-do-texas",
+  "title": "What Does a Transaction Coordinator Do in Texas?",
+  "title_html": "What Does a <em>Transaction Coordinator</em> Do in Texas?",
+  "meta_title": "What Does a Transaction Coordinator Do in Texas? — Full Agent Guide",
+  "meta_description": "A Texas transaction coordinator handles deadlines, documents, follow-ups, and closing logistics for real estate agents — here's exactly what they do, and what they cost.",
+  "eyebrow": "TC role explained",
+  "deck": "The hidden role that lets a Texas agent close more deals without burning out.",
+  "calculator_blurb": "Want to see what a TC actually tracks? The deadlines below are the daily work — option period, financing, title, survey, closing.",
+  "updated_at": "2026-05-05",
+  "related_blurb": "What a transaction coordinator actually does for a Texas agent — and where the cost goes.",
+  "body_html": "<p>A transaction coordinator (TC) is the operational backbone behind a real estate agent who closes more than 8-10 deals a year. The TC takes the executed contract and runs the file through closing: deadlines tracked, documents collected, parties communicated, problems caught before they break the deal.</p><p>This guide breaks down exactly what a Texas TC does, how the role differs from a buyer's agent or listing agent, and where the work actually lives.</p><h2>The TC's job, by phase</h2><h3>Phase 1 — Contract execution to title open</h3><ul><li>Receive the executed contract and any addenda.</li><li>Confirm the Effective Date with both sides in writing.</li><li>Open the file with the title company.</li><li>Calculate every TREC deadline — option period, earnest money, option fee, financing, title commitment, survey, closing — and load them into the agent's calendar or pipeline.</li><li>Send the buyer a deadline summary with what's coming and when.</li></ul><h3>Phase 2 — Option period and inspections</h3><ul><li>Confirm earnest money and option fee delivery in writing (escrow receipt).</li><li>Schedule inspections; coordinate access with the listing agent or seller.</li><li>If repairs are negotiated, draft TREC Form 39-9 (Amendment to Contract) and route it for signatures.</li><li>Track the option-period expiry — including the fact that ¶ 5B does not roll for weekends.</li><li>If terminating, draft and deliver TREC Form 38-8 (Notice of Buyer's Termination).</li></ul><h3>Phase 3 — Title, survey, and financing</h3><ul><li>Receive the title commitment from the title company; route to buyer for review.</li><li>Track the buyer's objection deadline (¶ 6D).</li><li>Coordinate survey delivery (new survey or T-47 affidavit reuse).</li><li>Track the financing deadline; pull weekly status updates from the lender.</li><li>Surface anything that's slipping before the deadline — not after.</li></ul><h3>Phase 4 — Pre-closing and closing day</h3><ul><li>Confirm closing date, time, and location with title.</li><li>Schedule and accompany the buyer to the final walk-through.</li><li>Verify all contracted repairs are completed and documented.</li><li>Coordinate funding logistics (wire vs cashier's check, timing).</li><li>Attend closing or be on call for any last-minute issues.</li></ul><h3>Phase 5 — Post-closing</h3><ul><li>Confirm earnest money disbursement and final closing statement.</li><li>Send the client a closed-deal package: closing disclosure, deed copy, title policy.</li><li>Add the client to the agent's past-client follow-up cadence.</li><li>Archive the file per the broker's retention requirements.</li></ul><h2>What a TC doesn't do</h2><p>Texas brokerage law draws lines around what a TC can do without a real estate license. A TC cannot:</p><ul><li>Negotiate price, terms, or repairs on behalf of a party.</li><li>Provide legal advice on contract interpretation.</li><li>Prepare original contract drafts or amendments without an agent's direction.</li><li>Hold themselves out as the agent in any communication.</li></ul><p>Most Texas TCs are either licensed agents themselves (and operate under their broker) or unlicensed assistants performing only ministerial tasks. Either path is legal; the unlicensed TC has tighter constraints on direct party communication.</p><h2>Why agents hire a TC</h2><p>The math is simple. An experienced agent's hour is worth more than a TC's hour. If a TC can take 10-15 hours of administrative work off the agent's plate per closing, and the agent can use those hours to generate one more lead per month, the TC pays for themselves and then some.</p><p>For agents doing 50+ deals a year, a TC isn't optional. The cognitive load of tracking 20+ active files manually breaks something — usually the agent. For agents doing 8-15 deals a year, a TC is the difference between scaling and plateauing.</p><h2>The new option: AI transaction coordination</h2><p>For most of TC history, agents have hired humans. Hourly TCs charge per file, retainer-based TCs charge monthly, in-house TCs are full-time hires. The work has been ripe for AI for years — most TC tasks are pattern-driven (deadline math, follow-up emails, document QA) and don't require judgment.</p><p>That's what Dossie is. AI-native transaction coordination, built specifically for Texas TREC contracts, priced for individual agents. Every deadline tracked, every party followed up, every document reviewed against the executed contract. <strong>$29/month for founding members</strong> — a fraction of human-TC pricing.</p>",
+  "faq": [
+    {
+      "q": "Is a transaction coordinator licensed in Texas?",
+      "a": "Some are, some aren't. Licensed TCs are real estate agents operating under their broker. Unlicensed TCs perform ministerial tasks only — they cannot negotiate, prepare original contracts, or hold themselves out as the agent."
+    },
+    {
+      "q": "What's the difference between a TC and a buyer's agent?",
+      "a": "The buyer's agent represents the buyer fiduciarily — negotiates, advises, prepares offers. The TC handles the operational/administrative work after the contract is executed: deadlines, documents, coordination."
+    },
+    {
+      "q": "Do all Texas agents use a transaction coordinator?",
+      "a": "No. Most agents doing fewer than 8 deals a year handle their own coordination. Agents above that volume usually have help — either a TC, an admin assistant, or AI tools like Dossie."
+    },
+    {
+      "q": "Can a TC sign documents on the agent's behalf?",
+      "a": "Generally no — at least not legally binding signatures on contract documents. The agent or party is the one whose signature legally counts. TCs facilitate signature collection but don't sign contracts themselves."
+    },
+    {
+      "q": "Does a TC replace an attorney?",
+      "a": "No. A TC handles operational work, not legal interpretation. For binding interpretations or disputes, the agent or party should consult a Texas real estate attorney."
+    }
+  ],
+  "related_guides": ["how-much-does-a-tc-cost-texas", "ai-transaction-coordinator-texas", "texas-real-estate-closing-checklist"]
+}

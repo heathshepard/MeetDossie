@@ -1,0 +1,36 @@
+{
+  "slug": "texas-option-period-calculator",
+  "title": "Texas Option Period Calculator & Complete Guide",
+  "title_html": "Texas <em>Option Period</em> Calculator & Complete Guide",
+  "meta_title": "Texas Option Period Calculator — Free TREC 5B Calculator",
+  "meta_description": "Calculate your Texas option period expiration date instantly. Free, accurate, and built on TREC Form 20-17 Paragraph 5B. No weekend rollover — just calendar days.",
+  "eyebrow": "Free calculator + guide",
+  "deck": "The option period is the most important window in a Texas contract. Here's exactly how it works.",
+  "calculator_blurb": "Enter your Effective Date and option-period days. The calculator returns the option-period expiration date and time, and flags if it ends on a weekend or holiday.",
+  "updated_at": "2026-05-05",
+  "related_blurb": "How the option period actually works in Texas, plus the most common ways agents miscount it.",
+  "body_html": "<p>The option period in a Texas residential contract is the buyer's window to terminate the deal for any reason — or no reason — and walk away with their earnest money refunded. It's negotiated in <strong>Paragraph 5B of TREC Form 20-17</strong>, and the rules around it are unforgiving: miss the deadline by a minute and the right disappears.</p><p>This guide walks through how the option period is calculated, where most agents get it wrong, and pairs you with the free calculator below.</p><h2>How the option period works under TREC 20-17 ¶ 5B</h2><p>The option period begins on the <strong>Effective Date</strong> of the contract and runs for whatever number of days you negotiate — typical Texas option periods are 5 to 14 days. The clock counts <strong>calendar days, not business days</strong>, and the deadline lands at <strong>5:00 PM local time</strong> on the final day.</p><p>Two facts surprise even experienced agents:</p><ul><li><strong>The option period does not roll over for weekends or holidays.</strong> Per ¶ 5B, the option ends on the day specified — full stop. If your option period ends on a Saturday, the buyer must deliver any termination notice by 5:00 PM that Saturday. There is no Monday-morning grace period.</li><li><strong>The Effective Date is day zero, not day one.</strong> If your contract is effective on the 1st and you have a 7-day option, the option period ends at 5:00 PM on the 8th — not the 7th. The day-counting question is one of the most common ways agents miscount.</li></ul><div class=\"callout\"><strong>Why this matters:</strong> the option period is the only TREC deadline that explicitly does not roll for weekends or holidays. Earnest money, option fee, financing, and survey deadlines all roll forward per ¶ 23 of the contract. Don't apply the rollover rule to the option period or you will hand the buyer a free extension that the contract doesn't grant.</div><h2>What happens at the deadline</h2><p>If the buyer wants to exit during the option period, they must deliver written notice of termination to the seller (typically using <strong>TREC Form 38-8</strong>, the Notice of Buyer's Termination of Contract) before 5:00 PM on the final day. Email is acceptable in most modern Texas transactions, but check your contract's notice-delivery paragraph and any addenda — some sellers and listing brokers still require a specific delivery method.</p><p>If the deadline passes without notice, the option period dies and the buyer's right to terminate without cause is gone. The buyer can still terminate later, but only for the specific cause-based reasons spelled out in the contract or its addenda — financing failure, title objections that aren't cured, inspection items the seller refuses to address, etc.</p><h2>The most common mistakes</h2><ol><li><strong>Counting business days instead of calendar days.</strong> ¶ 5B is calendar days. A 10-day option spans two weekends.</li><li><strong>Assuming the deadline rolls.</strong> It doesn't. ¶ 23 (the rollover rule) explicitly excludes the option period.</li><li><strong>Mixing up the option fee and the option period.</strong> The option fee is the consideration the buyer pays for the option right (¶ 5A — typically due within 3 days, with rollover). The option period is the right itself (¶ 5B — no rollover). Two different deadlines, two different rules.</li><li><strong>Trusting an inspection turnaround.</strong> Inspection scheduling, repair negotiations, and amendment drafting all happen <em>inside</em> the option period. A 5-day option is genuinely tight for a buyer who needs a structural inspection plus a follow-up on a foundation issue. Always plan backwards from the option deadline.</li></ol><h2>Use the calculator</h2><p>Plug in your Effective Date and the option-period days from your executed contract. The calculator below applies ¶ 5B exactly: calendar days, no rollover, 5:00 PM local. It will also flag if the option period lands on a weekend or holiday so you can pre-warn your client.</p>",
+  "faq": [
+    {
+      "q": "Does the Texas option period include weekends?",
+      "a": "Yes. The option period in TREC 20-17 ¶ 5B counts calendar days — weekends and holidays are included. A 7-day option starting on a Friday ends the following Friday at 5:00 PM, not the Monday after."
+    },
+    {
+      "q": "What time does the option period end in Texas?",
+      "a": "5:00 PM local time on the day calculated. ¶ 5B is explicit about the time. After 5:00 PM, any termination notice is too late and the option right is extinguished."
+    },
+    {
+      "q": "Can the option period be extended?",
+      "a": "Only by written amendment signed by both parties — typically TREC Form 39-9 (Amendment to Contract). Verbal extensions are not enforceable. The amendment must be executed before the original option period expires."
+    },
+    {
+      "q": "Is the option fee refundable in Texas?",
+      "a": "No. The option fee (¶ 5A) is consideration for the option right itself and is non-refundable, except where the contract specifies it credits to the sales price at closing. Earnest money is separate and is generally refundable if the buyer terminates during the option period."
+    },
+    {
+      "q": "Do I have to deliver option-period termination notice in writing?",
+      "a": "Yes. ¶ 5B requires written notice. TREC Form 38-8 (Notice of Buyer's Termination of Contract) is the standard. Email delivery is generally acceptable under Texas e-sign law, but always check the contract's notice paragraph and confirm receipt."
+    }
+  ],
+  "related_guides": ["texas-option-period-explained", "how-to-count-days-trec-contract", "trec-form-20-17-guide"]
+}

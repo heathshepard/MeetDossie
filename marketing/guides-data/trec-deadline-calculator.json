@@ -1,0 +1,36 @@
+{
+  "slug": "trec-deadline-calculator",
+  "title": "TREC Deadline Calculator for Texas Real Estate Agents",
+  "title_html": "TREC <em>Deadline Calculator</em> for Texas Real Estate Agents",
+  "meta_title": "TREC Deadline Calculator — Texas Option, Earnest Money, Financing & Closing",
+  "meta_description": "Free Texas TREC deadline calculator: option period (¶ 5B), earnest money & option fee (¶ 5A), financing (40-11), survey, and closing — with weekend & holiday rollover per ¶ 23.",
+  "eyebrow": "Free calculator + guide",
+  "deck": "Every deadline a Texas agent needs to track, calculated against the TREC contract.",
+  "calculator_blurb": "Enter the Effective Date, closing date, and the day-counts from your executed contract. The calculator returns every deadline with the correct rollover behavior per Paragraph 23.",
+  "updated_at": "2026-05-05",
+  "related_blurb": "How the major TREC deadlines stack up — option, earnest money, financing, closing — and which roll for weekends.",
+  "body_html": "<p>A Texas residential contract has eight or more deadlines that can each fail a deal. Most agents juggle them in their head or in a paper checklist. This calculator runs the math against TREC Form 20-17 directly: Paragraph 5A (earnest money + option fee), Paragraph 5B (option period), the Third Party Financing Addendum, Paragraph 6C (survey), Paragraph 9A (closing), and Paragraph 23 (the weekend/holiday rollover rule).</p><h2>Which TREC deadlines this calculator computes</h2><ul><li><strong>Earnest money — ¶ 5A.</strong> Default is 3 days after the Effective Date. Rolls per ¶ 23 if it lands on a Saturday, Sunday, or federal holiday.</li><li><strong>Option fee — ¶ 5A.</strong> Default 3 days. Same rollover rules as earnest money.</li><li><strong>Option period expiry — ¶ 5B.</strong> Calendar days from the Effective Date, no rollover. Ends at 5:00 PM local. The calculator explicitly warns you if this lands on a weekend or holiday.</li><li><strong>Financing — Third Party Financing Addendum (TREC 40-11).</strong> Whatever you negotiated — 21 days is a common starting point. Rolls per ¶ 23.</li><li><strong>Survey — ¶ 6C.</strong> Days negotiated in the contract; rolls per ¶ 23.</li><li><strong>Closing date — ¶ 9A.</strong> The date you specified. Standard practice is to set actual closing time with the title company.</li></ul><h2>Why the rollover rule matters</h2><p>Paragraph 23 of TREC 20-17 says: if a deadline falls on a Saturday, Sunday, or legal holiday, it rolls forward to the next day that isn't one of those. The calculator applies this rule to every deadline <em>except</em> the option period — because ¶ 5B explicitly carves the option period out of the rollover rule.</p><div class=\"callout\"><strong>Practical example:</strong> A contract effective on Friday May 1 with a 21-day financing deadline lands on Friday May 22, which rolls forward past Memorial Day weekend (May 23-24 weekend, May 25 Memorial Day) to <strong>Tuesday May 26</strong>. That's almost a full week later than a naïve count, and it materially affects when the lender must commit. The calculator handles this automatically.</div><h2>How agents typically miscount</h2><p>Three errors come up over and over:</p><ol><li><strong>Treating Effective Date as Day 1.</strong> It's Day 0. A 3-day deadline starting on the 1st lands on the 4th, not the 3rd.</li><li><strong>Applying rollover to the option period.</strong> Don't. ¶ 5B is the one TREC deadline that does not roll.</li><li><strong>Counting business days.</strong> TREC counts calendar days for everything — weekends are included in the count, the rollover rule only kicks in if the <em>final</em> day lands on a weekend or holiday.</li></ol><h2>Use the calculator</h2><p>Plug in your contract values and let the calculator do the math. If you want this for every active deal automatically, that's exactly what Dossie does.</p>",
+  "faq": [
+    {
+      "q": "How do I count days in a TREC contract?",
+      "a": "Calendar days, with the Effective Date as day zero. Day 1 is the day after Effective Date. ¶ 23 rolls weekend/holiday landings forward — except for the option period, which never rolls."
+    },
+    {
+      "q": "Is Memorial Day a TREC holiday for rollover purposes?",
+      "a": "Yes. Federal holidays — including Memorial Day, Independence Day (or its observed date), Labor Day, Thanksgiving, and Christmas Day — all trigger ¶ 23 rollover. The calculator includes the full federal holiday list for 2026 through 2028."
+    },
+    {
+      "q": "What's the difference between the option fee and the option period?",
+      "a": "The option fee (¶ 5A) is the consideration the buyer pays for the right to terminate without cause. The option period (¶ 5B) is the window of time during which the buyer can exercise that right. Both are negotiated in the same paragraph but they have different rollover rules."
+    },
+    {
+      "q": "Does the financing deadline roll over weekends?",
+      "a": "Yes. The financing deadline is set in the Third Party Financing Addendum (TREC 40-11), and it rolls per ¶ 23 of the main contract if the calculated date lands on a Saturday, Sunday, or federal holiday."
+    },
+    {
+      "q": "Can I rely on this calculator for binding deadlines?",
+      "a": "It implements TREC Form 20-17 mechanics accurately, but it's not a substitute for reading your executed contract. Always cross-check against your actual document and confer with your broker or a Texas real estate attorney for binding interpretations."
+    }
+  ],
+  "related_guides": ["texas-option-period-calculator", "how-to-count-days-trec-contract", "texas-earnest-money-rules"]
+}

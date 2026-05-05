@@ -1,0 +1,36 @@
+{
+  "slug": "ai-transaction-coordinator-texas",
+  "title": "AI Transaction Coordinator for Texas Agents",
+  "title_html": "<em>AI</em> Transaction Coordinator for Texas Agents",
+  "meta_title": "AI Transaction Coordinator for Texas Agents — Dossie",
+  "meta_description": "AI transaction coordination for Texas real estate agents — automatic TREC deadline tracking, follow-up emails, document QA. Built on the actual TREC 20-17 contract.",
+  "eyebrow": "AI-native TC",
+  "deck": "What an AI-native transaction coordinator does — and where it doesn't replace a human.",
+  "calculator_blurb": "Try a slice of what the AI does. The calculator below is the same TREC engine running underneath every Dossie dossier.",
+  "updated_at": "2026-05-05",
+  "related_blurb": "AI transaction coordination for Texas — what's automated and what still needs a human.",
+  "body_html": "<p>The transaction-coordinator role has been ripe for AI for years. Most TC work is pattern-driven: deadline math, follow-up emails, document QA against the executed contract. None of it requires negotiation or fiduciary judgment. AI is genuinely good at that work, and Dossie was built to do it specifically for Texas TREC contracts.</p><h2>What an AI TC actually does</h2><p>An AI transaction coordinator covers the operational layer of a Texas residential file. For each active deal, it:</p><ul><li><strong>Calculates every TREC deadline.</strong> Option period, earnest money, option fee, financing, title, survey, closing — all computed against the executed contract with ¶ 23 rollover applied. The option period correctly does <em>not</em> roll, per ¶ 5B.</li><li><strong>Drafts follow-up emails for the agent's review.</strong> \"Earnest money is due Thursday — please confirm wire when sent\" goes to the buyer. \"Title commitment hasn't arrived — checking with title company\" goes internally. The agent reviews and sends, edits, or skips.</li><li><strong>Surfaces problems before they become deadline misses.</strong> If the option period is 36 hours from expiring and there's no executed amendment for the negotiated repairs, the agent gets pinged.</li><li><strong>Reviews documents against the contract.</strong> Did the title commitment match the legal description in ¶ 2? Does the survey show the easements the title commitment listed? Does the financing letter match the addendum's terms?</li><li><strong>Generates closed-deal packages.</strong> Closing disclosure, deed, title policy, final statements assembled for the client at the end.</li></ul><h2>Where AI doesn't replace a human</h2><p>AI is bad at the high-touch parts of the role:</p><ul><li><strong>Closing-day attendance.</strong> Walking documents to the title company, getting the seller's signature on a missed page, handing keys over.</li><li><strong>Difficult-conversation calls.</strong> Calling a stuck septic inspector. Calming a nervous first-time buyer. Negotiating around a foundation issue.</li><li><strong>Edge-case judgment.</strong> A truly weird title issue, a contract clause that conflicts with an addendum, an inspector's verbal concern that didn't make it into the report.</li></ul><p>For agents working high-volume or premium-service business, the right stack is AI for the always-on coverage plus a human TC for the hands-on work. For solo agents at any volume, AI alone is the upgrade from spreadsheets and calendar reminders.</p><h2>How Dossie compares to traditional TCs</h2><table class=\"compare-table\"><thead><tr><th>Dimension</th><th>Human TC</th><th>Dossie (AI)</th></tr></thead><tbody><tr><td>Cost</td><td>$300-$700 per file</td><td>$29/month flat (founding)</td></tr><tr><td>Hours of operation</td><td>Business hours</td><td>24/7</td></tr><tr><td>Deadline tracking</td><td>Manual entry</td><td>Computed from contract</td></tr><tr><td>Follow-up emails</td><td>Drafted by hand</td><td>Drafted, queued for review</td></tr><tr><td>Document QA</td><td>Read by eye</td><td>Cross-checked against contract</td></tr><tr><td>Closing-day presence</td><td>Yes</td><td>No</td></tr><tr><td>Negotiation</td><td>Within scope of license</td><td>No — agent stays in control</td></tr><tr><td>Capacity</td><td>Limited by file count</td><td>Unlimited active files</td></tr></tbody></table><h2>Built for Texas, not generic</h2><p>Most real-estate AI tools are built for generic forms — California, Florida, multi-state. They don't know what TREC ¶ 23 says. They don't know that the option period doesn't roll. They can't tell you the earnest money deadline because they don't have the TREC paragraph numbers wired in.</p><p>Dossie is built specifically on TREC Form 20-17. The deadline engine cites paragraph numbers. The document QA knows what a T-47 affidavit is. The follow-up emails reference Texas-specific terminology. That specificity is the moat — and it's why Dossie works for Texas agents in a way that generic tools don't.</p><h2>Founding member pricing</h2><p>Founding members get $29/month for life — locked in regardless of future pricing changes. Only 50 founding spots are available. <a href=\"/founding\">Lock in founding pricing →</a></p>",
+  "faq": [
+    {
+      "q": "Does AI replace my transaction coordinator?",
+      "a": "Mostly, for the operational/administrative layer. AI handles deadline tracking, follow-up emails, and document QA. For closing-day attendance and high-touch hand-holding, a human TC still adds value. The right stack is often both."
+    },
+    {
+      "q": "Is Dossie just ChatGPT for real estate?",
+      "a": "No. ChatGPT is a general-purpose model. Dossie is a purpose-built TREC contract engine — every deadline calculation cites a specific TREC paragraph, the document scanner knows TREC field maps, and the follow-up generator references TREC terminology. The AI runs underneath, but the product is the Texas-specific layer on top."
+    },
+    {
+      "q": "What if the AI gets a deadline wrong?",
+      "a": "The agent always sees the deadline, the source paragraph, and the rollover reasoning. If something looks off, the agent overrides — Dossie doesn't auto-send anything without agent review. The 'AI is wrong sometimes' problem is real, which is why Dossie shows its work."
+    },
+    {
+      "q": "Will my broker accept this?",
+      "a": "Most Texas brokers are fine with AI tools as long as the agent remains the licensed party making decisions. Dossie doesn't sign documents, doesn't negotiate, and doesn't represent itself as the agent. It's an agent's tool, not a replacement."
+    },
+    {
+      "q": "How is Dossie different from Skyslope or Dotloop?",
+      "a": "Skyslope and Dotloop are great document-management and compliance platforms. They don't compute TREC deadlines, draft follow-up emails, or QA documents against the contract. Dossie's the layer above — many agents use Dossie alongside their existing transaction-management software."
+    }
+  ],
+  "related_guides": ["what-does-a-tc-do-texas", "how-much-does-a-tc-cost-texas", "trec-deadline-calculator"]
+}
