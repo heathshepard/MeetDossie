@@ -60,6 +60,14 @@ async function pushToZernio(post) {
     content: text,
   };
   if (post.scheduled_for) payload.scheduled_for = post.scheduled_for;
+  // Media attachment. Zernio's media field name isn't formally documented to
+  // us; the most common pattern across publish APIs (Buffer, Hootsuite,
+  // Ayrshare) is `media_urls: [url, ...]`. If Zernio wants a different shape,
+  // the 4xx response body will land in social_posts.error_message and we
+  // iterate. Instagram requires media — text-only IG posts get rejected.
+  if (post.media_url) {
+    payload.media_urls = [post.media_url];
+  }
   try {
     const res = await fetch(ZERNIO_POSTS_URL, {
       method: 'POST',
