@@ -138,7 +138,7 @@
       var warn = [];
       if (isWeekend(opEnd)) warn.push('Option period ends on a weekend. Per ¶ 5B, the option period does NOT roll — notice must still be delivered by 5:00 PM on this date.');
       if (isHoliday(opEnd)) warn.push('Option period ends on a federal holiday. Per ¶ 5B, the option period does NOT roll.');
-      deadlines.push(build('Option Period Expiry', '🔔', '¶ 5B', setDeadlineHour(opEnd, 17), today, {
+      deadlines.push(build('Option Period Expires', '🔔', '¶ 5B', setDeadlineHour(opEnd, 17), today, {
         id: 'option-period-expiry', warnings: warn
       }));
     }

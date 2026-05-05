@@ -128,7 +128,7 @@ function calcDeadlines(input) {
     if (isWeekend(opEnd)) warnings.push('Option period ends on a weekend. Per ¶ 5B, the option period does NOT roll — notice must still be delivered by 5:00 PM on this date.');
     if (isHoliday(opEnd)) warnings.push('Option period ends on a federal holiday. Per ¶ 5B, the option period does NOT roll.');
     out.push({
-      id: 'option-period-expiry', label: 'Option Period Expiry', paragraph: 'TREC 20-17 ¶ 5B',
+      id: 'option-period-expiry', label: 'Option Period Expires', paragraph: 'TREC 20-17 ¶ 5B',
       date: formatISODate(opEnd), time: '5:00 PM local',
       rolled_over: false, rollover_reason: null,
       rule: 'Calendar days from Effective Date. ¶ 5B explicitly does NOT roll for weekends or holidays.',
