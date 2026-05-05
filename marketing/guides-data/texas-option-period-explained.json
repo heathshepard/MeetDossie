@@ -1,0 +1,36 @@
+{
+  "slug": "texas-option-period-explained",
+  "title": "The Texas Option Period: Everything Agents Need to Know",
+  "title_html": "The Texas <em>Option Period</em>: Everything Agents Need to Know",
+  "meta_title": "Texas Option Period Explained — TREC ¶ 5B for Real Estate Agents",
+  "meta_description": "The Texas option period gives the buyer the right to terminate without cause. Here's how ¶ 5B works, common mistakes, and why it never rolls over a weekend.",
+  "eyebrow": "TREC ¶ 5B explained",
+  "deck": "The buyer's most powerful right under a Texas contract — and the deadline that breaks the most deals.",
+  "calculator_blurb": "Test how your option period dates land — including weekend warnings — using the live calculator.",
+  "updated_at": "2026-05-05",
+  "related_blurb": "What the option period actually does, when notice must be delivered, and where agents lose the right by miscounting.",
+  "body_html": "<p>The option period in Texas is the buyer's right to walk away from a contract for any reason — bad inspection, cold feet, a better house — and recover their earnest money. It's the single most powerful right a buyer has, and it's negotiated in three or four lines of <strong>TREC Form 20-17 Paragraph 5</strong>.</p><h2>What the option period actually grants</h2><p>Under ¶ 5B, the buyer can deliver written notice of termination to the seller at any time during the option period and the contract terminates, with the buyer's earnest money refunded. The buyer doesn't have to give a reason. They don't have to negotiate. They send the notice (typically <strong>TREC Form 38-8</strong>, Notice of Buyer's Termination of Contract) and the deal ends.</p><p>The seller's only consolation is the <strong>option fee</strong> (¶ 5A) — the small consideration the buyer paid for this right. That fee is non-refundable. If the contract specifies, it can credit toward the sales price at closing, but if the deal terminates during the option period, the seller keeps it.</p><h2>The mechanics: how ¶ 5B counts time</h2><p>The option period:</p><ul><li>Starts on the <strong>Effective Date</strong> (the date the last party signs and delivery happens, per ¶ 8).</li><li>Runs for whatever number of <strong>calendar days</strong> the parties negotiate. Typical option periods in Texas are 5 to 14 days; busy market norms tend toward 5-7, calmer markets toward 10-14.</li><li>Ends at <strong>5:00 PM local time</strong> on the final day — not midnight, not close of business, 5:00 PM exactly per the paragraph text.</li><li><strong>Does not roll over</strong> for weekends or holidays. ¶ 5B is the one TREC deadline that explicitly excludes itself from the ¶ 23 rollover rule.</li></ul><div class=\"callout\"><strong>Common stat to dispel:</strong> Some agents say \"the option period rolls if it lands on Sunday.\" That's wrong. Quote ¶ 5B back to them — \"the time period in this paragraph runs to the date and time stated regardless of the day of the week\" is the gist of it. The rollover rule (¶ 23) applies to other deadlines, not the option.</div><h2>The most expensive mistakes</h2><h3>1. Delivering notice late</h3><p>5:00 PM on Saturday means 5:00 PM on Saturday. If your client emails the termination notice at 5:02 PM, the option right is gone and the only path forward is a cause-based termination (financing falls through, inspection-objection cure period expires without resolution, etc.).</p><h3>2. Assuming the inspection extends the option</h3><p>The option period is fixed when the contract is signed. Inspection findings don't extend it. If a major issue surfaces on day 6 of a 7-day option, the buyer has roughly 24 hours to negotiate repairs, draft an amendment, get it signed by both sides, or terminate. Add another inspection (foundation, structural, septic) and the math gets brutal.</p><h3>3. Confusing the option fee deadline with the option period</h3><p>Two separate ¶ 5A deadlines: the option fee and the earnest money are both due within 3 days after the Effective Date by default (and they roll per ¶ 23). The option period itself starts on the Effective Date and runs through ¶ 5B's day count — different clock, different rules.</p><h3>4. Verbal extensions</h3><p>Texas courts won't enforce an oral extension of the option period. The only valid extension is a written amendment (typically TREC Form 39-9) executed by both parties before the original option expires.</p><h2>Practical advice for the agent</h2><p>Set three reminders: 48 hours before, 24 hours before, and the morning of. The buyer will tell you they remember — they will forget. If your contract management can't surface this, you're betting your earnest-money refund odds on a manual checklist. That's exactly what Dossie was built to fix.</p>",
+  "faq": [
+    {
+      "q": "How long is a typical option period in Texas?",
+      "a": "Most Texas option periods run 5 to 14 days. Busy seller's markets push toward shorter (5-7 day) options to make offers more competitive; calmer markets see longer options. Whatever you negotiate, it's calendar days from the Effective Date."
+    },
+    {
+      "q": "Can the buyer back out after the option period ends?",
+      "a": "Only for cause — financing failure, unresolved title objections, inspection items the contract or amendments require the seller to address, etc. The 'no reason needed' walk-away right ends with the option period."
+    },
+    {
+      "q": "What happens to the earnest money if the buyer terminates during the option?",
+      "a": "It's refunded to the buyer. The option fee (¶ 5A) is separate consideration for the option right itself and is not refunded — the seller keeps it (subject to whatever credit-to-sales-price language the parties wrote in)."
+    },
+    {
+      "q": "Does the option period have to be exercised to use the inspection contingency?",
+      "a": "There is no separate 'inspection contingency' under TREC 20-17 — the option period IS the buyer's effective inspection contingency. Outside the option period, the buyer's exit rights are limited to the cause-based provisions in the contract and its addenda."
+    },
+    {
+      "q": "Is the option fee credited to the sales price?",
+      "a": "Only if the contract specifies it. ¶ 5A has a checkbox for this. If checked, the option fee is credited to the buyer at closing. If not, the seller keeps the option fee outside of the sales price."
+    }
+  ],
+  "related_guides": ["texas-option-period-calculator", "how-to-count-days-trec-contract", "trec-form-20-17-guide"]
+}

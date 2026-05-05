@@ -1,0 +1,36 @@
+{
+  "slug": "how-to-count-days-trec-contract",
+  "title": "How to Count Days in a TREC Contract",
+  "title_html": "How to <em>Count Days</em> in a TREC Contract",
+  "meta_title": "How to Count Days in a TREC Contract — Texas Real Estate",
+  "meta_description": "How to count days in a Texas TREC contract: Effective Date is day zero, calendar days only, and ¶ 23 weekend/holiday rollover — except the option period.",
+  "eyebrow": "TREC mechanics",
+  "deck": "The single most-miscounted concept in Texas residential contracts.",
+  "calculator_blurb": "Verify your day-counts against the calculator below — it implements the rules described in this guide exactly.",
+  "updated_at": "2026-05-05",
+  "related_blurb": "How to count to a TREC deadline correctly — the off-by-one that costs deals.",
+  "body_html": "<p>Counting days in a Texas residential contract sounds simple. It is not. Three rules collide, and getting any one wrong puts a deadline on the wrong day. Here's how to count correctly.</p><h2>Rule 1: Effective Date is day zero</h2><p>The <strong>Effective Date</strong> is the date the last party signs and delivery occurs (¶ 8). When ¶ 5A says \"within 3 days after the Effective Date,\" the Effective Date itself isn't day 1 — it's day zero. Day 1 is the day after.</p><p><strong>Example:</strong> Effective Date is <strong>Monday May 4</strong>. The earnest money deadline (3 days) is <strong>Thursday May 7</strong>, not Wednesday.</p><h2>Rule 2: Calendar days, not business days</h2><p>TREC counts calendar days for everything. Weekends are included <em>in</em> the count. Holidays are included in the count. The <strong>only</strong> place weekends and holidays matter is the rollover rule below.</p><p><strong>Example:</strong> A 21-day financing deadline starting on Monday May 4 spans three weekends. The 21 days are calendar days — you count straight through Saturdays and Sundays.</p><h2>Rule 3: ¶ 23 rolls weekend/holiday landings — except the option period</h2><p>If the calculated deadline lands on a Saturday, Sunday, or federal holiday, ¶ 23 rolls it forward to the next day that isn't one of those.</p><p><strong>Example:</strong> Effective Date Monday May 4. Earnest money is 3 days → Thursday May 7. No rollover needed. Financing is 21 days → Monday May 25 — but May 25 is Memorial Day, so it rolls to <strong>Tuesday May 26</strong>.</p><div class=\"callout\"><strong>The option-period exception:</strong> ¶ 5B (the option period) is the one TREC deadline that does <em>not</em> roll. Even if the option period ends on a Saturday or a federal holiday, the buyer must deliver any termination notice by 5:00 PM on that exact day. There is no Monday extension, no day-after-Christmas grace period.</div><h2>What \"5:00 PM\" actually means</h2><p>Most TREC notice deadlines (option period, financing notice, etc.) cite 5:00 PM as the cutoff. That's <strong>5:00 PM local to the property</strong>, not local to the agent or the lender. For a property in Austin, the deadline is 5:00 PM Central. For a property in El Paso, that part of Texas observes Mountain Time — 5:00 PM Mountain is 6:00 PM Central. If you're a Dallas agent representing a buyer on an El Paso property, set your reminder to 5:00 PM in El Paso, not in Dallas.</p><h2>Putting it together: a worked example</h2><p>Effective Date <strong>Friday May 1, 2026</strong>. Closing date <strong>Monday June 1, 2026</strong>. 7-day option, 3-day earnest money, 3-day option fee, 21-day financing, 10-day survey.</p><table class=\"compare-table\"><thead><tr><th>Deadline</th><th>Math</th><th>Lands on</th><th>Final date</th></tr></thead><tbody><tr><td>Earnest money (¶ 5A)</td><td>5/1 + 3</td><td>Mon 5/4</td><td><strong>Mon 5/4</strong></td></tr><tr><td>Option fee (¶ 5A)</td><td>5/1 + 3</td><td>Mon 5/4</td><td><strong>Mon 5/4</strong></td></tr><tr><td>Option period (¶ 5B)</td><td>5/1 + 7</td><td>Fri 5/8</td><td><strong>Fri 5/8 by 5pm</strong> — never rolls</td></tr><tr><td>Survey (¶ 6C)</td><td>5/1 + 10</td><td>Mon 5/11</td><td><strong>Mon 5/11</strong></td></tr><tr><td>Financing (40-11)</td><td>5/1 + 21</td><td>Fri 5/22</td><td><strong>Fri 5/22</strong></td></tr><tr><td>Closing (¶ 9A)</td><td>—</td><td>Mon 6/1</td><td><strong>Mon 6/1</strong></td></tr></tbody></table><h2>Why agents miscount</h2><p>The most common errors:</p><ol><li><strong>Off-by-one on Effective Date.</strong> Treating it as day 1 when it's day 0 makes every deadline a day too early.</li><li><strong>Counting business days for the option period.</strong> Calendar days, including weekends.</li><li><strong>Applying rollover to the option period.</strong> Don't. ¶ 5B carves itself out of ¶ 23.</li><li><strong>Forgetting the property-local time zone.</strong> 5:00 PM is local to the property, not your office.</li></ol><p>The calculator below applies all of these rules exactly — including the option-period non-rollover and the property-local 5:00 PM convention. Use it on every deal until the math becomes second nature.</p>",
+  "faq": [
+    {
+      "q": "Is the Effective Date the same as the contract date?",
+      "a": "No. The Effective Date is the date the last party signs AND delivery occurs per ¶ 8 — typically the day the executed contract is acknowledged in writing back to the other party. The contract date (the date written in the form) is often earlier."
+    },
+    {
+      "q": "Do I count Saturday and Sunday in the option period?",
+      "a": "Yes. Calendar days, weekends included. A 7-day option that starts on Friday ends the next Friday — you count straight through both weekend days."
+    },
+    {
+      "q": "What if the option period ends on Christmas Day?",
+      "a": "The option period still expires that day at 5:00 PM. ¶ 5B does not roll. If you suspect this could happen on a deal, negotiate a longer option or pre-deliver the inspection schedule before the holiday."
+    },
+    {
+      "q": "Does ¶ 23 apply to the closing date?",
+      "a": "¶ 23 generally applies to the contract's day-count deadlines. The closing date itself is a specific calendar date set in ¶ 9A. If that date lands on a federal holiday, parties typically agree to move closing — but it's a matter of practice and title-company availability, not an automatic ¶ 23 rollover."
+    },
+    {
+      "q": "Are Texas state holidays counted as rollover days?",
+      "a": "No. ¶ 23 references federal holidays. Texas state holidays (Confederate Heroes Day, Texas Independence Day) are observed by some state offices but not by title companies, so they are not treated as rollover days for TREC deadlines."
+    }
+  ],
+  "related_guides": ["texas-option-period-explained", "trec-deadline-calculator", "trec-form-20-17-guide"]
+}
