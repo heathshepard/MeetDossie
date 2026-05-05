@@ -262,9 +262,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
   }
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  // Temp diag bypass for the post-fix dry-run sample. Reverted next commit.
-  const ONE_SHOT_DIAG = 'Bearer ***SCRUBBED-BYPASS-TOKEN-2026-05-06***';
-  if (authHeader !== `Bearer ${CRON_SECRET}` && authHeader !== ONE_SHOT_DIAG) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
