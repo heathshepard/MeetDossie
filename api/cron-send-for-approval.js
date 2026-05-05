@@ -17,6 +17,17 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const MAX_PER_RUN = 12;
 
+// Platform rules summary for the approval message — compact one-liners so
+// Heath can sanity-check that the post was generated against the right
+// distribution playbook. Mirrors PLATFORM_RULES in cron-generate-posts.js
+// (kept brief here; the generator has the full text).
+const PLATFORM_RULES_SUMMARY = {
+  tiktok:    'Hook<8 words/no "I", <150 words, line breaks, "Link in bio" CTA, 3-5 hashtags',
+  instagram: 'Stop-scroll hook (front-load <125 chars), 150-300 words, SAVE/SHARE CTA, 5-10 hashtags',
+  facebook:  'Pain-point/question hook, 200-500 words, short paragraphs, comment-driving CTA, 2-3 hashtags',
+  twitter:   'Punchy/contrarian hook <280 chars, single tweet OR 5-8 thread, RT/quote CTA, 1-2 hashtags',
+};
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -41,8 +52,10 @@ function formatPostMessage(post) {
   const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
     ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
     : '(none)';
+  const algo = PLATFORM_RULES_SUMMARY[platform] || '';
+  const algoLine = algo ? `\n📐 Algorithm-optimized for ${platform}: ${algo}` : '';
   // Plain text — Telegram parse_mode left unset to avoid escaping headaches.
-  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}`;
+  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}${algoLine}`;
 }
 
 function inlineKeyboard(postId) {

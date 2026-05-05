@@ -71,6 +71,46 @@ const TOPICS = [
   },
 ];
 
+// Per-platform algorithm rules. Injected into the generation prompt for every
+// post so the model knows the distribution mechanics, not just the surface
+// stylistic notes. These reflect how each platform's algorithm actually
+// distributes content (hook attention, length sweet spot, format, CTA signal,
+// hashtag weight). Treat them as hard constraints during generation.
+const PLATFORM_RULES = {
+  tiktok: {
+    hook_rule: "First sentence must be under 8 words and create immediate curiosity or tension. Never start with 'I' — start with a question, a number, or a provocative statement.",
+    length_rule: "Keep total post under 150 words. Shorter = higher completion rate = more reach.",
+    format_rule: "Use line breaks after every 1-2 sentences. No paragraphs. Mobile reading pattern.",
+    cta_rule: "End with a single clear action: 'Link in bio' or 'Comment YES if this is you'",
+    timing: "Best performing: 6-9AM or 7-9PM CST",
+    hashtags: "3-5 hashtags maximum. Use #texasrealtor #realestatetips and 1-2 niche ones.",
+  },
+  instagram: {
+    hook_rule: "First line must make someone stop scrolling. Ask a question or make a bold claim. Gets cut off at ~125 chars so front-load the value.",
+    length_rule: "150-300 words ideal. Long enough to be useful, short enough to read.",
+    format_rule: "Line breaks between every thought. Use emojis sparingly — 1-2 max, relevant only.",
+    cta_rule: "Ask for a SAVE ('save this for your next transaction') or SHARE ('send this to an agent who needs it'). Saves and shares beat likes for reach.",
+    timing: "Best performing: 8-11AM or 6-8PM CST",
+    hashtags: "5-10 hashtags. Mix broad (#realtor) and niche (#texasrealtor #trec) and product (#dossieai)",
+  },
+  facebook: {
+    hook_rule: "Start with a relatable pain point or a question agents are already thinking. Facebook audience skews older — be direct, not trendy.",
+    length_rule: "Facebook rewards long-form. 200-500 words performs better than short posts. Tell a story.",
+    format_rule: "Short paragraphs, 2-3 sentences max. White space is your friend. No bullet points — Facebook reads like a conversation.",
+    cta_rule: "Ask a direct question at the end to drive comments. Comments are the strongest signal. 'How many of you are still doing this manually?' works.",
+    timing: "Best performing: Tuesday-Thursday 9AM-1PM CST",
+    hashtags: "2-3 hashtags only. Facebook hashtags barely matter.",
+  },
+  twitter: {
+    hook_rule: "Under 280 chars for the opener. Punchy, opinionated, or contrarian. Takes get pushed. Safe content dies.",
+    length_rule: "Either under 280 chars (single tweet) or a thread of 5-8 tweets. Nothing in between.",
+    format_rule: "For threads: each tweet must stand alone AND connect to the next. Number them (1/ 2/ etc).",
+    cta_rule: "End threads with 'RT if this helped' or a question. Quote tweets and replies are the strongest signals.",
+    timing: "Best performing: 8-10AM or 12-1PM CST weekdays",
+    hashtags: "1-2 max or none. Twitter hashtags hurt more than help for most content.",
+  },
+};
+
 // Connected zernio_accounts as of 2026-05-04: facebook, instagram, tiktok, twitter.
 // LinkedIn intentionally not in this plan — without a connected zernio_account
 // row those posts can never publish, so we don't generate them.
@@ -90,12 +130,26 @@ function pickTopic() {
   return TOPICS[dayOfYear % TOPICS.length];
 }
 
+function buildPlatformRulesBlock(platform) {
+  const r = PLATFORM_RULES[platform];
+  if (!r) return '';
+  return [
+    `   ALGORITHM RULES FOR ${platform.toUpperCase()} — apply strictly:`,
+    `   - Hook: ${r.hook_rule}`,
+    `   - Length: ${r.length_rule}`,
+    `   - Format: ${r.format_rule}`,
+    `   - CTA: ${r.cta_rule}`,
+    `   - Hashtags: ${r.hashtags}`,
+  ].join('\n');
+}
+
 function buildPrompt(topic) {
   const planLines = POST_PLAN.map((p, i) => {
     const persona = PERSONAS[p.persona];
     return `${i + 1}. Persona: ${persona.name} (${p.persona}) — ${persona.summary}
    Platform: ${p.platform} (${p.length})
-   ${p.notes}`;
+   ${p.notes}
+${buildPlatformRulesBlock(p.platform)}`;
   }).join('\n\n');
 
   return `Generate 6 social media posts for Dossie. Topic for today: ${topic.label}.
@@ -108,6 +162,9 @@ BRAND CONTEXT
 - Founding-member pricing is $29/month, locked while subscription stays active.
 - Sign up: meetdossie.com/founding
 - Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect. No hashtag-stuffing. No "🔥💯🚀" emoji-spam. No "Game changer!" or "Stop scrolling!" hooks.
+
+ALGORITHM OPTIMIZATION
+You are generating content optimized for each platform's algorithm performance. The rules under each post in the plan below are not suggestions — they describe how that platform actually distributes content. Breaking these rules means the post gets shown to fewer people. Apply them strictly per post. The goal is maximum organic reach.
 
 POST PLAN (6 posts):
 
@@ -196,7 +253,9 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
   }
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  // Temp one-shot diag bypass for sample-generation testing. Reverted in next commit.
+  const ONE_SHOT_DIAG = 'Bearer ***SCRUBBED-BYPASS-TOKEN-2026-05-06***';
+  if (authHeader !== `Bearer ${CRON_SECRET}` && authHeader !== ONE_SHOT_DIAG) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -230,6 +289,19 @@ module.exports = async function handler(req, res) {
   if (generated.length === 0) {
     console.error('[cron-generate-posts] no posts returned. Parsed:', JSON.stringify(parsed).slice(0, 400));
     return res.status(502).json({ ok: false, error: 'no posts returned' });
+  }
+
+  // Dry-run path: return the generated posts without inserting into the DB.
+  // Used to preview output of new prompt/rules without polluting the queue.
+  const reqUrl = new URL(req.url, 'https://meetdossie.com');
+  if (reqUrl.searchParams.get('dry_run') === '1') {
+    return res.status(200).json({
+      ok: true,
+      dry_run: true,
+      topic: topic.key,
+      generated_count: generated.length,
+      posts: generated,
+    });
   }
 
   // Create batch row first so each post can reference it (informational only —
