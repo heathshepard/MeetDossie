@@ -121,7 +121,13 @@ def pexels_search(api_key: str, query: str, *, orientation: str, per_page: int =
         "max_duration": max_duration,
     })
     url = f"https://api.pexels.com/videos/search?{params}"
-    req = urllib.request.Request(url, headers={"Authorization": api_key})
+    req = urllib.request.Request(url, headers={
+        "Authorization": api_key,
+        # Pexels' Cloudflare layer 403s requests with default urllib UA. Send a real
+        # browser-shaped UA + standard Accept so the request gets through.
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    })
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode("utf-8"))
@@ -178,9 +184,13 @@ def fetch_broll(api_key: str, topic: str, *, target_w: int, target_h: int,
             ext = ".mp4"
             local = out_dir / f"pexels-{video_id}-{file_info.get('quality','x')}{ext}"
             if not local.exists():
-                print(f"[pexels] downloading {video_id} → {local.name}")
+                print(f"[pexels] downloading {video_id} -> {local.name}")
                 try:
-                    with urllib.request.urlopen(link, timeout=60) as r, open(local, "wb") as out:
+                    dl_req = urllib.request.Request(link, headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "video/mp4,*/*;q=0.5",
+                    })
+                    with urllib.request.urlopen(dl_req, timeout=60) as r, open(local, "wb") as out:
                         shutil.copyfileobj(r, out)
                 except Exception as e:
                     print(f"[pexels] download failed: {e}", file=sys.stderr)
@@ -361,7 +371,7 @@ def render_screen_segment(screen_rec: Path, target_seconds: float, w: int, h: in
     subtle drop shadow underneath."""
     inner_w = int(w * 0.86)
     inner_h = int(h * 0.5) if w == h else int(h * 0.5)  # leave headroom in vertical too
-    # Filter chain: black bg → recording scaled+padded → over a darker shadow
+    # Filter chain: black bg -> recording scaled+padded -> over a darker shadow
     fc = (
         f"color=c=black:size={w}x{h}:duration={target_seconds}:rate=30[bg];"
         f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
@@ -535,7 +545,7 @@ def main():
 
     # 2) Voiceover
     voiceover_path = VOICEOVERS_DIR / f"{output_prefix}-voiceover.mp3"
-    print(f"[voice] generating Bill voiceover → {voiceover_path}")
+    print(f"[voice] generating Bill voiceover -> {voiceover_path}")
     synth_voiceover(args.elevenlabs_key, args.voiceover_script, voiceover_path)
     voice_dur = duration(voiceover_path)
     print(f"[voice] duration = {voice_dur:.2f}s")
@@ -553,7 +563,7 @@ def main():
             outputs.append(out)
             d = duration(out)
             size_mb = out.stat().st_size / (1024 * 1024)
-            print(f"  → {out}  duration={d:.2f}s  size={size_mb:.2f} MB")
+            print(f"  -> {out}  duration={d:.2f}s  size={size_mb:.2f} MB")
 
     print("\n[done] outputs:")
     for o in outputs:
