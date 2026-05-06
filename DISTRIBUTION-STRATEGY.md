@@ -85,6 +85,17 @@ Inherit an audience overnight.
 - Research: find newsletters agents actually open and read
 - Timeline: after 50 paying customers — use revenue to fund acquisition
 
+## URL Strategy
+The marketing URL for founding members rotates through three phases as the 50-spot cohort fills:
+
+| Phase | Founding spots taken | Primary URL                | Notes                                              |
+|-------|----------------------|----------------------------|----------------------------------------------------|
+| 1     | 0–44                 | `meetdossie.com/founding`  | Use in all posts, ads, share messages, email CTAs. |
+| 2     | 45–49                | begin transitioning to `meetdossie.com` | Old founding links still resolve.       |
+| 3     | 50                   | `meetdossie.com`           | `/founding` retires; redirect `/founding → /agents`. |
+
+When phase 3 lands: deploy a Vercel rewrite from `/founding` to `/agents`, drop the founding form from `/founding`, and update all evergreen content (sitemap, social meta, email templates, share modal default message).
+
 ## Conversion Funnel
 Every distribution strategy feeds this funnel:
 Stranger → Free Tool User → Email Captured → Nurtured → Founding Member Application → Approved → Paying Customer → Evangelist (Viral Artifact)
