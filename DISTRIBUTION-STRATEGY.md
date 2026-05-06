@@ -12,8 +12,8 @@ Every page, post, ad, and email should map back to one of these. "Cost savings" 
 
 The "control freak agent" segment — agents who refuse to hire a TC because they can't trust someone else to do it right — is the audience that Control + Visibility unlocks. Lean into "you're not giving up control, you're finally getting it" and "control freaks make the best Dossie users." Avoid "let go" / "trust the process" framing — that is exactly what this audience refuses.
 
-## Persona → Demo Account
-Daily content briefs and lifestyle-video screen recordings should match the persona's gender to the demo account's named-profile gender. Mapping (used by `cron-content-brief.js` and `scripts/generate-lifestyle-video.py`):
+## Persona → Demo Account (LOCKED 2026-05-06)
+Daily content briefs and lifestyle-video screen recordings match the persona's gender to the demo account's named-profile gender. This mapping is the final, canonical version — used by `cron-content-brief.js` and `scripts/generate-lifestyle-video.py`:
 
 | Persona  | Demo account            | Email                   |
 |----------|-------------------------|-------------------------|
@@ -21,7 +21,9 @@ Daily content briefs and lifestyle-video screen recordings should match the pers
 | patricia | Sarah Whitley (female)  | demo@meetdossie.com     |
 | victor   | John Smith (male)       | demo2@meetdossie.com    |
 
-The persona for a given day comes from `content_calendar.persona` (nullable; when null the brief omits the SIGN IN AS block). Passwords come from Vercel env (`DEMO_PASSWORD`, `DEMO2_PASSWORD`) — never hardcoded.
+Both demo accounts are seeded with the same 6 transactions, documents, and action items so the screen recording looks identical regardless of which persona is on for that day.
+
+The persona for a given day comes from `content_calendar.persona` (CHECK: brenda/patricia/victor; nullable for legacy rows but all 25 current rows are tagged). Passwords come from Vercel env (`DEMO_PASSWORD`, `DEMO2_PASSWORD`) — never hardcoded, never committed.
 
 ## The 7 Strategies (priority order for Dossie)
 
