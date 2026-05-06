@@ -18,6 +18,17 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// Persona → demo account mapping. Gender-matched so the screen recording
+// shows a same-gender agent profile to whichever persona is voicing the
+// post that day. Brenda + Patricia (female personas) use Sarah Whitley's
+// demo. Victor (male persona) uses John Smith's demo. Passwords come from
+// Vercel env (DEMO_PASSWORD / DEMO2_PASSWORD) — not in source.
+const PERSONA_DEMO_ACCOUNT = {
+  brenda: { name: 'Sarah Whitley', email: 'demo@meetdossie.com', passwordEnv: 'DEMO_PASSWORD' },
+  patricia: { name: 'Sarah Whitley', email: 'demo@meetdossie.com', passwordEnv: 'DEMO_PASSWORD' },
+  victor: { name: 'John Smith', email: 'demo2@meetdossie.com', passwordEnv: 'DEMO2_PASSWORD' },
+};
+
 async function supabaseFetch(path) {
   const res = await fetch(`${SUPABASE_URL}${path}`, {
     headers: {
@@ -63,12 +74,27 @@ function formatBrief(entry, now) {
     month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
   });
   const filename = `${dayName.toLowerCase()}-${slugify(entry.feature)}-${isoDate}.mp4`;
+
+  const persona = entry.persona ? String(entry.persona).toLowerCase() : null;
+  const demo = persona ? PERSONA_DEMO_ACCOUNT[persona] : null;
+  const signInBlock = demo
+    ? [
+        '',
+        '📱 SIGN IN AS:',
+        `${demo.name}`,
+        `Email: ${demo.email}`,
+        `Password: ${process.env[demo.passwordEnv] || `(set ${demo.passwordEnv} in Vercel env)`}`,
+      ]
+    : [];
+
   return [
     `🎬 DAILY CONTENT BRIEF — ${dayName}, ${dateLabel}`,
     '',
     `PLATFORM: ${entry.platform}`,
     `HOOK: "${entry.hook}"`,
     `EST. TIME: ${entry.estimated_minutes} minutes`,
+    persona ? `PERSONA: ${persona}` : null,
+    ...signInBlock,
     '',
     `📱 WHAT TO RECORD:`,
     entry.recording_instructions,
@@ -82,7 +108,7 @@ function formatBrief(entry, now) {
     `Drop in: MeetDossie\\Media\\screen-recordings\\`,
     '',
     `Reply DONE when recorded. Claude Code will handle the rest.`,
-  ].join('\n');
+  ].filter((line) => line !== null).join('\n');
 }
 
 module.exports = async function handler(req, res) {
