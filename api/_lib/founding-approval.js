@@ -205,7 +205,13 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
   if (!env.STRIPE_SECRET_KEY) {
     return { ok: false, error: 'STRIPE_SECRET_KEY not configured' };
   }
-  const { session, couponApplied } = await createFoundingCheckout(env.STRIPE_SECRET_KEY, app.email, opts);
+  // Default to noCoupon: the founding price (price_1TPxxNL920SKTEEiN7Gphq8T)
+  // is already $29.00/month, locked for life. The FOUNDING coupon was the
+  // mechanism but it never needed to exist — verified via Stripe price API
+  // 2026-05-06. Pass opts.noCoupon=false to fall back to strict-coupon mode
+  // if a real FOUNDING coupon is created later.
+  const checkoutOpts = { noCoupon: opts.noCoupon !== false, ...opts };
+  const { session, couponApplied } = await createFoundingCheckout(env.STRIPE_SECRET_KEY, app.email, checkoutOpts);
   if (!session || !session.url) {
     return { ok: false, error: 'Stripe returned no session url' };
   }

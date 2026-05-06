@@ -11,13 +11,10 @@
 const Stripe = require('stripe');
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const ONE_SHOT_TOKEN = 'ea903668a76cb5debc869a6d6036e9ba99dea4e1d35e2cfa';
 
 function isAuthed(req) {
   const h = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (CRON_SECRET && h === `Bearer ${CRON_SECRET}`) return true;
-  if (h === `Bearer ${ONE_SHOT_TOKEN}`) return true;
-  return false;
+  return Boolean(CRON_SECRET) && h === `Bearer ${CRON_SECRET}`;
 }
 
 module.exports = async function handler(req, res) {
