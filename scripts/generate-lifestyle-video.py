@@ -112,13 +112,22 @@ VOICE_VOLUME = 1.0
 BG_FADE_IN = 1.0
 BG_FADE_OUT = 2.0
 
-# For topic=morning_brief, the screen recording captures the actual Morning
-# Brief Luna voice reading the day's brief. Mix that under the narrator
-# voiceover (at 30%) so viewers hear Dossie's real voice while the narrator
-# talks over it. Other topics' screen recordings have no useful audio so
-# they stay muted.
-SCREEN_AUDIO_VOLUME = 0.30
-TOPICS_WITH_SCREEN_AUDIO = {"morning_brief"}
+# For topic=morning_brief, the structure is fully segmented (Heath's spec):
+#   0-3s    hook    : music only at 8%
+#   3-18s   b-roll  : narrator at 100% + music at 8%
+#   18-38s  screen  : Dossie's screen-recording audio at 80% + music at 4%
+#                     (NO narrator — Dossie speaks for herself)
+#   38-end  outro   : music fades out
+# The narrator is truncated at the end of the b-roll segment so it never
+# fights the Dossie-from-screen audio. Other topics use render_mixed_audio
+# (narrator continuous through the screen segment, no screen audio).
+SCREEN_AUDIO_VOLUME           = 0.80   # Dossie's voice during the screen segment
+SCREEN_BG_DUCK_FACTOR         = 0.50   # multiply music volume during screen segment
+                                       # (0.50 × 0.08 = 0.04, matches Heath's 4% spec)
+NARRATOR_HANDOFF_FADE         = 0.5    # narrator fade-out at end of b-roll segment
+SCREEN_AUDIO_FADE_IN          = 0.4    # screen audio fade-in at start of screen segment
+SCREEN_AUDIO_FADE_OUT         = 0.5    # screen audio fade-out at end of screen segment
+TOPICS_WITH_SCREEN_AUDIO      = {"morning_brief"}  # legacy compat — selects new mix path
 
 # Pexels search keywords by topic. Be specific — generic "morning" or "coffee"
 # pulls stock-feeling clips. Each topic gets 4-5 queries; we pull 8-10 candidate
@@ -809,8 +818,12 @@ def render_broll_segment(clips: list[Path], target_seconds: float, w: int, h: in
     # never cut off when reframing landscape (or oversize portrait) into our
     # target aspect. Horizontal centering via x=(in_w-w)/2 since most subjects
     # are centered laterally.
-    for i, _ in enumerate(clips):
+    for i, c in enumerate(clips):
         label_v = f"v{i}"
+        # Top-anchor crop (y=0) keeps subjects' heads in frame when reframing
+        # landscape/oversize-portrait into the target aspect. Logged per-clip
+        # so it's easy to verify in render output that nothing slipped past.
+        print(f"[broll-crop] clip {i+1}/{len(clips)}: scale={w}x{h} crop={w}x{h}:y=0 (top-anchored)  src={Path(c).name}")
         parts.append(
             f"[{i}:v]trim=duration={per_clip:.3f},setpts=PTS-STARTPTS,"
             f"scale={w}:{h}:force_original_aspect_ratio=increase,"
@@ -907,20 +920,36 @@ def trim_screen_recording(screen_rec: Path, out_mp4: Path) -> tuple[Path, float]
 
 def render_screen_segment(screen_rec: Path, target_seconds: float, w: int, h: int,
                           out_mp4: Path) -> Path:
-    """Scale the screen recording to fit ~80% of the canvas, center, with a
-    subtle drop shadow underneath."""
-    inner_w = int(w * 0.86)
-    inner_h = int(h * 0.5) if w == h else int(h * 0.5)  # leave headroom in vertical too
-    # Filter chain: black bg -> recording scaled+padded -> over a darker shadow
-    fc = (
-        f"color=c=black:size={w}x{h}:duration={target_seconds}:rate=30[bg];"
-        f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
-        f"scale={inner_w}:-2:force_original_aspect_ratio=decrease,setsar=1,fps=30[scaled];"
-        f"[scaled]split=2[main][shadow_src];"
-        f"[shadow_src]format=rgba,colorchannelmixer=aa=0.6,boxblur=12:1,format=yuva420p[shadow];"
-        f"[bg][shadow]overlay=(W-w)/2+8:(H-h)/2+12[bg2];"
-        f"[bg2][main]overlay=(W-w)/2:(H-h)/2,format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st={max(0, target_seconds - 0.4):.2f}:d=0.4[outv]"
-    )
+    """Place the (vertical 1080x1920) mobile screen recording onto the canvas
+    SCALE-TO-FIT — never scale-to-fill, never crop. This preserves heads
+    and the top of UI elements which got chopped under the previous logic.
+
+    For vertical canvas (1080x1920): the recording fills the frame naturally
+    since both share aspect.
+
+    For square canvas (1080x1080): letterbox the recording — center it on a
+    blush (#F5E6E0) background with the bars on the left and right. The
+    recording is scaled DOWN to fit within 1080px height, never cropped.
+    """
+    if w == h:
+        # Square: blush background, vertical recording centered, scaled to fit height.
+        fc = (
+            f"color=c=0xF5E6E0:size={w}x{h}:duration={target_seconds}:rate=30[bg];"
+            f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
+            f"scale=-2:{h}:force_original_aspect_ratio=decrease,setsar=1,fps=30[scaled];"
+            f"[bg][scaled]overlay=(W-w)/2:(H-h)/2,"
+            f"format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st={max(0, target_seconds - 0.4):.2f}:d=0.4[outv]"
+        )
+    else:
+        # Vertical (1080x1920): scale-to-fit with black letterbox if aspect drifts.
+        # Mobile recording is already 1080x1920 → fills exactly.
+        fc = (
+            f"color=c=black:size={w}x{h}:duration={target_seconds}:rate=30[bg];"
+            f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
+            f"scale={w}:{h}:force_original_aspect_ratio=decrease,setsar=1,fps=30[scaled];"
+            f"[bg][scaled]overlay=(W-w)/2:(H-h)/2,"
+            f"format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st={max(0, target_seconds - 0.4):.2f}:d=0.4[outv]"
+        )
     cmd = [FFMPEG, "-y", "-i", str(screen_rec), "-filter_complex", fc,
            "-map", "[outv]", "-t", f"{target_seconds}", "-c:v", "libx264",
            "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30",
@@ -995,12 +1024,84 @@ def render_mixed_audio(voiceover: Path, music: Path, total_seconds: float,
     return out_audio
 
 
+def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
+                               total_seconds: float, out_audio: Path,
+                               t_title: float, t_broll: float, t_screen: float) -> Path:
+    """Segmented mix for topic=morning_brief — narrator and Dossie's voice
+    NEVER play simultaneously.
+
+    Timeline:
+      0..t_title                   : music at BG_VOLUME, no voice
+      t_title..t_title+t_broll     : narrator (truncated to t_broll) at 100%, music at BG_VOLUME
+      t_title+t_broll..t_title+t_broll+t_screen
+                                   : Dossie screen audio at SCREEN_AUDIO_VOLUME (80%),
+                                     music ducked by SCREEN_BG_DUCK_FACTOR (-> 4%)
+      t_title+t_broll+t_screen..total
+                                   : music fades out, no voice
+    """
+    screen_start = t_title + t_broll
+    screen_end = screen_start + t_screen
+    bg_fade_out_start = max(0.0, total_seconds - BG_FADE_OUT)
+
+    # Narrator: trim to b-roll length, fade out at end, delay to t_title.
+    narrator_trim = max(0.0, t_broll - 0.05)  # trim slightly under to avoid PTS overrun
+    narrator_fade_start = max(0.0, narrator_trim - NARRATOR_HANDOFF_FADE)
+    narrator_chain = (
+        f"[0:a]atrim=duration={narrator_trim:.3f},asetpts=PTS-STARTPTS,"
+        f"afade=t=out:st={narrator_fade_start:.3f}:d={NARRATOR_HANDOFF_FADE},"
+        f"adelay={int(t_title * 1000)}|{int(t_title * 1000)},"
+        f"apad=whole_dur={total_seconds:.3f},"
+        f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
+        f"volume={VOICE_VOLUME}[voice]"
+    )
+
+    # Music: full duration, fade in/out, ducked during the screen segment via
+    # a time-gated volume multiplier.
+    bg_chain = (
+        f"[1:a]atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
+        f"afade=t=in:st=0:d={BG_FADE_IN},"
+        f"afade=t=out:st={bg_fade_out_start:.3f}:d={BG_FADE_OUT},"
+        f"volume={BG_VOLUME},"
+        f"volume={SCREEN_BG_DUCK_FACTOR}:enable='between(t,{screen_start:.3f},{screen_end:.3f})'[bg]"
+    )
+
+    # Screen audio (Dossie): trim to t_screen, fade in/out, delay to screen_start.
+    screen_trim = max(0.0, t_screen - 0.05)
+    screen_fade_out_start = max(0.0, screen_trim - SCREEN_AUDIO_FADE_OUT)
+    screen_chain = (
+        f"[2:a]atrim=duration={screen_trim:.3f},asetpts=PTS-STARTPTS,"
+        f"afade=t=in:st=0:d={SCREEN_AUDIO_FADE_IN},"
+        f"afade=t=out:st={screen_fade_out_start:.3f}:d={SCREEN_AUDIO_FADE_OUT},"
+        f"adelay={int(screen_start * 1000)}|{int(screen_start * 1000)},"
+        f"apad=whole_dur={total_seconds:.3f},"
+        f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
+        f"volume={SCREEN_AUDIO_VOLUME}[screen]"
+    )
+
+    fc = ";".join([
+        narrator_chain,
+        bg_chain,
+        screen_chain,
+        "[voice][bg][screen]amix=inputs=3:duration=first:normalize=0[a]",
+    ])
+    cmd = [FFMPEG, "-y",
+           "-i", str(voiceover), "-i", str(music), "-i", str(screen_audio),
+           "-filter_complex", fc, "-map", "[a]",
+           "-c:a", "aac", "-b:a", "192k", "-t", f"{total_seconds}", str(out_audio)]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr or "")
+        raise RuntimeError(f"ffmpeg morning_brief audio-mix failed (exit {proc.returncode})")
+    return out_audio
+
+
 def mix_audio_with_video(video: Path, voiceover: Path, music: Path,
                          total_seconds: float, out_mp4: Path,
                          voice_start: float = T_TITLE,
                          screen_audio: Optional[Path] = None,
                          screen_audio_start: float = 0.0,
-                         screen_audio_duration: float = 0.0) -> Path:
+                         screen_audio_duration: float = 0.0,
+                         topic: str = "") -> Path:
     """Two-step mux: pre-render the audio mix into an intermediate m4a, then
     combine with the silent video.
 
@@ -1009,15 +1110,24 @@ def mix_audio_with_video(video: Path, voiceover: Path, music: Path,
     audio to ~3s. Splitting audio and video into separate ffmpeg invocations
     eliminates the cross-stream PTS interaction that caused the bug.
 
-    For topic=morning_brief the caller passes screen_audio (the screen
-    recording itself) so the Luna voice in the recording mixes under the
-    narrator at SCREEN_AUDIO_VOLUME during the screen segment window.
+    For topic=morning_brief the caller routes through render_morning_brief_audio
+    which produces a segmented mix where narrator + Dossie's voice never play
+    simultaneously. Other topics use the legacy continuous-narrator render_mixed_audio.
     """
     audio_tmp = out_mp4.with_suffix(".audio.m4a")
-    render_mixed_audio(voiceover, music, total_seconds, audio_tmp, voice_start=voice_start,
-                       screen_audio=screen_audio,
-                       screen_audio_start=screen_audio_start,
-                       screen_audio_duration=screen_audio_duration)
+    if topic == "morning_brief" and screen_audio and screen_audio.exists() and screen_audio_duration > 0:
+        # Heath's segmented spec: narrator only during b-roll, Dossie only during screen.
+        render_morning_brief_audio(
+            voiceover=voiceover, music=music, screen_audio=screen_audio,
+            total_seconds=total_seconds, out_audio=audio_tmp,
+            t_title=voice_start, t_broll=screen_audio_start - voice_start,
+            t_screen=screen_audio_duration,
+        )
+    else:
+        render_mixed_audio(voiceover, music, total_seconds, audio_tmp, voice_start=voice_start,
+                           screen_audio=screen_audio,
+                           screen_audio_start=screen_audio_start,
+                           screen_audio_duration=screen_audio_duration)
     audio_dur = audio_stream_duration(audio_tmp)
     if audio_dur is None or audio_dur < total_seconds - 1.0:
         raise RuntimeError(
@@ -1131,10 +1241,11 @@ def render_aspect(aspect: str, *, broll: list[Path], screen_rec: Optional[Path],
                              voice_start=segs["t_title"],
                              screen_audio=screen_rec,
                              screen_audio_start=screen_audio_start,
-                             screen_audio_duration=segs["t_screen"])
+                             screen_audio_duration=segs["t_screen"],
+                             topic=topic)
     else:
         mix_audio_with_video(base_mp4, voiceover, BG_MUSIC, segs["total"], out_path,
-                             voice_start=segs["t_title"])
+                             voice_start=segs["t_title"], topic=topic)
     return out_path
 
 
