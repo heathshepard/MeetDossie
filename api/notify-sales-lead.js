@@ -67,6 +67,24 @@ function formatNumber(n) {
   return String(x);
 }
 
+const HEARD_FROM_LABELS = {
+  facebook_group: 'Facebook group post',
+  facebook_page: 'Facebook page',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  twitter_x: 'Twitter/X',
+  google_search: 'Google search',
+  word_of_mouth: 'Word of mouth / another agent',
+  trec_calculator: 'TREC deadline calculator',
+  linkedin: 'LinkedIn',
+  other: 'Other',
+};
+
+function prettyHeardFrom(v) {
+  if (!v) return '—';
+  return HEARD_FROM_LABELS[String(v).toLowerCase()] || String(v);
+}
+
 function buildMessage(lead) {
   const lines = [
     '🆕 <b>New Sales Lead</b>',
@@ -78,6 +96,7 @@ function buildMessage(lead) {
   if (lead.agent_count != null) lines.push(`<b>Agents:</b> ${escTelegram(formatNumber(lead.agent_count))}`);
   if (lead.monthly_transactions != null) lines.push(`<b>Monthly transactions:</b> ${escTelegram(formatNumber(lead.monthly_transactions))}`);
   if (lead.source_page) lines.push(`<b>Source:</b> /${escTelegram(lead.source_page)}`);
+  if (lead.heard_from) lines.push(`<b>How they found us:</b> ${escTelegram(prettyHeardFrom(lead.heard_from))}`);
   if (lead.message) {
     lines.push('');
     lines.push('<b>Looking for:</b>');

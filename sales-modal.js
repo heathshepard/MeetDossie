@@ -150,6 +150,25 @@
     var brokerageInput = el('input', { type: 'text', class: 'dsm-input', name: 'brokerage', autocomplete: 'organization', placeholder: 'Acme Realty' });
     var agentCountInput = el('input', { type: 'number', class: 'dsm-input', name: 'agent_count', min: '0', step: '1', inputmode: 'numeric', placeholder: 'e.g. 12' });
     var txCountInput = el('input', { type: 'number', class: 'dsm-input', name: 'monthly_transactions', min: '0', step: '1', inputmode: 'numeric', placeholder: 'e.g. 30' });
+    // Heard-from dropdown — same options + slugs as the founding form.
+    var heardFromInput = el('select', { class: 'dsm-input', name: 'heard_from' });
+    [
+      ['', 'Select…', true],
+      ['facebook_group', 'Facebook group post'],
+      ['facebook_page', 'Facebook page'],
+      ['instagram', 'Instagram'],
+      ['tiktok', 'TikTok'],
+      ['twitter_x', 'Twitter/X'],
+      ['google_search', 'Google search'],
+      ['word_of_mouth', 'Word of mouth / another agent'],
+      ['trec_calculator', 'The TREC deadline calculator'],
+      ['linkedin', 'LinkedIn'],
+      ['other', 'Other'],
+    ].forEach(function (opt) {
+      var attrs = { value: opt[0] };
+      if (opt[2]) { attrs.disabled = 'disabled'; attrs.selected = 'selected'; }
+      heardFromInput.appendChild(el('option', attrs, [opt[1]]));
+    });
     var messageInput = el('textarea', { class: 'dsm-textarea', name: 'message', placeholder: 'A few sentences on what you’re hoping Dossie can do for your team.' });
 
     var errorBanner = el('div', { class: 'dsm-error-banner', style: 'display:none' });
@@ -167,7 +186,7 @@
       errorBanner.style.display = 'none';
     }
     function clearFieldErrors() {
-      [nameInput, emailInput, brokerageInput, agentCountInput, txCountInput, messageInput].forEach(function (f) { setError(f, false); });
+      [nameInput, emailInput, brokerageInput, agentCountInput, txCountInput, heardFromInput, messageInput].forEach(function (f) { setError(f, false); });
     }
 
     var form = el('form', { class: 'dsm-form', novalidate: 'novalidate' }, [
@@ -192,6 +211,10 @@
           el('label', { class: 'dsm-label' }, ['Monthly transactions']),
           txCountInput
         ])
+      ]),
+      el('div', { class: 'dsm-field' }, [
+        el('label', { class: 'dsm-label' }, ['How did you hear about Dossie?', el('span', { class: 'dsm-required' }, ['*'])]),
+        heardFromInput
       ]),
       el('div', { class: 'dsm-field' }, [
         el('label', { class: 'dsm-label' }, ['What are you looking for?']),
@@ -229,13 +252,16 @@
       var brokerage = brokerageInput.value.trim();
       var agents = parseIntOrNull(agentCountInput.value);
       var tx = parseIntOrNull(txCountInput.value);
+      var heardFrom = (heardFromInput.value || '').trim();
       var message = messageInput.value.trim();
 
       var bad = false;
       if (!name) { setError(nameInput, true); bad = true; }
       if (!isValidEmail(email)) { setError(emailInput, true); bad = true; }
+      var heardOptions = ['facebook_group','facebook_page','instagram','tiktok','twitter_x','google_search','word_of_mouth','trec_calculator','linkedin','other'];
+      if (heardOptions.indexOf(heardFrom) === -1) { setError(heardFromInput, true); bad = true; }
       if (bad) {
-        showError('Name and a valid email are required.');
+        showError('Name, a valid email, and how you heard about Dossie are required.');
         return;
       }
 
@@ -249,6 +275,7 @@
           brokerage: brokerage || null,
           agent_count: agents,
           monthly_transactions: tx,
+          heard_from: heardFrom,
           message: message || null,
           source_page: source
         });

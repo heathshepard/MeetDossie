@@ -55,6 +55,24 @@ function escTelegram(s) {
     .replace(/>/g, '&gt;');
 }
 
+const HEARD_FROM_LABELS = {
+  facebook_group: 'Facebook group post',
+  facebook_page: 'Facebook page',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  twitter_x: 'Twitter/X',
+  google_search: 'Google search',
+  word_of_mouth: 'Word of mouth / another agent',
+  trec_calculator: 'TREC deadline calculator',
+  linkedin: 'LinkedIn',
+  other: 'Other',
+};
+
+function prettyHeardFrom(v) {
+  if (!v) return '—';
+  return HEARD_FROM_LABELS[String(v).toLowerCase()] || String(v);
+}
+
 function buildMessage(app) {
   const sidesPretty = (function (s) {
     var v = String(s || '').toLowerCase();
@@ -73,6 +91,7 @@ function buildMessage(app) {
     `<b>Market:</b> ${escTelegram(app.market)}`,
     `<b>Transactions (last 12mo):</b> ${escTelegram(String(app.transactions_12mo))}`,
     `<b>Sides:</b> ${escTelegram(sidesPretty)}`,
+    `<b>How they found us:</b> ${escTelegram(prettyHeardFrom(app.heard_from))}`,
     '',
     '<b>Why Dossie:</b>',
     escTelegram(app.why),

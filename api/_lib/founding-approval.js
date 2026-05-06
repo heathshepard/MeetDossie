@@ -110,10 +110,11 @@ function approvalEmailHtml({ firstName, checkoutUrl }) {
 </html>`.trim();
 }
 
-async function sendApprovalEmail({ resendKey, email, name, checkoutUrl }) {
+async function sendApprovalEmail({ resendKey, email, name, checkoutUrl, heardFrom }) {
   if (!resendKey) throw new Error('RESEND_API_KEY missing');
   const firstName = String(name || '').trim().split(/\s+/)[0] || '';
   const html = approvalEmailHtml({ firstName, checkoutUrl });
+  const heardSlug = String(heardFrom || 'unknown').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 64) || 'unknown';
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -126,6 +127,15 @@ async function sendApprovalEmail({ resendKey, email, name, checkoutUrl }) {
       reply_to: 'heath@meetdossie.com',
       subject: "You're in — claim your Dossie founding spot",
       html,
+      // Tags surface in the Resend dashboard so Heath can slice approval-email
+      // sends by acquisition channel without joining back to the DB.
+      tags: [
+        { name: 'category', value: 'founding_approval' },
+        { name: 'heard_from', value: heardSlug },
+      ],
+      headers: {
+        'X-Heard-From': heardSlug,
+      },
     }),
   });
   const text = await r.text().catch(() => '');
@@ -137,6 +147,24 @@ async function sendApprovalEmail({ resendKey, email, name, checkoutUrl }) {
   return parsed;
 }
 
+const HEARD_FROM_LABELS = {
+  facebook_group: 'Facebook group post',
+  facebook_page: 'Facebook page',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  twitter_x: 'Twitter/X',
+  google_search: 'Google search',
+  word_of_mouth: 'Word of mouth / another agent',
+  trec_calculator: 'TREC deadline calculator',
+  linkedin: 'LinkedIn',
+  other: 'Other',
+};
+
+function prettyHeardFrom(v) {
+  if (!v) return '—';
+  return HEARD_FROM_LABELS[String(v).toLowerCase()] || String(v);
+}
+
 async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUrl, couponApplied, emailId }) {
   if (!botToken || !chatId) return;
   const text = [
@@ -144,8 +172,9 @@ async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUr
     '',
     `<b>Name:</b> ${app.name}`,
     `<b>Email:</b> ${app.email}`,
+    `<b>How they found us:</b> ${prettyHeardFrom(app.heard_from)}`,
     `<b>Checkout URL:</b> ${checkoutUrl}`,
-    `<b>FOUNDING coupon:</b> ${couponApplied ? 'pre-applied' : 'NOT pre-applied — Brittney can type it at checkout'}`,
+    `<b>FOUNDING coupon:</b> ${couponApplied ? 'pre-applied' : 'NOT pre-applied — they can type it at checkout'}`,
     `<b>Resend message id:</b> ${emailId || '—'}`,
   ].join('\n');
   await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -191,6 +220,7 @@ async function approveFoundingApplication({ applicationId, env }) {
       email: app.email,
       name: app.name,
       checkoutUrl: session.url,
+      heardFrom: app.heard_from,
     });
     emailId = emailResp?.id || null;
   } catch (err) {
