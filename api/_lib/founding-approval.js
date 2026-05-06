@@ -54,22 +54,32 @@ async function loadApplication(applicationId) {
   return rows[0];
 }
 
-async function createFoundingCheckout(stripeKey, email) {
+async function createFoundingCheckout(stripeKey, email, opts = {}) {
   const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
-  // Strict mode: FOUNDING coupon must apply. We don't fall back to
-  // allow_promotion_codes — if the coupon isn't valid in Stripe, surface
-  // the error so the operator notices instead of quietly mailing a session
-  // that wouldn't honor the founding price lock.
-  const session = await stripe.checkout.sessions.create({
+  const baseParams = {
     mode: 'subscription',
     line_items: [{ price: FOUNDING_PRICE_ID, quantity: 1 }],
     success_url: SUCCESS_URL,
     cancel_url: CANCEL_URL,
-    discounts: [{ coupon: FOUNDING_COUPON_ID }],
     billing_address_collection: 'auto',
     customer_email: email,
     metadata: { source: 'founding_approval' },
     subscription_data: { metadata: { source: 'founding_approval' } },
+  };
+  // No-coupon mode: the founding price is already $29/mo, so a session with
+  // no discount and no allow_promotion_codes still locks the customer in at
+  // the founding rate. Used when the FOUNDING coupon hasn't been created yet
+  // and we don't want a promo box on checkout.
+  if (opts.noCoupon) {
+    const session = await stripe.checkout.sessions.create(baseParams);
+    return { session, couponApplied: false };
+  }
+  // Strict mode (default): FOUNDING coupon must apply. No fallback —
+  // surface the Stripe error if the coupon doesn't exist so the operator
+  // notices instead of quietly mailing a session without the lock.
+  const session = await stripe.checkout.sessions.create({
+    ...baseParams,
+    discounts: [{ coupon: FOUNDING_COUPON_ID }],
   });
   return { session, couponApplied: true };
 }
@@ -179,7 +189,7 @@ async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUr
 
 // Top-level entry point. Idempotent — safe to call twice on the same row;
 // the second call refreshes the checkout URL and re-sends the email.
-async function approveFoundingApplication({ applicationId, env }) {
+async function approveFoundingApplication({ applicationId, env, opts = {} }) {
   const app = await loadApplication(applicationId);
   if (!app) {
     return { ok: false, error: `application ${applicationId} not found` };
@@ -195,7 +205,7 @@ async function approveFoundingApplication({ applicationId, env }) {
   if (!env.STRIPE_SECRET_KEY) {
     return { ok: false, error: 'STRIPE_SECRET_KEY not configured' };
   }
-  const { session, couponApplied } = await createFoundingCheckout(env.STRIPE_SECRET_KEY, app.email);
+  const { session, couponApplied } = await createFoundingCheckout(env.STRIPE_SECRET_KEY, app.email, opts);
   if (!session || !session.url) {
     return { ok: false, error: 'Stripe returned no session url' };
   }
