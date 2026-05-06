@@ -2,6 +2,16 @@
 ## Core Philosophy
 Code is commoditized. Distribution is the moat. Every feature we build should ask: how does this get Dossie in front of more Texas agents? The wealthiest builders over the next decade will be marketers, not engineers.
 
+## Core Value Props (use these as the messaging spine)
+Every page, post, ad, and email should map back to one of these. "Cost savings" alone leaves the agent who refuses to delegate on the table — and that's a huge slice of solo Texas agents.
+
+1. **Cost savings** — $29/mo replaces a $400-per-file transaction coordinator. The math is real and Texas-specific.
+2. **Control** — you don't have to trust someone else with your file. Dossie does not act without your tap. Every email is drafted but not sent. Every change to the file commits only after you approve.
+3. **Visibility** — every deal, every deadline, every party tracked, on one screen. Every TREC paragraph cited so you can verify the math yourself. Nothing happens behind your back because nothing is behind your back.
+4. **Speed** — contract scanned in 8 seconds. Morning brief at 6 AM before your coffee. Updates from your car between showings.
+
+The "control freak agent" segment — agents who refuse to hire a TC because they can't trust someone else to do it right — is the audience that Control + Visibility unlocks. Lean into "you're not giving up control, you're finally getting it" and "control freaks make the best Dossie users." Avoid "let go" / "trust the process" framing — that is exactly what this audience refuses.
+
 ## The 7 Strategies (priority order for Dossie)
 
 ### Strategy 1: Free Tool as Top of Funnel (HIGHEST PRIORITY)
