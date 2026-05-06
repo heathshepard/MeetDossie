@@ -201,9 +201,13 @@ SUPABASE_ANON_KEY = (
     "cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE"
 )
 
-# ElevenLabs Bill voice — same v4 settings as beta-recruit
+# ElevenLabs voice registry. Each Library entry's "Voice" column maps here.
+# Bill: same v4 settings as beta-recruit (warm male, used for Victor persona).
+# Luna: matches the production /api/speak Dossie voice (used for Brenda/Patricia).
 ELEVENLABS_BILL = "pqHfZKP75CvOlQylNhV4"
-ELEVENLABS_MODEL = "eleven_turbo_v2"
+ELEVENLABS_LUNA = "lxYfHSkYm1EzQzGhdbfc"
+ELEVENLABS_MODEL = "eleven_turbo_v2"  # legacy default — overridden per voice below
+
 BILL_VOICE_SETTINGS = {
     "stability": 0.75,
     "similarity_boost": 0.75,
@@ -211,6 +215,22 @@ BILL_VOICE_SETTINGS = {
     "use_speaker_boost": True,
     "speed": 0.95,
 }
+LUNA_VOICE_SETTINGS = {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.25,
+    "use_speaker_boost": True,
+    "speed": 1.0,
+}
+
+VOICE_REGISTRY = {
+    "bill": {"voice_id": ELEVENLABS_BILL, "model": "eleven_turbo_v2",  "settings": BILL_VOICE_SETTINGS},
+    "luna": {"voice_id": ELEVENLABS_LUNA, "model": "eleven_flash_v2_5", "settings": LUNA_VOICE_SETTINGS},
+}
+
+# Persona → default voice when LIBRARY.md doesn't yield a matched recording
+# (e.g., a topic+persona combination with no compatible MP4).
+PERSONA_DEFAULT_VOICE = {"brenda": "luna", "patricia": "luna", "victor": "bill"}
 
 # Tools
 FFMPEG = shutil.which("ffmpeg") or r"C:\Users\Heath Shepard\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe"
@@ -472,22 +492,35 @@ def fetch_broll(api_key: str, topic: str, *, target_w: int, target_h: int,
 # ElevenLabs voiceover
 # --------------------------------------------------------------------------------------
 
-def synth_voiceover(api_key: str, script_text: str, out_path: Path) -> Path:
-    """Generate Bill voiceover. Add SSML <break time="0.4s"/> between sentences
-    so the voice has natural pacing. eleven_turbo_v2 honors break tags inline.
+def synth_voiceover(api_key: str, script_text: str, out_path: Path,
+                    voice_name: str = "bill") -> Path:
+    """Generate a voiceover using the named voice from VOICE_REGISTRY.
+
+    voice_name is matched case-insensitively against keys in VOICE_REGISTRY
+    ("bill", "luna"). Unknown names fall back to "bill" with a warning.
+
+    Adds SSML <break time="0.4s"/> between sentences so the voice has
+    natural pacing — both eleven_turbo_v2 and eleven_flash_v2_5 honor
+    break tags inline.
 
     Hard-fails on any error: an empty MP3, a 4xx/5xx, or a network timeout.
     A silent video is worse than no video — better to abort the render."""
     if not api_key:
         raise RuntimeError("ELEVENLABS_API_KEY missing — refuse to render a silent video.")
+    voice_key = (voice_name or "bill").lower()
+    voice = VOICE_REGISTRY.get(voice_key)
+    if not voice:
+        print(f"[voice] WARN unknown voice '{voice_name}' — falling back to bill")
+        voice_key = "bill"
+        voice = VOICE_REGISTRY[voice_key]
     sentences = re.split(r'(?<=[.!?])\s+', script_text.strip())
     augmented = ' <break time="0.4s"/> '.join(s for s in sentences if s)
     body = {
         "text": augmented,
-        "model_id": ELEVENLABS_MODEL,
-        "voice_settings": BILL_VOICE_SETTINGS,
+        "model_id": voice["model"],
+        "voice_settings": voice["settings"],
     }
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_BILL}"
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice['voice_id']}"
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode("utf-8"),
@@ -576,13 +609,18 @@ ZERNIO_BASE = "https://zernio.com/api/v1"
 def zernio_upload_local_file(api_key: str, local_path: Path,
                              content_type: str = "video/mp4") -> dict:
     """Upload a local file to Zernio in two steps:
-      1) POST /api/v1/media/presign with {fileName, fileType} → uploadUrl + publicUrl
+      1) POST /api/v1/media/presign with {filename, contentType} → uploadUrl + publicUrl
       2) PUT the bytes to uploadUrl with the matching Content-Type
     Returns {ok, publicUrl, uploadUrl, expires, status, error}.
 
     Per docs.zernio.com/guides/media-uploads: uploadUrl is a presigned GCS
     URL (no auth on the PUT); publicUrl is what you reference in
-    /api/v1/posts as mediaItems: [{url, type}]."""
+    /api/v1/posts as mediaItems: [{url, type}].
+
+    Field names are `filename` / `contentType` (lowercase, no internal capital
+    on filename; camelCase on contentType). The earlier `fileName` / `fileType`
+    spelling returned 400 'Missing required fields: filename and contentType'
+    so we use the names the server actually validates against."""
     if not api_key:
         return {"ok": False, "error": "ZERNIO_API_KEY missing — cannot upload locally"}
     if not local_path.exists():
@@ -590,8 +628,8 @@ def zernio_upload_local_file(api_key: str, local_path: Path,
 
     # Step 1: presign
     presign_body = json.dumps({
-        "fileName": local_path.name,
-        "fileType": content_type,
+        "filename": local_path.name,
+        "contentType": content_type,
     }).encode("utf-8")
     presign_req = urllib.request.Request(
         f"{ZERNIO_BASE}/media/presign",
@@ -985,22 +1023,25 @@ def parse_screen_recording_library() -> list[dict]:
     return entries
 
 
-def select_screen_recording(topic: str, persona: Optional[str]) -> Optional[Path]:
-    """Pick the right screen recording for (topic, persona) per LIBRARY.md.
+def select_screen_recording_entry(topic: str, persona: Optional[str]) -> Optional[dict]:
+    """Pick the LIBRARY.md row for (topic, persona).
+
+    Returns the full library entry dict (with .filename, .voice, .demo_account, ...)
+    so callers can pull both the recording path AND the voice — keeping the
+    voice locked to the on-screen persona instead of hardcoded.
 
     Match logic:
       1. Filename prefix == topic.replace("_", "-")
       2. Persona is in the recording's allowed-persona list (when persona is given)
       3. Newest filename (lexicographic descending — date-suffixed names sort right)
 
-    If no LIBRARY.md, falls back to find_latest_screen_recording() so older
-    workflows still work. If LIBRARY.md exists but no entry matches, returns
-    None — the caller will fall back to b-roll filler rather than risk a
-    persona-gender mismatch (e.g., Brenda voiceover over a male-agent recording).
+    Returns None if LIBRARY.md is missing OR if no entry matches — callers
+    should fall back to b-roll filler + the persona-default voice rather than
+    risk a Brenda voiceover over a male-agent recording.
     """
     library = parse_screen_recording_library()
     if not library:
-        return find_latest_screen_recording()
+        return None
 
     topic_slug = topic.replace("_", "-")
     candidates = [e for e in library if e["filename"].startswith(topic_slug + "-")]
@@ -1019,7 +1060,36 @@ def select_screen_recording(topic: str, persona: Optional[str]) -> Optional[Path
         print(f"[screen-rec] WARN: LIBRARY.md lists {chosen['filename']} but the file is missing - using b-roll filler")
         return None
     print(f"[screen-rec] LIBRARY.md match: {chosen['filename']} (voice={chosen['voice']}, demo={chosen['demo_account']})")
-    return path
+    return chosen
+
+
+def select_screen_recording(topic: str, persona: Optional[str]) -> Optional[Path]:
+    """Back-compat path-only wrapper around select_screen_recording_entry().
+
+    If LIBRARY.md is missing entirely, falls back to mtime-based selection
+    so older workflows still work.
+    """
+    entry = select_screen_recording_entry(topic, persona)
+    if entry:
+        return SCREEN_RECORDINGS_DIR / entry["filename"]
+    if not parse_screen_recording_library():
+        return find_latest_screen_recording()
+    return None
+
+
+def voice_for(entry: Optional[dict], persona: Optional[str]) -> str:
+    """Pick the ElevenLabs voice key.
+
+    Precedence:
+      1. LIBRARY.md "Voice" column for the matched recording
+      2. PERSONA_DEFAULT_VOICE for the day's persona
+      3. "bill" (back-compat default)
+    """
+    if entry and entry.get("voice"):
+        return entry["voice"].lower()
+    if persona and PERSONA_DEFAULT_VOICE.get(persona.lower()):
+        return PERSONA_DEFAULT_VOICE[persona.lower()]
+    return "bill"
 
 
 def load_env_local() -> dict:
@@ -1145,8 +1215,15 @@ def main():
         return 2
 
     # Resolve inputs — LIBRARY.md drives selection so a Brenda voiceover
-    # never lands over Heath-on-camera footage and vice versa.
-    screen_rec = Path(args.screen_recording) if args.screen_recording else select_screen_recording(args.topic, persona)
+    # never lands over Heath-on-camera footage and vice versa. The matched
+    # row also dictates the voiceover voice (Voice column), so the audio
+    # tracks the on-screen agent automatically.
+    library_entry = None if args.screen_recording else select_screen_recording_entry(args.topic, persona)
+    screen_rec = Path(args.screen_recording) if args.screen_recording else (
+        SCREEN_RECORDINGS_DIR / library_entry["filename"] if library_entry
+        else (find_latest_screen_recording() if not parse_screen_recording_library() else None)
+    )
+    voice_name = voice_for(library_entry, persona)
     if not screen_rec:
         print("WARN: no screen recording provided or found in screen-recordings/. Using b-roll filler for that segment.")
     else:
@@ -1168,9 +1245,9 @@ def main():
 
     # 2) Voiceover (hard-fails if ElevenLabs returns nothing — we don't ship silent videos)
     voiceover_path = VOICEOVERS_DIR / f"{output_prefix}-voiceover.mp3"
-    print(f"[voice] generating Bill voiceover -> {voiceover_path}")
+    print(f"[voice] generating {voice_name.capitalize()} voiceover -> {voiceover_path}")
     try:
-        synth_voiceover(args.elevenlabs_key, voiceover_script, voiceover_path)
+        synth_voiceover(args.elevenlabs_key, voiceover_script, voiceover_path, voice_name=voice_name)
     except RuntimeError as e:
         print(f"ERROR: voiceover synthesis failed: {e}", file=sys.stderr)
         print("ERROR: aborting render — a silent video is worse than no video.", file=sys.stderr)
