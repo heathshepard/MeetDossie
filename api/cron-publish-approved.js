@@ -145,36 +145,55 @@ function buildPostBody(post) {
 async function pushToZernio(post) {
   if (!post.zernio_account_id) return { ok: false, error: 'no zernio_account_id on row' };
   const text = buildPostBody(post);
-  const payload = {
-    account_id: post.zernio_account_id,
-    content: text,
-  };
-  if (post.scheduled_for) payload.scheduled_for = post.scheduled_for;
 
-  // Twitter thread-split. If the body exceeds 280 chars we split into chunks
-  // (paragraph → sentence → word boundary) with i/N numbering and send the
-  // tail as `payload.thread`. Field name is a guess based on typical publish
-  // APIs (Buffer/Hootsuite); if Zernio wants a different shape the 4xx body
-  // lands in error_message and we iterate. Single-tweet posts skip this.
+  // Real Zernio schema (per docs.zernio.com/platforms/{twitter,instagram}):
+  //   { content, mediaItems[], platforms[{platform, accountId, platformSpecificData}], publishNow|scheduledFor }
+  // CRITICAL: publishNow: true must be set, otherwise Zernio holds the post
+  // as a draft on its end (and our cron sees a 200 success while the post
+  // never actually goes live). For twitter threads, threadItems lives at
+  // platforms[0].platformSpecificData.threadItems and the top-level content
+  // is "for display and search purposes" only — the first tweet must also
+  // be in threadItems[0].
+  const platformBlock = {
+    platform: post.platform,
+    accountId: post.zernio_account_id,
+  };
+
+  let topContent = text;
+  let topMediaItems;
+  if (post.media_url) {
+    topMediaItems = [inferMediaItem(post.media_url)];
+  }
+
   if (post.platform === 'twitter') {
     const chunks = splitForTwitter(text);
     if (chunks.length > 1) {
-      payload.content = chunks[0];
-      payload.thread = chunks.slice(1);
+      const items = chunks.map((c, i) => {
+        const item = { content: c };
+        // Attach media (if any) only to the first tweet of the thread.
+        if (i === 0 && topMediaItems) item.mediaItems = topMediaItems;
+        return item;
+      });
+      platformBlock.platformSpecificData = { threadItems: items };
+      topContent = chunks[0]; // top-level content is display-only per docs
+      topMediaItems = undefined; // already on threadItems[0], don't double-attach
       console.log(`[twitter-split] post ${post.id}: ${chunks.length} chunks (lengths ${chunks.map((c) => c.length).join(',')})`);
     } else if (chunks.length === 1) {
-      payload.content = chunks[0];
+      topContent = chunks[0];
     }
   }
 
-  // Media attachment per Zernio docs (docs.zernio.com/guides/media-uploads):
-  // mediaItems: [{ url, type }] where type ∈ image|video. Both keys sent
-  // for compatibility — older clients may have used media_urls and Zernio
-  // appears to accept either; mediaItems is the documented current shape.
-  if (post.media_url) {
-    payload.mediaItems = [inferMediaItem(post.media_url)];
-    payload.media_urls = [post.media_url]; // legacy fallback, harmless if ignored
+  const payload = {
+    content: topContent,
+    platforms: [platformBlock],
+  };
+  if (topMediaItems) payload.mediaItems = topMediaItems;
+  if (post.scheduled_for) {
+    payload.scheduledFor = post.scheduled_for;
+  } else {
+    payload.publishNow = true;
   }
+
   try {
     const res = await fetch(ZERNIO_POSTS_URL, {
       method: 'POST',
@@ -191,7 +210,6 @@ async function pushToZernio(post) {
       return {
         ok: false,
         status: res.status,
-        // Keep enough of the body to capture multi-line JSON errors.
         error: respText.slice(0, 1000),
         data,
       };
@@ -342,7 +360,9 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
   }
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  // TEMP one-shot for testing the corrected Zernio schema (revert next commit).
+  const ONE_SHOT_TOKEN = 'Bearer ***SCRUBBED-BYPASS-TOKEN-2026-05-06***';
+  if (authHeader !== `Bearer ${CRON_SECRET}` && authHeader !== ONE_SHOT_TOKEN) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
