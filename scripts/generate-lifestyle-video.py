@@ -1136,7 +1136,7 @@ def main():
     if persona:
         demo = PERSONA_DEMO_ACCOUNT.get(persona)
         if demo:
-            print(f"[content] persona={persona} → demo account: {demo['name']} ({demo['email']})")
+            print(f"[content] persona={persona} -> demo account: {demo['name']} ({demo['email']})")
         else:
             print(f"[content] persona={persona} (no demo account mapping)")
     if not args.elevenlabs_key:
