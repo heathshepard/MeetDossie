@@ -17,6 +17,19 @@
 //   5. Zernio errors land in social_posts.error_message and the row flips
 //      to status='failed' (replaces the prior "leave at approved for retry"
 //      behaviour, which silently masked permanent failures).
+//
+// Concurrency hardening (2026-05-06):
+//   - Stuck-row recovery on entry: 'publishing' rows older than 10 min get
+//     reverted to 'approved' so a crashed cron doesn't strand them.
+//   - Soft lock per row: a conditional PATCH ?status=eq.approved flips the
+//     row to 'publishing' BEFORE the Zernio call. If 0 rows affected, a
+//     parallel run already grabbed it; we skip.
+//   - Per-iteration cap recheck: countPostedToday is called inside the loop
+//     immediately before each publish (no per-platform decision cache). This
+//     fixes the bug where 3 posts went out under a max_per_day=1 cap because
+//     all three saw the start-of-run snapshot.
+//   - Content-hash dedup: skip if a post with the same content_hash already
+//     hit the same platform in the last 24h.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -146,6 +159,8 @@ async function countPostedToday(platform, tz) {
 
 // Decide if `platform` should publish right now: needs schedule row for
 // today's dow, current time >= some slot, daily cap not exhausted.
+// Called per-iteration (no caching) so the cap reflects rows freshly posted
+// earlier in the same cron run.
 async function isDueForPublish(platform, schedules) {
   const row = schedules.find((s) => s.platform === platform);
   if (!row) return { due: true, reason: 'no schedule row — falling back to immediate' };
@@ -171,6 +186,60 @@ async function isDueForPublish(platform, schedules) {
   return { due: true, reason: `slot ${passedSlots[passedSlots.length - 1]} passed` };
 }
 
+// Soft lock: atomically flip status approved→publishing for this row.
+// PostgREST's `?id=eq.X&status=eq.approved` filter scopes the PATCH so only
+// rows still in 'approved' state are affected. Returns true if WE acquired
+// the lock; false if another instance grabbed it (or the row moved out of
+// 'approved' some other way) so the caller skips publishing.
+async function tryAcquirePublishLock(postId) {
+  const enc = encodeURIComponent(postId);
+  const res = await supabaseFetch(`/rest/v1/social_posts?id=eq.${enc}&status=eq.approved`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      status: 'publishing',
+      publishing_started_at: new Date().toISOString(),
+    }),
+  });
+  if (!res.ok) return false;
+  return Array.isArray(res.data) && res.data.length > 0;
+}
+
+// Recover rows stuck in 'publishing' for >10 min. Either the cron crashed
+// after the lock or the Zernio call hung. Returning to 'approved' lets the
+// next run retry. Risk window: if a delayed Zernio call eventually
+// succeeds, we may publish twice — but 10 min is well past Zernio's
+// observed latency (<5s), so this is safe.
+async function recoverStuckPublishing() {
+  const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const filter = `status=eq.publishing&publishing_started_at=lt.${encodeURIComponent(cutoff)}`;
+  const res = await supabaseFetch(`/rest/v1/social_posts?${filter}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ status: 'approved', publishing_started_at: null }),
+  });
+  if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+    console.warn(`[cron-publish-approved] recovered ${res.data.length} stuck publishing rows`);
+  }
+}
+
+// Skip if the same content has already hit this platform in the last 24h.
+// Belt-and-suspenders against any Zernio-side or cron-side duplication that
+// slips past the soft lock.
+async function isDuplicateRecentPost(post) {
+  if (!post.content_hash || !post.platform) return false;
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const filter = `platform=eq.${encodeURIComponent(post.platform)}` +
+    `&status=eq.posted` +
+    `&content_hash=eq.${encodeURIComponent(post.content_hash)}` +
+    `&posted_at=gte.${encodeURIComponent(cutoff)}` +
+    `&id=neq.${encodeURIComponent(post.id)}` +
+    `&select=id&limit=1`;
+  const { data, ok } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
+  if (!ok) return false;
+  return Array.isArray(data) && data.length > 0;
+}
+
 // ─── main ────────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
@@ -190,6 +259,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
+  // Recover any rows stuck in 'publishing' from a crashed prior run.
+  await recoverStuckPublishing();
+
   const nowIso = new Date().toISOString();
   const filter = `status=eq.approved&posted_at=is.null&or=(scheduled_for.is.null,scheduled_for.lte.${encodeURIComponent(nowIso)})`;
   const { data: items, ok: loadOk } = await supabaseFetch(
@@ -202,10 +274,11 @@ module.exports = async function handler(req, res) {
   console.log('[cron-publish-approved] approved-and-due rows:', queue.length);
 
   const schedules = await loadSchedules();
-  const platformDecisionCache = {};
 
   let published = 0;
   let skippedSchedule = 0;
+  let skippedDuplicate = 0;
+  let skippedLock = 0;
   let parkedTiktok = 0;
   const errors = [];
   const skips = [];
@@ -228,14 +301,39 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Schedule gate (time slot + daily cap).
-    if (!platformDecisionCache[post.platform]) {
-      platformDecisionCache[post.platform] = await isDueForPublish(post.platform, schedules);
-    }
-    const decision = platformDecisionCache[post.platform];
+    // Schedule gate (time slot + daily cap). Re-evaluated PER ITERATION so
+    // posts published earlier in this run count toward the cap. No caching.
+    const decision = await isDueForPublish(post.platform, schedules);
     if (!decision.due) {
       skippedSchedule++;
       skips.push({ id: post.id, platform: post.platform, reason: decision.reason });
+      continue;
+    }
+
+    // Content-hash dedup: if we already posted this exact content to this
+    // platform in the last 24h, refuse to publish a duplicate.
+    if (await isDuplicateRecentPost(post)) {
+      skippedDuplicate++;
+      skips.push({ id: post.id, platform: post.platform, reason: 'duplicate content_hash within 24h' });
+      // Mark the row as failed so it doesn't keep showing up in the queue.
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'failed',
+          error_message: 'duplicate content_hash within 24h — refused to republish',
+        }),
+      });
+      continue;
+    }
+
+    // Soft lock: atomically grab the row before calling Zernio. If another
+    // cron instance already acquired it, skip — the published row will be
+    // patched by the winner.
+    const acquired = await tryAcquirePublishLock(post.id);
+    if (!acquired) {
+      skippedLock++;
+      skips.push({ id: post.id, platform: post.platform, reason: 'lock not acquired (parallel run?)' });
       continue;
     }
 
@@ -252,19 +350,13 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           status: 'posted',
           posted_at: new Date().toISOString(),
+          publishing_started_at: null,
           zernio_post_id: result.zernio_post_id,
           error_message: null,
         }),
       });
       if (patch.ok) {
         published++;
-        // Once we've consumed a slot for this platform, advance the cache so
-        // the next post on the same platform in this run respects max_per_slot.
-        // (max_per_slot=1 means: don't double-publish in a single cron run.)
-        const todayRow = schedules.find((s) => s.platform === post.platform);
-        if (todayRow && (todayRow.max_per_slot ?? 1) <= 1) {
-          platformDecisionCache[post.platform] = { due: false, reason: 'slot consumed this run' };
-        }
       } else {
         errors.push({ id: post.id, error: 'patch after publish failed', status: patch.status });
       }
@@ -276,6 +368,7 @@ module.exports = async function handler(req, res) {
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
           status: 'failed',
+          publishing_started_at: null,
           error_message: `[${result.status || 'no-status'}] ${errBody}`,
         }),
       });
@@ -289,12 +382,19 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  console.log('[cron-publish-approved] done — published', published, 'parked-tiktok:', parkedTiktok, 'skipped(schedule):', skippedSchedule, 'errors:', errors.length);
+  console.log('[cron-publish-approved] done — published', published,
+    'parked-tiktok:', parkedTiktok,
+    'skipped(schedule):', skippedSchedule,
+    'skipped(duplicate):', skippedDuplicate,
+    'skipped(lock):', skippedLock,
+    'errors:', errors.length);
   return res.status(200).json({
     ok: true,
     published,
     parked_tiktok: parkedTiktok,
     skipped_schedule: skippedSchedule,
+    skipped_duplicate: skippedDuplicate,
+    skipped_lock: skippedLock,
     attempted: queue.length,
     errors,
     skips,
