@@ -92,12 +92,17 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed.' });
   }
 
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = process.env;
+  // Send via the dedicated marketing bot so the inline-button callbacks land
+  // on /api/telegram-webhook (which is registered with that bot). Falls back
+  // to Claudy if the marketing token isn't set, but in that mode the buttons
+  // won't be wired to anything.
+  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_CHAT_ID } = process.env;
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: 'Server not configured (supabase).' });
   }
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn('[notify-founding-application] TELEGRAM_BOT_TOKEN/CHAT_ID not set — skipping notification.');
+    console.warn('[notify-founding-application] telegram bot/chat not configured — skipping notification.');
     return res.status(200).json({ ok: true, skipped: true, reason: 'telegram not configured' });
   }
 
@@ -138,6 +143,14 @@ module.exports = async function handler(req, res) {
   }
 
   const text = buildMessage(app);
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: '✅ Approve', callback_data: `approve_founding:${app.id}` },
+        { text: '❌ Reject', callback_data: `reject_founding:${app.id}` },
+      ],
+    ],
+  };
 
   try {
     const tg = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -148,6 +161,7 @@ module.exports = async function handler(req, res) {
         text,
         parse_mode: 'HTML',
         disable_web_page_preview: true,
+        reply_markup: replyMarkup,
       }),
     });
     const tgText = await tg.text();
