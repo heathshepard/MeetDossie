@@ -72,7 +72,10 @@ BLUSH_LIGHT = (245, 230, 224)
 # stays readable. Earlier the script hardcoded 38s — that capped voiceover
 # scripts to ~140 chars and they sounded clipped on a 38s canvas.
 T_TITLE = 3.0           # fixed hook-card length
-TAIL_PAD = 2.0          # fade headroom after voiceover ends
+TAIL_PAD = 3.5          # fade headroom after voiceover ends; bumped from 2.0
+                        # because the outro fade was getting clipped at the end
+                        # (1s fade starting only 1s before EOF left no breathing
+                        # room for player buffering)
 MIN_OUTRO = 4.0         # CTA card must be at least this long
 T_FADE_OUT = 1.0        # final fade to black at the end of outro
 SEGMENT_SHARES = {
@@ -108,6 +111,14 @@ BG_VOLUME = 0.08
 VOICE_VOLUME = 1.0
 BG_FADE_IN = 1.0
 BG_FADE_OUT = 2.0
+
+# For topic=morning_brief, the screen recording captures the actual Morning
+# Brief Luna voice reading the day's brief. Mix that under the narrator
+# voiceover (at 30%) so viewers hear Dossie's real voice while the narrator
+# talks over it. Other topics' screen recordings have no useful audio so
+# they stay muted.
+SCREEN_AUDIO_VOLUME = 0.30
+TOPICS_WITH_SCREEN_AUDIO = {"morning_brief"}
 
 # Pexels search keywords by topic. Be specific — generic "morning" or "coffee"
 # pulls stock-feeling clips. Each topic gets 4-5 queries; we pull 8-10 candidate
@@ -685,19 +696,26 @@ def zernio_upload_local_file(api_key: str, local_path: Path,
     }
 
 
-def zernio_create_post(api_key: str, account_id: str, content: str,
-                       media_items: list[dict], schedule_iso: Optional[str] = None) -> dict:
+def zernio_create_post(api_key: str, platform: str, account_id: str, content: str,
+                       media_items: list[dict], publish_now: bool = False,
+                       schedule_iso: Optional[str] = None) -> dict:
     """Create a Zernio post with attached media. media_items elements are
-    {url, type} where url is a publicUrl from zernio_upload_local_file()."""
+    {url, type} where url is a publicUrl from zernio_upload_local_file().
+
+    Uses the corrected schema we proved with the Twitter splitter fix:
+      platforms: [{platform, accountId, ...}]
+      publishNow: true  (otherwise Zernio holds the post as a draft)
+    """
     payload = {
         "content": content,
-        "platforms": [{"accountId": account_id}],
+        "platforms": [{"platform": platform, "accountId": account_id}],
         "mediaItems": media_items,
     }
     if schedule_iso:
         payload["scheduledFor"] = schedule_iso
-    else:
-        payload["publishNow"] = False  # default to draft, never auto-publish from a script
+    elif publish_now:
+        payload["publishNow"] = True
+    # else: omit both → Zernio defaults to draft (safe explicit-opt-in)
     req = urllib.request.Request(
         f"{ZERNIO_BASE}/posts",
         data=json.dumps(payload).encode("utf-8"),
@@ -716,6 +734,31 @@ def zernio_create_post(api_key: str, account_id: str, content: str,
         return {"ok": False, "status": e.code, "error": body}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+def lookup_zernio_account_id(platform: str) -> Optional[str]:
+    """Read the account_id for the given platform from public.zernio_accounts.
+    Uses the anon key (table is readable by anon for active rows)."""
+    params = urllib.parse.urlencode({
+        "platform": f"eq.{platform}",
+        "is_active": "eq.true",
+        "select": "zernio_account_id",
+        "limit": "1",
+    })
+    url = f"{SUPABASE_URL}/rest/v1/zernio_accounts?{params}"
+    req = urllib.request.Request(url, headers={
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None
+    if not data:
+        return None
+    return data[0].get("zernio_account_id")
 
 
 # --------------------------------------------------------------------------------------
@@ -798,6 +841,70 @@ def render_broll_segment(clips: list[Path], target_seconds: float, w: int, h: in
     return out_mp4
 
 
+SCREEN_FREEZE_DETECT_NOISE = 0.005   # ffmpeg freezedetect threshold
+SCREEN_FREEZE_DETECT_DUR = 0.5       # min freeze length to register
+SCREEN_TRIM_MAX = 3.0                # never trim more than 3s, even on long freezes
+
+
+def detect_freeze_at_start(screen_rec: Path) -> float:
+    """Find dead air at the start of the screen recording.
+
+    Runs ffmpeg with the freezedetect filter and parses the first
+    `freeze_end` timestamp. Returns the number of seconds to trim from the
+    beginning (0 if there's motion from frame 1, capped at SCREEN_TRIM_MAX).
+    Failures return 0 — never abort the render over a detect heuristic.
+    """
+    cmd = [FFMPEG, "-hide_banner", "-i", str(screen_rec),
+           "-vf", f"freezedetect=n={SCREEN_FREEZE_DETECT_NOISE}:d={SCREEN_FREEZE_DETECT_DUR}",
+           "-an", "-f", "null", "-"]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return 0.0
+    text = (proc.stderr or "") + (proc.stdout or "")
+    # Look for "freeze_start: 0" or near-zero, then capture the matching freeze_end.
+    freeze_start = None
+    freeze_end = None
+    for line in text.splitlines():
+        m = re.search(r"freeze_start:\s*([\d.]+)", line)
+        if m:
+            v = float(m.group(1))
+            if freeze_start is None and v <= 0.05:  # within 50ms of file start
+                freeze_start = v
+            continue
+        m = re.search(r"freeze_end:\s*([\d.]+)", line)
+        if m and freeze_start is not None and freeze_end is None:
+            freeze_end = float(m.group(1))
+            break
+    if freeze_start is None or freeze_end is None:
+        return 0.0
+    return min(SCREEN_TRIM_MAX, max(0.0, freeze_end))
+
+
+def trim_screen_recording(screen_rec: Path, out_mp4: Path) -> tuple[Path, float]:
+    """Trim leading dead air from the screen recording.
+
+    Returns (path_to_use, seconds_trimmed). If no trim is needed the
+    original path is returned untouched and seconds_trimmed is 0.
+    """
+    trim_s = detect_freeze_at_start(screen_rec)
+    if trim_s <= 0.05:
+        return screen_rec, 0.0
+    cmd = [FFMPEG, "-y", "-ss", f"{trim_s:.3f}", "-i", str(screen_rec),
+           "-c", "copy", "-avoid_negative_ts", "make_zero", str(out_mp4)]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        # Fallback to re-encode if -c copy fails (some keyframe alignments don't allow it)
+        cmd = [FFMPEG, "-y", "-ss", f"{trim_s:.3f}", "-i", str(screen_rec),
+               "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+               "-c:a", "aac", "-b:a", "128k", str(out_mp4)]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            sys.stderr.write(proc.stderr or "")
+            return screen_rec, 0.0
+    return out_mp4, trim_s
+
+
 def render_screen_segment(screen_rec: Path, target_seconds: float, w: int, h: int,
                           out_mp4: Path) -> Path:
     """Scale the screen recording to fit ~80% of the canvas, center, with a
@@ -834,25 +941,51 @@ def concat_segments(parts: list[Path], out_mp4: Path) -> Path:
 
 
 def render_mixed_audio(voiceover: Path, music: Path, total_seconds: float,
-                       out_audio: Path, voice_start: float) -> Path:
-    """Step 1 of the two-step mux: produce a clean voice+music m4a of exactly
-    total_seconds. `voice_start` is when the voiceover begins (after the
-    hook card). Doing audio in isolation (no video input in this graph)
-    avoids the 'Queue input is backward in time' AAC corruption that bit us
-    when amix lived in the same filter graph as a video stream."""
+                       out_audio: Path, voice_start: float,
+                       screen_audio: Optional[Path] = None,
+                       screen_audio_start: float = 0.0,
+                       screen_audio_duration: float = 0.0) -> Path:
+    """Step 1 of the two-step mux: produce a clean m4a of exactly total_seconds.
+
+    Inputs:
+      [0] voiceover (delayed by voice_start, full-volume)
+      [1] background music (low-volume, fade in/out)
+      [2] screen recording audio (OPTIONAL, low-volume, only during the
+          screen-segment window for topics in TOPICS_WITH_SCREEN_AUDIO)
+
+    Doing audio in isolation (no video input in this graph) avoids the
+    'Queue input is backward in time' AAC corruption that bit us when amix
+    lived in the same filter graph as a video stream.
+    """
     bg_fade_out_start = max(0.0, total_seconds - BG_FADE_OUT)
-    fc = (
+    inputs = ["-i", str(voiceover), "-i", str(music)]
+    fc_parts = [
         f"[0:a]adelay={int(voice_start * 1000)}|{int(voice_start * 1000)},"
         f"apad=whole_dur={total_seconds:.3f},"
         f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
-        f"volume={VOICE_VOLUME}[voice];"
+        f"volume={VOICE_VOLUME}[voice]",
         f"[1:a]atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
         f"afade=t=in:st=0:d={BG_FADE_IN},"
         f"afade=t=out:st={bg_fade_out_start:.3f}:d={BG_FADE_OUT},"
-        f"volume={BG_VOLUME}[bg];"
-        f"[voice][bg]amix=inputs=2:duration=first:normalize=0[a]"
-    )
-    cmd = [FFMPEG, "-y", "-i", str(voiceover), "-i", str(music),
+        f"volume={BG_VOLUME}[bg]",
+    ]
+    if screen_audio and screen_audio_duration > 0:
+        inputs += ["-i", str(screen_audio)]
+        # Trim from the screen recording's t=0 to screen_audio_duration, then
+        # delay it to land at screen_audio_start in the final timeline.
+        delay_ms = int(screen_audio_start * 1000)
+        fc_parts.append(
+            f"[2:a]atrim=duration={screen_audio_duration:.3f},asetpts=PTS-STARTPTS,"
+            f"adelay={delay_ms}|{delay_ms},"
+            f"apad=whole_dur={total_seconds:.3f},"
+            f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
+            f"volume={SCREEN_AUDIO_VOLUME}[screen]"
+        )
+        fc_parts.append("[voice][bg][screen]amix=inputs=3:duration=first:normalize=0[a]")
+    else:
+        fc_parts.append("[voice][bg]amix=inputs=2:duration=first:normalize=0[a]")
+    fc = ";".join(fc_parts)
+    cmd = [FFMPEG, "-y", *inputs,
            "-filter_complex", fc, "-map", "[a]",
            "-c:a", "aac", "-b:a", "192k", "-t", f"{total_seconds}", str(out_audio)]
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -864,16 +997,27 @@ def render_mixed_audio(voiceover: Path, music: Path, total_seconds: float,
 
 def mix_audio_with_video(video: Path, voiceover: Path, music: Path,
                          total_seconds: float, out_mp4: Path,
-                         voice_start: float = T_TITLE) -> Path:
+                         voice_start: float = T_TITLE,
+                         screen_audio: Optional[Path] = None,
+                         screen_audio_start: float = 0.0,
+                         screen_audio_duration: float = 0.0) -> Path:
     """Two-step mux: pre-render the audio mix into an intermediate m4a, then
     combine with the silent video.
 
     Earlier the audio + video lived in the same filter_complex; ffmpeg 8.1
     triggered an AAC 'Queue input is backward in time' error and truncated
     audio to ~3s. Splitting audio and video into separate ffmpeg invocations
-    eliminates the cross-stream PTS interaction that caused the bug."""
+    eliminates the cross-stream PTS interaction that caused the bug.
+
+    For topic=morning_brief the caller passes screen_audio (the screen
+    recording itself) so the Luna voice in the recording mixes under the
+    narrator at SCREEN_AUDIO_VOLUME during the screen segment window.
+    """
     audio_tmp = out_mp4.with_suffix(".audio.m4a")
-    render_mixed_audio(voiceover, music, total_seconds, audio_tmp, voice_start=voice_start)
+    render_mixed_audio(voiceover, music, total_seconds, audio_tmp, voice_start=voice_start,
+                       screen_audio=screen_audio,
+                       screen_audio_start=screen_audio_start,
+                       screen_audio_duration=screen_audio_duration)
     audio_dur = audio_stream_duration(audio_tmp)
     if audio_dur is None or audio_dur < total_seconds - 1.0:
         raise RuntimeError(
@@ -936,9 +1080,14 @@ def audio_stream_duration(path: Path) -> Optional[float]:
 
 def render_aspect(aspect: str, *, broll: list[Path], screen_rec: Optional[Path],
                   hook_text: str, voiceover: Path, output_prefix: str,
-                  workdir: Path, segs: dict) -> Path:
+                  workdir: Path, segs: dict, topic: str = "") -> Path:
     """Render one aspect ratio. `segs` carries per-segment durations derived
-    from the voiceover length (see derive_segment_durations)."""
+    from the voiceover length (see derive_segment_durations).
+
+    For topic=morning_brief the screen recording's audio mixes under the
+    narrator at SCREEN_AUDIO_VOLUME during the screen segment window so
+    viewers hear Dossie's actual Luna voice reading the brief.
+    """
     if aspect == "vertical":
         w, h = 1080, 1920
     elif aspect == "square":
@@ -972,10 +1121,20 @@ def render_aspect(aspect: str, *, broll: list[Path], screen_rec: Optional[Path],
     # 5) Concat
     base_mp4 = concat_segments([title_mp4, broll_mp4, screen_mp4, outro_mp4], base / "base.mp4")
 
-    # 6) Mix audio (total = sum of segment durations)
+    # 6) Mix audio (total = sum of segment durations). For morning_brief,
+    # also fold in the screen recording's own audio at SCREEN_AUDIO_VOLUME
+    # for the duration of the screen segment.
     out_path = FINISHED_DIR / f"{output_prefix}-{aspect}.mp4"
-    mix_audio_with_video(base_mp4, voiceover, BG_MUSIC, segs["total"], out_path,
-                         voice_start=segs["t_title"])
+    if topic in TOPICS_WITH_SCREEN_AUDIO and screen_rec and screen_rec.exists():
+        screen_audio_start = segs["t_title"] + segs["t_broll"]
+        mix_audio_with_video(base_mp4, voiceover, BG_MUSIC, segs["total"], out_path,
+                             voice_start=segs["t_title"],
+                             screen_audio=screen_rec,
+                             screen_audio_start=screen_audio_start,
+                             screen_audio_duration=segs["t_screen"])
+    else:
+        mix_audio_with_video(base_mp4, voiceover, BG_MUSIC, segs["total"], out_path,
+                             voice_start=segs["t_title"])
     return out_path
 
 
@@ -1131,6 +1290,12 @@ def main():
                     help="gather Pexels candidates, save Media/b-roll/<topic>/candidates.json, print picks, exit")
     ap.add_argument("--no-broll", action="store_true", help="skip Pexels b-roll, use black filler")
     ap.add_argument("--no-zernio", action="store_true", help="skip Zernio upload step")
+    ap.add_argument("--auto-post", action="store_true",
+                    help="after upload, create a Zernio post per platform "
+                         "(vertical -> instagram + facebook) and publish immediately. "
+                         "Off by default — opt in explicitly to publish.")
+    ap.add_argument("--auto-post-platforms", default="instagram,facebook",
+                    help="comma-separated platforms for --auto-post (default instagram,facebook)")
     ap.add_argument("--week", type=int, default=1, help="content_calendar week_number (default 1)")
     ap.add_argument("--day", type=int, default=1, help="content_calendar day_of_week (default 1)")
     ap.add_argument("--pexels-key", dest="pexels_key", default=os.environ.get("PEXELS_API_KEY", ""))
@@ -1265,13 +1430,23 @@ def main():
     FINISHED_DIR.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="dossie-render-") as tmp:
         workdir = Path(tmp)
+
+        # 3a) Freeze-detect trim: skip dead air at the start of the screen
+        # recording so the cut into the screen segment lands on motion.
+        # Capped at SCREEN_TRIM_MAX (3s). No-op if motion starts immediately.
+        if screen_rec and screen_rec.exists():
+            trimmed_screen, trimmed_s = trim_screen_recording(screen_rec, workdir / "screen-trimmed.mp4")
+            if trimmed_s > 0.05:
+                print(f"[screen-rec] freezedetect trimmed {trimmed_s:.2f}s of dead air from start")
+                screen_rec = trimmed_screen
+
         outputs = []
         for aspect in ("vertical", "square"):
             print(f"[render] {aspect}")
             out = render_aspect(aspect, broll=broll_clips, screen_rec=screen_rec,
                                 hook_text=hook, voiceover=voiceover_path,
                                 output_prefix=output_prefix, workdir=workdir,
-                                segs=segs)
+                                segs=segs, topic=args.topic)
             outputs.append(out)
             d = duration(out)
             a_dur = audio_stream_duration(out)
@@ -1310,11 +1485,52 @@ def main():
                 print(f"  FAIL step={res.get('step')} status={res.get('status')} error={res.get('error', '')[:300]}")
         # Persist a sidecar JSON so the DONE handler / orchestrator can read it.
         manifest = FINISHED_DIR / f"{output_prefix}-zernio.json"
+        post_results = []
+
+        # Auto-post step: opt-in via --auto-post. Posts the VERTICAL upload
+        # (1080x1920) to each platform in --auto-post-platforms using the
+        # corrected Zernio schema (platforms[] + publishNow: true). Caption
+        # uses the hook from content_calendar. Square is uploaded but not
+        # auto-posted — kept as alternate format for manual feed posts.
+        if args.auto_post:
+            vertical_upload = next(
+                (u for u in upload_results if "-vertical.mp4" in u["file"] and u["result"].get("ok")),
+                None,
+            )
+            if not vertical_upload:
+                print("[zernio-post] no successful vertical upload — skipping auto-post")
+            else:
+                public_url = vertical_upload["result"]["publicUrl"]
+                media_items = [{"url": public_url, "type": "video"}]
+                caption = hook  # keep it short for IG/FB caption
+                target_platforms = [p.strip().lower() for p in args.auto_post_platforms.split(",") if p.strip()]
+                for plat in target_platforms:
+                    account_id = lookup_zernio_account_id(plat)
+                    if not account_id:
+                        print(f"[zernio-post] {plat}: no active zernio_account_id — skipping")
+                        post_results.append({"platform": plat, "ok": False, "error": "no account_id"})
+                        continue
+                    res = zernio_create_post(zernio_key, plat, account_id, caption,
+                                             media_items, publish_now=True)
+                    if res.get("ok"):
+                        post_id = (res.get("body") or {}).get("id") or (res.get("body") or {}).get("postId")
+                        print(f"[zernio-post] {plat}: published (post_id={post_id})")
+                        post_results.append({"platform": plat, "ok": True, "post_id": post_id})
+                    else:
+                        print(f"[zernio-post] {plat}: FAIL status={res.get('status')} err={str(res.get('error', ''))[:300]}")
+                        post_results.append({"platform": plat, "ok": False,
+                                             "status": res.get("status"),
+                                             "error": str(res.get("error", ""))[:500]})
+        else:
+            print("[zernio-post] --auto-post not set, skipping post creation. "
+                  "Pass --auto-post to publish to Instagram + Facebook.")
+
         manifest.write_text(json.dumps({
             "topic": args.topic,
             "week": args.week,
             "day": args.day,
             "uploads": upload_results,
+            "posts": post_results,
             "generated_at": __import__("datetime").datetime.now().isoformat(),
         }, indent=2))
         print(f"[zernio] manifest: {manifest}")
