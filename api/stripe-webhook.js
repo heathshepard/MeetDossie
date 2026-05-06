@@ -348,6 +348,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
+      stripe_price_id: priceId,
       plan: tier,
       status: 'active',
       current_period_start: currentPeriodStart,
