@@ -11,14 +11,10 @@
 const Stripe = require('stripe');
 
 const CRON_SECRET = process.env.CRON_SECRET;
-// TEMP one-shot for backfilling Brittney's stripe_price_id (revert next commit).
-const ONE_SHOT_TOKEN = 'b7ef36bb32e6319d9249712a4e82e3df2be69637e56bcabd';
 
 function isAuthed(req) {
   const h = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (CRON_SECRET && h === `Bearer ${CRON_SECRET}`) return true;
-  if (h === `Bearer ${ONE_SHOT_TOKEN}`) return true;
-  return false;
+  return Boolean(CRON_SECRET) && h === `Bearer ${CRON_SECRET}`;
 }
 
 module.exports = async function handler(req, res) {
