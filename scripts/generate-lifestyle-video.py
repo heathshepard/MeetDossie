@@ -41,6 +41,14 @@ import sys
 import tempfile
 import urllib.error
 import urllib.parse
+
+# Force UTF-8 stdout/stderr so unicode chars (arrows, em-dashes) in log lines
+# don't crash the render on Windows cp1252 consoles. Has bitten us 3+ times.
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except (AttributeError, OSError):
+    pass
 import urllib.request
 from pathlib import Path
 from typing import Optional
