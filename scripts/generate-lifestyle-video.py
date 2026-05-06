@@ -948,6 +948,80 @@ def find_latest_screen_recording() -> Optional[Path]:
     return candidates[0] if candidates else None
 
 
+def parse_screen_recording_library() -> list[dict]:
+    """Parse the markdown table in Media/screen-recordings/LIBRARY.md.
+
+    Returns a list of dicts:
+      {filename, personas: [str], voice, demo_account, notes}
+
+    Returns [] if LIBRARY.md is missing — callers should fall back to mtime
+    selection in that case.
+    """
+    library_path = SCREEN_RECORDINGS_DIR / "LIBRARY.md"
+    if not library_path.exists():
+        return []
+    entries: list[dict] = []
+    in_table = False
+    for raw in library_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line.startswith("|") and "Filename" in line and "Persona" in line:
+            in_table = True
+            continue
+        if in_table and line.startswith("|---"):
+            continue
+        if in_table and line.startswith("|"):
+            cols = [c.strip() for c in line.strip("|").split("|")]
+            if len(cols) < 4:
+                continue
+            entries.append({
+                "filename": cols[0],
+                "personas": [p.strip().lower() for p in cols[1].split("/") if p.strip()],
+                "voice": cols[2],
+                "demo_account": cols[3],
+                "notes": cols[4] if len(cols) > 4 else "",
+            })
+        elif in_table and not line.startswith("|"):
+            in_table = False  # left the table
+    return entries
+
+
+def select_screen_recording(topic: str, persona: Optional[str]) -> Optional[Path]:
+    """Pick the right screen recording for (topic, persona) per LIBRARY.md.
+
+    Match logic:
+      1. Filename prefix == topic.replace("_", "-")
+      2. Persona is in the recording's allowed-persona list (when persona is given)
+      3. Newest filename (lexicographic descending — date-suffixed names sort right)
+
+    If no LIBRARY.md, falls back to find_latest_screen_recording() so older
+    workflows still work. If LIBRARY.md exists but no entry matches, returns
+    None — the caller will fall back to b-roll filler rather than risk a
+    persona-gender mismatch (e.g., Brenda voiceover over a male-agent recording).
+    """
+    library = parse_screen_recording_library()
+    if not library:
+        return find_latest_screen_recording()
+
+    topic_slug = topic.replace("_", "-")
+    candidates = [e for e in library if e["filename"].startswith(topic_slug + "-")]
+    if persona:
+        persona_lower = persona.lower()
+        candidates = [e for e in candidates if persona_lower in e["personas"]]
+
+    if not candidates:
+        print(f"[screen-rec] no LIBRARY.md match for topic={topic} persona={persona} - using b-roll filler instead")
+        return None
+
+    candidates.sort(key=lambda e: e["filename"], reverse=True)
+    chosen = candidates[0]
+    path = SCREEN_RECORDINGS_DIR / chosen["filename"]
+    if not path.exists():
+        print(f"[screen-rec] WARN: LIBRARY.md lists {chosen['filename']} but the file is missing - using b-roll filler")
+        return None
+    print(f"[screen-rec] LIBRARY.md match: {chosen['filename']} (voice={chosen['voice']}, demo={chosen['demo_account']})")
+    return path
+
+
 def load_env_local() -> dict:
     """Load .env.local from MeetDossie root into os.environ if not already set.
     Lets the script auto-pick up ELEVENLABS_API_KEY / PEXELS_API_KEY without
@@ -1070,8 +1144,9 @@ def main():
               "(line: ELEVENLABS_API_KEY=\"sk_...\") or pass --elevenlabs-key.", file=sys.stderr)
         return 2
 
-    # Resolve inputs
-    screen_rec = Path(args.screen_recording) if args.screen_recording else find_latest_screen_recording()
+    # Resolve inputs — LIBRARY.md drives selection so a Brenda voiceover
+    # never lands over Heath-on-camera footage and vice versa.
+    screen_rec = Path(args.screen_recording) if args.screen_recording else select_screen_recording(args.topic, persona)
     if not screen_rec:
         print("WARN: no screen recording provided or found in screen-recordings/. Using b-roll filler for that segment.")
     else:
