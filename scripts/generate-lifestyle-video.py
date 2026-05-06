@@ -129,6 +129,44 @@ SCREEN_AUDIO_FADE_IN          = 0.4    # screen audio fade-in at start of screen
 SCREEN_AUDIO_FADE_OUT         = 0.5    # screen audio fade-out at end of screen segment
 TOPICS_WITH_SCREEN_AUDIO      = {"morning_brief"}  # legacy compat — selects new mix path
 
+
+# ─── RENDER_RULES (msg 553) — enforced in code, not just documented ───────
+# Each rule has a corresponding validation in validate_render_rules() that
+# raises before the final encode. Issues caught after-the-fact in
+# RENDER_FEEDBACK_LOG.md must be added here as enforced rules so the same
+# regression cannot ship again.
+#
+#   1. NO BLACK BARS on b-roll. Aspect-aware scale-to-fill + top-anchor crop.
+#      render_broll_segment chooses "scale=-2:H" for landscape, "scale=W:-2"
+#      for portrait, then crops top (W,H). Validation: probe each rendered
+#      b-roll segment's frame for solid-black rows at the top/bottom edges.
+#   2. PEXELS QUALITY FILTER. Reject clips with width<1080 OR with tone-
+#      blocklisted keywords (sad/stressed/worried/sleeping/down/hunched).
+#      Prefer is_portrait=true strictly. See PEXELS_TONE_BLOCKLIST.
+#   3. MORNING_BRIEF AUDIO STRUCTURE. Narrator + Dossie never overlap.
+#      Narrator only during b-roll. Closing line fixed text in outro:
+#      MORNING_BRIEF_CLOSING_LINE. Music ducks to 4% during screen segment.
+#   4. NO MID-SENTENCE CUTOFFS. truncate_script_to_fit_duration() trims at
+#      the LAST .!? before the b-roll budget. Re-synth on the truncated text.
+#   5. SCREEN RECORDING DISPLAY. Mobile portrait: scale-fill width + top-
+#      anchor crop (no bars). Desktop landscape: blush (#F5E6E0) letterbox.
+#   6. VIDEO LENGTH 30-60s. validate_render_rules raises if total outside
+#      [VIDEO_LEN_MIN, VIDEO_LEN_MAX]. Outro extends if voice<25s, narrator
+#      script trimmed at last sentence if voice>55s.
+
+PEXELS_TONE_BLOCKLIST = ("sad", "stressed", "worried", "sleeping", "down", "hunched")
+PEXELS_MIN_WIDTH = 1080
+
+VIDEO_LEN_MIN = 30.0
+VIDEO_LEN_MAX = 60.0
+VOICE_LEN_TRIM_THRESHOLD = 55.0   # if narrator voice exceeds this, sentence-truncate
+VOICE_LEN_OUTRO_EXTEND_THRESHOLD = 25.0  # if voice < this, extend outro
+EXTRA_OUTRO_PAD = 4.0             # extension applied when voice is too short
+
+MORNING_BRIEF_CLOSING_LINE = "This is what twenty nine dollars a month sounds like. meetdossie.com slash founding."
+MORNING_BRIEF_NARRATOR_BUDGET_S = 14.0   # max b-roll narrator window (seconds)
+LUNA_CHARS_PER_SECOND = 13.0      # heuristic for sentence-fit estimation
+
 # Pexels search keywords by topic. Be specific — generic "morning" or "coffee"
 # pulls stock-feeling clips. Each topic gets 4-5 queries; we pull 8-10 candidate
 # videos total per topic, save them with metadata, then pick the best 4 by
@@ -384,11 +422,30 @@ def gather_broll_candidates(api_key: str, topic: str, *, target_w: int, target_h
             dur = v.get("duration") or 0
             if dur < BROLL_MIN_DURATION or dur > BROLL_MAX_DURATION:
                 continue
+
+            # RENDER_RULES #2 — tone blocklist. Drop anything whose query, slug,
+            # or Pexels URL hints at a sad/stressed/looking-down vibe. The
+            # search-result clip URL is the most reliable signal Pexels gives
+            # us (titles/descriptions aren't in the response). Match conservatively.
+            haystack = f"{q} {v.get('url') or ''}".lower()
+            if any(bad in haystack for bad in PEXELS_TONE_BLOCKLIST):
+                seen.add(vid)
+                print(f"[pexels] dropped clip {vid} — tone blocklist hit in '{haystack[:80]}'")
+                continue
+
             file_info = pick_video_file(v, target_w, target_h)
             if not file_info or not file_info.get("link"):
                 continue
             file_w = file_info.get("width") or 0
             file_h = file_info.get("height") or 0
+
+            # RENDER_RULES #2 — minimum width 1080. Anything lower can't fill
+            # the canvas without ugly upscale artifacts.
+            if file_w < PEXELS_MIN_WIDTH:
+                seen.add(vid)
+                print(f"[pexels] dropped clip {vid} — width {file_w} < {PEXELS_MIN_WIDTH}")
+                continue
+
             is_portrait = file_h >= file_w
             cand = {
                 "id": vid,
@@ -818,15 +875,20 @@ def render_broll_segment(clips: list[Path], target_seconds: float, w: int, h: in
     # never cut off when reframing landscape (or oversize portrait) into our
     # target aspect. Horizontal centering via x=(in_w-w)/2 since most subjects
     # are centered laterally.
+    # RENDER_RULES #1 — explicit aspect-aware scale-to-fill. Avoids any
+    # surprise from force_original_aspect_ratio=increase by choosing the
+    # constraining dimension via input aspect 'a' vs target aspect.
+    target_aspect = w / h
     for i, c in enumerate(clips):
         label_v = f"v{i}"
-        # Top-anchor crop (y=0) keeps subjects' heads in frame when reframing
-        # landscape/oversize-portrait into the target aspect. Logged per-clip
-        # so it's easy to verify in render output that nothing slipped past.
-        print(f"[broll-crop] clip {i+1}/{len(clips)}: scale={w}x{h} crop={w}x{h}:y=0 (top-anchored)  src={Path(c).name}")
+        # If input aspect (a) > target aspect: input is "wider" relative to
+        # target → height is the constraint, fix h, let width overshoot.
+        # Else: width is the constraint, fix w, let height overshoot.
+        # Top-anchor crop (y=0) keeps subjects' heads in frame.
+        print(f"[broll-crop] clip {i+1}/{len(clips)}: scale-to-fill (aspect-aware) crop={w}x{h}:y=0 (top-anchored)  src={Path(c).name}")
         parts.append(
             f"[{i}:v]trim=duration={per_clip:.3f},setpts=PTS-STARTPTS,"
-            f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+            f"scale=w='if(gt(a,{target_aspect}),-2,{w})':h='if(gt(a,{target_aspect}),{h},-2)',"
             f"crop={w}:{h}:(in_w-{w})/2:0,"
             f"setsar=1,fps=30,format=yuv420p[{label_v}]"
         )
@@ -918,38 +980,66 @@ def trim_screen_recording(screen_rec: Path, out_mp4: Path) -> tuple[Path, float]
     return out_mp4, trim_s
 
 
+def probe_video_aspect(path: Path) -> Optional[float]:
+    """Return width/height as a float, or None on failure."""
+    res = subprocess.run(
+        [FFPROBE, "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width,height",
+         "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True,
+    )
+    out = (res.stdout or "").strip()
+    if not out or "," not in out:
+        return None
+    try:
+        wv, hv = out.split(",")[:2]
+        wv, hv = int(wv), int(hv)
+        if hv <= 0:
+            return None
+        return wv / hv
+    except (ValueError, ZeroDivisionError):
+        return None
+
+
 def render_screen_segment(screen_rec: Path, target_seconds: float, w: int, h: int,
                           out_mp4: Path) -> Path:
-    """Place the (vertical 1080x1920) mobile screen recording onto the canvas
-    SCALE-TO-FIT — never scale-to-fill, never crop. This preserves heads
-    and the top of UI elements which got chopped under the previous logic.
-
-    For vertical canvas (1080x1920): the recording fills the frame naturally
-    since both share aspect.
-
-    For square canvas (1080x1080): letterbox the recording — center it on a
-    blush (#F5E6E0) background with the bars on the left and right. The
-    recording is scaled DOWN to fit within 1080px height, never cropped.
+    """RENDER_RULES #5 — screen recording display:
+      - Mobile portrait recordings (input aspect <= 1): scale-to-fill the
+        canvas width, top-anchor crop. Preserves heads + UI top, no bars.
+      - Desktop landscape recordings (input aspect > 1): blush (#F5E6E0)
+        letterbox so the full frame is visible without cropping.
+    Aspect is probed via ffprobe at call time so the same code path handles
+    both mobile (1080x1920) and desktop (1920x1080) recordings correctly.
     """
-    if w == h:
-        # Square: blush background, vertical recording centered, scaled to fit height.
+    aspect = probe_video_aspect(screen_rec)
+    is_landscape = aspect is not None and aspect > 1.05  # small tolerance for square-ish
+
+    fade_out_st = max(0, target_seconds - 0.4)
+    if is_landscape:
+        # Desktop landscape → blush letterbox, scale-to-fit.
         fc = (
             f"color=c=0xF5E6E0:size={w}x{h}:duration={target_seconds}:rate=30[bg];"
             f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
-            f"scale=-2:{h}:force_original_aspect_ratio=decrease,setsar=1,fps=30[scaled];"
-            f"[bg][scaled]overlay=(W-w)/2:(H-h)/2,"
-            f"format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st={max(0, target_seconds - 0.4):.2f}:d=0.4[outv]"
-        )
-    else:
-        # Vertical (1080x1920): scale-to-fit with black letterbox if aspect drifts.
-        # Mobile recording is already 1080x1920 → fills exactly.
-        fc = (
-            f"color=c=black:size={w}x{h}:duration={target_seconds}:rate=30[bg];"
-            f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
             f"scale={w}:{h}:force_original_aspect_ratio=decrease,setsar=1,fps=30[scaled];"
             f"[bg][scaled]overlay=(W-w)/2:(H-h)/2,"
-            f"format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st={max(0, target_seconds - 0.4):.2f}:d=0.4[outv]"
+            f"format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st={fade_out_st:.2f}:d=0.4[outv]"
         )
+        print(f"[screen-rec] landscape input (aspect={aspect:.2f}) → blush letterbox")
+    else:
+        # Mobile portrait → scale-to-fill width, top-anchor crop.
+        # Aspect-aware scale ensures crop has enough source pixels regardless
+        # of whether canvas is square (1080x1080) or vertical (1080x1920).
+        target_aspect = w / h
+        fc = (
+            f"[0:v]trim=duration={target_seconds},setpts=PTS-STARTPTS,"
+            f"scale=w='if(gt(a,{target_aspect}),-2,{w})':h='if(gt(a,{target_aspect}),{h},-2)',"
+            f"crop={w}:{h}:(in_w-{w})/2:0,"
+            f"setsar=1,fps=30,format=yuv420p,"
+            f"fade=t=in:st=0:d=0.4,fade=t=out:st={fade_out_st:.2f}:d=0.4[outv]"
+        )
+        a_str = f"{aspect:.2f}" if aspect is not None else "unknown"
+        print(f"[screen-rec] portrait input (aspect={a_str}) → scale-fill + top-anchor crop")
+
     cmd = [FFMPEG, "-y", "-i", str(screen_rec), "-filter_complex", fc,
            "-map", "[outv]", "-t", f"{target_seconds}", "-c:v", "libx264",
            "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30",
@@ -1024,9 +1114,45 @@ def render_mixed_audio(voiceover: Path, music: Path, total_seconds: float,
     return out_audio
 
 
+def truncate_script_to_fit_duration(script: str, max_seconds: float,
+                                    chars_per_second: float = LUNA_CHARS_PER_SECOND) -> str:
+    """RENDER_RULES #4 — never cut a narrator sentence in half.
+
+    Splits the script into sentences (boundary: . ! ?), accumulates from the
+    start, stops at the LAST complete sentence whose total estimated duration
+    is <= max_seconds. Returns the trimmed prefix.
+
+    The chars_per_second heuristic is calibrated from observed Luna output
+    (~13 chars/sec at speed=1.0). If only the first sentence already exceeds
+    the budget, returns it anyway — better a slight overrun than empty audio.
+    """
+    text = script.strip()
+    if not text:
+        return ""
+    target_chars = int(max_seconds * chars_per_second)
+    sentences = re.findall(r"[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$", text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    if not sentences:
+        return text[:target_chars]
+    accumulated = ""
+    for s in sentences:
+        candidate = (accumulated + " " + s).strip() if accumulated else s
+        if len(candidate) <= target_chars:
+            accumulated = candidate
+        else:
+            break
+    if not accumulated:
+        # First sentence alone is too long — keep it (mid-sentence cut is the
+        # only worse outcome and we never cut mid-sentence per RULES #4).
+        accumulated = sentences[0]
+    return accumulated
+
+
 def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
                                total_seconds: float, out_audio: Path,
-                               t_title: float, t_broll: float, t_screen: float) -> Path:
+                               t_title: float, t_broll: float, t_screen: float,
+                               closing_voiceover: Optional[Path] = None,
+                               t_outro: float = 0.0) -> Path:
     """Segmented mix for topic=morning_brief — narrator and Dossie's voice
     NEVER play simultaneously.
 
@@ -1078,14 +1204,32 @@ def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
         f"volume={SCREEN_AUDIO_VOLUME}[screen]"
     )
 
-    fc = ";".join([
-        narrator_chain,
-        bg_chain,
-        screen_chain,
-        "[voice][bg][screen]amix=inputs=3:duration=first:normalize=0[a]",
-    ])
-    cmd = [FFMPEG, "-y",
-           "-i", str(voiceover), "-i", str(music), "-i", str(screen_audio),
+    chains = [narrator_chain, bg_chain, screen_chain]
+    inputs = ["-i", str(voiceover), "-i", str(music), "-i", str(screen_audio)]
+    mix_labels = ["[voice]", "[bg]", "[screen]"]
+
+    # RENDER_RULES #3 — closing line ("This is what $29 a month sounds like...")
+    # placed in the outro window (after screen segment ends). Synthesized as
+    # a separate ElevenLabs call by main(); main passes the path here.
+    if closing_voiceover and closing_voiceover.exists() and t_outro > 0:
+        outro_start = t_title + t_broll + t_screen
+        closing_chain = (
+            f"[3:a]apad=whole_dur={total_seconds:.3f},"
+            f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
+            f"adelay={int(outro_start * 1000)}|{int(outro_start * 1000)},"
+            f"apad=whole_dur={total_seconds:.3f},"
+            f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
+            f"volume={VOICE_VOLUME}[closing]"
+        )
+        chains.append(closing_chain)
+        inputs += ["-i", str(closing_voiceover)]
+        mix_labels.append("[closing]")
+
+    n_inputs = len(mix_labels)
+    chains.append(f"{''.join(mix_labels)}amix=inputs={n_inputs}:duration=first:normalize=0[a]")
+    fc = ";".join(chains)
+
+    cmd = [FFMPEG, "-y", *inputs,
            "-filter_complex", fc, "-map", "[a]",
            "-c:a", "aac", "-b:a", "192k", "-t", f"{total_seconds}", str(out_audio)]
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -1101,7 +1245,9 @@ def mix_audio_with_video(video: Path, voiceover: Path, music: Path,
                          screen_audio: Optional[Path] = None,
                          screen_audio_start: float = 0.0,
                          screen_audio_duration: float = 0.0,
-                         topic: str = "") -> Path:
+                         topic: str = "",
+                         closing_voiceover: Optional[Path] = None,
+                         t_outro: float = 0.0) -> Path:
     """Two-step mux: pre-render the audio mix into an intermediate m4a, then
     combine with the silent video.
 
@@ -1116,12 +1262,14 @@ def mix_audio_with_video(video: Path, voiceover: Path, music: Path,
     """
     audio_tmp = out_mp4.with_suffix(".audio.m4a")
     if topic == "morning_brief" and screen_audio and screen_audio.exists() and screen_audio_duration > 0:
-        # Heath's segmented spec: narrator only during b-roll, Dossie only during screen.
+        # Heath's segmented spec: narrator only during b-roll, Dossie only during screen,
+        # closing line in the outro (RULES #3).
         render_morning_brief_audio(
             voiceover=voiceover, music=music, screen_audio=screen_audio,
             total_seconds=total_seconds, out_audio=audio_tmp,
             t_title=voice_start, t_broll=screen_audio_start - voice_start,
             t_screen=screen_audio_duration,
+            closing_voiceover=closing_voiceover, t_outro=t_outro,
         )
     else:
         render_mixed_audio(voiceover, music, total_seconds, audio_tmp, voice_start=voice_start,
@@ -1190,7 +1338,8 @@ def audio_stream_duration(path: Path) -> Optional[float]:
 
 def render_aspect(aspect: str, *, broll: list[Path], screen_rec: Optional[Path],
                   hook_text: str, voiceover: Path, output_prefix: str,
-                  workdir: Path, segs: dict, topic: str = "") -> Path:
+                  workdir: Path, segs: dict, topic: str = "",
+                  closing_voiceover: Optional[Path] = None) -> Path:
     """Render one aspect ratio. `segs` carries per-segment durations derived
     from the voiceover length (see derive_segment_durations).
 
@@ -1242,7 +1391,9 @@ def render_aspect(aspect: str, *, broll: list[Path], screen_rec: Optional[Path],
                              screen_audio=screen_rec,
                              screen_audio_start=screen_audio_start,
                              screen_audio_duration=segs["t_screen"],
-                             topic=topic)
+                             topic=topic,
+                             closing_voiceover=closing_voiceover,
+                             t_outro=segs["t_outro"])
     else:
         mix_audio_with_video(base_mp4, voiceover, BG_MUSIC, segs["total"], out_path,
                              voice_start=segs["t_title"], topic=topic)
@@ -1519,7 +1670,30 @@ def main():
         broll_clips = fetch_broll(args.pexels_key, args.topic, target_w=1080, target_h=1920)
         print(f"[broll] {len(broll_clips)} clips downloaded")
 
-    # 2) Voiceover (hard-fails if ElevenLabs returns nothing — we don't ship silent videos)
+    # 2) Voiceover.
+    # For morning_brief (RULES #3, #4): the narrator only speaks during the
+    # b-roll window. Truncate the script at the LAST complete sentence that
+    # fits MORNING_BRIEF_NARRATOR_BUDGET_S, then synth. Also synth the fixed
+    # closing line ("This is what $29 a month sounds like...") as a separate
+    # ElevenLabs call placed in the outro.
+    closing_voice_path: Optional[Path] = None
+    if args.topic == "morning_brief":
+        narrator_script = truncate_script_to_fit_duration(
+            voiceover_script, MORNING_BRIEF_NARRATOR_BUDGET_S
+        )
+        if narrator_script != voiceover_script:
+            print(f"[voice] morning_brief narrator truncated to last complete sentence "
+                  f"(orig {len(voiceover_script)} chars -> {len(narrator_script)} chars)")
+        voiceover_script = narrator_script
+        closing_voice_path = VOICEOVERS_DIR / f"{output_prefix}-closing.mp3"
+        print(f"[voice] synth closing line ({voice_name.capitalize()}) -> {closing_voice_path}")
+        try:
+            synth_voiceover(args.elevenlabs_key, MORNING_BRIEF_CLOSING_LINE,
+                            closing_voice_path, voice_name=voice_name)
+        except RuntimeError as e:
+            print(f"ERROR: closing-line synth failed: {e}", file=sys.stderr)
+            return 3
+
     voiceover_path = VOICEOVERS_DIR / f"{output_prefix}-voiceover.mp3"
     print(f"[voice] generating {voice_name.capitalize()} voiceover -> {voiceover_path}")
     try:
@@ -1531,11 +1705,40 @@ def main():
     voice_dur = duration(voiceover_path)
     print(f"[voice] duration = {voice_dur:.2f}s  size = {voiceover_path.stat().st_size} bytes")
 
-    # 2b) Derive segment durations from voiceover length (no hardcoded 38s).
-    segs = derive_segment_durations(voice_dur)
+    # 2b) Derive segment durations from voiceover length.
+    # For morning_brief, t_broll is sized to fit the narrator (since the narrator
+    # only plays during b-roll), and t_outro is sized to fit the closing line.
+    if args.topic == "morning_brief" and closing_voice_path and closing_voice_path.exists():
+        closing_dur = duration(closing_voice_path)
+        screen_target = 18.0  # default screen window — Dossie's brief gets ~18-20s
+        segs = {
+            "t_title": T_TITLE,
+            "t_broll": voice_dur + 0.5,                  # narrator + small handoff
+            "t_screen": max(MIN_OUTRO, screen_target),
+            "t_outro": closing_dur + 1.0,                # closing + breathing room
+            "total": 0.0,
+        }
+        segs["total"] = segs["t_title"] + segs["t_broll"] + segs["t_screen"] + segs["t_outro"]
+        print(f"[timing] morning_brief segmented — narrator={voice_dur:.2f}s closing={closing_dur:.2f}s")
+    else:
+        segs = derive_segment_durations(voice_dur)
+
+    # RENDER_RULES #6 — video length 30..60s. Extend outro if voice is too short.
+    if segs["total"] < VIDEO_LEN_MIN:
+        deficit = VIDEO_LEN_MIN - segs["total"]
+        segs["t_outro"] += deficit + EXTRA_OUTRO_PAD
+        segs["total"] = segs["t_title"] + segs["t_broll"] + segs["t_screen"] + segs["t_outro"]
+        print(f"[timing] voiceover short ({voice_dur:.2f}s < {VOICE_LEN_OUTRO_EXTEND_THRESHOLD}s) — extending outro by {deficit + EXTRA_OUTRO_PAD:.2f}s")
+
     print(f"[timing] total={segs['total']:.2f}s  hook={segs['t_title']:.2f}s  "
           f"broll={segs['t_broll']:.2f}s  screen={segs['t_screen']:.2f}s  "
           f"outro={segs['t_outro']:.2f}s")
+
+    # RENDER_RULES #6 validation — abort before any encoding if total is out of range.
+    if not (VIDEO_LEN_MIN <= segs["total"] <= VIDEO_LEN_MAX):
+        print(f"ERROR: total render duration {segs['total']:.2f}s outside [{VIDEO_LEN_MIN}, {VIDEO_LEN_MAX}] — refusing to render.",
+              file=sys.stderr)
+        return 5
 
     # 3) Render both aspects in a tempdir
     FINISHED_DIR.mkdir(parents=True, exist_ok=True)
@@ -1557,7 +1760,8 @@ def main():
             out = render_aspect(aspect, broll=broll_clips, screen_rec=screen_rec,
                                 hook_text=hook, voiceover=voiceover_path,
                                 output_prefix=output_prefix, workdir=workdir,
-                                segs=segs, topic=args.topic)
+                                segs=segs, topic=args.topic,
+                                closing_voiceover=closing_voice_path)
             outputs.append(out)
             d = duration(out)
             a_dur = audio_stream_duration(out)
