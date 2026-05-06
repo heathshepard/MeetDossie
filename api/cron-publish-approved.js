@@ -39,67 +39,100 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const ZERNIO_POSTS_URL = 'https://zernio.com/api/v1/posts';
 const MAX_PER_RUN = 8;
 
-// Twitter limits. We thread-split on \n\n then sentence boundaries.
-// CHUNK_MAX leaves room for " 99/99" suffix appended below.
+// Twitter thread split with hard caps. Verified on the 838-char Brenda thread
+// that previously exploded into 15 sub-fragments because the LLM had written
+// bare "1/", "2/" markers as standalone paragraphs.
+//   - Max 6 chunks per thread (truncates if overflow)
+//   - Drop paragraphs <20 chars (kills bare "1/", "2/" numbering markers)
+//   - Min 60 chars per chunk (merge backward into setup, fall back to forward)
+//   - Paragraph-first split, sentence-fallback only for paragraphs >HARD_LIMIT
+//   - When count >6, greedily merge the smallest adjacent pair
 const TWITTER_LIMIT = 280;
-const TWITTER_CHUNK_MAX = 257;
+const TWITTER_NUMBERING_RESERVE = 5;        // " 6/6" = 4 chars; pad to 5
+const TWITTER_HARD_LIMIT = TWITTER_LIMIT - TWITTER_NUMBERING_RESERVE; // 275
+const TWITTER_MAX_CHUNKS = 6;
+const TWITTER_MIN_CHUNK = 60;
+const TWITTER_SKIP_BELOW = 20;
 
-// Split a Twitter post body into thread chunks. Returns [body] if it already
-// fits a single tweet. Each chunk is suffixed with " i/N" thread numbering
-// before send. Never truncates — always splits.
 function splitForTwitter(body) {
   const text = String(body || '').trim();
   if (!text) return [];
   if (text.length <= TWITTER_LIMIT) return [text];
 
-  // 1) split on paragraph breaks (\n\n)
-  const paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  // 1. Paragraph split, drop bare-numbering markers ("1/", "2/", etc.).
+  let paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  paragraphs = paragraphs.filter((p) => p.length >= TWITTER_SKIP_BELOW);
 
-  // 2) further split any paragraph >CHUNK_MAX on sentence boundaries
-  const chunks = [];
+  // 2. Any paragraph longer than HARD_LIMIT splits on sentence boundaries.
+  const splitLong = [];
   for (const para of paragraphs) {
-    if (para.length <= TWITTER_CHUNK_MAX) {
-      chunks.push(para);
-      continue;
-    }
+    if (para.length <= TWITTER_HARD_LIMIT) { splitLong.push(para); continue; }
     const sentences = para.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [para];
     let cur = '';
     for (const raw of sentences) {
       const s = raw.trim();
       if (!s) continue;
-      const candidate = cur ? cur + ' ' + s : s;
-      if (candidate.length <= TWITTER_CHUNK_MAX) {
-        cur = candidate;
-        continue;
-      }
-      if (cur) chunks.push(cur);
-      // 3) final fallback — word-split if a single sentence is too long
-      if (s.length > TWITTER_CHUNK_MAX) {
-        const words = s.split(/\s+/);
-        let buf = '';
-        for (const w of words) {
-          const next = buf ? buf + ' ' + w : w;
-          if (next.length <= TWITTER_CHUNK_MAX) {
-            buf = next;
-          } else {
-            if (buf) chunks.push(buf);
-            buf = w;
-          }
+      const cand = cur ? cur + ' ' + s : s;
+      if (cand.length <= TWITTER_HARD_LIMIT) { cur = cand; continue; }
+      if (cur) splitLong.push(cur);
+      cur = s;
+    }
+    if (cur) splitLong.push(cur);
+  }
+  paragraphs = splitLong;
+
+  // 3. Merge any chunk below MIN_CHUNK — prefer backward (punchlines stick to
+  //    their setup), fall back to forward.
+  const merged = [];
+  for (let i = 0; i < paragraphs.length; i++) {
+    const cur = paragraphs[i];
+    if (cur.length < TWITTER_MIN_CHUNK) {
+      if (merged.length > 0) {
+        const back = merged[merged.length - 1] + ' ' + cur;
+        if (back.length <= TWITTER_HARD_LIMIT) {
+          merged[merged.length - 1] = back;
+          continue;
         }
-        cur = buf;
-      } else {
-        cur = s;
+      }
+      if (i + 1 < paragraphs.length) {
+        const fwd = cur + ' ' + paragraphs[i + 1];
+        if (fwd.length <= TWITTER_HARD_LIMIT) {
+          paragraphs[i + 1] = fwd;
+          continue;
+        }
       }
     }
-    if (cur) chunks.push(cur);
+    merged.push(cur);
+  }
+  paragraphs = merged;
+
+  // 4. While count > MAX_CHUNKS, greedily merge the smallest adjacent pair
+  //    (whose combined size still fits HARD_LIMIT).
+  while (paragraphs.length > TWITTER_MAX_CHUNKS) {
+    let bestIdx = -1;
+    let bestSum = Infinity;
+    for (let i = 0; i < paragraphs.length - 1; i++) {
+      const sum = paragraphs[i].length + 1 + paragraphs[i + 1].length;
+      if (sum <= TWITTER_HARD_LIMIT && sum < bestSum) {
+        bestSum = sum;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx === -1) break; // nothing more can be merged without overflow
+    paragraphs[bestIdx] = paragraphs[bestIdx] + ' ' + paragraphs[bestIdx + 1];
+    paragraphs.splice(bestIdx + 1, 1);
   }
 
-  // 4) append " i/N" thread numbering (skip if only one chunk after split)
-  const total = chunks.length;
-  if (total <= 1) return chunks;
-  const numbered = chunks.map((c, i) => `${c} ${i + 1}/${total}`);
+  // Defensive cap — should rarely fire after step 4.
+  if (paragraphs.length > TWITTER_MAX_CHUNKS) {
+    console.warn(`[twitter-split] WARN truncating ${paragraphs.length} chunks to ${TWITTER_MAX_CHUNKS} — content too large to merge cleanly`);
+    paragraphs = paragraphs.slice(0, TWITTER_MAX_CHUNKS);
+  }
 
-  // Validation log: each numbered chunk should be ≤ TWITTER_LIMIT.
+  // 5. Apply " i/N" numbering.
+  const total = paragraphs.length;
+  if (total <= 1) return paragraphs;
+  const numbered = paragraphs.map((c, i) => `${c} ${i + 1}/${total}`);
   for (const c of numbered) {
     if (c.length > TWITTER_LIMIT) {
       console.warn(`[twitter-split] WARN chunk exceeds ${TWITTER_LIMIT}: ${c.length} chars — ${c.slice(0, 60)}…`);
