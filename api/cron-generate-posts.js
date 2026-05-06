@@ -69,6 +69,11 @@ const TOPICS = [
     label: 'Product capability one-liners',
     angle: 'Punchy single capability statements. "Your contract scanned in 8 seconds." "Every deadline tracked. Every party followed up." "She works nights, weekends, holidays."',
   },
+  {
+    key: 'control_freak_agent',
+    label: 'Control + visibility — for agents who don\'t trust delegating',
+    angle: 'Speak directly to the agent who refuses to hire a TC because they can\'t trust someone else to do it right. Reframe Dossie as visibility and control, NOT delegation. Lean into "you don\'t have to trust someone else — Dossie shows you everything", "control freaks make the best Dossie users", "you\'re not giving up control, you\'re finally getting it." Specifics: every deadline visible at a glance, every email drafted but not sent without you tapping send, every TREC paragraph cited so you can verify the math yourself. Avoid "let go" / "trust the process" framing — that\'s exactly what this audience refuses.',
+  },
 ];
 
 // Per-platform algorithm rules. Injected into the generation prompt for every
