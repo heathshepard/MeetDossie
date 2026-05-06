@@ -391,6 +391,22 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
         </div>
       </div>
       <div class="signup-field">
+        <label class="signup-label" for="founding-heard-from">How did you hear about Dossie?</label>
+        <select class="signup-select" id="founding-heard-from" name="heard_from" required>
+          <option value="" disabled selected>Select…</option>
+          <option value="facebook_group">Facebook group post</option>
+          <option value="facebook_page">Facebook page</option>
+          <option value="instagram">Instagram</option>
+          <option value="tiktok">TikTok</option>
+          <option value="twitter_x">Twitter/X</option>
+          <option value="google_search">Google search</option>
+          <option value="word_of_mouth">Word of mouth / another agent</option>
+          <option value="trec_calculator">The TREC deadline calculator</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="signup-field">
         <label class="signup-label" for="founding-why">Why are you interested in Dossie?</label>
         <textarea class="signup-textarea" id="founding-why" name="why" maxlength="500" placeholder="A few sentences on what's not working today and what you'd want Dossie to handle." required></textarea>
         <div class="signup-counter" id="founding-why-counter">0 / 500</div>
@@ -471,6 +487,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     market: document.getElementById("founding-market"),
     transactions_12mo: document.getElementById("founding-tx"),
     sides: document.getElementById("founding-sides"),
+    heard_from: document.getElementById("founding-heard-from"),
     why: document.getElementById("founding-why"),
   };
   var button = document.getElementById("founding-submit");
@@ -492,6 +509,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
       market: (fields.market.value || "").trim(),
       transactions_12mo: parseInt(String(fields.transactions_12mo.value || "").replace(/[, ]/g, ""), 10),
       sides: (fields.sides.value || "").trim().toLowerCase(),
+      heard_from: (fields.heard_from.value || "").trim(),
       why: (fields.why.value || "").trim(),
     };
   }
@@ -503,6 +521,8 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     if (!p.market) return "What Texas market do you work?";
     if (!Number.isFinite(p.transactions_12mo) || p.transactions_12mo < 0) return "Add a number for transactions in the last 12 months.";
     if (["buyer", "listing", "both"].indexOf(p.sides) === -1) return "Pick which sides you work.";
+    var heardOptions = ["facebook_group","facebook_page","instagram","tiktok","twitter_x","google_search","word_of_mouth","trec_calculator","linkedin","other"];
+    if (heardOptions.indexOf(p.heard_from) === -1) return "Pick how you heard about Dossie.";
     if (!p.why || p.why.length < 10) return "Tell us a little about why you're interested.";
     if (p.why.length > 500) return "Keep your answer under 500 characters.";
     return null;
