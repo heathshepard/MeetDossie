@@ -13,12 +13,6 @@ const {
 } = require('./_lib/founding-approval');
 
 const CRON_SECRET = process.env.CRON_SECRET;
-// TEMP one-shot bypass for Brittney's checkout (will be reverted in the next
-// commit). Constrained to her specific application_id so it can't be abused
-// to approve any other row. Token is single-use-by-convention; we revert
-// before anyone could discover it.
-const ONE_SHOT_TOKEN = '1833d00375fbd05c421d57748d8fb3ef8d2b710acd13e526';
-const ONE_SHOT_APPLICATION_ID = 'e760507e-4aa6-48ad-b8dc-9acc25766f31';
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,16 +23,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
   }
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  // Parse body early so we can read application_id for the one-shot check.
-  let earlyBody = req.body;
-  if (typeof earlyBody === 'string') { try { earlyBody = JSON.parse(earlyBody); } catch { earlyBody = {}; } }
-  earlyBody = earlyBody || {};
-  const earlyAppId = earlyBody.application_id || earlyBody.applicationId;
-  const isOneShot = (
-    authHeader === `Bearer ${ONE_SHOT_TOKEN}` &&
-    String(earlyAppId) === ONE_SHOT_APPLICATION_ID
-  );
-  if (!isOneShot && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
