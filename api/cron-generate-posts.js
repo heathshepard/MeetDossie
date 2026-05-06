@@ -257,6 +257,40 @@ function extractJson(raw) {
   return JSON.parse(s);
 }
 
+// ─── Card renderer (Option B) ────────────────────────────────────────────
+// For Instagram and Facebook posts, generate a branded image card at the
+// same time we insert the row. The PNG lands in Supabase Storage's
+// `social-cards` bucket and the public URL goes into social_posts.media_url.
+// cron-publish-approved.js then attaches it as mediaItems[0] when posting
+// to Zernio — no separate render step needed at publish time.
+//
+// /api/render-card lives in the same Vercel deployment (Python serverless
+// function with @vercel/python). Same domain → in-region call, low latency.
+const CARD_PLATFORMS = new Set(['instagram', 'facebook']);
+
+async function renderSocialCard({ platform, hook, content, persona, post_id }) {
+  // Use the production domain so we always hit the latest deployed renderer.
+  // If running on a Vercel preview, VERCEL_URL is the preview deployment; in
+  // production the cron always runs against meetdossie.com.
+  const host = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://meetdossie.com';
+  const url = `${host}/api/render-card`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.CRON_SECRET}`,
+    },
+    body: JSON.stringify({ platform, hook, content, persona, post_id }),
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  if (!res.ok || !data?.publicUrl) {
+    return { ok: false, status: res.status, error: text.slice(0, 300) };
+  }
+  return { ok: true, publicUrl: data.publicUrl, size_bytes: data.size_bytes };
+}
+
 async function lookupZernioAccountId(platform) {
   const encoded = encodeURIComponent(platform);
   const { data } = await supabaseFetch(
@@ -358,8 +392,30 @@ module.exports = async function handler(req, res) {
     let zernioAccountId = null;
     try { zernioAccountId = await lookupZernioAccountId(platform); } catch (_e) { zernioAccountId = null; }
 
+    const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}`;
+
+    // Render branded card for Instagram + Facebook. Failure is non-fatal —
+    // the row still inserts with media_url=null and cron-publish-approved
+    // posts a text-only update.
+    let mediaUrl = null;
+    if (CARD_PLATFORMS.has(platform)) {
+      const card = await renderSocialCard({
+        platform,
+        hook: hook || content.slice(0, 120),
+        content,
+        persona,
+        post_id: postId,
+      });
+      if (card.ok) {
+        mediaUrl = card.publicUrl;
+        console.log(`[card] ${postId} -> ${card.publicUrl} (${card.size_bytes} bytes)`);
+      } else {
+        console.warn(`[card] ${postId} render failed status=${card.status} err=${String(card.error || '').slice(0, 200)}`);
+      }
+    }
+
     const row = {
-      post_id: `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}`,
+      post_id: postId,
       platform,
       content,
       content_hash: require('crypto').createHash('md5').update(content).digest('hex'),
@@ -370,6 +426,7 @@ module.exports = async function handler(req, res) {
       zernio_account_id: zernioAccountId,
       persona,
       topic: topic.key,
+      media_url: mediaUrl,
       generated_at: now.toISOString(),
       created_at: now.toISOString(),
     };
