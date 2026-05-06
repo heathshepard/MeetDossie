@@ -56,34 +56,22 @@ async function loadApplication(applicationId) {
 
 async function createFoundingCheckout(stripeKey, email) {
   const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
-  const baseParams = {
+  // Strict mode: FOUNDING coupon must apply. We don't fall back to
+  // allow_promotion_codes — if the coupon isn't valid in Stripe, surface
+  // the error so the operator notices instead of quietly mailing a session
+  // that wouldn't honor the founding price lock.
+  const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: [{ price: FOUNDING_PRICE_ID, quantity: 1 }],
     success_url: SUCCESS_URL,
     cancel_url: CANCEL_URL,
-    allow_promotion_codes: true,
+    discounts: [{ coupon: FOUNDING_COUPON_ID }],
     billing_address_collection: 'auto',
     customer_email: email,
     metadata: { source: 'founding_approval' },
     subscription_data: { metadata: { source: 'founding_approval' } },
-  };
-  // First try with the FOUNDING coupon pre-applied. If Stripe rejects (coupon
-  // doesn't exist, expired, etc.) fall back without it — the customer can
-  // still type FOUNDING manually thanks to allow_promotion_codes.
-  try {
-    const session = await stripe.checkout.sessions.create({
-      ...baseParams,
-      discounts: [{ coupon: FOUNDING_COUPON_ID }],
-    });
-    return { session, couponApplied: true };
-  } catch (err) {
-    console.warn(
-      '[founding-approval] FOUNDING coupon pre-apply failed, retrying without:',
-      err && err.message,
-    );
-    const session = await stripe.checkout.sessions.create(baseParams);
-    return { session, couponApplied: false };
-  }
+  });
+  return { session, couponApplied: true };
 }
 
 function approvalEmailHtml({ firstName, checkoutUrl }) {
