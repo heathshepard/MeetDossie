@@ -13,6 +13,11 @@
 //   -d "url=https://meetdossie.com/api/telegram-webhook" \
 //   -d "secret_token=${TELEGRAM_WEBHOOK_SECRET}"
 
+const {
+  approveFoundingApplication,
+  rejectFoundingApplication,
+} = require('./_lib/founding-approval');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Marketing approval flow uses a dedicated bot (DossieMarketingBot) so it
@@ -125,6 +130,55 @@ function readRawBody(req) {
   });
 }
 
+async function handleFoundingCallback(action, applicationId, cb, chatId, messageId, callbackId) {
+  const message = cb?.message;
+  const originalBody = String(message?.text || '');
+
+  if (action === 'approve') {
+    let result;
+    try {
+      result = await approveFoundingApplication({ applicationId, env: process.env });
+    } catch (err) {
+      console.error('[telegram-webhook] founding approve threw:', err && err.message);
+      result = { ok: false, error: (err && err.message) || String(err) };
+    }
+    if (!result.ok) {
+      const errText = `❌ Approval failed: ${result.error || 'unknown error'}`;
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n${errText}`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Approval failed');
+      return;
+    }
+    const tail = [
+      '',
+      `✅ APPROVED — checkout sent to ${result.application.email}`,
+      `Coupon: ${result.couponApplied ? 'FOUNDING applied' : 'allow_promotion_codes (Brittney can type FOUNDING at checkout)'}`,
+      `Email id: ${result.emailId || (result.emailError ? 'failed — ' + result.emailError : '—')}`,
+      result.checkoutUrl ? `URL: ${result.checkoutUrl}` : '',
+    ].filter(Boolean).join('\n');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}${tail}`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Approved');
+    return;
+  }
+
+  if (action === 'reject') {
+    try {
+      await rejectFoundingApplication({ applicationId });
+    } catch (err) {
+      console.error('[telegram-webhook] founding reject threw:', err && err.message);
+    }
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n❌ REJECTED`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Rejected');
+    return;
+  }
+}
+
+
 async function handleCallbackQuery(cb) {
   const data = String(cb?.data || '');
   const callbackId = cb?.id;
@@ -136,6 +190,14 @@ async function handleCallbackQuery(cb) {
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
     if (callbackId) await answerCallback(callbackId, 'Not authorized');
     return;
+  }
+
+  // Founding application flow: approve_founding:<id> / reject_founding:<id>
+  // Note the colon delimiter, distinguishing it from the social-post flow's
+  // underscore (approve_<post_id>).
+  const founding = data.match(/^(approve|reject)_founding:(.+)$/);
+  if (founding) {
+    return handleFoundingCallback(founding[1], founding[2], cb, chatId, messageId, callbackId);
   }
 
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
