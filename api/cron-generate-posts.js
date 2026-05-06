@@ -357,6 +357,7 @@ module.exports = async function handler(req, res) {
       post_id: `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}`,
       platform,
       content,
+      content_hash: require('crypto').createHash('md5').update(content).digest('hex'),
       hook: hook || content.slice(0, 120),
       cta,
       hashtags,
