@@ -167,13 +167,15 @@ async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUr
 // Top-level entry point. Idempotent — safe to call twice on the same row;
 // the second call re-sends the approval email with the same Payment Link.
 async function approveFoundingApplication({ applicationId, env, opts = {} }) {
+  // Fail fast before touching Supabase: if the Payment Link isn't configured,
+  // no amount of DB work will produce a working approval email.
+  if (!env.STRIPE_FOUNDING_PAYMENT_LINK) {
+    return { ok: false, error: 'STRIPE_FOUNDING_PAYMENT_LINK not configured' };
+  }
+
   const app = await loadApplication(applicationId);
   if (!app) {
     return { ok: false, error: `application ${applicationId} not found` };
-  }
-
-  if (!env.STRIPE_FOUNDING_PAYMENT_LINK) {
-    return { ok: false, error: 'STRIPE_FOUNDING_PAYMENT_LINK not configured' };
   }
 
   // Update status (no-op if already approved).
