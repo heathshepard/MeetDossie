@@ -44,8 +44,7 @@ module.exports = async function handler(req, res) {
       return res.status(result.ok ? 200 : 400).json(result);
     }
     const env = process.env;
-    const opts = { noCoupon: Boolean(body.no_coupon || body.noCoupon) };
-    const result = await approveFoundingApplication({ applicationId, env, opts });
+    const result = await approveFoundingApplication({ applicationId, env });
     return res.status(result.ok ? 200 : 502).json(result);
   } catch (err) {
     console.error('[admin-approve-founding] threw:', err && err.message);

@@ -2,15 +2,15 @@
 // Called from BOTH /api/admin-approve-founding (Bearer-CRON_SECRET, used for
 // programmatic / one-shot triggers) and /api/telegram-webhook (Heath taps an
 // inline button on the application notification). Keeping the body in one
-// place means the email + Stripe + DB updates can never drift between the
-// two entry points.
-
-const Stripe = require('stripe');
+// place means the email + checkout URL + DB updates can never drift between
+// the two entry points.
+//
+// Checkout uses a permanent Stripe Payment Link (STRIPE_FOUNDING_PAYMENT_LINK)
+// instead of generated Checkout Sessions. Payment Links never expire, so the
+// same URL works for every approved applicant. The applicant's email is
+// pre-filled via the ?prefilled_email= query param.
 
 const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
-const FOUNDING_COUPON_ID = 'FOUNDING'; // Stripe coupon (best-effort; fallback skips it if not found)
-const SUCCESS_URL = 'https://meetdossie.com/welcome.html?session_id={CHECKOUT_SESSION_ID}';
-const CANCEL_URL = 'https://meetdossie.com/founding.html';
 
 async function supabaseGet(path) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
@@ -54,34 +54,12 @@ async function loadApplication(applicationId) {
   return rows[0];
 }
 
-async function createFoundingCheckout(stripeKey, email, opts = {}) {
-  const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
-  const baseParams = {
-    mode: 'subscription',
-    line_items: [{ price: FOUNDING_PRICE_ID, quantity: 1 }],
-    success_url: SUCCESS_URL,
-    cancel_url: CANCEL_URL,
-    billing_address_collection: 'auto',
-    customer_email: email,
-    metadata: { source: 'founding_approval' },
-    subscription_data: { metadata: { source: 'founding_approval' } },
-  };
-  // No-coupon mode: the founding price is already $29/mo, so a session with
-  // no discount and no allow_promotion_codes still locks the customer in at
-  // the founding rate. Used when the FOUNDING coupon hasn't been created yet
-  // and we don't want a promo box on checkout.
-  if (opts.noCoupon) {
-    const session = await stripe.checkout.sessions.create(baseParams);
-    return { session, couponApplied: false };
+function buildFoundingCheckoutUrl(paymentLink, email) {
+  const url = new URL(paymentLink);
+  if (email) {
+    url.searchParams.set('prefilled_email', email);
   }
-  // Strict mode (default): FOUNDING coupon must apply. No fallback —
-  // surface the Stripe error if the coupon doesn't exist so the operator
-  // notices instead of quietly mailing a session without the lock.
-  const session = await stripe.checkout.sessions.create({
-    ...baseParams,
-    discounts: [{ coupon: FOUNDING_COUPON_ID }],
-  });
-  return { session, couponApplied: true };
+  return url.toString();
 }
 
 function approvalEmailHtml({ firstName, checkoutUrl }) {
@@ -163,7 +141,7 @@ function prettyHeardFrom(v) {
   return HEARD_FROM_LABELS[String(v).toLowerCase()] || String(v);
 }
 
-async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUrl, couponApplied, emailId }) {
+async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUrl, emailId }) {
   if (!botToken || !chatId) return;
   const text = [
     '✅ <b>Founding approval sent</b>',
@@ -172,7 +150,6 @@ async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUr
     `<b>Email:</b> ${app.email}`,
     `<b>How they found us:</b> ${prettyHeardFrom(app.heard_from)}`,
     `<b>Checkout URL:</b> ${checkoutUrl}`,
-    `<b>FOUNDING coupon:</b> ${couponApplied ? 'pre-applied' : 'NOT pre-applied — they can type it at checkout'}`,
     `<b>Resend message id:</b> ${emailId || '—'}`,
   ].join('\n');
   await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -188,11 +165,15 @@ async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUr
 }
 
 // Top-level entry point. Idempotent — safe to call twice on the same row;
-// the second call refreshes the checkout URL and re-sends the email.
+// the second call re-sends the approval email with the same Payment Link.
 async function approveFoundingApplication({ applicationId, env, opts = {} }) {
   const app = await loadApplication(applicationId);
   if (!app) {
     return { ok: false, error: `application ${applicationId} not found` };
+  }
+
+  if (!env.STRIPE_FOUNDING_PAYMENT_LINK) {
+    return { ok: false, error: 'STRIPE_FOUNDING_PAYMENT_LINK not configured' };
   }
 
   // Update status (no-op if already approved).
@@ -202,19 +183,7 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
     { status: 'approved', decision: 'approved', reviewed_at: now },
   );
 
-  if (!env.STRIPE_SECRET_KEY) {
-    return { ok: false, error: 'STRIPE_SECRET_KEY not configured' };
-  }
-  // Default to noCoupon: the founding price (price_1TPxxNL920SKTEEiN7Gphq8T)
-  // is already $29.00/month, locked for life. The FOUNDING coupon was the
-  // mechanism but it never needed to exist — verified via Stripe price API
-  // 2026-05-06. Pass opts.noCoupon=false to fall back to strict-coupon mode
-  // if a real FOUNDING coupon is created later.
-  const checkoutOpts = { noCoupon: opts.noCoupon !== false, ...opts };
-  const { session, couponApplied } = await createFoundingCheckout(env.STRIPE_SECRET_KEY, app.email, checkoutOpts);
-  if (!session || !session.url) {
-    return { ok: false, error: 'Stripe returned no session url' };
-  }
+  const checkoutUrl = buildFoundingCheckoutUrl(env.STRIPE_FOUNDING_PAYMENT_LINK, app.email);
 
   let emailId = null;
   let emailError = null;
@@ -223,7 +192,7 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
       resendKey: env.RESEND_API_KEY,
       email: app.email,
       name: app.name,
-      checkoutUrl: session.url,
+      checkoutUrl,
       heardFrom: app.heard_from,
     });
     emailId = emailResp?.id || null;
@@ -236,16 +205,14 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
     botToken: env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_MARKETING_BOT_TOKEN,
     chatId: env.TELEGRAM_CHAT_ID,
     app,
-    checkoutUrl: session.url,
-    couponApplied,
+    checkoutUrl,
     emailId,
   });
 
   return {
     ok: true,
     application: { id: app.id, name: app.name, email: app.email },
-    checkoutUrl: session.url,
-    couponApplied,
+    checkoutUrl,
     emailId,
     emailError,
   };
@@ -268,5 +235,4 @@ module.exports = {
   approveFoundingApplication,
   rejectFoundingApplication,
   FOUNDING_PRICE_ID,
-  FOUNDING_COUPON_ID,
 };

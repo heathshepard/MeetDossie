@@ -153,7 +153,6 @@ async function handleFoundingCallback(action, applicationId, cb, chatId, message
     const tail = [
       '',
       `✅ APPROVED — checkout sent to ${result.application.email}`,
-      `Coupon: ${result.couponApplied ? 'FOUNDING applied' : 'allow_promotion_codes (Brittney can type FOUNDING at checkout)'}`,
       `Email id: ${result.emailId || (result.emailError ? 'failed — ' + result.emailError : '—')}`,
       result.checkoutUrl ? `URL: ${result.checkoutUrl}` : '',
     ].filter(Boolean).join('\n');
