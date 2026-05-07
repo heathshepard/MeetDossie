@@ -177,6 +177,32 @@ def derive_stat_and_label(stat, stat_label, hook, content):
     return s, l
 
 
+def font_line_step(font, line_spacing=1.0):
+    """Return the vertical advance (px) per line using the font's true
+    metrics. ascent + descent gives the "EM box height" — what the type
+    designer intended as the natural line height. We multiply by
+    line_spacing on top. Using getmetrics avoids the descender-clipping
+    problem that "Hg" textbbox produces for serifs with deep descenders.
+    """
+    try:
+        ascent, descent = font.getmetrics()
+        natural = ascent + descent
+    except Exception:
+        natural = text_size(ImageDraw.Draw(Image.new("RGB", (1, 1))), "Hg", font)[1]
+    return int(natural * line_spacing)
+
+
+def draw_lines_metric(draw, lines, font, x, y, color, line_spacing=1.0):
+    """Like draw_lines but uses font.getmetrics()-based stepping so
+    descenders never collide with the next block."""
+    step = font_line_step(font, line_spacing)
+    for ln in lines:
+        if ln:
+            draw.text((x, y), ln, font=font, fill=color)
+        y += step
+    return y
+
+
 def render_card_png(platform, hook, content, persona, stat=None, stat_label=None):
     """Render the card and return PNG bytes."""
     if platform not in PLATFORM_DIMS:
@@ -186,8 +212,7 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
     canvas = Image.new("RGB", (W, H), BLUSH)
     draw = ImageDraw.Draw(canvas)
 
-    # Border: 1px BLUSH_DEEP rounded rectangle inset 12px from the edges so the
-    # "rounded card" reads as a card-on-blush against the same blush bg.
+    # Border: 1px BLUSH_DEEP rounded rectangle inset 12px from the edges.
     inset = 12
     radius = 16
     try:
@@ -196,82 +221,75 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
             radius=radius, outline=BLUSH_DEEP, width=1,
         )
     except (AttributeError, TypeError):
-        # Pre-Pillow-8.2 fallback: plain rectangle.
         draw.rectangle([(inset, inset), (W - inset, H - inset)], outline=BLUSH_DEEP, width=1)
 
+    is_ig = (platform == "instagram")
     margin_x = int(W * 0.07)
-    pad_top  = int(H * 0.09)
-    pad_bot  = int(H * 0.10)
+    pad_top  = int(H * (0.09 if is_ig else 0.10))
+    pad_bot  = int(H * (0.08 if is_ig else 0.10))
     content_left = margin_x
     content_right = W - margin_x
     content_w = content_right - content_left
 
-    # Persona-driven stat color (default coral when persona unknown).
     stat_color = PERSONA_STAT_COLOR.get((persona or "").lower(), CORAL)
-
     derived_stat, derived_label = derive_stat_and_label(stat, stat_label, hook, content)
 
-    # ─── Stat line ───────────────────────────────────────────────────────
-    # Target a visually substantial serif (~96px instagram, ~72px facebook).
-    # Binary-search downward but never below 56px — at that floor the stat
-    # still reads as "the headline." If a stat is so long it doesn't fit at
-    # 56px on one line we let it wrap; max 2 lines.
-    stat_max_h = int(H * 0.32 if platform == "instagram" else H * 0.38)
-    stat_start = 96 if platform == "instagram" else 72
-    stat_font, stat_lines, stat_block_h = fit_font_size(
+    # ─── Stat line (big serif, persona-colored) ──────────────────────────
+    # Target ~96px instagram / 72px facebook; binary-search down to 56 if
+    # the stat is too wide for one line at target.
+    stat_target = 96 if is_ig else 72
+    stat_max_h = int(H * (0.32 if is_ig else 0.40))
+    stat_font, stat_lines, _ = fit_font_size(
         draw, derived_stat, FONT_SERIF_BOLD,
-        content_w, stat_max_h, stat_start, min_size=56, line_spacing=1.05,
+        content_w, stat_max_h, stat_target, min_size=56, line_spacing=1.05,
     )
-    # Cap to 2 lines — long stats wrap, but never push the body off the card.
     if len(stat_lines) > 2:
         stat_lines = stat_lines[:2]
         if not stat_lines[1].endswith("…"):
             stat_lines[1] = stat_lines[1].rstrip(".") + "…"
     stat_y = pad_top
-    stat_end_y = draw_lines(draw, stat_lines, stat_font, content_left, stat_y,
-                            stat_color, line_spacing=1.05)
+    stat_end_y = draw_lines_metric(draw, stat_lines, stat_font, content_left,
+                                   stat_y, stat_color, line_spacing=1.05)
 
-    # ─── Stat label ──────────────────────────────────────────────────────
-    label_gap = int(H * 0.018)
-    label_font_size = 22 if platform == "instagram" else 20
-    label_font = load_font(FONT_FALLBACK_SANS, label_font_size)
+    # ─── Stat label (sans, navy, one sentence) ───────────────────────────
+    label_gap = int(H * (0.025 if is_ig else 0.030))   # generous gap so serif descenders breathe
+    label_size = 28 if is_ig else 22
+    label_font = load_font(FONT_FALLBACK_SANS, label_size)
     label_lines = wrap_to_width(draw, derived_label, label_font, content_w)
-    # Cap label to 2 lines — one sentence per spec; long inputs get clipped.
     if len(label_lines) > 2:
         label_lines = label_lines[:2]
         if not label_lines[1].endswith("…"):
             label_lines[1] = label_lines[1].rstrip(".") + "…"
-    label_end_y = draw_lines(draw, label_lines, label_font, content_left,
-                             stat_end_y + label_gap, NAVY, line_spacing=1.3)
+    label_end_y = draw_lines_metric(draw, label_lines, label_font, content_left,
+                                    stat_end_y + label_gap, NAVY, line_spacing=1.30)
 
-    # ─── Bottom row geometry (compute first so quote knows where to stop) ─
-    pill_h = int(H * 0.055 if platform == "instagram" else H * 0.085)
+    # ─── Bottom row geometry (compute first so quote knows its ceiling) ──
+    pill_h = int(H * (0.060 if is_ig else 0.090))
     bottom_row_y = H - pad_bot - pill_h
-    bottom_row_h = pill_h
 
-    # ─── Gold left-bar quote ─────────────────────────────────────────────
-    quote_top = label_end_y + int(H * 0.04)
-    quote_bottom = bottom_row_y - int(H * 0.04)
-    quote_h = max(quote_bottom - quote_top, int(H * 0.10))
+    # ─── Gold left-bar quote (the post body) ─────────────────────────────
+    quote_top = label_end_y + int(H * (0.05 if is_ig else 0.05))
+    quote_bottom = bottom_row_y - int(H * (0.05 if is_ig else 0.05))
+    quote_h_avail = max(quote_bottom - quote_top, int(H * 0.10))
     bar_w = 4
     bar_x = content_left
-    quote_text_x = content_left + bar_w + int(W * 0.018)
+    quote_text_x = content_left + bar_w + int(W * 0.020)
     quote_text_w = content_right - quote_text_x
 
     body_text = (content or hook or "").strip()
-    quote_font_size = 20 if platform == "instagram" else 18
-    quote_font = load_font(FONT_FALLBACK_SANS, quote_font_size)
+    quote_size = 30 if is_ig else 22
+    quote_font = load_font(FONT_FALLBACK_SANS, quote_size)
     quote_lines = wrap_to_width(draw, body_text, quote_font, quote_text_w)
-    line_spacing = 1.65
-    line_h = text_size(draw, "Hg", quote_font)[1]
-    step = int(line_h * line_spacing)
-    max_quote_lines = max(1, quote_h // step)
+
+    quote_step = font_line_step(quote_font, 1.65)
+    max_quote_lines = max(1, quote_h_avail // quote_step)
     if len(quote_lines) > max_quote_lines:
         quote_lines = quote_lines[:max_quote_lines]
         if quote_lines and not quote_lines[-1].endswith("…"):
             quote_lines[-1] = quote_lines[-1].rstrip(".") + "…"
-    rendered_quote_h = len(quote_lines) * step
-    # Draw the gold bar to span the actual rendered quote height.
+    rendered_quote_h = len(quote_lines) * quote_step
+
+    # Gold left bar spans the actual rendered quote height.
     if rendered_quote_h > 0:
         draw.rectangle(
             [(bar_x, quote_top), (bar_x + bar_w, quote_top + rendered_quote_h)],
@@ -281,33 +299,35 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
     for ln in quote_lines:
         if ln:
             draw.text((quote_text_x, y), ln, font=quote_font, fill=BODY_INK)
-        y += step
+        y += quote_step
 
-    # ─── Bottom row: pill + URL ──────────────────────────────────────────
+    # ─── Bottom row: pill (left) + URL (right), space-between ────────────
     pill_text = f"Founding · {FOUNDING_SPOTS_REMAINING} spots left"
-    pill_font_size = 20 if platform == "instagram" else 18
-    pill_font = load_font(FONT_FALLBACK_SANS_BOLD, pill_font_size)
+    pill_size = 22 if is_ig else 20
+    pill_font = load_font(FONT_FALLBACK_SANS_BOLD, pill_size)
     pill_text_w, pill_text_h = text_size(draw, pill_text, pill_font)
-    pill_pad_x = int(W * 0.018)
+    pill_pad_x = int(pill_h * 0.55)
     pill_w = pill_text_w + pill_pad_x * 2
-    pill_y = bottom_row_y
     pill_radius = pill_h // 2
     try:
         draw.rounded_rectangle(
-            [(content_left, pill_y), (content_left + pill_w, pill_y + pill_h)],
+            [(content_left, bottom_row_y), (content_left + pill_w, bottom_row_y + pill_h)],
             radius=pill_radius, fill=GOLD,
         )
     except (AttributeError, TypeError):
-        draw.rectangle([(content_left, pill_y), (content_left + pill_w, pill_y + pill_h)], fill=GOLD)
-    pill_text_y = pill_y + (pill_h - pill_text_h) // 2 - 2  # nudge for visual centering
+        draw.rectangle(
+            [(content_left, bottom_row_y), (content_left + pill_w, bottom_row_y + pill_h)],
+            fill=GOLD,
+        )
+    pill_text_y = bottom_row_y + (pill_h - pill_text_h) // 2 - max(2, pill_text_h // 8)
     draw.text((content_left + pill_pad_x, pill_text_y), pill_text, font=pill_font, fill=PILL_TEXT)
 
     url_text = "meetdossie.com/founding"
-    url_font_size = 22 if platform == "instagram" else 20
-    url_font = load_font(FONT_FALLBACK_SANS_BOLD, url_font_size)
+    url_size = 24 if is_ig else 22
+    url_font = load_font(FONT_FALLBACK_SANS_BOLD, url_size)
     url_w, url_h = text_size(draw, url_text, url_font)
     url_x = content_right - url_w
-    url_y = bottom_row_y + (pill_h - url_h) // 2 - 2
+    url_y = bottom_row_y + (pill_h - url_h) // 2 - max(2, url_h // 8)
     draw.text((url_x, url_y), url_text, font=url_font, fill=SAGE)
 
     buf = io.BytesIO()
