@@ -973,7 +973,11 @@ def render_broll_segment(clips: list[Path], target_seconds: float, w: int, h: in
 
 SCREEN_FREEZE_DETECT_NOISE = 0.005   # ffmpeg freezedetect threshold
 SCREEN_FREEZE_DETECT_DUR = 0.5       # min freeze length to register
-SCREEN_TRIM_MAX = 3.0                # never trim more than 3s, even on long freezes
+SCREEN_SILENCE_NOISE_DB = -30        # silencedetect threshold for "no audio"
+SCREEN_SILENCE_DUR = 0.5             # min silence length to register
+SCREEN_TRIM_MAX = 8.0                # bumped from 3.0 — desktop captures often
+                                     # have 5-7s of dead air before the brief
+                                     # voiceover starts
 
 
 def detect_freeze_at_start(screen_rec: Path) -> float:
@@ -1011,15 +1015,59 @@ def detect_freeze_at_start(screen_rec: Path) -> float:
     return min(SCREEN_TRIM_MAX, max(0.0, freeze_end))
 
 
+def detect_audio_silence_at_start(screen_rec: Path) -> float:
+    """Find leading audio silence (no narrator yet) at the start of the recording.
+
+    Runs ffmpeg with silencedetect on the audio stream. Returns the first
+    `silence_end` timestamp where `silence_start` was 0 (file beginning).
+    Capped at SCREEN_TRIM_MAX. Returns 0.0 on detect failure or no leading
+    silence — never abort the render over a heuristic.
+
+    Catches the case the freezedetect missed: desktop captures often have
+    5-7s of UI motion (cursor, layout shifts) BEFORE the brief audio plays,
+    so freezedetect returns 0 trim while the audio is still silent. Trimming
+    on the audio gets the cut right.
+    """
+    cmd = [FFMPEG, "-hide_banner", "-i", str(screen_rec),
+           "-af", f"silencedetect=noise={SCREEN_SILENCE_NOISE_DB}dB:d={SCREEN_SILENCE_DUR}",
+           "-vn", "-f", "null", "-"]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return 0.0
+    text = (proc.stderr or "") + (proc.stdout or "")
+    silence_start = None
+    silence_end = None
+    for line in text.splitlines():
+        m = re.search(r"silence_start:\s*(-?[\d.]+)", line)
+        if m:
+            v = float(m.group(1))
+            if silence_start is None and v <= 0.05:  # within 50ms of file start
+                silence_start = v
+            continue
+        m = re.search(r"silence_end:\s*([\d.]+)", line)
+        if m and silence_start is not None and silence_end is None:
+            silence_end = float(m.group(1))
+            break
+    if silence_start is None or silence_end is None:
+        return 0.0
+    return min(SCREEN_TRIM_MAX, max(0.0, silence_end))
+
+
 def trim_screen_recording(screen_rec: Path, out_mp4: Path) -> tuple[Path, float]:
-    """Trim leading dead air from the screen recording.
+    """Trim leading dead air from the screen recording — both video freeze
+    AND audio silence. Take the MAX so we cut past whichever ends later
+    (Dossie's voice not starting OR the UI not animating).
 
     Returns (path_to_use, seconds_trimmed). If no trim is needed the
     original path is returned untouched and seconds_trimmed is 0.
     """
-    trim_s = detect_freeze_at_start(screen_rec)
+    freeze_s = detect_freeze_at_start(screen_rec)
+    silence_s = detect_audio_silence_at_start(screen_rec)
+    trim_s = max(freeze_s, silence_s)
     if trim_s <= 0.05:
         return screen_rec, 0.0
+    print(f"[screen-rec] dead-air detect: freeze={freeze_s:.2f}s silence={silence_s:.2f}s -> trim={trim_s:.2f}s")
     cmd = [FFMPEG, "-y", "-ss", f"{trim_s:.3f}", "-i", str(screen_rec),
            "-c", "copy", "-avoid_negative_ts", "make_zero", str(out_mp4)]
     proc = subprocess.run(cmd, capture_output=True, text=True)
