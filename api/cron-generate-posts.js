@@ -313,10 +313,12 @@ function extractJson(raw) {
 const CARD_PLATFORMS = new Set(['instagram', 'facebook']);
 
 async function renderSocialCard({ platform, hook, content, persona, post_id }) {
-  // Use the production domain so we always hit the latest deployed renderer.
-  // If running on a Vercel preview, VERCEL_URL is the preview deployment; in
-  // production the cron always runs against meetdossie.com.
-  const host = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://meetdossie.com';
+  // ALWAYS use the public production alias. Going through VERCEL_URL hits the
+  // per-deployment URL, which is gated by Vercel's deployment-protection auth
+  // page (returns 401 HTML, not JSON) — that's exactly what was silently
+  // dropping every Instagram + Facebook card render. The published alias has
+  // no protection.
+  const host = 'https://meetdossie.com';
   const url = `${host}/api/render-card`;
   const res = await fetch(url, {
     method: 'POST',
@@ -439,7 +441,11 @@ module.exports = async function handler(req, res) {
     let zernioAccountId = null;
     try { zernioAccountId = await lookupZernioAccountId(platform); } catch (_e) { zernioAccountId = null; }
 
-    const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}`;
+    // When force_day is set we may run multiple test batches in a single day;
+    // add a short epoch-second suffix so post_ids don't collide with the real
+    // morning batch (which has no suffix).
+    const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
+    const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}${testSuffix}`;
 
     // Render branded card for Instagram + Facebook. Failure is non-fatal —
     // the row still inserts with media_url=null and cron-publish-approved
