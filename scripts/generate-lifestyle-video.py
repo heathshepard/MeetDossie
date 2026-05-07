@@ -161,9 +161,45 @@ TOPICS_WITH_SCREEN_AUDIO      = {"morning_brief"}  # legacy compat — selects n
 #   6. VIDEO LENGTH 30-60s. validate_render_rules raises if total outside
 #      [VIDEO_LEN_MIN, VIDEO_LEN_MAX]. Outro extends if voice<25s, narrator
 #      script trimmed at last sentence if voice>55s.
+#   7. PLATFORM ↔ ASPECT MAPPING (NON-NEGOTIABLE).
+#      instagram → vertical 1080x1920, tiktok → vertical 1080x1920,
+#      facebook → square 1080x1080. Pexels orientation per aspect:
+#      vertical=portrait, square=landscape (then center-crop). The CLI
+#      --platform flag filters which aspects render.
+#      SCREEN RECORDING SUB-RULE: portrait recordings → instagram/tiktok
+#      only; landscape recordings → facebook/twitter/linkedin only. Enforced
+#      by select_screen_recording(topic, persona, platform) which filters
+#      LIBRARY.md by platform compatibility. Cross-aspect pairings are
+#      blocked (returns None → b-roll filler) rather than risk a portrait
+#      mobile recording landing in a Facebook square video.
 
 PEXELS_TONE_BLOCKLIST = ("sad", "stressed", "worried", "sleeping", "down", "hunched")
 PEXELS_MIN_WIDTH = 1080
+
+# RENDER_RULES #7 — platform → aspect mapping (msg 557, NON-NEGOTIABLE).
+# Each social platform consumes ONE aspect ratio. Sending the wrong format
+# (e.g. square to Instagram, vertical to Facebook feed) wastes the post
+# slot. The mapping below is enforced via --platform CLI: the renderer
+# only emits the matching aspect when --platform is supplied.
+ASPECT_DIMS = {
+    "vertical":   (1080, 1920),   # Instagram Reels, TikTok
+    "square":     (1080, 1080),   # Facebook feed
+    "horizontal": (1920, 1080),   # YouTube, LinkedIn (future — not wired yet)
+}
+PLATFORM_TO_ASPECT = {
+    "instagram": "vertical",
+    "tiktok":    "vertical",
+    "facebook":  "square",
+    # twitter/youtube/linkedin → horizontal (future, not yet implemented)
+}
+# Each aspect ratio searches Pexels with the orientation that PRODUCES that
+# aspect after a center-crop. Square uses landscape sources and crops to a
+# square; portrait targets use portrait sources directly.
+ASPECT_TO_PEXELS_ORIENTATION = {
+    "vertical":   "portrait",
+    "square":     "landscape",
+    "horizontal": "landscape",
+}
 
 VIDEO_LEN_MIN = 30.0
 VIDEO_LEN_MAX = 60.0
@@ -411,9 +447,17 @@ def gather_broll_candidates(api_key: str, topic: str, *, target_w: int, target_h
     query, but we still post-filter on width<=height because Pexels' orientation
     flag is best-effort and occasionally returns the odd landscape result."""
     queries = TOPIC_KEYWORDS.get(topic, [topic.replace("_", " ")])
+    # RENDER_RULES #7: square output uses LANDSCAPE source clips
+    # (then center-crops to 1080x1080), not square sources. Vertical uses
+    # portrait. Horizontal uses landscape.
     want_portrait = target_h > target_w
     want_square = target_h == target_w
-    orientation = "portrait" if want_portrait else ("square" if want_square else "landscape")
+    if want_square:
+        orientation = "landscape"  # square OUTPUT searches landscape SOURCE
+    elif want_portrait:
+        orientation = "portrait"
+    else:
+        orientation = "landscape"
     seen: set = set()
     candidates: list[dict] = []
     landscape_fallback: list[dict] = []
@@ -1440,33 +1484,49 @@ def parse_screen_recording_library() -> list[dict]:
             cols = [c.strip() for c in line.strip("|").split("|")]
             if len(cols) < 4:
                 continue
+            # Schema (msg 560): Filename | Persona | Voice | Demo Account
+            #                   | Aspect | Platforms | Notes
+            # Older rows without Aspect/Platforms default to portrait + the
+            # ig/tiktok pair (matches what every existing row was anyway).
+            aspect = (cols[4].strip().lower() if len(cols) > 4 else "portrait") or "portrait"
+            platforms_raw = cols[5].strip() if len(cols) > 5 else ""
+            platforms = [p.strip().lower() for p in platforms_raw.split(",") if p.strip()]
+            if not platforms:
+                platforms = ["instagram", "tiktok"] if aspect == "portrait" else ["facebook"]
+            notes = cols[6] if len(cols) > 6 else (cols[4] if len(cols) > 4 and aspect not in ("portrait", "landscape") else "")
             entries.append({
                 "filename": cols[0],
                 "personas": [p.strip().lower() for p in cols[1].split("/") if p.strip()],
                 "voice": cols[2],
                 "demo_account": cols[3],
-                "notes": cols[4] if len(cols) > 4 else "",
+                "aspect": aspect,
+                "platforms": platforms,
+                "notes": notes,
             })
         elif in_table and not line.startswith("|"):
             in_table = False  # left the table
     return entries
 
 
-def select_screen_recording_entry(topic: str, persona: Optional[str]) -> Optional[dict]:
-    """Pick the LIBRARY.md row for (topic, persona).
+def select_screen_recording_entry(topic: str, persona: Optional[str],
+                                  platform: Optional[str] = None) -> Optional[dict]:
+    """Pick the LIBRARY.md row for (topic, persona, platform).
 
-    Returns the full library entry dict (with .filename, .voice, .demo_account, ...)
-    so callers can pull both the recording path AND the voice — keeping the
-    voice locked to the on-screen persona instead of hardcoded.
+    Returns the full library entry dict (with .filename, .voice, .aspect,
+    .platforms, .demo_account, ...) so callers can pull both the recording
+    path AND the voice — keeping the voice locked to the on-screen persona.
 
-    Match logic:
+    Match logic (RENDER_RULES #5 + #7):
       1. Filename prefix == topic.replace("_", "-")
       2. Persona is in the recording's allowed-persona list (when persona is given)
-      3. Newest filename (lexicographic descending — date-suffixed names sort right)
+      3. Platform is in the recording's allowed-platforms list (when platform is given)
+         — enforces that portrait recordings only match instagram/tiktok and
+           landscape recordings only match facebook/twitter/linkedin
+      4. Newest filename (lexicographic descending)
 
     Returns None if LIBRARY.md is missing OR if no entry matches — callers
-    should fall back to b-roll filler + the persona-default voice rather than
-    risk a Brenda voiceover over a male-agent recording.
+    fall back to b-roll filler rather than risk a cross-aspect or cross-gender
+    mismatch.
     """
     library = parse_screen_recording_library()
     if not library:
@@ -1477,9 +1537,12 @@ def select_screen_recording_entry(topic: str, persona: Optional[str]) -> Optiona
     if persona:
         persona_lower = persona.lower()
         candidates = [e for e in candidates if persona_lower in e["personas"]]
+    if platform:
+        platform_lower = platform.lower()
+        candidates = [e for e in candidates if platform_lower in e["platforms"]]
 
     if not candidates:
-        print(f"[screen-rec] no LIBRARY.md match for topic={topic} persona={persona} - using b-roll filler instead")
+        print(f"[screen-rec] no LIBRARY.md match for topic={topic} persona={persona} platform={platform} - using b-roll filler instead")
         return None
 
     candidates.sort(key=lambda e: e["filename"], reverse=True)
@@ -1488,17 +1551,18 @@ def select_screen_recording_entry(topic: str, persona: Optional[str]) -> Optiona
     if not path.exists():
         print(f"[screen-rec] WARN: LIBRARY.md lists {chosen['filename']} but the file is missing - using b-roll filler")
         return None
-    print(f"[screen-rec] LIBRARY.md match: {chosen['filename']} (voice={chosen['voice']}, demo={chosen['demo_account']})")
+    print(f"[screen-rec] LIBRARY.md match: {chosen['filename']} (voice={chosen['voice']}, aspect={chosen['aspect']}, demo={chosen['demo_account']})")
     return chosen
 
 
-def select_screen_recording(topic: str, persona: Optional[str]) -> Optional[Path]:
+def select_screen_recording(topic: str, persona: Optional[str],
+                            platform: Optional[str] = None) -> Optional[Path]:
     """Back-compat path-only wrapper around select_screen_recording_entry().
 
     If LIBRARY.md is missing entirely, falls back to mtime-based selection
     so older workflows still work.
     """
-    entry = select_screen_recording_entry(topic, persona)
+    entry = select_screen_recording_entry(topic, persona, platform)
     if entry:
         return SCREEN_RECORDINGS_DIR / entry["filename"]
     if not parse_screen_recording_library():

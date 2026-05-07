@@ -4,12 +4,12 @@ Catalog of mobile screen recordings used by `scripts/generate-lifestyle-video.py
 
 ## Index
 
-| Filename | Persona | Voice | Demo Account | Notes |
-|---|---|---|---|---|
-| morning-brief-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Mobile, female demo account |
-| trec-deadlines-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Mobile, female demo account |
-| pipeline-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Mobile, female demo account |
-| talk-to-dossie-mobile-2026-05-06.mp4 | victor | Bill | John Smith (demo2@) | Mobile, Heath as male agent talking to Dossie |
+| Filename | Persona | Voice | Demo Account | Aspect | Platforms | Notes |
+|---|---|---|---|---|---|---|
+| morning-brief-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | portrait | instagram,tiktok | Mobile vertical, female demo account |
+| trec-deadlines-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | portrait | instagram,tiktok | Mobile vertical, female demo account |
+| pipeline-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | portrait | instagram,tiktok | Mobile vertical, female demo account |
+| talk-to-dossie-mobile-2026-05-06.mp4 | victor | Bill | John Smith (demo2@) | portrait | instagram,tiktok | Mobile vertical, Heath as male agent talking to Dossie |
 
 ## Pairing Rule (NON-NEGOTIABLE)
 
@@ -18,6 +18,22 @@ Catalog of mobile screen recordings used by `scripts/generate-lifestyle-video.py
 The other three recordings (`morning-brief`, `trec-deadlines`, `pipeline`) show only the screen of the female demo account (Sarah Whitley). They MUST ONLY be used with female personas (Brenda or Patricia).
 
 `scripts/generate-lifestyle-video.py` enforces this by reading the `Persona` column above and selecting only recordings whose persona list contains the day's persona. If no compatible recording exists for a (topic, persona) combination, the renderer falls back to b-roll filler for that segment rather than mismatch a recording.
+
+## Platform Aspect Rule (NON-NEGOTIABLE)
+
+The `Aspect` and `Platforms` columns enforce platform compatibility:
+
+- **portrait** recordings (1080×1920 mobile capture) → ONLY for `instagram` and `tiktok`. Never use a portrait recording for a Facebook square render.
+- **landscape** recordings (1920×1080 desktop capture) → ONLY for `facebook`, `twitter`, `linkedin`. Never use a landscape recording for an Instagram Reels or TikTok render.
+
+`select_screen_recording(topic, persona, platform)` filters the table by:
+1. Filename starts with `<topic-slug>-`
+2. `persona` is in the row's persona list
+3. `platform` is in the row's platforms list
+
+If any of those filters yields zero rows, the renderer returns None and falls back to b-roll filler — never a cross-aspect mismatch.
+
+When Heath records a desktop screen recording in the future, add a row with `aspect: landscape` and `platforms: facebook,twitter,linkedin`. The selector picks it up automatically for the next Facebook render.
 
 ## Naming Convention
 
