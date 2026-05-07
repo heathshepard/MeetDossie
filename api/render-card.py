@@ -212,14 +212,21 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
     derived_stat, derived_label = derive_stat_and_label(stat, stat_label, hook, content)
 
     # ─── Stat line ───────────────────────────────────────────────────────
-    # Single line preferred; binary-search a font size that fits the width
-    # and leaves room for the rest of the layout.
-    stat_max_h = int(H * 0.22 if platform == "instagram" else H * 0.30)
-    stat_start = int(H * 0.10 if platform == "instagram" else H * 0.13)
+    # Target a visually substantial serif (~96px instagram, ~72px facebook).
+    # Binary-search downward but never below 56px — at that floor the stat
+    # still reads as "the headline." If a stat is so long it doesn't fit at
+    # 56px on one line we let it wrap; max 2 lines.
+    stat_max_h = int(H * 0.32 if platform == "instagram" else H * 0.38)
+    stat_start = 96 if platform == "instagram" else 72
     stat_font, stat_lines, stat_block_h = fit_font_size(
         draw, derived_stat, FONT_SERIF_BOLD,
-        content_w, stat_max_h, stat_start, min_size=36, line_spacing=1.05,
+        content_w, stat_max_h, stat_start, min_size=56, line_spacing=1.05,
     )
+    # Cap to 2 lines — long stats wrap, but never push the body off the card.
+    if len(stat_lines) > 2:
+        stat_lines = stat_lines[:2]
+        if not stat_lines[1].endswith("…"):
+            stat_lines[1] = stat_lines[1].rstrip(".") + "…"
     stat_y = pad_top
     stat_end_y = draw_lines(draw, stat_lines, stat_font, content_left, stat_y,
                             stat_color, line_spacing=1.05)
@@ -398,6 +405,15 @@ class handler(BaseHTTPRequestHandler):
         })
 
     def do_GET(self):
+        # Font diagnostic — needed because the silent Cormorant fallback to
+        # DejaVu Sans Bold radically changes the binary-search outcome and
+        # leaves stats at min_size. Quick way to verify the bundled fonts
+        # actually shipped to /var/task/Media/_fonts/.
+        font_status = {}
+        for name, p in [("serif_bold", FONT_SERIF_BOLD), ("serif_semibold", FONT_SERIF_SEMIBOLD)]:
+            font_status[name] = {"path": str(p), "exists": p.exists(), "size": p.stat().st_size if p.exists() else None}
         return self._send_json(200, {"ok": True, "service": "render-card",
                                      "platforms": list(PLATFORM_DIMS.keys()),
-                                     "design": "concept-b-stat-anchor"})
+                                     "design": "concept-b-stat-anchor",
+                                     "root": str(ROOT),
+                                     "fonts": font_status})
