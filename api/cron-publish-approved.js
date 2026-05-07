@@ -385,6 +385,76 @@ async function isDuplicateRecentPost(post) {
   return Array.isArray(data) && data.length > 0;
 }
 
+// ─── self-heal ───────────────────────────────────────────────────────────
+// Vercel Hobby crons aren't guaranteed: a deploy in flight at the cron's
+// trigger window can silently drop the invocation. The publish cron runs
+// every 30 min (which the platform DOES tend to honour reliably for short
+// jobs), so we use it as a safety net — if today's content_batches row is
+// missing AND we're inside the daytime window, kick off the
+// generate → send-for-approval chain inline. The publish cron's
+// maxDuration is bumped to 120s in vercel.json to give us headroom for
+// the ~55s generate call.
+
+async function selfHealMissedBatch() {
+  // Window: 11:30 UTC (30-min grace after the scheduled 11:00) through
+  // 20:00 UTC. Past 20:00 we leave it alone — no point dropping drafts
+  // into the approval bot at 3am Heath's local time if he was away.
+  const now = new Date();
+  const utcMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+  if (utcMins < 11 * 60 + 30 || utcMins >= 20 * 60) return;
+
+  const todayStartUtc = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+  )).toISOString();
+
+  const checkResp = await fetch(
+    `${SUPABASE_URL}/rest/v1/content_batches?generated_at=gte.${encodeURIComponent(todayStartUtc)}&select=id&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    },
+  );
+  if (!checkResp.ok) {
+    console.warn('[self-heal] content_batches check failed:', checkResp.status);
+    return;
+  }
+  const rows = await checkResp.json().catch(() => []);
+  if (Array.isArray(rows) && rows.length > 0) return; // batch exists, no heal needed
+
+  console.log(`[self-heal] no batch for today (${todayStartUtc}) AND in 11:30–20:00 UTC window — triggering generate + send`);
+
+  try {
+    const genResp = await fetch('https://meetdossie.com/api/cron-generate-posts', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${CRON_SECRET}` },
+    });
+    const genText = await genResp.text();
+    console.log(`[self-heal] generate status=${genResp.status} body=${genText.slice(0, 200)}`);
+    if (!genResp.ok) {
+      console.error('[self-heal] generate failed — skipping send');
+      return;
+    }
+  } catch (err) {
+    console.error('[self-heal] generate threw:', err && err.message);
+    return;
+  }
+
+  try {
+    const sendResp = await fetch('https://meetdossie.com/api/cron-send-for-approval', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${CRON_SECRET}` },
+    });
+    const sendText = await sendResp.text();
+    console.log(`[self-heal] send status=${sendResp.status} body=${sendText.slice(0, 200)}`);
+  } catch (err) {
+    console.error('[self-heal] send threw:', err && err.message);
+  }
+
+  console.log(`[self-heal] healed missed daily batch at ${now.toISOString()}`);
+}
+
 // ─── main ────────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
@@ -406,6 +476,15 @@ module.exports = async function handler(req, res) {
 
   // Recover any rows stuck in 'publishing' from a crashed prior run.
   await recoverStuckPublishing();
+
+  // Self-heal: if today's daily batch never landed (Vercel missed the trigger),
+  // kick generate + send before we look for approved-and-due rows. Wrapped so
+  // any failure is logged and we still publish whatever's already approved.
+  try {
+    await selfHealMissedBatch();
+  } catch (err) {
+    console.error('[self-heal] uncaught error:', err && err.message);
+  }
 
   const nowIso = new Date().toISOString();
   const filter = `status=eq.approved&posted_at=is.null&or=(scheduled_for.is.null,scheduled_for.lte.${encodeURIComponent(nowIso)})`;

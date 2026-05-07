@@ -31,7 +31,10 @@
       "includeFiles": "Media/_fonts/**;Media/dossie-logo-d.png"
     },
     "api/cron-generate-posts.js": {
-      "maxDuration": 60
+      "maxDuration": 90
+    },
+    "api/cron-publish-approved.js": {
+      "maxDuration": 120
     }
   },
   "crons": [

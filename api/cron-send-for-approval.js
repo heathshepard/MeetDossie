@@ -54,8 +54,9 @@ function formatPostMessage(post) {
     : '(none)';
   const algo = PLATFORM_RULES_SUMMARY[platform] || '';
   const algoLine = algo ? `\n📐 Algorithm-optimized for ${platform}: ${algo}` : '';
+  const mediaLine = post.media_url ? `\n📸 Image card attached` : '';
   // Plain text — Telegram parse_mode left unset to avoid escaping headaches.
-  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}${algoLine}`;
+  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}${algoLine}${mediaLine}`;
 }
 
 function inlineKeyboard(postId) {

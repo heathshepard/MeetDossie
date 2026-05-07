@@ -143,14 +143,36 @@ const POST_PLAN_BASE = [
   { persona: 'victor',   platform: 'tiktok',    notes: 'Confident, not cocky. Math-driven.' },
 ];
 
-function getPostPlan(date = new Date()) {
-  const isFriday = date.getUTCDay() === 5; // 0=Sun..5=Fri
+function getPostPlan(date = new Date(), opts = {}) {
+  // forceDay (0–6, 0=Sun) lets a CRON_SECRET-gated test run pretend it's a
+  // different weekday so we can exercise the day-of-week LinkedIn swap on
+  // demand. Falls back to the real UTC weekday.
+  const dayOfWeek = (typeof opts.forceDay === 'number' && opts.forceDay >= 0 && opts.forceDay <= 6)
+    ? opts.forceDay
+    : date.getUTCDay();
+  const isFriday = dayOfWeek === 5;
   if (!isFriday) return POST_PLAN_BASE;
   return POST_PLAN_BASE.map((p) => (
     p.persona === 'victor' && p.platform === 'facebook'
       ? { persona: 'victor', platform: 'linkedin', notes: 'Operational, peer-to-peer. LinkedIn audience: brokers + top producers. Open with a specific operational insight or number; close with a question that invites them to share their own.' }
       : p
   ));
+}
+
+function parseForceDay(req) {
+  let raw = null;
+  try {
+    if (req && req.query && req.query.force_day) raw = String(req.query.force_day);
+    else if (req && typeof req.url === 'string') {
+      raw = new URL(req.url, 'https://x').searchParams.get('force_day');
+    }
+  } catch (_e) { raw = null; }
+  if (!raw) return null;
+  const m = String(raw).toLowerCase();
+  const map = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  if (m in map) return map[m];
+  const n = parseInt(m, 10);
+  return (Number.isInteger(n) && n >= 0 && n <= 6) ? n : null;
 }
 
 function pickTopic() {
@@ -340,8 +362,9 @@ module.exports = async function handler(req, res) {
 
   const now = new Date();
   const topic = pickTopic();
-  const plan = getPostPlan(now);
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'at', now.toISOString());
+  const forceDay = parseForceDay(req);
+  const plan = getPostPlan(now, { forceDay });
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'at', now.toISOString());
 
   let raw;
   try {
@@ -398,6 +421,7 @@ module.exports = async function handler(req, res) {
 
   let inserted = 0;
   const insertErrors = [];
+  const renderSummary = []; // diagnostic: per-eligible-post render outcome
   for (let i = 0; i < generated.length; i++) {
     const p = generated[i];
     if (!p || typeof p !== 'object') continue;
@@ -422,6 +446,7 @@ module.exports = async function handler(req, res) {
     // posts a text-only update.
     let mediaUrl = null;
     if (CARD_PLATFORMS.has(platform)) {
+      const renderStart = Date.now();
       const card = await renderSocialCard({
         platform,
         hook: hook || content.slice(0, 120),
@@ -429,11 +454,14 @@ module.exports = async function handler(req, res) {
         persona,
         post_id: postId,
       });
+      const renderMs = Date.now() - renderStart;
       if (card.ok) {
         mediaUrl = card.publicUrl;
-        console.log(`[card] ${postId} -> ${card.publicUrl} (${card.size_bytes} bytes)`);
+        console.log(`[card] ${postId} -> ${card.publicUrl} (${card.size_bytes} bytes, ${renderMs}ms)`);
+        renderSummary.push({ post_id: postId, platform, ok: true, ms: renderMs, size_bytes: card.size_bytes, public_url: card.publicUrl });
       } else {
-        console.warn(`[card] ${postId} render failed status=${card.status} err=${String(card.error || '').slice(0, 200)}`);
+        console.warn(`[card] ${postId} render failed status=${card.status} err=${String(card.error || '').slice(0, 200)} after ${renderMs}ms`);
+        renderSummary.push({ post_id: postId, platform, ok: false, ms: renderMs, status: card.status, error: String(card.error || '').slice(0, 200) });
       }
     }
 
@@ -472,13 +500,15 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length);
+  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'renders:', renderSummary.filter(r => r.ok).length, '/', renderSummary.length);
   return res.status(200).json({
     ok: true,
     generated: generated.length,
     inserted,
     batch_id: batchId,
     topic: topic.key,
+    force_day: forceDay,
     errors: insertErrors,
+    render_summary: renderSummary,
   });
 };
