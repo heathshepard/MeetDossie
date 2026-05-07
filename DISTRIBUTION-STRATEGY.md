@@ -85,6 +85,20 @@ Inherit an audience overnight.
 - Research: find newsletters agents actually open and read
 - Timeline: after 50 paying customers — use revenue to fund acquisition
 
+## Platform Video Format Requirements
+Every social platform consumes one canonical video aspect. Sending the wrong format wastes the post slot — Instagram strips a square video into a low-engagement preview, Facebook crops a vertical video to half-height, etc. The renderer (`scripts/generate-lifestyle-video.py`) enforces this via `PLATFORM_TO_ASPECT` and the `--platform` CLI:
+
+| Platform   | Aspect              | Pexels source orientation                       |
+|------------|---------------------|-------------------------------------------------|
+| Instagram  | 1080×1920 vertical  | portrait                                        |
+| TikTok     | 1080×1920 vertical  | portrait                                        |
+| Facebook   | 1080×1080 square    | landscape (then center-crop to square)          |
+| Twitter    | 1200×675 landscape  | landscape (future — not wired in renderer yet)  |
+| YouTube    | 1920×1080 landscape | landscape (future)                              |
+| LinkedIn   | 1920×1080 landscape | landscape (future)                              |
+
+Screen recordings inherit their platform via filename convention: `*-mobile-*.mp4` is portrait → eligible for Instagram + TikTok only; `*-desktop-*.mp4` is landscape → eligible for Facebook + Twitter + LinkedIn only. See `Media/screen-recordings/LIBRARY.md` for the full catalog and the cross-aspect prevention rule.
+
 ## URL Strategy
 The marketing URL for founding members rotates through three phases as the 50-spot cohort fills:
 

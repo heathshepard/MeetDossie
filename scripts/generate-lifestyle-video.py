@@ -1203,9 +1203,10 @@ def truncate_script_to_fit_duration(script: str, max_seconds: float,
     return accumulated
 
 
-def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
+def render_morning_brief_audio(voiceover: Path, music: Path,
                                total_seconds: float, out_audio: Path,
                                t_title: float, t_broll: float, t_screen: float,
+                               screen_audio: Optional[Path] = None,
                                closing_voiceover: Optional[Path] = None,
                                t_outro: float = 0.0) -> Path:
     """Segmented mix for topic=morning_brief — narrator and Dossie's voice
@@ -1236,14 +1237,17 @@ def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
         f"volume={VOICE_VOLUME}[voice]"
     )
 
-    # Music: full duration, fade in/out, ducked during the screen segment via
-    # a time-gated volume multiplier.
+    # Music: full duration, fade in/out. Ducked during the screen segment via
+    # a time-gated volume multiplier ONLY when Dossie's voice is mixed in
+    # there (otherwise the duck is just unmotivated quiet music).
+    has_screen = bool(screen_audio and screen_audio.exists() and t_screen > 0)
+    duck_clause = (f",volume={SCREEN_BG_DUCK_FACTOR}:enable='between(t,{screen_start:.3f},{screen_end:.3f})'"
+                   if has_screen else "")
     bg_chain = (
         f"[1:a]atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
         f"afade=t=in:st=0:d={BG_FADE_IN},"
         f"afade=t=out:st={bg_fade_out_start:.3f}:d={BG_FADE_OUT},"
-        f"volume={BG_VOLUME},"
-        f"volume={SCREEN_BG_DUCK_FACTOR}:enable='between(t,{screen_start:.3f},{screen_end:.3f})'[bg]"
+        f"volume={BG_VOLUME}{duck_clause}[bg]"
     )
 
     # Screen audio (Dossie): trim to t_screen, fade in/out, delay to screen_start.
@@ -1259,9 +1263,20 @@ def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
         f"volume={SCREEN_AUDIO_VOLUME}[screen]"
     )
 
-    chains = [narrator_chain, bg_chain, screen_chain]
-    inputs = ["-i", str(voiceover), "-i", str(music), "-i", str(screen_audio)]
-    mix_labels = ["[voice]", "[bg]", "[screen]"]
+    # Always include narrator + music. Screen audio (Dossie's voice) and
+    # closing line are optional — square Facebook renders typically have no
+    # screen recording, so they fall back to a 2-input (narrator + music)
+    # or 3-input (narrator + music + closing) graph cleanly.
+    chains = [narrator_chain, bg_chain]
+    inputs = ["-i", str(voiceover), "-i", str(music)]
+    mix_labels = ["[voice]", "[bg]"]
+    next_idx = 2
+
+    if screen_audio and screen_audio.exists():
+        chains.append(screen_chain.replace("[2:a]", f"[{next_idx}:a]"))
+        inputs += ["-i", str(screen_audio)]
+        mix_labels.append("[screen]")
+        next_idx += 1
 
     # RENDER_RULES #3 — closing line ("This is what $29 a month sounds like...")
     # placed in the outro window (after screen segment ends). Synthesized as
@@ -1269,7 +1284,7 @@ def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
     if closing_voiceover and closing_voiceover.exists() and t_outro > 0:
         outro_start = t_title + t_broll + t_screen
         closing_chain = (
-            f"[3:a]apad=whole_dur={total_seconds:.3f},"
+            f"[{next_idx}:a]apad=whole_dur={total_seconds:.3f},"
             f"atrim=duration={total_seconds:.3f},asetpts=PTS-STARTPTS,"
             f"adelay={int(outro_start * 1000)}|{int(outro_start * 1000)},"
             f"apad=whole_dur={total_seconds:.3f},"
@@ -1279,6 +1294,7 @@ def render_morning_brief_audio(voiceover: Path, music: Path, screen_audio: Path,
         chains.append(closing_chain)
         inputs += ["-i", str(closing_voiceover)]
         mix_labels.append("[closing]")
+        next_idx += 1
 
     n_inputs = len(mix_labels)
     chains.append(f"{''.join(mix_labels)}amix=inputs={n_inputs}:duration=first:normalize=0[a]")
@@ -1316,14 +1332,19 @@ def mix_audio_with_video(video: Path, voiceover: Path, music: Path,
     simultaneously. Other topics use the legacy continuous-narrator render_mixed_audio.
     """
     audio_tmp = out_mp4.with_suffix(".audio.m4a")
-    if topic == "morning_brief" and screen_audio and screen_audio.exists() and screen_audio_duration > 0:
-        # Heath's segmented spec: narrator only during b-roll, Dossie only during screen,
-        # closing line in the outro (RULES #3).
+    if topic == "morning_brief":
+        # Heath's segmented spec (RULES #3): narrator only during b-roll,
+        # Dossie only during screen (when present), closing line in outro.
+        # Square renders without a screen recording fall through this path
+        # too — render_morning_brief_audio handles the missing screen_audio
+        # by skipping that input, producing a 2-or-3-input mix.
+        broll_dur = (screen_audio_start - voice_start) if (screen_audio and screen_audio_duration > 0) else max(0.0, total_seconds - voice_start - t_outro)
+        screen_dur = screen_audio_duration if (screen_audio and screen_audio_duration > 0) else 0.0
         render_morning_brief_audio(
-            voiceover=voiceover, music=music, screen_audio=screen_audio,
+            voiceover=voiceover, music=music,
             total_seconds=total_seconds, out_audio=audio_tmp,
-            t_title=voice_start, t_broll=screen_audio_start - voice_start,
-            t_screen=screen_audio_duration,
+            t_title=voice_start, t_broll=broll_dur, t_screen=screen_dur,
+            screen_audio=screen_audio if (screen_audio and screen_audio.exists()) else None,
             closing_voiceover=closing_voiceover, t_outro=t_outro,
         )
     else:
@@ -1435,17 +1456,17 @@ def render_aspect(aspect: str, *, broll: list[Path], screen_rec: Optional[Path],
     # 5) Concat
     base_mp4 = concat_segments([title_mp4, broll_mp4, screen_mp4, outro_mp4], base / "base.mp4")
 
-    # 6) Mix audio (total = sum of segment durations). For morning_brief,
-    # also fold in the screen recording's own audio at SCREEN_AUDIO_VOLUME
-    # for the duration of the screen segment.
+    # 6) Mix audio. For morning_brief, route through render_morning_brief_audio
+    # whether or not a screen recording is present (square Facebook renders
+    # have no compatible mobile recording → still get narrator + closing line).
     out_path = FINISHED_DIR / f"{output_prefix}-{aspect}.mp4"
-    if topic in TOPICS_WITH_SCREEN_AUDIO and screen_rec and screen_rec.exists():
+    if topic == "morning_brief":
         screen_audio_start = segs["t_title"] + segs["t_broll"]
         mix_audio_with_video(base_mp4, voiceover, BG_MUSIC, segs["total"], out_path,
                              voice_start=segs["t_title"],
-                             screen_audio=screen_rec,
+                             screen_audio=(screen_rec if screen_rec and screen_rec.exists() else None),
                              screen_audio_start=screen_audio_start,
-                             screen_audio_duration=segs["t_screen"],
+                             screen_audio_duration=(segs["t_screen"] if screen_rec and screen_rec.exists() else 0.0),
                              topic=topic,
                              closing_voiceover=closing_voiceover,
                              t_outro=segs["t_outro"])
@@ -1731,34 +1752,64 @@ def main():
               "(line: ELEVENLABS_API_KEY=\"sk_...\") or pass --elevenlabs-key.", file=sys.stderr)
         return 2
 
-    # Resolve inputs — LIBRARY.md drives selection so a Brenda voiceover
-    # never lands over Heath-on-camera footage and vice versa. The matched
-    # row also dictates the voiceover voice (Voice column), so the audio
-    # tracks the on-screen agent automatically.
-    library_entry = None if args.screen_recording else select_screen_recording_entry(args.topic, persona)
-    screen_rec = Path(args.screen_recording) if args.screen_recording else (
-        SCREEN_RECORDINGS_DIR / library_entry["filename"] if library_entry
-        else (find_latest_screen_recording() if not parse_screen_recording_library() else None)
-    )
-    voice_name = voice_for(library_entry, persona)
-    if not screen_rec:
-        print("WARN: no screen recording provided or found in screen-recordings/. Using b-roll filler for that segment.")
+    # RENDER_RULES #7 — which aspects to render based on --platform.
+    # No --platform: render all platforms' aspects (instagram + facebook today).
+    # --platform instagram/tiktok: vertical only.
+    # --platform facebook: square only.
+    if args.platform:
+        plat_lower = args.platform.lower()
+        target_aspect = PLATFORM_TO_ASPECT.get(plat_lower)
+        if not target_aspect:
+            print(f"ERROR: --platform {plat_lower!r} has no aspect mapping. "
+                  f"Supported: {', '.join(sorted(PLATFORM_TO_ASPECT.keys()))}", file=sys.stderr)
+            return 6
+        aspects_to_render = [target_aspect]
+        print(f"[platform] --platform={plat_lower} -> rendering aspect={target_aspect} only")
     else:
-        print(f"[input] screen recording: {screen_rec}")
+        # Default: render the unique aspects across all known platforms.
+        aspects_to_render = []
+        for asp in PLATFORM_TO_ASPECT.values():
+            if asp not in aspects_to_render:
+                aspects_to_render.append(asp)
+        print(f"[platform] no --platform set -> rendering {aspects_to_render}")
+
+    # Map each aspect to a "primary platform" used for screen-recording lookup.
+    # Vertical aspect picks instagram (mobile recordings), square picks facebook
+    # (no mobile recording matches → b-roll filler, per RENDER_RULES #7).
+    aspect_primary_platform = {}
+    for plat, asp in PLATFORM_TO_ASPECT.items():
+        aspect_primary_platform.setdefault(asp, plat)
+
+    # Voice name comes from the screen recording for the FIRST aspect we
+    # render (so a Brenda persona stays on Luna whether instagram or facebook
+    # is the only target). If no library entry matches the first aspect, fall
+    # back to persona-default voice.
+    primary_platform = aspect_primary_platform.get(aspects_to_render[0])
+    library_entry_for_voice = (None if args.screen_recording
+                               else select_screen_recording_entry(args.topic, persona, primary_platform))
+    if not library_entry_for_voice:
+        # Try without platform filter to at least get the voice column.
+        library_entry_for_voice = select_screen_recording_entry(args.topic, persona)
+    voice_name = voice_for(library_entry_for_voice, persona)
 
     output_prefix = args.output_prefix or f"{args.topic}-{__import__('datetime').date.today().isoformat()}"
 
-    # 1) Pexels b-roll
+    # 1) Pexels b-roll — fetched per aspect with the correct orientation
+    # (RENDER_RULES #7: vertical → portrait sources, square → landscape).
+    broll_per_aspect: dict = {}
     if args.no_broll or not args.pexels_key:
         if args.no_broll:
             print("[broll] --no-broll set, skipping")
         else:
             print("WARN: PEXELS_API_KEY not set, skipping b-roll. Pass --pexels-key or set env.")
-        broll_clips = []
+        for asp in aspects_to_render:
+            broll_per_aspect[asp] = []
     else:
-        print(f"[broll] fetching Pexels footage for topic={args.topic}")
-        broll_clips = fetch_broll(args.pexels_key, args.topic, target_w=1080, target_h=1920)
-        print(f"[broll] {len(broll_clips)} clips downloaded")
+        for asp in aspects_to_render:
+            tw, th = ASPECT_DIMS[asp]
+            print(f"[broll] fetching Pexels footage for topic={args.topic} aspect={asp} ({tw}x{th}, {ASPECT_TO_PEXELS_ORIENTATION[asp]})")
+            broll_per_aspect[asp] = fetch_broll(args.pexels_key, args.topic, target_w=tw, target_h=th)
+            print(f"[broll] aspect={asp}: {len(broll_per_aspect[asp])} clips downloaded")
 
     # 2) Voiceover.
     # For morning_brief (RULES #3, #4): the narrator only speaks during the
@@ -1830,24 +1881,48 @@ def main():
               file=sys.stderr)
         return 5
 
-    # 3) Render both aspects in a tempdir
+    # 3) Render selected aspects in a tempdir.
     FINISHED_DIR.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="dossie-render-") as tmp:
         workdir = Path(tmp)
-
-        # 3a) Freeze-detect trim: skip dead air at the start of the screen
-        # recording so the cut into the screen segment lands on motion.
-        # Capped at SCREEN_TRIM_MAX (3s). No-op if motion starts immediately.
-        if screen_rec and screen_rec.exists():
-            trimmed_screen, trimmed_s = trim_screen_recording(screen_rec, workdir / "screen-trimmed.mp4")
-            if trimmed_s > 0.05:
-                print(f"[screen-rec] freezedetect trimmed {trimmed_s:.2f}s of dead air from start")
-                screen_rec = trimmed_screen
-
         outputs = []
-        for aspect in ("vertical", "square"):
+
+        # 3a) Per-aspect screen recording resolution + freeze-detect trim.
+        # Each aspect gets the recording matching its primary platform
+        # (vertical→instagram→mobile portrait; square→facebook→typically
+        # no compatible mobile recording → b-roll filler). Trim runs once
+        # per unique resolved file.
+        aspect_screen_rec: dict = {}
+        trimmed_cache: dict = {}
+        for asp in aspects_to_render:
+            if args.screen_recording:
+                src = Path(args.screen_recording)
+            else:
+                plat = aspect_primary_platform.get(asp)
+                entry = select_screen_recording_entry(args.topic, persona, plat)
+                if entry:
+                    src = SCREEN_RECORDINGS_DIR / entry["filename"]
+                elif not parse_screen_recording_library():
+                    src = find_latest_screen_recording()
+                else:
+                    src = None
+            if src and src.exists():
+                key = str(src.resolve())
+                if key not in trimmed_cache:
+                    trimmed_src, trimmed_s = trim_screen_recording(src, workdir / f"screen-trimmed-{asp}.mp4")
+                    if trimmed_s > 0.05:
+                        print(f"[screen-rec] freezedetect trimmed {trimmed_s:.2f}s of dead air from start ({asp})")
+                    trimmed_cache[key] = trimmed_src
+                aspect_screen_rec[asp] = trimmed_cache[key]
+                print(f"[input] aspect={asp} screen recording: {aspect_screen_rec[asp].name}")
+            else:
+                aspect_screen_rec[asp] = None
+                print(f"[input] aspect={asp}: no screen recording matched (platform={aspect_primary_platform.get(asp)}) — b-roll throughout")
+
+        for aspect in aspects_to_render:
             print(f"[render] {aspect}")
-            out = render_aspect(aspect, broll=broll_clips, screen_rec=screen_rec,
+            out = render_aspect(aspect, broll=broll_per_aspect.get(aspect, []),
+                                screen_rec=aspect_screen_rec.get(aspect),
                                 hook_text=hook, voiceover=voiceover_path,
                                 output_prefix=output_prefix, workdir=workdir,
                                 segs=segs, topic=args.topic,
