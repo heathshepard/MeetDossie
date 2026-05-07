@@ -1904,10 +1904,11 @@ def main():
         outputs = []
 
         # 3a) Per-aspect screen recording resolution + freeze-detect trim.
-        # Each aspect gets the recording matching its primary platform
-        # (vertical→instagram→mobile portrait; square→facebook→typically
-        # no compatible mobile recording → b-roll filler). Trim runs once
-        # per unique resolved file.
+        # Platform-specific match first (vertical→instagram→mobile, future
+        # square→facebook→desktop). If no platform-specific recording exists
+        # yet, FALL BACK to any topic+persona match — until desktop recordings
+        # are added, the mobile portrait recording gets used in square renders
+        # too (letterbox/scale-fill at render_screen_segment time).
         aspect_screen_rec: dict = {}
         trimmed_cache: dict = {}
         for asp in aspects_to_render:
@@ -1916,6 +1917,11 @@ def main():
             else:
                 plat = aspect_primary_platform.get(asp)
                 entry = select_screen_recording_entry(args.topic, persona, plat)
+                if not entry:
+                    # Fallback: any matching recording for this topic+persona,
+                    # ignoring platform. Better to use a mobile recording with
+                    # letterbox than to ship dead-air b-roll.
+                    entry = select_screen_recording_entry(args.topic, persona)
                 if entry:
                     src = SCREEN_RECORDINGS_DIR / entry["filename"]
                 elif not parse_screen_recording_library():
