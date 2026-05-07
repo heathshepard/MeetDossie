@@ -12,6 +12,18 @@ Every page, post, ad, and email should map back to one of these. "Cost savings" 
 
 The "control freak agent" segment — agents who refuse to hire a TC because they can't trust someone else to do it right — is the audience that Control + Visibility unlocks. Lean into "you're not giving up control, you're finally getting it" and "control freaks make the best Dossie users." Avoid "let go" / "trust the process" framing — that is exactly what this audience refuses.
 
+## Channel Status (live 2026-05-07)
+Every Zernio-connected platform now publishes drafts approved through DossieMarketingBot. LinkedIn went live 2026-05-07 — `cron-generate-posts.js` swaps Victor's Friday slot from Facebook to LinkedIn so the top-producer / margin-driven voice lands on the B2B audience that's reading Friday-morning summaries.
+
+| Platform   | Handle / page                            | Status                                                              |
+|------------|------------------------------------------|---------------------------------------------------------------------|
+| Facebook   | MeetDossie                               | ✅ active                                                            |
+| Instagram  | @meetdossie                              | ✅ active                                                            |
+| Twitter/X  | @meetdossie                              | ✅ active                                                            |
+| LinkedIn   | linkedin.com/company/meetdossie          | ✅ active (Victor's Friday slot routes here)                         |
+| TikTok     | @meetdossietc                            | connected, gated locally — `is_active=FALSE` until ~May 20, 2026     |
+| Threads    | @meetdossie                              | not automated                                                        |
+
 ## Persona → Demo Account (LOCKED 2026-05-06)
 Daily content briefs and lifestyle-video screen recordings match the persona's gender to the demo account's named-profile gender. This mapping is the final, canonical version — used by `cron-content-brief.js` and `scripts/generate-lifestyle-video.py`:
 

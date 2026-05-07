@@ -114,15 +114,27 @@ const PLATFORM_RULES = {
     timing: "Best performing: 8-10AM or 12-1PM CST weekdays",
     hashtags: "1-2 max or none. Twitter hashtags hurt more than help for most content.",
   },
+  linkedin: {
+    hook_rule: "First two lines are visible before the 'see more' fold — front-load the value with a specific operational insight, a contrarian take, or a number. No clickbait, no 'You won't believe...' Sound like a peer talking shop, not a marketer.",
+    length_rule: "1300-2000 chars. LinkedIn rewards story-shaped, single-thread posts in this range with the strongest dwell signal. Shorter posts under 600 chars also work for sharp one-line takes.",
+    format_rule: "Short paragraphs, 1-3 sentences each. Heavy line-breaks for white space. Skimmable structure beats prose blocks. Lists OK if they're load-bearing, not ornamental.",
+    cta_rule: "End with a specific question that invites operators to reply with their own number or workflow ('What does your TC actually cost per file when you add the chase time?'). Comments dwarf likes for reach. Avoid 'Thoughts?' — too generic.",
+    timing: "Best performing: Tuesday-Thursday 7-10AM CST. Friday morning also lands well for ops-minded audiences.",
+    hashtags: "3-5 hashtags. Mix industry (#realestate #propTech) and niche (#texasrealestate #realestatetransactioncoordinator). LinkedIn hashtags actually contribute to discovery.",
+  },
 };
 
-// Connected zernio_accounts as of 2026-05-04: facebook, instagram, tiktok, twitter.
-// LinkedIn intentionally not in this plan — without a connected zernio_account
-// row those posts can never publish, so we don't generate them.
+// Connected zernio_accounts as of 2026-05-07: facebook, instagram, twitter,
+// tiktok (gated locally), linkedin.
 //
-// Length rules now live in PLATFORM_RULES (single source of truth). Per-post
+// Length rules live in PLATFORM_RULES (single source of truth). Per-post
 // notes only carry persona-flavor guidance, not length conflicts.
-const POST_PLAN = [
+//
+// Day-of-week routing: Friday is LinkedIn-day for Victor. The top-producer /
+// math-driven voice lands hardest on a B2B audience that's reading Friday
+// morning summaries; brenda + patricia still cover Facebook the rest of the
+// day. Other days keep Victor on Facebook.
+const POST_PLAN_BASE = [
   { persona: 'brenda',   platform: 'facebook',  notes: 'Story-shaped. Emotional honesty.' },
   { persona: 'brenda',   platform: 'twitter',   notes: 'One punchline. Tired-but-witty voice.' },
   { persona: 'patricia', platform: 'facebook',  notes: 'Conversational. Real-numbers focus.' },
@@ -130,6 +142,16 @@ const POST_PLAN = [
   { persona: 'victor',   platform: 'facebook',  notes: 'Operational/strategic framing.' },
   { persona: 'victor',   platform: 'tiktok',    notes: 'Confident, not cocky. Math-driven.' },
 ];
+
+function getPostPlan(date = new Date()) {
+  const isFriday = date.getUTCDay() === 5; // 0=Sun..5=Fri
+  if (!isFriday) return POST_PLAN_BASE;
+  return POST_PLAN_BASE.map((p) => (
+    p.persona === 'victor' && p.platform === 'facebook'
+      ? { persona: 'victor', platform: 'linkedin', notes: 'Operational, peer-to-peer. LinkedIn audience: brokers + top producers. Open with a specific operational insight or number; close with a question that invites them to share their own.' }
+      : p
+  ));
+}
 
 function pickTopic() {
   const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
@@ -151,8 +173,8 @@ function buildPlatformRulesBlock(platform) {
   ].join('\n');
 }
 
-function buildPrompt(topic) {
-  const planLines = POST_PLAN.map((p, i) => {
+function buildPrompt(topic, plan) {
+  const planLines = plan.map((p, i) => {
     const persona = PERSONAS[p.persona];
     return `${i + 1}. Persona: ${persona.name} (${p.persona}) — ${persona.summary}
    Platform: ${p.platform}
@@ -318,11 +340,12 @@ module.exports = async function handler(req, res) {
 
   const now = new Date();
   const topic = pickTopic();
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'at', now.toISOString());
+  const plan = getPostPlan(now);
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'at', now.toISOString());
 
   let raw;
   try {
-    raw = await callAnthropic(buildPrompt(topic));
+    raw = await callAnthropic(buildPrompt(topic, plan));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });

@@ -137,7 +137,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - Scarcity banner — live founding count from `subscriptions` table
 
 **Distribution:**
-- Zernio social posting pipeline: Facebook ✅ Twitter ✅ Instagram ✅
+- Zernio social posting pipeline: Facebook ✅ Twitter ✅ Instagram ✅ LinkedIn ✅
 - Twitter thread-split (max 6 chunks, paragraph-first; see `splitForTwitter` in `api/cron-publish-approved.js`)
 - Instagram + Facebook image card renderer (Python Pillow, `api/render-card.py` runs at post-creation time)
 - Daily content briefs via Claudy at 9AM CST weekdays
@@ -154,7 +154,6 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 - Brokerage compliance document sending (specced, not built — high value)
 - Stripe Payment Links (permanent, non-expiring) — current checkout sessions expire 24h
-- LinkedIn page setup + Zernio connection
 - MCP server npm publish + Smithery / MCPT / OpenTools registry submissions
 - TikTok automation (manual only until ~May 20, 2026)
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
@@ -165,12 +164,13 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 9. NEXT PRIORITIES (in order)
 
-1. Brokerage compliance document sending
-2. Stripe Payment Links (permanent, non-expiring)
-3. LinkedIn page + Zernio connection
-4. MCP server publishing
-5. Brevo email nurture (agent vs TC segmented)
-6. Zernio analytics feedback loop
+1. MCP server publishing
+2. Brevo email nurture (agent vs TC segmented)
+3. Zernio analytics feedback loop
+4. Lifestyle video Zernio post creation (upload works; post creation pending)
+5. TikTok automation gate flip (~May 20, 2026)
+
+(Completed 2026-05-07: Stripe Payment Links live, brokerage compliance send live, LinkedIn page connected to Zernio, first-time onboarding checklist live.)
 
 ---
 
@@ -236,7 +236,7 @@ Highlights:
 - 4 value pillars: **Cost, Control, Visibility, Speed.**
 - **Control** is the strongest pillar for high-volume agents (Brittney insight).
 - URL strategy: `meetdossie.com/founding` until 45 of 50 spots filled, then transition to `meetdossie.com`. At 50 spots, `/founding` redirects to `/agents`.
-- Platforms: Facebook ✅ Twitter ✅ Instagram ✅ TikTok (manual until ~May 20) LinkedIn (pending).
+- Platforms: Facebook ✅ Twitter ✅ Instagram ✅ LinkedIn ✅ (Victor's voice routes here on Fridays via cron-generate-posts.js POST_PLAN day-of-week swap) TikTok (manual until ~May 20).
 - Content engine: Brenda / Patricia / Victor personas, algorithm-optimized per platform.
 
 ---
@@ -309,7 +309,7 @@ Highlights:
 | Twitter / X | @meetdossie | ✅ connected |
 | TikTok | @meetdossietc | connected, `is_active=FALSE` until ~May 20, 2026 |
 | Threads | @meetdossie | not automated |
-| LinkedIn | — | not created yet |
+| LinkedIn | linkedin.com/company/meetdossie | ✅ connected ✅ active (live since 2026-05-07) |
 
 ---
 
@@ -382,6 +382,7 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 | facebook | `69f253c3985e734bf3d8f9bc` | ✅ |
 | instagram | `69f25431985e734bf3d8fcbe` | ✅ |
 | twitter | `69f255c6985e734bf3d90ba1` | ✅ |
+| linkedin | `69fccd7392b3d8e85f8f12be` | ✅ (URN `urn:li:organization:115997183`) |
 | tiktok | `69f15791985e734bf3d13b89` | `is_active=FALSE` |
 
 ---
