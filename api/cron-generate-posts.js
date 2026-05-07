@@ -244,7 +244,9 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
       "content": "<the full post text>",
       "hook": "<first 1-2 lines from the post, max 120 chars>",
       "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
-      "hashtags": ["hashtag1", "hashtag2", "hashtag3"]
+      "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+      "stat": "<bold anchor — a single number, dollar amount, or punchy phrase, max 4 words / 30 chars. Examples: '$8,000', '50+ deals a year', '9:47pm Sunday', 'Friday afternoon', '$29/month'. Pulled directly from the post — no new claims. This is the headline of an image card, so it must read at a glance.>",
+      "stat_label": "<one short sentence (≤100 chars) that explains what the stat means in the post's context. Sans, sits right under the stat. Examples: 'What a TC costs the average solo agent.', 'Where the option-period stress actually lives.'>"
     }
   ]
 }
@@ -252,6 +254,9 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 Rules:
 - Exactly 6 posts, in the order listed in the plan above.
 - "hashtags" array must have 3-5 entries, no leading "#", no spaces.
+- "stat" and "stat_label" are required for every post. Pull the stat from
+  something the post actually says — never invent a new number. The card
+  renderer uses these as the visual anchor, so they must read clean.
 - The CTA must appear inside the "content" field naturally — don't tack it on.
 - Vary the openings. Don't start every post with "Real talk" or "Honest take."
 - Don't reuse the exact same numbers across posts (different agents, different math).`;
@@ -312,7 +317,7 @@ function extractJson(raw) {
 // function with @vercel/python). Same domain → in-region call, low latency.
 const CARD_PLATFORMS = new Set(['instagram', 'facebook']);
 
-async function renderSocialCard({ platform, hook, content, persona, post_id }) {
+async function renderSocialCard({ platform, hook, content, persona, post_id, stat, stat_label }) {
   // ALWAYS use the public production alias. Going through VERCEL_URL hits the
   // per-deployment URL, which is gated by Vercel's deployment-protection auth
   // page (returns 401 HTML, not JSON) — that's exactly what was silently
@@ -326,7 +331,7 @@ async function renderSocialCard({ platform, hook, content, persona, post_id }) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.CRON_SECRET}`,
     },
-    body: JSON.stringify({ platform, hook, content, persona, post_id }),
+    body: JSON.stringify({ platform, hook, content, persona, post_id, stat, stat_label }),
   });
   const text = await res.text();
   let data = null;
@@ -432,6 +437,8 @@ module.exports = async function handler(req, res) {
     const content = String(p.content || '').trim();
     const hook = String(p.hook || '').trim();
     const cta = String(p.cta || '').trim();
+    const stat = String(p.stat || '').trim();
+    const stat_label = String(p.stat_label || '').trim();
     const hashtags = Array.isArray(p.hashtags) ? p.hashtags.map((h) => String(h).replace(/^#/, '').trim()).filter(Boolean) : [];
     if (!content || !platform || !persona) {
       insertErrors.push({ index: i, error: 'missing required field', got: { persona, platform, content_length: content.length } });
@@ -459,6 +466,8 @@ module.exports = async function handler(req, res) {
         content,
         persona,
         post_id: postId,
+        stat,
+        stat_label,
       });
       const renderMs = Date.now() - renderStart;
       if (card.ok) {
