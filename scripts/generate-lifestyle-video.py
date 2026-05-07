@@ -1812,12 +1812,20 @@ def main():
             print(f"[broll] aspect={asp}: {len(broll_per_aspect[asp])} clips downloaded")
 
     # 2) Voiceover.
-    # For morning_brief (RULES #3, #4): the narrator only speaks during the
-    # b-roll window. Truncate the script at the LAST complete sentence that
-    # fits MORNING_BRIEF_NARRATOR_BUDGET_S, then synth. Also synth the fixed
-    # closing line ("This is what $29 a month sounds like...") as a separate
-    # ElevenLabs call placed in the outro.
+    # For morning_brief (RULES #3, #4): TWO narrator synths.
+    #   - voiceover_full_path: the complete script. Used by aspects WITHOUT
+    #     a screen recording (e.g. Facebook square) so the narrator runs
+    #     continuously instead of leaving 18s of dead air during the would-be
+    #     screen window.
+    #   - voiceover_path (truncated): used by aspects WITH a screen recording
+    #     (e.g. Instagram vertical). Truncated at the last complete sentence
+    #     that fits MORNING_BRIEF_NARRATOR_BUDGET_S so the narrator hands off
+    #     cleanly to Dossie's voice during the screen segment.
+    #   - closing_voice_path: fixed closing line, placed in the outro.
     closing_voice_path: Optional[Path] = None
+    voiceover_full_path: Optional[Path] = None
+    full_script = voiceover_script
+
     if args.topic == "morning_brief":
         narrator_script = truncate_script_to_fit_duration(
             voiceover_script, MORNING_BRIEF_NARRATOR_BUDGET_S
@@ -1833,6 +1841,14 @@ def main():
                             closing_voice_path, voice_name=voice_name)
         except RuntimeError as e:
             print(f"ERROR: closing-line synth failed: {e}", file=sys.stderr)
+            return 3
+        # Full script for the no-screen-recording case (e.g. Facebook square).
+        voiceover_full_path = VOICEOVERS_DIR / f"{output_prefix}-voiceover-full.mp3"
+        print(f"[voice] synth FULL script ({voice_name.capitalize()}) for no-screen aspects -> {voiceover_full_path}")
+        try:
+            synth_voiceover(args.elevenlabs_key, full_script, voiceover_full_path, voice_name=voice_name)
+        except RuntimeError as e:
+            print(f"ERROR: full-script synth failed: {e}", file=sys.stderr)
             return 3
 
     voiceover_path = VOICEOVERS_DIR / f"{output_prefix}-voiceover.mp3"
@@ -1921,12 +1937,34 @@ def main():
 
         for aspect in aspects_to_render:
             print(f"[render] {aspect}")
-            out = render_aspect(aspect, broll=broll_per_aspect.get(aspect, []),
-                                screen_rec=aspect_screen_rec.get(aspect),
-                                hook_text=hook, voiceover=voiceover_path,
-                                output_prefix=output_prefix, workdir=workdir,
-                                segs=segs, topic=args.topic,
-                                closing_voiceover=closing_voice_path)
+            asp_screen = aspect_screen_rec.get(aspect)
+            # For morning_brief WITHOUT a screen recording (e.g. Facebook
+            # square): use the FULL untrunced script with the legacy
+            # continuous-narrator mix path. Otherwise the screen window
+            # would be 18s of dead air with just music.
+            if args.topic == "morning_brief" and asp_screen is None and voiceover_full_path:
+                v_path = voiceover_full_path
+                v_dur = duration(v_path)
+                asp_segs = derive_segment_durations(v_dur)
+                # Apply the same length-validation as the main path.
+                if asp_segs["total"] < VIDEO_LEN_MIN:
+                    deficit = VIDEO_LEN_MIN - asp_segs["total"]
+                    asp_segs["t_outro"] += deficit + EXTRA_OUTRO_PAD
+                    asp_segs["total"] = sum(asp_segs[k] for k in ("t_title", "t_broll", "t_screen", "t_outro"))
+                print(f"[render] {aspect}: full-script path (no screen) — narrator continuous, total={asp_segs['total']:.2f}s")
+                out = render_aspect(aspect, broll=broll_per_aspect.get(aspect, []),
+                                    screen_rec=None,
+                                    hook_text=hook, voiceover=v_path,
+                                    output_prefix=output_prefix, workdir=workdir,
+                                    segs=asp_segs, topic="",  # "" routes to legacy mix
+                                    closing_voiceover=None)
+            else:
+                out = render_aspect(aspect, broll=broll_per_aspect.get(aspect, []),
+                                    screen_rec=asp_screen,
+                                    hook_text=hook, voiceover=voiceover_path,
+                                    output_prefix=output_prefix, workdir=workdir,
+                                    segs=segs, topic=args.topic,
+                                    closing_voiceover=closing_voice_path)
             outputs.append(out)
             d = duration(out)
             a_dur = audio_stream_duration(out)
