@@ -340,9 +340,105 @@ module.exports = function handler(req, res) {
     });
   }
 
-  // POST: handle tool calls
+  // POST: handle MCP JSON-RPC or simple tool calls
   if (req.method === 'POST') {
-    const { tool, params } = req.body || {};
+    const body = req.body || {};
+
+    // MCP JSON-RPC protocol
+    if (body.method) {
+      const { jsonrpc, id, method, params } = body;
+
+      // Initialize handshake
+      if (method === 'initialize') {
+        return res.status(200).json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            protocolVersion: '2025-11-25',
+            capabilities: {
+              tools: { listChanged: false },
+            },
+            serverInfo: {
+              name: 'dossie-mcp',
+              version: '0.1.0',
+              description: 'Texas TREC deadline calculator and transaction coordinator info',
+            },
+          },
+        });
+      }
+
+      // List tools
+      if (method === 'tools/list') {
+        const toolsList = Object.entries(TOOLS).map(([name, def]) => ({
+          name,
+          description: def.description,
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        }));
+        return res.status(200).json({
+          jsonrpc: '2.0',
+          id,
+          result: { tools: toolsList },
+        });
+      }
+
+      // Call tool
+      if (method === 'tools/call') {
+        const toolName = params?.name;
+        const toolArgs = params?.arguments || {};
+
+        if (!toolName) {
+          return res.status(400).json({
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32602, message: 'Missing tool name' },
+          });
+        }
+
+        const toolDef = TOOLS[toolName];
+        if (!toolDef) {
+          return res.status(404).json({
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32601, message: `Unknown tool: ${toolName}` },
+          });
+        }
+
+        try {
+          const result = toolDef.handler(toolArgs);
+          return res.status(200).json({
+            jsonrpc: '2.0',
+            id,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            },
+          });
+        } catch (error) {
+          return res.status(500).json({
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32603, message: error.message },
+          });
+        }
+      }
+
+      // Unknown method
+      return res.status(400).json({
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32601, message: `Unknown method: ${method}` },
+      });
+    }
+
+    // Simple tool call format (backward compatibility)
+    const { tool, params } = body;
 
     if (!tool) {
       return res.status(400).json({ error: 'tool parameter required' });
