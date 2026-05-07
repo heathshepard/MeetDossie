@@ -55,6 +55,15 @@ PILL_TEXT    = (255, 255, 255)   # white    pill text
 ROOT = Path(__file__).resolve().parent.parent
 FONT_SERIF_BOLD     = ROOT / "Media" / "_fonts" / "CormorantGaramond-Bold.ttf"
 FONT_SERIF_SEMIBOLD = ROOT / "Media" / "_fonts" / "CormorantGaramond-SemiBold.ttf"
+# Plus Jakarta Sans is the website's body sans; bundle it instead of relying
+# on system DejaVu Sans, which doesn't exist on Vercel's Python runtime
+# (load_font was silently falling all the way to PIL.ImageFont.load_default,
+# rendering label/body in a tiny bitmap font that ignores the size param).
+FONT_SANS           = ROOT / "Media" / "_fonts" / "PlusJakartaSans-Regular.ttf"
+FONT_SANS_BOLD      = ROOT / "Media" / "_fonts" / "PlusJakartaSans-Bold.ttf"
+# True absolute-fallback paths (Linux-only). Used by load_font's except clause
+# only if the bundled font is missing — kept for defense-in-depth, though we
+# never want to hit them in production.
 FONT_FALLBACK_SANS_BOLD    = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FONT_FALLBACK_SANS         = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
@@ -254,7 +263,7 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
     # ─── Stat label (sans, navy, one sentence) ───────────────────────────
     label_gap = int(H * (0.025 if is_ig else 0.030))   # generous gap so serif descenders breathe
     label_size = 28 if is_ig else 22
-    label_font = load_font(FONT_FALLBACK_SANS, label_size)
+    label_font = load_font(FONT_SANS, label_size)
     label_lines = wrap_to_width(draw, derived_label, label_font, content_w)
     if len(label_lines) > 2:
         label_lines = label_lines[:2]
@@ -278,7 +287,7 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
 
     body_text = (content or hook or "").strip()
     quote_size = 30 if is_ig else 22
-    quote_font = load_font(FONT_FALLBACK_SANS, quote_size)
+    quote_font = load_font(FONT_SANS, quote_size)
     quote_lines = wrap_to_width(draw, body_text, quote_font, quote_text_w)
 
     quote_step = font_line_step(quote_font, 1.65)
@@ -304,7 +313,7 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
     # ─── Bottom row: pill (left) + URL (right), space-between ────────────
     pill_text = f"Founding · {FOUNDING_SPOTS_REMAINING} spots left"
     pill_size = 22 if is_ig else 20
-    pill_font = load_font(FONT_FALLBACK_SANS_BOLD, pill_size)
+    pill_font = load_font(FONT_SANS_BOLD, pill_size)
     pill_text_w, pill_text_h = text_size(draw, pill_text, pill_font)
     pill_pad_x = int(pill_h * 0.55)
     pill_w = pill_text_w + pill_pad_x * 2
@@ -324,7 +333,7 @@ def render_card_png(platform, hook, content, persona, stat=None, stat_label=None
 
     url_text = "meetdossie.com/founding"
     url_size = 24 if is_ig else 22
-    url_font = load_font(FONT_FALLBACK_SANS_BOLD, url_size)
+    url_font = load_font(FONT_SANS_BOLD, url_size)
     url_w, url_h = text_size(draw, url_text, url_font)
     url_x = content_right - url_w
     url_y = bottom_row_y + (pill_h - url_h) // 2 - max(2, url_h // 8)
@@ -426,7 +435,12 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         font_status = {}
-        for name, p in [("serif_bold", FONT_SERIF_BOLD), ("serif_semibold", FONT_SERIF_SEMIBOLD)]:
+        for name, p in [
+            ("serif_bold", FONT_SERIF_BOLD),
+            ("serif_semibold", FONT_SERIF_SEMIBOLD),
+            ("sans", FONT_SANS),
+            ("sans_bold", FONT_SANS_BOLD),
+        ]:
             font_status[name] = {"path": str(p), "exists": p.exists(), "size": p.stat().st_size if p.exists() else None}
         # Walk a few candidate locations — figure out where Vercel actually
         # parked the bundled assets.
