@@ -154,7 +154,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 - Brokerage compliance document sending (specced, not built — high value)
 - Stripe Payment Links (permanent, non-expiring) — current checkout sessions expire 24h
-- MCP server registry submissions: Smithery (pending rescan) / MCPT / OpenTools
+- MCP server registry submissions: MCPT / OpenTools (Smithery ✅ live)
 - TikTok automation (manual only until ~May 20, 2026)
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
@@ -164,7 +164,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 9. NEXT PRIORITIES (in order)
 
-1. MCP server registry submissions (Smithery pending rescan; MCPT + OpenTools pending)
+1. MCP server registry submissions (Smithery ✅ live; MCPT + OpenTools pending)
 2. Brevo email nurture (agent vs TC segmented)
 3. Zernio analytics feedback loop
 4. Lifestyle video Zernio post creation (upload works; post creation pending)
@@ -283,6 +283,7 @@ Highlights:
 - `GOLD-2026-05-07-v6-routing-fixed`
 - `GOLD-2026-05-07-v7-mcp-published`
 - `GOLD-2026-05-07-v8-mcp-http-live`
+- `GOLD-2026-05-07-v8-smithery-live`
 
 ---
 
