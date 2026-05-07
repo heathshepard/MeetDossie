@@ -88,7 +88,7 @@ const PLATFORM_RULES = {
     format_rule: "Use line breaks after every 1-2 sentences. No paragraphs. Mobile reading pattern.",
     cta_rule: "End with a single clear action: 'Link in bio' or 'Comment YES if this is you'",
     timing: "Best performing: 6-9AM or 7-9PM CST",
-    hashtags: "3-5 hashtags maximum. Use #texasrealtor #realestatetips and 1-2 niche ones.",
+    hashtags: "REQUIRED: 2-3 hashtags at end. Use: #txrealestate #realtorlife #trec",
   },
   instagram: {
     hook_rule: "First line must make someone stop scrolling. Ask a question or make a bold claim. Gets cut off at ~125 chars so front-load the value.",
@@ -96,7 +96,7 @@ const PLATFORM_RULES = {
     format_rule: "Line breaks between every thought. Use emojis sparingly — 1-2 max, relevant only.",
     cta_rule: "Ask for a SAVE ('save this for your next transaction') or SHARE ('send this to an agent who needs it'). Saves and shares beat likes for reach.",
     timing: "Best performing: 8-11AM or 6-8PM CST",
-    hashtags: "5-10 hashtags. Mix broad (#realtor) and niche (#texasrealtor #trec) and product (#dossieai)",
+    hashtags: "REQUIRED: 8-10 hashtags at end. Mix high-volume (#realestate #realtor #realtorlife), Texas-specific (#texasrealestate #texasrealtor #trec #sanantoniorealestate), and niche (#transactioncoordinator #realtortools #closingday)",
   },
   facebook: {
     hook_rule: "Start with a relatable pain point or a question agents are already thinking. Facebook audience skews older — be direct, not trendy.",
@@ -104,7 +104,7 @@ const PLATFORM_RULES = {
     format_rule: "Short paragraphs, 2-3 sentences max. White space is your friend. No bullet points — Facebook reads like a conversation.",
     cta_rule: "Ask a direct question at the end to drive comments. Comments are the strongest signal. 'How many of you are still doing this manually?' works.",
     timing: "Best performing: Tuesday-Thursday 9AM-1PM CST",
-    hashtags: "2-3 hashtags only. Facebook hashtags barely matter.",
+    hashtags: "NONE. Facebook hashtags add no value. Do not include any hashtags in Facebook posts.",
   },
   twitter: {
     hook_rule: "Under 280 chars for the opener. Punchy, opinionated, or contrarian. Takes get pushed. Safe content dies.",
@@ -112,7 +112,7 @@ const PLATFORM_RULES = {
     format_rule: "For threads: each tweet must stand alone AND connect to the next. Number them (1/ 2/ etc).",
     cta_rule: "End threads with 'RT if this helped' or a question. Quote tweets and replies are the strongest signals.",
     timing: "Best performing: 8-10AM or 12-1PM CST weekdays",
-    hashtags: "1-2 max or none. Twitter hashtags hurt more than help for most content.",
+    hashtags: "REQUIRED: 2-3 hashtags at end. Use: #txrealestate #realtorlife #trec",
   },
   linkedin: {
     hook_rule: "First two lines are visible before the 'see more' fold — front-load the value with a specific operational insight, a contrarian take, or a number. No clickbait, no 'You won't believe...' Sound like a peer talking shop, not a marketer.",
@@ -120,7 +120,7 @@ const PLATFORM_RULES = {
     format_rule: "Short paragraphs, 1-3 sentences each. Heavy line-breaks for white space. Skimmable structure beats prose blocks. Lists OK if they're load-bearing, not ornamental.",
     cta_rule: "End with a specific question that invites operators to reply with their own number or workflow ('What does your TC actually cost per file when you add the chase time?'). Comments dwarf likes for reach. Avoid 'Thoughts?' — too generic.",
     timing: "Best performing: Tuesday-Thursday 7-10AM CST. Friday morning also lands well for ops-minded audiences.",
-    hashtags: "3-5 hashtags. Mix industry (#realestate #propTech) and niche (#texasrealestate #realestatetransactioncoordinator). LinkedIn hashtags actually contribute to discovery.",
+    hashtags: "REQUIRED: 3-5 hashtags at end. Use: #realestate #transactioncoordinator #texasrealestate #proptech #realtors",
   },
 };
 
@@ -253,7 +253,13 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 
 Rules:
 - Exactly 6 posts, in the order listed in the plan above.
-- "hashtags" array must have 3-5 entries, no leading "#", no spaces.
+- HASHTAGS: Must be appended to the END of the "content" field (not just in the array):
+  * Instagram: 8-10 hashtags separated by spaces
+  * Twitter: 2-3 hashtags separated by spaces
+  * LinkedIn: 3-5 hashtags separated by spaces
+  * Facebook: NO hashtags (leave content without hashtags)
+  * TikTok: 2-3 hashtags separated by spaces
+- "hashtags" array must match what's in content (no leading "#", no spaces in array entries).
 - "stat" and "stat_label" are required for every post. Pull the stat from
   something the post actually says — never invent a new number. The card
   renderer uses these as the visual anchor, so they must read clean.
