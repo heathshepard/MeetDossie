@@ -404,6 +404,7 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 - All voiceover scripts 408–565 chars
 - **Timeframe rule:** never say "a few months ago" — use "recently" or "over the last few weeks".
 - **Social proof rule:** no unverified stats; all numbers framed as hypotheticals.
+- **Hashtag rule:** Instagram: 8-10 hashtags per post, Facebook: none, Twitter: 2-3 hashtags, LinkedIn: 3-5 professional hashtags. Applied to every post.
 
 ---
 
