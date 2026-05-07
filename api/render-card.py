@@ -405,15 +405,31 @@ class handler(BaseHTTPRequestHandler):
         })
 
     def do_GET(self):
-        # Font diagnostic — needed because the silent Cormorant fallback to
-        # DejaVu Sans Bold radically changes the binary-search outcome and
-        # leaves stats at min_size. Quick way to verify the bundled fonts
-        # actually shipped to /var/task/Media/_fonts/.
         font_status = {}
         for name, p in [("serif_bold", FONT_SERIF_BOLD), ("serif_semibold", FONT_SERIF_SEMIBOLD)]:
             font_status[name] = {"path": str(p), "exists": p.exists(), "size": p.stat().st_size if p.exists() else None}
+        # Walk a few candidate locations — figure out where Vercel actually
+        # parked the bundled assets.
+        listings = {}
+        for label, p in [
+            ("ROOT", ROOT),
+            ("ROOT/Media", ROOT / "Media"),
+            ("ROOT/Media/_fonts", ROOT / "Media" / "_fonts"),
+            ("__file__.parent", Path(__file__).resolve().parent),
+            ("__file__.parent/_fonts", Path(__file__).resolve().parent / "_fonts"),
+            ("/var/task", Path("/var/task")),
+            ("/var/task/Media", Path("/var/task/Media")),
+        ]:
+            try:
+                if p.exists():
+                    listings[label] = sorted([x.name for x in p.iterdir()])[:30]
+                else:
+                    listings[label] = "(does not exist)"
+            except Exception as e:
+                listings[label] = f"(error: {e})"
         return self._send_json(200, {"ok": True, "service": "render-card",
                                      "platforms": list(PLATFORM_DIMS.keys()),
                                      "design": "concept-b-stat-anchor",
                                      "root": str(ROOT),
-                                     "fonts": font_status})
+                                     "fonts": font_status,
+                                     "fs_listings": listings})
