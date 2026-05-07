@@ -146,7 +146,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - TREC deadline calculator at `meetdossie.com/calculator` (email capture → Supabase `calculator_signups`)
 - 10 SEO guide pages at `meetdossie.com/guides/`
 - 5 AEO answer pages at `meetdossie.com/answers/`
-- MCP server at `mcp-server/` (built, needs npm publish)
+- MCP server published to npm (`@dossie/mcp-server`) + HTTP endpoint at `meetdossie.com/api/mcp`
 
 ---
 
@@ -154,7 +154,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 - Brokerage compliance document sending (specced, not built — high value)
 - Stripe Payment Links (permanent, non-expiring) — current checkout sessions expire 24h
-- MCP server npm publish + Smithery / MCPT / OpenTools registry submissions
+- MCP server registry submissions: Smithery (pending rescan) / MCPT / OpenTools
 - TikTok automation (manual only until ~May 20, 2026)
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
@@ -164,13 +164,13 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 9. NEXT PRIORITIES (in order)
 
-1. MCP server publishing
+1. MCP server registry submissions (Smithery pending rescan; MCPT + OpenTools pending)
 2. Brevo email nurture (agent vs TC segmented)
 3. Zernio analytics feedback loop
 4. Lifestyle video Zernio post creation (upload works; post creation pending)
 5. TikTok automation gate flip (~May 20, 2026)
 
-(Completed 2026-05-07: Stripe Payment Links live, brokerage compliance send live, LinkedIn page connected to Zernio, first-time onboarding checklist live.)
+(Completed 2026-05-07: Stripe Payment Links live, brokerage compliance send live, LinkedIn page connected to Zernio, first-time onboarding checklist live, MCP server published to npm + HTTP endpoint deployed.)
 
 ---
 
@@ -279,6 +279,10 @@ Highlights:
 - `GOLD-2026-05-06-v4-demo-accounts-locked`
 - `GOLD-2026-05-06-v5-all-platforms-live`
 - `GOLD-2026-05-06-v5-pipeline-complete`
+- `GOLD-2026-05-07-v5-card-redesign`
+- `GOLD-2026-05-07-v6-routing-fixed`
+- `GOLD-2026-05-07-v7-mcp-published`
+- `GOLD-2026-05-07-v8-mcp-http-live`
 
 ---
 
