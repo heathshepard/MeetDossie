@@ -1,0 +1,85 @@
+{
+  "name": "Dossie MCP Server",
+  "description": "Texas TREC real estate tools: calculate residential contract deadlines with paragraph citations, check holiday rollover rules, compare transaction coordinator pricing models, and get Dossie product info.",
+  "version": "0.1.0",
+  "author": "Heath Shepard",
+  "homepage": "https://meetdossie.com",
+  "repository": "https://github.com/heathshepard/MeetDossie",
+  "license": "MIT",
+  "capabilities": {
+    "tools": [
+      {
+        "name": "calculate_trec_deadlines",
+        "description": "Calculate Texas TREC residential contract deadlines with paragraph citations. Returns earnest money, option fee, option period expiry, survey, financing, and closing deadlines with automatic weekend/holiday rollover per TREC 20-17 ¶ 23.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "effective_date": {
+              "type": "string",
+              "description": "Contract effective date (YYYY-MM-DD)"
+            },
+            "closing_date": {
+              "type": "string",
+              "description": "Scheduled closing date (YYYY-MM-DD)"
+            },
+            "option_days": {
+              "type": "number",
+              "description": "Option period length in days (default: 7)"
+            },
+            "earnest_days": {
+              "type": "number",
+              "description": "Earnest money deadline in days (default: 3)"
+            },
+            "option_fee_days": {
+              "type": "number",
+              "description": "Option fee deadline in days (default: 3)"
+            },
+            "financing_days": {
+              "type": "number",
+              "description": "Financing deadline in days (default: 21)"
+            },
+            "survey_days": {
+              "type": "number",
+              "description": "Survey deadline in days (default: 0)"
+            }
+          },
+          "required": ["effective_date", "closing_date"]
+        }
+      },
+      {
+        "name": "check_texas_holiday",
+        "description": "Check if a date triggers TREC ¶ 23 rollover (weekend or federal holiday). Returns holiday name, rollover date, and rollover rule citation.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Date to check (YYYY-MM-DD)"
+            }
+          },
+          "required": ["date"]
+        }
+      },
+      {
+        "name": "get_tc_cost_comparison",
+        "description": "Compare Texas transaction coordinator pricing models: freelance per-file ($300-700), monthly retainer ($1500-3500), in-house TC ($45k-85k/year), and AI/Dossie ($29/month).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "get_dossie_info",
+        "description": "Get Dossie product information, founding member pricing ($29/month locked for life), and links to calculator and guides.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
+  },
+  "transport": {
+    "type": "http",
+    "endpoint": "https://meetdossie.com/api/mcp"
+  }
+}

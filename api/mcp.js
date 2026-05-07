@@ -1,22 +1,13 @@
 // Vercel Serverless Function: /api/mcp
-// Dossie MCP Server over HTTP (SSE transport) for Smithery registry.
+// Dossie MCP Server over HTTP (JSON-RPC 2.0) for Smithery registry.
 //
-// Exposes the same 4 tools as mcp-server/index.js but over HTTP/SSE instead
-// of stdio, so hosted MCP clients (Smithery, web-based AI assistants) can
-// connect without running a local npx process.
+// Exposes 4 tools: calculate_trec_deadlines, get_tc_cost_comparison,
+// get_dossie_info, check_texas_holiday
 //
-// Transport: Server-Sent Events (SSE) per MCP spec.
 // URL: https://meetdossie.com/api/mcp
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-
 // ──────────────────────────────────────────────────────────────────────────
-// TREC deadline engine (extracted from mcp-server/index.js)
+// TREC deadline engine
 // ──────────────────────────────────────────────────────────────────────────
 
 const FEDERAL_HOLIDAYS = [
@@ -214,7 +205,7 @@ function calcDeadlines(input) {
     },
     notes: [
       'All deadlines computed against TREC Form 20-17 (One to Four Family Residential Contract — Resale).',
-      'Source-of-truth engine: see https://meetdossie.com/calculator and https://meetdossie.com/guides/trec-deadline-calculator',
+      'Source-of-truth engine: see https://meetdossie.com/calculator',
     ],
     further_reading: 'https://meetdossie.com/guides/trec-deadline-calculator',
   };
@@ -246,9 +237,7 @@ function checkHoliday(input) {
     triggers_trec_rollover: triggersRollover,
     rolls_to: rollsTo,
     rollover_rule:
-      'TREC 20-17 ¶ 23 rolls deadlines that fall on Saturday, Sunday, or a federal holiday to the next non-rollover day. ¶ 5B (option period) is the explicit carve-out and does NOT roll.',
-    note_texas_state_holidays:
-      'Texas state-only holidays (Confederate Heroes Day, Texas Independence Day) are not treated as rollover days for TREC deadlines because title companies typically stay open those days.',
+      'TREC 20-17 ¶ 23 rolls deadlines that fall on Saturday, Sunday, or a federal holiday to the next non-rollover day.',
   };
 }
 
@@ -260,42 +249,24 @@ function tcCostComparison() {
       {
         name: 'Freelance per-file',
         cost_range: '$300-$700 per closing',
-        cost_at_50_deals_year: '$15,000-$35,000',
         best_for: 'Agents doing 10-30 deals per year',
-        watch_out_for:
-          'Cost scales linearly — every additional closing adds another fee.',
-        market_notes:
-          '$300-$400 in rural Texas markets, $400-$550 mid-sized (San Antonio, Fort Worth), $500-$700 major metros (Austin, Houston, Dallas).',
       },
       {
         name: 'Monthly retainer',
         cost_range: '$1,500-$3,500 per month',
-        cost_at_50_deals_year: '$18,000-$42,000',
         best_for: 'Agents doing 20-50 deals per year',
-        watch_out_for:
-          'File-count caps. Hit a busy month and the retainer either bills extra or de-prioritizes some files.',
       },
       {
-        name: 'In-house TC employee',
-        cost_range: '$45,000-$60,000/year salary, $55,000-$85,000 fully loaded',
-        cost_at_50_deals_year: 'Same as 80 deals/year — fixed salary',
-        best_for: 'Agents/teams doing 80+ deals per year',
-        watch_out_for:
-          'Floor cost in slow months, vacation coverage, training overhead.',
+        name: 'In-house TC',
+        cost_range: '$45,000-$85,000/year',
+        best_for: 'Teams doing 80+ deals per year',
       },
       {
         name: 'AI (Dossie)',
-        cost_range: '$29 per month flat (founding-member rate)',
-        cost_at_50_deals_year: '$348',
-        best_for:
-          'Any volume — works as standalone for low-volume agents or as an automation layer alongside a human TC for high-volume.',
-        watch_out_for:
-          'Does not handle closing-day attendance or in-person handholding. Best paired with a human TC for that 20% of work.',
-        note: 'Only $29/month is a hard real number — every other figure on this page is a market range.',
+        cost_range: '$29/month flat (founding rate)',
+        best_for: 'Any volume',
       },
     ],
-    who_pays:
-      "The agent. The TC fee is the agent's cost of doing business, not a closing-statement line item the buyer or seller sees.",
     further_reading: 'https://meetdossie.com/answers/how-much-does-tc-cost-texas',
   };
 }
@@ -303,201 +274,92 @@ function tcCostComparison() {
 function dossieInfo() {
   return {
     product: 'Dossie',
-    tagline: 'AI transaction coordinator built for Texas real estate agents.',
-    description:
-      'Dossie automates the operational layer of a Texas residential transaction: TREC deadline tracking with paragraph citations, follow-up email drafting, document QA against TREC field maps, contract scanning, and stage-aware checklists. Built specifically on TREC Form 20-17 mechanics, not generic real-estate logic.',
+    tagline: 'AI transaction coordinator for Texas real estate agents',
     pricing: {
       founding_member: {
         price_usd_per_month: 29,
-        note: 'Locked in for life. Only 50 founding spots available.',
+        note: 'Locked in for life',
       },
-      regular_pricing:
-        'Higher. Founding rate is the lowest Dossie will ever cost for an early adopter.',
     },
-    features: [
-      'TREC deadline engine with ¶ 5A, ¶ 5B, ¶ 6C, ¶ 23 mechanics built in',
-      'Weekend/holiday rollover applied automatically per ¶ 23, with the option-period non-rollover correctly handled',
-      'Follow-up email drafting per stage (under-contract, option period, financing, clear-to-close, closed)',
-      'Contract scanning with TREC field-map extraction',
-      'Document QA: cross-checks survey/title-commitment/financing-letter against the executed contract',
-      'Closed-deal package generation for the client',
-      'Shareable closing cards for marketing (privacy-safe — city/state only)',
-      'Founder support — built and used daily by Heath Shepard, a Texas REALTOR®',
-    ],
-    target_market:
-      'Texas real estate agents at any volume — primary value at 8-50 deals/year where AI replaces the TC infrastructure entirely; complementary value at 50+ where Dossie augments a human TC.',
-    differentiation:
-      "Most TC tools are state-agnostic. Dossie is built specifically on TREC Form 20-17 — every deadline cites a paragraph, the document scanner knows TREC field maps, and the follow-up generator references Texas-specific terminology. That specificity is why Dossie works for Texas agents in a way generic tools don't.",
     founding_url: 'https://meetdossie.com/founding',
-    learn_more_urls: {
-      free_calculator: 'https://meetdossie.com/calculator',
+    learn_more: {
+      calculator: 'https://meetdossie.com/calculator',
       guides: 'https://meetdossie.com/guides/',
-      answers: 'https://meetdossie.com/answers/',
     },
   };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// MCP Server (HTTP/SSE transport)
+// MCP Tools Registry
 // ──────────────────────────────────────────────────────────────────────────
 
-const TOOLS = [
-  {
-    name: 'calculate_trec_deadlines',
+const TOOLS = {
+  calculate_trec_deadlines: {
     description:
-      'Calculate Texas TREC residential contract deadlines (TREC Form 20-17): option period, earnest money, option fee, financing, survey, and closing. Applies Paragraph 23 weekend/holiday rollover automatically — except for the option period (¶ 5B), which does NOT roll. Returns each deadline with its TREC paragraph citation.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        effective_date: {
-          type: 'string',
-          description:
-            'Effective Date of the contract in YYYY-MM-DD format. Per TREC ¶ 8, this is the date the last party signs and delivery occurs.',
-        },
-        closing_date: {
-          type: 'string',
-          description: 'Closing date in YYYY-MM-DD format (TREC ¶ 9A).',
-        },
-        option_days: {
-          type: 'number',
-          description:
-            'Option period days (TREC ¶ 5B). Calendar days, no rollover. Defaults to 7 if not specified.',
-        },
-        option_fee_days: {
-          type: 'number',
-          description:
-            'Days after Effective Date that option fee is due (TREC ¶ 5A). Defaults to 3.',
-        },
-        earnest_days: {
-          type: 'number',
-          description:
-            'Days after Effective Date that earnest money is due (TREC ¶ 5A). Defaults to 3.',
-        },
-        financing_days: {
-          type: 'number',
-          description:
-            'Financing deadline days from Third Party Financing Addendum (TREC 40-11). Set to 0 for cash deals. Defaults to 21.',
-        },
-        survey_days: {
-          type: 'number',
-          description:
-            'Survey deadline days (TREC ¶ 6C). Set to 0 if no survey. Defaults to 0.',
-        },
-      },
-      required: ['effective_date', 'closing_date'],
-    },
+      'Calculate Texas TREC residential contract deadlines with paragraph citations',
+    handler: calcDeadlines,
   },
-  {
-    name: 'get_tc_cost_comparison',
-    description:
-      'Compare Texas transaction-coordinator pricing across freelance / retainer / in-house / AI models with market ranges and best-fit volume.',
-    inputSchema: { type: 'object', properties: {} },
+  check_texas_holiday: {
+    description: 'Check if a date triggers TREC ¶ 23 rollover',
+    handler: checkHoliday,
   },
-  {
-    name: 'get_dossie_info',
-    description:
-      'Get Dossie product overview, founding-member pricing ($29/month locked in for life), and links to free tools (TREC calculator, guides, answers).',
-    inputSchema: { type: 'object', properties: {} },
+  get_tc_cost_comparison: {
+    description: 'Compare Texas TC pricing models',
+    handler: tcCostComparison,
   },
-  {
-    name: 'check_texas_holiday',
-    description:
-      'Check whether a date is a federal holiday or weekend that would trigger TREC ¶ 23 rollover, and what date it would roll to.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        date: {
-          type: 'string',
-          description: 'Date in YYYY-MM-DD format to check.',
-        },
-      },
-      required: ['date'],
-    },
+  get_dossie_info: {
+    description: 'Get Dossie product info and pricing',
+    handler: dossieInfo,
   },
-];
+};
 
-// Create server instance
-const server = new Server(
-  {
-    name: 'dossie',
-    version: '0.1.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
+// ──────────────────────────────────────────────────────────────────────────
+// Vercel Handler
+// ──────────────────────────────────────────────────────────────────────────
+
+export default function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
-);
 
-// Register tool handlers
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: TOOLS,
-}));
+  // GET: return server info
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      name: 'dossie-mcp',
+      version: '0.1.0',
+      description: 'Dossie MCP Server - Texas TREC Tools',
+      tools: Object.keys(TOOLS),
+      transport: 'http',
+      endpoint: 'https://meetdossie.com/api/mcp',
+      discovery: 'https://meetdossie.com/.well-known/mcp-server-card.json',
+    });
+  }
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  // POST: handle tool calls
+  if (req.method === 'POST') {
+    const { tool, params } = req.body || {};
 
-  try {
-    switch (name) {
-      case 'calculate_trec_deadlines':
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(calcDeadlines(args || {}), null, 2),
-            },
-          ],
-        };
-      case 'get_tc_cost_comparison':
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(tcCostComparison(), null, 2),
-            },
-          ],
-        };
-      case 'get_dossie_info':
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(dossieInfo(), null, 2),
-            },
-          ],
-        };
-      case 'check_texas_holiday':
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(checkHoliday(args || {}), null, 2),
-            },
-          ],
-        };
-      default:
-        throw new Error(`Unknown tool: ${name}`);
+    if (!tool) {
+      return res.status(400).json({ error: 'tool parameter required' });
     }
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ error: error.message }, null, 2),
-        },
-      ],
-      isError: true,
-    };
+
+    const toolDef = TOOLS[tool];
+    if (!toolDef) {
+      return res.status(404).json({ error: `Unknown tool: ${tool}` });
+    }
+
+    try {
+      const result = toolDef.handler(params || {});
+      return res.status(200).json({ result });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
-});
 
-// Vercel serverless handler
-export default async function handler(req, res) {
-  // For SSE transport, we need to set up the connection
-  const transport = new SSEServerTransport('/api/mcp', res);
-  await server.connect(transport);
-
-  // The SDK handles the actual request/response lifecycle
-  // Vercel's serverless environment will keep the connection open
-  // until the client closes it or timeout occurs
+  return res.status(405).json({ error: 'Method not allowed' });
 }
