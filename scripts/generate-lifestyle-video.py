@@ -166,12 +166,15 @@ TOPICS_WITH_SCREEN_AUDIO      = {"morning_brief"}  # legacy compat — selects n
 #      facebook → square 1080x1080. Pexels orientation per aspect:
 #      vertical=portrait, square=landscape (then center-crop). The CLI
 #      --platform flag filters which aspects render.
-#      SCREEN RECORDING SUB-RULE: portrait recordings → instagram/tiktok
-#      only; landscape recordings → facebook/twitter/linkedin only. Enforced
-#      by select_screen_recording(topic, persona, platform) which filters
-#      LIBRARY.md by platform compatibility. Cross-aspect pairings are
-#      blocked (returns None → b-roll filler) rather than risk a portrait
-#      mobile recording landing in a Facebook square video.
+#      SCREEN RECORDING SUB-RULE (filename convention, msg 561):
+#      *-mobile-*.mp4   → portrait  → instagram, tiktok
+#      *-desktop-*.mp4  → landscape → facebook, twitter, linkedin
+#      derive_aspect_and_platforms_from_filename() reads the form-factor
+#      segment of the filename. select_screen_recording(topic, persona,
+#      platform) filters by the derived platforms list. Adding a desktop
+#      recording is drop-the-file + add-a-row — no manual platform tagging.
+#      Cross-aspect pairings return None → b-roll filler rather than risk a
+#      portrait mobile recording landing in a Facebook square video.
 
 PEXELS_TONE_BLOCKLIST = ("sad", "stressed", "worried", "sleeping", "down", "hunched")
 PEXELS_MIN_WIDTH = 1080
@@ -1459,6 +1462,23 @@ def find_latest_screen_recording() -> Optional[Path]:
     return candidates[0] if candidates else None
 
 
+def derive_aspect_and_platforms_from_filename(filename: str) -> tuple:
+    """RENDER_RULES #7 — filename convention determines platform routing.
+
+    Pattern (per LIBRARY.md naming convention):
+      <topic-slug>-mobile-<YYYY-MM-DD>.mp4   → portrait,  instagram + tiktok
+      <topic-slug>-desktop-<YYYY-MM-DD>.mp4  → landscape, facebook + twitter + linkedin
+
+    Falls back to portrait+instagram/tiktok if the form-factor segment is
+    missing or unrecognized — matches today's mobile-only library.
+    """
+    name = filename.lower()
+    if "-desktop-" in name or name.startswith("desktop-") or "desktop-" in name:
+        return ("landscape", ["facebook", "twitter", "linkedin"])
+    # Default: mobile / portrait. Covers all existing rows.
+    return ("portrait", ["instagram", "tiktok"])
+
+
 def parse_screen_recording_library() -> list[dict]:
     """Parse the markdown table in Media/screen-recordings/LIBRARY.md.
 
@@ -1484,24 +1504,22 @@ def parse_screen_recording_library() -> list[dict]:
             cols = [c.strip() for c in line.strip("|").split("|")]
             if len(cols) < 4:
                 continue
-            # Schema (msg 560): Filename | Persona | Voice | Demo Account
-            #                   | Aspect | Platforms | Notes
-            # Older rows without Aspect/Platforms default to portrait + the
-            # ig/tiktok pair (matches what every existing row was anyway).
-            aspect = (cols[4].strip().lower() if len(cols) > 4 else "portrait") or "portrait"
-            platforms_raw = cols[5].strip() if len(cols) > 5 else ""
-            platforms = [p.strip().lower() for p in platforms_raw.split(",") if p.strip()]
-            if not platforms:
-                platforms = ["instagram", "tiktok"] if aspect == "portrait" else ["facebook"]
-            notes = cols[6] if len(cols) > 6 else (cols[4] if len(cols) > 4 and aspect not in ("portrait", "landscape") else "")
+            # Schema: Filename | Persona | Voice | Demo Account | Notes
+            # Aspect + Platforms are DERIVED FROM FILENAME (msg 561):
+            #   *-mobile-*.mp4   → portrait  → instagram, tiktok
+            #   *-desktop-*.mp4  → landscape → facebook, twitter, linkedin
+            # The form-factor segment of the filename is the single source of
+            # truth, so adding a desktop recording is just "drop file + add row".
+            filename = cols[0]
+            aspect, platforms = derive_aspect_and_platforms_from_filename(filename)
             entries.append({
-                "filename": cols[0],
+                "filename": filename,
                 "personas": [p.strip().lower() for p in cols[1].split("/") if p.strip()],
                 "voice": cols[2],
                 "demo_account": cols[3],
                 "aspect": aspect,
                 "platforms": platforms,
-                "notes": notes,
+                "notes": cols[4] if len(cols) > 4 else "",
             })
         elif in_table and not line.startswith("|"):
             in_table = False  # left the table

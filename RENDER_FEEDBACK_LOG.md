@@ -26,7 +26,7 @@ Running record of issues found during lifestyle-video review and the permanent f
 | 4 | No mid-sentence cutoffs | Before final synth for morning_brief, `truncate_script_to_fit_duration` measures the full voiceover, computes the b-roll-segment budget in characters, and truncates the script at the LAST complete-sentence boundary that fits. Then re-synth produces the final narrator audio. |
 | 5 | Screen recording display rules | Mobile portrait recordings: scale-to-fill width with top-anchor crop (preserves heads + UI top, no bars). Desktop landscape recordings: blush-bar (#F5E6E0) letterbox. Detected by aspect ratio of input file. |
 | 6 | Video length 30–60s | `validate_render_rules` checks `30 <= total_seconds <= 60` and raises before final encode. If voiceover is shorter than 25s, `derive_segment_durations` extends the outro to fill. If voiceover is longer than 55s, the script is sentence-truncated before synth. |
-| 7 | Platform ↔ aspect mapping (NON-NEGOTIABLE) | `PLATFORM_TO_ASPECT` maps `instagram/tiktok → vertical 1080×1920` and `facebook → square 1080×1080`. Pexels searches are per-aspect: vertical uses portrait sources, square uses landscape sources (center-cropped). `LIBRARY.md` gained `Aspect` and `Platforms` columns. `select_screen_recording(topic, persona, platform)` filters by platform — portrait recordings only match instagram/tiktok, landscape recordings only match facebook/twitter/linkedin. A mismatched (platform, recording aspect) returns None → b-roll filler. |
+| 7 | Platform ↔ aspect mapping (NON-NEGOTIABLE) | `PLATFORM_TO_ASPECT` maps `instagram/tiktok → vertical 1080×1920` and `facebook → square 1080×1080`. Pexels searches are per-aspect: vertical uses portrait sources, square uses landscape sources (center-cropped). Screen recording aspect/platforms are **derived from filename** via `derive_aspect_and_platforms_from_filename()`: `*-mobile-*.mp4` → portrait → instagram/tiktok; `*-desktop-*.mp4` → landscape → facebook/twitter/linkedin. `select_screen_recording(topic, persona, platform)` filters by the derived platforms — cross-aspect pairings return None → b-roll filler. |
 
 ## 2026-05-07 — platform/aspect mismatch rule
 
@@ -36,7 +36,12 @@ Running record of issues found during lifestyle-video review and the permanent f
 
 ### Permanent fix
 
-`LIBRARY.md` schema extended with `Aspect` and `Platforms` columns. `select_screen_recording(topic, persona, platform)` now requires the platform to be in the row's platforms list. When Heath records a desktop screen recording, he tags it `aspect: landscape, platforms: facebook,twitter,linkedin` and the selector picks it up automatically for Facebook renders without further code changes.
+`select_screen_recording(topic, persona, platform)` now requires the platform to be in the recording's platforms list. The aspect (portrait/landscape) and platforms (instagram/tiktok vs facebook/twitter/linkedin) are derived from the filename's form-factor segment via `derive_aspect_and_platforms_from_filename()`:
+
+- `*-mobile-*.mp4` → portrait → instagram, tiktok
+- `*-desktop-*.mp4` → landscape → facebook, twitter, linkedin
+
+When Heath records a desktop screen recording, dropping `morning-brief-desktop-2026-05-07.mp4` into `Media/screen-recordings/` and adding one row to LIBRARY.md is enough — the pipeline routes it to Facebook automatically because the filename contains `desktop`. No manual platform tagging needed.
 
 ### Validation — runs before final encode
 
