@@ -7,6 +7,7 @@ Catalog of mobile screen recordings used by `scripts/generate-lifestyle-video.py
 | Filename | Persona | Voice | Demo Account | Notes |
 |---|---|---|---|---|
 | morning-brief-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Mobile, female demo account |
+| morning-brief-desktop-2026-05-04.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Desktop 1472×1028 with live brief audio |
 | trec-deadlines-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Mobile, female demo account |
 | pipeline-mobile-2026-05-06.mp4 | brenda/patricia | Luna | Sarah Whitley (demo@) | Mobile, female demo account |
 | talk-to-dossie-mobile-2026-05-06.mp4 | victor | Bill | John Smith (demo2@) | Mobile, Heath as male agent talking to Dossie |
