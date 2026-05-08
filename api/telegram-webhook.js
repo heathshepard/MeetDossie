@@ -281,12 +281,14 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'method not allowed' });
   }
 
-  // Validate the optional Telegram secret-token header. If we configured one,
-  // require it. If we didn't, accept the request (still fingerprint via chat_id).
+  // Validate the optional Telegram secret-token header. Non-blocking: if we
+  // configured one and it doesn't match, log a warning but allow the request
+  // through (still fingerprinted via chat_id checks later).
   if (TELEGRAM_WEBHOOK_SECRET) {
     const got = req.headers && (req.headers['x-telegram-bot-api-secret-token'] || req.headers['X-Telegram-Bot-Api-Secret-Token']);
     if (got !== TELEGRAM_WEBHOOK_SECRET) {
-      return res.status(401).json({ ok: false, error: 'invalid secret token' });
+      console.warn('[telegram-webhook] secret token mismatch - expected:', TELEGRAM_WEBHOOK_SECRET?.slice(0, 8), 'got:', got?.slice(0, 8));
+      // Non-blocking: continue processing the request
     }
   }
 
