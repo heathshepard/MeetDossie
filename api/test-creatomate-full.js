@@ -9,7 +9,7 @@ const CREATOMATE_API_KEY = process.env.CREATOMATE_API_KEY;
 const CREATOMATE_TEMPLATE_ID = process.env.CREATOMATE_TEMPLATE_ID || '791117d0-665c-4cd0-ba5f-a767f8921f9b';
 
 const SCREEN_RECORDING_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/screen-recordings/friday-full-pipeline-view-2026-05-08.mp4';
-const VOICEOVER_TEXT = 'This is what an active week looks like with Dossie running it. Six files. Three under option, two clear to close, one waiting on appraisal. Every deadline tracked. Every party followed up. Every T-R-E-C paragraph already cited on the deadline page. I have not opened a folder of PDFs in two weeks. The pipeline view is the file. The file is the work. The work is the deal. Texas agents — meetdossie.com slash founding.';
+const VOICEOVER_TEXT = 'This is what an active week looks like with Dossie running it. Six files. Three under option, two clear to close, one waiting on appraisal. Every deadline tracked. Every party followed up. Every T-R-E-C paragraph already cited on the deadline page. I have not opened a folder of PDFs in two weeks. The pipeline view is the file. The file is the work. The work is the deal. Every file. Every deadline. Every follow-up. Handled. This is Dossie. Texas agents — meetdossie.com slash founding.';
 
 module.exports = async function handler(req, res) {
   if (!CREATOMATE_API_KEY) {
