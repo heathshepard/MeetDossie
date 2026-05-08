@@ -1,0 +1,2 @@
+# Exclude entire Media folder — videos, recordings, b-roll should never be bundled
+Media/

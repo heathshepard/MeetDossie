@@ -51,16 +51,16 @@ GOLD         = (201, 169, 110)   # #C9A96E  quote bar, founding pill
 BODY_INK     = (68, 68, 68)      # #444     quote body
 PILL_TEXT    = (255, 255, 255)   # white    pill text
 
-# ─── Asset paths (Vercel includes Media/_fonts) ──────────────────────────
+# ─── Asset paths (fonts now in public/ to avoid serverless function size limit) ───
 ROOT = Path(__file__).resolve().parent.parent
-FONT_SERIF_BOLD     = ROOT / "Media" / "_fonts" / "CormorantGaramond-Bold.ttf"
-FONT_SERIF_SEMIBOLD = ROOT / "Media" / "_fonts" / "CormorantGaramond-SemiBold.ttf"
+FONT_SERIF_BOLD     = ROOT / "public" / "fonts" / "CormorantGaramond-Bold.ttf"
+FONT_SERIF_SEMIBOLD = ROOT / "public" / "fonts" / "CormorantGaramond-SemiBold.ttf"
 # Plus Jakarta Sans is the website's body sans; bundle it instead of relying
 # on system DejaVu Sans, which doesn't exist on Vercel's Python runtime
 # (load_font was silently falling all the way to PIL.ImageFont.load_default,
 # rendering label/body in a tiny bitmap font that ignores the size param).
-FONT_SANS           = ROOT / "Media" / "_fonts" / "PlusJakartaSans-Regular.ttf"
-FONT_SANS_BOLD      = ROOT / "Media" / "_fonts" / "PlusJakartaSans-Bold.ttf"
+FONT_SANS           = ROOT / "public" / "fonts" / "PlusJakartaSans-Regular.ttf"
+FONT_SANS_BOLD      = ROOT / "public" / "fonts" / "PlusJakartaSans-Bold.ttf"
 # True absolute-fallback paths (Linux-only). Used by load_font's except clause
 # only if the bundled font is missing — kept for defense-in-depth, though we
 # never want to hit them in production.

@@ -27,8 +27,7 @@
     "api/render-card.py": {
       "runtime": "@vercel/python@4.3.1",
       "memory": 1024,
-      "maxDuration": 30,
-      "includeFiles": "Media/_fonts/**;Media/dossie-logo-d.png"
+      "maxDuration": 30
     },
     "api/cron-generate-posts.js": {
       "maxDuration": 90
