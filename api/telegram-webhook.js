@@ -83,35 +83,50 @@ async function sendMessage(chatId, text, replyToMessageId, forceReply) {
 }
 
 async function loadPost(postId) {
-  const enc = encodeURIComponent(postId);
-  const { data } = await supabaseFetch(`/rest/v1/social_posts?id=eq.${enc}&limit=1`);
-  if (Array.isArray(data) && data.length > 0) return data[0];
-  return null;
+  try {
+    const enc = encodeURIComponent(postId);
+    const { data } = await supabaseFetch(`/rest/v1/social_posts?id=eq.${enc}&limit=1`);
+    if (Array.isArray(data) && data.length > 0) return data[0];
+    return null;
+  } catch (err) {
+    console.error('[telegram-webhook] loadPost failed:', err?.message);
+    return null;
+  }
 }
 
 async function patchPost(postId, patch) {
-  const enc = encodeURIComponent(postId);
-  return supabaseFetch(`/rest/v1/social_posts?id=eq.${enc}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(patch),
-  });
+  try {
+    const enc = encodeURIComponent(postId);
+    return await supabaseFetch(`/rest/v1/social_posts?id=eq.${enc}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    });
+  } catch (err) {
+    console.error('[telegram-webhook] patchPost failed:', err?.message);
+    return { ok: false, error: err?.message };
+  }
 }
 
 async function bumpBatchCounter(postId, field) {
-  // Best-effort: no batch_id link on social_posts, so we look up the latest
-  // batch and bump its counter. This is informational only.
-  const { data } = await supabaseFetch(
-    `/rest/v1/content_batches?order=generated_at.desc&limit=1`,
-  );
-  const batch = Array.isArray(data) && data.length > 0 ? data[0] : null;
-  if (!batch || !batch.id) return;
-  const next = (batch[field] || 0) + 1;
-  await supabaseFetch(`/rest/v1/content_batches?id=eq.${encodeURIComponent(batch.id)}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ [field]: next }),
-  });
+  try {
+    // Best-effort: no batch_id link on social_posts, so we look up the latest
+    // batch and bump its counter. This is informational only.
+    const { data } = await supabaseFetch(
+      `/rest/v1/content_batches?order=generated_at.desc&limit=1`,
+    );
+    const batch = Array.isArray(data) && data.length > 0 ? data[0] : null;
+    if (!batch || !batch.id) return;
+    const next = (batch[field] || 0) + 1;
+    await supabaseFetch(`/rest/v1/content_batches?id=eq.${encodeURIComponent(batch.id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ [field]: next }),
+    });
+  } catch (err) {
+    console.error('[telegram-webhook] bumpBatchCounter failed:', err?.message);
+    // Non-fatal: this is informational only
+  }
 }
 
 function readRawBody(req) {
@@ -292,8 +307,11 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // Non-fatal Supabase check: log a warning but allow webhook to process
+  // messages even without Supabase (needed for Claudy to respond to general
+  // messages; Supabase only required for approve/reject callback queries).
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ ok: false, error: 'Supabase not configured' });
+    console.warn('[telegram-webhook] Supabase not configured - callback queries will fail');
   }
   if (!TELEGRAM_BOT_TOKEN) {
     return res.status(500).json({ ok: false, error: 'TELEGRAM_BOT_TOKEN not configured' });
