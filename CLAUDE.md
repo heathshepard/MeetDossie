@@ -418,6 +418,26 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 
 ---
 
+## 23.5. VIDEO CONTENT RULES
+
+When creating voiceover scripts for lifestyle videos:
+
+- **Opening:** Must start with a specific pain point, not a generic statement. Wrong: "Managing transactions is hard." Right: "Your TC calls you at 8AM asking which title company to use."
+- **Tone:** Conversational, not corporate. Speak like a real agent, not a press release.
+- **Rhythm:** Every script must have rhythm — short punchy sentences at the end build momentum and authority.
+- **Persona voice:**
+  - **Victor** = authoritative volume agent (confident, direct, no-nonsense)
+  - **Brenda** = emotional relatable agent (warm, empathetic, "I've been there")
+  - **Patricia** = practical part-time agent (efficient, time-focused, pragmatic)
+- **Inflection:** No rising inflection endings. Use period-heavy short sentences to close definitively.
+- **Duration:** Scripts should be 35-45 seconds when spoken at natural pace.
+- **Closing:** Always end with "This is Dossie." before the CTA ("Texas agents — meetdossie.com slash founding").
+
+**Example closing structure (Victor):**
+"The pipeline view is the file. The file is the work. The work is the deal. Every file. Every deadline. Every follow-up. Handled. This is Dossie. Texas agents — meetdossie.com slash founding."
+
+---
+
 ## 24. POSTING SCHEDULE (caps enforced in `cron-publish-approved.js`)
 
 | Platform | Slots (CST) | Cap |
