@@ -33,7 +33,7 @@ This file is read at the start of every Claude Code session. It completely repla
 | Social posting | Zernio | $12/mo, 4 accounts, unlimited posts |
 | Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`) |
 | Stock video | Pexels API | portrait for vertical, landscape for square |
-| Video assembly | ffmpeg 8.1 | Local Windows install via Gyan.FFmpeg/WinGet |
+| Video assembly | Creatomate | Template ID `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: `Image-K8V` (screen recording URL), `Persona-Name`, `Caption`, `Voiceover` (ElevenLabs Bill voice pre-configured). |
 | Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) for personal + DONE handler. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) for social-post approve/reject callbacks. |
 
 **Repo layout — TWO repos:**
@@ -340,6 +340,8 @@ ANTHROPIC_API_KEY
 ELEVENLABS_API_KEY
 PEXELS_API_KEY
 ZERNIO_API_KEY
+CREATOMATE_API_KEY
+CREATOMATE_TEMPLATE_ID = 791117d0-665c-4cd0-ba5f-a767f8921f9b
 DEMO_PASSWORD = DossieDemo-VaIiAt6Bab
 DEMO2_PASSWORD = DossieDemo2-John2026
 ```
