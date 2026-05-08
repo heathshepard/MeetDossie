@@ -788,7 +788,7 @@ async function scanContract(pdfBase64) {
   //Check PDF size - if over 5MB, use increased max_tokens and Opus for better large-doc handling
   const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
-  const modelToUse = isLargePdf ? 'claude-opus-4-7' : MODEL;
+  const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : MODEL;
   const maxTokensToUse = isLargePdf ? 8192 : MAX_TOKENS;
 
   const response = await anthropic.messages.create({
@@ -964,7 +964,7 @@ async function auditCompliance(pdfBase64, documentType) {
   // For large PDFs, use Opus and increased max_tokens
   const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
-  const modelToUse = isLargePdf ? 'claude-opus-4-7' : MODEL;
+  const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : MODEL;
   const maxTokensToUse = isLargePdf ? 4096 : 2048;
 
   const response = await anthropic.messages.create({
