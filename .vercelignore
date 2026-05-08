@@ -1,1 +1,7 @@
-Media/
+# Exclude large media files but keep fonts and logo needed by render-card.py
+Media/b-roll/
+Media/finished-videos/
+Media/screen-recordings/
+Media/voiceovers/
+Media/*.mp4
+Media/*.mp3
