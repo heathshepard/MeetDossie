@@ -9,7 +9,6 @@ from pathlib import Path
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://pgwoitbdiyubjugwufhk.supabase.co")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE"
-BUCKET_NAME = "screen-recordings"
 DEMO_EMAIL = "demo@meetdossie.com"
 DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab"
 
@@ -45,11 +44,11 @@ def authenticate():
         print(f"ERROR authenticating: {e}")
         return None
 
-def create_bucket():
-    """Create the screen-recordings bucket if it doesn't exist"""
+def create_bucket(bucket_name):
+    """Create a bucket if it doesn't exist"""
     url = f"{SUPABASE_URL}/storage/v1/bucket"
     payload = {
-        "name": BUCKET_NAME,
+        "name": bucket_name,
         "public": True,
         "file_size_limit": 104857600,  # 100MB
         "allowed_mime_types": ["video/mp4", "video/quicktime"]
@@ -72,14 +71,14 @@ def create_bucket():
             return True
     except urllib.error.HTTPError as e:
         if e.code == 409:
-            print(f"OK Bucket '{BUCKET_NAME}' already exists")
+            print(f"OK Bucket '{bucket_name}' already exists")
             return True
         else:
             body = e.read().decode("utf-8", "replace") if e.fp else ""
             print(f"ERROR creating bucket: {e.code} {body}")
             return False
 
-def upload_file(file_path: Path, access_token=None):
+def upload_file(file_path: Path, bucket_name, access_token=None):
     """Upload file to Supabase Storage and return public URL"""
     if not file_path.exists():
         print(f"ERROR: File not found: {file_path}")
@@ -89,7 +88,7 @@ def upload_file(file_path: Path, access_token=None):
     file_size = file_path.stat().st_size
     print(f"Uploading {file_name} ({file_size:,} bytes)...")
 
-    url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET_NAME}/{file_name}"
+    url = f"{SUPABASE_URL}/storage/v1/object/{bucket_name}/{file_name}"
     file_bytes = file_path.read_bytes()
 
     # Priority: SERVICE_ROLE_KEY > access_token > ANON_KEY
@@ -116,7 +115,7 @@ def upload_file(file_path: Path, access_token=None):
             print(f"OK Upload complete")
 
             # Construct public URL
-            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{file_name}"
+            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
             print(f" Public URL: {public_url}")
             return public_url
 
@@ -130,11 +129,12 @@ def main():
         print("ERROR: SUPABASE_URL must be set")
         sys.exit(1)
 
-    if len(sys.argv) < 2:
-        print("Usage: python upload-to-supabase-storage.py <file-path>")
+    if len(sys.argv) < 3:
+        print("Usage: python upload-to-supabase-storage.py <bucket-name> <file-path>")
         sys.exit(1)
 
-    file_path = Path(sys.argv[1])
+    bucket_name = sys.argv[1]
+    file_path = Path(sys.argv[2])
 
     # Authenticate to get access token
     access_token = None
@@ -147,14 +147,14 @@ def main():
 
     # Create bucket (only if SERVICE_ROLE_KEY is available)
     if SUPABASE_SERVICE_ROLE_KEY:
-        print(f"Creating/checking bucket '{BUCKET_NAME}'...")
-        if not create_bucket():
+        print(f"Creating/checking bucket '{bucket_name}'...")
+        if not create_bucket(bucket_name):
             print("Note: Bucket creation failed, assuming it already exists")
     else:
-        print(f"Note: Bucket '{BUCKET_NAME}' assumed to exist")
+        print(f"Note: Bucket '{bucket_name}' assumed to exist")
 
     # Upload file
-    public_url = upload_file(file_path, access_token)
+    public_url = upload_file(file_path, bucket_name, access_token)
 
     # Return URL
     print(f"\nOK Done! Public URL:")
