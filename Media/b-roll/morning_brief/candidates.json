@@ -1,0 +1,68 @@
+{
+  "topic": "morning_brief",
+  "generated_at": "2026-05-06T21:26:12.545199",
+  "ideal_duration_s": 7.5,
+  "min_width": 1080,
+  "min_duration_s": 5,
+  "max_duration_s": 12,
+  "picked_ids": [
+    4107657,
+    5977264,
+    4106784,
+    7077613
+  ],
+  "candidates": [
+    {
+      "id": 4107657,
+      "query": "businesswoman laptop morning",
+      "duration": 8,
+      "width": 1920,
+      "height": 1080,
+      "file_quality": "hd",
+      "preview_url": "https://www.pexels.com/video/toast-laptop-keyboard-networking-4107657/",
+      "image_thumb": "https://images.pexels.com/videos/4107657/pexels-photo-4107657.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "video_url": "https://videos.pexels.com/video-files/4107657/4107657-hd_1920_1080_25fps.mp4",
+      "is_portrait": false,
+      "gender_score": 0
+    },
+    {
+      "id": 5977264,
+      "query": "businesswoman laptop morning",
+      "duration": 8,
+      "width": 1920,
+      "height": 1080,
+      "file_quality": "hd",
+      "preview_url": "https://www.pexels.com/video/a-woman-in-a-video-call-while-having-snack-5977264/",
+      "image_thumb": "https://images.pexels.com/videos/5977264/business-business-meeting-businessman-businesswoman-5977264.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "video_url": "https://videos.pexels.com/video-files/5977264/5977264-hd_1920_1080_25fps.mp4",
+      "is_portrait": false,
+      "gender_score": 0
+    },
+    {
+      "id": 4106784,
+      "query": "businesswoman laptop morning",
+      "duration": 7,
+      "width": 1920,
+      "height": 1080,
+      "file_quality": "hd",
+      "preview_url": "https://www.pexels.com/video/a-woman-in-a-wheelchair-using-her-laptop-4106784/",
+      "image_thumb": "https://images.pexels.com/videos/4106784/pexels-photo-4106784.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "video_url": "https://videos.pexels.com/video-files/4106784/4106784-hd_1920_1080_25fps.mp4",
+      "is_portrait": false,
+      "gender_score": 0
+    },
+    {
+      "id": 7077613,
+      "query": "professional woman morning routine",
+      "duration": 7,
+      "width": 1920,
+      "height": 1080,
+      "file_quality": "hd",
+      "preview_url": "https://www.pexels.com/video/a-woman-working-at-home-7077613/",
+      "image_thumb": "https://images.pexels.com/videos/7077613/pexels-photo-7077613.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "video_url": "https://videos.pexels.com/video-files/7077613/7077613-hd_1920_1080_25fps.mp4",
+      "is_portrait": false,
+      "gender_score": 0
+    }
+  ]
+}

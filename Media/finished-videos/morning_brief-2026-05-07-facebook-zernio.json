@@ -1,0 +1,20 @@
+{
+  "topic": "morning_brief",
+  "week": 1,
+  "day": 1,
+  "uploads": [
+    {
+      "file": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\Media\\finished-videos\\morning_brief-2026-05-07-facebook-square.mp4",
+      "result": {
+        "ok": true,
+        "publicUrl": "https://media.zernio.com/temp/1778118156102_4q2cs30v_morning_brief-2026-05-07-facebook-square.mp4",
+        "uploadUrl": "https://late-media.613d73a46130ed0083c059a837d6511b.r2.cloudflarestorage.com/temp/1778118156102_4q2cs30v_morning_brief-2026-05-07-facebook-square.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=0c2cf252753a4d0cae599921de485cdf%2F20260507%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260507T014236Z&X-Amz-Expires=3600&X-Amz-Signature=5657b17e479eec4d84699035068f8931cf204297232973e2f3071660a13c1fed&X-Amz-SignedHeaders=host&x-id=PutObject",
+        "expires": null,
+        "put_status": 200,
+        "size_bytes": 7957953
+      }
+    }
+  ],
+  "posts": [],
+  "generated_at": "2026-05-06T20:42:38.131293"
+}

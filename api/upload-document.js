@@ -21,7 +21,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const BUCKET = 'documents';
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -197,7 +197,7 @@ module.exports = async function handler(req, res) {
     }
     const approxBytes = Math.floor((cleaned.length * 3) / 4);
     if (approxBytes > MAX_FILE_BYTES) {
-      throw new ValidationError(`File is too large (~${approxBytes} bytes). Max is ${MAX_FILE_BYTES} bytes (10 MB).`, 413);
+      throw new ValidationError(`File is too large (~${approxBytes} bytes). Max is ${MAX_FILE_BYTES} bytes (25 MB).`, 413);
     }
 
     let buffer;
@@ -210,7 +210,7 @@ module.exports = async function handler(req, res) {
       throw new ValidationError('Decoded file is empty.');
     }
     if (buffer.length > MAX_FILE_BYTES) {
-      throw new ValidationError(`File is too large (${buffer.length} bytes). Max is ${MAX_FILE_BYTES} bytes (10 MB).`, 413);
+      throw new ValidationError(`File is too large (${buffer.length} bytes). Max is ${MAX_FILE_BYTES} bytes (25 MB).`, 413);
     }
 
     const storagePath = `${userId}/${transactionIdRaw}/${Date.now()}-${fileName}`;
