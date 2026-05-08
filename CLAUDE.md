@@ -290,6 +290,8 @@ Highlights:
 - `GOLD-2026-05-07-v7-mcp-published`
 - `GOLD-2026-05-07-v8-mcp-http-live`
 - `GOLD-2026-05-07-v8-smithery-live`
+- `GOLD-2026-05-08-v9-deployment-fixed`
+- `GOLD-2026-05-08-v10-creatomate-live`
 
 ---
 
@@ -298,9 +300,9 @@ Highlights:
 - **Two repos:** always build in `Dossie`, always deploy from `MeetDossie`.
 - Prefer **clean rebuilds** over iterative patches when a component is fundamentally broken. Flag immediately when a clean rebuild is warranted.
 - Always read `DISTRIBUTION-STRATEGY.md` before any marketing build.
-- Always read the `RENDER_RULES` block in `generate-lifestyle-video.py` before touching the video pipeline.
 - Always read `Media/screen-recordings/LIBRARY.md` before touching screen-recording selection.
 - Always read `RENDER_FEEDBACK_LOG.md` before rendering any video.
+- **Video pipeline:** Creatomate template `791117d0-665c-4cd0-ba5f-a767f8921f9b` handles all video assembly. Script: `generate-creatomate-video.py`.
 - Git tag every stable milestone: `GOLD-[YYYY-MM-DD]-v[N]-[description]`.
 - Never commit secrets to GitHub.
 - Test in production (Vercel) — local env vars are mostly empty by design.
@@ -477,8 +479,12 @@ cd "C:\Users\Heath Shepard\Desktop\Dossie" && claude --channels plugin:telegram@
 1. **9AM CST weekdays:** Claudy sends the daily content brief to Heath's Telegram. Brief includes platform, hook, voiceover script, demo account to use, filename to save as.
 2. Heath records his screen (~10 min) and saves to `Media\screen-recordings\` with the exact filename specified.
 3. Heath replies **DONE** to Claudy in Telegram.
-4. Claude Code auto-runs `generate-lifestyle-video.py`.
-5. Video renders, uploads to Zernio, posts automatically.
+4. Claude Code auto-runs `generate-creatomate-video.py`:
+   - Uploads screen recording to Supabase Storage
+   - Calls Creatomate API (template `791117d0-665c-4cd0-ba5f-a767f8921f9b`) with voiceover text, screen recording URL, persona name, and caption
+   - Polls for render completion
+   - Returns video URL for approval flow
+5. Video sent to DossieMarketingBot for approval, then posted to social platforms.
 
 Separately: DossieMarketingBot sends draft social posts throughout the day for Approve / Reject.
 
