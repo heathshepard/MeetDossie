@@ -140,10 +140,5 @@ vite.config.ts.timestamp-*
 .vercel
 .env*.local
 
-# Large media files — should not be in git repo
-Media/b-roll/
-Media/finished-videos/
-Media/screen-recordings/
-Media/voiceovers/
-Media/*.mp4
-Media/*.mp3
+# Exclude entire Media directory — videos, recordings, assets should not be in git repo
+Media/
