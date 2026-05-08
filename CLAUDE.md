@@ -104,6 +104,12 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - E-sig — 10 free, then $0.50 each
 - Onboarding — $99 one-time
 
+**PRICING ROADMAP (do not implement until 25 founding members):**
+- Solo price increases from $49/mo to $69/mo after founding spots fill
+- Founding members locked at $29/mo forever — non-negotiable
+- Team stays at $149/mo
+- Rationale: market research shows DealDock ($79), ListedKit ($49+), Done Deal (unpublished) all charge more for less Texas-specific value. Dossie is underpriced at $49 for solo.
+
 ---
 
 ## 6. CURRENT CUSTOMERS
