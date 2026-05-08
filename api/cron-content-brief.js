@@ -59,12 +59,25 @@ function pickWeekAndDay(now) {
   return { weekNumber, dayOfWeek };
 }
 
-function slugify(s) {
-  return String(s || 'feature')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 40);
+// Map content_calendar.feature → topic slug used by generate-lifestyle-video.py
+// and LIBRARY.md. Keep this in sync with TOPIC_TO_FEATURE in the Python script.
+const FEATURE_TO_TOPIC_SLUG = {
+  'Morning Brief live audio': 'morning-brief',
+  'New dossier TREC deadlines': 'trec-deadlines',
+  'Draft queue emails': 'draft-emails',
+  'Talk to Dossie': 'talk-to-dossie',
+  'Full pipeline view': 'pipeline-view',
+};
+
+// Map platform → form-factor for filename. LIBRARY.md uses form-factor
+// to derive aspect ratio and compatible platforms automatically.
+function getFormFactor(platform) {
+  const p = String(platform || '').toLowerCase();
+  // Instagram + TikTok = mobile (portrait 1080x1920)
+  if (p === 'instagram' || p === 'tiktok') return 'mobile';
+  // Facebook + Twitter + LinkedIn = desktop (landscape or square)
+  if (p === 'facebook' || p === 'twitter' || p === 'linkedin') return 'desktop';
+  return 'mobile'; // default fallback
 }
 
 function formatBrief(entry, now) {
@@ -73,7 +86,12 @@ function formatBrief(entry, now) {
   const dateLabel = now.toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
   });
-  const filename = `${dayName.toLowerCase()}-${slugify(entry.feature)}-${isoDate}.mp4`;
+
+  // Generate filename following LIBRARY.md pattern:
+  // <topic-slug>-<form-factor>-<YYYY-MM-DD>.mp4
+  const topicSlug = FEATURE_TO_TOPIC_SLUG[entry.feature] || 'feature';
+  const formFactor = getFormFactor(entry.platform);
+  const filename = `${topicSlug}-${formFactor}-${isoDate}.mp4`;
 
   const persona = entry.persona ? String(entry.persona).toLowerCase() : null;
   const demo = persona ? PERSONA_DEMO_ACCOUNT[persona] : null;
@@ -104,7 +122,7 @@ function formatBrief(entry, now) {
     '',
     `📁 SAVE AS:`,
     filename,
-    `Example: monday-morning-brief-2026-05-04.mp4`,
+    `Example: morning-brief-mobile-2026-05-04.mp4`,
     `Drop in: MeetDossie\\Media\\screen-recordings\\`,
     '',
     `Reply DONE when recorded. Claude Code will handle the rest.`,
