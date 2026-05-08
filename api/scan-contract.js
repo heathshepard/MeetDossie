@@ -785,9 +785,15 @@ async function scanContract(pdfBase64) {
   // Centralized validation — throws ValidationError with .status set.
   validatePdfBase64(pdfBase64);
 
+  //Check PDF size - if over 5MB, use increased max_tokens and Opus for better large-doc handling
+  const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
+  const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
+  const modelToUse = isLargePdf ? 'claude-opus-4-7' : MODEL;
+  const maxTokensToUse = isLargePdf ? 8192 : MAX_TOKENS;
+
   const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
+    model: modelToUse,
+    max_tokens: maxTokensToUse,
     messages: [
       {
         role: 'user',
@@ -911,8 +917,13 @@ async function scanContract(pdfBase64) {
 }
 
 async function identifyDocument(pdfBase64) {
+  // For large PDFs, use Sonnet instead of Haiku for better reliability
+  const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
+  const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
+  const modelToUse = isLargePdf ? MODEL : IDENTIFY_MODEL;
+
   const response = await anthropic.messages.create({
-    model: IDENTIFY_MODEL,
+    model: modelToUse,
     max_tokens: 200,
     messages: [{
       role: 'user',
@@ -949,9 +960,16 @@ function emptyComplianceReport(docLabel) {
 
 async function auditCompliance(pdfBase64, documentType) {
   const prompt = COMPLIANCE_PROMPTS[documentType] || COMPLIANCE_PROMPTS.other;
+
+  // For large PDFs, use Opus and increased max_tokens
+  const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
+  const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
+  const modelToUse = isLargePdf ? 'claude-opus-4-7' : MODEL;
+  const maxTokensToUse = isLargePdf ? 4096 : 2048;
+
   const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
+    model: modelToUse,
+    max_tokens: maxTokensToUse,
     messages: [{
       role: 'user',
       content: [
