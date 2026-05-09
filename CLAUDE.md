@@ -320,7 +320,7 @@ Highlights:
 | Facebook Page | MeetDossie | ✅ connected |
 | Instagram | @meetdossie | ✅ connected |
 | Twitter / X | @meetdossie | ✅ connected |
-| TikTok | @meetdossietc | connected, `is_active=FALSE` until ~May 20, 2026 |
+| TikTok | @meetdossietc | ✅ connected ✅ active (live since 2026-05-08) |
 | Threads | @meetdossie | not automated |
 | LinkedIn | linkedin.com/company/meetdossie | ✅ connected ✅ active (live since 2026-05-07) |
 
@@ -398,7 +398,7 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 | instagram | `69f25431985e734bf3d8fcbe` | ✅ |
 | twitter | `69f255c6985e734bf3d90ba1` | ✅ |
 | linkedin | `69fccd7392b3d8e85f8f12be` | ✅ (URN `urn:li:organization:115997183`) |
-| tiktok | `69f15791985e734bf3d13b89` | `is_active=FALSE` |
+| tiktok | `69f15791985e734bf3d13b89` | ✅ |
 
 ---
 
