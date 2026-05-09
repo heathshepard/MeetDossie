@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(python .claude/analyze-transcripts.py)",
+      "Bash(python -m json.tool)",
+      "Bash(python -c ' *)",
+      "Bash(python *)",
+      "Bash(curl -s \"https://meetdossie.com/signin.html\")",
+      "mcp__claude_ai_Supabase__get_project",
+      "Bash"
+    ]
+  }
+}

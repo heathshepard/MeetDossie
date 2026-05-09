@@ -15,7 +15,7 @@
   if (window.openSalesModal) return;
 
   var SUPABASE_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE';
+  var SUPABASE_ANON_KEY = 'sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb';
 
   var STYLE_ID = 'dossie-sales-modal-style';
   var ROOT_ID = 'dossie-sales-modal-root';

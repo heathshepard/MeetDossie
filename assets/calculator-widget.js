@@ -9,7 +9,7 @@
 (function () {
   'use strict';
 
-  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE';
+  var ANON_KEY = 'sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb';
 
   var INPUTS = ['effectiveDate', 'closingDate', 'optionDays', 'optionFeeDays', 'earnestDays', 'financingDays', 'surveyDays'];
 
