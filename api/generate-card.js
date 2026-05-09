@@ -62,8 +62,9 @@ module.exports = async (req, res) => {
   // Spawn Python script
   // Note: Vercel serverless functions run in /var/task on AWS Lambda
   // The working directory is the project root
+  // Use 'python' not 'python3' - Vercel runtime provides python symlink
   const scriptPath = path.join(process.cwd(), 'scripts', 'render-card.py');
-  const python = spawn('python3', [scriptPath, input], {
+  const python = spawn('python', [scriptPath, input], {
     env: {
       ...process.env,
       PYTHONUNBUFFERED: '1', // Ensure stdout is not buffered
