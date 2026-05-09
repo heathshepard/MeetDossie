@@ -3,11 +3,9 @@
  *
  * Node.js canvas-based social card renderer. Generates branded image cards
  * for Instagram and Facebook posts, uploads to Supabase Storage.
- *
- * Replaces the Python/Pillow implementation with pure Node.js.
  */
 
-const { createCanvas, registerFont, loadImage } = require('canvas');
+const { createCanvas, registerFont } = require('canvas');
 const path = require('path');
 const fetch = require('node-fetch');
 
@@ -34,11 +32,10 @@ const PLATFORM_DIMS = {
   facebook: { width: 1200, height: 630 },
 };
 
-// Register fonts (absolute paths for Vercel serverless)
+// Register fonts
 const fontsDir = path.join(process.cwd(), 'public', 'fonts');
 try {
   registerFont(path.join(fontsDir, 'CormorantGaramond-Bold.ttf'), { family: 'Cormorant Garamond', weight: 'bold' });
-  registerFont(path.join(fontsDir, 'CormorantGaramond-SemiBold.ttf'), { family: 'Cormorant Garamond', weight: '600' });
   registerFont(path.join(fontsDir, 'PlusJakartaSans-Regular.ttf'), { family: 'Plus Jakarta Sans', weight: 'normal' });
   registerFont(path.join(fontsDir, 'PlusJakartaSans-Bold.ttf'), { family: 'Plus Jakarta Sans', weight: 'bold' });
 } catch (err) {
@@ -70,29 +67,50 @@ function wrapText(ctx, text, maxWidth) {
 }
 
 /**
- * Derive stat and label from provided fields or fallbacks
+ * Query live founding member count from Supabase
  */
-function deriveStatAndLabel(stat, statLabel, hook, content) {
-  let derivedStat = stat || hook || 'Your deals.';
-  let derivedLabel = statLabel || content?.split('.')[0] || 'Transform your transaction coordination';
+async function getFoundingMemberCount() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // Trim to reasonable lengths
-  if (derivedStat.length > 40) {
-    derivedStat = derivedStat.slice(0, 37) + '…';
-  }
-  if (derivedLabel.length > 120) {
-    derivedLabel = derivedLabel.slice(0, 117) + '…';
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn('Cannot query founding count - Supabase not configured');
+    return { count: 0, remaining: 50 };
   }
 
-  return { derivedStat, derivedLabel };
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/subscriptions?plan=eq.founding&select=id`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.warn('Failed to query founding count:', response.status);
+      return { count: 0, remaining: 50 };
+    }
+
+    const data = await response.json();
+    const count = Array.isArray(data) ? data.length : 0;
+    const remaining = Math.max(0, 50 - count);
+
+    return { count, remaining };
+  } catch (error) {
+    console.warn('Error querying founding count:', error.message);
+    return { count: 0, remaining: 50 };
+  }
 }
 
 /**
  * Upload buffer to Supabase Storage
  */
 async function uploadToStorage(buffer, objectPath) {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const bucket = 'social-cards';
 
   if (!supabaseUrl || !serviceRoleKey) {
@@ -121,7 +139,7 @@ async function uploadToStorage(buffer, objectPath) {
 /**
  * Render the social card
  */
-function renderCard({ platform, hook, content, persona, stat, statLabel }) {
+async function renderCard({ platform, hook, content, persona, stat, statLabel }) {
   const dims = PLATFORM_DIMS[platform];
   if (!dims) {
     throw new Error(`Unsupported platform: ${platform}`);
@@ -155,93 +173,121 @@ function renderCard({ platform, hook, content, persona, stat, statLabel }) {
   const contentW = contentRight - contentLeft;
 
   const statColor = PERSONA_COLORS[persona?.toLowerCase()] || COLORS.CORAL;
-  const { derivedStat, derivedLabel } = deriveStatAndLabel(stat, statLabel, hook, content);
 
-  // ─── Stat line (big serif, persona-colored) ─────────────────────────────
-  const statTargetSize = isInstagram ? 96 : 72;
-  ctx.font = `bold ${statTargetSize}px "Cormorant Garamond"`;
-  ctx.fillStyle = statColor;
-
-  const statLines = wrapText(ctx, derivedStat, contentW);
-  const truncatedStatLines = statLines.slice(0, 2);
-  if (truncatedStatLines.length === 2 && !truncatedStatLines[1].endsWith('…')) {
-    truncatedStatLines[1] = truncatedStatLines[1].slice(0, -1) + '…';
-  }
+  // Get live founding count
+  const { remaining: foundingRemaining } = await getFoundingMemberCount();
 
   let y = padTop;
-  const statLineHeight = statTargetSize * 1.05;
+
+  // ─── 1. STAT LINE (big serif, persona-colored) ──────────────────────────
+  const actualStat = (stat || hook || '80').trim();
+  const actualStatLabel = (statLabel || 'transactions per year').trim();
+
+  const statSize = isInstagram ? 96 : 72;
+  ctx.font = `bold ${statSize}px "Cormorant Garamond"`;
+  ctx.fillStyle = statColor;
+  ctx.textBaseline = 'top';
+
+  const statLines = wrapText(ctx, actualStat, contentW);
+  const truncatedStatLines = statLines.slice(0, 2);
+
   for (const line of truncatedStatLines) {
-    ctx.fillText(line, contentLeft, y + statTargetSize);
-    y += statLineHeight;
+    ctx.fillText(line, contentLeft, y);
+    y += statSize * 1.05;
   }
 
-  // ─── Stat label (sans, navy) ────────────────────────────────────────────
-  const labelGap = Math.floor(H * (isInstagram ? 0.025 : 0.030));
+  // ─── 2. STAT LABEL (sans, navy) ─────────────────────────────────────────
+  const labelGap = Math.floor(H * 0.025);
+  y += labelGap;
+
   const labelSize = isInstagram ? 28 : 22;
   ctx.font = `${labelSize}px "Plus Jakarta Sans"`;
   ctx.fillStyle = COLORS.NAVY;
 
-  const labelLines = wrapText(ctx, derivedLabel, contentW);
+  const labelLines = wrapText(ctx, actualStatLabel, contentW);
   const truncatedLabelLines = labelLines.slice(0, 2);
-  if (truncatedLabelLines.length === 2 && !truncatedLabelLines[1].endsWith('…')) {
-    truncatedLabelLines[1] = truncatedLabelLines[1].slice(0, -1) + '…';
-  }
 
-  y += labelGap;
-  const labelLineHeight = labelSize * 1.30;
   for (const line of truncatedLabelLines) {
-    ctx.fillText(line, contentLeft, y + labelSize);
-    y += labelLineHeight;
+    ctx.fillText(line, contentLeft, y);
+    y += labelSize * 1.30;
   }
 
-  // ─── Bottom row geometry ─────────────────────────────────────────────────
+  // ─── 3. VERTICAL DIVIDER + HOOK TEXT ────────────────────────────────────
+  const hookGap = Math.floor(H * (isInstagram ? 0.04 : 0.05));
+  y += hookGap;
+
+  const actualHook = (hook || '').trim();
+  if (actualHook) {
+    // Draw vertical sage divider line (left side)
+    const dividerHeight = Math.floor(H * 0.025);
+    ctx.fillStyle = COLORS.SAGE;
+    ctx.fillRect(contentLeft, y, 3, dividerHeight);
+
+    // Hook text next to divider
+    const hookTextX = contentLeft + 15;
+    const hookSize = isInstagram ? 32 : 26;
+    ctx.font = `bold ${hookSize}px "Plus Jakarta Sans"`;
+    ctx.fillStyle = COLORS.NAVY;
+
+    const hookLines = wrapText(ctx, actualHook, contentRight - hookTextX);
+    const truncatedHookLines = hookLines.slice(0, 2);
+
+    for (const line of truncatedHookLines) {
+      ctx.fillText(line, hookTextX, y);
+      y += hookSize * 1.2;
+    }
+  }
+
+  // ─── 4. BODY CONTENT (with gold left bar) ───────────────────────────────
+  const contentGap = Math.floor(H * (isInstagram ? 0.04 : 0.05));
+  y += contentGap;
+
   const pillH = Math.floor(H * (isInstagram ? 0.060 : 0.090));
   const bottomRowY = H - padBot - pillH;
-
-  // ─── Gold left-bar quote (body content) ──────────────────────────────────
-  const quoteTop = y + Math.floor(H * 0.05);
-  const quoteBottom = bottomRowY - Math.floor(H * 0.05);
-  const quoteHAvail = Math.max(quoteBottom - quoteTop, Math.floor(H * 0.10));
+  const contentBottom = bottomRowY - Math.floor(H * 0.04);
+  const contentHAvail = Math.max(contentBottom - y, Math.floor(H * 0.10));
 
   const barW = 4;
   const barX = contentLeft;
-  const quoteTextX = contentLeft + barW + Math.floor(W * 0.020);
-  const quoteTextW = contentRight - quoteTextX;
+  const bodyTextX = contentLeft + barW + Math.floor(W * 0.020);
+  const bodyTextW = contentRight - bodyTextX;
 
-  const bodyText = (content || hook || '').trim();
-  const quoteSize = isInstagram ? 30 : 22;
-  ctx.font = `${quoteSize}px "Plus Jakarta Sans"`;
+  const bodyText = (content || '').trim();
+  const bodySize = isInstagram ? 30 : 22;
+  ctx.font = `${bodySize}px "Plus Jakarta Sans"`;
   ctx.fillStyle = COLORS.BODY_INK;
 
-  const quoteLines = wrapText(ctx, bodyText, quoteTextW);
-  const quoteLineHeight = quoteSize * 1.65;
-  const maxQuoteLines = Math.max(1, Math.floor(quoteHAvail / quoteLineHeight));
-  const truncatedQuoteLines = quoteLines.slice(0, maxQuoteLines);
-  if (truncatedQuoteLines.length > 0 && truncatedQuoteLines.length === maxQuoteLines && !truncatedQuoteLines[maxQuoteLines - 1].endsWith('…')) {
-    truncatedQuoteLines[maxQuoteLines - 1] = truncatedQuoteLines[maxQuoteLines - 1].slice(0, -1) + '…';
+  const bodyLines = wrapText(ctx, bodyText, bodyTextW);
+  const bodyLineHeight = bodySize * 1.65;
+  const maxBodyLines = Math.max(1, Math.floor(contentHAvail / bodyLineHeight));
+  const truncatedBodyLines = bodyLines.slice(0, maxBodyLines);
+  if (truncatedBodyLines.length > 0 && truncatedBodyLines.length === maxBodyLines && bodyLines.length > maxBodyLines) {
+    const lastLine = truncatedBodyLines[maxBodyLines - 1];
+    if (!lastLine.endsWith('…')) {
+      truncatedBodyLines[maxBodyLines - 1] = lastLine.slice(0, -1) + '…';
+    }
   }
 
-  const renderedQuoteH = truncatedQuoteLines.length * quoteLineHeight;
+  const renderedBodyH = truncatedBodyLines.length * bodyLineHeight;
 
   // Draw gold bar
-  if (renderedQuoteH > 0) {
+  if (renderedBodyH > 0) {
     ctx.fillStyle = COLORS.GOLD;
-    ctx.fillRect(barX, quoteTop, barW, renderedQuoteH);
+    ctx.fillRect(barX, y, barW, renderedBodyH);
   }
 
-  // Draw quote text
+  // Draw body text
   ctx.fillStyle = COLORS.BODY_INK;
-  y = quoteTop;
-  for (const line of truncatedQuoteLines) {
+  const bodyStartY = y;
+  for (const line of truncatedBodyLines) {
     if (line) {
-      ctx.fillText(line, quoteTextX, y + quoteSize);
+      ctx.fillText(line, bodyTextX, y);
     }
-    y += quoteLineHeight;
+    y += bodyLineHeight;
   }
 
-  // ─── Bottom row: pill (left) + URL (right) ───────────────────────────────
-  const foundingSpotsRemaining = process.env.FOUNDING_SPOTS_REMAINING || '50';
-  const pillText = `Founding · ${foundingSpotsRemaining} spots left`;
+  // ─── 5. BOTTOM ROW: PILL (left) + URL (right) ───────────────────────────
+  const pillText = `Founding · ${foundingRemaining} spots left`;
   const pillSize = isInstagram ? 22 : 20;
   ctx.font = `${pillSize}px "Plus Jakarta Sans"`;
 
@@ -259,6 +305,7 @@ function renderCard({ platform, hook, content, persona, stat, statLabel }) {
   // Draw pill text
   ctx.fillStyle = COLORS.WHITE;
   ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
   ctx.fillText(pillText, contentLeft + pillPadX, bottomRowY + pillH / 2);
 
   // Draw URL (right-aligned)
@@ -304,7 +351,7 @@ module.exports = async (req, res) => {
 
   try {
     // Render card
-    const buffer = renderCard({
+    const buffer = await renderCard({
       platform,
       hook: hook || '',
       content: content || '',

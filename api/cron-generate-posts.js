@@ -242,7 +242,7 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
       "persona": "brenda" | "patricia" | "victor",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter",
       "content": "<the full post text>",
-      "hook": "<first 1-2 lines from the post, max 120 chars>",
+      "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
       "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
       "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
       "stat": "<bold anchor — a single number, dollar amount, or punchy phrase, max 4 words / 30 chars. Examples: '$8,000', '50+ deals a year', '9:47pm Sunday', 'Friday afternoon', '$29/month'. Pulled directly from the post — no new claims. This is the headline of an image card, so it must read at a glance.>",
