@@ -32,11 +32,11 @@ a{background:#fff;color:#2d2a26;border:1px solid #e8e2d9;margin-top:10px}
     <div id="status"></div>
   </div>
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.0';
 const statusEl = document.getElementById('status');
 const emailEl = document.getElementById('email');
 const sendBtn = document.getElementById('send');
-const supabase = createClient('https://pgwoitbdiyubjugwufhk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const supabase = createClient('https://pgwoitbdiyubjugwufhk.supabase.co','sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
 async function bootstrap() {
   const { data } = await supabase.auth.getSession();
