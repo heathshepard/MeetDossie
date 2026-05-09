@@ -319,8 +319,8 @@ function extractJson(raw) {
 // cron-publish-approved.js then attaches it as mediaItems[0] when posting
 // to Zernio — no separate render step needed at publish time.
 //
-// /api/render-card lives in the same Vercel deployment (Python serverless
-// function with @vercel/python). Same domain → in-region call, low latency.
+// /api/generate-card is a Node.js endpoint that spawns scripts/render-card.py
+// as a child process. Replaces the broken Python serverless approach.
 const CARD_PLATFORMS = new Set(['instagram', 'facebook']);
 
 async function renderSocialCard({ platform, hook, content, persona, post_id, stat, stat_label }) {
@@ -330,7 +330,7 @@ async function renderSocialCard({ platform, hook, content, persona, post_id, sta
   // dropping every Instagram + Facebook card render. The published alias has
   // no protection.
   const host = 'https://meetdossie.com';
-  const url = `${host}/api/render-card`;
+  const url = `${host}/api/generate-card`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {

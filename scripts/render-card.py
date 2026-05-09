@@ -467,3 +467,70 @@ class handler(BaseHTTPRequestHandler):
                                      "root": str(ROOT),
                                      "fonts": font_status,
                                      "fs_listings": listings})
+
+
+# ─── CLI mode (for Node.js child_process spawn) ─────────────────────────
+
+def main():
+    """
+    CLI usage:
+      python scripts/render-card.py '{"platform":"instagram","post_id":"abc123","hook":"...","content":"...","persona":"brenda","stat":"...","stat_label":"..."}'
+
+    Reads JSON from first argument, generates card, uploads to Supabase Storage,
+    prints public URL to stdout.
+    """
+    import sys
+
+    if len(sys.argv) < 2:
+        print(json.dumps({"ok": False, "error": "Usage: render-card.py '<json>'"}), file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        body = json.loads(sys.argv[1])
+    except json.JSONDecodeError as e:
+        print(json.dumps({"ok": False, "error": f"Invalid JSON: {e}"}), file=sys.stderr)
+        sys.exit(1)
+
+    platform   = (body.get("platform") or "").lower()
+    hook       = body.get("hook") or ""
+    content    = body.get("content") or ""
+    persona    = (body.get("persona") or "").lower() or None
+    post_id    = body.get("post_id") or ""
+    stat       = body.get("stat") or ""
+    stat_label = body.get("stat_label") or ""
+
+    if platform not in PLATFORM_DIMS:
+        print(json.dumps({"ok": False, "error": f"platform must be instagram or facebook, got '{platform}'"}), file=sys.stderr)
+        sys.exit(1)
+    if not content and not hook and not stat:
+        print(json.dumps({"ok": False, "error": "content, hook, or stat required"}), file=sys.stderr)
+        sys.exit(1)
+    if not post_id:
+        print(json.dumps({"ok": False, "error": "post_id required"}), file=sys.stderr)
+        sys.exit(1)
+
+    # Sanitize post_id for storage path
+    safe_id = "".join(c if c.isalnum() or c in "-_" else "-" for c in post_id)[:120]
+    object_path = f"{platform}/{safe_id}.png"
+
+    try:
+        png_bytes = render_card_png(platform, hook, content, persona, stat, stat_label)
+        public_url = upload_to_storage(png_bytes, object_path)
+    except Exception as e:
+        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
+        sys.exit(1)
+
+    # Success — print JSON to stdout
+    result = {
+        "ok": True,
+        "publicUrl": public_url,
+        "platform": platform,
+        "size_bytes": len(png_bytes),
+        "storage_path": object_path,
+    }
+    print(json.dumps(result))
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
