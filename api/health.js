@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
 
   // Check ElevenLabs
   try {
-    const r = await fetch('https://api.elevenlabs.io/v1/user', {
+    const r = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY?.trim() }
     })
     results.elevenlabs = r.status === 200 ? 'ok' : `error:${r.status}`
