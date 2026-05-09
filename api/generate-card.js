@@ -80,7 +80,7 @@ async function getFoundingMemberCount() {
 
   try {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/subscriptions?plan=eq.founding&select=id`,
+      `${supabaseUrl}/rest/v1/subscriptions?plan=eq.founding&status=eq.active&select=id`,
       {
         headers: {
           'apikey': serviceRoleKey,
