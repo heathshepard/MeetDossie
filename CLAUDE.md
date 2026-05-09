@@ -145,7 +145,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 **Distribution:**
 - Zernio social posting pipeline: Facebook ✅ Twitter ✅ Instagram ✅ LinkedIn ✅
 - Twitter thread-split (max 6 chunks, paragraph-first; see `splitForTwitter` in `api/cron-publish-approved.js`)
-- Instagram + Facebook image card renderer (Python Pillow, `api/render-card.py` runs at post-creation time)
+- Instagram + Facebook image card renderer (Python Pillow, `scripts/render-card.py` generates cards locally, uploads to Storage)
 - Daily content briefs via Claudy at 9AM CST weekdays
 - Content calendar (25 entries, 5 weeks, 3 personas: brenda/patricia/victor)
 - Lifestyle video pipeline (Pexels + ElevenLabs + ffmpeg + Zernio upload)
