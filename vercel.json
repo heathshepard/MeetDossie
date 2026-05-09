@@ -65,10 +65,7 @@
                                                      },
                       "api/cron-publish-approved.js":  {
                                                            "maxDuration":  120
-                                                       },
-                      "api/render-card.py":  {
-                                                 "runtime":  "python3.9"
-                                             }
+                                                       }
                   },
     "crons":  [
                   {
