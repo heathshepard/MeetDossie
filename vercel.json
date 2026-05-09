@@ -69,6 +69,10 @@
                   },
     "crons":  [
                   {
+                      "path":  "/api/alert-health",
+                      "schedule":  "*/5 * * * *"
+                  },
+                  {
                       "path":  "/api/cron-followup",
                       "schedule":  "0 12 * * *"
                   },

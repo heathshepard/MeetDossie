@@ -784,6 +784,9 @@ footer {
   </div>
 </footer>
 <script>
+var _config = {};
+fetch('/api/config').then(function(r){return r.json();}).then(function(c){_config=c;}).catch(function(e){console.error('[coordinators] config load failed:',e);});
+
 async function handleWaitlist() {
   var emailInput = document.getElementById('emailInput');
   var email = emailInput.value.trim();
@@ -795,12 +798,12 @@ async function handleWaitlist() {
   btn.textContent = 'Joining...';
   btn.disabled = true;
   try {
-    var res = await fetch('https://pgwoitbdiyubjugwufhk.supabase.co/rest/v1/waitlist', {
+    var res = await fetch(_config.supabaseUrl + '/rest/v1/waitlist', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': 'sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb',
-        'Authorization': 'Bearer sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb',
+        'apikey': _config.supabaseKey,
+        'Authorization': 'Bearer ' + _config.supabaseKey,
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify({ email: email, source: 'tc' })

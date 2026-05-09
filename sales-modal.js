@@ -14,8 +14,20 @@
 (function () {
   if (window.openSalesModal) return;
 
-  var SUPABASE_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb';
+  var SUPABASE_URL, SUPABASE_ANON_KEY;
+  var _configLoaded = false;
+
+  // Fetch config immediately
+  fetch('/api/config')
+    .then(function(r) { return r.json(); })
+    .then(function(c) {
+      SUPABASE_URL = c.supabaseUrl;
+      SUPABASE_ANON_KEY = c.supabaseKey;
+      _configLoaded = true;
+    })
+    .catch(function(e) {
+      console.error('[sales-modal] config load failed:', e);
+    });
 
   var STYLE_ID = 'dossie-sales-modal-style';
   var ROOT_ID = 'dossie-sales-modal-root';

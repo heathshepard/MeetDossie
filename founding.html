@@ -474,9 +474,22 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 //      key + Prefer: return=minimal (anon RLS allows INSERT only).
 //   2. POST { email } to /api/notify-founding-application — server looks up
 //      the row and pings Telegram with authoritative DB content.
-(function () {
-  var SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co";
-  var SUPABASE_ANON_KEY = "sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb";
+(async function () {
+  var SUPABASE_URL, SUPABASE_ANON_KEY;
+
+  try {
+    var config = await fetch('/api/config').then(function(r) { return r.json(); });
+    SUPABASE_URL = config.supabaseUrl;
+    SUPABASE_ANON_KEY = config.supabaseKey;
+  } catch (e) {
+    console.error('[founding] config load failed:', e);
+    var status = document.getElementById("founding-status");
+    if (status) {
+      status.textContent = 'Config load failed. Refresh to try again.';
+      status.classList.add('is-error');
+    }
+    return;
+  }
 
   var form = document.getElementById("founding-form");
   if (!form) return;

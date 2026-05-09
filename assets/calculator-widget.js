@@ -9,7 +9,20 @@
 (function () {
   'use strict';
 
-  var ANON_KEY = 'sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb';
+  var SUPABASE_URL, ANON_KEY;
+  var _configLoaded = false;
+
+  // Fetch config immediately
+  fetch('/api/config')
+    .then(function(r) { return r.json(); })
+    .then(function(c) {
+      SUPABASE_URL = c.supabaseUrl;
+      ANON_KEY = c.supabaseKey;
+      _configLoaded = true;
+    })
+    .catch(function(e) {
+      console.error('[calculator-widget] config load failed:', e);
+    });
 
   var INPUTS = ['effectiveDate', 'closingDate', 'optionDays', 'optionFeeDays', 'earnestDays', 'financingDays', 'surveyDays'];
 
@@ -148,7 +161,7 @@
           })
         });
         try {
-          await fetch('https://pgwoitbdiyubjugwufhk.supabase.co/rest/v1/waitlist', {
+          await fetch(SUPABASE_URL + '/rest/v1/waitlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, Prefer: 'return=minimal' },
             body: JSON.stringify({ email: email, source: 'calculator' })

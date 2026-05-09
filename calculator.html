@@ -500,10 +500,19 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
 // ============================================================================
 // UI wiring
 // ============================================================================
-(function () {
+(async function () {
   'use strict';
 
-  var ANON_KEY = 'sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb';
+  var SUPABASE_URL, ANON_KEY;
+
+  try {
+    var config = await fetch('/api/config').then(function(r) { return r.json(); });
+    SUPABASE_URL = config.supabaseUrl;
+    ANON_KEY = config.supabaseKey;
+  } catch (e) {
+    console.error('[calculator] config load failed:', e);
+    return;
+  }
 
   var $ = function (id) { return document.getElementById(id); };
   var INPUTS = ['effectiveDate', 'closingDate', 'optionDays', 'optionFeeDays', 'earnestDays', 'financingDays', 'surveyDays'];
@@ -661,7 +670,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
       });
       // Also drop into the waitlist table for the existing nurture flow.
       try {
-        await fetch('https://pgwoitbdiyubjugwufhk.supabase.co/rest/v1/waitlist', {
+        await fetch(SUPABASE_URL + '/rest/v1/waitlist', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
