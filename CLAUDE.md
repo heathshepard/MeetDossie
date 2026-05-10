@@ -293,6 +293,7 @@ Highlights:
 - `GOLD-2026-05-08-v9-deployment-fixed`
 - `GOLD-2026-05-08-v10-creatomate-live`
 - `GOLD-2026-05-09-v3-canvas-renderer-postable`
+- `GOLD-2026-05-10-v4-card-renderer-postable`
 
 ---
 
