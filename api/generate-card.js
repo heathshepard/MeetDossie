@@ -153,13 +153,13 @@ async function renderCard({ platform, hook, content, persona, stat, statLabel })
 
   // Sanitize all text fields to remove em-dashes, curly quotes, etc.
   function sanitizeText(text) {
-    if (!text) return '';
+    if (!text) return ‘’;
     return text
-      .replace(/[—–]/g, '-')  // em-dash, en-dash → hyphen
-      .replace(/[‘’]/g, "'")  // curly single quotes → straight
-      .replace(/[“”]/g, '"')  // curly double quotes → straight
-      .replace(/[…]/g, '...')      // ellipsis character → three dots
-      .replace(/[^\x00-\x7F]/g, '');    // strip any remaining non-ASCII
+      .replace(/[—–]/g, ‘ - ‘)  // em-dash, en-dash → spaced hyphen FIRST
+      .replace(/[‘’]/g, “’”)     // curly single quotes → straight
+      .replace(/[“”]/g, ‘”’)     // curly double quotes → straight
+      .replace(/[…]/g, ‘...’)         // ellipsis → three dots
+      .replace(/[^\x00-\x7F]/g, ‘’);      // strip remaining non-ASCII LAST
   }
 
   stat = sanitizeText(stat);
