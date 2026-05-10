@@ -267,6 +267,9 @@ Rules:
   image card alongside the stat, stat_label, and hook. Write the opening as
   2-3 punchy sentences that work standalone on the card. No long-form
   storytelling in the opening — save that for later in the post if needed.
+- TEXT ENCODING: Never use em-dashes (—), en-dashes (–), curly quotes (" " ' '),
+  or special Unicode characters. Use only plain hyphens (-) and straight quotes (' ").
+  Card renderer requires ASCII-compatible text.
 - The CTA must appear inside the "content" field naturally — don't tack it on.
 - Vary the openings. Don't start every post with "Real talk" or "Honest take."
 - Don't reuse the exact same numbers across posts (different agents, different math).`;

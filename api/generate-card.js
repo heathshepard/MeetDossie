@@ -151,6 +151,22 @@ async function renderCard({ platform, hook, content, persona, stat, statLabel })
 
   const isInstagram = platform === 'instagram';
 
+  // Sanitize all text fields to remove em-dashes, curly quotes, etc.
+  function sanitizeText(text) {
+    if (!text) return '';
+    return text
+      .replace(/[—–]/g, '-')  // em-dash, en-dash → hyphen
+      .replace(/[‘’]/g, "'")  // curly single quotes → straight
+      .replace(/[“”]/g, '"')  // curly double quotes → straight
+      .replace(/[…]/g, '...')      // ellipsis character → three dots
+      .replace(/[^\x00-\x7F]/g, '');    // strip any remaining non-ASCII
+  }
+
+  stat = sanitizeText(stat);
+  statLabel = sanitizeText(statLabel);
+  hook = sanitizeText(hook);
+  content = sanitizeText(content);
+
   // Background
   ctx.fillStyle = COLORS.BLUSH;
   ctx.fillRect(0, 0, W, H);
