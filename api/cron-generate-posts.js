@@ -515,7 +515,7 @@ module.exports = async function handler(req, res) {
 
     const ins = await supabaseFetch('/rest/v1/social_posts', {
       method: 'POST',
-      headers: { Prefer: 'return=minimal' },
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(row),
     });
     if (ins.ok) inserted++;
