@@ -241,7 +241,7 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
     {
       "persona": "brenda" | "patricia" | "victor",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter",
-      "content": "<the full post text>",
+      "content": "<the full post text for social media — BUT the first 150 characters will be rendered on an image card, so write the opening 2-3 sentences to work standalone. No long-form storytelling. Punchy, tight, card-readable copy first, then expand if needed for the full post.>",
       "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
       "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
       "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
@@ -263,6 +263,10 @@ Rules:
 - "stat" and "stat_label" are required for every post. Pull the stat from
   something the post actually says — never invent a new number. The card
   renderer uses these as the visual anchor, so they must read clean.
+- CARD COPY: The first 150-200 characters of "content" will be rendered on an
+  image card alongside the stat, stat_label, and hook. Write the opening as
+  2-3 punchy sentences that work standalone on the card. No long-form
+  storytelling in the opening — save that for later in the post if needed.
 - The CTA must appear inside the "content" field naturally — don't tack it on.
 - Vary the openings. Don't start every post with "Real talk" or "Honest take."
 - Don't reuse the exact same numbers across posts (different agents, different math).`;

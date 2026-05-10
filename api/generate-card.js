@@ -252,21 +252,22 @@ async function renderCard({ platform, hook, content, persona, stat, statLabel })
   const bodyTextX = contentLeft + barW + Math.floor(W * 0.020);
   const bodyTextW = contentRight - bodyTextX;
 
-  const bodyText = (content || '').trim();
+  // Truncate body to 200 chars max
+  let bodyText = (content || '').trim();
+  if (bodyText.length > 200) {
+    bodyText = bodyText.slice(0, 200).trim() + '…';
+  }
+
   const bodySize = isInstagram ? 30 : 22;
   ctx.font = `${bodySize}px "Plus Jakarta Sans"`;
   ctx.fillStyle = COLORS.BODY_INK;
 
   const bodyLines = wrapText(ctx, bodyText, bodyTextW);
   const bodyLineHeight = bodySize * 1.65;
-  const maxBodyLines = Math.max(1, Math.floor(contentHAvail / bodyLineHeight));
+
+  // Hard limit: max 4 lines to prevent overlap with bottom pill
+  const maxBodyLines = 4;
   const truncatedBodyLines = bodyLines.slice(0, maxBodyLines);
-  if (truncatedBodyLines.length > 0 && truncatedBodyLines.length === maxBodyLines && bodyLines.length > maxBodyLines) {
-    const lastLine = truncatedBodyLines[maxBodyLines - 1];
-    if (!lastLine.endsWith('…')) {
-      truncatedBodyLines[maxBodyLines - 1] = lastLine.slice(0, -1) + '…';
-    }
-  }
 
   const renderedBodyH = truncatedBodyLines.length * bodyLineHeight;
 
