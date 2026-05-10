@@ -513,7 +513,7 @@ module.exports = async function handler(req, res) {
       created_at: now.toISOString(),
     };
 
-    const ins = await supabaseFetch('/rest/v1/social_posts', {
+    const ins = await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
       method: 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(row),
