@@ -172,7 +172,8 @@ async function renderCard({ platform, hook, content, persona, stat, statLabel })
   const contentRight = W - marginX;
   const contentW = contentRight - contentLeft;
 
-  const statColor = PERSONA_COLORS[persona?.toLowerCase()] || COLORS.CORAL;
+  // Stat is always coral/warm tone, not persona-colored
+  const statColor = COLORS.CORAL;
 
   // Get live founding count
   const { remaining: foundingRemaining } = await getFoundingMemberCount();

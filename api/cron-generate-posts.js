@@ -245,8 +245,8 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
       "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
       "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
       "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
-      "stat": "<bold anchor — a single number, dollar amount, or punchy phrase, max 4 words / 30 chars. Examples: '$8,000', '50+ deals a year', '9:47pm Sunday', 'Friday afternoon', '$29/month'. Pulled directly from the post — no new claims. This is the headline of an image card, so it must read at a glance.>",
-      "stat_label": "<one short sentence (≤100 chars) that explains what the stat means in the post's context. Sans, sits right under the stat. Examples: 'What a TC costs the average solo agent.', 'Where the option-period stress actually lives.'>"
+      "stat": "<bold anchor — single value, max 10 characters. Examples: '$29/mo', '80+', '$8,000', '9:47pm'. Pulled directly from the post — no new claims. This is the headline of an image card, must read at a glance.>",
+      "stat_label": "<plain descriptive phrase, max 50 characters. Examples: 'per year for a solo TC', 'deals this month', 'what the stress costs'>"
     }
   ]
 }
@@ -469,6 +469,9 @@ module.exports = async function handler(req, res) {
     // posts a text-only update.
     let mediaUrl = null;
     if (CARD_PLATFORMS.has(platform)) {
+      // Debug logging: capture AI-generated card fields
+      console.log(`[AI] ${postId} stat="${stat}" stat_label="${stat_label}" hook="${hook}" content_preview="${content.slice(0, 100)}..."`);
+
       const renderStart = Date.now();
       const card = await renderSocialCard({
         platform,
