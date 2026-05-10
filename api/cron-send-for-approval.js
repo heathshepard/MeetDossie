@@ -79,7 +79,8 @@ async function telegramSend(chatId, text, replyMarkup, photoUrl) {
 
   if (photoUrl) {
     body.photo = photoUrl;
-    body.caption = text;
+    // Telegram caption limit is 1024 characters
+    body.caption = text.length > 1020 ? text.slice(0, 1020) + '...' : text;
   } else {
     body.text = text;
     body.disable_web_page_preview = true;
