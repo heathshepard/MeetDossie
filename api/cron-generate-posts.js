@@ -505,6 +505,7 @@ module.exports = async function handler(req, res) {
       cta,
       hashtags,
       status: 'draft',
+      telegram_sent_at: null,
       zernio_account_id: zernioAccountId,
       persona,
       topic: topic.key,
