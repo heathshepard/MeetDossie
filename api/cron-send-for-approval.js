@@ -54,9 +54,8 @@ function formatPostMessage(post) {
     : '(none)';
   const algo = PLATFORM_RULES_SUMMARY[platform] || '';
   const algoLine = algo ? `\n📐 Algorithm-optimized for ${platform}: ${algo}` : '';
-  const mediaLine = post.media_url ? `\n📸 Image card attached` : '';
   // Plain text — Telegram parse_mode left unset to avoid escaping headaches.
-  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}${algoLine}${mediaLine}`;
+  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}${algoLine}`;
 }
 
 function inlineKeyboard(postId) {
@@ -69,14 +68,25 @@ function inlineKeyboard(postId) {
   };
 }
 
-async function telegramSend(chatId, text, replyMarkup) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+async function telegramSend(chatId, text, replyMarkup, photoUrl) {
+  // If photoUrl is provided, use sendPhoto; otherwise use sendMessage
+  const method = photoUrl ? 'sendPhoto' : 'sendMessage';
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
+
   const body = {
     chat_id: chatId,
-    text,
-    disable_web_page_preview: true,
   };
+
+  if (photoUrl) {
+    body.photo = photoUrl;
+    body.caption = text;
+  } else {
+    body.text = text;
+    body.disable_web_page_preview = true;
+  }
+
   if (replyMarkup) body.reply_markup = replyMarkup;
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -120,7 +130,7 @@ module.exports = async function handler(req, res) {
   for (const post of items) {
     if (!post || !post.id) continue;
     const text = formatPostMessage(post);
-    const result = await telegramSend(TELEGRAM_CHAT_ID, text, inlineKeyboard(post.id));
+    const result = await telegramSend(TELEGRAM_CHAT_ID, text, inlineKeyboard(post.id), post.media_url || null);
     if (!result.ok) {
       console.error('[cron-send-for-approval] telegram send failed for', post.id, 'status', result.status, 'body', result.raw?.slice(0, 200));
       sendErrors.push({ id: post.id, status: result.status, body: result.raw?.slice(0, 200) });
