@@ -1,4 +1,4 @@
-/**
+﻿/**
  * /api/generate-card
  *
  * Node.js canvas-based social card renderer. Generates branded image cards
@@ -153,13 +153,13 @@ async function renderCard({ platform, hook, content, persona, stat, statLabel })
 
   // Sanitize all text fields to remove em-dashes, curly quotes, etc.
   function sanitizeText(text) {
-    if (!text) return ‘’;
+    if (!text) return '';
     return text
-      .replace(/[—–]/g, ‘ - ‘)  // em-dash, en-dash → spaced hyphen FIRST
-      .replace(/[‘’]/g, “’”)     // curly single quotes → straight
-      .replace(/[“”]/g, ‘”’)     // curly double quotes → straight
-      .replace(/[…]/g, ‘...’)         // ellipsis → three dots
-      .replace(/[^\x00-\x7F]/g, ‘’);      // strip remaining non-ASCII LAST
+      .replace(/[—–]/g, ' - ')  // em-dash, en-dash to spaced hyphen
+      .replace(/['']/g, "'")     // curly single quotes to straight
+      .replace(/[""]/g, '"')     // curly double quotes to straight
+      .replace(/[…]/g, '...')         // ellipsis to three dots
+      .replace(/[^\x00-\x7F]/g, '');      // strip remaining non-ASCII LAST
   }
 
   stat = sanitizeText(stat);
