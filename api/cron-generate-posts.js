@@ -215,6 +215,19 @@ BRAND CONTEXT
 - Sign up: meetdossie.com/founding
 - Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect. No hashtag-stuffing. No "🔥💯🚀" emoji-spam. No "Game changer!" or "Stop scrolling!" hooks.
 
+PERSONA VOICE — CRITICAL
+- ALL persona content MUST be written in THIRD PERSON, never first person.
+- NEVER write "I" as if the persona is the poster.
+- Write ABOUT the persona, not AS the persona.
+- Examples:
+  * WRONG: "I closed 6 deals this month."
+  * RIGHT: "She closed 6 deals this month."
+  * WRONG: "Last year I paid $8,000 for TC work."
+  * RIGHT: "Last year she paid $8,000 for TC work."
+  * WRONG: "I built Dossie to solve this."
+  * RIGHT: "He built Dossie to solve this."
+- Brenda = she/her, Patricia = she/her, Victor = he/him.
+
 NUMBERS & CLAIMS
 - Any number used in a post (deals/year, $/file, etc.) is fictional and MUST be framed as a hypothetical or example. Use phrasing like "agents doing 50+ deals a year", "if you're paying around $400 a file", "say you do 10-12 deals a year".
 - Do NOT present specific numbers as if they're real stats about the agent or about Dossie's user base. Never write "54 deals" as if reporting fact — write "50+ deals a year" or "an agent doing 50 a year" instead.
@@ -223,8 +236,8 @@ NUMBERS & CLAIMS
 
 TIMEFRAMES & DOSSIE-USAGE DURATION
 - Dossie launched recently. When a persona references how long they've been using Dossie, use "recently" or "over the last few weeks" — NEVER "a few months ago", "for the past year", "since last summer", or any phrasing that implies they've used Dossie for longer than a few weeks.
-- Past-tense scenarios about life BEFORE Dossie are fine and can be specific ("Last year I forgot two lender intros"). The constraint is only on phrasing that puts Dossie in the persona's life on a months/years timescale.
-- "I built Dossie", "Now Dossie does X" are fine. "Now I get a brief every morning" is fine if it could plausibly have started this week. "Two years ago I was burned out, today Dossie runs my files" is NOT fine — implies a multi-year usage history.
+- Past-tense scenarios about life BEFORE Dossie are fine and can be specific ("Last year she forgot two lender intros"). The constraint is only on phrasing that puts Dossie in the persona's life on a months/years timescale.
+- "He built Dossie", "Now Dossie does X" are fine. "Now she gets a brief every morning" is fine if it could plausibly have started this week. "Two years ago she was burned out, today Dossie runs her files" is NOT fine — implies a multi-year usage history.
 
 ALGORITHM OPTIMIZATION
 You are generating content optimized for each platform's algorithm performance. The rules under each post in the plan below are not suggestions — they describe how that platform actually distributes content. Breaking these rules means the post gets shown to fewer people. Apply them strictly per post. The goal is maximum organic reach.
