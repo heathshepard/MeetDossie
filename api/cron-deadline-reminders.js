@@ -84,9 +84,14 @@ async function sendResend(to, subject, html) {
 }
 
 module.exports = async function handler(req, res) {
-  if (!CRON_SECRET) return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
+  // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
+
+  if (!isVercelCron && !isManualAuth) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(500).json({ ok: false, error: 'Supabase not configured' });
   if (!RESEND_API_KEY) {
     return res.status(200).json({ ok: true, skipped: true, reason: 'RESEND_API_KEY not set' });

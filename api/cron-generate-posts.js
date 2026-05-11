@@ -379,12 +379,12 @@ async function lookupZernioAccountId(platform) {
 }
 
 module.exports = async function handler(req, res) {
-  if (!CRON_SECRET) {
-    console.error('[cron-generate-posts] CRON_SECRET not configured — refusing to run.');
-    return res.status(500).json({ ok: false, error: 'CRON_SECRET not configured' });
-  }
+  // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
+
+  if (!isVercelCron && !isManualAuth) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
