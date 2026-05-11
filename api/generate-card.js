@@ -1,70 +1,27 @@
-﻿/**
+/**
  * /api/generate-card
  *
- * Node.js canvas-based social card renderer. Generates branded image cards
- * for Instagram and Facebook posts, uploads to Supabase Storage.
+ * HTML/CSS-based social card renderer using htmlcsstoimage.com.
+ * Generates branded image cards for Instagram and Facebook posts,
+ * uploads to Supabase Storage.
  */
 
-const { createCanvas, registerFont } = require('canvas');
-const path = require('path');
 const fetch = require('node-fetch');
 
 // Brand colors
 const COLORS = {
-  BLUSH: '#F5E6E0',
-  BLUSH_DEEP: '#D4A0A0',
-  CORAL: '#E8836B',
-  SAGE: '#8BA888',
+  BLUSH: '#F5EDE4',
+  CORAL: '#C17B5C',
+  SAGE: '#6B8E68',
   NAVY: '#1A1A2E',
   GOLD: '#C9A96E',
-  BODY_INK: '#444444',
   WHITE: '#FFFFFF',
-};
-
-const PERSONA_COLORS = {
-  brenda: COLORS.CORAL,
-  patricia: COLORS.SAGE,
-  victor: COLORS.NAVY,
 };
 
 const PLATFORM_DIMS = {
   instagram: { width: 1080, height: 1080 },
   facebook: { width: 1200, height: 630 },
 };
-
-// Register fonts
-const fontsDir = path.join(process.cwd(), 'public', 'fonts');
-try {
-  registerFont(path.join(fontsDir, 'CormorantGaramond-Bold.ttf'), { family: 'Cormorant Garamond', weight: 'bold' });
-  registerFont(path.join(fontsDir, 'PlusJakartaSans-Regular.ttf'), { family: 'Plus Jakarta Sans', weight: 'normal' });
-  registerFont(path.join(fontsDir, 'PlusJakartaSans-Bold.ttf'), { family: 'Plus Jakarta Sans', weight: 'bold' });
-} catch (err) {
-  console.warn('Font registration failed:', err.message);
-}
-
-/**
- * Wrap text to fit within maxWidth
- */
-function wrapText(ctx, text, maxWidth) {
-  const words = text.split(' ');
-  const lines = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-  return lines;
-}
 
 /**
  * Query live founding member count from Supabase
@@ -137,205 +94,208 @@ async function uploadToStorage(buffer, objectPath) {
 }
 
 /**
- * Render the social card
+ * Build HTML for the card
  */
-async function renderCard({ platform, hook, content, persona, stat, statLabel }) {
+function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemaining }) {
   const dims = PLATFORM_DIMS[platform];
-  if (!dims) {
-    throw new Error(`Unsupported platform: ${platform}`);
-  }
-
   const { width: W, height: H } = dims;
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext('2d');
-
   const isInstagram = platform === 'instagram';
 
-  // Sanitize all text fields to remove em-dashes, curly quotes, etc.
-  function sanitizeText(text) {
-    if (!text) return '';
-    return text
-      .replace(/[—–]/g, ' - ')  // em-dash, en-dash to spaced hyphen
-      .replace(/['']/g, "'")     // curly single quotes to straight
-      .replace(/[""]/g, '"')     // curly double quotes to straight
-      .replace(/[…]/g, '...')         // ellipsis to three dots
-      .replace(/[^\x00-\x7F]/g, '');      // strip remaining non-ASCII LAST
+  // Escape HTML entities
+  const escape = (str) => String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  const actualStat = escape((stat || hook || '80').trim());
+  const actualStatLabel = escape((statLabel || 'transactions per year').trim());
+  const actualHook = escape((hook || '').trim());
+  const bodyText = escape((content || '').trim());
+  const pillText = `Founding · ${foundingRemaining} spots left`;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      width: ${W}px;
+      height: ${H}px;
+      background: ${COLORS.BLUSH};
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow: hidden;
+    }
+    .card {
+      width: ${W}px;
+      height: ${H}px;
+      padding: ${isInstagram ? 70 : 80}px ${Math.floor(W * 0.07)}px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .stat {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 700;
+      font-size: ${isInstagram ? 96 : 72}px;
+      line-height: 1.05;
+      color: ${COLORS.CORAL};
+      margin-bottom: ${Math.floor(H * 0.025)}px;
+    }
+    .stat-label {
+      font-size: ${isInstagram ? 28 : 22}px;
+      line-height: 1.3;
+      color: ${COLORS.NAVY};
+      margin-bottom: ${Math.floor(H * (isInstagram ? 0.04 : 0.05))}px;
+    }
+    .hook-container {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: ${Math.floor(H * (isInstagram ? 0.04 : 0.05))}px;
+    }
+    .hook-divider {
+      width: 3px;
+      height: ${Math.floor(H * 0.025)}px;
+      background: ${COLORS.SAGE};
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+    .hook {
+      font-weight: 700;
+      font-size: ${isInstagram ? 32 : 26}px;
+      line-height: 1.2;
+      color: ${COLORS.NAVY};
+    }
+    .body-container {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: auto;
+    }
+    .body-bar {
+      width: 4px;
+      background: ${COLORS.GOLD};
+      margin-right: ${Math.floor(W * 0.020)}px;
+      flex-shrink: 0;
+      align-self: stretch;
+    }
+    .body {
+      font-size: ${isInstagram ? 30 : 22}px;
+      line-height: 1.65;
+      color: ${COLORS.NAVY};
+    }
+    .bottom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: ${Math.floor(H * 0.04)}px;
+    }
+    .pill {
+      background: ${COLORS.GOLD};
+      color: ${COLORS.WHITE};
+      padding: ${Math.floor(H * (isInstagram ? 0.030 : 0.045))}px 20px;
+      border-radius: ${Math.floor(H * (isInstagram ? 0.060 : 0.090)) / 2}px;
+      font-size: ${isInstagram ? 22 : 20}px;
+    }
+    .url {
+      font-weight: 600;
+      font-size: ${isInstagram ? 24 : 20}px;
+      color: ${COLORS.SAGE};
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="stat">${actualStat}</div>
+    <div class="stat-label">${actualStatLabel}</div>
+    ${actualHook ? `
+    <div class="hook-container">
+      <div class="hook-divider"></div>
+      <div class="hook">${actualHook}</div>
+    </div>
+    ` : ''}
+    ${bodyText ? `
+    <div class="body-container">
+      <div class="body-bar"></div>
+      <div class="body">${bodyText}</div>
+    </div>
+    ` : ''}
+    <div class="bottom-row">
+      <div class="pill">${pillText}</div>
+      <div class="url">meetdossie.com/founding</div>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Render card using htmlcsstoimage.com
+ */
+async function renderCard({ platform, hook, content, stat, statLabel }) {
+  const hctiUserId = process.env.HCTI_USER_ID;
+  const hctiApiKey = process.env.HCTI_API_KEY;
+
+  if (!hctiUserId || !hctiApiKey) {
+    throw new Error('HCTI_USER_ID / HCTI_API_KEY not configured');
   }
-
-  stat = sanitizeText(stat);
-  statLabel = sanitizeText(statLabel);
-  hook = sanitizeText(hook);
-  content = sanitizeText(content);
-
-  // Background
-  ctx.fillStyle = COLORS.BLUSH;
-  ctx.fillRect(0, 0, W, H);
-
-  // Border
-  const inset = 12;
-  const radius = 16;
-  ctx.strokeStyle = COLORS.BLUSH_DEEP;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(inset, inset, W - 2 * inset, H - 2 * inset, radius);
-  ctx.stroke();
-
-  // Margins
-  const marginX = Math.floor(W * 0.07);
-  const padTop = Math.floor(H * (isInstagram ? 0.09 : 0.10));
-  const padBot = Math.floor(H * (isInstagram ? 0.08 : 0.10));
-  const contentLeft = marginX;
-  const contentRight = W - marginX;
-  const contentW = contentRight - contentLeft;
-
-  // Stat is always coral/warm tone, not persona-colored
-  const statColor = COLORS.CORAL;
 
   // Get live founding count
   const { remaining: foundingRemaining } = await getFoundingMemberCount();
 
-  let y = padTop;
+  // Build HTML
+  const html = buildCardHTML({
+    platform,
+    hook,
+    content,
+    stat,
+    statLabel,
+    foundingRemaining,
+  });
 
-  // ─── 1. STAT LINE (big serif, persona-colored) ──────────────────────────
-  const actualStat = (stat || hook || '80').trim();
-  const actualStatLabel = (statLabel || 'transactions per year').trim();
+  // Call htmlcsstoimage API
+  const auth = Buffer.from(`${hctiUserId}:${hctiApiKey}`).toString('base64');
+  const response = await fetch('https://hcti.io/v1/image', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ html }),
+  });
 
-  const statSize = isInstagram ? 96 : 72;
-  ctx.font = `bold ${statSize}px "Cormorant Garamond"`;
-  ctx.fillStyle = statColor;
-  ctx.textBaseline = 'top';
-
-  const statLines = wrapText(ctx, actualStat, contentW);
-  const truncatedStatLines = statLines.slice(0, 2);
-
-  for (const line of truncatedStatLines) {
-    ctx.fillText(line, contentLeft, y);
-    y += statSize * 1.05;
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HCTI API failed: ${response.status} ${text.slice(0, 200)}`);
   }
 
-  // ─── 2. STAT LABEL (sans, navy) ─────────────────────────────────────────
-  const labelGap = Math.floor(H * 0.025);
-  y += labelGap;
+  const data = await response.json();
+  const imageUrl = data.url;
 
-  const labelSize = isInstagram ? 28 : 22;
-  ctx.font = `${labelSize}px "Plus Jakarta Sans"`;
-  ctx.fillStyle = COLORS.NAVY;
-
-  const labelLines = wrapText(ctx, actualStatLabel, contentW);
-  const truncatedLabelLines = labelLines.slice(0, 2);
-
-  for (const line of truncatedLabelLines) {
-    ctx.fillText(line, contentLeft, y);
-    y += labelSize * 1.30;
+  if (!imageUrl) {
+    throw new Error('HCTI API did not return an image URL');
   }
 
-  // ─── 3. VERTICAL DIVIDER + HOOK TEXT ────────────────────────────────────
-  const hookGap = Math.floor(H * (isInstagram ? 0.04 : 0.05));
-  y += hookGap;
-
-  const actualHook = (hook || '').trim();
-  if (actualHook) {
-    // Draw vertical sage divider line (left side)
-    const dividerHeight = Math.floor(H * 0.025);
-    ctx.fillStyle = COLORS.SAGE;
-    ctx.fillRect(contentLeft, y, 3, dividerHeight);
-
-    // Hook text next to divider
-    const hookTextX = contentLeft + 15;
-    const hookSize = isInstagram ? 32 : 26;
-    ctx.font = `bold ${hookSize}px "Plus Jakarta Sans"`;
-    ctx.fillStyle = COLORS.NAVY;
-
-    const hookLines = wrapText(ctx, actualHook, contentRight - hookTextX);
-    const truncatedHookLines = hookLines.slice(0, 2);
-
-    for (const line of truncatedHookLines) {
-      ctx.fillText(line, hookTextX, y);
-      y += hookSize * 1.2;
-    }
+  // Download the image
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to download image from HCTI: ${imageResponse.status}`);
   }
 
-  // ─── 4. BODY CONTENT (with gold left bar) ───────────────────────────────
-  const contentGap = Math.floor(H * (isInstagram ? 0.04 : 0.05));
-  y += contentGap;
-
-  const pillH = Math.floor(H * (isInstagram ? 0.060 : 0.090));
-  const bottomRowY = H - padBot - pillH;
-  const contentBottom = bottomRowY - Math.floor(H * 0.04);
-  const contentHAvail = Math.max(contentBottom - y, Math.floor(H * 0.10));
-
-  const barW = 4;
-  const barX = contentLeft;
-  const bodyTextX = contentLeft + barW + Math.floor(W * 0.020);
-  const bodyTextW = contentRight - bodyTextX;
-
-  // Truncate body to 200 chars max
-  let bodyText = (content || '').trim();
-  if (bodyText.length > 200) {
-    bodyText = bodyText.slice(0, 200).trim() + '…';
-  }
-
-  const bodySize = isInstagram ? 30 : 22;
-  ctx.font = `${bodySize}px "Plus Jakarta Sans"`;
-  ctx.fillStyle = COLORS.BODY_INK;
-
-  const bodyLines = wrapText(ctx, bodyText, bodyTextW);
-  const bodyLineHeight = bodySize * 1.65;
-
-  // Hard limit: max 4 lines to prevent overlap with bottom pill
-  const maxBodyLines = 4;
-  const truncatedBodyLines = bodyLines.slice(0, maxBodyLines);
-
-  const renderedBodyH = truncatedBodyLines.length * bodyLineHeight;
-
-  // Draw gold bar
-  if (renderedBodyH > 0) {
-    ctx.fillStyle = COLORS.GOLD;
-    ctx.fillRect(barX, y, barW, renderedBodyH);
-  }
-
-  // Draw body text
-  ctx.fillStyle = COLORS.BODY_INK;
-  const bodyStartY = y;
-  for (const line of truncatedBodyLines) {
-    if (line) {
-      ctx.fillText(line, bodyTextX, y);
-    }
-    y += bodyLineHeight;
-  }
-
-  // ─── 5. BOTTOM ROW: PILL (left) + URL (right) ───────────────────────────
-  const pillText = `Founding · ${foundingRemaining} spots left`;
-  const pillSize = isInstagram ? 22 : 20;
-  ctx.font = `${pillSize}px "Plus Jakarta Sans"`;
-
-  const pillTextMetrics = ctx.measureText(pillText);
-  const pillPadX = 20;
-  const pillW = pillTextMetrics.width + 2 * pillPadX;
-  const pillRadius = pillH / 2;
-
-  // Draw pill
-  ctx.fillStyle = COLORS.GOLD;
-  ctx.beginPath();
-  ctx.roundRect(contentLeft, bottomRowY, pillW, pillH, pillRadius);
-  ctx.fill();
-
-  // Draw pill text
-  ctx.fillStyle = COLORS.WHITE;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  ctx.fillText(pillText, contentLeft + pillPadX, bottomRowY + pillH / 2);
-
-  // Draw URL (right-aligned)
-  const urlText = 'meetdossie.com/founding';
-  const urlSize = isInstagram ? 24 : 20;
-  ctx.font = `600 ${urlSize}px "Plus Jakarta Sans"`;
-  ctx.fillStyle = COLORS.SAGE;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(urlText, contentRight, bottomRowY + pillH / 2);
-
-  return canvas.toBuffer('image/png');
+  const buffer = await imageResponse.buffer();
+  return buffer;
 }
 
 /**
@@ -373,7 +333,6 @@ module.exports = async (req, res) => {
       platform,
       hook: hook || '',
       content: content || '',
-      persona: persona || null,
       stat: stat || '',
       statLabel: stat_label || '',
     });
