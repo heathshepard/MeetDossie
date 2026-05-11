@@ -148,24 +148,25 @@ module.exports = async function handler(req, res) {
   for (const post of items) {
     if (!post || !post.id) continue;
 
-    // Message 1: Card image with short caption + approve/reject buttons
+    // Message 1: Card image with short caption, NO buttons
     const shortCaption = formatShortCaption(post);
-    const photoResult = await telegramSend(TELEGRAM_CHAT_ID, shortCaption, inlineKeyboard(post.id), post.media_url || null);
+    const photoResult = await telegramSend(TELEGRAM_CHAT_ID, shortCaption, null, post.media_url || null);
     if (!photoResult.ok) {
       console.error('[cron-send-for-approval] photo send failed for', post.id, 'status', photoResult.status, 'body', photoResult.raw?.slice(0, 200));
       sendErrors.push({ id: post.id, step: 'photo', status: photoResult.status, body: photoResult.raw?.slice(0, 200) });
       continue;
     }
 
-    // Message 2: Full content + hashtags (text only, no buttons)
+    // Message 2: Full content + hashtags WITH approve/reject buttons
     const fullContent = formatFullContent(post);
-    const textResult = await telegramSend(TELEGRAM_CHAT_ID, fullContent, null, null);
+    const textResult = await telegramSend(TELEGRAM_CHAT_ID, fullContent, inlineKeyboard(post.id), null);
     if (!textResult.ok) {
-      console.warn('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
-      // Non-fatal — the photo with buttons was sent, so we can still approve/reject
+      console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
+      sendErrors.push({ id: post.id, step: 'text', status: textResult.status, body: textResult.raw?.slice(0, 200) });
+      continue;
     }
 
-    const messageId = photoResult.data?.result?.message_id || null;
+    const messageId = textResult.data?.result?.message_id || null;
     const now = new Date().toISOString();
     const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
       method: 'PATCH',
