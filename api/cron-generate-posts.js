@@ -109,7 +109,7 @@ const PLATFORM_RULES = {
   twitter: {
     hook_rule: "Under 280 chars for the opener. Punchy, opinionated, or contrarian. Takes get pushed. Safe content dies.",
     length_rule: "Either under 280 chars (single tweet) or a thread of 5-8 tweets. Nothing in between.",
-    format_rule: "For threads: each tweet must stand alone AND connect to the next. Number them (1/ 2/ etc).",
+    format_rule: "For threads: each tweet must stand alone AND connect to the next. Write clean tweet text without manual numbering — the publish system handles threading automatically.",
     cta_rule: "End threads with 'RT if this helped' or a question. Quote tweets and replies are the strongest signals.",
     timing: "Best performing: 8-10AM or 12-1PM CST weekdays",
     hashtags: "REQUIRED: 2-3 hashtags at end. Use: #txrealestate #realtorlife #trec",
