@@ -31,6 +31,7 @@ This file is read at the start of every Claude Code session. It completely repla
 | Email | Resend | From `heath@meetdossie.com` (ImprovMX → `heath.shepard@kw.com`) |
 | Payments | Stripe | Founding price `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo) |
 | Social posting | Zernio | $12/mo, 4 accounts, unlimited posts |
+| Card renderer | htmlcsstoimage.com (HCTI) | Replaced canvas entirely. `HCTI_USER_ID` + `HCTI_API_KEY` in Vercel env vars. Free plan: 50 renders/month. Upgrade to $14/mo at 1,000 renders when volume requires. |
 | Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`) |
 | Stock video | Pexels API | portrait for vertical, landscape for square |
 | Video assembly | Creatomate | Template ID `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: `Image-K8V` (screen recording URL), `Persona-Name`, `Caption`, `Voiceover` (ElevenLabs Bill voice pre-configured). |
@@ -269,6 +270,86 @@ Highlights:
 - Any literal API key, JWT, or bearer string in `.js`, `.py`, `.json`, `.html`, or any tracked file.
 - "I'll commit this and revert it next commit" — reverts do not undo public exposure.
 
+**Current status:**
+- `CRON_SECRET` is now set in Vercel env vars and required for all cron endpoints.
+- `SUPABASE_SERVICE_ROLE_KEY` rotated on 2026-05-10.
+- Never paste secrets in any chat — Telegram or Claude.ai.
+
+---
+
+## 15.5. INCIDENT REPORTS
+
+**Reference:** `INCIDENT-2026-05-08.md` (night)
+
+**What happened:**
+- Brittney upload bugs during onboarding
+- Opus model ID wrong (causing API errors)
+- Media/ folder with binary files accidentally committed to repo
+
+**Prevention:**
+- Never commit binary files (images, videos, audio) to git — use Supabase Storage or external CDN
+- Always verify model strings against current Anthropic API docs before deployment
+- Always test with real file sizes before customer onboarding (don't assume small test files = production)
+
+---
+
+## 15.6. PIPELINE
+
+**Social media posting pipeline:**
+
+1. **cron-generate-posts** (runs daily 11AM UTC / 6AM CST)
+   - Generates 6 social posts via Claude Sonnet 4.6
+   - Upsert with `on_conflict=post_id` — prevents duplicate key errors
+   - Resets `telegram_sent_at` to null on upsert — allows re-queuing if regenerated
+   - Renders cards via HCTI API (Instagram + Facebook only)
+   - Stores `card_body` (max 50 words, for card) + `caption` (full post text) separately
+
+2. **cron-send-for-approval** (runs 11:30 UTC / 6:30AM CST)
+   - Queries drafts where `status='draft'` AND `telegram_sent_at IS NULL`
+   - Sends TWO messages per post to DossieMarketingBot:
+     - Message 1: Card image (photo) with short caption (hook + stat), NO buttons
+     - Message 2: Full caption text + hashtags + algorithm rules WITH Approve/Reject/Edit buttons
+   - Buttons on second message (full content), not first — makes it clear what you're approving
+
+3. **cron-publish-approved** (runs every 30 min)
+   - Queries posts where `status='approved'`
+   - Posts to Zernio for all active platforms (Facebook, Twitter, Instagram, LinkedIn, TikTok)
+   - Twitter threads: splits long posts into max 6 chunks, paragraph-first
+   - Sets `status='posted'` on success, `status='failed'` on error
+
+---
+
+## 15.7. CONTENT RULES — NON-NEGOTIABLE
+
+**Persona voice:**
+- All persona content written in **third person** — never first person "I"
+- Personas are fictional Texas agents illustrating real pain points
+- Brenda = she/her, Patricia = she/her, Victor = he/him
+- Examples:
+  - WRONG: "I closed 6 deals this month."
+  - RIGHT: "She closed 6 deals this month."
+
+**Field constraints:**
+- `card_body`: max 50 words, punchy, for image card only
+- `caption`: full post text for social media publishing
+- `stat`: max 10 characters (e.g., "$8,000", "80+", "6 files")
+- `stat_label`: max 50 characters (e.g., "per year for a solo TC")
+- `hook`: max 8 words, pattern-interrupting (e.g., "$8,000 a year. For email follow-ups.")
+
+**Text encoding:**
+- No em-dashes (—), en-dashes (–), curly quotes (" " ' '), or special Unicode
+- Plain hyphens (-) and straight quotes (' ") only
+- HCTI renderer and Telegram both require ASCII-compatible text
+
+---
+
+## 15.8. KNOWN ISSUES / WATCH LIST
+
+- TikTok posts sit as `pending_video` — video pipeline separate from image posts (inactive until ~May 20, 2026)
+- Facebook hashtags not generating consistently — check AI prompt if posts have no hashtags
+- Founding spot count pulls from `subscriptions` table where `status='active'` AND `plan='founding'` only
+- HCTI free plan: 50 renders/month — monitor usage, upgrade to $14/mo at 1,000 renders when volume requires
+
 ---
 
 ## 16. GOLD TAG HISTORY (recover from these if something breaks)
@@ -294,6 +375,7 @@ Highlights:
 - `GOLD-2026-05-08-v10-creatomate-live`
 - `GOLD-2026-05-09-v3-canvas-renderer-postable`
 - `GOLD-2026-05-10-v4-card-renderer-postable`
+- `GOLD-2026-05-10-v6-hcti-renderer-live`
 
 ---
 
