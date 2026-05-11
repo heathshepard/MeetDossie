@@ -271,7 +271,7 @@ Rules:
   * Instagram: 8-10 hashtags separated by spaces
   * Twitter: 2-3 hashtags separated by spaces
   * LinkedIn: 3-5 hashtags separated by spaces
-  * Facebook: NO hashtags (leave caption without hashtags)
+  * Facebook: ALWAYS 2-3 hashtags — use #txrealestate and #realtorlife plus one topic-relevant hashtag. Never leave blank for Facebook.
   * TikTok: 2-3 hashtags separated by spaces
 - "hashtags" array must match what's in caption (no leading "#", no spaces in array entries).
 - "stat" and "stat_label" are required for every post. Pull the stat from
