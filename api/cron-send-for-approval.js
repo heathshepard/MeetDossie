@@ -44,18 +44,35 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-function formatPostMessage(post) {
+function formatShortCaption(post) {
+  // Short caption for the card image: hook + stat only, under 1024 chars
+  const platform = post.platform || 'unknown';
+  const persona = post.persona || 'unknown';
+  const hook = String(post.hook || '').trim();
+  const stat = String(post.stat || '').trim();
+  const statLabel = String(post.stat_label || '').trim();
+
+  let caption = `📝 ${platform} (${persona})\n`;
+  if (hook) caption += `\n${hook}\n`;
+  if (stat) caption += `\n${stat}`;
+  if (statLabel) caption += ` — ${statLabel}`;
+
+  return caption.slice(0, 1020);
+}
+
+function formatFullContent(post) {
+  // Full post content + hashtags for the second text message
   const platform = post.platform || 'unknown';
   const persona = post.persona || 'unknown';
   const topic = post.topic || 'unknown';
-  const content = String(post.content || '').slice(0, 3500);
+  const content = String(post.content || '');
   const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
     ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
-    : '(none)';
+    : '';
   const algo = PLATFORM_RULES_SUMMARY[platform] || '';
-  const algoLine = algo ? `\n📐 Algorithm-optimized for ${platform}: ${algo}` : '';
-  // Plain text — Telegram parse_mode left unset to avoid escaping headaches.
-  return `📝 Post for ${platform} (${persona} voice)\nTopic: ${topic}\n— — —\n${content}\n— — —\nHashtags: ${hashtags}${algoLine}`;
+  const algoLine = algo ? `\n\n📐 Algorithm: ${algo}` : '';
+
+  return `📝 Full caption for ${platform} (${persona}, topic: ${topic})\n\n${content}\n\nHashtags: ${hashtags}${algoLine}`;
 }
 
 function inlineKeyboard(postId) {
@@ -130,14 +147,25 @@ module.exports = async function handler(req, res) {
   const sendErrors = [];
   for (const post of items) {
     if (!post || !post.id) continue;
-    const text = formatPostMessage(post);
-    const result = await telegramSend(TELEGRAM_CHAT_ID, text, inlineKeyboard(post.id), post.media_url || null);
-    if (!result.ok) {
-      console.error('[cron-send-for-approval] telegram send failed for', post.id, 'status', result.status, 'body', result.raw?.slice(0, 200));
-      sendErrors.push({ id: post.id, status: result.status, body: result.raw?.slice(0, 200) });
+
+    // Message 1: Card image with short caption + approve/reject buttons
+    const shortCaption = formatShortCaption(post);
+    const photoResult = await telegramSend(TELEGRAM_CHAT_ID, shortCaption, inlineKeyboard(post.id), post.media_url || null);
+    if (!photoResult.ok) {
+      console.error('[cron-send-for-approval] photo send failed for', post.id, 'status', photoResult.status, 'body', photoResult.raw?.slice(0, 200));
+      sendErrors.push({ id: post.id, step: 'photo', status: photoResult.status, body: photoResult.raw?.slice(0, 200) });
       continue;
     }
-    const messageId = result.data?.result?.message_id || null;
+
+    // Message 2: Full content + hashtags (text only, no buttons)
+    const fullContent = formatFullContent(post);
+    const textResult = await telegramSend(TELEGRAM_CHAT_ID, fullContent, null, null);
+    if (!textResult.ok) {
+      console.warn('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
+      // Non-fatal — the photo with buttons was sent, so we can still approve/reject
+    }
+
+    const messageId = photoResult.data?.result?.message_id || null;
     const now = new Date().toISOString();
     const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
       method: 'PATCH',
