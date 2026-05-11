@@ -241,7 +241,8 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
     {
       "persona": "brenda" | "patricia" | "victor",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter",
-      "content": "<the full post text for social media — BUT the first 150 characters will be rendered on an image card, so write the opening 2-3 sentences to work standalone. No long-form storytelling. Punchy, tight, card-readable copy first, then expand if needed for the full post.>",
+      "card_body": "<MAX 50 WORDS. Punchy, standalone body text for the image card. 2-3 short sentences. Must work visually on the card without the full caption. Example: 'You already answered that. Yesterday. In writing. But here you are, fielding the same question again because your TC's system is sticky notes and prayers.'>",
+      "caption": "<the full post text for social media — can be longer, tell the full story, include CTA and hashtags at the end>",
       "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
       "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
       "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
@@ -253,24 +254,24 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 
 Rules:
 - Exactly 6 posts, in the order listed in the plan above.
-- HASHTAGS: Must be appended to the END of the "content" field (not just in the array):
+- HASHTAGS: Must be appended to the END of the "caption" field (not just in the array):
   * Instagram: 8-10 hashtags separated by spaces
   * Twitter: 2-3 hashtags separated by spaces
   * LinkedIn: 3-5 hashtags separated by spaces
-  * Facebook: NO hashtags (leave content without hashtags)
+  * Facebook: NO hashtags (leave caption without hashtags)
   * TikTok: 2-3 hashtags separated by spaces
-- "hashtags" array must match what's in content (no leading "#", no spaces in array entries).
+- "hashtags" array must match what's in caption (no leading "#", no spaces in array entries).
 - "stat" and "stat_label" are required for every post. Pull the stat from
   something the post actually says — never invent a new number. The card
   renderer uses these as the visual anchor, so they must read clean.
-- CARD COPY: The first 150-200 characters of "content" will be rendered on an
-  image card alongside the stat, stat_label, and hook. Write the opening as
-  2-3 punchy sentences that work standalone on the card. No long-form
-  storytelling in the opening — save that for later in the post if needed.
+- CARD BODY: "card_body" is ONLY for the image card. Max 50 words. 2-3 punchy
+  sentences that work standalone visually. No long-form storytelling. This is
+  separate from "caption" — keep it tight and card-friendly.
+- CAPTION: "caption" is the full post text that appears on social media. Can be
+  longer, tell the full story. Must include CTA and hashtags at the end.
 - TEXT ENCODING: Never use em-dashes (—), en-dashes (–), curly quotes (" " ' '),
   or special Unicode characters. Use only plain hyphens (-) and straight quotes (' ").
-  Card renderer requires ASCII-compatible text.
-- The CTA must appear inside the "content" field naturally — don't tack it on.
+- The CTA must appear inside the "caption" field naturally — don't tack it on.
 - Vary the openings. Don't start every post with "Real talk" or "Honest take."
 - Don't reuse the exact same numbers across posts (different agents, different math).`;
 }
@@ -447,14 +448,15 @@ module.exports = async function handler(req, res) {
     if (!p || typeof p !== 'object') continue;
     const persona = String(p.persona || '').toLowerCase();
     const platform = String(p.platform || '').toLowerCase();
-    const content = String(p.content || '').trim();
+    const caption = String(p.caption || p.content || '').trim(); // caption = full post text
+    const cardBody = String(p.card_body || '').trim(); // card_body = short card-friendly text
     const hook = String(p.hook || '').trim();
     const cta = String(p.cta || '').trim();
     const stat = String(p.stat || '').trim();
     const stat_label = String(p.stat_label || '').trim();
     const hashtags = Array.isArray(p.hashtags) ? p.hashtags.map((h) => String(h).replace(/^#/, '').trim()).filter(Boolean) : [];
-    if (!content || !platform || !persona) {
-      insertErrors.push({ index: i, error: 'missing required field', got: { persona, platform, content_length: content.length } });
+    if (!caption || !platform || !persona) {
+      insertErrors.push({ index: i, error: 'missing required field', got: { persona, platform, caption_length: caption.length } });
       continue;
     }
 
@@ -473,13 +475,13 @@ module.exports = async function handler(req, res) {
     let mediaUrl = null;
     if (CARD_PLATFORMS.has(platform)) {
       // Debug logging: capture AI-generated card fields
-      console.log(`[AI] ${postId} stat="${stat}" stat_label="${stat_label}" hook="${hook}" content_preview="${content.slice(0, 100)}..."`);
+      console.log(`[AI] ${postId} stat="${stat}" stat_label="${stat_label}" hook="${hook}" card_body="${cardBody.slice(0, 100)}..."`);
 
       const renderStart = Date.now();
       const card = await renderSocialCard({
         platform,
-        hook: hook || content.slice(0, 120),
-        content,
+        hook: hook || caption.slice(0, 120),
+        content: cardBody || caption.slice(0, 200), // Use card_body if available, fallback to caption excerpt
         persona,
         post_id: postId,
         stat,
@@ -499,9 +501,9 @@ module.exports = async function handler(req, res) {
     const row = {
       post_id: postId,
       platform,
-      content,
-      content_hash: require('crypto').createHash('md5').update(content).digest('hex'),
-      hook: hook || content.slice(0, 120),
+      content: caption, // Full post text for social media
+      content_hash: require('crypto').createHash('md5').update(caption).digest('hex'),
+      hook: hook || caption.slice(0, 120),
       cta,
       hashtags,
       status: 'draft',
