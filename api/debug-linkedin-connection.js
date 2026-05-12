@@ -28,12 +28,15 @@ module.exports = async function handler(req, res) {
 
     const accountsText = await accountsRes.text();
     let accountsData = null;
-    try { accountsData = JSON.parse(accountsText); } catch {}
+    try { accountsData = JSON.parse(accountsText); } catch (e) {
+      results.parseError = e.message;
+    }
 
     results.accounts = {
       ok: accountsRes.ok,
       status: accountsRes.status,
       data: accountsData,
+      rawText: accountsText ? accountsText.slice(0, 1000) : null,
     };
 
     // Find LinkedIn account details
@@ -43,9 +46,15 @@ module.exports = async function handler(req, res) {
     }
   } catch (err) {
     results.accountsError = err.message;
+    return res.status(200).json(results);
   }
 
-  // Step 2: Publish a unique test post to LinkedIn
+  // Step 2: Publish a unique test post to LinkedIn only if we got accounts
+  if (!results.linkedinAccount) {
+    results.publishSkipped = 'No LinkedIn account found';
+    return res.status(200).json(results);
+  }
+
   const timestamp = new Date().toISOString();
   const uniqueContent = `Testing LinkedIn connection - ${timestamp}
 
@@ -53,7 +62,7 @@ This is a test post from Dossie to verify LinkedIn publishing is working correct
 
 If you see this post on linkedin.com/company/meetdossie, the integration is working.
 
-#test #meetdossie #verification`;
+#test #meetdossie`;
 
   const linkedinAccountId = '69fccd7392b3d8e85f8f12be';
 
@@ -78,12 +87,15 @@ If you see this post on linkedin.com/company/meetdossie, the integration is work
 
     const postText = await postRes.text();
     let postData = null;
-    try { postData = JSON.parse(postText); } catch {}
+    try { postData = JSON.parse(postText); } catch (e) {
+      results.publishParseError = e.message;
+    }
 
     results.publish = {
       ok: postRes.ok,
       status: postRes.status,
       data: postData,
+      rawText: postText ? postText.slice(0, 1000) : null,
       timestamp,
     };
   } catch (err) {
