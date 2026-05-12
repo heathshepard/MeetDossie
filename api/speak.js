@@ -49,11 +49,14 @@ export default async function handler(req, res) {
     const ip = clientIpFromReq(req);
     await checkRateLimit(ip, 'speak', 100, 60 * 60 * 1000);
 
-    const { text } = req.body || {};
+    const { text, speed } = req.body || {};
 
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ ok: false, error: 'Text is required' });
     }
+
+    // Speed: 0.25-4.0, default 1.0. Morning Brief uses 0.85 for easier comprehension.
+    const voiceSpeed = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.0;
 
     if (!process.env.ELEVENLABS_API_KEY) {
       console.error('ELEVENLABS_API_KEY not configured');
@@ -110,7 +113,7 @@ export default async function handler(req, res) {
             similarity_boost: 0.75,
             style: 0.25,
             use_speaker_boost: true,
-            speed: 1.0,
+            speed: voiceSpeed,
           },
         }),
       },

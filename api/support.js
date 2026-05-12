@@ -98,11 +98,18 @@ async function notifyHeath({ ticketType, message, agentEmail, ticketId }) {
     console.warn('[support] RESEND_API_KEY not set — skipping notification email');
     return;
   }
+  const TYPE_LABELS = {
+    bug: 'Bug Report',
+    feature: 'Feature Request',
+    help: 'Need Help',
+    other: 'Other',
+  };
+  const typeLabel = TYPE_LABELS[ticketType] || ticketType;
   const subjectType = ticketType.charAt(0).toUpperCase() + ticketType.slice(1);
   const html = `
     <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; color: #1C2B3A; line-height: 1.7;">
       <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; margin: 0 0 12px;">New Dossie support ticket</h2>
-      <p style="margin: 0 0 6px;"><strong>Type:</strong> ${escapeHtml(ticketType)}</p>
+      <p style="margin: 0 0 6px;"><strong>Type:</strong> ${escapeHtml(typeLabel)}</p>
       <p style="margin: 0 0 6px;"><strong>From:</strong> ${escapeHtml(agentEmail || '(unknown)')}</p>
       <p style="margin: 0 0 16px;"><strong>Ticket ID:</strong> ${escapeHtml(ticketId || '')}</p>
       <div style="padding: 16px; background: #F7F2EA; border-radius: 8px; white-space: pre-wrap;">${escapeHtml(message)}</div>
