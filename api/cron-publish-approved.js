@@ -49,9 +49,9 @@ const MAX_PER_RUN = 8;
 //   - Min 60 chars per chunk (merge backward into setup, fall back to forward)
 //   - Paragraph-first split, sentence-fallback only for paragraphs >HARD_LIMIT
 //   - When count >6, greedily merge the smallest adjacent pair
+//   - No thread numbering — continuous replies only
 const TWITTER_LIMIT = 280;
-const TWITTER_NUMBERING_RESERVE = 5;        // " 6/6" = 4 chars; pad to 5
-const TWITTER_HARD_LIMIT = TWITTER_LIMIT - TWITTER_NUMBERING_RESERVE; // 275
+const TWITTER_HARD_LIMIT = TWITTER_LIMIT; // No numbering reserve needed
 const TWITTER_MAX_CHUNKS = 6;
 const TWITTER_MIN_CHUNK = 60;
 const TWITTER_SKIP_BELOW = 20;
@@ -198,16 +198,13 @@ function splitForTwitter(body) {
     paragraphs = paragraphs.slice(0, TWITTER_MAX_CHUNKS);
   }
 
-  // 5. Apply " i/N" numbering.
-  const total = paragraphs.length;
-  if (total <= 1) return paragraphs;
-  const numbered = paragraphs.map((c, i) => `${c} ${i + 1}/${total}`);
-  for (const c of numbered) {
+  // Return chunks as-is — no thread numbering
+  for (const c of paragraphs) {
     if (c.length > TWITTER_LIMIT) {
       console.warn(`[twitter-split] WARN chunk exceeds ${TWITTER_LIMIT}: ${c.length} chars — ${c.slice(0, 60)}…`);
     }
   }
-  return numbered;
+  return paragraphs;
 }
 
 // Map a media URL to the Zernio docs' mediaItems entry shape.
