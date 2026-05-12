@@ -1,11 +1,13 @@
 // Vercel Serverless Function: /api/speak
-// ElevenLabs TTS for Dossie's voice (Jessica)
+// ElevenLabs TTS for Dossie's voice (Luna)
 
 import {
   checkRateLimit,
   RateLimitError,
   clientIpFromReq,
 } from './_middleware/rateLimit.js';
+
+const { retryFetch } = require('./_lib/retry.js');
 
 // CORS allowlist — production domains plus any localhost port for dev.
 const ALLOWED_ORIGINS = new Set([
@@ -91,25 +93,29 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'No text after cleaning' });
     }
 
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc', {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': process.env.ELEVENLABS_API_KEY,
-      },
-      body: JSON.stringify({
-        text: cleanText,
-        model_id: 'eleven_flash_v2_5',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.25,
-          use_speaker_boost: true,
-          speed: 1.0,
+    const response = await retryFetch(
+      'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc',
+      {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': process.env.ELEVENLABS_API_KEY,
         },
-      }),
-    });
+        body: JSON.stringify({
+          text: cleanText,
+          model_id: 'eleven_flash_v2_5',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.25,
+            use_speaker_boost: true,
+            speed: 1.0,
+          },
+        }),
+      },
+      { name: 'ElevenLabs', maxAttempts: 3, baseDelay: 1000 }
+    );
 
     if (!response.ok) {
       // Log full upstream detail server-side; return a generic message.
