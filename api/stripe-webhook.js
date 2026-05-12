@@ -309,48 +309,19 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     return;
   }
 
-  // Find or create the auth user.
-  let userId = null;
-  try {
-    userId = await findUserIdByEmail(customerEmail);
-  } catch (err) {
-    console.warn('[stripe-webhook] profile lookup failed:', err && err.message);
-  }
-  if (!userId) {
-    try {
-      const result = await createAuthUser({ email: customerEmail, fullName: customerName });
-      userId = result.userId;
-    } catch (err) {
-      console.error('[stripe-webhook] createAuthUser failed:', err && err.message);
-    }
-  }
+  // NEW FLOW: Do NOT create auth user yet — wait for onboarding form submission.
+  // Create subscription row with status='pending_onboarding' and user_id=null.
+  // The /api/complete-onboarding endpoint will create the auth user and update
+  // the subscription status to 'active'.
 
-  // Upsert profile (covers both new-user and pre-existing-user cases).
-  if (userId) {
-    try {
-      await upsertProfile({
-        id: userId,
-        email: customerEmail,
-        full_name: customerName || null,
-        subscription_tier: tier,
-        subscription_status: 'active',
-        plan: tier,
-        stripe_customer_id: stripeCustomerId,
-      });
-    } catch (err) {
-      console.error('[stripe-webhook] profile upsert failed:', err && err.message);
-    }
-  }
-
-  // Upsert subscription row.
   try {
     await upsertSubscription({
-      user_id: userId,
+      user_id: null,
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: priceId,
       plan: tier,
-      status: 'active',
+      status: 'pending_onboarding',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
     });
@@ -358,29 +329,8 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     console.error('[stripe-webhook] subscription upsert failed:', err && err.message);
   }
 
-  // Send welcome email to everyone who completes checkout.
-  await sendEmail({
-    to: customerEmail,
-    subject: 'Welcome to Dossie',
-    html: welcomeEmailHtml(customerName),
-  });
-
-  // Always generate a recovery link and send the "Set Your Password" email.
-  // Recovery links work for both new users (initial password setup) and
-  // existing users (password reset), so this also covers customers whose
-  // auth record was created in a prior failed attempt — they were silently
-  // dropped before. If generation still fails, log loudly so we can recover
-  // them manually via the Supabase dashboard.
-  const actionLink = await generateRecoveryLink(customerEmail);
-  if (actionLink) {
-    await sendEmail({
-      to: customerEmail,
-      subject: 'Welcome to Dossie — Set Your Password',
-      html: setPasswordEmailHtml(actionLink),
-    });
-  } else {
-    console.error('[stripe-webhook] no action_link returned for', customerEmail, '— manual intervention needed.');
-  }
+  // Do NOT send welcome email or password-set email here — that happens in
+  // /api/complete-onboarding after the onboarding form is submitted.
 }
 
 async function handleSubscriptionDeleted(subscription) {

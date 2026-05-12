@@ -3,100 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Founding Member — Dossie AI</title>
-<meta name="description" content="Lock in $29/mo for life. Founding membership for the AI transaction coordinator built for Texas agents. Only 50 spots.">
+<title>Founding Member — Dossie</title>
+<meta name="description" content="Lock in your Dossie founding member rate at $29/month — forever.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF; --bg-dark: #1A1A2E;
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF;
   --border: #E8E2D9; --border-light: #F0EBE3;
   --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
   --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
   --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
   --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
-  --coral: #E8836B; --coral-light: #FCE4DC; --coral-deep: #C9624A;
+  --coral: #E8836B; --coral-light: #FAE5DD; --coral-deep: #D66F59;
+  --navy: #1A1A2E;
 }
 html { scroll-behavior: smooth; }
-body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; min-height: 100vh; }
 
-@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-
-nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border-light); }
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-light); padding: 16px 28px; }
+.nav-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
 .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
-.nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
-.nav-actions { display: flex; align-items: center; gap: 12px; }
-.nav-link { font-size: 14px; color: var(--text-secondary); text-decoration: none; font-weight: 500; padding: 10px 14px; }
+.nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-weight: 600; color: #fff; font-size: 18px; }
+.nav-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 20px; color: var(--text-primary); }
+.nav-link { font-size: 14px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
 .nav-link:hover { color: var(--text-primary); }
-.nav-cta { display: inline-flex; align-items: center; justify-content: center; padding: 11px 20px; border-radius: 999px; text-decoration: none; background: var(--coral); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 28px rgba(232,131,107,0.28); transition: transform 0.2s, box-shadow 0.2s; }
-.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(232,131,107,0.36); }
 
-.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 140px 28px 80px; position: relative; overflow: hidden; }
-.hero::before { content: ''; position: absolute; top: -220px; right: -180px; width: 620px; height: 620px; background: radial-gradient(circle, var(--blush-light) 0%, transparent 65%); pointer-events: none; opacity: 0.85; }
-.hero::after { content: ''; position: absolute; bottom: -220px; left: -120px; width: 540px; height: 540px; background: radial-gradient(circle, var(--gold-light) 0%, transparent 65%); pointer-events: none; opacity: 0.7; }
-.hero-inner { position: relative; z-index: 1; max-width: 760px; width: 100%; }
+.hero { padding: 140px 28px 80px; text-align: center; background: linear-gradient(180deg, var(--bg) 0%, var(--bg-warm) 100%); position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: -160px; right: -120px; width: 520px; height: 520px; background: radial-gradient(circle, var(--coral-light) 0%, transparent 65%); pointer-events: none; opacity: 0.7; }
+.hero-inner { position: relative; max-width: 680px; margin: 0 auto; }
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: var(--gold-light); color: var(--gold-deep); font-size: 13px; font-weight: 700; margin-bottom: 28px; }
+.hero-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(42px, 6vw, 64px); font-weight: 600; line-height: 1.08; letter-spacing: -1.6px; color: var(--text-primary); margin-bottom: 18px; }
+.hero-title em { font-style: italic; color: var(--blush-deep); }
+.hero-tagline { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--text-secondary); margin-bottom: 14px; }
+.hero-sub { font-size: 17px; color: var(--text-secondary); line-height: 1.65; max-width: 560px; margin: 0 auto 44px; }
 
-.hero-badge { display: inline-flex; align-items: center; gap: 10px; padding: 9px 22px; background: var(--bg-card); border: 1px solid var(--gold); border-radius: 100px; font-size: 13px; color: var(--gold-deep); font-weight: 700; letter-spacing: 0.6px; margin-bottom: 32px; box-shadow: 0 4px 18px rgba(201,168,76,0.14); animation: fadeInUp 0.5s ease-out both; text-transform: uppercase; }
-.hero-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); animation: pulse 2.4s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(232,131,107,0.18); }
+.price-card { display: flex; align-items: center; justify-content: center; gap: 28px; max-width: 420px; margin: 0 auto 44px; padding: 20px 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 18px 48px rgba(45,42,38,0.08); }
+.price-old { text-align: center; }
+.price-old-num { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600; color: var(--text-light); text-decoration: line-through; display: block; }
+.price-old-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-light); font-weight: 600; }
+.price-divider { width: 1px; height: 60px; background: var(--border-light); }
+.price-new { text-align: center; }
+.price-new-row { display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+.price-new-currency { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-primary); }
+.price-new-num { font-family: 'Cormorant Garamond', serif; font-size: 64px; font-weight: 600; color: var(--text-primary); line-height: 1; }
+.price-new-period { font-size: 17px; color: var(--text-secondary); }
+.price-new-label { display: block; font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; margin-top: 6px; }
 
-.hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(42px, 7.6vw, 84px); font-weight: 600; line-height: 1.02; letter-spacing: -1.6px; color: var(--text-primary); animation: fadeInUp 0.5s ease-out 0.1s both; }
-.hero-title em { font-style: italic; background: linear-gradient(135deg, var(--blush-deep) 0%, var(--coral-deep) 60%, var(--gold-deep) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.hero-tagline { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(18px, 2.4vw, 22px); color: var(--blush-deep); margin-top: 14px; animation: fadeInUp 0.5s ease-out 0.15s both; }
-.hero-sub { font-size: clamp(15px, 1.7vw, 17px); color: var(--text-secondary); max-width: 580px; margin: 22px auto 0; line-height: 1.75; animation: fadeInUp 0.5s ease-out 0.2s both; }
-
-.price-card { display: inline-flex; align-items: flex-end; justify-content: center; gap: 16px; margin-top: 38px; padding: 20px 32px; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 16px 50px rgba(45,42,38,0.08); animation: fadeInUp 0.5s ease-out 0.3s both; }
-.price-old { display: inline-flex; flex-direction: column; align-items: center; }
-.price-old-num { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: var(--text-light); text-decoration: line-through; line-height: 1; }
-.price-old-label { font-size: 10px; letter-spacing: 1.5px; color: var(--text-light); text-transform: uppercase; margin-top: 4px; }
-.price-divider { width: 1px; height: 56px; background: var(--border); }
-.price-new { display: inline-flex; flex-direction: column; align-items: flex-start; }
-.price-new-row { display: inline-flex; align-items: baseline; gap: 4px; }
-.price-new-currency { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: var(--text-primary); line-height: 1; }
-.price-new-num { font-family: 'Cormorant Garamond', serif; font-size: clamp(56px, 7vw, 76px); font-weight: 600; color: var(--text-primary); line-height: 1; letter-spacing: -2px; }
-.price-new-period { font-size: 16px; color: var(--text-secondary); margin-left: 2px; }
-.price-new-label { font-size: 11px; letter-spacing: 1.6px; color: var(--coral-deep); text-transform: uppercase; font-weight: 700; margin-top: 6px; }
-
-.cta-row { margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: fadeInUp 0.5s ease-out 0.4s both; }
-.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 18px 36px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 18px 44px rgba(232,131,107,0.32); transition: transform 0.2s, box-shadow 0.2s, background 0.2s, opacity 0.2s; letter-spacing: 0.2px; font-family: inherit; }
-.cta-primary:hover:not(:disabled) { transform: translateY(-2px); background: var(--coral-deep); box-shadow: 0 22px 50px rgba(232,131,107,0.4); }
-.cta-primary:active { transform: translateY(0); }
-.cta-primary:disabled { cursor: progress; opacity: 0.78; }
+.cta-row { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 18px 40px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 18px 42px rgba(232,131,107,0.32); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+.cta-primary:hover:not(:disabled) { transform: translateY(-2px); background: var(--coral-deep); box-shadow: 0 22px 48px rgba(232,131,107,0.4); }
+.cta-primary:disabled { opacity: 0.7; cursor: progress; }
 .cta-arrow { transition: transform 0.2s; }
-.cta-primary:hover:not(:disabled) .cta-arrow { transform: translateX(4px); }
-.cta-error { font-size: 13px; color: var(--coral-deep); min-height: 18px; max-width: 360px; text-align: center; line-height: 1.45; }
+.cta-primary:hover .cta-arrow { transform: translateX(4px); }
+.scarcity { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+.scarcity-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--sage); animation: pulse 2s ease-in-out infinite; }
 
-.scarcity { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-.scarcity-pip { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); animation: pulse 2s ease-in-out infinite; }
-
-section { padding: 96px 28px; position: relative; }
-.section-narrow { max-width: 980px; margin: 0 auto; }
-.section-eyebrow { font-size: 12px; letter-spacing: 2.2px; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); margin-bottom: 16px; text-align: center; }
-.section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5vw, 56px); font-weight: 600; line-height: 1.05; letter-spacing: -1.2px; color: var(--text-primary); text-align: center; }
+section { padding: 96px 28px; }
+.section-narrow { max-width: 1040px; margin: 0 auto; }
+.section-eyebrow { font-size: 12px; letter-spacing: 2.2px; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); text-align: center; margin-bottom: 14px; }
+.section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5vw, 48px); font-weight: 600; line-height: 1.12; text-align: center; letter-spacing: -1px; color: var(--text-primary); margin-bottom: 16px; }
 .section-title em { font-style: italic; color: var(--blush-deep); }
-.section-sub { text-align: center; max-width: 620px; margin: 22px auto 0; color: var(--text-secondary); font-size: 16px; line-height: 1.7; }
+.section-sub { max-width: 620px; margin: 0 auto; text-align: center; font-size: 16px; color: var(--text-secondary); line-height: 1.7; }
 
-.benefits { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 56px; }
-.benefit { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 22px; padding: 28px 26px; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; position: relative; overflow: hidden; }
-.benefit:hover { transform: translateY(-4px); border-color: var(--blush); box-shadow: 0 18px 48px rgba(45,42,38,0.08); }
-.benefit-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 18px; background: var(--blush-light); }
-.benefit:nth-child(2) .benefit-icon { background: var(--sage-light); }
-.benefit:nth-child(3) .benefit-icon { background: var(--gold-light); }
-.benefit:nth-child(4) .benefit-icon { background: var(--coral-light); }
-.benefit:nth-child(5) .benefit-icon { background: var(--blush-light); }
-.benefit:nth-child(6) .benefit-icon { background: linear-gradient(135deg, var(--gold-light) 0%, var(--coral-light) 100%); }
-.benefit-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.2; }
+.benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 52px; }
+.benefit { padding: 28px 26px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 20px; transition: border-color 0.2s, box-shadow 0.2s; }
+.benefit:hover { border-color: var(--blush); box-shadow: 0 16px 42px rgba(45,42,38,0.07); }
+.benefit-icon { font-size: 32px; margin-bottom: 14px; }
+.benefit-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
 .benefit-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
-.benefit-tag { position: absolute; top: 18px; right: 18px; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; padding: 4px 10px; border-radius: 100px; background: var(--gold-light); }
+.benefit-tag { display: inline-block; margin-left: 6px; padding: 3px 8px; border-radius: 6px; background: var(--blush-light); color: var(--blush-deep); font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; vertical-align: middle; }
 
-.texas { background: var(--bg-warm); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 96px 28px; }
-.texas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 52px; max-width: 940px; margin-left: auto; margin-right: auto; }
-.texas-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 22px; padding: 32px 26px; text-align: center; }
-.texas-icon { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, var(--blush-light) 0%, var(--gold-light) 100%); display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 18px; }
+.texas { background: var(--bg-warm); }
+.texas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 52px; }
+.texas-card { padding: 28px 26px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 20px; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; }
+.texas-card:hover { border-color: var(--blush); box-shadow: 0 16px 42px rgba(45,42,38,0.07); }
+.texas-icon { width: 60px; height: 60px; border-radius: 50%; background: var(--blush-light); display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 18px; }
 .texas-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; line-height: 1.25; }
 .texas-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
 .texas-card.is-founder { border-color: var(--blush); background: linear-gradient(180deg, var(--bg-card) 0%, var(--blush-light) 220%); box-shadow: 0 12px 36px rgba(192,128,128,0.14); text-align: left; padding: 36px 30px; }
@@ -107,7 +93,6 @@ section { padding: 96px 28px; position: relative; }
 .founder-sig-mark { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; flex-shrink: 0; }
 .founder-sig-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: var(--text-primary); line-height: 1.3; }
 .founder-sig-text small { display: block; font-size: 11px; font-style: normal; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-light); margin-top: 3px; font-family: 'Plus Jakarta Sans', sans-serif; }
-.faq-live { font-weight: 700; color: var(--coral-deep); }
 
 .faq { padding: 96px 28px; }
 .faq-list { max-width: 720px; margin: 52px auto 0; display: flex; flex-direction: column; gap: 12px; }
@@ -118,29 +103,7 @@ section { padding: 96px 28px; position: relative; }
 .faq-toggle { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-warm); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-secondary); flex-shrink: 0; transition: transform 0.25s, background 0.25s, color 0.25s; }
 .faq-item[open] .faq-toggle { transform: rotate(45deg); background: var(--coral-light); color: var(--coral-deep); }
 .faq-answer { padding: 0 26px 24px; font-size: 15px; color: var(--text-secondary); line-height: 1.75; }
-
-.signup { padding: 110px 28px; background: linear-gradient(180deg, var(--bg) 0%, var(--bg-warm) 100%); position: relative; overflow: hidden; }
-.signup::before { content: ''; position: absolute; top: -120px; right: -100px; width: 480px; height: 480px; background: radial-gradient(circle, var(--coral-light) 0%, transparent 65%); pointer-events: none; opacity: 0.6; }
-.signup-inner { position: relative; max-width: 560px; margin: 0 auto; text-align: center; }
-.signup-form { display: flex; flex-direction: column; gap: 12px; margin-top: 36px; padding: 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 20px 60px rgba(45,42,38,0.08); text-align: left; }
-.signup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.signup-field { display: flex; flex-direction: column; gap: 6px; }
-.signup-label { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
-.signup-input, .signup-select, .signup-textarea { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 13px 16px; font-family: inherit; font-size: 15px; background: #fff; color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
-.signup-input:focus, .signup-select:focus, .signup-textarea:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-light); }
-.signup-textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
-.signup-select { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%), linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 36px; cursor: pointer; }
-.signup-counter { font-size: 11px; color: var(--text-light); text-align: right; margin-top: -2px; }
-.signup-counter.is-near { color: var(--coral-deep); }
-.signup-help { margin-top: 10px; font-size: 12px; color: var(--text-light); text-align: center; line-height: 1.55; }
-.signup-button { margin-top: 10px; padding: 16px 22px; border: none; border-radius: 999px; background: var(--coral); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 16px 38px rgba(232,131,107,0.3); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
-.signup-button:hover:not(:disabled) { transform: translateY(-2px); background: var(--coral-deep); }
-.signup-button:disabled { opacity: 0.65; cursor: progress; }
-.signup-status { margin-top: 14px; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.55; background: var(--gold-light); color: var(--gold-deep); display: none; }
-.signup-status.is-success { background: var(--sage-light); color: var(--sage-deep); display: block; }
-.signup-status.is-error { background: var(--coral-light); color: var(--coral-deep); display: block; }
-.signup-status.is-loading { display: block; }
-.signup-fineprint { margin-top: 18px; font-size: 12px; color: var(--text-light); }
+.faq-live { font-weight: 700; color: var(--coral-deep); }
 
 footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(--border-light); }
 .footer-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 12px; }
@@ -150,13 +113,15 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 .footer-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
 .footer-link:hover { color: var(--text-primary); }
 
+.status-message { margin-top: 14px; padding: 12px 18px; border-radius: 12px; font-size: 14px; text-align: center; display: none; }
+.status-message.is-error { display: block; background: var(--coral-light); color: var(--coral-deep); }
+
 @media (max-width: 760px) {
   nav { padding: 12px 18px; }
   .nav-link { display: none; }
-  .nav-cta { padding: 9px 14px; font-size: 12px; }
   .hero { padding: 130px 22px 70px; }
   .hero-title { letter-spacing: -1px; }
-  section, .texas, .faq, .signup { padding: 72px 22px; }
+  section, .texas, .faq { padding: 72px 22px; }
   .benefits { grid-template-columns: 1fr; gap: 14px; margin-top: 40px; }
   .benefit { padding: 24px 22px; }
   .texas-grid { grid-template-columns: 1fr; gap: 14px; margin-top: 36px; }
@@ -164,8 +129,6 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
   .price-divider { height: 50px; }
   .price-new-num { font-size: 56px; }
   .price-old-num { font-size: 24px; }
-  .signup-row { grid-template-columns: 1fr; }
-  .signup-form { padding: 24px; }
   .faq-question { font-size: 19px; padding: 18px 20px; }
   .faq-answer { padding: 0 20px 20px; }
   .cta-primary { padding: 16px 28px; font-size: 15px; }
@@ -175,13 +138,12 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 <body>
 
 <nav>
-  <a href="/" class="nav-logo">
-    <div class="nav-mark">D</div>
-    <span class="nav-name">Dossie</span>
-  </a>
-  <div class="nav-actions">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-mark">D</div>
+      <span class="nav-name">Dossie</span>
+    </a>
     <a href="/" class="nav-link">Home</a>
-    <a href="#claim" class="nav-cta">Apply Now</a>
   </div>
 </nav>
 
@@ -215,14 +177,15 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     </div>
 
     <div class="cta-row">
-      <a href="#claim" class="cta-primary" id="hero-cta">
-        <span class="cta-label">Apply for Founding Member</span>
+      <button class="cta-primary" id="join-button">
+        <span class="cta-label">Join as Founding Member — $29/mo</span>
         <span class="cta-arrow">→</span>
-      </a>
+      </button>
       <span class="scarcity">
         <span class="scarcity-pip"></span>
-        <span id="hero-scarcity-text"><span id="hero-scarcity-count">49</span> of 50 spots available</span>
+        <span id="scarcity-text"><span id="scarcity-count">49</span> of 50 spots available</span>
       </span>
+      <div class="status-message" id="status-message"></div>
     </div>
   </div>
 </section>
@@ -348,77 +311,6 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
   </div>
 </section>
 
-<section class="signup" id="claim">
-  <div class="signup-inner">
-    <div class="section-eyebrow">Apply for a founding spot</div>
-    <h2 class="section-title">Apply for one of <em>50 founding spots.</em></h2>
-    <p class="section-sub">Tell us about your business. We'll review and email approved members a checkout link within 24 hours.</p>
-
-    <form class="signup-form" id="founding-form" novalidate>
-      <div class="signup-row">
-        <div class="signup-field">
-          <label class="signup-label" for="founding-name">Full name</label>
-          <input class="signup-input" id="founding-name" name="name" type="text" placeholder="Your full name" autocomplete="name" required>
-        </div>
-        <div class="signup-field">
-          <label class="signup-label" for="founding-email">Email</label>
-          <input class="signup-input" id="founding-email" name="email" type="email" placeholder="you@brokerage.com" autocomplete="email" required>
-        </div>
-      </div>
-      <div class="signup-row">
-        <div class="signup-field">
-          <label class="signup-label" for="founding-brokerage">Brokerage</label>
-          <input class="signup-input" id="founding-brokerage" name="brokerage" type="text" placeholder="e.g. Keller Williams" autocomplete="organization" required>
-        </div>
-        <div class="signup-field">
-          <label class="signup-label" for="founding-market">Texas market</label>
-          <input class="signup-input" id="founding-market" name="market" type="text" placeholder="Austin, DFW, Houston…" required>
-        </div>
-      </div>
-      <div class="signup-row">
-        <div class="signup-field">
-          <label class="signup-label" for="founding-tx">Transactions (last 12mo)</label>
-          <input class="signup-input" id="founding-tx" name="transactions_12mo" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 18" required>
-        </div>
-        <div class="signup-field">
-          <label class="signup-label" for="founding-sides">Sides you work</label>
-          <select class="signup-select" id="founding-sides" name="sides" required>
-            <option value="" disabled selected>Select…</option>
-            <option value="buyer">Buyer side</option>
-            <option value="listing">Listing side</option>
-            <option value="both">Both</option>
-          </select>
-        </div>
-      </div>
-      <div class="signup-field">
-        <label class="signup-label" for="founding-heard-from">How did you hear about Dossie?</label>
-        <select class="signup-select" id="founding-heard-from" name="heard_from" required>
-          <option value="" disabled selected>Select…</option>
-          <option value="facebook_group">Facebook group post</option>
-          <option value="facebook_page">Facebook page</option>
-          <option value="instagram">Instagram</option>
-          <option value="tiktok">TikTok</option>
-          <option value="twitter_x">Twitter/X</option>
-          <option value="google_search">Google search</option>
-          <option value="word_of_mouth">Word of mouth / another agent</option>
-          <option value="trec_calculator">The TREC deadline calculator</option>
-          <option value="linkedin">LinkedIn</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div class="signup-field">
-        <label class="signup-label" for="founding-why">Why are you interested in Dossie?</label>
-        <textarea class="signup-textarea" id="founding-why" name="why" maxlength="500" placeholder="A few sentences on what's not working today and what you'd want Dossie to handle." required></textarea>
-        <div class="signup-counter" id="founding-why-counter">0 / 500</div>
-      </div>
-      <button class="signup-button" type="submit" id="founding-submit">Submit Application</button>
-      <p class="signup-help">No payment required to apply. Approved members get a Stripe checkout link locked at $29/mo for life.</p>
-      <div class="signup-status" id="founding-status" role="status" aria-live="polite"></div>
-    </form>
-    <p class="signup-fineprint">No spam. We only reach out about your application.</p>
-  </div>
-</section>
-
 <footer>
   <div class="footer-logo">
     <div class="nav-mark" style="width:30px;height:30px;font-size:13px;">D</div>
@@ -435,11 +327,10 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 </footer>
 
 <script>
-// Live spot count — single fetch updates both the hero scarcity line and
-// the FAQ answer. Same fetch pattern as the homepage banner.
+// Live spot count
 (function () {
   var faq = document.getElementById("faq-spots-answer");
-  var heroCount = document.getElementById("hero-scarcity-count");
+  var heroCount = document.getElementById("scarcity-count");
   if (!faq && !heroCount) return;
   fetch("/api/founding-count", { headers: { Accept: "application/json" } })
     .then(function (r) { return r.ok ? r.json() : null; })
@@ -451,144 +342,41 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
         faq.innerHTML = "Currently <span class=\"faq-live\">" + n + "</span> of 50 spots remaining. Once they're gone, the founding rate is gone forever.";
       }
     })
-    .catch(function () { /* keep SSR fallbacks ("49 of 50 spots available" / "Limited founding spots remaining.") */ });
+    .catch(function () { /* keep SSR fallbacks */ });
 })();
 
-// Why-textarea character counter.
-(function () {
-  var ta = document.getElementById("founding-why");
-  var counter = document.getElementById("founding-why-counter");
-  if (!ta || !counter) return;
-  var max = parseInt(ta.getAttribute("maxlength") || "500", 10);
-  function update() {
-    var n = ta.value.length;
-    counter.textContent = n + " / " + max;
-    if (n >= max - 40) counter.classList.add("is-near"); else counter.classList.remove("is-near");
-  }
-  ta.addEventListener("input", update);
-  update();
-})();
-
-// Application form submission.
-//   1. Direct INSERT into Supabase public.founding_applications via the anon
-//      key + Prefer: return=minimal (anon RLS allows INSERT only).
-//   2. POST { email } to /api/notify-founding-application — server looks up
-//      the row and pings Telegram with authoritative DB content.
+// Join button → Stripe checkout
 (async function () {
-  var SUPABASE_URL, SUPABASE_ANON_KEY;
+  var button = document.getElementById("join-button");
+  var status = document.getElementById("status-message");
+  if (!button) return;
 
-  try {
-    var config = await fetch('/api/config').then(function(r) { return r.json(); });
-    SUPABASE_URL = config.supabaseUrl;
-    SUPABASE_ANON_KEY = config.supabaseKey;
-  } catch (e) {
-    console.error('[founding] config load failed:', e);
-    var status = document.getElementById("founding-status");
-    if (status) {
-      status.textContent = 'Config load failed. Refresh to try again.';
-      status.classList.add('is-error');
-    }
-    return;
-  }
-
-  var form = document.getElementById("founding-form");
-  if (!form) return;
-  var fields = {
-    name: document.getElementById("founding-name"),
-    email: document.getElementById("founding-email"),
-    brokerage: document.getElementById("founding-brokerage"),
-    market: document.getElementById("founding-market"),
-    transactions_12mo: document.getElementById("founding-tx"),
-    sides: document.getElementById("founding-sides"),
-    heard_from: document.getElementById("founding-heard-from"),
-    why: document.getElementById("founding-why"),
-  };
-  var button = document.getElementById("founding-submit");
-  var status = document.getElementById("founding-status");
-
-  function showStatus(message, kind) {
-    status.textContent = message;
-    status.classList.remove("is-success", "is-error", "is-loading");
-    if (kind) status.classList.add("is-" + kind);
-  }
-
-  function isValidEmail(e) { return typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
-
-  function readPayload() {
-    return {
-      name: (fields.name.value || "").trim(),
-      email: (fields.email.value || "").trim().toLowerCase(),
-      brokerage: (fields.brokerage.value || "").trim(),
-      market: (fields.market.value || "").trim(),
-      transactions_12mo: parseInt(String(fields.transactions_12mo.value || "").replace(/[, ]/g, ""), 10),
-      sides: (fields.sides.value || "").trim().toLowerCase(),
-      heard_from: (fields.heard_from.value || "").trim(),
-      why: (fields.why.value || "").trim(),
-    };
-  }
-
-  function validate(p) {
-    if (!p.name) return "Add your full name.";
-    if (!isValidEmail(p.email)) return "That email looks off. Mind double-checking it?";
-    if (!p.brokerage) return "Tell us your brokerage name.";
-    if (!p.market) return "What Texas market do you work?";
-    if (!Number.isFinite(p.transactions_12mo) || p.transactions_12mo < 0) return "Add a number for transactions in the last 12 months.";
-    if (["buyer", "listing", "both"].indexOf(p.sides) === -1) return "Pick which sides you work.";
-    var heardOptions = ["facebook_group","facebook_page","instagram","tiktok","twitter_x","google_search","word_of_mouth","trec_calculator","linkedin","other"];
-    if (heardOptions.indexOf(p.heard_from) === -1) return "Pick how you heard about Dossie.";
-    if (!p.why || p.why.length < 10) return "Tell us a little about why you're interested.";
-    if (p.why.length > 500) return "Keep your answer under 500 characters.";
-    return null;
-  }
-
-  form.addEventListener("submit", async function (event) {
-    event.preventDefault();
-    var payload = readPayload();
-    var err = validate(payload);
-    if (err) { showStatus(err, "error"); return; }
-
-    var originalLabel = button.textContent;
+  button.addEventListener("click", async function () {
     button.disabled = true;
-    button.textContent = "Submitting…";
-    showStatus("Submitting your application…", "loading");
+    button.textContent = "Starting checkout...";
+    status.textContent = "";
+    status.classList.remove("is-error");
 
     try {
-      var insertRes = await fetch(SUPABASE_URL + "/rest/v1/founding_applications", {
+      var res = await fetch("/api/create-checkout-session", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-          "Prefer": "return=minimal",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
-      if (!insertRes.ok) {
-        var detail = "";
-        try { detail = await insertRes.text(); } catch (_) {}
-        throw new Error("insert " + insertRes.status + " " + detail.slice(0, 200));
+
+      var data = await res.json();
+      if (!res.ok || !data.ok || !data.url) {
+        throw new Error(data.error || "Checkout failed.");
       }
 
-      // Best-effort Telegram ping. If it fails we still confirm success
-      // because the row is already saved and Heath can see it in the DB.
-      try {
-        await fetch("/api/notify-founding-application", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: payload.email }),
-        });
-      } catch (_) { /* swallow */ }
-
-      form.reset();
-      var counter = document.getElementById("founding-why-counter");
-      if (counter) counter.textContent = "0 / 500";
-      showStatus("Got it. We'll review your application and email you within 24 hours.", "success");
-      button.textContent = "Application Submitted ✓";
-    } catch (e) {
-      console.error("[founding-form]", e && e.message);
-      showStatus("Couldn't submit your application. Try again in a moment, or email heath@meetdossie.com.", "error");
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("[founding] checkout error:", err && err.message);
+      status.textContent = err && err.message || "Could not start checkout. Try again in a moment.";
+      status.classList.add("is-error");
       button.disabled = false;
-      button.textContent = originalLabel;
+      button.innerHTML = '<span class="cta-label">Join as Founding Member — $29/mo</span><span class="cta-arrow">→</span>';
     }
   });
 })();

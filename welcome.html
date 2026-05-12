@@ -1,21 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-(function() {
-  var hash = window.location.hash || '';
-  if (hash.indexOf('access_token=') !== -1 && hash.indexOf('type=recovery') !== -1) {
-    window.location.replace('/set-password.html' + hash);
-  }
-  else if (hash.indexOf('access_token=') !== -1 && (hash.indexOf('type=invite') !== -1 || hash.indexOf('type=signup') !== -1)) {
-    window.location.replace('/set-password.html' + hash);
-  }
-})();
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Welcome to Dossie — You're In</title>
-<meta name="description" content="Your Dossie founding member access is confirmed. Welcome aboard.">
+<title>Welcome to Dossie — Complete Your Profile</title>
+<meta name="description" content="Complete your Dossie founding member profile.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -28,6 +17,7 @@
   --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
   --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
   --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+  --coral: #E8836B; --coral-light: #FAE5DD; --coral-deep: #D66F59;
 }
 html { scroll-behavior: smooth; }
 body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; }
@@ -45,19 +35,22 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(36px, 5.6vw, 54px); font-weight: 600; line-height: 1.05; letter-spacing: -1.2px; color: var(--text-primary); }
 h1 em { font-style: italic; color: var(--blush-deep); }
 .sub { margin: 22px auto 0; max-width: 440px; color: var(--text-secondary); font-size: 16px; line-height: 1.7; }
-.signature { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; color: var(--blush-deep); margin-top: 18px; }
 
-.cta-row { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; border-radius: 999px; background: var(--sage-deep); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 16px 38px rgba(107,142,104,0.28); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
-.cta-primary:hover { transform: translateY(-2px); background: #5b7d58; box-shadow: 0 20px 42px rgba(107,142,104,0.36); }
-.cta-arrow { transition: transform 0.2s; }
-.cta-primary:hover .cta-arrow { transform: translateX(4px); }
-.secondary-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; }
-.secondary-link:hover { color: var(--text-primary); }
+.form { margin-top: 36px; text-align: left; }
+.form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.form-label { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+.form-input { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 13px 16px; font-family: inherit; font-size: 15px; background: #fff; color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
+.form-input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-light); }
+.form-input:disabled { opacity: 0.6; background: var(--bg-warm); cursor: not-allowed; }
 
-.bullets { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 36px auto 0; max-width: 380px; text-align: left; }
-.bullet { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
-.bullet-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--sage-light); color: var(--sage-deep); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; margin-top: 1px; }
+.cta-primary { width: 100%; margin-top: 24px; padding: 16px 32px; border: none; border-radius: 999px; background: var(--sage-deep); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 16px 38px rgba(107,142,104,0.28); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+.cta-primary:hover:not(:disabled) { transform: translateY(-2px); background: #5b7d58; box-shadow: 0 20px 42px rgba(107,142,104,0.36); }
+.cta-primary:disabled { opacity: 0.65; cursor: progress; }
+
+.status-message { margin-top: 16px; padding: 12px 16px; border-radius: 12px; font-size: 14px; text-align: center; line-height: 1.55; display: none; }
+.status-message.is-success { background: var(--sage-light); color: var(--sage-deep); display: block; }
+.status-message.is-error { background: var(--coral-light); color: var(--coral-deep); display: block; }
+.status-message.is-loading { background: var(--gold-light); color: var(--gold-deep); display: block; }
 
 footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--border-light); }
 .footer-text { font-size: 13px; color: var(--text-light); }
@@ -78,21 +71,28 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
     <div class="mark">D</div>
     <div class="eyebrow">🔒 Founding Member</div>
     <h1>Welcome to Dossie. <em>You're in.</em></h1>
-    <p class="sub">Your founding member access is confirmed. We'll be in touch soon with next steps.</p>
+    <p class="sub">Your payment is confirmed. Complete your profile below and we'll send your login credentials within a few minutes.</p>
 
-    <div class="bullets">
-      <div class="bullet"><span class="bullet-dot">✓</span><span>$29/month locked for as long as you keep your subscription active.</span></div>
-      <div class="bullet"><span class="bullet-dot">✓</span><span>Early access to every feature we ship — and a direct line to shape what comes next.</span></div>
-      <div class="bullet"><span class="bullet-dot">✓</span><span>Receipt and subscription details are on the way to your inbox from Stripe.</span></div>
-    </div>
-
-    <div class="cta-row">
-      <p class="sub" style="margin-top: 0; font-size: 15px;">Check your email — we just sent a link to set your password and access Dossie.</p>
-      <p class="sub" style="margin-top: 0; font-size: 13px; color: var(--text-light);">Don't see it? Check your spam or junk folder, and add <strong>dossie@meetdossie.com</strong> as a safe sender.</p>
-      <a href="/" class="secondary-link">Back to the home page</a>
-    </div>
-
-    <p class="signature">— Heath &amp; Dossie</p>
+    <form class="form" id="onboarding-form" novalidate>
+      <div class="form-field">
+        <label class="form-label" for="name">Full name</label>
+        <input class="form-input" id="name" name="name" type="text" placeholder="Your full name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-input" id="email" name="email" type="email" placeholder="you@brokerage.com" disabled required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="brokerage">Brokerage</label>
+        <input class="form-input" id="brokerage" name="brokerage" type="text" placeholder="e.g. Keller Williams" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="market">Texas market</label>
+        <input class="form-input" id="market" name="market" type="text" placeholder="e.g. San Antonio, Austin, DFW..." required>
+      </div>
+      <button class="cta-primary" type="submit" id="submit-button">Complete Setup</button>
+      <div class="status-message" id="status-message"></div>
+    </form>
   </div>
 </main>
 
@@ -101,6 +101,103 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
     Questions? <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a> · © 2026 Dossie AI
   </div>
 </footer>
+
+<script>
+(async function () {
+  var form = document.getElementById("onboarding-form");
+  var nameInput = document.getElementById("name");
+  var emailInput = document.getElementById("email");
+  var brokerageInput = document.getElementById("brokerage");
+  var marketInput = document.getElementById("market");
+  var submitButton = document.getElementById("submit-button");
+  var status = document.getElementById("status-message");
+
+  // Extract session_id from URL query params
+  var params = new URLSearchParams(window.location.search);
+  var sessionId = params.get("session_id");
+
+  if (!sessionId) {
+    status.textContent = "No session found. Please contact support at heath@meetdossie.com";
+    status.classList.add("is-error");
+    submitButton.disabled = true;
+    return;
+  }
+
+  // Fetch email from Stripe session and pre-fill
+  try {
+    var sessionRes = await fetch("/api/get-checkout-session?session_id=" + encodeURIComponent(sessionId));
+    var sessionData = await sessionRes.json();
+    if (sessionData.ok && sessionData.email) {
+      emailInput.value = sessionData.email;
+      if (sessionData.name) {
+        nameInput.value = sessionData.name;
+      }
+    }
+  } catch (err) {
+    console.error("[welcome] failed to fetch session:", err && err.message);
+  }
+
+  function showStatus(message, kind) {
+    status.textContent = message;
+    status.classList.remove("is-success", "is-error", "is-loading");
+    if (kind) status.classList.add("is-" + kind);
+  }
+
+  function isValidEmail(e) {
+    return typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    var name = (nameInput.value || "").trim();
+    var email = (emailInput.value || "").trim().toLowerCase();
+    var brokerage = (brokerageInput.value || "").trim();
+    var market = (marketInput.value || "").trim();
+
+    if (!name) { showStatus("Please enter your full name.", "error"); return; }
+    if (!isValidEmail(email)) { showStatus("That email looks off. Please check it.", "error"); return; }
+    if (!brokerage) { showStatus("Please enter your brokerage name.", "error"); return; }
+    if (!market) { showStatus("Please enter your Texas market.", "error"); return; }
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Setting up your account...";
+    showStatus("Creating your account...", "loading");
+
+    try {
+      var res = await fetch("/api/complete-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          name: name,
+          email: email,
+          brokerage: brokerage,
+          market: market,
+        }),
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Onboarding failed.");
+      }
+
+      showStatus("Account created! Check your email for login instructions.", "success");
+      submitButton.textContent = "Setup Complete ✓";
+
+      // Redirect to app after 3 seconds
+      setTimeout(function () {
+        window.location.href = "/app.html";
+      }, 3000);
+    } catch (err) {
+      console.error("[welcome] onboarding error:", err && err.message);
+      showStatus(err && err.message || "Could not complete setup. Try again or contact heath@meetdossie.com.", "error");
+      submitButton.disabled = false;
+      submitButton.textContent = "Complete Setup";
+    }
+  });
+})();
+</script>
 
 </body>
 </html>
