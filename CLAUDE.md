@@ -378,6 +378,7 @@ Highlights:
 - `GOLD-2026-05-10-v6-hcti-renderer-live`
 - `GOLD-2026-05-10-v7-pipeline-complete`
 - `GOLD-2026-05-11-v2-first-autonomous-posts`
+- `GOLD-2026-05-11-v3-pipeline-live-social-posting`
 
 ---
 
