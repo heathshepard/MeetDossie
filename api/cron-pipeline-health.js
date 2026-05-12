@@ -27,17 +27,38 @@ async function supabaseFetch(path, init = {}) {
 }
 
 async function sendTelegram(text) {
-  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-    }),
-  });
-  return res.ok;
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.error('[pipeline-health] TELEGRAM_BOT_TOKEN not set');
+    return false;
+  }
+  if (!TELEGRAM_CHAT_ID) {
+    console.error('[pipeline-health] TELEGRAM_CHAT_ID not set');
+    return false;
+  }
+
+  try {
+    console.log('[pipeline-health] Sending Telegram message...');
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    });
+    const respText = await res.text();
+    if (!res.ok) {
+      console.error('[pipeline-health] Telegram send failed:', res.status, respText.slice(0, 200));
+      return false;
+    }
+    console.log('[pipeline-health] Telegram message sent successfully');
+    return true;
+  } catch (err) {
+    console.error('[pipeline-health] Telegram error:', err && err.message);
+    return false;
+  }
 }
 
 function formatTime(isoString) {
