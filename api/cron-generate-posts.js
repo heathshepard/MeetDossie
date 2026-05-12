@@ -1,8 +1,8 @@
 // Vercel Serverless Function: /api/cron-generate-posts
 // Daily content generator for Dossie's marketing pipeline.
-//   - Generates 6 social posts per day via Claude Sonnet:
-//     2 per persona (Brenda, Patricia, Victor),
-//     mix of long-form + short-form platforms,
+//   - Generates 7 social posts per day via Claude Sonnet:
+//     Brenda (Facebook + Twitter), Patricia (Facebook + Instagram),
+//     Victor (Facebook + LinkedIn + TikTok),
 //     rotating topic chosen by day-of-year.
 //   - Inserts each post into social_posts as status='draft'.
 //   - Wraps the run in a content_batches row for tracking.
@@ -129,34 +129,19 @@ const PLATFORM_RULES = {
 //
 // Length rules live in PLATFORM_RULES (single source of truth). Per-post
 // notes only carry persona-flavor guidance, not length conflicts.
-//
-// Day-of-week routing: Friday is LinkedIn-day for Victor. The top-producer /
-// math-driven voice lands hardest on a B2B audience that's reading Friday
-// morning summaries; brenda + patricia still cover Facebook the rest of the
-// day. Other days keep Victor on Facebook.
 const POST_PLAN_BASE = [
   { persona: 'brenda',   platform: 'facebook',  notes: 'Story-shaped. Emotional honesty.' },
   { persona: 'brenda',   platform: 'twitter',   notes: 'One punchline. Tired-but-witty voice.' },
   { persona: 'patricia', platform: 'facebook',  notes: 'Conversational. Real-numbers focus.' },
   { persona: 'patricia', platform: 'instagram', notes: 'Plainspoken. Skeptical-of-marketers tone.' },
   { persona: 'victor',   platform: 'facebook',  notes: 'Operational/strategic framing.' },
+  { persona: 'victor',   platform: 'linkedin',  notes: 'Operational, peer-to-peer. LinkedIn audience: brokers + top producers. Open with a specific operational insight or number; close with a question that invites them to share their own.' },
   { persona: 'victor',   platform: 'tiktok',    notes: 'Confident, not cocky. Math-driven.' },
 ];
 
 function getPostPlan(date = new Date(), opts = {}) {
-  // forceDay (0–6, 0=Sun) lets a CRON_SECRET-gated test run pretend it's a
-  // different weekday so we can exercise the day-of-week LinkedIn swap on
-  // demand. Falls back to the real UTC weekday.
-  const dayOfWeek = (typeof opts.forceDay === 'number' && opts.forceDay >= 0 && opts.forceDay <= 6)
-    ? opts.forceDay
-    : date.getUTCDay();
-  const isFriday = dayOfWeek === 5;
-  if (!isFriday) return POST_PLAN_BASE;
-  return POST_PLAN_BASE.map((p) => (
-    p.persona === 'victor' && p.platform === 'facebook'
-      ? { persona: 'victor', platform: 'linkedin', notes: 'Operational, peer-to-peer. LinkedIn audience: brokers + top producers. Open with a specific operational insight or number; close with a question that invites them to share their own.' }
-      : p
-  ));
+  // LinkedIn now posts daily, no day-of-week routing needed
+  return POST_PLAN_BASE;
 }
 
 function parseForceDay(req) {
