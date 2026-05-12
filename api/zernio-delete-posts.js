@@ -14,10 +14,9 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'ZERNIO_API_KEY not configured' });
   }
 
-  const { accountId, postIds } = req.body || {};
-
   if (req.method === 'GET') {
     // List posts for an account
+    const accountId = req.query.accountId;
     if (!accountId) {
       return res.status(400).json({ ok: false, error: 'accountId required' });
     }
@@ -48,6 +47,7 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     // Delete posts by ID
+    const { postIds } = req.body || {};
     if (!Array.isArray(postIds) || postIds.length === 0) {
       return res.status(400).json({ ok: false, error: 'postIds array required' });
     }
