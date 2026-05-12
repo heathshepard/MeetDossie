@@ -540,6 +540,7 @@ module.exports = async function handler(req, res) {
       skippedDuplicate++;
       skips.push({ id: post.id, platform: post.platform, reason: 'duplicate content_hash within 24h' });
       // Mark the row as failed so it doesn't keep showing up in the queue.
+      console.error(`[cron-publish-approved] MARKING FAILED: post ${post.id} (${post.platform}) - duplicate content_hash within 24h`);
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
@@ -586,16 +587,21 @@ module.exports = async function handler(req, res) {
       }
     } else {
       console.error('[cron-publish-approved] push failed for', post.id, result);
-      const errBody = (result.error || '').toString().slice(0, 1500);
+      const errBody = (result.error || 'unknown error').toString().slice(0, 1500);
+      const errorMsg = `[${result.status || 'no-status'}] ${errBody || 'empty error body'}`;
+      console.error(`[cron-publish-approved] MARKING FAILED: post ${post.id} (${post.platform}) - Zernio error: ${errorMsg}`);
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
           status: 'failed',
           publishing_started_at: null,
-          error_message: `[${result.status || 'no-status'}] ${errBody}`,
+          error_message: errorMsg,
         }),
       });
+      if (!patch.ok) {
+        console.error(`[cron-publish-approved] CRITICAL: Failed to mark post ${post.id} as failed. PATCH status: ${patch.status}`);
+      }
       errors.push({
         id: post.id,
         platform: post.platform,
