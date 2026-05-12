@@ -14,34 +14,30 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'ZERNIO_API_KEY not configured' });
   }
 
-  // Victor's content adapted for LinkedIn
-  const content = `Victor runs a small team. They do north of 50 deals a year.
+  // Test post - Patricia's content adapted for LinkedIn
+  const content = `Here is a question Patricia started asking herself a few months ago.
 
-He is not anti-TC. He has used transaction coordinators for years. Good ones have been worth every dollar.
+If her TC misses a deadline on one deal - just one - what does that actually cost her?
 
-But here is the thing he keeps coming back to.
+She does around 10 to 12 deals a year. She also works a day job. Real estate is not her only income but it is real income, and she treats it like a business even if it is not her full-time one.
 
-At 50-plus deals a year, the math on TC cost per file is not small. And more than the money, the thing that actually kills productivity is the unpredictability.
+The deal she almost lost last spring came down to a TREC deadline that slipped through the cracks on a Friday afternoon. Her TC was unreachable. Patricia found out Monday morning when the other agent called her directly.
 
-Two months ago, a Friday afternoon. Option period ending Monday at 5pm. His TC was unreachable from noon Friday onward. No answer. No out-of-office. Just silence.
+She spent that whole weekend stressed about a file she thought was covered. She checked her email obsessively at family dinner. She woke up at 2am Saturday to send a follow-up message she knew would not get answered until Monday.
 
-He caught it himself at 9pm Friday when he happened to glance at the file. If he had not, Monday morning would have been a problem.
+The math for someone doing 10 to 12 deals a year is pretty simple. One lost deal because of a missed deadline costs more than a year of almost any tool she could buy.
 
-He does not blame the TC for having a life. He blames the system for having a single point of failure.
+She does not need anything fancy. She needs something that does not go quiet on a Friday afternoon when there is a TREC deadline on Monday.
 
-At his volume, one fumbled option period is not just stress. It is a liability exposure, a client relationship damaged, and potentially a deal gone sideways on a technicality.
+She started using Dossie recently and has been running her active files through it over the last few weeks. It is not magic. It is just consistent - which turns out to be the thing her TC was not.
 
-He started looking at Dossie recently as a backstop - not to replace his team, but to add a layer that does not go home at noon on Fridays.
-
-Over the last few weeks he has been running files through it alongside his existing setup.
-
-The founding price is $29 a month. For a team doing 50-plus deals a year, that is not even a rounding error. But the operational peace of mind on a Friday afternoon before a Monday TREC deadline is not nothing.
+Founding member pricing is $29 a month. Locked as long as the subscription stays active. For someone doing 10 deals a year, that pays for itself fast.
 
 meetdossie.com/founding
 
-For agents running small teams - how are you handling coverage when your TC is unavailable and a deadline is sitting on the table? What does your backup plan actually look like?
+For the part-time agents in here - how do you handle transaction coverage when you are also juggling a full-time job? Curious what people are actually doing.
 
-#txrealestate #realtorlife #trec`;
+#txrealestate #realtorlife #trec #transactioncoordinator #realestateagent`;
 
   const linkedinAccountId = '69fccd7392b3d8e85f8f12be';
 
