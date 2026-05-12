@@ -35,6 +35,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const ZERNIO_POSTS_URL = 'https://zernio.com/api/v1/posts';
 const MAX_PER_RUN = 8;
@@ -53,6 +55,73 @@ const TWITTER_HARD_LIMIT = TWITTER_LIMIT - TWITTER_NUMBERING_RESERVE; // 275
 const TWITTER_MAX_CHUNKS = 6;
 const TWITTER_MIN_CHUNK = 60;
 const TWITTER_SKIP_BELOW = 20;
+
+// Telegram notification helpers
+async function sendTelegramNotification(text, buttons) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { ok: false };
+  const body = {
+    chat_id: TELEGRAM_CHAT_ID,
+    text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  };
+  if (buttons && buttons.length > 0) {
+    body.reply_markup = { inline_keyboard: [buttons] };
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return { ok: res.ok };
+  } catch (err) {
+    console.error('[telegram-notify] failed:', err && err.message);
+    return { ok: false };
+  }
+}
+
+async function sendPublishSummary(published, parkedTiktok, skipped, errors) {
+  const total = published + parkedTiktok + skipped + errors.length;
+  if (total === 0) return; // Don't spam for empty runs
+
+  const lines = ['📊 <b>PUBLISH SUMMARY</b>', ''];
+
+  if (published > 0) {
+    lines.push(`✅ <b>${published} posted successfully</b>`);
+  }
+  if (parkedTiktok > 0) {
+    lines.push(`⏸️ ${parkedTiktok} TikTok parked for video`);
+  }
+  if (skipped > 0) {
+    lines.push(`⏭️ ${skipped} skipped (schedule/cap/lock)`);
+  }
+  if (errors.length > 0) {
+    lines.push(`\n❌ <b>${errors.length} FAILED</b>`);
+  }
+
+  await sendTelegramNotification(lines.join('\n'));
+}
+
+async function sendFailureAlert(post, errorMsg) {
+  const preview = (post.content || '').substring(0, 60).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lines = [
+    '🚨 <b>PUBLISH FAILED</b>',
+    '',
+    `<b>Platform:</b> ${post.platform}`,
+    `<b>Persona:</b> ${post.persona || 'unknown'}`,
+    `<b>Error:</b> ${errorMsg || 'unknown error'}`,
+    '',
+    `<b>Preview:</b> "${preview}..."`,
+  ];
+
+  const retryButton = {
+    text: '🔄 Retry Now',
+    callback_data: `retry_${post.id}`,
+  };
+
+  await sendTelegramNotification(lines.join('\n'), [retryButton]);
+}
 
 function splitForTwitter(body) {
   const text = String(body || '').trim();
@@ -609,6 +678,9 @@ module.exports = async function handler(req, res) {
         zernio_error: errBody,
         patch_ok: patch.ok,
       });
+
+      // Send immediate failure alert
+      await sendFailureAlert(post, errorMsg);
     }
   }
 
@@ -618,6 +690,11 @@ module.exports = async function handler(req, res) {
     'skipped(duplicate):', skippedDuplicate,
     'skipped(lock):', skippedLock,
     'errors:', errors.length);
+
+  // Send publish summary
+  const totalSkipped = skippedSchedule + skippedDuplicate + skippedLock;
+  await sendPublishSummary(published, parkedTiktok, totalSkipped, errors);
+
   return res.status(200).json({
     ok: true,
     published,

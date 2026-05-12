@@ -214,6 +214,30 @@ async function handleCallbackQuery(cb) {
     return handleFoundingCallback(founding[1], founding[2], cb, chatId, messageId, callbackId);
   }
 
+  // Check for retry button
+  const retry = data.match(/^retry_(.+)$/);
+  if (retry) {
+    const postId = retry[1];
+    const post = await loadPost(postId);
+    if (!post) {
+      if (callbackId) await answerCallback(callbackId, 'Post not found');
+      return;
+    }
+
+    // Reset to approved so next cron run will retry
+    await patchPost(postId, {
+      status: 'approved',
+      error_message: null,
+      publishing_started_at: null
+    });
+
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${String(message?.text || '')}\n\n🔄 Reset to approved — will retry at next cron run.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Queued for retry');
+    return;
+  }
+
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
     if (callbackId) await answerCallback(callbackId, 'Unknown action');
