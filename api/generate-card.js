@@ -7,6 +7,7 @@
  */
 
 const fetch = require('node-fetch');
+const { retryFetch } = require('./_lib/retry.js');
 
 // Brand colors
 const COLORS = {
@@ -36,14 +37,15 @@ async function getFoundingMemberCount() {
   }
 
   try {
-    const response = await fetch(
+    const response = await retryFetch(
       `${supabaseUrl}/rest/v1/subscriptions?plan=eq.founding&status=eq.active&select=id`,
       {
         headers: {
           'apikey': serviceRoleKey,
           'Authorization': `Bearer ${serviceRoleKey}`,
         },
-      }
+      },
+      { name: 'Supabase-founding-count', maxAttempts: 3, baseDelay: 500 }
     );
 
     if (!response.ok) {
@@ -75,15 +77,19 @@ async function uploadToStorage(buffer, objectPath) {
   }
 
   const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`;
-  const response = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'image/png',
-      'x-upsert': 'true',
+  const response = await retryFetch(
+    uploadUrl,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'image/png',
+        'x-upsert': 'true',
+      },
+      body: buffer,
     },
-    body: buffer,
-  });
+    { name: 'Supabase-Storage', maxAttempts: 3, baseDelay: 1000 }
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -265,16 +271,20 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
     foundingRemaining,
   });
 
-  // Call htmlcsstoimage API
+  // Call htmlcsstoimage API with retry
   const auth = Buffer.from(`${hctiUserId}:${hctiApiKey}`).toString('base64');
-  const response = await fetch('https://hcti.io/v1/image', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
+  const response = await retryFetch(
+    'https://hcti.io/v1/image',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ html }),
     },
-    body: JSON.stringify({ html }),
-  });
+    { name: 'HCTI', maxAttempts: 3, baseDelay: 1000 }
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -288,8 +298,12 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
     throw new Error('HCTI API did not return an image URL');
   }
 
-  // Download the image
-  const imageResponse = await fetch(imageUrl);
+  // Download the image with retry
+  const imageResponse = await retryFetch(
+    imageUrl,
+    {},
+    { name: 'HCTI-download', maxAttempts: 3, baseDelay: 1000 }
+  );
   if (!imageResponse.ok) {
     throw new Error(`Failed to download image from HCTI: ${imageResponse.status}`);
   }

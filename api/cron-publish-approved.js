@@ -31,6 +31,8 @@
 //   - Content-hash dedup: skip if a post with the same content_hash already
 //     hit the same platform in the last 24h.
 
+const { retryFetch } = require('./_lib/retry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
@@ -294,14 +296,18 @@ async function pushToZernio(post) {
   }
 
   try {
-    const res = await fetch(ZERNIO_POSTS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${ZERNIO_API_KEY}`,
+    const res = await retryFetch(
+      ZERNIO_POSTS_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ZERNIO_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    });
+      { name: 'Zernio', maxAttempts: 3, baseDelay: 1000 }
+    );
     const respText = await res.text();
     let data = null;
     try { data = respText ? JSON.parse(respText) : null; } catch { data = null; }
