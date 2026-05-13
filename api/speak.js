@@ -96,8 +96,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'No text after cleaning' });
     }
 
+    const elevenLabsUrl = 'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc/stream';
+    const voiceSettings = {
+      stability: 0.35,
+      similarity_boost: 0.75,
+      style: 0.25,
+      use_speaker_boost: true,
+      speed: voiceSpeed,
+    };
+
+    // Log for diagnostics
+    console.log('[speak.js] ElevenLabs URL:', elevenLabsUrl);
+    console.log('[speak.js] Voice settings:', JSON.stringify(voiceSettings));
+    console.log('[speak.js] Speed:', voiceSpeed);
+
     const response = await retryFetch(
-      'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc/stream',
+      elevenLabsUrl,
       {
         method: 'POST',
         headers: {
@@ -108,13 +122,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           text: cleanText,
           model_id: 'eleven_flash_v2_5',
-          voice_settings: {
-            stability: 0.35,
-            similarity_boost: 0.75,
-            style: 0.25,
-            use_speaker_boost: true,
-            speed: voiceSpeed,
-          },
+          voice_settings: voiceSettings,
         }),
       },
       { name: 'ElevenLabs', maxAttempts: 3, baseDelay: 1000 }
