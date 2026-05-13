@@ -123,19 +123,35 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
     return;
   }
 
-  // Fetch email from Stripe session and pre-fill
-  try {
-    var sessionRes = await fetch("/api/get-checkout-session?session_id=" + encodeURIComponent(sessionId));
-    var sessionData = await sessionRes.json();
-    if (sessionData.ok && sessionData.email) {
-      emailInput.value = sessionData.email;
-      if (sessionData.name) {
-        nameInput.value = sessionData.name;
+  // Fetch email from Stripe session and pre-fill with 3-second timeout
+  var sessionFetched = false;
+
+  // Start the fetch
+  var fetchPromise = fetch("/api/get-checkout-session?session_id=" + encodeURIComponent(sessionId))
+    .then(function(res) { return res.json(); })
+    .then(function(sessionData) {
+      sessionFetched = true;
+      emailInput.placeholder = "you@brokerage.com";
+      if (sessionData.ok && sessionData.email) {
+        emailInput.value = sessionData.email;
+        if (sessionData.name) {
+          nameInput.value = sessionData.name;
+        }
       }
+    })
+    .catch(function(err) {
+      console.error("[welcome] failed to fetch session:", err && err.message);
+      sessionFetched = true;
+      emailInput.placeholder = "you@brokerage.com";
+    });
+
+  // 3-second timeout fallback
+  setTimeout(function() {
+    if (!sessionFetched) {
+      console.warn("[welcome] session fetch timeout - falling back to manual entry");
+      emailInput.placeholder = "you@brokerage.com";
     }
-  } catch (err) {
-    console.error("[welcome] failed to fetch session:", err && err.message);
-  }
+  }, 3000);
 
   function showStatus(message, kind) {
     status.textContent = message;
