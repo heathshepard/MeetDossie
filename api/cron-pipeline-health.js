@@ -79,6 +79,25 @@ function statusEmoji(status) {
 
 function flagIssues(post) {
   const issues = [];
+  const now = new Date();
+
+  // Draft posts stuck waiting for approval (sent >2 hours ago)
+  if (post.status === 'draft' && post.telegram_sent_at) {
+    const sentAt = new Date(post.telegram_sent_at);
+    const hoursWaiting = (now - sentAt) / (1000 * 60 * 60);
+    if (hoursWaiting > 2) {
+      issues.push(`🚨 STUCK in draft for ${Math.floor(hoursWaiting)}h — needs approval`);
+    }
+  }
+
+  // Draft posts never sent for approval (orphaned)
+  if (post.status === 'draft' && !post.telegram_sent_at) {
+    const createdAt = new Date(post.created_at);
+    const hoursOld = (now - createdAt) / (1000 * 60 * 60);
+    if (hoursOld > 1) {
+      issues.push(`🚨 MISSED — draft ${Math.floor(hoursOld)}h old, never sent for approval`);
+    }
+  }
 
   // Approved but no telegram_sent_at means it was never sent for approval
   if (post.status === 'approved' && !post.telegram_sent_at) {
