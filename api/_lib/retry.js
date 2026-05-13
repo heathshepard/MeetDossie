@@ -34,8 +34,9 @@ async function retryFetch(url, options = {}, config = {}) {
         return response;
       }
 
-      // Capture error details for non-2xx responses
-      const errorText = await response.text().catch(() => '<no body>');
+      // Capture error details for non-2xx responses (clone first to preserve body)
+      const cloned = response.clone();
+      const errorText = await cloned.text().catch(() => '<no body>');
       lastError = {
         status: response.status,
         statusText: response.statusText,
