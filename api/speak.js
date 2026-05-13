@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     }
 
     const response = await retryFetch(
-      'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc',
+      'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc/stream',
       {
         method: 'POST',
         headers: {
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
           text: cleanText,
           model_id: 'eleven_flash_v2_5',
           voice_settings: {
-            stability: 0.5,
+            stability: 0.35,
             similarity_boost: 0.75,
             style: 0.25,
             use_speaker_boost: true,
@@ -128,11 +128,34 @@ export default async function handler(req, res) {
       return res.status(status).json({ ok: false, error: 'TTS failed' });
     }
 
-    const audioBuffer = await response.arrayBuffer();
-
+    // Stream the audio response directly to the client
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', audioBuffer.byteLength);
-    res.status(200).send(Buffer.from(audioBuffer));
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.status(200);
+
+    // Pipe the response body stream to the client
+    if (response.body) {
+      const reader = response.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(Buffer.from(value));
+        }
+        res.end();
+      } catch (streamError) {
+        console.error('Stream error:', streamError);
+        if (!res.headersSent) {
+          return res.status(500).json({ ok: false, error: 'Stream failed' });
+        }
+        res.end();
+      }
+    } else {
+      // Fallback if streaming not supported
+      const audioBuffer = await response.arrayBuffer();
+      res.write(Buffer.from(audioBuffer));
+      res.end();
+    }
 
   } catch (error) {
     console.error('Speak API error:', error);
