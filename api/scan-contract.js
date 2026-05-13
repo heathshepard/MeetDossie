@@ -109,6 +109,19 @@ The broker information block says "Print name(s) only. Do not sign" — agents a
 OPTION DAYS:
 Look carefully at Paragraph 5B for the termination option period. It may show a number written in words or digits. Common values are 5, 7, 10 days. Do not flag as blank if any number is present.
 
+PARAGRAPH 7B — SELLER'S DISCLOSURE NOTICE:
+Paragraph 7B has checkboxes for how the Seller's Disclosure Notice is being handled. These are MUTUALLY EXCLUSIVE options:
+- 7B(1): "Buyer has received the Notice"
+- 7B(2): "Seller will deliver the Notice to Buyer within ___ days after the effective date"
+- 7B(3): "(Back-Up Contract) Seller will deliver the Notice to Buyer within ___ days after the date Seller receives notice that the Back-Up Contract is the primary contract"
+
+IMPORTANT LOGIC FOR 7B:
+- If 7B(1) is checked, 7B(2) and 7B(3) are NOT applicable and should NOT be flagged as issues.
+- Only flag a Paragraph 7B issue if:
+  1. Multiple boxes are checked simultaneously (e.g., both 7B(1) and 7B(2) are checked — this is a conflict), OR
+  2. NO boxes are checked (missing selection)
+- If exactly ONE box is checked, Paragraph 7B is compliant — do not flag the unchecked options as missing or incomplete.
+
 REQUIRED SIGNATURES AND INITIALS — check each one:
 - Buyer signature(s) on signature page
 - Seller signature(s) on signature page
