@@ -47,7 +47,7 @@ INSTRUCTIONS:
 - Lead with most urgent first (closing soon, then escalated, then overdue)
 - Use client name + property format: "Olivia Park at Cibolo Vista"
 - Keep under 50 seconds when spoken (about 150 words max)
-- End with exactly these two lines: "Everything else is moving cleanly. Your deals are in good hands." Then: "I'm Dossie. Your deals. Her job."
+- End with exactly these two lines: "Everything else is moving cleanly. Your deals are in good hands." Then: "I've got you covered."
 
 Write ONLY the script text that Luna will read. No explanations, no meta-commentary.`;
 
