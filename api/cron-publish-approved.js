@@ -639,7 +639,21 @@ module.exports = async function handler(req, res) {
     // diagnose. The IG-card generator endpoint is built separately and will
     // be wired in once Zernio's media-upload contract is confirmed.
 
-    const result = await pushToZernio(post);
+    console.log(`[cron-publish-approved] Publishing post ${post.id} (${post.platform}, ${post.persona})`);
+
+    let result;
+    try {
+      result = await pushToZernio(post);
+      console.log(`[cron-publish-approved] pushToZernio result for ${post.id}:`, JSON.stringify(result).slice(0, 500));
+    } catch (pushError) {
+      console.error(`[cron-publish-approved] EXCEPTION in pushToZernio for ${post.id}:`, pushError);
+      result = {
+        ok: false,
+        error: `Exception: ${pushError.message || String(pushError)}`,
+        status: 'exception',
+      };
+    }
+
     if (result.ok) {
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
@@ -654,32 +668,56 @@ module.exports = async function handler(req, res) {
       });
       if (patch.ok) {
         published++;
+        console.log(`[cron-publish-approved] ✅ Published ${post.id} successfully`);
       } else {
+        console.error(`[cron-publish-approved] Patch after publish failed for ${post.id}:`, patch.status, patch.text);
         errors.push({ id: post.id, error: 'patch after publish failed', status: patch.status });
       }
     } else {
-      console.error('[cron-publish-approved] push failed for', post.id, result);
-      const errBody = (result.error || 'unknown error').toString().slice(0, 1500);
-      const errorMsg = `[${result.status || 'no-status'}] ${errBody || 'empty error body'}`;
-      console.error(`[cron-publish-approved] MARKING FAILED: post ${post.id} (${post.platform}) - Zernio error: ${errorMsg}`);
+      console.error('[cron-publish-approved] ❌ push failed for', post.id, 'Full result:', JSON.stringify(result));
+
+      // Build detailed error message
+      const errBody = result.error ? String(result.error).slice(0, 1500) : 'no error property';
+      const errData = result.data ? JSON.stringify(result.data).slice(0, 500) : 'no data property';
+      const errorMsg = `[${result.status || 'no-status'}] ${errBody} | data: ${errData}`;
+
+      console.error(`[cron-publish-approved] MARKING FAILED: post ${post.id} (${post.platform})`);
+      console.error(`[cron-publish-approved] Error message to save: "${errorMsg}"`);
+
+      const patchBody = {
+        status: 'failed',
+        publishing_started_at: null,
+        error_message: errorMsg,
+      };
+
+      console.log(`[cron-publish-approved] Patch body:`, JSON.stringify(patchBody));
+
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          status: 'failed',
-          publishing_started_at: null,
-          error_message: errorMsg,
-        }),
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify(patchBody),
       });
+
+      console.log(`[cron-publish-approved] Patch response for ${post.id}:`, {
+        ok: patch.ok,
+        status: patch.status,
+        data: patch.data,
+        text: patch.text?.slice(0, 200),
+      });
+
       if (!patch.ok) {
-        console.error(`[cron-publish-approved] CRITICAL: Failed to mark post ${post.id} as failed. PATCH status: ${patch.status}`);
+        console.error(`[cron-publish-approved] CRITICAL: Failed to mark post ${post.id} as failed. PATCH status: ${patch.status}, text: ${patch.text}`);
+      } else {
+        console.log(`[cron-publish-approved] Successfully marked ${post.id} as failed with error_message`);
       }
+
       errors.push({
         id: post.id,
         platform: post.platform,
         zernio_status: result.status,
         zernio_error: errBody,
         patch_ok: patch.ok,
+        error_message_saved: errorMsg,
       });
 
       // Send immediate failure alert
