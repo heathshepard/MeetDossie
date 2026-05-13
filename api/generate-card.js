@@ -308,7 +308,7 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
     throw new Error(`Failed to download image from HCTI: ${imageResponse.status}`);
   }
 
-  const buffer = await imageResponse.buffer();
+  const buffer = Buffer.from(await imageResponse.arrayBuffer());
   return buffer;
 }
 
