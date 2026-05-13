@@ -80,7 +80,6 @@ export default async function handler(req, res) {
       persona: 'brenda',
       topic: 'pipeline-test',
       media_url: cardData.publicUrl,
-      card_body: 'Full autonomous pipeline test: HCTI card generation → Telegram approval → Zernio → Facebook.',
       created_at: now.toISOString(),
       generated_at: now.toISOString(),
     };
