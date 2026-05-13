@@ -43,27 +43,43 @@ This file is read at the start of every Claude Code session. It completely repla
 
 ---
 
-## 3. DEPLOY COMMANDS
+## 3. DEPLOY WORKFLOW — STAGING FIRST, THEN PRODUCTION
+
+**CRITICAL:** All development happens on `staging` branch first. Only merge to `main` after testing confirms it works.
+
+**Staging URL:** https://meet-dossie-nc8tcpjt5-heathshepard-6590s-projects.vercel.app
+**Production URL:** https://meetdossie.com
+
+### Standard workflow (staging → production):
 
 ```bash
-# 1. Build the React bundle (Dossie repo)
+# 1. Switch to staging branch
+git checkout staging
+
+# 2. Build the React bundle (Dossie repo)
 cd "C:\Users\Heath Shepard\Desktop\Dossie" && npm run build
 
-# 2. Copy bundle into MeetDossie
+# 3. Copy bundle into MeetDossie
 cp dist/assets/workspace-*.js ../MeetDossie/assets/
 
-# 3. Update hash references in app.html and workspace.html (replace old workspace-*.js with new)
-# 4. Remove the previous bundle file
+# 4. Update hash references in app.html and workspace.html (replace old workspace-*.js with new)
+# 5. Remove the previous bundle file
 git rm assets/workspace-[OLD-HASH].js
 
-# 5. Commit + push (Vercel auto-deploys on push to main)
+# 6. Commit + push to staging (Vercel auto-deploys to staging URL)
 git add . && git commit -m "Deploy workspace-[NEW-HASH]" && git push
 
-# 6. Tag stable milestones
+# 7. Test at staging URL
+
+# 8. When confirmed working, merge to main and push to production
+git checkout main && git merge staging && git push
+
+# 9. Tag stable milestones
 git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 ```
 
 **Never run `vercel --prod` manually** — Vercel auto-deploys from GitHub.
+**Never push directly to main** — always go through staging first.
 
 ---
 
