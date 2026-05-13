@@ -98,9 +98,9 @@ export default async function handler(req, res) {
 
     const elevenLabsUrl = 'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc/stream';
     const voiceSettings = {
-      stability: 0.35,
+      stability: 0.60,
       similarity_boost: 0.75,
-      style: 0.25,
+      style: 0.45,
       use_speaker_boost: true,
       speed: voiceSpeed,
     };
