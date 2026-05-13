@@ -159,22 +159,28 @@ Return a JSON compliance report:
   "summary": "Plain English summary of what needs to be fixed"
 }`,
 
-  'trec-financing-addendum': `You are a Texas TC auditing a Third Party Financing Addendum for compliance.
+  'trec-financing-addendum': `You are a Texas TC auditing a Third Party Financing Addendum (TREC Form 40-9) for compliance.
+
+CRITICAL — FINANCING DAYS EXTRACTION:
+Look in Paragraph 2A for the text "This contract is subject to Buyer obtaining Buyer Approval. If Buyer cannot obtain Buyer Approval, Buyer may give written notice to Seller within ___ days after the effective date."
+The number in that blank is the financing_days value. This is a REQUIRED field. Common values are 7, 10, 14, 21 days.
+If the blank is filled with a number (typed, handwritten, or printed), extract it as financing_days.
+If the blank is empty, add "Financing days (Paragraph 2A) not filled in" to blankRequiredFields.
 
 REQUIRED:
 - Buyer initials
 - Seller initials
 - Loan type checked (Conventional/FHA/VA/USDA/Other)
 - Loan amount filled in
-- Financing days filled in
+- Financing days filled in (Paragraph 2A — see above)
 - Interest rate or "prevailing rate" noted
 
 Extract also:
 - lender_name (if specified)
-- loan_amount
-- loan_type
-- financing_days
-- interest_rate
+- loan_amount (from Paragraph 1)
+- loan_type (from Paragraph 1 checkbox: Conventional, FHA, VA, USDA, Other)
+- financing_days (from Paragraph 2A "within ___ days" — CRITICAL, see above)
+- interest_rate (from Paragraph 1)
 
 Return compliance JSON:
 {
@@ -415,7 +421,7 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
   - "Addendum for Reservation of Oil, Gas and Other Minerals" (TREC 44-x) -> addenda.hasMineralsReservation
   - Any "Other" line that is filled in or has its own attached page -> addenda.hasOther (and capture the description in addenda.notes)
 - Each addendum is typically a separate page following the contract. When an addendum box is checked, look at the attached page to pull the relevant details:
-  - Third Party Financing Addendum -> financing approval days (also goes into addenda.thirdPartyFinancingDays for back-compat with financingDays)
+  - Third Party Financing Addendum (TREC 40-9) -> Look in Paragraph 2A for "This contract is subject to Buyer obtaining Buyer Approval. If Buyer cannot obtain Buyer Approval, Buyer may give written notice to Seller within ___ days after the effective date." Extract the number from that blank as financing approval days. This goes into BOTH addenda.thirdPartyFinancingDays AND the top-level financingDays field (back-compat). Common values: 7, 10, 14, 21 days.
   - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO YYYY-MM-DD)
   - Right to Terminate Due to Lender's Appraisal -> number of days notice (addenda.appraisalTerminationDays)
   - Back-Up Contract -> number of days the buyer has to deliver notice once the primary contract terminates (addenda.backupContractNoticeDays)
