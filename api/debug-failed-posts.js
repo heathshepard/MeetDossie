@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     const result = await supabaseFetch(
-      `/rest/v1/social_posts?created_at=gte.${date}T00:00:00&select=post_id,platform,status,error_message,telegram_sent_at,telegram_message_id,publishing_started_at,posted_at,created_at,updated_at`
+      `/rest/v1/social_posts?created_at=gte.${date}T00:00:00&select=post_id,platform,status,error_message,telegram_sent_at,telegram_message_id,publishing_started_at,posted_at,created_at`
     );
 
     if (!Array.isArray(result)) {
@@ -41,7 +41,6 @@ export default async function handler(req, res) {
         publishing_started_at: p.publishing_started_at,
         posted_at: p.posted_at,
         created_at: p.created_at,
-        updated_at: p.updated_at,
       })),
     });
   } catch (error) {
