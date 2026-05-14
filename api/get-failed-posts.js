@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     const posts = await supabaseFetch(
-      `/rest/v1/social_posts?select=post_id,platform,status,error_message,zernio_response,created_at&status=eq.failed&created_at=gte.${date}T00:00:00&order=created_at.desc`
+      `/rest/v1/social_posts?select=post_id,platform,status,error_message,created_at&status=eq.failed&created_at=gte.${date}T00:00:00&order=created_at.desc`
     );
 
     if (!Array.isArray(posts)) {
@@ -34,7 +34,6 @@ export default async function handler(req, res) {
         post_id: p.post_id,
         platform: p.platform,
         error_message: p.error_message,
-        zernio_response: p.zernio_response,
         created_at: p.created_at,
       })),
     });
