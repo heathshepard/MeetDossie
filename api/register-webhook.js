@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     const url = `https://api.telegram.org/bot${TELEGRAM_MARKETING_BOT_TOKEN}/setWebhook`;
     const params = new URLSearchParams({
       url: webhookUrl,
+      allowed_updates: JSON.stringify(['message', 'callback_query']),
     });
 
     if (TELEGRAM_WEBHOOK_SECRET) {
