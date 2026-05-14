@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
     // Filter posts to only include platforms with remaining capacity
     const allPosts = Array.isArray(posts) ? posts : [];
-    const REQUIRES_MEDIA = ['tiktok', 'instagram'];
+    const REQUIRES_MEDIA = ['tiktok'];  // Only TikTok truly requires pre-existing media; Instagram gets HCTI cards generated below
     const items = allPosts.filter(post => {
       const cap = platformCaps[post.platform];
       if (!cap || cap.remaining <= 0) return false;
