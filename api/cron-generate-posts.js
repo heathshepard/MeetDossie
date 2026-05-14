@@ -74,6 +74,21 @@ const TOPICS = [
     label: 'Control + visibility — for agents who don\'t trust delegating',
     angle: 'Speak directly to the agent who refuses to hire a TC because they can\'t trust someone else to do it right. Reframe Dossie as visibility and control, NOT delegation. Lean into "you don\'t have to trust someone else — Dossie shows you everything", "control freaks make the best Dossie users", "you\'re not giving up control, you\'re finally getting it." Specifics: every deadline visible at a glance, every email drafted but not sent without you tapping send, every TREC paragraph cited so you can verify the math yourself. Avoid "let go" / "trust the process" framing — that\'s exactly what this audience refuses.',
   },
+  {
+    key: 'build_in_public',
+    label: 'Build in Public — show the behind-the-scenes work',
+    angle: 'Share what Heath is actively building right now. Code commits, feature decisions, late-night debugging sessions, customer feedback that shaped a feature. Make it personal and transparent. Show the human builder behind Dossie, not a faceless company. Examples: "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it", "Just shipped voice transcription for Talk to Dossie — here\'s why it took 3 weeks", "Founding member #12 asked for bulk email drafts. Built it in 48 hours."',
+  },
+  {
+    key: 'feature_reveal',
+    label: 'Feature Reveal — announce new capabilities as they ship',
+    angle: 'Announce a specific new feature that just went live. Focus on the capability and the why, not just the what. Show before/after, pain → solution. Examples: "Milestone Cards just shipped — share Under Contract / Clear to Close / Closed cards directly to Instagram", "Talk to Dossie now transcribes voice notes — update deals hands-free between showings", "Morning Brief now includes escalated items with follow-up counts — know exactly which tasks need your attention first."',
+  },
+  {
+    key: 'community_movement',
+    label: 'Community/Movement — highlight The Founding Files and the collective',
+    angle: 'Emphasize that founding members aren\'t just subscribers — they\'re part of a movement. Highlight The Founding Files private community, feature voting, early access, member stories, the "first 50" exclusivity. Examples: "Founding member #8 voted for pipeline drag-and-drop. It shipped today.", "The Founding Files isn\'t a Facebook group. It\'s where Dossie gets built.", "48 spots left. After that, the founding rate and The Founding Files close forever."',
+  },
 ];
 
 // Per-platform algorithm rules. Injected into the generation prompt for every
