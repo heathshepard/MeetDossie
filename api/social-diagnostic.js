@@ -48,11 +48,11 @@ async function checkZernio() {
     const platforms = ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok'];
     const connections = {};
     platforms.forEach(platform => {
-      const account = data.accounts?.find(a => a.platform === platform && a.is_active);
+      const account = data.accounts?.find(a => a.platform === platform && (a.isActive || a.is_active));
       connections[platform] = {
         connected: !!account,
-        account_name: account?.name || null,
-        account_id: account?.id || null,
+        account_name: account?.displayName || account?.name || null,
+        account_id: account?._id || account?.id || null,
       };
     });
 

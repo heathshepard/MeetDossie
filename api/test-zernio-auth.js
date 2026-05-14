@@ -39,11 +39,11 @@ export default async function handler(req, res) {
     const actualAccounts = {};
     if (accountsData.accounts && Array.isArray(accountsData.accounts)) {
       accountsData.accounts.forEach(acc => {
-        if (acc.is_active) {
+        if (acc.isActive || acc.is_active) {
           actualAccounts[acc.platform] = {
-            id: acc.id,
-            name: acc.name,
-            is_active: acc.is_active,
+            id: acc._id || acc.id,
+            name: acc.displayName || acc.name,
+            is_active: acc.isActive || acc.is_active,
           };
         }
       });
