@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   try {
     for (const postId of ids) {
-      const queryRes = await fetch(`${SUPABASE_URL}/rest/v1/social_posts?post_id=eq.${encodeURIComponent(postId)}&select=post_id,platform,status,approved_at,posted_at,error_message,publishing_started_at`, {
+      const queryRes = await fetch(`${SUPABASE_URL}/rest/v1/social_posts?post_id=eq.${encodeURIComponent(postId)}&select=post_id,platform,status,approved_at,posted_at,error_message,publishing_started_at,updated_at`, {
         headers: {
           'apikey': SUPABASE_SERVICE_ROLE_KEY,
           'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
