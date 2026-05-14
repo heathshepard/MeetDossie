@@ -119,9 +119,17 @@ export default async function handler(req, res) {
 
     // Filter posts to only include platforms with remaining capacity
     const allPosts = Array.isArray(posts) ? posts : [];
+    const REQUIRES_MEDIA = ['tiktok', 'instagram'];
     const items = allPosts.filter(post => {
       const cap = platformCaps[post.platform];
-      return cap && cap.remaining > 0;
+      if (!cap || cap.remaining <= 0) return false;
+
+      // Filter out posts for platforms that require media but don't have it
+      if (REQUIRES_MEDIA.includes(post.platform) && !post.media_url) {
+        return false;
+      }
+
+      return true;
     });
 
     for (const post of items) {
