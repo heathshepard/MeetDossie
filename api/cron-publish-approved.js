@@ -374,26 +374,25 @@ async function countPostedToday(platform, tz) {
   return Array.isArray(data) ? data.length : 0;
 }
 
-// Decide if `platform` should publish right now: needs schedule row for
-// today's dow, current time >= some slot, daily cap not exhausted.
+// Decide if `platform` should publish right now: needs schedule row,
+// current time >= some slot, daily cap not exhausted.
 // Called per-iteration (no caching) so the cap reflects rows freshly posted
 // earlier in the same cron run.
+// Day-of-week filtering removed — all platforms post every day.
 async function isDueForPublish(platform, schedules) {
   const row = schedules.find((s) => s.platform === platform);
   if (!row) return { due: true, reason: 'no schedule row — falling back to immediate' };
   const tz = row.timezone || 'America/Chicago';
   const today = nowInTz(tz);
-  const todayRow = schedules.find((s) => s.platform === platform && s.day_of_week === today.dow);
-  if (!todayRow) return { due: false, reason: `no schedule for ${platform} on dow=${today.dow}` };
 
-  const slots = (todayRow.time_slots || []).map(hhmmToMin).sort((a, b) => a - b);
+  const slots = (row.time_slots || []).map(hhmmToMin).sort((a, b) => a - b);
   const nowMin = hhmmToMin(today.hhmm);
   const passedSlots = slots.filter((s) => s <= nowMin);
   if (passedSlots.length === 0) {
     return { due: false, reason: `no slot reached yet (now=${today.hhmm}, next=${slots[0] != null ? Math.floor(slots[0]/60).toString().padStart(2,'0')+':'+(slots[0]%60).toString().padStart(2,'0') : 'none'})` };
   }
 
-  const cap = todayRow.max_per_day ?? null;
+  const cap = row.max_per_day ?? null;
   if (cap != null) {
     const already = await countPostedToday(platform, tz);
     if (already >= cap) {
