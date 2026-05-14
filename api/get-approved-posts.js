@@ -76,6 +76,37 @@ export default async function handler(req, res) {
   }
 
   try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Get daily caps from posting_schedule
+    const { data: schedule, ok: scheduleOk } = await supabaseFetch('/rest/v1/posting_schedule?select=platform,max_per_day&is_active=eq.true');
+
+    if (!scheduleOk) {
+      return res.status(502).json({ ok: false, error: 'Failed to load posting schedule' });
+    }
+
+    // Get today's posted counts per platform
+    const { data: postedToday, ok: postedOk } = await supabaseFetch(`/rest/v1/social_posts?select=platform&status=eq.posted&posted_at=gte.${today}T00:00:00`);
+
+    if (!postedOk) {
+      return res.status(502).json({ ok: false, error: 'Failed to load posted counts' });
+    }
+
+    // Build platform cap map
+    const platformCaps = {};
+    const platforms = ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok'];
+
+    platforms.forEach(platform => {
+      const limit = (Array.isArray(schedule) ? schedule.find(s => s.platform === platform)?.max_per_day : null) || 0;
+      const posted = Array.isArray(postedToday) ? postedToday.filter(p => p.platform === platform).length : 0;
+      platformCaps[platform] = {
+        limit,
+        posted,
+        remaining: Math.max(0, limit - posted),
+      };
+    });
+
+    // Load approved posts
     const filter = 'status=eq.approved&posted_at=is.null&select=id,post_id,platform,content,media_url,zernio_account_id,hashtags,card_body,stat,stat_label';
     const { data: posts, ok: loadOk } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
 
@@ -83,7 +114,12 @@ export default async function handler(req, res) {
       return res.status(502).json({ ok: false, error: 'Failed to load approved posts' });
     }
 
-    const items = Array.isArray(posts) ? posts : [];
+    // Filter posts to only include platforms with remaining capacity
+    const allPosts = Array.isArray(posts) ? posts : [];
+    const items = allPosts.filter(post => {
+      const cap = platformCaps[post.platform];
+      return cap && cap.remaining > 0;
+    });
 
     for (const post of items) {
       if (!post.media_url && (post.platform === 'instagram' || post.platform === 'facebook')) {
@@ -108,6 +144,8 @@ export default async function handler(req, res) {
       ok: true,
       count: items.length,
       posts: items,
+      caps: platformCaps,
+      filtered: allPosts.length - items.length,
     });
   } catch (error) {
     return res.status(500).json({
