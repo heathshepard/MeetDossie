@@ -2,7 +2,7 @@
 // Updates the n8n workflow to add mediaItems parameter
 // Auth: Authorization: Bearer ${CRON_SECRET}
 
-const N8N_MCP_TOKEN = process.env.N8N_MCP_TOKEN;
+const N8N_API_KEY = process.env.N8N_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export default async function handler(req, res) {
@@ -15,15 +15,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  if (!N8N_MCP_TOKEN) {
-    return res.status(500).json({ ok: false, error: 'n8n MCP token not configured' });
+  if (!N8N_API_KEY) {
+    return res.status(500).json({ ok: false, error: 'n8n API key not configured' });
   }
 
   try {
     // Step 1: List workflows to find "Dossie Social Publisher"
-    const listResponse = await fetch('https://meetdossie.app.n8n.cloud/api/v1/workflows', {
+    const listResponse = await fetch('https://meetdossie.app.n8n.cloud/rest/workflows', {
       headers: {
-        'Authorization': `Bearer ${N8N_MCP_TOKEN}`,
+        'X-N8N-API-KEY': N8N_API_KEY,
         'Accept': 'application/json',
       },
     });
@@ -49,9 +49,9 @@ export default async function handler(req, res) {
     }
 
     // Step 2: Get the workflow details
-    const getResponse = await fetch(`https://meetdossie.app.n8n.cloud/api/v1/workflows/${targetWorkflow.id}`, {
+    const getResponse = await fetch(`https://meetdossie.app.n8n.cloud/rest/workflows/${targetWorkflow.id}`, {
       headers: {
-        'Authorization': `Bearer ${N8N_MCP_TOKEN}`,
+        'X-N8N-API-KEY': N8N_API_KEY,
         'Accept': 'application/json',
       },
     });
@@ -98,10 +98,10 @@ export default async function handler(req, res) {
     zernioNode.parameters.bodyParameters.parameters = existingParams;
 
     // Step 4: Update the workflow
-    const updateResponse = await fetch(`https://meetdossie.app.n8n.cloud/api/v1/workflows/${targetWorkflow.id}`, {
-      method: 'PATCH',
+    const updateResponse = await fetch(`https://meetdossie.app.n8n.cloud/rest/workflows/${targetWorkflow.id}`, {
+      method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${N8N_MCP_TOKEN}`,
+        'X-N8N-API-KEY': N8N_API_KEY,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
