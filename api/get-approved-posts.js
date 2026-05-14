@@ -29,9 +29,9 @@ async function generateCardWithHCTI(post) {
     throw new Error('HCTI credentials not configured');
   }
 
-  const hook = (post.card_body || post.caption || '').slice(0, 200);
-  const stat = post.stat || '';
-  const statLabel = post.stat_label || '';
+  const hook = (post.content || '').slice(0, 200);
+  const stat = '';
+  const statLabel = '';
 
   const html = `
     <div style="width: 1080px; height: 1080px; background: #F5E6E0; font-family: 'Cormorant Garamond', Georgia, serif; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; box-sizing: border-box; position: relative;">
@@ -110,11 +110,11 @@ export default async function handler(req, res) {
     });
 
     // Load approved posts
-    const filter = 'status=eq.approved&posted_at=is.null&select=id,post_id,platform,content,media_url,zernio_account_id,hashtags,card_body,stat,stat_label';
-    const { data: posts, ok: loadOk } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
+    const filter = 'status=eq.approved&posted_at=is.null&select=id,post_id,platform,content,media_url,zernio_account_id,hashtags';
+    const { data: posts, ok: loadOk, status: loadStatus } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
 
     if (!loadOk) {
-      return res.status(502).json({ ok: false, error: 'Failed to load approved posts' });
+      return res.status(502).json({ ok: false, error: 'Failed to load approved posts', status: loadStatus, data: posts });
     }
 
     // Filter posts to only include platforms with remaining capacity
