@@ -67,7 +67,9 @@ export default async function handler(req, res) {
     const workflow = await getResponse.json();
 
     // Step 3: Find and modify the "Publish to Zernio" node
-    const nodes = workflow.data?.nodes || [];
+    // The workflow response has structure: { data: { nodes: [...], ... } }
+    const workflowData = workflow.data || workflow;
+    const nodes = workflowData.nodes || [];
     const zernioNode = nodes.find(n => n.name === 'Publish to Zernio');
 
     if (!zernioNode) {
@@ -75,6 +77,8 @@ export default async function handler(req, res) {
         ok: false,
         error: 'Node "Publish to Zernio" not found',
         availableNodes: nodes.map(n => n.name),
+        workflowKeys: Object.keys(workflow),
+        dataKeys: Object.keys(workflowData),
       });
     }
 
@@ -104,7 +108,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(workflow.data),
+      body: JSON.stringify(workflowData),
     });
 
     if (!updateResponse.ok) {
