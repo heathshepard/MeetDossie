@@ -23,6 +23,10 @@ export default async function handler(req, res) {
       `/rest/v1/social_posts?select=post_id,platform,status,error_message,zernio_response,created_at&status=eq.failed&created_at=gte.${date}T00:00:00&order=created_at.desc`
     );
 
+    if (!Array.isArray(posts)) {
+      return res.status(500).json({ error: 'Invalid response from Supabase', response: posts });
+    }
+
     return res.status(200).json({
       date,
       failed_count: posts.length,
