@@ -40,7 +40,7 @@ async function checkWebhook() {
 
 async function checkZernio() {
   try {
-    const res = await fetch('https://api.zernio.com/accounts', {
+    const res = await fetch('https://zernio.com/api/v1/accounts', {
       headers: { 'Authorization': `Bearer ${ZERNIO_API_KEY}` },
     });
     const data = await res.json();
