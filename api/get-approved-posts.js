@@ -78,26 +78,29 @@ export default async function handler(req, res) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    // Get daily caps from posting_schedule
-    const { data: schedule, ok: scheduleOk } = await supabaseFetch('/rest/v1/posting_schedule?select=platform,max_per_day&is_active=eq.true');
-
-    if (!scheduleOk) {
-      return res.status(502).json({ ok: false, error: 'Failed to load posting schedule' });
-    }
+    // Get daily caps from posting_schedule (use defaults if fails)
+    const { data: schedule, ok: scheduleOk, status: scheduleStatus } = await supabaseFetch('/rest/v1/posting_schedule?select=platform,max_per_day&is_active=eq.true');
 
     // Get today's posted counts per platform
-    const { data: postedToday, ok: postedOk } = await supabaseFetch(`/rest/v1/social_posts?select=platform&status=eq.posted&posted_at=gte.${today}T00:00:00`);
+    const { data: postedToday, ok: postedOk, status: postedStatus } = await supabaseFetch(`/rest/v1/social_posts?select=platform&status=eq.posted&posted_at=gte.${today}T00:00:00`);
 
     if (!postedOk) {
-      return res.status(502).json({ ok: false, error: 'Failed to load posted counts' });
+      return res.status(502).json({ ok: false, error: 'Failed to load posted counts', status: postedStatus, data: postedToday });
     }
 
-    // Build platform cap map
+    // Build platform cap map with defaults if schedule query failed
     const platformCaps = {};
     const platforms = ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok'];
+    const defaultCaps = { facebook: 1, twitter: 2, instagram: 1, linkedin: 1, tiktok: 1 };
 
     platforms.forEach(platform => {
-      const limit = (Array.isArray(schedule) ? schedule.find(s => s.platform === platform)?.max_per_day : null) || 0;
+      let limit = defaultCaps[platform];
+      if (scheduleOk && Array.isArray(schedule)) {
+        const scheduleEntry = schedule.find(s => s.platform === platform);
+        if (scheduleEntry && scheduleEntry.max_per_day !== null) {
+          limit = scheduleEntry.max_per_day;
+        }
+      }
       const posted = Array.isArray(postedToday) ? postedToday.filter(p => p.platform === platform).length : 0;
       platformCaps[platform] = {
         limit,
