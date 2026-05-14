@@ -196,13 +196,28 @@ async function checkCronRuns() {
   }
 }
 
+async function checkFailedPosts() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { data: posts } = await supabaseFetch(`/rest/v1/social_posts?select=post_id,platform,status,error_message,created_at&status=eq.failed&created_at=gte.${today}T00:00:00&order=created_at.desc`);
+
+    if (!Array.isArray(posts)) {
+      return { ok: false, error: 'Invalid response from Supabase' };
+    }
+
+    return { ok: true, count: posts.length, posts };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const [webhook, zernio, hcti, todaysPosts, dailyCaps, lastPosts, cronRuns] = await Promise.all([
+    const [webhook, zernio, hcti, todaysPosts, dailyCaps, lastPosts, cronRuns, failedPosts] = await Promise.all([
       checkWebhook(),
       checkZernio(),
       checkHCTI(),
@@ -210,6 +225,7 @@ export default async function handler(req, res) {
       checkDailyCaps(),
       checkLastPosts(),
       checkCronRuns(),
+      checkFailedPosts(),
     ]);
 
     return res.status(200).json({
@@ -222,6 +238,7 @@ export default async function handler(req, res) {
         daily_caps: dailyCaps,
         last_posts: lastPosts,
         cron_runs: cronRuns,
+        failed_posts: failedPosts,
       },
     });
   } catch (error) {
