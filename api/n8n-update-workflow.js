@@ -20,8 +20,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: List workflows to find "Dossie Social Publisher"
-    const listResponse = await fetch('https://meetdossie.app.n8n.cloud/rest/workflows', {
+    // Step 1: List workflows to find "Dossie Social Publisher - Fixed"
+    const listResponse = await fetch('https://meetdossie.app.n8n.cloud/api/v1/workflows', {
       headers: {
         'X-N8N-API-KEY': N8N_API_KEY,
         'Accept': 'application/json',
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     }
 
     const workflows = await listResponse.json();
-    const targetWorkflow = workflows.data?.find(w => w.name === 'Dossie Social Publisher');
+    const targetWorkflow = workflows.data?.find(w => w.name === 'Dossie Social Publisher - Fixed');
 
     if (!targetWorkflow) {
       return res.status(404).json({
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     }
 
     // Step 2: Get the workflow details
-    const getResponse = await fetch(`https://meetdossie.app.n8n.cloud/rest/workflows/${targetWorkflow.id}`, {
+    const getResponse = await fetch(`https://meetdossie.app.n8n.cloud/api/v1/workflows/${targetWorkflow.id}`, {
       headers: {
         'X-N8N-API-KEY': N8N_API_KEY,
         'Accept': 'application/json',
@@ -84,22 +84,21 @@ export default async function handler(req, res) {
     }
 
     const existingParams = zernioNode.parameters.bodyParameters.parameters || [];
-    const mediaItemsParam = existingParams.find(p => p.name === 'mediaItems');
 
-    if (!mediaItemsParam) {
-      existingParams.push({
-        name: 'mediaItems',
-        value: '={{ $json.media_url ? [{ url: $json.media_url, type: \'image\' }] : [] }}',
-      });
-    } else {
-      mediaItemsParam.value = '={{ $json.media_url ? [{ url: $json.media_url, type: \'image\' }] : [] }}';
-    }
+    // Remove any existing mediaItems params (including incorrectly named ones like "=mediaItems")
+    const cleanedParams = existingParams.filter(p => !p.name.includes('mediaItems'));
 
-    zernioNode.parameters.bodyParameters.parameters = existingParams;
+    // Add correct mediaItems parameter
+    cleanedParams.push({
+      name: 'mediaItems',
+      value: '={{ $json.media_url ? [{ url: $json.media_url, type: \'image\' }] : [] }}',
+    });
+
+    zernioNode.parameters.bodyParameters.parameters = cleanedParams;
 
     // Step 4: Update the workflow
-    const updateResponse = await fetch(`https://meetdossie.app.n8n.cloud/rest/workflows/${targetWorkflow.id}`, {
-      method: 'PUT',
+    const updateResponse = await fetch(`https://meetdossie.app.n8n.cloud/api/v1/workflows/${targetWorkflow.id}`, {
+      method: 'PATCH',
       headers: {
         'X-N8N-API-KEY': N8N_API_KEY,
         'Content-Type': 'application/json',
