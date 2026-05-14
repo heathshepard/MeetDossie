@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
   try {
     // Safety net: if error_message contains "published successfully", mark as published instead
-    const errorMsg = error_message || 'Unknown error';
+    const errorMsg = typeof error_message === 'string' ? error_message : JSON.stringify(error_message) || 'Unknown error';
     if (errorMsg.toLowerCase().includes('published successfully')) {
       const now = new Date().toISOString();
       const patchBody = {
