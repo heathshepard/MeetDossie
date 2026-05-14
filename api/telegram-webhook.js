@@ -256,7 +256,12 @@ async function handleCallbackQuery(cb) {
   const originalBody = String(message?.text || '');
 
   if (action === 'approve') {
-    await patchPost(postId, { status: 'approved', approved_at: now });
+    console.log(`[telegram-webhook] APPROVE action for postId="${postId}"`);
+    console.log(`[telegram-webhook] Post object:`, JSON.stringify(post));
+    const patchBody = { status: 'approved', approved_at: now };
+    console.log(`[telegram-webhook] Patch body:`, JSON.stringify(patchBody));
+    const patchResult = await patchPost(postId, patchBody);
+    console.log(`[telegram-webhook] Patch result:`, JSON.stringify(patchResult));
     await bumpBatchCounter(postId, 'approved_posts');
     if (chatId && messageId) {
       await editMessage(chatId, messageId, `${originalBody}\n\n✅ Approved — will post at next slot.`);
