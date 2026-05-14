@@ -17,8 +17,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Reset all failed posts to approved
-    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/social_posts?status=eq.failed`, {
+    // Reset all failed posts to approved (except old TikTok post)
+    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/social_posts?status=eq.failed&post_id=neq.2026-05-05-victor-tiktok-5`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         status: 'approved',
+        approved_at: new Date().toISOString(),
         error_message: null,
         publishing_started_at: null,
       }),
