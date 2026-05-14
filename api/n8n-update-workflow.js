@@ -1,0 +1,138 @@
+// POST /api/n8n-update-workflow
+// Updates the n8n workflow to add mediaItems parameter
+// Auth: Authorization: Bearer ${CRON_SECRET}
+
+const N8N_MCP_TOKEN = process.env.N8N_MCP_TOKEN;
+const CRON_SECRET = process.env.CRON_SECRET;
+
+export default async function handler(req, res) {
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  if (!N8N_MCP_TOKEN) {
+    return res.status(500).json({ ok: false, error: 'n8n MCP token not configured' });
+  }
+
+  try {
+    // Step 1: List workflows to find "Dossie Social Publisher"
+    const listResponse = await fetch('https://meetdossie.app.n8n.cloud/api/v1/workflows', {
+      headers: {
+        'Authorization': `Bearer ${N8N_MCP_TOKEN}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!listResponse.ok) {
+      return res.status(502).json({
+        ok: false,
+        error: 'Failed to list n8n workflows',
+        status: listResponse.status,
+        statusText: listResponse.statusText,
+      });
+    }
+
+    const workflows = await listResponse.json();
+    const targetWorkflow = workflows.data?.find(w => w.name === 'Dossie Social Publisher');
+
+    if (!targetWorkflow) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Workflow "Dossie Social Publisher" not found',
+        available: workflows.data?.map(w => w.name) || [],
+      });
+    }
+
+    // Step 2: Get the workflow details
+    const getResponse = await fetch(`https://meetdossie.app.n8n.cloud/api/v1/workflows/${targetWorkflow.id}`, {
+      headers: {
+        'Authorization': `Bearer ${N8N_MCP_TOKEN}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!getResponse.ok) {
+      return res.status(502).json({
+        ok: false,
+        error: 'Failed to get workflow details',
+        status: getResponse.status,
+      });
+    }
+
+    const workflow = await getResponse.json();
+
+    // Step 3: Find and modify the "Publish to Zernio" node
+    const nodes = workflow.data?.nodes || [];
+    const zernioNode = nodes.find(n => n.name === 'Publish to Zernio');
+
+    if (!zernioNode) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Node "Publish to Zernio" not found',
+        availableNodes: nodes.map(n => n.name),
+      });
+    }
+
+    // Add mediaItems parameter
+    if (!zernioNode.parameters.bodyParameters) {
+      zernioNode.parameters.bodyParameters = { parameters: [] };
+    }
+
+    const existingParams = zernioNode.parameters.bodyParameters.parameters || [];
+    const mediaItemsParam = existingParams.find(p => p.name === 'mediaItems');
+
+    if (!mediaItemsParam) {
+      existingParams.push({
+        name: 'mediaItems',
+        value: '={{ $json.media_url ? [{ url: $json.media_url, type: \'image\' }] : [] }}',
+      });
+    } else {
+      mediaItemsParam.value = '={{ $json.media_url ? [{ url: $json.media_url, type: \'image\' }] : [] }}';
+    }
+
+    zernioNode.parameters.bodyParameters.parameters = existingParams;
+
+    // Step 4: Update the workflow
+    const updateResponse = await fetch(`https://meetdossie.app.n8n.cloud/api/v1/workflows/${targetWorkflow.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${N8N_MCP_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(workflow.data),
+    });
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      return res.status(502).json({
+        ok: false,
+        error: 'Failed to update workflow',
+        status: updateResponse.status,
+        details: errorText,
+      });
+    }
+
+    const updated = await updateResponse.json();
+
+    return res.status(200).json({
+      ok: true,
+      workflowId: targetWorkflow.id,
+      workflowName: targetWorkflow.name,
+      nodeUpdated: 'Publish to Zernio',
+      parameterAdded: 'mediaItems',
+      updated: updated,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+}
