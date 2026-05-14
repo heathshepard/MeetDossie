@@ -45,10 +45,54 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Safety net: if error_message contains "published successfully", mark as published instead
+    const errorMsg = error_message || 'Unknown error';
+    if (errorMsg.toLowerCase().includes('published successfully')) {
+      const now = new Date().toISOString();
+      const patchBody = {
+        status: 'posted',
+        posted_at: now,
+        publishing_started_at: null,
+        error_message: null,
+      };
+
+      const { ok: patchOk, data: patched } = await supabaseFetch(
+        `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify(patchBody),
+        }
+      );
+
+      if (!patchOk) {
+        return res.status(502).json({ ok: false, error: 'Failed to update post' });
+      }
+
+      const updated = Array.isArray(patched) && patched.length > 0 ? patched[0] : null;
+
+      if (!updated) {
+        return res.status(404).json({ ok: false, error: 'Post not found' });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        redirected: true,
+        reason: 'Error message contained "published successfully" - marked as posted instead',
+        post: {
+          id: updated.id,
+          post_id: updated.post_id,
+          status: updated.status,
+          posted_at: updated.posted_at,
+        },
+      });
+    }
+
+    // Normal failure path
     const patchBody = {
       status: 'failed',
       publishing_started_at: null,
-      error_message: error_message || 'Unknown error',
+      error_message: errorMsg,
     };
 
     const { ok: patchOk, data: patched } = await supabaseFetch(
