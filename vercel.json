@@ -62,10 +62,7 @@
     "functions":  {
                       "api/cron-generate-posts.js":  {
                                                          "maxDuration":  90
-                                                     },
-                      "api/cron-publish-approved.js":  {
-                                                           "maxDuration":  120
-                                                       }
+                                                     }
                   },
     "crons":  [
                   {
