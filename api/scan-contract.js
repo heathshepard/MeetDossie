@@ -33,7 +33,7 @@ Return ONLY a JSON object with no markdown:
 }
 
 Document types and their KEY IDENTIFIERS:
-- "trec-20-17": Title says "ONE TO FOUR FAMILY RESIDENTIAL CONTRACT" or "TREC NO. 20-18". Has paragraphs numbered 1-23. Has sales price, earnest money, option fee.
+- "trec-20-17": ANY Texas residential purchase contract including "ONE TO FOUR FAMILY RESIDENTIAL CONTRACT" regardless of form number (TREC 20-16, 20-17, 20-18, etc). Has paragraphs numbered 1-23. Has sales price, earnest money, option fee. IMPORTANT: Return "trec-20-17" for all versions of this contract type, not just exact form 20-17.
 - "trec-financing-addendum": Title says "THIRD PARTY FINANCING ADDENDUM". TREC NO. 40-11. Has checkboxes for Conventional/FHA/VA/USDA financing types.
 - "trec-hoa-addendum": Title says "ADDENDUM FOR PROPERTY SUBJECT TO MANDATORY MEMBERSHIP IN A PROPERTY OWNERS ASSOCIATION". TREC NO. 36-x.
 - "trec-lead-paint": Title says "ADDENDUM FOR SELLER'S DISCLOSURE OF INFORMATION ON LEAD-BASED PAINT". Federal law form. Specifically about lead paint hazards only.
