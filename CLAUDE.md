@@ -107,8 +107,8 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 | Tier | Monthly | Annual |
 |---|---|---|
-| Solo | $49 | $39 |
-| Team | $149 (3 seats; max 8 at $25/seat) | $119 |
+| Solo | $79 | $39 |
+| Team | $199 (3 seats; max 8 at $35/seat) | $119 |
 | Brokerage | custom | custom |
 | **Founding Member** | **$29** (50 spots, 2 taken) | — |
 
@@ -121,11 +121,11 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - E-sig — 10 free, then $0.50 each
 - Onboarding — $99 one-time
 
-**PRICING ROADMAP (do not implement until 25 founding members):**
-- Solo price increases from $49/mo to $69/mo after founding spots fill
+**PRICING HISTORY:**
+- 2026-05-15: Pricing updated to Solo $79/mo, Team $199/mo, Additional seats $35/mo
+- Previous: Solo $49/mo, Team $149/mo, Additional seats $25/mo
 - Founding members locked at $29/mo forever — non-negotiable
-- Team stays at $149/mo
-- Rationale: market research shows DealDock ($79), ListedKit ($49+), Done Deal (unpublished) all charge more for less Texas-specific value. Dossie is underpriced at $49 for solo.
+- Rationale: market research shows DealDock ($79), ListedKit ($49+), Done Deal (unpublished) all charge more for less Texas-specific value. New pricing reflects market positioning.
 
 ---
 
