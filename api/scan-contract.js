@@ -1025,20 +1025,18 @@ async function runFullScan(pdfBase64) {
   const documentType = ident.documentType;
   const documentLabel = DOCUMENT_LABELS[documentType] || 'Document';
 
-  // Stage 2: run the doc-type-specific compliance audit.
-  const complianceReport = await auditCompliance(pdfBase64, documentType);
-
-  // Stage 3: for TREC 20-17, also run the full extraction pass to populate the
-  // dossier form. Other types rely on the extractedFields embedded in the
-  // compliance prompt's response.
-  let trecExtraction = null;
-  if (documentType === 'trec-20-17') {
-    try {
-      trecExtraction = await scanContract(pdfBase64);
-    } catch (err) {
-      console.error('[scan-contract] TREC extraction failed:', err && err.message);
-    }
-  }
+  // Stages 2 and 3: run in parallel. For TREC 20-17, both compliance audit
+  // and extraction run simultaneously. For other doc types, extraction
+  // resolves to null immediately.
+  const [complianceReport, trecExtraction] = await Promise.all([
+    auditCompliance(pdfBase64, documentType),
+    documentType === 'trec-20-17'
+      ? scanContract(pdfBase64).catch((err) => {
+          console.error('[scan-contract] TREC extraction failed:', err && err.message);
+          return null;
+        })
+      : Promise.resolve(null),
+  ]);
 
   const extractedFields = trecExtraction
     ? trecExtraction.extracted
