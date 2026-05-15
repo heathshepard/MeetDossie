@@ -391,6 +391,13 @@ function applyCors(req, res) {
 
 const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real Estate Commission (TREC) Form 20-17 "One to Four Family Residential Contract (Resale)".
 
+CRITICAL DATE FORMATTING RULE:
+Return ALL dates in MM/DD/YYYY format only. Examples:
+- "October 28, 2022" → "10/28/2022"
+- "2022-09-29" → "09/29/2022"
+- "9/29/2022" → "09/29/2022"
+Never return natural language descriptions like "within 7 days after the Effective Date" for date fields. Extract only the actual calendar date in MM/DD/YYYY format. If a date cannot be determined, return null.
+
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
 - Paragraph 2 PROPERTY: Street address (2A Land/Lot/Block), city, county, state, ZIP. The 2A line typically reads "Lot ___ , Block ___ , of <Subdivision>, in the City of <city>, <county> County, Texas". Capture the legal description verbatim into propertyDetails.legalDescription, and pull lotNumber, blockNumber, subdivision, county into the matching propertyDetails sub-fields. If 2C "Reservations" or any deed restrictions are mentioned, capture them into propertyDetails.restrictions.
@@ -399,11 +406,11 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
   Sanity check: Sales price should typically be between $50,000 and $5,000,000 for Texas residential. If your value falls outside that range, look again at Paragraph 3C — you may have grabbed 3A or 3B by mistake. If after re-reading the value still falls outside that range, keep it but add a warning so the agent can verify.
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION: earnest money amount, additional earnest money amount and date, option fee amount, option period in days.
-  Also pull the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (YYYY-MM-DD).
+  Also pull the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (MM/DD/YYYY).
 - Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address.
 - Paragraph 9 CLOSING and POSSESSION: closing date goes into closingDate (top-level) and is mirrored into paragraph9Closing.closingDate. Possession is in 9.B — there are checkbox options for "upon closing and funding", "upon closing", or "according to a temporary residential lease form" / a specific date.
   - "upon closing and funding" or "upon closing" -> possession.type = "closing" (or "funding" if explicitly funding-only)
-  - A specific date -> possession.type = "specific_date" and possession.specificDate = YYYY-MM-DD
+  - A specific date -> possession.type = "specific_date" and possession.specificDate = MM/DD/YYYY
   Mirror the same values into paragraph9Closing.possessionType and paragraph9Closing.possessionDate.
 - Paragraph 10 POSSESSION / FIXTURES (the "items included / not included" list): TREC 20-17 lists standard items (curtains, drapery rods, mounted TV brackets, etc.) and has write-in lines for additional inclusions and for exclusions. Capture each non-default included item into paragraph10.inclusions[] and each excluded item into paragraph10.exclusions[]. Don't enumerate items the form lists as included by default; only capture write-in additions/removals.
 - Paragraph 11 SPECIAL PROVISIONS: free-text block. Capture the entire content verbatim (including line breaks as \\n) into paragraph11SpecialProvisions. Trim leading/trailing whitespace. If the field is blank, return null.
@@ -422,7 +429,7 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
   - Any "Other" line that is filled in or has its own attached page -> addenda.hasOther (and capture the description in addenda.notes)
 - Each addendum is typically a separate page following the contract. When an addendum box is checked, look at the attached page to pull the relevant details:
   - Third Party Financing Addendum (TREC 40-9) -> Look in Paragraph 2A for "This contract is subject to Buyer obtaining Buyer Approval. If Buyer cannot obtain Buyer Approval, Buyer may give written notice to Seller within ___ days after the effective date." Extract the number from that blank as financing approval days. This goes into BOTH addenda.thirdPartyFinancingDays AND the top-level financingDays field (back-compat). Common values: 7, 10, 14, 21 days.
-  - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO YYYY-MM-DD)
+  - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO MM/DD/YYYY)
   - Right to Terminate Due to Lender's Appraisal -> number of days notice (addenda.appraisalTerminationDays)
   - Back-Up Contract -> number of days the buyer has to deliver notice once the primary contract terminates (addenda.backupContractNoticeDays)
 - Paragraph 23 TERMINATION OPTION: number of option days (also referenced in 5). Mirror into paragraph23TerminationOption.optionDays and paragraph23TerminationOption.optionFee. The option fee is usually payable to Seller, but the contract sometimes names the title company or another party — capture whoever appears on the "payable to" line into paragraph23TerminationOption.optionFeePayableTo.
@@ -434,9 +441,9 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - lenderName, loanOfficerName, loanOfficerEmail, loanOfficerPhone — institution name and individual loan officer. Often blank on the contract; pull from the Third Party Financing Addendum if attached. Otherwise null.
 - hoaName, hoaManagementCompany — populated from the HOA Addendum (TREC 36-x) if attached: hoaName is the association name, hoaManagementCompany is the management company / agent that fulfills resale certificates. Both null when no HOA addendum.
 - mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
-- possessionDate — YYYY-MM-DD when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
+- possessionDate — MM/DD/YYYY when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
 - appraisalDeadline — date by which appraisal/lender's right-to-terminate notice must be delivered, derived from the Right-to-Terminate-Due-to-Lender's-Appraisal addendum (effective date + appraisalTerminationDays) when present. Null otherwise.
-- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Sometimes specified in Paragraph 6C ("Survey"); typically a number of days after effective date. Convert to YYYY-MM-DD if both effective date and the day count are known. Null otherwise.
+- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Sometimes specified in Paragraph 6C ("Survey"); typically a number of days after effective date. Convert to MM/DD/YYYY if both effective date and the day count are known. Null otherwise.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
 - loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
 
@@ -472,8 +479,8 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "optionDays": number | null,                 // termination option period (paragraph 23) as integer
     "financingDays": number | null,              // financing approval days from Third Party Financing Addendum, null if no addendum
     "hasFinancingAddendum": boolean,             // legacy mirror of addenda.hasThirdPartyFinancing — keep both in sync
-    "contractEffectiveDate": string | null,      // "YYYY-MM-DD"
-    "closingDate": string | null,                // "YYYY-MM-DD"
+    "contractEffectiveDate": string | null,      // "MM/DD/YYYY"
+    "closingDate": string | null,                // "MM/DD/YYYY"
     "titleCompany": string | null,               // company name from 6A
     "titleOfficer": string | null,               // legacy: escrow officer if listed, mirror of titleOfficerName
     "titleOfficerName": string | null,           // named escrow / closing officer
@@ -490,11 +497,11 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "bathrooms": number | null,
     "sqft": number | null,
     "yearBuilt": number | null,
-    "possessionDate": string | null,             // YYYY-MM-DD; mirror of possession.specificDate
-    "appraisalDeadline": string | null,          // YYYY-MM-DD; effective + appraisalTerminationDays
-    "surveyDeadline": string | null,             // YYYY-MM-DD if computable from 6C
-    "hoaDocumentDeadline": string | null,        // YYYY-MM-DD from HOA addendum
-    "loanApprovalDeadline": string | null,       // YYYY-MM-DD; effective + financingDays
+    "possessionDate": string | null,             // MM/DD/YYYY; mirror of possession.specificDate
+    "appraisalDeadline": string | null,          // MM/DD/YYYY; effective + appraisalTerminationDays
+    "surveyDeadline": string | null,             // MM/DD/YYYY if computable from 6C
+    "hoaDocumentDeadline": string | null,        // MM/DD/YYYY from HOA addendum
+    "loanApprovalDeadline": string | null,       // MM/DD/YYYY; effective + financingDays
     "buyerAgent": string | null,                 // buyer's associate/agent name from broker info block
     "listingAgent": string | null,               // listing associate/agent name from broker info block
     "parties": {
@@ -521,14 +528,14 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "hasMineralsReservation": boolean,
       "hasOther": boolean,
       "thirdPartyFinancingDays": number | null,        // mirrors top-level financingDays
-      "saleOfOtherPropertyDeadline": string | null,    // ISO YYYY-MM-DD
+      "saleOfOtherPropertyDeadline": string | null,    // ISO MM/DD/YYYY
       "appraisalTerminationDays": number | null,
       "backupContractNoticeDays": number | null,
       "notes": string | null                            // free-form description of any "Other" addendum or unusual terms
     },
     "possession": {
       "type": "closing" | "funding" | "specific_date" | null,
-      "specificDate": string | null                     // YYYY-MM-DD when type === "specific_date"
+      "specificDate": string | null                     // MM/DD/YYYY when type === "specific_date"
     },
     "propertyDetails": {
       "legalDescription": string | null,                // verbatim from Paragraph 2A
@@ -542,12 +549,12 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "earnestMoneyHolder": string | null,              // title company / escrow agent named on 5A
       "earnestMoneyDeadlineDays": number | null,        // days after effective date to deliver earnest money
       "additionalEarnestMoney": number | null,
-      "additionalEarnestMoneyDate": string | null       // YYYY-MM-DD
+      "additionalEarnestMoneyDate": string | null       // MM/DD/YYYY
     },
     "paragraph9Closing": {
       "closingDate": string | null,                     // mirror of top-level closingDate
       "possessionType": "closing" | "funding" | "specific_date" | null,
-      "possessionDate": string | null                   // YYYY-MM-DD when possessionType === "specific_date"
+      "possessionDate": string | null                   // MM/DD/YYYY when possessionType === "specific_date"
     },
     "paragraph10": {
       "inclusions": [string],                           // write-in items beyond TREC standard list
@@ -658,7 +665,7 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
 RULES:
 1. If a field is blank, return null (not "" or 0). Set its confidence to 0.
 2. Convert all dollar amounts to plain numbers (e.g. "$350,000.00" -> 350000).
-3. Convert all dates to ISO YYYY-MM-DD format. If only month/day is given without a year, use null and add a warning.
+3. Convert all dates to MM/DD/YYYY format. If only month/day is given without a year, use null and add a warning.
 4. Do NOT guess. If you can't read a field, return null and add a warning.
 5. If the entire form appears blank/unfilled, return all nulls and add the warning "PDF appears to be a blank/unfilled form".
 6. If signatures are visible but cannot be cryptographically verified, add the warning "Signatures detected but not verified".
