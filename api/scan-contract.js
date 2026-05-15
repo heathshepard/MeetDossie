@@ -394,9 +394,12 @@ const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real 
 CRITICAL DATE FORMATTING RULE:
 Return ALL dates in yyyy-MM-dd format only. Examples:
 - "October 28, 2022" → "2022-10-28"
-- "9/29/2022" → "2022-09-29"
+- "9/29/2022" → "2022-09-09"
 - "2022-09-29" → "2022-09-29"
 Never return natural language descriptions like "within 7 days after the Effective Date" or "within 7 days after objections cured/waived" for date fields. Extract only the actual calendar date in yyyy-MM-dd format. If a date cannot be determined, return null.
+
+DEBUG FIELDS REQUIREMENT:
+ALWAYS populate debugParagraph3C and debugParagraph5B fields with the exact verbatim text you read from those paragraphs. These fields are critical for troubleshooting extraction errors.
 
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
@@ -406,7 +409,7 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   Sanity check: Sales price should typically be between $50,000 and $5,000,000 for Texas residential. If your value falls outside that range, look again at Paragraph 3C — you may have grabbed 3A or 3B by mistake. If after re-reading the value still falls outside that range, keep it but add a warning so the agent can verify.
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION:
-  CRITICAL — OPTION DAYS: Look in Paragraph 5B for the termination option period. The sentence typically reads: "Seller grants Buyer the unrestricted right to terminate this contract by giving notice of termination to Seller within ___ days after the Effective Date." Extract ONLY the number from this sentence as an integer into optionDays (common values: 5, 7, 10). Do not include words like "days" or "within" — just the integer. Also extract the option fee amount from 5D into optionFee.
+  CRITICAL — OPTION DAYS: Look ONLY in Paragraph 5B, NOT in any other paragraph (NOT 6C, NOT 23, NOT anywhere else). In Paragraph 5B, find the sentence: "Seller grants Buyer the unrestricted right to terminate this contract by giving notice of termination to Seller within ___ days after the Effective Date." Extract ONLY the number that appears immediately before "days after the Effective Date" in this specific sentence. This is the termination option period (common values: 5, 7, 10). Do NOT extract survey days from Paragraph 6C. Do NOT extract any other day count. Extract ONLY from Paragraph 5B. Return as integer into optionDays. Also extract the option fee amount from 5D into optionFee.
   Also pull earnest money amounts from 5A, and the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (yyyy-MM-dd).
 - Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address. 6D typically contains title objection deadlines — DO NOT extract these as the closing date.
 - Paragraph 9 CLOSING and POSSESSION:
@@ -574,8 +577,8 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "optionFee": number | null,                       // mirror of top-level optionFee
       "optionFeePayableTo": string | null               // usually "Seller"; sometimes title company or named escrow agent
     },
-    "debugParagraph3C": string | null,                  // DEBUG ONLY: Show the exact text you read from Paragraph 3C when extracting salePrice. Include all three lines: 3A, 3B, and 3C with their values.
-    "debugParagraph5B": string | null                   // DEBUG ONLY: Show the exact text you read from Paragraph 5B when extracting optionDays. Include the full sentence about termination right.
+    "debugParagraph3C": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 3 showing all three lines: "3A. $ [value]", "3B. $ [value]", "3C. Sales Price (Sum of A and B): $ [value]". Show all dollar amounts exactly as they appear.
+    "debugParagraph5B": string | null                   // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 5B showing the full sentence about "Seller grants Buyer the unrestricted right to terminate...within [X] days after the Effective Date."
   },
   "confidence": {
     // For EVERY field above (including nested parties.*), include a 0-1 score reflecting how certain you are
