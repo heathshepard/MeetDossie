@@ -56,6 +56,7 @@ export default async function handler(req, res) {
     }
 
     // Speed: 0.25-4.0, default 0.85 for easier comprehension. Can be overridden via request.
+    // Force redeploy 2026-05-15
     const voiceSpeed = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 0.85;
 
     if (!process.env.ELEVENLABS_API_KEY) {
