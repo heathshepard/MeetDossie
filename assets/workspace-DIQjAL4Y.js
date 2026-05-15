@@ -84,7 +84,7 @@ ${x}`}class Ye extends Error{constructor({message:t,code:n,cause:r,name:i}){var 
 
 --
 ${t.join(`
-`)}`:""},uy=(e,t,n=null)=>{var T,x,w,v;const r=((x=(T=t.buyerName)==null?void 0:T.split("&")[0])==null?void 0:x.trim())||t.buyerName,i=((v=(w=t.sellerName)==null?void 0:w.split("&")[0])==null?void 0:v.trim())||t.sellerName,s=t.cityStateZip?`${t.propertyAddress}, ${t.cityStateZip}`:`${t.propertyAddress}`,c=`I've got the rest. - Dossie${ok(n)}`,u=t.role==="listing",d=u?i:r,y=t.loanOfficerName,m=t.titleOfficerName,p=(()=>{switch(e){case"buyer-welcome":return d;case"lender-introduction":return y;case"title-order":return m;case"financing-reminder":return y;case"closing-day":return r;case"post-closing":return r;default:return"n/a"}})();if(!p||!String(p).trim())return null;const b=u?`Welcome - listing file for ${s}`:`Welcome to ${s}`,C=u?`Hi ${d},
+`)}`:""},uy=(e,t,n=null)=>{var T,x,w,v;const r=((x=(T=t.buyerName)==null?void 0:T.split("&")[0])==null?void 0:x.trim())||t.buyerName,i=((v=(w=t.sellerName)==null?void 0:w.split("&")[0])==null?void 0:v.trim())||t.sellerName,s=t.cityStateZip?`${t.propertyAddress}, ${t.cityStateZip}`:`${t.propertyAddress}`,c=`I've got the rest. - Dossie${ok(n)}`,u=t.role==="listing",d=u?i:r,y=t.loanOfficerName,m=t.titleOfficerName,p=(()=>{switch(e){case"buyer-welcome":return d;case"lender-introduction":return y;case"title-order":return m;case"option-reminder":return u?i:r;case"financing-reminder":return y;case"closing-day":return r;case"post-closing":return r;default:return"n/a"}})();if(!p||!String(p).trim())return null;const b=u?`Welcome - listing file for ${s}`:`Welcome to ${s}`,C=u?`Hi ${d},
 
 I'm so glad we're underway on the listing side for ${s}. I've opened the dossier, mapped the major dates, and organized the file so the transaction can move forward cleanly. You don't need to keep every moving piece in your head - I'll keep the file current and surface what matters next.
 
@@ -134,7 +134,7 @@ Closing date: ${We(t.closingDate)}
 
 I have the full details ready in the dossier and can send anything else you need right away.
 
-${c}`},"option-reminder":{subject:`Option period reminder for ${t.propertyAddress}`,body:`Hi everyone,
+${c}`},"option-reminder":{subject:`Option period reminder for ${t.propertyAddress}`,body:`Hi ${u?i:r},
 
 A quick reminder from the dossier: the option period for ${s} expires on ${We(Zt(t.contractEffectiveDate,Number(t.optionDays||7)))} at 5:00 PM local time.
 
@@ -157,9 +157,9 @@ Good news - ${s} is clear to close. The major items are in, the dossier is in or
 Closing date: ${We(t.closingDate)}
 
 ${u?"Seller":"Buyer"}: Please confirm your wire instructions with the title company before closing to ensure funds are sent securely.
-
-${t.lenderName||t.titleCompany?`I've copied ${[t.lenderName,t.titleCompany].filter(Boolean).join(" and ")} on this update so everyone is aligned.`:""}
-
+${t.lenderName||t.titleCompany?`
+I've copied ${[t.lenderName,t.titleCompany].filter(Boolean).join(" and ")} on this update so everyone is aligned.
+`:""}
 I'll keep watching for any final changes and send updates if anything moves.
 
 ${c}`},"closing-day":{subject:`Closing day details for ${t.propertyAddress}`,body:`Hi ${u?i:r},
@@ -187,7 +187,7 @@ Final price: ${Tn(t.salePrice)}`:""}
 
 I've wrapped the dossier, marked the final milestones complete, and made sure the closing details are documented cleanly.
 
-If you know anyone buying or selling in Texas, I'd be grateful for the introduction. Referrals from clients like you are how I grow my business.
+If you know anyone buying or selling in Texas, send them my way — I'd love to take care of them the same way I took care of you.
 
 Thank you again.
 
