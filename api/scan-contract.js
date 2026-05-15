@@ -389,7 +389,7 @@ function applyCors(req, res) {
   return Boolean(allowOrigin);
 }
 
-const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real Estate Commission (TREC) Form 20-17 "One to Four Family Residential Contract (Resale)".
+const EXTRACTION_PROMPT = `You are extracting structured data from a Texas Real Estate Commission (TREC) Form 20-16 or 20-17 "One to Four Family Residential Contract (Resale)". These forms are nearly identical — use the field locations below for either version.
 
 CRITICAL DATE FORMATTING RULE:
 Return ALL dates in yyyy-MM-dd format only. Examples:
@@ -398,7 +398,7 @@ Return ALL dates in yyyy-MM-dd format only. Examples:
 - "2022-09-29" → "2022-09-29"
 Never return natural language descriptions like "within 7 days after the Effective Date" or "within 7 days after objections cured/waived" for date fields. Extract only the actual calendar date in yyyy-MM-dd format. If a date cannot be determined, return null.
 
-FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
+FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
 - Paragraph 2 PROPERTY: Street address (2A Land/Lot/Block), city, county, state, ZIP. The 2A line typically reads "Lot ___ , Block ___ , of <Subdivision>, in the City of <city>, <county> County, Texas". Capture the legal description verbatim into propertyDetails.legalDescription, and pull lotNumber, blockNumber, subdivision, county into the matching propertyDetails sub-fields. If 2C "Reservations" or any deed restrictions are mentioned, capture them into propertyDetails.restrictions.
 - Paragraph 3 SALES PRICE: 3A cash portion, 3B sum financed, 3C TOTAL sales price.
@@ -407,8 +407,10 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-17):
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION: earnest money amount, additional earnest money amount and date, option fee amount, option period in days.
   Also pull the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (yyyy-MM-dd).
-- Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address.
-- Paragraph 9 CLOSING and POSSESSION: closing date goes into closingDate (top-level) and is mirrored into paragraph9Closing.closingDate. Possession is in 9.B — there are checkbox options for "upon closing and funding", "upon closing", or "according to a temporary residential lease form" / a specific date.
+- Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address. 6D typically contains title objection deadlines — DO NOT extract these as the closing date.
+- Paragraph 9 CLOSING and POSSESSION:
+  CRITICAL — CLOSING DATE: Look in Paragraph 9.A for the line that says "The Closing of the sale will be on or before" followed by a specific date. This is the CLOSING DATE — the date the transaction is scheduled to close/fund. Extract ONLY this date into closingDate (top-level) and mirror into paragraph9Closing.closingDate. DO NOT confuse this with title objection deadlines from Paragraph 6D, survey deadlines, or any other deadline. The closing date is the final date when ownership transfers and funds are exchanged.
+  Possession is in 9.B — there are checkbox options for "upon closing and funding", "upon closing", or "according to a temporary residential lease form" / a specific date.
   - "upon closing and funding" or "upon closing" -> possession.type = "closing" (or "funding" if explicitly funding-only)
   - A specific date -> possession.type = "specific_date" and possession.specificDate = yyyy-MM-dd
   Mirror the same values into paragraph9Closing.possessionType and paragraph9Closing.possessionDate.
