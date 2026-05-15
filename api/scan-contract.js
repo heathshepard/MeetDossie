@@ -436,7 +436,14 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   - "Addendum for Reservation of Oil, Gas and Other Minerals" (TREC 44-x) -> addenda.hasMineralsReservation
   - Any "Other" line that is filled in or has its own attached page -> addenda.hasOther (and capture the description in addenda.notes)
 - Each addendum is typically a separate page following the contract. When an addendum box is checked, look at the attached page to pull the relevant details:
-  - Third Party Financing Addendum (TREC 40-9) -> Look in Paragraph 2A for "This contract is subject to Buyer obtaining Buyer Approval. If Buyer cannot obtain Buyer Approval, Buyer may give written notice to Seller within ___ days after the effective date." Extract the number from that blank as financing approval days. This goes into BOTH addenda.thirdPartyFinancingDays AND the top-level financingDays field (back-compat). Common values: 7, 10, 14, 21 days.
+  - Third Party Financing Addendum (TREC 40-9 or 40-11) ->
+    LOAN APPROVAL DEADLINE: Look on page 1 of this addendum for the financing approval timeline. This may appear as:
+    • "This contract is subject to Buyer obtaining Buyer Approval. If Buyer cannot obtain Buyer Approval, Buyer may give written notice to Seller within ___ days after the effective date"
+    • "Buyer shall have ___ days after the effective date to obtain loan approval"
+    • "Credit Approval" deadline or "Loan Approval" date
+    • Any language about financing approval timeline
+    Extract the number of days from that blank as financing approval days. This goes into BOTH addenda.thirdPartyFinancingDays AND the top-level financingDays field (back-compat). Common values: 7, 10, 14, 21 days.
+    IMPORTANT: Also calculate the actual loanApprovalDeadline calendar date by adding this number of days to the contractEffectiveDate and return it in yyyy-MM-dd format. Example: If financing addendum says "within 21 days after effective date" and effective date is 2022-09-29, calculate 2022-09-29 + 21 days = 2022-10-20 and return as loanApprovalDeadline.
   - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO yyyy-MM-dd)
   - Right to Terminate Due to Lender's Appraisal -> number of days notice (addenda.appraisalTerminationDays)
   - Back-Up Contract -> number of days the buyer has to deliver notice once the primary contract terminates (addenda.backupContractNoticeDays)
@@ -453,7 +460,7 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - appraisalDeadline — date by which appraisal/lender's right-to-terminate notice must be delivered. Look in the Right-to-Terminate-Due-to-Lender's-Appraisal addendum for language like "within X days after the effective date". Calculate the actual calendar date by adding X days to contractEffectiveDate and return that date in yyyy-MM-dd format. Null if no appraisal addendum is present.
 - surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for language like "within X days after the effective date". Calculate the actual calendar date by adding X days to contractEffectiveDate and return that date in yyyy-MM-dd format. Example: "within 25 days after the effective date" when effective date is 2022-09-29 → calculate 2022-09-29 + 25 days = 2022-10-24. Null if no survey deadline is specified.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
-- loanApprovalDeadline — date the buyer's third-party financing approval must be obtained. Look in the Third Party Financing Addendum for language like "within X days after the effective date". Calculate the actual calendar date by adding X days (financingDays) to contractEffectiveDate and return that date in yyyy-MM-dd format. Null if no financing addendum is present.
+- loanApprovalDeadline — date the buyer's third-party financing approval must be obtained. Look in BOTH the main contract AND the Third Party Financing Addendum (page 1) for any language about the financing approval timeline. This may be labeled as "Buyer Approval", "Credit Approval", "Loan Approval", or "Buyer shall have X days after the effective date to obtain loan approval". Extract the number of days and calculate the actual calendar date by adding those days to contractEffectiveDate. Return the calculated date in yyyy-MM-dd format. Example: "within 21 days after effective date" when effective is 2022-09-29 → calculate 2022-09-29 + 21 days = 2022-10-20. Null if no financing approval deadline is specified.
 
 BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
 
