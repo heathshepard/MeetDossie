@@ -396,7 +396,13 @@ Return ALL dates in yyyy-MM-dd format only. Examples:
 - "October 28, 2022" → "2022-10-28"
 - "9/29/2022" → "2022-09-29"
 - "2022-09-29" → "2022-09-29"
-Never return natural language descriptions like "within 7 days after the Effective Date" or "within 7 days after objections cured/waived" for date fields. Extract only the actual calendar date in yyyy-MM-dd format. If a date cannot be determined, return null.
+
+COMPUTED DEADLINES:
+If a deadline is stated as "X days after the effective date" (or similar relative language), calculate the actual calendar date by adding X days to the contractEffectiveDate and return that date in yyyy-MM-dd format.
+Example: If the contract says "within 25 days after the effective date" and the effective date is 2022-09-29, calculate 2022-09-29 + 25 days = 2022-10-24 and return "2022-10-24".
+Apply this logic to survey deadlines, appraisal deadlines, HOA document deadlines, and any other deadline stated in relative terms.
+
+Never return natural language descriptions like "within 7 days after the Effective Date" or "within 25 days after objections cured/waived" for date fields. Always calculate and return the actual calendar date in yyyy-MM-dd format. If a date cannot be determined or calculated, return null.
 
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
@@ -444,10 +450,10 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - hoaName, hoaManagementCompany — populated from the HOA Addendum (TREC 36-x) if attached: hoaName is the association name, hoaManagementCompany is the management company / agent that fulfills resale certificates. Both null when no HOA addendum.
 - mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
 - possessionDate — yyyy-MM-dd when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
-- appraisalDeadline — date by which appraisal/lender's right-to-terminate notice must be delivered, derived from the Right-to-Terminate-Due-to-Lender's-Appraisal addendum (effective date + appraisalTerminationDays) when present. Null otherwise.
-- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Sometimes specified in Paragraph 6C ("Survey"); typically a number of days after effective date. Convert to yyyy-MM-dd if both effective date and the day count are known. Null otherwise.
+- appraisalDeadline — date by which appraisal/lender's right-to-terminate notice must be delivered. Look in the Right-to-Terminate-Due-to-Lender's-Appraisal addendum for language like "within X days after the effective date". Calculate the actual calendar date by adding X days to contractEffectiveDate and return that date in yyyy-MM-dd format. Null if no appraisal addendum is present.
+- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for language like "within X days after the effective date". Calculate the actual calendar date by adding X days to contractEffectiveDate and return that date in yyyy-MM-dd format. Example: "within 25 days after the effective date" when effective date is 2022-09-29 → calculate 2022-09-29 + 25 days = 2022-10-24. Null if no survey deadline is specified.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
-- loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
+- loanApprovalDeadline — date the buyer's third-party financing approval must be obtained. Look in the Third Party Financing Addendum for language like "within X days after the effective date". Calculate the actual calendar date by adding X days (financingDays) to contractEffectiveDate and return that date in yyyy-MM-dd format. Null if no financing addendum is present.
 
 BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
 
