@@ -573,7 +573,9 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "optionDays": number | null,                      // mirror of top-level optionDays
       "optionFee": number | null,                       // mirror of top-level optionFee
       "optionFeePayableTo": string | null               // usually "Seller"; sometimes title company or named escrow agent
-    }
+    },
+    "debugParagraph3C": string | null,                  // DEBUG ONLY: Show the exact text you read from Paragraph 3C when extracting salePrice. Include all three lines: 3A, 3B, and 3C with their values.
+    "debugParagraph5B": string | null                   // DEBUG ONLY: Show the exact text you read from Paragraph 5B when extracting optionDays. Include the full sentence about termination right.
   },
   "confidence": {
     // For EVERY field above (including nested parties.*), include a 0-1 score reflecting how certain you are
