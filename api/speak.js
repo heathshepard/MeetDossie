@@ -55,8 +55,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Text is required' });
     }
 
-    // Speed: 0.25-4.0, default 1.0. Morning Brief uses 0.85 for easier comprehension.
-    const voiceSpeed = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.0;
+    // Speed: 0.25-4.0, default 0.85 for easier comprehension. Can be overridden via request.
+    const voiceSpeed = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 0.85;
 
     if (!process.env.ELEVENLABS_API_KEY) {
       console.error('ELEVENLABS_API_KEY not configured');
