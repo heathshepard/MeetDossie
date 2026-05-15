@@ -195,6 +195,8 @@ ${c}`}}[e]},lr=e=>{var t;return((t=Zs.find(n=>n.id===e))==null?void 0:t.label)||
         * { box-sizing: border-box; }
         body { margin: 0; background: ${f.bg}; color: ${f.text}; }
         button, input, textarea, select { font: inherit; }
+        button:focus { outline: none; }
+        button:focus-visible { outline: none; }
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-thumb { background: #dbcfc3; border-radius: 999px; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
