@@ -46,6 +46,10 @@ nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba
 .hero-title em { font-style: italic; color: var(--blush-deep); }
 .hero-tagline { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--text-secondary); margin-bottom: 14px; }
 .hero-sub { font-size: 17px; color: var(--text-secondary); line-height: 1.65; max-width: 560px; margin: 0 auto 44px; }
+.progress-section { margin: 28px 0; max-width: 420px; margin-left: auto; margin-right: auto; }
+.progress-label { font-size: 15px; font-weight: 600; color: var(--text-primary); text-align: center; margin-bottom: 12px; }
+.progress-bar-outer { width: 100%; height: 12px; background: var(--blush-light); border-radius: 999px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); }
+.progress-bar-inner { height: 100%; background: linear-gradient(90deg, var(--coral) 0%, var(--blush-deep) 100%); border-radius: 999px; transition: width 0.4s ease; }
 
 .price-card { display: flex; align-items: center; justify-content: center; gap: 28px; max-width: 420px; margin: 0 auto 44px; padding: 20px 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 18px 48px rgba(45,42,38,0.08); }
 .price-old { text-align: center; }
@@ -74,6 +78,11 @@ section { padding: 96px 28px; }
 .section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5vw, 48px); font-weight: 600; line-height: 1.12; text-align: center; letter-spacing: -1px; color: var(--text-primary); margin-bottom: 16px; }
 .section-title em { font-style: italic; color: var(--blush-deep); }
 .section-sub { max-width: 620px; margin: 0 auto; text-align: center; font-size: 16px; color: var(--text-secondary); line-height: 1.7; }
+
+.testimonial-section { padding: 72px 28px; background: var(--bg-warm); }
+.testimonial-quote { max-width: 720px; margin: 0 auto; text-align: center; padding: 0; border: none; }
+.testimonial-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(24px, 4vw, 32px); font-weight: 500; line-height: 1.45; color: var(--text-primary); margin-bottom: 20px; }
+.testimonial-attribution { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-secondary); }
 
 .benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 52px; }
 .benefit { padding: 28px 26px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 20px; transition: border-color 0.2s, box-shadow 0.2s; }
@@ -159,6 +168,13 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
       🔒 Founding Member — 50 Spots Only
     </div>
 
+    <div class="progress-section">
+      <div class="progress-label"><span id="progress-count">2</span> of 50 founding spots claimed</div>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progress-bar" style="width: 4%;"></div>
+      </div>
+    </div>
+
     <h1 class="hero-title">Lock in your rate <em>before we open to the public.</em></h1>
     <p class="hero-tagline">The TC That Never Sleeps.</p>
     <p class="hero-sub">
@@ -178,6 +194,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
           <span class="price-new-period">/mo</span>
         </div>
         <span class="price-new-label">Locked Forever</span>
+        <span id="price-spots-remaining" style="display: block; font-size: 12px; color: var(--coral); font-weight: 700; margin-top: 8px;">48 spots remaining</span>
       </div>
     </div>
 
@@ -224,7 +241,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
       </div>
       <div class="benefit">
         <div class="benefit-icon">✉️</div>
-        <h3 class="benefit-title">Email Drafting <span class="benefit-tag">Coming Soon</span></h3>
+        <h3 class="benefit-title">Email Drafting</h3>
         <p class="benefit-desc">Dossie writes your TC emails — option period reminders, lender intros, clear-to-close — in your voice.</p>
       </div>
       <div class="benefit">
@@ -235,7 +252,7 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
       <div class="benefit">
         <div class="benefit-icon">👥</div>
         <h3 class="benefit-title">The Founding Files</h3>
-        <p class="benefit-desc">Founding members get exclusive access to our private community — The Founding Files. This is where Dossie gets built. You vote on features, your ideas become reality, and you get early access to everything before it goes public. Not available at any other subscription tier.</p>
+        <p class="benefit-desc">Founding members get direct access to Heath and each other in our private Facebook community. Your ideas go straight into the build queue.</p>
       </div>
       <div class="benefit">
         <div class="benefit-icon">🔒</div>
@@ -243,6 +260,15 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
         <p class="benefit-desc">$29/mo for as long as you keep your subscription active. New members will pay $49+ after the 50 founding spots fill.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="testimonial-section">
+  <div class="section-narrow">
+    <blockquote class="testimonial-quote">
+      <p class="testimonial-text">"I close 80+ transactions a year. Dossie pays for itself on the first deal."</p>
+      <footer class="testimonial-attribution">— Brittney YBarbo, Broker, Southeast Texas</footer>
+    </blockquote>
   </div>
 </section>
 
@@ -349,15 +375,31 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 (function () {
   var faq = document.getElementById("faq-spots-answer");
   var heroCount = document.getElementById("scarcity-count");
-  if (!faq && !heroCount) return;
+  var progressCount = document.getElementById("progress-count");
+  var progressBar = document.getElementById("progress-bar");
+  var priceSpots = document.getElementById("price-spots-remaining");
+
   fetch("/api/founding-count", { headers: { Accept: "application/json" } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) {
       if (!j || typeof j.remaining !== "number" || j.remaining < 0) return;
-      var n = String(j.remaining);
-      if (heroCount) heroCount.textContent = n;
+      var remaining = j.remaining;
+      var claimed = 50 - remaining;
+      var percentFilled = (claimed / 50) * 100;
+
+      // Update scarcity count
+      if (heroCount) heroCount.textContent = String(remaining);
+
+      // Update progress bar
+      if (progressCount) progressCount.textContent = String(claimed);
+      if (progressBar) progressBar.style.width = percentFilled.toFixed(1) + "%";
+
+      // Update price section spots remaining
+      if (priceSpots) priceSpots.textContent = remaining + " spots remaining";
+
+      // Update FAQ
       if (faq) {
-        faq.innerHTML = "Currently <span class=\"faq-live\">" + n + "</span> of 50 spots remaining. Once they're gone, the founding rate is gone forever.";
+        faq.innerHTML = "Currently <span class=\"faq-live\">" + remaining + "</span> of 50 spots remaining. Once they're gone, the founding rate is gone forever.";
       }
     })
     .catch(function () { /* keep SSR fallbacks */ });
