@@ -458,7 +458,7 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
 - possessionDate — yyyy-MM-dd when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
 - appraisalDeadline — ONLY populate if an explicit appraisal deadline or appraisal objection deadline date is stated in Paragraph 6, the Third Party Financing Addendum, or any Right-to-Terminate-Due-to-Lender's-Appraisal addendum. Look for phrases like "appraisal deadline", "appraisal objection deadline", or "buyer may terminate if appraisal does not meet... by [date]". Return the date in yyyy-MM-dd format. If no explicit date is stated, return null. Do NOT calculate or derive a date.
-- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Sometimes specified in Paragraph 6C ("Survey"); typically a number of days after effective date. Convert to yyyy-MM-dd if both effective date and the day count are known. Null otherwise.
+- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for either: (1) an explicit date, OR (2) a number of days (e.g., "within 10 days after effective date"). If you find a day count, calculate the deadline by adding those days to the contractEffectiveDate and return in yyyy-MM-dd format. If you find an explicit date, return it in yyyy-MM-dd format. If neither exists, return null.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
 - loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
 
@@ -946,7 +946,7 @@ async function scanContract(pdfBase64) {
   // Claude's extraction is unreliable (keeps returning 10 instead of 7).
   // Regex is deterministic and parses the text Claude already captured.
   if (extracted.debugParagraph5B && typeof extracted.debugParagraph5B === 'string') {
-    const match = extracted.debugParagraph5B.match(/within\s+(\d+)\s+days after the Effective Date of this contract \(Option Period\)/i);
+    const match = extracted.debugParagraph5B.match(/within\s+[_\s]*(\d+)[_\s]*\s+days after the Effective Date of this contract \(Option Period\)/i);
     if (match) {
       const parsedDays = parseInt(match[1], 10);
       if (Number.isFinite(parsedDays) && parsedDays >= 3 && parsedDays <= 30) {
