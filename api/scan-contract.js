@@ -923,7 +923,8 @@ async function scanContract(pdfBase64) {
     extracted.possessionDate = extracted.possession.specificDate;
   }
   // If possession is "upon closing" and we have a closing date, set possessionDate to closingDate
-  if (!extracted.possessionDate && extracted.possession && (extracted.possession.type === 'closing' || extracted.possession.type === 'funding') && extracted.closingDate) {
+  const possessionAutoPopulated = !extracted.possessionDate && extracted.possession && (extracted.possession.type === 'closing' || extracted.possession.type === 'funding') && extracted.closingDate;
+  if (possessionAutoPopulated) {
     extracted.possessionDate = extracted.closingDate;
   }
   if (!extracted.lenderName && extracted.parties && typeof extracted.parties.lender === 'string' && extracted.parties.lender.trim()) {
@@ -957,6 +958,12 @@ async function scanContract(pdfBase64) {
   }
 
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
+
+  // Set confidence to 1.0 for auto-populated possessionDate (derived from closingDate)
+  if (possessionAutoPopulated && extracted.possessionDate) {
+    confidence.possessionDate = 1.0;
+  }
+
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.filter((w) => typeof w === 'string') : [];
 
   // Sales-price sanity-check warning (50k–5M for Texas residential).
