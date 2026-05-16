@@ -457,7 +457,7 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - hoaName, hoaManagementCompany — populated from the HOA Addendum (TREC 36-x) if attached: hoaName is the association name, hoaManagementCompany is the management company / agent that fulfills resale certificates. Both null when no HOA addendum.
 - mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
 - possessionDate — yyyy-MM-dd when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
-- appraisalDeadline — date by which appraisal/lender's right-to-terminate notice must be delivered, derived from the Right-to-Terminate-Due-to-Lender's-Appraisal addendum (effective date + appraisalTerminationDays) when present. Null otherwise.
+- appraisalDeadline — ONLY populate if an explicit appraisal deadline or appraisal objection deadline date is stated in Paragraph 6, the Third Party Financing Addendum, or any Right-to-Terminate-Due-to-Lender's-Appraisal addendum. Look for phrases like "appraisal deadline", "appraisal objection deadline", or "buyer may terminate if appraisal does not meet... by [date]". Return the date in yyyy-MM-dd format. If no explicit date is stated, return null. Do NOT calculate or derive a date.
 - surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Sometimes specified in Paragraph 6C ("Survey"); typically a number of days after effective date. Convert to yyyy-MM-dd if both effective date and the day count are known. Null otherwise.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
 - loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
@@ -513,7 +513,7 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "sqft": number | null,
     "yearBuilt": number | null,
     "possessionDate": string | null,             // yyyy-MM-dd; mirror of possession.specificDate
-    "appraisalDeadline": string | null,          // yyyy-MM-dd; effective + appraisalTerminationDays
+    "appraisalDeadline": string | null,          // yyyy-MM-dd; only if explicitly stated in contract, not calculated
     "surveyDeadline": string | null,             // yyyy-MM-dd if computable from 6C
     "hoaDocumentDeadline": string | null,        // yyyy-MM-dd from HOA addendum
     "loanApprovalDeadline": string | null,       // yyyy-MM-dd; effective + financingDays
@@ -922,6 +922,10 @@ async function scanContract(pdfBase64) {
   if (!extracted.possessionDate && extracted.possession && extracted.possession.specificDate) {
     extracted.possessionDate = extracted.possession.specificDate;
   }
+  // If possession is "upon closing" and we have a closing date, set possessionDate to closingDate
+  if (!extracted.possessionDate && extracted.possession && (extracted.possession.type === 'closing' || extracted.possession.type === 'funding') && extracted.closingDate) {
+    extracted.possessionDate = extracted.closingDate;
+  }
   if (!extracted.lenderName && extracted.parties && typeof extracted.parties.lender === 'string' && extracted.parties.lender.trim()) {
     extracted.lenderName = extracted.parties.lender;
   }
@@ -936,10 +940,7 @@ async function scanContract(pdfBase64) {
     const calc = addDays(extracted.contractEffectiveDate, extracted.financingDays);
     if (calc) extracted.loanApprovalDeadline = calc;
   }
-  if (!extracted.appraisalDeadline) {
-    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.appraisalTerminationDays);
-    if (calc) extracted.appraisalDeadline = calc;
-  }
+  // appraisalDeadline: do NOT calculate automatically — only use if explicitly stated in contract
 
   // CRITICAL: Parse optionDays directly from debugParagraph5B using regex.
   // Claude's extraction is unreliable (keeps returning 10 instead of 7).
