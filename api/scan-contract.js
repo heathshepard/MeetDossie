@@ -939,6 +939,20 @@ async function scanContract(pdfBase64) {
     if (calc) extracted.appraisalDeadline = calc;
   }
 
+  // CRITICAL: Parse optionDays directly from debugParagraph5B using regex.
+  // Claude's extraction is unreliable (keeps returning 10 instead of 7).
+  // Regex is deterministic and parses the text Claude already captured.
+  if (extracted.debugParagraph5B && typeof extracted.debugParagraph5B === 'string') {
+    const match = extracted.debugParagraph5B.match(/within\s+(\d+)\s+days after the Effective Date of this contract \(Option Period\)/i);
+    if (match) {
+      const parsedDays = parseInt(match[1], 10);
+      if (Number.isFinite(parsedDays) && parsedDays >= 3 && parsedDays <= 30) {
+        extracted.optionDays = parsedDays;
+        extracted.paragraph23TerminationOption.optionDays = parsedDays;
+      }
+    }
+  }
+
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.filter((w) => typeof w === 'string') : [];
 
