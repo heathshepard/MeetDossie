@@ -97,17 +97,19 @@ DO NOT flag a signature or initial as missing if there is a DocuSign block, time
 DOCUSIGN DETECTION:
 If the document header contains "DocuSign Envelope ID:" this is a DocuSign-executed document. In DocuSign contracts:
 - Electronic initials appear as small text initials (like "KP", "MS") in boxes at the bottom of pages — these ARE valid initials, count them as present
-- The "Initialed for identification by Buyer [initials]" line with ANY text or mark counts as initialed
+- The "Initialed for identification by Buyer [initials]" line with ANY text or mark (letters, timestamps, or names) counts as initialed
 - DocuSign signature blocks showing the signer's name and a timestamp are valid signatures
-- If you see "DocuSign Envelope ID:" at the top of the document, assume all parties who appear in the signature/initial blocks have properly executed their portions electronically unless a block is completely blank with no name or timestamp
 
-For DocuSign documents, only flag missing signatures/initials if a signature block is completely empty with no name, no timestamp, and no electronic mark of any kind.
+CRITICAL: Do NOT assume all initials are present just because the document has a DocuSign Envelope ID. Check EACH page individually:
+- If a page has an initial line at the bottom and there is NO mark, NO initials, NO timestamp, and NO electronic indicator in that specific location, flag it as missing initials for that page
+- A blank initial line is still a missing initial, even in a DocuSign document
+- Only count an initial as present if you can see an actual mark, letters, timestamp, or electronic indicator in that specific initial location
 
 BROKER INFO BLOCK (Page 10):
 The broker information block says "Print name(s) only. Do not sign" — agents are NOT supposed to sign this block. Printed names are correct and compliant. Do NOT flag missing signatures on the broker info block.
 
 OPTION DAYS:
-Look carefully at Paragraph 5B for the termination option period. It may show a number written in words or digits. Common values are 5, 7, 10 days. Do not flag as blank if any number is present.
+IMPORTANT: The extraction engine has already parsed optionDays from Paragraph 5B. If the extractedFields object contains a valid optionDays value (number between 3-30), do NOT flag Paragraph 5B or option period as blank in your compliance report. The field is populated even if you cannot visually see it clearly in the paragraph.
 
 PARAGRAPH 7B — SELLER'S DISCLOSURE NOTICE:
 Paragraph 7B has checkboxes for how the Seller's Disclosure Notice is being handled. These are MUTUALLY EXCLUSIVE options:
@@ -1077,6 +1079,16 @@ async function runFullScan(pdfBase64) {
   const extractedFields = trecExtraction
     ? trecExtraction.extracted
     : (complianceReport.extractedFields || {});
+
+  // Post-process compliance report based on extracted fields
+  if (documentType === 'trec-20-17' && trecExtraction && complianceReport) {
+    // If optionDays was successfully extracted, remove any "Option days" blank field findings
+    if (typeof extractedFields.optionDays === 'number' && extractedFields.optionDays >= 3 && extractedFields.optionDays <= 30) {
+      complianceReport.blankRequiredFields = (complianceReport.blankRequiredFields || []).filter(
+        field => !field.toLowerCase().includes('option') && !field.toLowerCase().includes('paragraph 5')
+      );
+    }
+  }
 
   return {
     documentType,
