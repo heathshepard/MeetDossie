@@ -38,7 +38,7 @@ from reportlab.pdfgen import canvas
 HERE = Path(__file__).parent
 TREC_DIR = HERE / "trec-forms"
 SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE"
+ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 DEMO_EMAIL = "demo@meetdossie.com"
 DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab"
 UPLOAD_URL = "https://meetdossie.com/api/upload-document"

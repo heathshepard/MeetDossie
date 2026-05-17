@@ -6,7 +6,7 @@ import urllib.error
 import subprocess
 from pathlib import Path
 
-API_KEY = os.environ.get("ELEVENLABS_API_KEY") or "sk_18df32e2fd136d24c8d76dfac76457259704ae30ac271b15"
+API_KEY = os.environ["ELEVENLABS_API_KEY"]
 BILL = "pqHfZKP75CvOlQylNhV4"
 MODEL = "eleven_turbo_v2"
 OUT_DIR = Path(r"C:\Users\Heath Shepard\Desktop\MeetDossie\Media")

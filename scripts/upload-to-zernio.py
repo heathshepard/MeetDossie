@@ -9,7 +9,7 @@ from pathlib import Path
 
 ZERNIO_BASE = "https://zernio.com/api/v1"
 SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzYwOTMsImV4cCI6MjA5MTI1MjA5M30.Ejlr9jdITeI0nlIvjr5fxeH5XMqvMbkVpsVQzjNf4iE"
+SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 
 def main():
     api_key = os.environ.get("ZERNIO_API_KEY", "")
