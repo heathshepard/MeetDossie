@@ -12,7 +12,7 @@ async function resetAndVerify() {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczODI3MTEzNiwiZXhwIjoyMDUzODQ3MTM2fQ.OnJpc2VyYXRpb25Qcm92aWRlcicge30=',
+      'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
       'Prefer': 'return=representation',
     },

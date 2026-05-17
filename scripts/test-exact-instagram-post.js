@@ -1,6 +1,6 @@
 // Test the exact Instagram post payload that n8n would send
 
-const ZERNIO_API_KEY = 'sk_c86c494854af4e4403f681982cc0150c902b2f48affafcb8c2a2859f8785eaa3';
+const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
 
 // This is the exact Patricia Instagram post content
 const payload = {
