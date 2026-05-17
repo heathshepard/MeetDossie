@@ -31,6 +31,11 @@ When given a task with a success condition:
 
 ### NEVER DO THESE
 - Never commit secrets to GitHub (repo is PUBLIC)
+- **NEVER hardcode API keys, tokens, or secrets in any file including test scripts**
+  - Always use `process.env.VARIABLE_NAME` (JavaScript) or `os.environ["VARIABLE_NAME"]` (Python)
+  - No fallback values with hardcoded keys (e.g., `process.env.KEY || "sk_..."` is FORBIDDEN)
+  - The repo is PUBLIC — any hardcoded secret is immediately exposed
+  - Pre-commit hook will block commits with exposed secrets
 - Never use test Stripe cards (LIVE MODE only)
 - Never reset ALL posts — only today's posts or specific post_ids
 - Never skip staging

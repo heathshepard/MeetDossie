@@ -1,6 +1,6 @@
 // Monitor n8n executions for 5 minutes and report results
 
-const N8N_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YjA1YzhlYS1iMGU0LTRmNzMtYjZlYy0zYjYyZjI2NWRlODAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMDk5NTQzMDktMzdmOC00YjhkLTk1NDctODBkZjk0MTQ4YTU0IiwiaWF0IjoxNzc4Nzg4ODQxfQ.J3BzOO2nXZw3xq2vOlSeB88um35Amkka4O05sVTBk8o';
+const N8N_API_KEY = process.env.N8N_API_KEY;
 const WORKFLOW_ID = 'a6RrdAJwVSghHBss';
 
 let lastExecutionId = null;

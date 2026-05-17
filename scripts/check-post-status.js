@@ -2,7 +2,7 @@
 
 async function checkPosts() {
   const SUPABASE_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co';
-  const CRON_SECRET = '240fd4ebb0a46a61262a20e2000402bb4402dd9a7d426f00631e99c056b4bc8c';
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
   // Query via the API endpoint that has auth
   const posts = [
@@ -19,7 +19,7 @@ async function checkPosts() {
   for (const postId of posts) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/social_posts?post_id=eq.${postId}&select=post_id,platform,status,approved_at,posted_at,error_message,publishing_started_at`, {
       headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgyNzExMzYsImV4cCI6MjA1Mzg0NzEzNn0.G_irtZHfPOL_KW7vVcN6gXQq0ogKknpQzrR8kA3tziM',
+        'apikey': SUPABASE_ANON_KEY,
       }
     });
 
