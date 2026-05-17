@@ -295,6 +295,9 @@ async function pushToZernio(post) {
     payload.publishNow = true;
   }
 
+  // Log request payload for debugging
+  console.log(`[zernio-request] post ${post.id} (${post.platform}):`, JSON.stringify(payload));
+
   try {
     const res = await retryFetch(
       ZERNIO_POSTS_URL,
@@ -311,17 +314,25 @@ async function pushToZernio(post) {
     const respText = await res.text();
     let data = null;
     try { data = respText ? JSON.parse(respText) : null; } catch { data = null; }
+
+    // Log response for debugging
+    console.log(`[zernio-response] post ${post.id} (${post.platform}): status=${res.status}, body=${respText.slice(0, 500)}`);
+
     if (!res.ok) {
+      const errorMsg = `Zernio API ${res.status}: ${respText.slice(0, 500)}`;
+      console.error(`[zernio-error] post ${post.id} (${post.platform}):`, errorMsg);
       return {
         ok: false,
         status: res.status,
-        error: respText.slice(0, 1000),
+        error: errorMsg,
         data,
       };
     }
     return { ok: true, status: res.status, data, zernio_post_id: data?.id || data?.post_id || null };
   } catch (err) {
-    return { ok: false, error: err && err.message };
+    const errorMsg = err && err.message ? `Zernio exception: ${err.message}` : 'No response from Zernio';
+    console.error(`[zernio-exception] post ${post.id} (${post.platform}):`, errorMsg);
+    return { ok: false, error: errorMsg };
   }
 }
 
