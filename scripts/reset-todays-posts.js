@@ -5,7 +5,7 @@ async function resetTodaysPosts() {
   console.log(`Resetting posts from ${today}...`);
 
   const SUPABASE_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co';
-  const CRON_SECRET = 'REDACTED_CRON_SECRET_ROTATED_2026_06_27';
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
   // Call the API endpoint but we need to modify it to filter by date
   // For now, let's just manually update today's posts
@@ -25,7 +25,7 @@ async function resetTodaysPosts() {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnd29pdGJkaXl1Ymp1Z3d1ZmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgyNzExMzYsImV4cCI6MjA1Mzg0NzEzNn0.G_irtZHfPOL_KW7vVcN6gXQq0ogKknpQzrR8kA3tziM',
+        'apikey': SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         status: 'approved',

@@ -11,7 +11,7 @@ import urllib.error
 import subprocess
 from pathlib import Path
 
-API_KEY = os.environ.get("ELEVENLABS_API_KEY") or "sk_18df32e2fd136d24c8d76dfac76457259704ae30ac271b15"
+API_KEY = os.environ["ELEVENLABS_API_KEY"]
 VOICE_ID = os.environ.get("VOICE_ID", "ErXwobaYiN019PkySvjV")  # default: Antoni
 MODEL = "eleven_turbo_v2"
 OUTPUT = Path(os.environ.get("OUTPUT_PATH", r"C:\Users\Heath Shepard\Desktop\MeetDossie\Media\beta-recruit-v1-voiceover.mp3"))

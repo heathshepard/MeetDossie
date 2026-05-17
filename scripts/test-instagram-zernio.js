@@ -1,6 +1,6 @@
 // Test exact Zernio format that worked for Facebook, then add mediaItems for Instagram
 
-const ZERNIO_API_KEY = 'sk_c86c494854af4e4403f681982cc0150c902b2f48affafcb8c2a2859f8785eaa3';
+const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
 
 // First, test the exact Facebook format (no mediaItems, text only)
 async function testFacebookFormat() {

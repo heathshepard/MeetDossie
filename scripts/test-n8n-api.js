@@ -1,5 +1,5 @@
 // Test different n8n API paths
-const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YjA1YzhlYS1iMGU0LTRmNzMtYjZlYy0zYjYyZjI2NWRlODAiLCJpc3MiOiJuOG4iLCJhdWQiOiJtY3Atc2VydmVyLWFwaSIsImp0aSI6ImQ3MzY2ZjE4LTNiYjQtNDJhMC1hZDZhLWU3ZDNhNGU1MDllYiIsImlhdCI6MTc3ODc4NDM4Nn0.hPf1R7_iOE8RUnBG1AfwjCsiyywgV8zGtpHP0pKWv2k';
+const token = process.env.N8N_API_KEY;
 
 const paths = [
   'https://meetdossie.app.n8n.cloud/api/v1/workflows',
