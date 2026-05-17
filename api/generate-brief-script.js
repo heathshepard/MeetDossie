@@ -28,8 +28,9 @@ export default async function handler(req, res) {
 - Client: ${item.clientName}
 - Property: ${item.shortAddress}
 - Closing: ${item.closingDays >= 0 ? `${item.closingDays} days` : 'not set'}
-- Escalated: ${escalatedItems.map(a => `${a.description} (${a.follow_up_count || 0} follow-ups sent)`).join('; ')}
-- Overdue: ${overdueItems.map(a => a.description).join('; ')}`;
+- Urgent deadline: ${item.urgentDeadlines?.map(d => d.label || d.description).join('; ') || item.reasons?.join('; ') || 'Deadline approaching'}
+- Escalated: ${escalatedItems.map(a => `${a.description} (${a.follow_up_count || 0} follow-ups sent)`).join('; ') || 'none'}
+- Overdue: ${overdueItems.map(a => a.description).join('; ') || 'none'}`;
     }).join('\n\n');
 
     const prompt = `You are Dossie, a transaction coordinator AI assistant. Write a natural, conversational Morning Brief script for ${userFirstName}.
@@ -48,6 +49,7 @@ INSTRUCTIONS:
 - Use client name + property format: "Olivia Park at Cibolo Vista"
 - Keep under 50 seconds when spoken (about 150 words max)
 - End with exactly these two lines: "Everything else is moving cleanly. Your deals are in good hands." Then: "I've got you covered."
+- CRITICAL: Only mention what is explicitly listed above. If Escalated and Overdue are 'none', do NOT invent tasks or follow-ups. Only reference the Urgent deadline listed.
 
 Write ONLY the script text that Luna will read. No explanations, no meta-commentary.`;
 
