@@ -24,6 +24,16 @@ async function supabaseFetch(path, init = {}) {
 }
 
 export default async function handler(req, res) {
+  // Log all incoming requests before auth check
+  console.log('[MARK-FAILED] Incoming request:', {
+    timestamp: new Date().toISOString(),
+    userAgent: req.headers['user-agent'],
+    ip: req.headers['x-forwarded-for'],
+    id: req.body?.id,
+    error_message: req.body?.error_message,
+    authHeader: req.headers.authorization?.substring(0, 20) + '...'
+  });
+
   // Auth check
   const authHeader = req.headers.authorization || req.headers.Authorization || '';
   if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
