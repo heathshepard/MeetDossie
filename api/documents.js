@@ -19,6 +19,7 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
   'https://www.meetdossie.com',
+  'https://staging.meetdossie.com',
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
@@ -26,7 +27,8 @@ function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
   let allowOrigin = null;
   if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
+    // Allow explicit origins, localhost, and all Vercel preview URLs
+    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.meetdossie.com')) {
       allowOrigin = origin;
     }
   }
@@ -36,7 +38,8 @@ function applyCors(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   }
-  return Boolean(allowOrigin);
+  // Same-origin requests have no Origin header — let them through.
+  return Boolean(allowOrigin) || !origin;
 }
 
 async function supabaseRest(path, init) {
