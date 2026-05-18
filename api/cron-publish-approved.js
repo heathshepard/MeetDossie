@@ -389,12 +389,12 @@ async function countPostedToday(platform, tz) {
 // current time >= some slot, daily cap not exhausted.
 // Called per-iteration (no caching) so the cap reflects rows freshly posted
 // earlier in the same cron run.
-// Day-of-week filtering removed — all platforms post every day.
 async function isDueForPublish(platform, schedules) {
-  const row = schedules.find((s) => s.platform === platform);
-  if (!row) return { due: true, reason: 'no schedule row — falling back to immediate' };
-  const tz = row.timezone || 'America/Chicago';
+  // Filter by platform AND current day of week
+  const tz = 'America/Chicago'; // Default timezone for day calculation
   const today = nowInTz(tz);
+  const row = schedules.find((s) => s.platform === platform && s.day_of_week === today.dow);
+  if (!row) return { due: true, reason: `no schedule row for ${platform} on day ${today.dow} — falling back to immediate` };
 
   const slots = (row.time_slots || []).map(hhmmToMin).sort((a, b) => a - b);
   const nowMin = hhmmToMin(today.hhmm);
