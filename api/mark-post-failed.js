@@ -24,6 +24,26 @@ async function supabaseFetch(path, init = {}) {
 }
 
 export default async function handler(req, res) {
+  // Log to Supabase table BEFORE any auth check to catch all callers
+  try {
+    const authHeader = req.headers.authorization || req.headers.Authorization || '';
+    const authPrefix = authHeader ? authHeader.substring(0, 20) + '...' : 'none';
+
+    await supabaseFetch('/rest/v1/mark_post_failed_logs', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        post_id: req.body?.id || null,
+        error_message: req.body?.error_message || null,
+        user_agent: req.headers['user-agent'] || null,
+        ip_address: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || null,
+        auth_header_prefix: authPrefix,
+      }),
+    });
+  } catch (logError) {
+    console.error('[MARK-FAILED] Failed to log to Supabase:', logError.message);
+  }
+
   // Log all incoming requests before auth check
   console.log('[MARK-FAILED] Incoming request:', {
     timestamp: new Date().toISOString(),
