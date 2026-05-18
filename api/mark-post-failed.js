@@ -70,6 +70,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'Missing required field: id' });
   }
 
+  // CRITICAL: Block any attempt to mark a post failed without a valid error message.
+  // This prevents rogue processes (like the n8n workflow) from marking posts failed
+  // with null/empty error_message before cron has a chance to publish them.
+  if (!error_message || typeof error_message !== 'string' || error_message.trim() === '') {
+    console.log('[MARK-FAILED] BLOCKED: Attempt to mark post failed with null/empty error_message');
+    return res.status(400).json({
+      ok: false,
+      error: 'error_message is required and must be a non-empty string',
+      blocked: true,
+      reason: 'Preventing rogue process from marking posts failed without valid error'
+    });
+  }
+
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: 'Supabase not configured' });
   }
