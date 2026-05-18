@@ -14,6 +14,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
+const AUTO_APPROVE_POSTS = process.env.AUTO_APPROVE_POSTS !== 'false'; // Default true
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
@@ -519,7 +520,7 @@ module.exports = async function handler(req, res) {
       hook: hook || caption.slice(0, 120),
       cta,
       hashtags,
-      status: 'draft',
+      status: AUTO_APPROVE_POSTS ? 'approved' : 'draft',
       telegram_sent_at: null,
       zernio_account_id: zernioAccountId,
       persona,
