@@ -23,6 +23,11 @@ const BRAND = {
 
 function buildMilestoneCardHTML(stage, cityState) {
   const stageData = {
+    'under-contract': {
+      eyebrow: 'MILESTONE',
+      headline: 'Under Contract.',
+      subhead: 'Another one in motion.',
+    },
     'clear-to-close': {
       eyebrow: 'MILESTONE',
       headline: 'Clear to Close.',
@@ -136,15 +141,13 @@ module.exports = async function handler(req, res) {
   }
 
   const milestones = [
-    // CLEAR-TO-CLOSE
-    { transactionId: '925ce85d-1a33-4b60-a36b-d89f36a5a0eb', type: 'clear-to-close', cityState: 'San Antonio, TX' }, // DEMO-003
-    { transactionId: '9591944f-3e84-49c8-aa69-764b7eb0d320', type: 'clear-to-close', cityState: 'Boerne, TX' },        // DEMO-005
-
-    // CLOSED
-    { transactionId: '925ce85d-1a33-4b60-a36b-d89f36a5a0eb', type: 'closed', cityState: 'San Antonio, TX' }, // DEMO-003
-    { transactionId: 'dbb0c7a5-2f2c-493e-b95d-8e3c94b5f7d2', type: 'closed', cityState: 'San Antonio, TX' }, // DEMO-004
-    { transactionId: '9591944f-3e84-49c8-aa69-764b7eb0d320', type: 'closed', cityState: 'Boerne, TX' },        // DEMO-005
-    { transactionId: 'a6ebe1af-8e5d-4c9a-b2f3-7d9c8a1e5f3b', type: 'closed', cityState: 'San Antonio, TX' }, // DEMO-006
+    // UNDER-CONTRACT
+    { transactionId: '749c9d27-454d-4b2b-ab4c-526623ac4ae8', type: 'under-contract', cityState: 'San Antonio, TX' }, // DEMO-001
+    { transactionId: 'ee2a7513-4fb9-479a-9d3e-e320e5d2806a', type: 'under-contract', cityState: 'Boerne, TX' },        // DEMO-002
+    { transactionId: '925ce85d-4f26-4e74-80f7-ddaa5ec4863f', type: 'under-contract', cityState: 'San Antonio, TX' }, // DEMO-003
+    { transactionId: 'dbb0c7a5-0322-4f5a-a462-a76ed86bf4af', type: 'under-contract', cityState: 'San Antonio, TX' }, // DEMO-004
+    { transactionId: '9591944f-3e84-49c8-aa69-764b7eb0d320', type: 'under-contract', cityState: 'Boerne, TX' },        // DEMO-005
+    { transactionId: 'a6ebe1af-9ef7-4873-90cb-46675638fdff', type: 'under-contract', cityState: 'San Antonio, TX' }, // DEMO-006
   ];
 
   const results = [];
