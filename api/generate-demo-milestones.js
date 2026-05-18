@@ -22,17 +22,14 @@ const BRAND = {
 };
 
 function buildMilestoneCardHTML(stage, cityState) {
-  const W = 1080;
-  const H = 1080;
-
   const stageData = {
     'clear-to-close': {
-      eyebrow: 'Milestone',
+      eyebrow: 'MILESTONE',
       headline: 'Clear to Close.',
       subhead: 'Stack of paperwork: handled.',
     },
     'closed': {
-      eyebrow: 'Closed deal',
+      eyebrow: 'CLOSED DEAL',
       headline: 'Closed.',
       subhead: 'Keys delivered.',
     },
@@ -40,132 +37,22 @@ function buildMilestoneCardHTML(stage, cityState) {
 
   const text = stageData[stage];
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      width: ${W}px;
-      height: ${H}px;
-      background: linear-gradient(135deg, ${BRAND.blushLight} 0%, #FFFFFF 60%, #FFFFFF 100%);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      width: ${W}px;
-      height: ${H}px;
-      padding: 32px;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      border: 4px solid ${BRAND.gold};
-      box-sizing: border-box;
-    }
-    .eyebrow {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 700;
-      font-size: 28px;
-      text-transform: uppercase;
-      color: ${BRAND.goldDeep};
-      margin-top: 160px;
-      letter-spacing: 2px;
-    }
-    .headline {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 700;
-      font-size: 200px;
-      line-height: 1;
-      color: ${BRAND.navy};
-      margin-top: 20px;
-      text-align: center;
-    }
-    .subhead {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 600;
-      font-style: italic;
-      font-size: 50px;
-      color: ${BRAND.blushDeep};
-      margin-top: 30px;
-      text-align: center;
-    }
-    .location {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 600;
-      font-size: 70px;
-      color: ${BRAND.navy};
-      margin-top: 80px;
-      text-align: center;
-    }
-    .footer {
-      position: absolute;
-      bottom: 80px;
-      left: 80px;
-      right: 80px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .handled-by {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 500;
-      font-size: 20px;
-      color: ${BRAND.textSoft};
-      margin-bottom: 6px;
-    }
-    .url {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 700;
-      font-size: 17px;
-      color: ${BRAND.goldDeep};
-    }
-    .mark {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: ${BRAND.gold};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 3px solid white;
-    }
-    .mark-d {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 700;
-      font-size: 65px;
-      color: white;
-      line-height: 1;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="eyebrow">${text.eyebrow.toUpperCase()}</div>
-    <div class="headline">${text.headline}</div>
-    <div class="subhead">${text.subhead}</div>
-    <div class="location">${cityState}</div>
-    <div class="footer">
-      <div>
-        <div class="handled-by">Handled by Dossie</div>
-        <div class="url">meetdossie.com/founding</div>
-      </div>
-      <div class="mark">
-        <div class="mark-d">D</div>
-      </div>
+  // Full 1080x1080 card with inline styles only - no <head>, <style>, or external resources
+  return `<div style="background:linear-gradient(135deg,#F5EDE4 0%,#FFFFFF 60%,#FFFFFF 100%);width:1080px;height:1080px;position:relative;border:4px solid #C9A96E;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:32px;font-family:Georgia,serif;">
+  <div style="margin-top:160px;font-size:28px;font-weight:bold;color:#A48531;letter-spacing:2px;text-align:center;">${text.eyebrow}</div>
+  <div style="margin-top:30px;font-size:180px;font-weight:bold;color:#1A1A2E;line-height:0.9;text-align:center;">${text.headline}</div>
+  <div style="margin-top:40px;font-size:52px;font-style:italic;color:#D4A0A0;text-align:center;">${text.subhead}</div>
+  <div style="margin-top:100px;font-size:72px;font-weight:600;color:#1A1A2E;text-align:center;">${cityState}</div>
+  <div style="position:absolute;bottom:80px;left:80px;right:80px;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:20px;color:#7A7468;margin-bottom:8px;">Handled by Dossie</div>
+      <div style="font-size:18px;font-weight:bold;color:#A48531;">meetdossie.com/founding</div>
+    </div>
+    <div style="width:110px;height:110px;border-radius:50%;background:#C9A96E;display:flex;align-items:center;justify-content:center;border:3px solid white;">
+      <div style="font-size:70px;font-weight:bold;color:white;">D</div>
     </div>
   </div>
-</body>
-</html>
-  `.trim();
+</div>`.trim();
 }
 
 async function generateCardWithHCTI(stage, cityState) {
@@ -178,11 +65,7 @@ async function generateCardWithHCTI(stage, cityState) {
       'Authorization': `Basic ${auth}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      html,
-      google_fonts: true,
-      ms_delay: 2000,
-    }),
+    body: JSON.stringify({ html }),
   });
 
   if (!response.ok) {
