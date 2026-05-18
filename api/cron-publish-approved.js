@@ -372,10 +372,46 @@ async function loadSchedules() {
 
 // Count how many posts already published for `platform` today (in the platform tz).
 async function countPostedToday(platform, tz) {
-  const today = nowInTz(tz).dateKey;
-  // Postgres timestamp comparison in UTC; the day window is computed locally.
-  const startOfDayUtc = new Date(`${today}T00:00:00`).toISOString();
-  const endOfDayUtc = new Date(`${today}T23:59:59.999`).toISOString();
+  const today = nowInTz(tz).dateKey; // e.g., "2026-05-18" in the platform's timezone
+
+  // BUG FIX (2026-05-18): The original code did `new Date("2026-05-18T00:00:00")` which
+  // is ambiguous and gets parsed as LOCAL time. On Vercel (UTC), this meant checking
+  // "May 18 midnight-to-midnight UTC" instead of "May 18 midnight-to-midnight America/Chicago".
+  //
+  // Fix: Use toLocaleString to construct a date AT MIDNIGHT in the target timezone,
+  // then parse it back to get the equivalent UTC timestamp.
+
+  // Construct a string representing midnight in the target timezone
+  const [year, month, day] = today.split('-').map(Number);
+
+  // Create a base date (any date will do, we just need the offset)
+  const now = new Date();
+
+  // Format "today at midnight" as a string in the target timezone
+  const midnightStr = `${month}/${day}/${year}, 00:00:00`;
+  const endOfDayStr = `${month}/${day}/${year}, 23:59:59`;
+
+  // Parse these strings as if they're in the target timezone by using a formatter
+  // Trick: toLocaleString with timeZone gives us the local representation, but we need the reverse
+  // So we construct the string in "M/D/YYYY, HH:MM:SS" format and parse it as if it were UTC,
+  // then adjust by the offset
+
+  // Simpler approach: construct the date by getting the offset
+  const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)); // Noon on the target day in UTC
+  const utcString = testDate.toLocaleString('en-US', { timeZone: 'UTC' });
+  const tzString = testDate.toLocaleString('en-US', { timeZone: tz });
+  const utcMs = new Date(utcString).getTime();
+  const tzMs = new Date(tzString).getTime();
+  const offsetMs = utcMs - tzMs;
+
+  // Now create midnight and end-of-day in the target timezone
+  const midnightTz = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+  const endOfDayTz = Date.UTC(year, month - 1, day, 23, 59, 59, 999);
+
+  // Convert to UTC by applying the offset
+  const startOfDayUtc = new Date(midnightTz + offsetMs).toISOString();
+  const endOfDayUtc = new Date(endOfDayTz + offsetMs).toISOString();
+
   const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
