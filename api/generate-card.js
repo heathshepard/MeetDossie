@@ -272,6 +272,7 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
   });
 
   // Call htmlcsstoimage API with retry
+  // CRITICAL: google_fonts and ms_delay ensure fonts load before screenshot
   const auth = Buffer.from(`${hctiUserId}:${hctiApiKey}`).toString('base64');
   const response = await retryFetch(
     'https://hcti.io/v1/image',
@@ -281,7 +282,11 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ html }),
+      body: JSON.stringify({
+        html,
+        google_fonts: true,  // Enable Google Fonts CDN
+        ms_delay: 2000,      // Wait 2s for fonts to load before screenshot
+      }),
     },
     { name: 'HCTI', maxAttempts: 3, baseDelay: 1000 }
   );
