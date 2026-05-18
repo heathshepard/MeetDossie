@@ -412,13 +412,19 @@ async function countPostedToday(platform, tz) {
   const startOfDayUtc = new Date(midnightTz + offsetMs).toISOString();
   const endOfDayUtc = new Date(endOfDayTz + offsetMs).toISOString();
 
+  console.log(`[countPostedToday] ${platform} on ${today} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc} (offset=${offsetMs}ms)`);
+
   const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
-    `&select=id`;
+    `&select=id,post_id,posted_at`;
   const { data, ok } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
   if (!ok) return 0;
-  return Array.isArray(data) ? data.length : 0;
+  const count = Array.isArray(data) ? data.length : 0;
+  if (count > 0) {
+    console.log(`[countPostedToday] ${platform}: found ${count} posts:`, data.map(p => `${p.post_id} at ${p.posted_at}`).join(', '));
+  }
+  return count;
 }
 
 // Decide if `platform` should publish right now: needs schedule row,
