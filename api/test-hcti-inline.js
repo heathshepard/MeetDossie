@@ -29,8 +29,6 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         html: inlineHTML,
-        google_fonts: true,
-        ms_delay: 2000,
       }),
     });
 
