@@ -133,15 +133,16 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, skipped: true, reason: 'telegram env not configured' });
   }
 
-  // Find drafts that haven't been pushed to Telegram yet.
-  const { data: drafts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?status=eq.draft&telegram_sent_at=is.null&order=created_at.asc&limit=${MAX_PER_RUN}`,
+  // Find posts that haven't been pushed to Telegram yet (both draft and approved).
+  // Draft posts get approval buttons, approved posts get preview notifications only.
+  const { data: posts, ok: loadOk } = await supabaseFetch(
+    `/rest/v1/social_posts?telegram_sent_at=is.null&status=in.(draft,approved)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
-    return res.status(502).json({ ok: false, error: 'failed to load drafts' });
+    return res.status(502).json({ ok: false, error: 'failed to load posts' });
   }
-  const items = Array.isArray(drafts) ? drafts : [];
-  console.log('[cron-send-for-approval] drafts to send:', items.length);
+  const items = Array.isArray(posts) ? posts : [];
+  console.log('[cron-send-for-approval] posts to send:', items.length, '— draft:', items.filter(p => p.status === 'draft').length, 'approved:', items.filter(p => p.status === 'approved').length);
 
   let sent = 0;
   const sendErrors = [];
@@ -157,9 +158,13 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Message 2: Full content + hashtags WITH approve/reject buttons
+    // Message 2: Full content + hashtags.
+    // Draft posts get approve/reject buttons, approved posts get no buttons (preview only).
     const fullContent = formatFullContent(post);
-    const textResult = await telegramSend(TELEGRAM_CHAT_ID, fullContent, inlineKeyboard(post.id), null);
+    const isDraft = post.status === 'draft';
+    const buttons = isDraft ? inlineKeyboard(post.id) : null;
+    const prefix = isDraft ? '' : '✅ AUTO-APPROVED\n\n';
+    const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
     if (!textResult.ok) {
       console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
       sendErrors.push({ id: post.id, step: 'text', status: textResult.status, body: textResult.raw?.slice(0, 200) });
