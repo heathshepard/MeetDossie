@@ -378,41 +378,53 @@ async function countPostedToday(platform, tz) {
   // is ambiguous and gets parsed as LOCAL time. On Vercel (UTC), this meant checking
   // "May 18 midnight-to-midnight UTC" instead of "May 18 midnight-to-midnight America/Chicago".
   //
-  // Fix: Use toLocaleString to construct a date AT MIDNIGHT in the target timezone,
-  // then parse it back to get the equivalent UTC timestamp.
+  // Fix: Construct Date objects representing midnight in the target TZ by using formatToParts
+  // to get the time components, then use those to build proper UTC timestamps.
 
-  // Construct a string representing midnight in the target timezone
   const [year, month, day] = today.split('-').map(Number);
 
-  // Create a base date (any date will do, we just need the offset)
-  const now = new Date();
+  // Helper: given time components in target TZ, return the UTC timestamp
+  function tzToUtc(y, m, d, h, min, sec, ms) {
+    // Create a date with these components in UTC
+    const utcDate = Date.UTC(y, m - 1, d, h, min, sec, ms);
 
-  // Format "today at midnight" as a string in the target timezone
-  const midnightStr = `${month}/${day}/${year}, 00:00:00`;
-  const endOfDayStr = `${month}/${day}/${year}, 23:59:59`;
+    // Now we need to adjust for the timezone offset
+    // Use formatToParts to see what hour this UTC moment is in the target TZ
+    const testDate = new Date(utcDate);
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).formatToParts(testDate).filter(p => p.type !== 'literal').map(p => [p.type, p.value])
+    );
 
-  // Parse these strings as if they're in the target timezone by using a formatter
-  // Trick: toLocaleString with timeZone gives us the local representation, but we need the reverse
-  // So we construct the string in "M/D/YYYY, HH:MM:SS" format and parse it as if it were UTC,
-  // then adjust by the offset
+    const tzY = parseInt(parts.year, 10);
+    const tzM = parseInt(parts.month, 10);
+    const tzD = parseInt(parts.day, 10);
+    const tzH = parseInt(parts.hour, 10);
 
-  // Simpler approach: construct the date by getting the offset
-  const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)); // Noon on the target day in UTC
-  const utcString = testDate.toLocaleString('en-US', { timeZone: 'UTC' });
-  const tzString = testDate.toLocaleString('en-US', { timeZone: tz });
-  const utcMs = new Date(utcString).getTime();
-  const tzMs = new Date(tzString).getTime();
-  const offsetMs = utcMs - tzMs;
+    // Calculate the offset in hours
+    // If UTC hour 0 shows as hour 19 in TZ, then TZ is UTC-5 (19 - 24 = -5)
+    let offsetHours = h - tzH;
+    // Handle day wraparound
+    if (tzD > d) offsetHours += 24; // TZ is behind UTC, wrapped to previous day
+    if (tzD < d) offsetHours -= 24; // TZ is ahead of UTC, wrapped to next day
 
-  // Now create midnight and end-of-day in the target timezone
-  const midnightTz = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
-  const endOfDayTz = Date.UTC(year, month - 1, day, 23, 59, 59, 999);
+    // Apply the offset to get the correct UTC time for the desired TZ time
+    return Date.UTC(y, m - 1, d, h - offsetHours, min, sec, ms);
+  }
 
-  // Convert to UTC by applying the offset
-  const startOfDayUtc = new Date(midnightTz + offsetMs).toISOString();
-  const endOfDayUtc = new Date(endOfDayTz + offsetMs).toISOString();
+  // Get UTC timestamps for midnight and end-of-day in the target timezone
+  const startOfDayUtc = new Date(tzToUtc(year, month, day, 0, 0, 0, 0)).toISOString();
+  const endOfDayUtc = new Date(tzToUtc(year, month, day, 23, 59, 59, 999)).toISOString();
 
-  console.log(`[countPostedToday] ${platform} on ${today} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc} (offset=${offsetMs}ms)`);
+  console.log(`[countPostedToday] ${platform} on ${today} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
 
   const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
