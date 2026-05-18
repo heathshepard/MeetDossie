@@ -49,11 +49,6 @@ function buildMilestoneCardHTML(stage, cityState) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     body {
       margin: 0;
       padding: 0;
@@ -61,18 +56,9 @@ function buildMilestoneCardHTML(stage, cityState) {
       height: ${H}px;
       background: linear-gradient(135deg, ${BRAND.blushLight} 0%, #FFFFFF 60%, #FFFFFF 100%);
       font-family: 'Plus Jakarta Sans', sans-serif;
-      overflow: hidden;
-      position: relative;
-    }
-    body::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at 85% 20%, rgba(212,160,160,0.35) 0%, rgba(212,160,160,0) 48%);
-      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .card {
       width: ${W}px;
@@ -97,7 +83,7 @@ function buildMilestoneCardHTML(stage, cityState) {
     .headline {
       font-family: 'Cormorant Garamond', serif;
       font-weight: 700;
-      font-size: 220px;
+      font-size: 200px;
       line-height: 1;
       color: ${BRAND.navy};
       margin-top: 20px;
@@ -107,7 +93,7 @@ function buildMilestoneCardHTML(stage, cityState) {
       font-family: 'Cormorant Garamond', serif;
       font-weight: 600;
       font-style: italic;
-      font-size: 60px;
+      font-size: 50px;
       color: ${BRAND.blushDeep};
       margin-top: 30px;
       text-align: center;
@@ -115,59 +101,47 @@ function buildMilestoneCardHTML(stage, cityState) {
     .location {
       font-family: 'Cormorant Garamond', serif;
       font-weight: 600;
-      font-size: 76px;
+      font-size: 70px;
       color: ${BRAND.navy};
       margin-top: 80px;
       text-align: center;
     }
     .footer {
       position: absolute;
-      bottom: 90px;
+      bottom: 80px;
       left: 80px;
       right: 80px;
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
-    }
-    .footer-left {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
     }
     .handled-by {
       font-family: 'Plus Jakarta Sans', sans-serif;
       font-weight: 500;
-      font-size: 22px;
+      font-size: 20px;
       color: ${BRAND.textSoft};
+      margin-bottom: 6px;
     }
     .url {
       font-family: 'Plus Jakarta Sans', sans-serif;
       font-weight: 700;
-      font-size: 18px;
+      font-size: 17px;
       color: ${BRAND.goldDeep};
     }
     .mark {
-      width: 112px;
-      height: 112px;
+      width: 100px;
+      height: 100px;
       border-radius: 50%;
-      background: linear-gradient(135deg, ${BRAND.blush} 0%, ${BRAND.gold} 100%);
+      background: ${BRAND.gold};
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-    }
-    .mark::before {
-      content: '';
-      position: absolute;
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      border: 2px solid rgba(201, 169, 110, 0.4);
+      border: 3px solid white;
     }
     .mark-d {
       font-family: 'Cormorant Garamond', serif;
       font-weight: 700;
-      font-size: 70px;
+      font-size: 65px;
       color: white;
       line-height: 1;
     }
@@ -180,7 +154,7 @@ function buildMilestoneCardHTML(stage, cityState) {
     <div class="subhead">${text.subhead}</div>
     <div class="location">${cityState}</div>
     <div class="footer">
-      <div class="footer-left">
+      <div>
         <div class="handled-by">Handled by Dossie</div>
         <div class="url">meetdossie.com/founding</div>
       </div>
