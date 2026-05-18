@@ -32,6 +32,7 @@
 //     hit the same platform in the last 24h.
 
 const { retryFetch } = require('./_lib/retry.js');
+const { DateTime } = require('luxon');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -372,59 +373,16 @@ async function loadSchedules() {
 
 // Count how many posts already published for `platform` today (in the platform tz).
 async function countPostedToday(platform, tz) {
-  const today = nowInTz(tz).dateKey; // e.g., "2026-05-18" in the platform's timezone
+  // BUG FIX (2026-05-18): Use luxon for proper timezone handling with automatic DST support.
+  // Previous attempts at manual offset calculation were error-prone.
+  const now = DateTime.now().setZone(tz);
+  const startOfDay = now.startOf('day').toUTC().toJSDate();
+  const endOfDay = now.endOf('day').toUTC().toJSDate();
 
-  // BUG FIX (2026-05-18): The original code did `new Date("2026-05-18T00:00:00")` which
-  // is ambiguous and gets parsed as LOCAL time. On Vercel (UTC), this meant checking
-  // "May 18 midnight-to-midnight UTC" instead of "May 18 midnight-to-midnight America/Chicago".
-  //
-  // Fix: Construct Date objects representing midnight in the target TZ by using formatToParts
-  // to get the time components, then use those to build proper UTC timestamps.
+  const startOfDayUtc = startOfDay.toISOString();
+  const endOfDayUtc = endOfDay.toISOString();
 
-  const [year, month, day] = today.split('-').map(Number);
-
-  // Helper: given time components in target TZ, return the UTC timestamp
-  function tzToUtc(y, m, d, h, min, sec, ms) {
-    // Create a date with these components in UTC
-    const utcDate = Date.UTC(y, m - 1, d, h, min, sec, ms);
-
-    // Now we need to adjust for the timezone offset
-    // Use formatToParts to see what hour this UTC moment is in the target TZ
-    const testDate = new Date(utcDate);
-    const parts = Object.fromEntries(
-      new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).formatToParts(testDate).filter(p => p.type !== 'literal').map(p => [p.type, p.value])
-    );
-
-    const tzY = parseInt(parts.year, 10);
-    const tzM = parseInt(parts.month, 10);
-    const tzD = parseInt(parts.day, 10);
-    const tzH = parseInt(parts.hour, 10);
-
-    // Calculate the offset in hours
-    // If UTC hour 0 shows as hour 19 in TZ, then TZ is UTC-5 (19 - 24 = -5)
-    let offsetHours = h - tzH;
-    // Handle day wraparound
-    if (tzD > d) offsetHours += 24; // TZ is behind UTC, wrapped to previous day
-    if (tzD < d) offsetHours -= 24; // TZ is ahead of UTC, wrapped to next day
-
-    // Apply the offset to get the correct UTC time for the desired TZ time
-    return Date.UTC(y, m - 1, d, h - offsetHours, min, sec, ms);
-  }
-
-  // Get UTC timestamps for midnight and end-of-day in the target timezone
-  const startOfDayUtc = new Date(tzToUtc(year, month, day, 0, 0, 0, 0)).toISOString();
-  const endOfDayUtc = new Date(tzToUtc(year, month, day, 23, 59, 59, 999)).toISOString();
-
-  console.log(`[countPostedToday] ${platform} on ${today} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
+  console.log(`[countPostedToday] ${platform} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
 
   const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
