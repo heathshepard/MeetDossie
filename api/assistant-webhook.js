@@ -50,10 +50,21 @@ async function handleMessage(msg) {
     return;
   }
 
-  const command = text.toLowerCase();
+  const lowerText = text.toLowerCase();
+
+  // Greeting handler
+  if (lowerText.includes('hello') || lowerText.includes('hey') || lowerText.includes('hi')) {
+    await sendMessage(chatId, "👋 I'm here and listening. Try /status for today's post counts.");
+    return;
+  }
+
+  // Fuzzy command matching
+  const isStatusQuery = lowerText === '/status' || lowerText === 'status' || lowerText.includes('status');
+  const isMembersQuery = lowerText === '/members' || lowerText === 'members' || lowerText.includes('members');
+  const isHealthQuery = lowerText === '/health' || lowerText === 'health' || lowerText.includes('health');
 
   // /status - today's social posts
-  if (command === '/status' || command === 'status') {
+  if (isStatusQuery) {
     try {
       const today = new Date().toISOString().split('T')[0];
       const startTime = `${today}T00:00:00`;
@@ -86,7 +97,7 @@ Total: ${posts?.length || 0}`;
   }
 
   // /members - founding member count
-  if (command === '/members' || command === 'members') {
+  if (isMembersQuery) {
     try {
       const { data: subs } = await supabaseFetch(
         `/rest/v1/subscriptions?status=eq.active&plan=eq.founding&select=id`
@@ -109,7 +120,7 @@ Price: $29/mo (locked forever)`;
   }
 
   // /health - system health
-  if (command === '/health' || command === 'health') {
+  if (isHealthQuery) {
     try {
       const { data: recent } = await supabaseFetch(
         `/rest/v1/social_posts?order=created_at.desc&limit=1&select=created_at`
@@ -146,17 +157,8 @@ Cron schedule:
     return;
   }
 
-  // Echo/help for any other message
-  const helpText = `DossieAssistant_bot 🤖
-
-Commands:
-/status — today's post counts
-/members — founding member stats
-/health — cron health check
-
-Received: "${text}"`;
-
-  await sendMessage(chatId, helpText);
+  // Catch-all for any other message
+  await sendMessage(chatId, "👋 I'm here. Try /status, /members, or /health for quick info.");
 }
 
 module.exports = async function handler(req, res) {
