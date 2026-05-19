@@ -57,7 +57,6 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           user_id: kimUserId,
-          email: kimEmail,
           status: 'active',
           plan: 'founding',
           stripe_customer_id: null,
@@ -76,7 +75,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Step 3: Count founding members
-    const foundingRes = await fetch(`${supabaseUrl}/rest/v1/subscriptions?status=eq.active&plan=eq.founding&select=email`, {
+    const foundingRes = await fetch(`${supabaseUrl}/rest/v1/subscriptions?status=eq.active&plan=eq.founding&select=user_id`, {
       headers: {
         apikey: supabaseKey,
         Authorization: `Bearer ${supabaseKey}`,
@@ -86,7 +85,7 @@ module.exports = async function handler(req, res) {
 
     results.foundingCount = foundingSubs.length;
     results.remaining = 50 - foundingSubs.length;
-    results.foundingMembers = foundingSubs.map(s => s.email);
+    results.foundingMembers = foundingSubs.map(s => s.user_id);
 
     // Step 4: Send welcome email
     if (!resendKey) {
