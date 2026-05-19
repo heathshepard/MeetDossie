@@ -371,7 +371,7 @@ async function handleTextMessage(msg, logStep) {
       ).join('\n\n');
 
       const response = `📊 Social Posts Status\n\nCounts: ${summary}\n\nRecent 5:\n${recentPosts}`;
-      await sendMessage(chatId, response, msg.message_id, null, logStep);
+      await sendMessage(chatId, response, null, null, logStep);
       if (logStep) logStep({ step: 'status_response_sent' });
     } catch (err) {
       console.error('[telegram-webhook] status query failed:', err);
@@ -382,7 +382,7 @@ async function handleTextMessage(msg, logStep) {
 
   // Help / default response
   const helpText = `DossieMarketingBot commands:\n\n• Send "status" to see social posts queue\n• Use Approve/Reject buttons on approval messages\n• Reply to edit prompts to modify post content`;
-  await sendMessage(chatId, helpText, msg.message_id, null, logStep);
+  await sendMessage(chatId, helpText, null, null, logStep);
   if (logStep) logStep({ step: 'help_response_sent' });
 }
 
