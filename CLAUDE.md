@@ -30,7 +30,7 @@ This file is read at the start of every Claude Code session. It completely repla
 | Auth | Supabase Auth | `auth.users` + `auth.identities` + `public.profiles` |
 | Email | Resend | From `heath@meetdossie.com` (ImprovMX → `heath.shepard@kw.com`) |
 | Payments | Stripe | Founding price `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo) |
-| Social posting | Zernio | $12/mo, 4 accounts, unlimited posts |
+| Social posting | Zernio | $18/mo, 4 accounts, unlimited posts |
 | Card renderer | htmlcsstoimage.com (HCTI) | Replaced canvas entirely. `HCTI_USER_ID` + `HCTI_API_KEY` in Vercel env vars. Free plan: 50 renders/month. Upgrade to $14/mo at 1,000 renders when volume requires. |
 | Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`). Creator plan: $18.33/mo, 30k credits/mo (upgraded 2026-05-19). |
 | Stock video | Pexels API | portrait for vertical, landscape for square |
@@ -40,6 +40,28 @@ This file is read at the start of every Claude Code session. It completely repla
 **Repo layout — TWO repos:**
 - `C:\Users\Heath Shepard\Desktop\Dossie` — React source. Build here.
 - `C:\Users\Heath Shepard\Desktop\MeetDossie` — Vercel deploy. Push here. Cron functions, API routes, scripts, Media live here.
+
+---
+
+## 2.5. MONTHLY OPERATING COSTS
+
+| Service | Plan | Monthly Cost | Notes |
+|---|---|---|---|
+| Vercel | Hobby (Free) | $0 | Auto-deploys, serverless functions |
+| Supabase | Free | $0 | 500MB database, 1GB storage |
+| Zernio | Pro | $18.00 | 4 social accounts, unlimited posts |
+| ElevenLabs | Creator | $18.33 | 30k credits/month, upgraded 2026-05-19 |
+| Creatomate | Free | $0 | Video rendering |
+| HCTI | Free | $0 | 50 renders/month (upgrade at $14/mo when needed) |
+| Resend | Free | $0 | Email sending |
+| Pexels | Free | $0 | Stock video API |
+| Stripe | Pay-as-you-go | $0 | 2.9% + 30¢ per transaction |
+
+**Total monthly fixed costs: $36.33**
+
+**Variable costs:**
+- Stripe transaction fees (2.9% + 30¢ per charge)
+- HCTI upgrade at 1,000 renders/month ($14/mo)
 
 ---
 
