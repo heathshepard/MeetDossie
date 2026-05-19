@@ -443,6 +443,44 @@ body {
       </div>
     </div>
 
+    <!-- EXPENSES & TECH STACK -->
+    <div class="section">
+      <h2 class="section-title">Expenses & Tech Stack</h2>
+      <div class="cards">
+        <div class="card highlight">
+          <div class="card-label">Net Profit</div>
+          <div class="card-value" id="net-profit">$0</div>
+          <div class="card-sublabel">MRR - Expenses</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Expenses</div>
+          <div class="card-value" id="total-expenses">$0</div>
+          <div class="card-sublabel">Per month</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Profit Margin</div>
+          <div class="card-value" id="profit-margin">0%</div>
+          <div class="card-sublabel">Net / MRR</div>
+        </div>
+      </div>
+
+      <div class="table-card" style="margin-top: 20px;">
+        <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 16px; color: var(--navy);">Monthly Cost Breakdown</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SERVICE</th>
+              <th>MONTHLY COST</th>
+              <th>NOTES</th>
+            </tr>
+          </thead>
+          <tbody id="expense-tbody">
+            <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- COST ANALYTICS -->
     <div class="section">
       <h2 class="section-title">Cost Analytics</h2>
@@ -814,6 +852,50 @@ function renderDashboard(metrics) {
           <td>${count}</td>
         </tr>
       `).join('');
+  }
+
+  // Expenses
+  if (metrics.expenses) {
+    document.getElementById('net-profit').textContent = `$${metrics.expenses.netProfit}`;
+    document.getElementById('total-expenses').textContent = `$${metrics.expenses.total}`;
+    document.getElementById('profit-margin').textContent = metrics.expenses.profitMargin;
+
+    // Expense breakdown table
+    const expenseTbody = document.getElementById('expense-tbody');
+    const expenseLabels = {
+      claudeAI: { name: 'Claude AI', note: 'Claude.ai Pro subscription' },
+      anthropicAPI: { name: 'Anthropic API', note: 'Anthropic API usage (estimated from tokens)' },
+      elevenLabs: { name: 'ElevenLabs', note: 'Voice synthesis (Bill + Luna)' },
+      supabase: { name: 'Supabase', note: 'Database + Storage' },
+      vercel: { name: 'Vercel', note: 'Hosting + Edge Functions' },
+      stripe: { name: 'Stripe', note: '2.9% + $0.30 per transaction' },
+      zernio: { name: 'Zernio', note: 'Social media posting' },
+      hcti: { name: 'HCTI', note: 'Card rendering (free, upgrade at 1000)' },
+      creatomate: { name: 'Creatomate', note: 'Video assembly' },
+      pexels: { name: 'Pexels', note: 'Stock video API (free)' },
+      resend: { name: 'Resend', note: 'Transactional email (free tier)' },
+    };
+
+    const expenseRows = Object.entries(metrics.expenses.breakdown)
+      .map(([key, cost]) => {
+        const label = expenseLabels[key] || { name: key, note: '' };
+        return `
+          <tr>
+            <td><strong>${label.name}</strong></td>
+            <td>$${cost}</td>
+            <td style="color: var(--text-light);">${label.note}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    expenseTbody.innerHTML = expenseRows + `
+      <tr style="border-top: 2px solid var(--border); font-weight: 700;">
+        <td>TOTAL</td>
+        <td>$${metrics.expenses.total}</td>
+        <td></td>
+      </tr>
+    `;
   }
 }
 
