@@ -43,6 +43,13 @@ export default async function handler(req, res) {
   console.log(`[speak.js] ${req.method} request from origin: ${req.headers.origin || 'none'}`);
   console.log(`[speak.js] Has Authorization header: ${!!req.headers.authorization}`);
 
+  // IMPORTANT: This endpoint does NOT require authentication.
+  // The browser may send an Authorization header from the Supabase session,
+  // but we ignore it here. Authentication is not needed because:
+  // 1. Rate limiting provides abuse protection (100 req/hour per IP)
+  // 2. TTS requests don't access user-specific data
+  // If an Authorization header is present, we simply ignore it and proceed.
+
   const corsAllowed = applyCors(req, res);
 
   if (!corsAllowed && req.headers.origin) {
