@@ -1,0 +1,50 @@
+FINAL FALLBACK - STYLED FILE INPUT DIRECTLY (NO LABEL)
+
+If label approach doesn't work, replace the scan section with this:
+Style the file input directly as a button using ::file-selector-button
+
+```jsx
+{/* Scan Contract PDF */}
+<div style={styles.scanWrap}>
+  <div style={{ position: "relative" }}>
+    <input
+      ref={scanFileInputRef}
+      type="file"
+      accept="*/*"
+      multiple
+      onChange={onScanFileChange}
+      disabled={scanState.state === "loading"}
+      className="mobile-file-button"
+      style={{
+        width: "100%",
+        padding: "14px 18px",
+        borderRadius: 14,
+        border: "none",
+        background: BRAND.coral,
+        color: "white",
+        fontWeight: 700,
+        fontSize: 16,
+        cursor: "pointer",
+        letterSpacing: "0.02em",
+        boxShadow: "0 12px 24px -12px rgba(232,131,107,0.55)",
+        ...(scanState.state === "loading" ? { cursor: "not-allowed", opacity: 0.75 } : {})
+      }}
+    />
+  </div>
+  ...
+```
+
+Then add CSS to hide the "No file chosen" text:
+```css
+.mobile-file-button::file-selector-button {
+  display: none;
+}
+.mobile-file-button {
+  color: white !important;
+}
+.mobile-file-button::before {
+  content: "📄 Scan Contract PDF";
+}
+```
+
+This makes the file input itself the button - most direct possible approach.
