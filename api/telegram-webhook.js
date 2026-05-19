@@ -240,12 +240,14 @@ async function handleCallbackQuery(cb, logStep) {
   // underscore (approve_<post_id>).
   const founding = data.match(/^(approve|reject)_founding:(.+)$/);
   if (founding) {
+    if (logStep) logStep({ step: 'founding_flow', action: founding[1], applicationId: founding[2] });
     return handleFoundingCallback(founding[1], founding[2], cb, chatId, messageId, callbackId);
   }
 
   // Check for retry button
   const retry = data.match(/^retry_(.+)$/);
   if (retry) {
+    if (logStep) logStep({ step: 'retry_flow', postId: retry[1] });
     const postId = retry[1];
     const post = await loadPost(postId);
     if (!post) {
@@ -266,6 +268,8 @@ async function handleCallbackQuery(cb, logStep) {
     if (callbackId) await answerCallback(callbackId, 'Queued for retry');
     return;
   }
+
+  if (logStep) logStep({ step: 'checking_approve_reject_edit_pattern', data });
 
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
