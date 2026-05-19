@@ -30,6 +30,13 @@ const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const EDIT_PROMPT_PREFIX = '✏️ Editing post ';
 const EDIT_PROMPT_SUFFIX = '. Reply to this message with the new content.';
 
+// Debug log storage (last 20 webhook calls)
+global.webhookDebugLogs = global.webhookDebugLogs || [];
+function addDebugLog(entry) {
+  global.webhookDebugLogs.push({ ...entry, timestamp: new Date().toISOString() });
+  if (global.webhookDebugLogs.length > 20) global.webhookDebugLogs.shift();
+}
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -48,6 +55,7 @@ async function supabaseFetch(path, init = {}) {
 
 async function tgCall(method, body) {
   console.log(`[telegram-webhook] tgCall CALLED: method="${method}", body=`, JSON.stringify(body).substring(0, 200));
+  addDebugLog({ type: 'tgCall_start', method, bodyPreview: JSON.stringify(body).substring(0, 100) });
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
   console.log(`[telegram-webhook] tgCall URL: ${url.substring(0, 50)}...`);
   const res = await fetch(url, {
@@ -59,11 +67,15 @@ async function tgCall(method, body) {
   console.log(`[telegram-webhook] tgCall response status: ${res.status}, body:`, text.substring(0, 200));
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-  if (!res.ok || data?.ok !== true) {
+  const success = res.ok && data?.ok === true;
+  if (!success) {
     console.error('[telegram-webhook] tg', method, 'failed:', res.status, text.slice(0, 200));
+    addDebugLog({ type: 'tgCall_error', method, status: res.status, errorText: text.slice(0, 200) });
+  } else {
+    addDebugLog({ type: 'tgCall_success', method, status: res.status });
   }
-  console.log(`[telegram-webhook] tgCall result: ok=${res.ok && data?.ok === true}`);
-  return { ok: res.ok && data?.ok === true, data };
+  console.log(`[telegram-webhook] tgCall result: ok=${success}`);
+  return { ok: success, data };
 }
 
 async function answerCallback(callbackQueryId, text) {
@@ -204,8 +216,18 @@ async function handleCallbackQuery(cb) {
   const chatId = message?.chat?.id;
   const messageId = message?.message_id;
 
+  addDebugLog({
+    type: 'callback_query_received',
+    data,
+    callbackId,
+    chatId,
+    messageId,
+    authorized: !TELEGRAM_CHAT_ID || String(chatId) === String(TELEGRAM_CHAT_ID)
+  });
+
   // Only honor callbacks from the configured chat. Drop everything else.
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+    addDebugLog({ type: 'callback_unauthorized', chatId, expectedChatId: TELEGRAM_CHAT_ID });
     if (callbackId) await answerCallback(callbackId, 'Not authorized');
     return;
   }
