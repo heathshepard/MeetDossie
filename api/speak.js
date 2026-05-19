@@ -106,10 +106,16 @@ export default async function handler(req, res) {
       speed: voiceSpeed,
     };
 
+    // Generate unique request ID for tracking
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // Log for diagnostics
-    console.log('[speak.js] ElevenLabs URL:', elevenLabsUrl);
-    console.log('[speak.js] Voice settings:', JSON.stringify(voiceSettings));
-    console.log('[speak.js] Speed:', voiceSpeed);
+    console.log(`[speak.js] [${requestId}] ElevenLabs URL:`, elevenLabsUrl);
+    console.log(`[speak.js] [${requestId}] Voice ID: lxYfHSkYm1EzQzGhdbfc (Luna)`);
+    console.log(`[speak.js] [${requestId}] Model: eleven_flash_v2_5`);
+    console.log(`[speak.js] [${requestId}] Voice settings:`, JSON.stringify(voiceSettings));
+    console.log(`[speak.js] [${requestId}] Speed:`, voiceSpeed);
+    console.log(`[speak.js] [${requestId}] Text length:`, cleanText.length);
 
     const response = await retryFetch(
       elevenLabsUrl,
@@ -140,20 +146,29 @@ export default async function handler(req, res) {
     // Stream the audio response directly to the client
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Transfer-Encoding', 'chunked');
+    // Prevent browser caching of audio to avoid stale male voice playback
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('X-Request-ID', requestId);
+    console.log(`[speak.js] [${requestId}] Streaming audio to client...`);
     res.status(200);
 
     // Pipe the response body stream to the client
     if (response.body) {
       const reader = response.body.getReader();
       try {
+        let bytesStreamed = 0;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          bytesStreamed += value.length;
           res.write(Buffer.from(value));
         }
+        console.log(`[speak.js] [${requestId}] Stream complete. Bytes sent:`, bytesStreamed);
         res.end();
       } catch (streamError) {
-        console.error('Stream error:', streamError);
+        console.error(`[speak.js] [${requestId}] Stream error:`, streamError);
         if (!res.headersSent) {
           return res.status(500).json({ ok: false, error: 'Stream failed' });
         }
@@ -162,6 +177,7 @@ export default async function handler(req, res) {
     } else {
       // Fallback if streaming not supported
       const audioBuffer = await response.arrayBuffer();
+      console.log(`[speak.js] [${requestId}] Buffer sent. Bytes:`, audioBuffer.byteLength);
       res.write(Buffer.from(audioBuffer));
       res.end();
     }

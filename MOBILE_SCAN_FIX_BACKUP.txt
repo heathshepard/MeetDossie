@@ -1,0 +1,40 @@
+BACKUP FIX FOR MOBILE SCAN - USE IF CURRENT FIX DOESN'T WORK
+
+Replace the scan section (lines ~5318-5356) with this version:
+The label approach with both elements visible and webkit-specific mobile handling:
+
+```jsx
+{/* Scan Contract PDF */}
+<div style={styles.scanWrap}>
+  <input
+    id="mobile-scan-input"
+    ref={scanFileInputRef}
+    type="file"
+    accept="*/*"
+    capture="environment"
+    onChange={onScanFileChange}
+    disabled={scanState.state === "loading"}
+    style={{ display: "none" }}
+  />
+  <label
+    htmlFor="mobile-scan-input"
+    style={{
+      ...styles.scanButton,
+      ...(scanState.state === "loading" ? styles.scanButtonDisabled : {}),
+      display: "block",
+      textAlign: "center",
+      userSelect: "none",
+      WebkitTapHighlightColor: "transparent",
+      WebkitUserSelect: "none"
+    }}
+  >
+    {scanState.state === "loading" ? "Scanning contract..." : "📄 Scan Contract PDF"}
+  </label>
+  ...
+```
+
+Key changes:
+- accept="*/*" - most permissive
+- capture="environment" - mobile camera/file picker hint
+- label with htmlFor - proper semantic HTML
+- webkit mobile-specific styles
