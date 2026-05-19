@@ -570,35 +570,6 @@ async function loadDashboard() {
   }
 }
 
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || 'Unknown error');
-    }
-
-    renderDashboard(data.metrics);
-
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-
-    // Update last refresh time
-    const now = new Date();
-    document.getElementById('last-refresh').textContent =
-      `Last: ${now.toLocaleTimeString()} · Auto-refresh: 5min`;
-
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('error').innerHTML = `
-      <div class="error">
-        <strong>Error loading dashboard</strong><br>
-        ${error.message}
-      </div>
-    `;
-  }
-}
-
 function renderDashboard(metrics) {
   // Revenue
   document.getElementById('mrr-value').textContent = `$${metrics.revenue.mrr.toLocaleString()}`;
