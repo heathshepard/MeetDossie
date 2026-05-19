@@ -47,18 +47,22 @@ async function supabaseFetch(path, init = {}) {
 }
 
 async function tgCall(method, body) {
+  console.log(`[telegram-webhook] tgCall CALLED: method="${method}", body=`, JSON.stringify(body).substring(0, 200));
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
+  console.log(`[telegram-webhook] tgCall URL: ${url.substring(0, 50)}...`);
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const text = await res.text();
+  console.log(`[telegram-webhook] tgCall response status: ${res.status}, body:`, text.substring(0, 200));
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
   if (!res.ok || data?.ok !== true) {
     console.error('[telegram-webhook] tg', method, 'failed:', res.status, text.slice(0, 200));
   }
+  console.log(`[telegram-webhook] tgCall result: ok=${res.ok && data?.ok === true}`);
   return { ok: res.ok && data?.ok === true, data };
 }
 
