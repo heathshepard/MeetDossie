@@ -75,11 +75,19 @@ async function editMessage(chatId, messageId, text) {
   });
 }
 
-async function sendMessage(chatId, text, replyToMessageId, forceReply) {
+async function sendMessage(chatId, text, replyToMessageId, forceReply, logStep) {
   const body = { chat_id: chatId, text, disable_web_page_preview: true };
   if (replyToMessageId) body.reply_to_message_id = replyToMessageId;
   if (forceReply) body.reply_markup = { force_reply: true, selective: true };
-  return tgCall('sendMessage', body);
+  const result = await tgCall('sendMessage', body);
+  if (logStep) logStep({
+    step: 'sendMessage_called',
+    chatId,
+    textPreview: text.substring(0, 50),
+    success: result.ok,
+    error: result.ok ? null : result.data?.description
+  });
+  return result;
 }
 
 async function loadPost(postId) {
@@ -290,39 +298,105 @@ async function handleCallbackQuery(cb) {
   }
 }
 
-async function handleTextMessage(msg) {
+async function handleTextMessage(msg, logStep) {
   const chatId = msg?.chat?.id;
-  if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) return;
+  const messageText = String(msg?.text || '');
+
+  if (logStep) logStep({ step: 'text_message_received', chatId, text: messageText.substring(0, 50) });
+
+  if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+    if (logStep) logStep({ step: 'text_message_unauthorized', chatId });
+    return;
+  }
 
   const replyTo = msg?.reply_to_message;
-  if (!replyTo) return;
-  const replyText = String(replyTo.text || '');
-  if (!replyText.startsWith(EDIT_PROMPT_PREFIX)) return;
 
-  // Extract post_id between prefix and suffix.
-  const after = replyText.slice(EDIT_PROMPT_PREFIX.length);
-  const cut = after.indexOf(EDIT_PROMPT_SUFFIX);
-  const postId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].trim();
-  if (!postId) return;
+  // Handle replies to edit prompts
+  if (replyTo) {
+    const replyText = String(replyTo.text || '');
+    if (replyText.startsWith(EDIT_PROMPT_PREFIX)) {
+      // Extract post_id between prefix and suffix
+      if (logStep) logStep({ step: 'processing_edit_reply' });
+      const after = replyText.slice(EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(EDIT_PROMPT_SUFFIX);
+      const postId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].trim();
 
-  const newContent = String(msg.text || '').trim();
-  if (!newContent) return;
+      if (postId) {
+        const newContent = messageText.trim();
+        if (newContent) {
+          // Update the post's content and re-queue for re-approval
+          await patchPost(postId, {
+            content: newContent,
+            hook: newContent.slice(0, 120),
+            telegram_sent_at: null,
+            telegram_message_id: null,
+            status: 'draft',
+          });
+          await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, msg.message_id, null, logStep);
+          if (logStep) logStep({ step: 'edit_saved', postId });
+          return;
+        }
+      }
+    }
+  }
 
-  // Update the post's content and re-queue it for re-approval. Reset the
-  // approval-flow flags so cron-send-for-approval picks it up again.
-  await patchPost(postId, {
-    content: newContent,
-    hook: newContent.slice(0, 120),
-    telegram_sent_at: null,
-    telegram_message_id: null,
-    status: 'draft',
-  });
-  await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, msg.message_id);
+  // Handle general text messages (status queries, help, etc.)
+  if (logStep) logStep({ step: 'handling_general_message' });
+
+  const lowerText = messageText.toLowerCase();
+
+  // Query social posts status
+  if (lowerText.includes('status') || lowerText.includes('posts') || lowerText.includes('queue')) {
+    try {
+      const { data: posts } = await supabaseFetch(
+        `/rest/v1/social_posts?order=created_at.desc&limit=10&select=id,platform,persona,status,hook,created_at`
+      );
+
+      if (!posts || posts.length === 0) {
+        await sendMessage(chatId, 'No recent posts found.', msg.message_id, null, logStep);
+        return;
+      }
+
+      const statusCounts = posts.reduce((acc, p) => {
+        acc[p.status] = (acc[p.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      const summary = Object.entries(statusCounts)
+        .map(([status, count]) => `${status}: ${count}`)
+        .join(', ');
+
+      const recentPosts = posts.slice(0, 5).map(p =>
+        `• ${p.platform} / ${p.persona} / ${p.status}\n  ${(p.hook || '').substring(0, 60)}...`
+      ).join('\n\n');
+
+      const response = `📊 Social Posts Status\n\nCounts: ${summary}\n\nRecent 5:\n${recentPosts}`;
+      await sendMessage(chatId, response, msg.message_id, null, logStep);
+      if (logStep) logStep({ step: 'status_response_sent' });
+    } catch (err) {
+      console.error('[telegram-webhook] status query failed:', err);
+      await sendMessage(chatId, `Error fetching status: ${err.message}`, msg.message_id, null, logStep);
+    }
+    return;
+  }
+
+  // Help / default response
+  const helpText = `DossieMarketingBot commands:\n\n• Send "status" to see social posts queue\n• Use Approve/Reject buttons on approval messages\n• Reply to edit prompts to modify post content`;
+  await sendMessage(chatId, helpText, msg.message_id, null, logStep);
+  if (logStep) logStep({ step: 'help_response_sent' });
 }
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method not allowed' });
+  }
+
+  // Debug mode - collect diagnostic info
+  const debugMode = req.query.debug === '1';
+  const debugInfo = { steps: [] };
+  function logStep(step) {
+    if (debugMode) debugInfo.steps.push({ ...step, timestamp: new Date().toISOString() });
+    console.log('[telegram-webhook debug]', JSON.stringify(step));
   }
 
   // Validate the optional Telegram secret-token header. Non-blocking: if we
@@ -349,21 +423,52 @@ module.exports = async function handler(req, res) {
   let update;
   try {
     update = await readRawBody(req);
+
+    // LOG EVERY INCOMING UPDATE
+    console.log('[telegram-webhook] === INCOMING UPDATE ===');
+    console.log('[telegram-webhook] Update type:', Object.keys(update || {}).join(', '));
+    if (update?.callback_query) {
+      console.log('[telegram-webhook] Callback query:', update.callback_query.data);
+    }
+    if (update?.message) {
+      console.log('[telegram-webhook] Message:', {
+        text: update.message.text,
+        chatId: update.message.chat?.id,
+        from: update.message.from?.username
+      });
+    }
+
+    logStep({
+      action: 'body_parsed',
+      hasCallbackQuery: !!update?.callback_query,
+      hasMessage: !!update?.message,
+      messageText: update?.message?.text,
+      callbackData: update?.callback_query?.data
+    });
   } catch (err) {
     console.error('[telegram-webhook] body parse failed:', err && err.message);
+    logStep({ action: 'body_parse_failed', error: err.message });
     return res.status(200).json({ ok: true, ignored: 'parse error' });
   }
 
   try {
     if (update?.callback_query) {
-      await handleCallbackQuery(update.callback_query);
+      logStep({ action: 'handling_callback_query', data: update.callback_query.data });
+      await handleCallbackQuery(update.callback_query, logStep);
     } else if (update?.message?.text) {
-      await handleTextMessage(update.message);
+      logStep({ action: 'handling_text_message', text: update.message.text.substring(0, 50) });
+      await handleTextMessage(update.message, logStep);
+    } else {
+      logStep({ action: 'no_handler', updateKeys: Object.keys(update || {}) });
     }
   } catch (err) {
     // Log but always return 200 — Telegram retries non-200s aggressively.
-    console.error('[telegram-webhook] handler threw:', err && err.message);
+    console.error('[telegram-webhook] handler threw:', err && err.message, err.stack);
+    logStep({ action: 'handler_error', error: err.message, stack: err.stack });
   }
 
+  if (debugMode) {
+    return res.status(200).json({ ok: true, debug: debugInfo });
+  }
   return res.status(200).json({ ok: true });
 };
