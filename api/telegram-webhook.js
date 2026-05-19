@@ -81,16 +81,30 @@ async function tgCall(method, body) {
 async function answerCallback(callbackQueryId, text, logStep) {
   const result = await tgCall('answerCallbackQuery', { callback_query_id: callbackQueryId, text: text || '', show_alert: false });
   if (logStep) logStep({ step: 'answerCallback_called', callbackQueryId, text, result: result.ok });
+
+  // If callback query expired, log but don't fail - the main action (edit/send message) still works
+  if (!result.ok && result.data?.description?.includes('query is too old')) {
+    console.warn('[telegram-webhook] Callback query expired:', callbackQueryId);
+  }
+
   return result;
 }
 
-async function editMessage(chatId, messageId, text) {
-  return tgCall('editMessageText', {
+async function editMessage(chatId, messageId, text, logStep) {
+  const result = await tgCall('editMessageText', {
     chat_id: chatId,
     message_id: messageId,
     text,
     disable_web_page_preview: true,
   });
+  if (logStep) logStep({
+    step: 'editMessage_called',
+    chatId,
+    messageId,
+    success: result.ok,
+    error: result.ok ? null : result.data?.description
+  });
+  return result;
 }
 
 async function sendMessage(chatId, text, replyToMessageId, forceReply) {
@@ -305,6 +319,7 @@ async function handleCallbackQuery(cb, logStep) {
 
   if (action === 'approve') {
     console.log(`[telegram-webhook] APPROVE action for postId="${postId}"`);
+    if (logStep) logStep({ step: 'approving_post', postId });
     console.log(`[telegram-webhook] Post object:`, JSON.stringify(post));
     const patchBody = { status: 'approved', approved_at: now };
     console.log(`[telegram-webhook] Patch body:`, JSON.stringify(patchBody));
@@ -312,19 +327,20 @@ async function handleCallbackQuery(cb, logStep) {
     console.log(`[telegram-webhook] Patch result:`, JSON.stringify(patchResult));
     await bumpBatchCounter(postId, 'approved_posts');
     if (chatId && messageId) {
-      await editMessage(chatId, messageId, `${originalBody}\n\n✅ Approved — will post at next slot.`);
+      await editMessage(chatId, messageId, `${originalBody}\n\n✅ Approved — will post at next slot.`, logStep);
     }
-    if (callbackId) await answerCallback(callbackId, 'Approved');
+    if (callbackId) await answerCallback(callbackId, 'Approved', logStep);
     return;
   }
 
   if (action === 'reject') {
+    if (logStep) logStep({ step: 'rejecting_post', postId });
     await patchPost(postId, { status: 'rejected' });
     await bumpBatchCounter(postId, 'rejected_posts');
     if (chatId && messageId) {
-      await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected.`);
+      await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected.`, logStep);
     }
-    if (callbackId) await answerCallback(callbackId, 'Rejected');
+    if (callbackId) await answerCallback(callbackId, 'Rejected', logStep);
     return;
   }
 
