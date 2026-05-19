@@ -30,13 +30,6 @@ const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const EDIT_PROMPT_PREFIX = '✏️ Editing post ';
 const EDIT_PROMPT_SUFFIX = '. Reply to this message with the new content.';
 
-// Debug log storage (last 20 webhook calls)
-global.webhookDebugLogs = global.webhookDebugLogs || [];
-function addDebugLog(entry) {
-  global.webhookDebugLogs.push({ ...entry, timestamp: new Date().toISOString() });
-  if (global.webhookDebugLogs.length > 20) global.webhookDebugLogs.shift();
-}
-
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -54,64 +47,47 @@ async function supabaseFetch(path, init = {}) {
 }
 
 async function tgCall(method, body) {
-  console.log(`[telegram-webhook] tgCall CALLED: method="${method}", body=`, JSON.stringify(body).substring(0, 200));
-  addDebugLog({ type: 'tgCall_start', method, bodyPreview: JSON.stringify(body).substring(0, 100) });
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
-  console.log(`[telegram-webhook] tgCall URL: ${url.substring(0, 50)}...`);
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const text = await res.text();
-  console.log(`[telegram-webhook] tgCall response status: ${res.status}, body:`, text.substring(0, 200));
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-  const success = res.ok && data?.ok === true;
-  if (!success) {
+  if (!res.ok || data?.ok !== true) {
     console.error('[telegram-webhook] tg', method, 'failed:', res.status, text.slice(0, 200));
-    addDebugLog({ type: 'tgCall_error', method, status: res.status, errorText: text.slice(0, 200) });
-  } else {
-    addDebugLog({ type: 'tgCall_success', method, status: res.status });
   }
-  console.log(`[telegram-webhook] tgCall result: ok=${success}`);
-  return { ok: success, data };
+  return { ok: res.ok && data?.ok === true, data };
 }
 
-async function answerCallback(callbackQueryId, text, logStep) {
-  const result = await tgCall('answerCallbackQuery', { callback_query_id: callbackQueryId, text: text || '', show_alert: false });
-  if (logStep) logStep({ step: 'answerCallback_called', callbackQueryId, text, result: result.ok });
-
-  // If callback query expired, log but don't fail - the main action (edit/send message) still works
-  if (!result.ok && result.data?.description?.includes('query is too old')) {
-    console.warn('[telegram-webhook] Callback query expired:', callbackQueryId);
-  }
-
-  return result;
+async function answerCallback(callbackQueryId, text) {
+  return tgCall('answerCallbackQuery', { callback_query_id: callbackQueryId, text: text || '', show_alert: false });
 }
 
-async function editMessage(chatId, messageId, text, logStep) {
-  const result = await tgCall('editMessageText', {
+async function editMessage(chatId, messageId, text) {
+  return tgCall('editMessageText', {
     chat_id: chatId,
     message_id: messageId,
     text,
     disable_web_page_preview: true,
   });
+}
+
+async function sendMessage(chatId, text, replyToMessageId, forceReply, logStep) {
+  const body = { chat_id: chatId, text, disable_web_page_preview: true };
+  if (replyToMessageId) body.reply_to_message_id = replyToMessageId;
+  if (forceReply) body.reply_markup = { force_reply: true, selective: true };
+  const result = await tgCall('sendMessage', body);
   if (logStep) logStep({
-    step: 'editMessage_called',
+    step: 'sendMessage_called',
     chatId,
-    messageId,
+    textPreview: text.substring(0, 50),
     success: result.ok,
     error: result.ok ? null : result.data?.description
   });
   return result;
-}
-
-async function sendMessage(chatId, text, replyToMessageId, forceReply) {
-  const body = { chat_id: chatId, text, disable_web_page_preview: true };
-  if (replyToMessageId) body.reply_to_message_id = replyToMessageId;
-  if (forceReply) body.reply_markup = { force_reply: true, selective: true };
-  return tgCall('sendMessage', body);
 }
 
 async function loadPost(postId) {
@@ -225,43 +201,30 @@ async function handleFoundingCallback(action, applicationId, cb, chatId, message
 }
 
 
-async function handleCallbackQuery(cb, logStep) {
+async function handleCallbackQuery(cb) {
   const data = String(cb?.data || '');
   const callbackId = cb?.id;
   const message = cb?.message;
   const chatId = message?.chat?.id;
   const messageId = message?.message_id;
 
-  if (logStep) logStep({
-    step: 'callback_query_parsed',
-    data,
-    callbackId,
-    chatId,
-    messageId
-  });
-
   // Only honor callbacks from the configured chat. Drop everything else.
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
-    if (logStep) logStep({ step: 'unauthorized', chatId, expectedChatId: TELEGRAM_CHAT_ID });
     if (callbackId) await answerCallback(callbackId, 'Not authorized');
     return;
   }
-
-  if (logStep) logStep({ step: 'authorized' });
 
   // Founding application flow: approve_founding:<id> / reject_founding:<id>
   // Note the colon delimiter, distinguishing it from the social-post flow's
   // underscore (approve_<post_id>).
   const founding = data.match(/^(approve|reject)_founding:(.+)$/);
   if (founding) {
-    if (logStep) logStep({ step: 'founding_flow', action: founding[1], applicationId: founding[2] });
     return handleFoundingCallback(founding[1], founding[2], cb, chatId, messageId, callbackId);
   }
 
   // Check for retry button
   const retry = data.match(/^retry_(.+)$/);
   if (retry) {
-    if (logStep) logStep({ step: 'retry_flow', postId: retry[1] });
     const postId = retry[1];
     const post = await loadPost(postId);
     if (!post) {
@@ -283,43 +246,25 @@ async function handleCallbackQuery(cb, logStep) {
     return;
   }
 
-  if (logStep) logStep({ step: 'checking_approve_reject_edit_pattern', data });
-
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
-    if (logStep) logStep({ step: 'unknown_action', data });
     if (callbackId) await answerCallback(callbackId, 'Unknown action');
     return;
   }
   const action = m[1];
   const postId = m[2];
 
-  if (logStep) logStep({ step: 'action_matched', action, postId });
-
   const post = await loadPost(postId);
   if (!post) {
-    if (logStep) logStep({ step: 'post_not_found', postId });
-    if (callbackId) {
-      const ansResult = await answerCallback(callbackId, 'Post not found', logStep);
-      if (logStep) logStep({
-        step: 'answer_callback_result',
-        ok: ansResult.ok,
-        error: ansResult.data?.description || null,
-        errorCode: ansResult.data?.error_code || null,
-        fullResponse: ansResult.data
-      });
-    }
+    if (callbackId) await answerCallback(callbackId, 'Post not found');
     return;
   }
-
-  if (logStep) logStep({ step: 'post_loaded', postId, postStatus: post.status });
 
   const now = new Date().toISOString();
   const originalBody = String(message?.text || '');
 
   if (action === 'approve') {
     console.log(`[telegram-webhook] APPROVE action for postId="${postId}"`);
-    if (logStep) logStep({ step: 'approving_post', postId });
     console.log(`[telegram-webhook] Post object:`, JSON.stringify(post));
     const patchBody = { status: 'approved', approved_at: now };
     console.log(`[telegram-webhook] Patch body:`, JSON.stringify(patchBody));
@@ -327,20 +272,19 @@ async function handleCallbackQuery(cb, logStep) {
     console.log(`[telegram-webhook] Patch result:`, JSON.stringify(patchResult));
     await bumpBatchCounter(postId, 'approved_posts');
     if (chatId && messageId) {
-      await editMessage(chatId, messageId, `${originalBody}\n\n✅ Approved — will post at next slot.`, logStep);
+      await editMessage(chatId, messageId, `${originalBody}\n\n✅ Approved — will post at next slot.`);
     }
-    if (callbackId) await answerCallback(callbackId, 'Approved', logStep);
+    if (callbackId) await answerCallback(callbackId, 'Approved');
     return;
   }
 
   if (action === 'reject') {
-    if (logStep) logStep({ step: 'rejecting_post', postId });
     await patchPost(postId, { status: 'rejected' });
     await bumpBatchCounter(postId, 'rejected_posts');
     if (chatId && messageId) {
-      await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected.`, logStep);
+      await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected.`);
     }
-    if (callbackId) await answerCallback(callbackId, 'Rejected', logStep);
+    if (callbackId) await answerCallback(callbackId, 'Rejected');
     return;
   }
 
@@ -354,34 +298,92 @@ async function handleCallbackQuery(cb, logStep) {
   }
 }
 
-async function handleTextMessage(msg) {
+async function handleTextMessage(msg, logStep) {
   const chatId = msg?.chat?.id;
-  if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) return;
+  const messageText = String(msg?.text || '');
+
+  if (logStep) logStep({ step: 'text_message_received', chatId, text: messageText.substring(0, 50) });
+
+  if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+    if (logStep) logStep({ step: 'text_message_unauthorized', chatId });
+    return;
+  }
 
   const replyTo = msg?.reply_to_message;
-  if (!replyTo) return;
-  const replyText = String(replyTo.text || '');
-  if (!replyText.startsWith(EDIT_PROMPT_PREFIX)) return;
 
-  // Extract post_id between prefix and suffix.
-  const after = replyText.slice(EDIT_PROMPT_PREFIX.length);
-  const cut = after.indexOf(EDIT_PROMPT_SUFFIX);
-  const postId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].trim();
-  if (!postId) return;
+  // Handle replies to edit prompts
+  if (replyTo) {
+    const replyText = String(replyTo.text || '');
+    if (replyText.startsWith(EDIT_PROMPT_PREFIX)) {
+      // Extract post_id between prefix and suffix
+      if (logStep) logStep({ step: 'processing_edit_reply' });
+      const after = replyText.slice(EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(EDIT_PROMPT_SUFFIX);
+      const postId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].trim();
 
-  const newContent = String(msg.text || '').trim();
-  if (!newContent) return;
+      if (postId) {
+        const newContent = messageText.trim();
+        if (newContent) {
+          // Update the post's content and re-queue for re-approval
+          await patchPost(postId, {
+            content: newContent,
+            hook: newContent.slice(0, 120),
+            telegram_sent_at: null,
+            telegram_message_id: null,
+            status: 'draft',
+          });
+          await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, msg.message_id, null, logStep);
+          if (logStep) logStep({ step: 'edit_saved', postId });
+          return;
+        }
+      }
+    }
+  }
 
-  // Update the post's content and re-queue it for re-approval. Reset the
-  // approval-flow flags so cron-send-for-approval picks it up again.
-  await patchPost(postId, {
-    content: newContent,
-    hook: newContent.slice(0, 120),
-    telegram_sent_at: null,
-    telegram_message_id: null,
-    status: 'draft',
-  });
-  await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, msg.message_id);
+  // Handle general text messages (status queries, help, etc.)
+  if (logStep) logStep({ step: 'handling_general_message' });
+
+  const lowerText = messageText.toLowerCase();
+
+  // Query social posts status
+  if (lowerText.includes('status') || lowerText.includes('posts') || lowerText.includes('queue')) {
+    try {
+      const { data: posts } = await supabaseFetch(
+        `/rest/v1/social_posts?order=created_at.desc&limit=10&select=id,platform,persona,status,hook,created_at`
+      );
+
+      if (!posts || posts.length === 0) {
+        await sendMessage(chatId, 'No recent posts found.', msg.message_id, null, logStep);
+        return;
+      }
+
+      const statusCounts = posts.reduce((acc, p) => {
+        acc[p.status] = (acc[p.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      const summary = Object.entries(statusCounts)
+        .map(([status, count]) => `${status}: ${count}`)
+        .join(', ');
+
+      const recentPosts = posts.slice(0, 5).map(p =>
+        `• ${p.platform} / ${p.persona} / ${p.status}\n  ${(p.hook || '').substring(0, 60)}...`
+      ).join('\n\n');
+
+      const response = `📊 Social Posts Status\n\nCounts: ${summary}\n\nRecent 5:\n${recentPosts}`;
+      await sendMessage(chatId, response, msg.message_id, null, logStep);
+      if (logStep) logStep({ step: 'status_response_sent' });
+    } catch (err) {
+      console.error('[telegram-webhook] status query failed:', err);
+      await sendMessage(chatId, `Error fetching status: ${err.message}`, msg.message_id, null, logStep);
+    }
+    return;
+  }
+
+  // Help / default response
+  const helpText = `DossieMarketingBot commands:\n\n• Send "status" to see social posts queue\n• Use Approve/Reject buttons on approval messages\n• Reply to edit prompts to modify post content`;
+  await sendMessage(chatId, helpText, msg.message_id, null, logStep);
+  if (logStep) logStep({ step: 'help_response_sent' });
 }
 
 module.exports = async function handler(req, res) {
@@ -421,7 +423,28 @@ module.exports = async function handler(req, res) {
   let update;
   try {
     update = await readRawBody(req);
-    logStep({ action: 'body_parsed', hasCallbackQuery: !!update?.callback_query, hasMessage: !!update?.message });
+
+    // LOG EVERY INCOMING UPDATE
+    console.log('[telegram-webhook] === INCOMING UPDATE ===');
+    console.log('[telegram-webhook] Update type:', Object.keys(update || {}).join(', '));
+    if (update?.callback_query) {
+      console.log('[telegram-webhook] Callback query:', update.callback_query.data);
+    }
+    if (update?.message) {
+      console.log('[telegram-webhook] Message:', {
+        text: update.message.text,
+        chatId: update.message.chat?.id,
+        from: update.message.from?.username
+      });
+    }
+
+    logStep({
+      action: 'body_parsed',
+      hasCallbackQuery: !!update?.callback_query,
+      hasMessage: !!update?.message,
+      messageText: update?.message?.text,
+      callbackData: update?.callback_query?.data
+    });
   } catch (err) {
     console.error('[telegram-webhook] body parse failed:', err && err.message);
     logStep({ action: 'body_parse_failed', error: err.message });
@@ -433,14 +456,14 @@ module.exports = async function handler(req, res) {
       logStep({ action: 'handling_callback_query', data: update.callback_query.data });
       await handleCallbackQuery(update.callback_query, logStep);
     } else if (update?.message?.text) {
-      logStep({ action: 'handling_text_message' });
+      logStep({ action: 'handling_text_message', text: update.message.text.substring(0, 50) });
       await handleTextMessage(update.message, logStep);
     } else {
       logStep({ action: 'no_handler', updateKeys: Object.keys(update || {}) });
     }
   } catch (err) {
     // Log but always return 200 — Telegram retries non-200s aggressively.
-    console.error('[telegram-webhook] handler threw:', err && err.message);
+    console.error('[telegram-webhook] handler threw:', err && err.message, err.stack);
     logStep({ action: 'handler_error', error: err.message, stack: err.stack });
   }
 
