@@ -285,6 +285,281 @@ export default async function handler(req, res) {
       platformCounts,
     };
 
+    // ===== EXPENSES & TECH STACK =====
+    // Calculate Stripe fees from active subscriptions (2.9% + $0.30 per transaction)
+    const stripeMonthlyFees = subscriptions?.length
+      ? subscriptions.length * ((subscriptions.reduce((sum, s) => {
+          const amount = s.plan === 'founding' ? 29 : s.plan === 'solo' ? 79 : 199;
+          return sum + (amount * 0.029 + 0.30);
+        }, 0)))
+      : 0;
+
+    const expenses = {
+      // Hardcoded monthly costs (Heath can update these as needed)
+      anthropic: 150, // Estimated from token usage
+      elevenLabs: 22, // Voice synthesis
+      supabase: 25, // Database + Storage
+      vercel: 20, // Hosting
+      stripe: Math.round(stripeMonthlyFees * 100) / 100,
+      zernio: 12,
+      hcti: 0, // Free plan, note upgrade at 1000 renders
+      creatomate: 49, // Video assembly
+      pexels: 0, // Free API
+      resend: 0, // Free tier
+    };
+
+    const totalExpenses = Object.values(expenses).reduce((sum, val) => sum + val, 0);
+    const netProfit = mrr - totalExpenses;
+    const profitMargin = mrr > 0 ? ((netProfit / mrr) * 100).toFixed(1) : 0;
+
+    metrics.expenses = {
+      breakdown: expenses,
+      total: Math.round(totalExpenses * 100) / 100,
+      netProfit: Math.round(netProfit * 100) / 100,
+      profitMargin: `${profitMargin}%`,
+    };
+
+    // ===== FEATURE USAGE BY MEMBER =====
+    // Get all non-demo customers with their activity
+    const { data: customerProfiles } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .eq('is_demo', false)
+      .order('name');
+
+    const customerUsage = [];
+
+    for (const profile of customerProfiles || []) {
+      // Get subscription plan
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('plan')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      // Count documents
+      const { count: docsCount } = await supabase
+        .from('documents')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+
+      // Count completed action items
+      const { count: actionsCount } = await supabase
+        .from('action_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id)
+        .eq('status', 'completed');
+
+      // Count drafted emails
+      const { count: emailsCount } = await supabase
+        .from('email_queue')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+
+      // Count transactions
+      const { count: transactionsCount } = await supabase
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+
+      // Count milestones
+      const { count: milestonesCount } = await supabase
+        .from('dossier_milestones')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+
+      // Count share events
+      const { count: sharesCount } = await supabase
+        .from('share_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+
+      // Get last login from auth.users
+      const { data: authUser } = await supabase
+        .from('auth.users')
+        .select('last_sign_in_at')
+        .eq('id', profile.id)
+        .single();
+
+      customerUsage.push({
+        name: profile.name || 'Unknown',
+        email: profile.email,
+        plan: sub?.plan || 'none',
+        documents: docsCount || 0,
+        actionsCompleted: actionsCount || 0,
+        emails: emailsCount || 0,
+        transactions: transactionsCount || 0,
+        milestones: milestonesCount || 0,
+        shares: sharesCount || 0,
+        lastLogin: authUser?.last_sign_in_at || null,
+        totalActivity: (docsCount || 0) + (actionsCount || 0) + (emailsCount || 0) + (transactionsCount || 0),
+      });
+    }
+
+    // Sort by total activity descending
+    customerUsage.sort((a, b) => b.totalActivity - a.totalActivity);
+
+    metrics.customerUsage = customerUsage;
+
+    // ===== FEATURE ADOPTION =====
+    const totalCustomers = customerProfiles?.length || 1; // Avoid divide by zero
+
+    // Users who've uploaded documents
+    const { data: docsUsers } = await supabase
+      .from('documents')
+      .select('user_id')
+      .not('user_id', 'is', null);
+    const uniqueDocsUsers = new Set(docsUsers?.map(d => d.user_id)).size;
+
+    // Users who've created action items
+    const { data: actionsUsers } = await supabase
+      .from('action_items')
+      .select('user_id')
+      .not('user_id', 'is', null);
+    const uniqueActionsUsers = new Set(actionsUsers?.map(d => d.user_id)).size;
+
+    // Users who've drafted emails
+    const { data: emailsUsers } = await supabase
+      .from('email_queue')
+      .select('user_id')
+      .not('user_id', 'is', null);
+    const uniqueEmailsUsers = new Set(emailsUsers?.map(d => d.user_id)).size;
+
+    // Users who've created transactions
+    const { data: transactionsUsers } = await supabase
+      .from('transactions')
+      .select('user_id')
+      .not('user_id', 'is', null);
+    const uniqueTransactionsUsers = new Set(transactionsUsers?.map(d => d.user_id)).size;
+
+    // Users who've created milestones
+    const { data: milestonesUsers } = await supabase
+      .from('dossier_milestones')
+      .select('user_id')
+      .not('user_id', 'is', null);
+    const uniqueMilestonesUsers = new Set(milestonesUsers?.map(d => d.user_id)).size;
+
+    // Users who've used share button
+    const { data: sharesUsers } = await supabase
+      .from('share_events')
+      .select('user_id')
+      .not('user_id', 'is', null);
+    const uniqueSharesUsers = new Set(sharesUsers?.map(d => d.user_id)).size;
+
+    const { count: totalDocs } = await supabase
+      .from('documents')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: totalActions } = await supabase
+      .from('action_items')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: totalEmails } = await supabase
+      .from('email_queue')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: totalTransactions } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: totalMilestones } = await supabase
+      .from('dossier_milestones')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: totalShares } = await supabase
+      .from('share_events')
+      .select('id', { count: 'exact', head: true });
+
+    metrics.featureAdoption = {
+      documents: {
+        users: uniqueDocsUsers,
+        total: totalDocs || 0,
+        adoptionRate: ((uniqueDocsUsers / totalCustomers) * 100).toFixed(1),
+      },
+      actionItems: {
+        users: uniqueActionsUsers,
+        total: totalActions || 0,
+        adoptionRate: ((uniqueActionsUsers / totalCustomers) * 100).toFixed(1),
+      },
+      emails: {
+        users: uniqueEmailsUsers,
+        total: totalEmails || 0,
+        adoptionRate: ((uniqueEmailsUsers / totalCustomers) * 100).toFixed(1),
+      },
+      transactions: {
+        users: uniqueTransactionsUsers,
+        total: totalTransactions || 0,
+        adoptionRate: ((uniqueTransactionsUsers / totalCustomers) * 100).toFixed(1),
+      },
+      milestones: {
+        users: uniqueMilestonesUsers,
+        total: totalMilestones || 0,
+        adoptionRate: ((uniqueMilestonesUsers / totalCustomers) * 100).toFixed(1),
+      },
+      shares: {
+        users: uniqueSharesUsers,
+        total: totalShares || 0,
+        adoptionRate: ((uniqueSharesUsers / totalCustomers) * 100).toFixed(1),
+      },
+    };
+
+    // ===== ENHANCED CUSTOMER DETAIL =====
+    // Build enhanced subscriptions list
+    const { data: allSubscriptions } = await supabase
+      .from('subscriptions')
+      .select('user_id, plan, status, created_at')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    const customerDetails = [];
+
+    for (const sub of allSubscriptions || []) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', sub.user_id)
+        .single();
+
+      const { data: authUser } = await supabase
+        .from('auth.users')
+        .select('last_sign_in_at')
+        .eq('id', sub.user_id)
+        .single();
+
+      const { count: userTransactions } = await supabase
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', sub.user_id);
+
+      const lastLogin = authUser?.last_sign_in_at ? new Date(authUser.last_sign_in_at) : null;
+      const now = new Date();
+      let activityLevel = 'inactive';
+
+      if (lastLogin) {
+        const daysSinceLogin = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
+        if (daysSinceLogin === 0) activityLevel = 'daily';
+        else if (daysSinceLogin <= 7) activityLevel = 'weekly';
+        else if (daysSinceLogin <= 30) activityLevel = 'monthly';
+        else activityLevel = 'inactive';
+      }
+
+      const signupDate = new Date(sub.created_at);
+      const daysSinceSignup = Math.floor((now - signupDate) / (1000 * 60 * 60 * 24));
+
+      customerDetails.push({
+        name: profile?.name || 'Unknown',
+        email: profile?.email || 'Unknown',
+        plan: sub.plan,
+        lastLogin: lastLogin ? lastLogin.toISOString() : null,
+        activityLevel,
+        daysSinceSignup,
+        transactions: userTransactions || 0,
+      });
+    }
+
+    metrics.customerDetails = customerDetails;
+
     return res.status(200).json({
       success: true,
       generated_at: new Date().toISOString(),
