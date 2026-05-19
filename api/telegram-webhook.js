@@ -78,8 +78,10 @@ async function tgCall(method, body) {
   return { ok: success, data };
 }
 
-async function answerCallback(callbackQueryId, text) {
-  return tgCall('answerCallbackQuery', { callback_query_id: callbackQueryId, text: text || '', show_alert: false });
+async function answerCallback(callbackQueryId, text, logStep) {
+  const result = await tgCall('answerCallbackQuery', { callback_query_id: callbackQueryId, text: text || '', show_alert: false });
+  if (logStep) logStep({ step: 'answerCallback_called', callbackQueryId, text, result: result.ok });
+  return result;
 }
 
 async function editMessage(chatId, messageId, text) {
@@ -267,17 +269,26 @@ async function handleCallbackQuery(cb, logStep) {
 
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
+    if (logStep) logStep({ step: 'unknown_action', data });
     if (callbackId) await answerCallback(callbackId, 'Unknown action');
     return;
   }
   const action = m[1];
   const postId = m[2];
 
+  if (logStep) logStep({ step: 'action_matched', action, postId });
+
   const post = await loadPost(postId);
   if (!post) {
-    if (callbackId) await answerCallback(callbackId, 'Post not found');
+    if (logStep) logStep({ step: 'post_not_found', postId });
+    if (callbackId) {
+      const ansResult = await answerCallback(callbackId, 'Post not found');
+      if (logStep) logStep({ step: 'answer_callback_result', ok: ansResult.ok });
+    }
     return;
   }
+
+  if (logStep) logStep({ step: 'post_loaded', postId, postStatus: post.status });
 
   const now = new Date().toISOString();
   const originalBody = String(message?.text || '');
