@@ -445,51 +445,130 @@ body {
 let supabase;
 let refreshInterval;
 
+function showError(title, message, details = null) {
+  console.error('[Admin]', title, message, details);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+  let detailsHtml = '';
+  if (details) {
+    detailsHtml = `<br><br><code style="font-size:11px;display:block;margin-top:8px;background:rgba(0,0,0,0.1);padding:8px;border-radius:6px;white-space:pre-wrap;overflow-wrap:break-word;">${details}</code>`;
+  }
+  document.getElementById('error').innerHTML = `
+    <div class="error">
+      <strong>${title}</strong><br>
+      ${message}${detailsHtml}
+    </div>
+  `;
+}
+
 async function initSupabase() {
-  const configResponse = await fetch('/api/public-config');
-  const config = await configResponse.json();
-  supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  console.log('[Admin] Step 1: Fetching public config from /api/public-config...');
+  try {
+    const configResponse = await fetch('/api/public-config');
+    console.log('[Admin] Config response status:', configResponse.status);
+    
+    if (!configResponse.ok) {
+      const errorText = await configResponse.text();
+      throw new Error(`Config API returned ${configResponse.status}: ${errorText.substring(0, 200)}`);
+    }
+    
+    const config = await configResponse.json();
+    console.log('[Admin] Config received:', { 
+      hasUrl: !!config.supabaseUrl, 
+      hasKey: !!config.supabaseAnonKey
+    });
+
+    if (!config.supabaseUrl || !config.supabaseAnonKey) {
+      throw new Error('Missing Supabase URL or anon key in config response');
+    }
+
+    supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    console.log('[Admin] Supabase client initialized');
+  } catch (error) {
+    showError('Config Error', 'Failed to load Supabase configuration', error.message);
+    throw error;
+  }
 }
 
 async function checkAuth() {
-  if (!supabase) await initSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    console.log('[Admin] Step 2: Checking auth...');
+    if (!supabase) {
+      await initSupabase();
+    }
 
-  if (!session) {
-    window.location.href = '/app.html';
-    return null;
+    console.log('[Admin] Getting session...');
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw new Error(`Auth error: ${error.message}`);
+    }
+
+    if (!session) {
+      console.log('[Admin] No session - redirecting to /app.html');
+      window.location.href = '/app.html';
+      return null;
+    }
+
+    console.log('[Admin] User email:', session.user.email);
+
+    if (session.user.email !== 'heath.shepard@kw.com') {
+      showError('Access Denied', 'This dashboard is only accessible to administrators.', `Your email: ${session.user.email}`);
+      return null;
+    }
+
+    console.log('[Admin] Auth check PASSED');
+    return session;
+  } catch (error) {
+    showError('Authentication Error', 'Failed to verify session', error.message);
+    throw error;
   }
-
-  // Check if user email is heath.shepard@kw.com
-  if (session.user.email !== 'heath.shepard@kw.com') {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('error').innerHTML = `
-      <div class="error">
-        <strong>Access Denied</strong><br>
-        This dashboard is only accessible to administrators.
-      </div>
-    `;
-    return null;
-  }
-
-  return session;
 }
 
 async function loadDashboard() {
-  const session = await checkAuth();
-  if (!session) return;
-
   try {
+    console.log('[Admin] ===== DASHBOARD LOAD START =====');
+    const session = await checkAuth();
+    if (!session) return;
+
+    console.log('[Admin] Step 3: Fetching from /api/admin-dashboard...');
     const response = await fetch('/api/admin-dashboard', {
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
       },
     });
 
+    console.log('[Admin] API response:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[Admin] API error body:', errorText);
+      throw new Error(`API returned ${response.status}\n\n${errorText.substring(0, 500)}`);
     }
+
+    const data = await response.json();
+    console.log('[Admin] Data received, success:', data.success);
+
+    if (!data.success) {
+      throw new Error(data.error || 'API returned success=false');
+    }
+
+    renderDashboard(data.metrics);
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    const now = new Date();
+    document.getElementById('last-refresh').textContent =
+      `Last: ${now.toLocaleTimeString()} · Auto-refresh: 5min`;
+
+    console.log('[Admin] ===== DASHBOARD LOAD SUCCESS =====');
+
+  } catch (error) {
+    console.error('[Admin] ===== DASHBOARD LOAD FAILED =====', error);
+    showError('Dashboard Error', 'Failed to load analytics', error.message);
+  }
+}
 
     const data = await response.json();
 
