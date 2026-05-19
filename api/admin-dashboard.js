@@ -288,10 +288,10 @@ export default async function handler(req, res) {
     // ===== EXPENSES & TECH STACK =====
     // Calculate Stripe fees from active subscriptions (2.9% + $0.30 per transaction)
     const stripeMonthlyFees = subscriptions?.length
-      ? subscriptions.length * ((subscriptions.reduce((sum, s) => {
+      ? subscriptions.reduce((sum, s) => {
           const amount = s.plan === 'founding' ? 29 : s.plan === 'solo' ? 79 : 199;
           return sum + (amount * 0.029 + 0.30);
-        }, 0)))
+        }, 0)
       : 0;
 
     const expenses = {
