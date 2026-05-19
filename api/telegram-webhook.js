@@ -286,8 +286,14 @@ async function handleCallbackQuery(cb, logStep) {
   if (!post) {
     if (logStep) logStep({ step: 'post_not_found', postId });
     if (callbackId) {
-      const ansResult = await answerCallback(callbackId, 'Post not found');
-      if (logStep) logStep({ step: 'answer_callback_result', ok: ansResult.ok });
+      const ansResult = await answerCallback(callbackId, 'Post not found', logStep);
+      if (logStep) logStep({
+        step: 'answer_callback_result',
+        ok: ansResult.ok,
+        error: ansResult.data?.description || null,
+        errorCode: ansResult.data?.error_code || null,
+        fullResponse: ansResult.data
+      });
     }
     return;
   }
