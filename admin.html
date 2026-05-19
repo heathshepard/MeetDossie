@@ -443,6 +443,139 @@ body {
       </div>
     </div>
 
+    <!-- COST ANALYTICS -->
+    <div class="section">
+      <h2 class="section-title">Cost Analytics</h2>
+
+      <!-- Overview Cards -->
+      <div class="cards">
+        <div class="card highlight">
+          <div class="card-label">Total Cost This Month</div>
+          <div class="card-value" id="cost-total">$0.00</div>
+          <div class="card-sublabel">All metered services</div>
+        </div>
+        <div class="card">
+          <div class="card-label">ElevenLabs</div>
+          <div class="card-value" id="cost-elevenlabs">$0.00</div>
+          <div class="card-sublabel">Voice TTS</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Anthropic</div>
+          <div class="card-value" id="cost-anthropic">$0.00</div>
+          <div class="card-sublabel">Claude API</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Resend</div>
+          <div class="card-value" id="cost-resend">$0.00</div>
+          <div class="card-sublabel">Email delivery</div>
+        </div>
+      </div>
+
+      <!-- Per-Service Details -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 20px;">
+
+        <!-- ElevenLabs Detail -->
+        <div class="table-card">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 18px; margin-bottom: 12px; color: var(--navy);">ElevenLabs - Voice TTS</h3>
+          <div style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+            <strong id="elevenlabs-chars">0</strong> characters • <strong id="elevenlabs-cost">$0.00</strong> total
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Characters</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="elevenlabs-users">
+              <tr><td colspan="3" class="empty-state">No usage this month</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Anthropic Detail -->
+        <div class="table-card">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 18px; margin-bottom: 12px; color: var(--navy);">Anthropic - Claude API</h3>
+          <div style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+            <strong id="anthropic-tokens">0</strong> tokens • <strong id="anthropic-cost">$0.00</strong> total<br>
+            Chat: <strong id="anthropic-chat">$0.00</strong> • Scan: <strong id="anthropic-scan">$0.00</strong>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Tokens</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="anthropic-users">
+              <tr><td colspan="3" class="empty-state">No usage this month</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Resend Detail -->
+        <div class="table-card">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 18px; margin-bottom: 12px; color: var(--navy);">Resend - Email Delivery</h3>
+          <div style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+            <strong id="resend-emails">0</strong> emails • <strong id="resend-cost">$0.00</strong> total
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Emails</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="resend-users">
+              <tr><td colspan="3" class="empty-state">No usage this month</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Render Counts -->
+        <div class="table-card">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 18px; margin-bottom: 12px; color: var(--navy);">Video & Image Renders</h3>
+          <div style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+            Creatomate: <strong id="creatomate-count">0</strong> renders<br>
+            HCTI: <strong id="hcti-count">0</strong> renders <span id="hcti-status" style="font-weight: 600;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-User Cost Table -->
+      <div class="table-card" style="margin-top: 20px;">
+        <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 16px; color: var(--navy);">Per-User Cost Breakdown</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Voice</th>
+              <th>Chat</th>
+              <th>Scan</th>
+              <th>Email</th>
+              <th>Total</th>
+              <th>Last Activity</th>
+            </tr>
+          </thead>
+          <tbody id="user-cost-tbody">
+            <tr><td colspan="7" class="empty-state">No usage data</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Alerts -->
+      <div id="cost-alerts" style="margin-top: 20px; display: none;">
+        <div style="background: var(--coral-light); border: 1px solid var(--coral); border-radius: 12px; padding: 20px;">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 12px; color: var(--coral-deep);">Cost Alerts</h3>
+          <div id="cost-alerts-list"></div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 </div>
 
@@ -595,6 +728,12 @@ async function loadDashboard() {
     addDebug('🎨 Rendering dashboard...');
     renderDashboard(data.metrics);
 
+    // Load cost analytics
+    addDebug('💰 Loading cost analytics...');
+    loadCostAnalytics(session.access_token).catch(err => {
+      addDebug('⚠️ Cost analytics failed (non-fatal)', { error: err.message });
+    });
+
     document.getElementById('loading').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
 
@@ -675,6 +814,118 @@ function renderDashboard(metrics) {
           <td>${count}</td>
         </tr>
       `).join('');
+  }
+}
+
+async function loadCostAnalytics(accessToken) {
+  try {
+    const apiUrl = `${window.location.origin}/api/admin-cost-analytics`;
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Cost analytics API error:', response.status);
+      return;
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Cost analytics returned success=false');
+      return;
+    }
+
+    renderCostAnalytics(data);
+  } catch (error) {
+    console.error('Failed to load cost analytics:', error);
+  }
+}
+
+function renderCostAnalytics(data) {
+  const { overview, services, userCostBreakdown, alerts } = data;
+
+  // Overview cards
+  document.getElementById('cost-total').textContent = `$${overview.totalCost}`;
+  document.getElementById('cost-elevenlabs').textContent = `$${overview.serviceBreakdown.elevenlabs || '0.00'}`;
+  document.getElementById('cost-anthropic').textContent = `$${overview.serviceBreakdown.anthropic || '0.00'}`;
+  document.getElementById('cost-resend').textContent = `$${overview.serviceBreakdown.resend || '0.00'}`;
+
+  // ElevenLabs
+  document.getElementById('elevenlabs-chars').textContent = services.elevenLabs.totalCharacters.toLocaleString();
+  document.getElementById('elevenlabs-cost').textContent = `$${services.elevenLabs.totalCost}`;
+  const elevenLabsUsers = services.elevenLabs.topUsers || [];
+  if (elevenLabsUsers.length > 0) {
+    document.getElementById('elevenlabs-users').innerHTML = elevenLabsUsers.map(u =>
+      `<tr><td>${u.name}</td><td>${u.chars.toLocaleString()}</td><td>$${u.cost}</td></tr>`
+    ).join('');
+  }
+
+  // Anthropic
+  document.getElementById('anthropic-tokens').textContent = services.anthropic.totalTokens.toLocaleString();
+  document.getElementById('anthropic-cost').textContent = `$${services.anthropic.totalCost}`;
+  document.getElementById('anthropic-chat').textContent = `$${services.anthropic.byEndpoint.chat}`;
+  document.getElementById('anthropic-scan').textContent = `$${services.anthropic.byEndpoint.scan}`;
+  const anthropicUsers = services.anthropic.topUsers || [];
+  if (anthropicUsers.length > 0) {
+    document.getElementById('anthropic-users').innerHTML = anthropicUsers.map(u =>
+      `<tr><td>${u.name}</td><td>${u.tokens.toLocaleString()}</td><td>$${u.cost}</td></tr>`
+    ).join('');
+  }
+
+  // Resend
+  document.getElementById('resend-emails').textContent = services.resend.totalEmails.toLocaleString();
+  document.getElementById('resend-cost').textContent = `$${services.resend.totalCost}`;
+  const resendUsers = services.resend.topUsers || [];
+  if (resendUsers.length > 0) {
+    document.getElementById('resend-users').innerHTML = resendUsers.map(u =>
+      `<tr><td>${u.name}</td><td>${u.emails.toLocaleString()}</td><td>$${u.cost}</td></tr>`
+    ).join('');
+  }
+
+  // Render counts
+  document.getElementById('creatomate-count').textContent = services.creatomate.renderCount;
+  document.getElementById('hcti-count').textContent = services.hcti.renderCount;
+  const hctiStatus = services.hcti.exceededFree
+    ? '<span style="color: var(--coral-deep);">(exceeded free tier)</span>'
+    : services.hcti.renderCount > 40
+    ? '<span style="color: var(--gold-deep);">(approaching limit)</span>'
+    : '<span style="color: var(--sage-deep);">(within free tier)</span>';
+  document.getElementById('hcti-status').innerHTML = hctiStatus;
+
+  // Per-user cost breakdown
+  if (userCostBreakdown && userCostBreakdown.length > 0) {
+    document.getElementById('user-cost-tbody').innerHTML = userCostBreakdown.map(u => {
+      const lastActivity = u.lastActivity
+        ? new Date(u.lastActivity).toLocaleDateString()
+        : 'Never';
+      return `<tr>
+        <td>${u.name}<br><small style="color: var(--text-light);">${u.email}</small></td>
+        <td>$${u.voice}</td>
+        <td>$${u.chat}</td>
+        <td>$${u.scan}</td>
+        <td>$${u.email}</td>
+        <td><strong>$${u.total}</strong></td>
+        <td>${lastActivity}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Alerts
+  const alertsList = [];
+  if (alerts.usersOver10 && alerts.usersOver10.length > 0) {
+    alertsList.push(`<div style="margin-bottom: 8px;">⚠️ <strong>${alerts.usersOver10.length} user(s)</strong> over $10/month: ${alerts.usersOver10.map(u => u.name).join(', ')}</div>`);
+  }
+  if (alerts.hctiExceededLimit) {
+    alertsList.push(`<div style="margin-bottom: 8px;">⚠️ HCTI exceeded free tier (50 renders/month). Upgrade to paid plan at $14/mo.</div>`);
+  } else if (alerts.hctiApproachingLimit) {
+    alertsList.push(`<div style="margin-bottom: 8px;">⚠️ HCTI approaching free tier limit (40+ renders). Monitor usage.</div>`);
+  }
+
+  if (alertsList.length > 0) {
+    document.getElementById('cost-alerts-list').innerHTML = alertsList.join('');
+    document.getElementById('cost-alerts').style.display = 'block';
   }
 }
 
