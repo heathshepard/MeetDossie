@@ -86,7 +86,7 @@
                   },
                   {
                       "path":  "/api/cron-publish-approved",
-                      "schedule":  "0 * * * *"
+                      "schedule":  "*/30 * * * *"
                   },
                   {
                       "path":  "/api/cron-content-brief",
