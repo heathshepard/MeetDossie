@@ -332,7 +332,7 @@ async function handleTextMessage(msg, logStep) {
             telegram_message_id: null,
             status: 'draft',
           });
-          await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, msg.message_id, null, logStep);
+          await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, null, null, logStep);
           if (logStep) logStep({ step: 'edit_saved', postId });
           return;
         }
@@ -353,7 +353,7 @@ async function handleTextMessage(msg, logStep) {
       );
 
       if (!posts || posts.length === 0) {
-        await sendMessage(chatId, 'No recent posts found.', msg.message_id, null, logStep);
+        await sendMessage(chatId, 'No recent posts found.', null, null, logStep);
         return;
       }
 
@@ -375,7 +375,7 @@ async function handleTextMessage(msg, logStep) {
       if (logStep) logStep({ step: 'status_response_sent' });
     } catch (err) {
       console.error('[telegram-webhook] status query failed:', err);
-      await sendMessage(chatId, `Error fetching status: ${err.message}`, msg.message_id, null, logStep);
+      await sendMessage(chatId, `Error fetching status: ${err.message}`, null, null, logStep);
     }
     return;
   }
