@@ -1,15 +1,490 @@
+/* ============================================================================
+   DOSSIE MOBILE RESPONSIVE STYLES
+   Complete mobile optimization for all app views
+   ============================================================================ */
+
+/* Prevent text zoom on input focus (iOS Safari) */
+input,
+textarea,
+select,
+button {
+  font-size: 16px !important;
+}
+
+/* Touch-friendly minimum tap target size */
+button,
+a,
+[role="button"],
+[role="tab"],
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 44px;
+}
+
+/* ============================================================================
+   BREAKPOINT: TABLET & BELOW (768px)
+   ============================================================================ */
 @media (max-width: 768px) {
-  .app-sidebar { display: none !important; }
-  .app-shell { grid-template-columns: 1fr !important; grid-template-rows: 56px 1fr !important; }
-  .app-header { height: 56px !important; padding: 0 12px !important; }
-  .app-wordmark { display: none !important; }
-  .app-main { padding: 16px 16px 80px !important; }
-  .bottom-tab-bar { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; justify-content: space-around; align-items: center; z-index: 100; }
-  .pipeline-grid { grid-template-columns: 1fr !important; }
-  .brief-stats-row { flex-direction: column !important; }
-  .email-step-grid { display: flex !important; flex-direction: column !important; }
-  .email-step-col { width: 100% !important; min-width: unset !important; }
-  .page-hero-title { font-size: 28px !important; line-height: 1.2 !important; }
-  .page-hero-cta { position: relative !important; float: right !important; margin-top: 8px !important; }
-  .floating-help-btn { bottom: 80px !important; left: 12px !important; }
+  /* --- APP SHELL & LAYOUT --- */
+  .app-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 56px 1fr !important;
+  }
+
+  .app-sidebar {
+    display: none !important;
+  }
+
+  .app-header {
+    height: 56px !important;
+    padding: 0 12px !important;
+  }
+
+  .app-wordmark {
+    display: none !important;
+  }
+
+  .app-main {
+    padding: 16px 16px 80px !important;
+  }
+
+  /* --- BOTTOM TAB BAR (MOBILE NAV) --- */
+  .bottom-tab-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: white;
+    border-top: 1px solid #eee;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    padding: 0 8px;
+  }
+
+  .bottom-tab-bar button {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  /* --- PIPELINE & DEAL CARDS --- */
+  .pipeline-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* --- BRIEF VIEW --- */
+  .brief-stats-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .brief-stats-row > * {
+    width: 100% !important;
+  }
+
+  /* --- EMAIL COMPOSER --- */
+  .email-step-grid {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .email-step-col {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  /* --- PAGE HEADERS --- */
+  .page-hero-title {
+    font-size: 28px !important;
+    line-height: 1.2 !important;
+  }
+
+  .page-hero-cta {
+    position: relative !important;
+    float: none !important;
+    margin-top: 12px !important;
+    width: 100%;
+  }
+
+  /* --- TALK TO DOSSIE BUTTON --- */
+  .app-talk-button {
+    width: auto !important;
+    height: 40px !important;
+    font-size: 14px !important;
+    padding: 8px 16px !important;
+  }
+
+  /* --- TALK PANEL --- */
+  .talk-side-panel {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  .talk-side-panel-inner {
+    padding-bottom: 80px !important;
+  }
+
+  /* --- FLOATING HELP BUTTON --- */
+  .floating-help-btn {
+    bottom: 80px !important;
+    left: 12px !important;
+  }
+
+  /* --- MODALS --- */
+  .modal-overlay {
+    padding: 0 !important;
+  }
+
+  .modal-content,
+  .modal-dialog {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    border-bottom: 1px solid #EAE1D8;
+    padding: 16px !important;
+  }
+
+  .modal-body {
+    padding: 16px !important;
+  }
+
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #EAE1D8;
+    padding: 16px !important;
+  }
+
+  /* --- FORMS --- */
+  input,
+  textarea,
+  select {
+    width: 100% !important;
+    padding: 14px !important;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px 20px !important;
+  }
+
+  button.inline-button,
+  button.secondary-button {
+    width: auto !important;
+  }
+
+  /* --- ANALYTICS VIEW --- */
+  .analytics-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+
+  .analytics-header button {
+    width: 100% !important;
+  }
+
+  /* Analytics cards: single column on mobile */
+  .analytics-cards,
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tables: horizontal scroll */
+  .table-card,
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+    display: block;
+    overflow-x: auto;
+  }
+
+  /* --- DOSSIER DETAIL VIEW --- */
+  .dossier-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  .dossier-tabs button {
+    flex-shrink: 0;
+    min-width: auto;
+  }
+
+  .dossier-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- DOCUMENT UPLOAD --- */
+  .upload-dropzone {
+    min-height: 150px !important;
+    padding: 20px 12px !important;
+  }
+
+  /* --- ACTION ITEMS --- */
+  .action-item {
+    padding: 12px !important;
+  }
+
+  /* --- SETTINGS VIEW --- */
+  .settings-form-row {
+    flex-direction: column !important;
+  }
+
+  .settings-form-col {
+    width: 100% !important;
+  }
+
+  /* --- MILESTONES / CLOSING CARDS --- */
+  .milestone-card {
+    max-width: 100% !important;
+  }
+
+  /* --- SHARE MODAL --- */
+  .share-options {
+    flex-direction: column !important;
+  }
+
+  .share-options button {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   BREAKPOINT: MOBILE ONLY (640px)
+   ============================================================================ */
+@media (max-width: 640px) {
+  /* --- TYPOGRAPHY --- */
+  h1 {
+    font-size: 24px !important;
+  }
+
+  h2 {
+    font-size: 20px !important;
+  }
+
+  h3 {
+    font-size: 18px !important;
+  }
+
+  /* --- CARDS --- */
+  .deal-card,
+  .stat-card,
+  .metric-card {
+    padding: 16px !important;
+  }
+
+  /* --- BADGES --- */
+  .badge,
+  .deadline-badge {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+
+  /* --- BUTTONS --- */
+  button {
+    font-size: 14px !important;
+  }
+
+  /* --- SPACING --- */
+  .app-main {
+    padding: 12px 12px 80px !important;
+  }
+
+  /* --- ANALYTICS CARDS --- */
+  .analytics-card {
+    padding: 20px 16px !important;
+  }
+
+  .analytics-card-value {
+    font-size: 36px !important;
+  }
+
+  /* --- BOTTOM NAV SPACING --- */
+  .bottom-tab-bar {
+    padding: 0 4px;
+  }
+
+  .bottom-tab-bar button {
+    min-width: 44px;
+    padding: 6px;
+  }
+}
+
+/* ============================================================================
+   TABLET LANDSCAPE (769px - 1024px)
+   ============================================================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .pipeline-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .analytics-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .app-main {
+    padding: 24px 24px 24px !important;
+  }
+
+  /* Show sidebar on tablet landscape */
+  .app-sidebar {
+    display: flex !important;
+    width: 200px !important;
+  }
+
+  .app-shell {
+    grid-template-columns: 200px 1fr !important;
+  }
+
+  .bottom-tab-bar {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   TOUCH OPTIMIZATIONS
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase all tap targets */
+  button,
+  a,
+  [role="button"] {
+    min-height: 48px;
+    padding: 12px 18px;
+  }
+
+  /* Remove hover effects on touch devices */
+  button:hover,
+  a:hover {
+    transform: none !important;
+  }
+
+  /* Add active state for touch feedback */
+  button:active,
+  a:active {
+    transform: scale(0.97);
+    opacity: 0.8;
+  }
+
+  /* Disable hover-only tooltips */
+  [title]:hover::after {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   SAFE AREA INSETS (iPhone notch, Android gesture bar)
+   ============================================================================ */
+@supports (padding: max(0px)) {
+  .app-header {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .bottom-tab-bar {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+    height: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  .app-main {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
+
+/* ============================================================================
+   LANDSCAPE MODE (MOBILE)
+   ============================================================================ */
+@media (max-width: 768px) and (orientation: landscape) {
+  .app-header {
+    height: 48px !important;
+  }
+
+  .app-shell {
+    grid-template-rows: 48px 1fr !important;
+  }
+
+  .bottom-tab-bar {
+    height: 52px;
+  }
+
+  .app-main {
+    padding-bottom: 60px !important;
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE (Accessibility)
+   ============================================================================ */
+@media (prefers-contrast: high) {
+  button,
+  .card,
+  input,
+  select,
+  textarea {
+    border-width: 2px !important;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION (Accessibility)
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+@media print {
+  .app-sidebar,
+  .bottom-tab-bar,
+  .app-header,
+  .floating-help-btn,
+  button {
+    display: none !important;
+  }
+
+  .app-main {
+    padding: 0 !important;
+  }
+
+  .modal-overlay {
+    position: static !important;
+  }
+
+  .deal-card,
+  .metric-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
