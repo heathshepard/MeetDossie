@@ -76,12 +76,10 @@ async function editMessage(chatId, messageId, text) {
 }
 
 async function sendMessage(chatId, text, replyToMessageId, forceReply, logStep) {
-  console.log('[telegram-webhook] sendMessage CALLED - chatId:', chatId, 'textPreview:', text.substring(0, 50));
   const body = { chat_id: chatId, text, disable_web_page_preview: true };
   if (replyToMessageId) body.reply_to_message_id = replyToMessageId;
   if (forceReply) body.reply_markup = { force_reply: true, selective: true };
   const result = await tgCall('sendMessage', body);
-  console.log('[telegram-webhook] sendMessage RESULT - ok:', result.ok, 'error:', result.data?.description || 'none');
   if (logStep) logStep({
     step: 'sendMessage_called',
     chatId,
@@ -304,16 +302,12 @@ async function handleTextMessage(msg, logStep) {
   const chatId = msg?.chat?.id;
   const messageText = String(msg?.text || '');
 
-  console.log('[telegram-webhook] handleTextMessage START - chatId:', chatId, 'text:', messageText.substring(0, 50));
   if (logStep) logStep({ step: 'text_message_received', chatId, text: messageText.substring(0, 50) });
 
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
-    console.log('[telegram-webhook] UNAUTHORIZED - chatId:', chatId, 'expected:', TELEGRAM_CHAT_ID);
     if (logStep) logStep({ step: 'text_message_unauthorized', chatId });
     return;
   }
-
-  console.log('[telegram-webhook] Message authorized, processing...');
 
   const replyTo = msg?.reply_to_message;
 
@@ -338,7 +332,7 @@ async function handleTextMessage(msg, logStep) {
             telegram_message_id: null,
             status: 'draft',
           });
-          await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, null, null, logStep);
+          await sendMessage(chatId, `✏️ Edit saved for ${postId}. It'll come back for re-approval at the next send cycle.`, msg.message_id, null, logStep);
           if (logStep) logStep({ step: 'edit_saved', postId });
           return;
         }
@@ -346,20 +340,24 @@ async function handleTextMessage(msg, logStep) {
     }
   }
 
-  // Handle general text messages (status queries, help, etc.)
+  // Handle commands
   if (logStep) logStep({ step: 'handling_general_message' });
 
-  const lowerText = messageText.toLowerCase();
+  const command = messageText.trim().toLowerCase();
 
-  // Query social posts status
-  if (lowerText.includes('status') || lowerText.includes('posts') || lowerText.includes('queue')) {
+  // /status - today's social post counts
+  if (command === '/status' || command === 'status') {
     try {
+      const today = new Date().toISOString().split('T')[0];
+      const startTime = `${today}T00:00:00`;
+      const endTime = `${today}T23:59:59`;
+
       const { data: posts } = await supabaseFetch(
-        `/rest/v1/social_posts?order=created_at.desc&limit=10&select=id,platform,persona,status,hook,created_at`
+        `/rest/v1/social_posts?created_at=gte.${startTime}&created_at=lte.${endTime}&select=id,platform,status`
       );
 
       if (!posts || posts.length === 0) {
-        await sendMessage(chatId, 'No recent posts found.', null, null, logStep);
+        await sendMessage(chatId, '📊 No posts created today.', null, null, logStep);
         return;
       }
 
@@ -368,26 +366,109 @@ async function handleTextMessage(msg, logStep) {
         return acc;
       }, {});
 
-      const summary = Object.entries(statusCounts)
-        .map(([status, count]) => `${status}: ${count}`)
-        .join(', ');
+      const approved = statusCounts.approved || 0;
+      const posted = statusCounts.posted || 0;
+      const failed = statusCounts.failed || 0;
+      const draft = statusCounts.draft || 0;
+      const rejected = statusCounts.rejected || 0;
 
-      const recentPosts = posts.slice(0, 5).map(p =>
-        `• ${p.platform} / ${p.persona} / ${p.status}\n  ${(p.hook || '').substring(0, 60)}...`
-      ).join('\n\n');
+      const response = `📊 Social Posts (${today})
 
-      const response = `📊 Social Posts Status\n\nCounts: ${summary}\n\nRecent 5:\n${recentPosts}`;
+✅ Posted: ${posted}
+⏳ Approved: ${approved}
+❌ Failed: ${failed}
+📝 Draft: ${draft}
+🚫 Rejected: ${rejected}
+
+Total: ${posts.length}`;
+
       await sendMessage(chatId, response, null, null, logStep);
       if (logStep) logStep({ step: 'status_response_sent' });
     } catch (err) {
       console.error('[telegram-webhook] status query failed:', err);
-      await sendMessage(chatId, `Error fetching status: ${err.message}`, null, null, logStep);
+      await sendMessage(chatId, `❌ Error fetching status: ${err.message}`, null, null, logStep);
+    }
+    return;
+  }
+
+  // /members - founding member count
+  if (command === '/members' || command === 'members') {
+    try {
+      const { data: subscriptions } = await supabaseFetch(
+        `/rest/v1/subscriptions?status=eq.active&plan=eq.founding&select=id`
+      );
+
+      const count = subscriptions ? subscriptions.length : 0;
+      const remaining = Math.max(0, 50 - count);
+
+      const response = `👥 Founding Members
+
+Active: ${count} / 50
+Remaining: ${remaining} spots
+
+Price: $29/mo (locked forever)`;
+
+      await sendMessage(chatId, response, null, null, logStep);
+      if (logStep) logStep({ step: 'members_response_sent' });
+    } catch (err) {
+      console.error('[telegram-webhook] members query failed:', err);
+      await sendMessage(chatId, `❌ Error fetching members: ${err.message}`, null, null, logStep);
+    }
+    return;
+  }
+
+  // /health - cron job status
+  if (command === '/health' || command === 'health') {
+    try {
+      // Check most recent posts to infer cron health
+      const { data: recentPosts } = await supabaseFetch(
+        `/rest/v1/social_posts?order=created_at.desc&limit=1&select=created_at`
+      );
+
+      const { data: recentPosted } = await supabaseFetch(
+        `/rest/v1/social_posts?status=eq.posted&order=posted_at.desc&limit=1&select=posted_at`
+      );
+
+      const lastCreated = recentPosts?.[0]?.created_at;
+      const lastPosted = recentPosted?.[0]?.posted_at;
+
+      const now = new Date();
+      const createdAgo = lastCreated ? Math.round((now - new Date(lastCreated)) / 1000 / 60) : null;
+      const postedAgo = lastPosted ? Math.round((now - new Date(lastPosted)) / 1000 / 60) : null;
+
+      const generateHealth = createdAgo !== null && createdAgo < 1440 ? '✅' : '⚠️'; // < 24h
+      const publishHealth = postedAgo !== null && postedAgo < 60 ? '✅' : '⚠️'; // < 1h
+
+      const response = `🏥 System Health
+
+${generateHealth} Generate: ${createdAgo !== null ? `${createdAgo}m ago` : 'Never'}
+${publishHealth} Publish: ${postedAgo !== null ? `${postedAgo}m ago` : 'Never'}
+
+Cron schedule:
+• Generate: daily 11AM UTC
+• Approve: daily 11:30 UTC
+• Publish: every 30 min`;
+
+      await sendMessage(chatId, response, null, null, logStep);
+      if (logStep) logStep({ step: 'health_response_sent' });
+    } catch (err) {
+      console.error('[telegram-webhook] health query failed:', err);
+      await sendMessage(chatId, `❌ Error checking health: ${err.message}`, null, null, logStep);
     }
     return;
   }
 
   // Help / default response
-  const helpText = `DossieMarketingBot commands:\n\n• Send "status" to see social posts queue\n• Use Approve/Reject buttons on approval messages\n• Reply to edit prompts to modify post content`;
+  const helpText = `DossieMarketingBot commands:
+
+/status — today's post counts
+/members — founding member count
+/health — cron job status
+
+Also:
+• Approve/Reject buttons on posts
+• Reply to edit prompts to modify content`;
+
   await sendMessage(chatId, helpText, null, null, logStep);
   if (logStep) logStep({ step: 'help_response_sent' });
 }
@@ -468,20 +549,9 @@ module.exports = async function handler(req, res) {
       logStep({ action: 'no_handler', updateKeys: Object.keys(update || {}) });
     }
   } catch (err) {
-    // Log and send error notification to admin
+    // Log but always return 200 — Telegram retries non-200s aggressively.
     console.error('[telegram-webhook] handler threw:', err && err.message, err.stack);
     logStep({ action: 'handler_error', error: err.message, stack: err.stack });
-
-    // Try to send error notification to admin chat
-    try {
-      const chatId = update?.message?.chat?.id || update?.callback_query?.message?.chat?.id || TELEGRAM_CHAT_ID;
-      if (chatId) {
-        const errorMsg = `❌ Webhook error:\n\n${err.message}\n\nStack:\n${err.stack?.substring(0, 500)}`;
-        await tgCall('sendMessage', { chat_id: chatId, text: errorMsg });
-      }
-    } catch (notifyErr) {
-      console.error('[telegram-webhook] Failed to send error notification:', notifyErr);
-    }
   }
 
   if (debugMode) {
