@@ -209,28 +209,29 @@ async function handleFoundingCallback(action, applicationId, cb, chatId, message
 }
 
 
-async function handleCallbackQuery(cb) {
+async function handleCallbackQuery(cb, logStep) {
   const data = String(cb?.data || '');
   const callbackId = cb?.id;
   const message = cb?.message;
   const chatId = message?.chat?.id;
   const messageId = message?.message_id;
 
-  addDebugLog({
-    type: 'callback_query_received',
+  if (logStep) logStep({
+    step: 'callback_query_parsed',
     data,
     callbackId,
     chatId,
-    messageId,
-    authorized: !TELEGRAM_CHAT_ID || String(chatId) === String(TELEGRAM_CHAT_ID)
+    messageId
   });
 
   // Only honor callbacks from the configured chat. Drop everything else.
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
-    addDebugLog({ type: 'callback_unauthorized', chatId, expectedChatId: TELEGRAM_CHAT_ID });
+    if (logStep) logStep({ step: 'unauthorized', chatId, expectedChatId: TELEGRAM_CHAT_ID });
     if (callbackId) await answerCallback(callbackId, 'Not authorized');
     return;
   }
+
+  if (logStep) logStep({ step: 'authorized' });
 
   // Founding application flow: approve_founding:<id> / reject_founding:<id>
   // Note the colon delimiter, distinguishing it from the social-post flow's
@@ -351,6 +352,14 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'method not allowed' });
   }
 
+  // Debug mode - collect diagnostic info
+  const debugMode = req.query.debug === '1';
+  const debugInfo = { steps: [] };
+  function logStep(step) {
+    if (debugMode) debugInfo.steps.push({ ...step, timestamp: new Date().toISOString() });
+    console.log('[telegram-webhook debug]', JSON.stringify(step));
+  }
+
   // Validate the optional Telegram secret-token header. Non-blocking: if we
   // configured one and it doesn't match, log a warning but allow the request
   // through (still fingerprinted via chat_id checks later).
@@ -375,21 +384,31 @@ module.exports = async function handler(req, res) {
   let update;
   try {
     update = await readRawBody(req);
+    logStep({ action: 'body_parsed', hasCallbackQuery: !!update?.callback_query, hasMessage: !!update?.message });
   } catch (err) {
     console.error('[telegram-webhook] body parse failed:', err && err.message);
+    logStep({ action: 'body_parse_failed', error: err.message });
     return res.status(200).json({ ok: true, ignored: 'parse error' });
   }
 
   try {
     if (update?.callback_query) {
-      await handleCallbackQuery(update.callback_query);
+      logStep({ action: 'handling_callback_query', data: update.callback_query.data });
+      await handleCallbackQuery(update.callback_query, logStep);
     } else if (update?.message?.text) {
-      await handleTextMessage(update.message);
+      logStep({ action: 'handling_text_message' });
+      await handleTextMessage(update.message, logStep);
+    } else {
+      logStep({ action: 'no_handler', updateKeys: Object.keys(update || {}) });
     }
   } catch (err) {
     // Log but always return 200 — Telegram retries non-200s aggressively.
     console.error('[telegram-webhook] handler threw:', err && err.message);
+    logStep({ action: 'handler_error', error: err.message, stack: err.stack });
   }
 
+  if (debugMode) {
+    return res.status(200).json({ ok: true, debug: debugInfo });
+  }
   return res.status(200).json({ ok: true });
 };
