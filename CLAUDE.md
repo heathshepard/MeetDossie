@@ -132,7 +132,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 | Solo | $79 | $39 |
 | Team | $199 (3 seats; max 8 at $35/seat) | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (50 spots, 2 taken) | — |
+| **Founding Member** | **$29** (50 spots, 3 taken) | — |
 
 **Add-ons:**
 - Reply Monitoring — $10/mo
@@ -153,10 +153,14 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 6. CURRENT CUSTOMERS
 
+**MRR: $88/month** (3 founding @ $29 + 1 friend @ $1)
+
 | # | Name | Email | Plan | Notes |
 |---|---|---|---|---|
-| 1 | Suzanne Page | k.suzanne.page@gmail.com | $1/mo founding friend (`FOUNDING_FRIEND` coupon) | — |
-| 2 | Brittney YBarbo | brittney@setxrealty.com | $29/mo founding member | Broker, 80 tx/yr, Southeast Texas. Found via Facebook search "transaction coordinating in Texas". Control-freak who can't trust delegation — generated the Week-5 `control_freak_agent` content angle. Potential Team-tier upsell at 60-90d. **Ask for one-sentence testimonial at 30-day mark.** |
+| 1 | Kimberly Herrera | — | $29/mo founding member | — |
+| 2 | Tiffany Gill | — | $29/mo founding member | — |
+| 3 | Brittney YBarbo | brittney@setxrealty.com | $29/mo founding member | Broker, 80 tx/yr, Southeast Texas. Found via Facebook search "transaction coordinating in Texas". Control-freak who can't trust delegation — generated the Week-5 `control_freak_agent` content angle. Potential Team-tier upsell at 60-90d. **Ask for one-sentence testimonial at 30-day mark.** |
+| 4 | Suzanne Page | k.suzanne.page@gmail.com | $1/mo founding friend (`FOUNDING_FRIEND` coupon) | — |
 
 ---
 
