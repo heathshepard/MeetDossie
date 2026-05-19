@@ -15,12 +15,13 @@ const ALLOWED_ORIGINS = new Set([
   'https://www.meetdossie.com',
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const VERCEL_PREVIEW_RE = /^https:\/\/meet-dossie-[a-z0-9]+-heathshepard-6590s-projects\.vercel\.app$/;
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
   let allowOrigin = null;
   if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
+    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin)) {
       allowOrigin = origin;
     }
   }
@@ -30,11 +31,24 @@ function applyCors(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   }
+  // Log CORS failures for debugging
+  if (!allowOrigin && origin) {
+    console.warn(`[speak.js] CORS rejected origin: ${origin}`);
+  }
   return Boolean(allowOrigin);
 }
 
 export default async function handler(req, res) {
-  applyCors(req, res);
+  // Log incoming request for debugging
+  console.log(`[speak.js] ${req.method} request from origin: ${req.headers.origin || 'none'}`);
+  console.log(`[speak.js] Has Authorization header: ${!!req.headers.authorization}`);
+
+  const corsAllowed = applyCors(req, res);
+
+  if (!corsAllowed && req.headers.origin) {
+    console.error(`[speak.js] CORS check failed for origin: ${req.headers.origin}`);
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' });
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
