@@ -295,15 +295,16 @@ export default async function handler(req, res) {
       : 0;
 
     const expenses = {
-      // Hardcoded monthly costs (Heath can update these as needed)
-      anthropic: 150, // Estimated from token usage
-      elevenLabs: 22, // Voice synthesis
-      supabase: 25, // Database + Storage
-      vercel: 20, // Hosting
+      // Hardcoded monthly costs (updated 2026-05-19)
+      claudeAI: 100, // Claude.ai Pro subscription
+      anthropicAPI: 50, // Anthropic API usage (separate from Claude.ai)
+      elevenLabs: 18.33, // Voice synthesis (Creator plan)
+      supabase: 0, // Free tier
+      vercel: 0, // Free tier (Hobby)
       stripe: Math.round(stripeMonthlyFees * 100) / 100,
-      zernio: 12,
-      hcti: 0, // Free plan, note upgrade at 1000 renders
-      creatomate: 49, // Video assembly
+      zernio: 18, // Social media posting (Pro plan)
+      hcti: 0, // Free plan (50 renders/mo, upgrade at $14/mo)
+      creatomate: 0, // Free tier
       pexels: 0, // Free API
       resend: 0, // Free tier
     };
