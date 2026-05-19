@@ -22,20 +22,16 @@ const ALLOWED_ORIGINS = new Set([
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  let allowOrigin = null;
-  if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
-      allowOrigin = origin;
-    }
-  }
-  if (allowOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+  // Ultra-permissive CORS - allow ALL origins
+  const origin = (req && req.headers && req.headers.origin) || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
+  if (origin !== '*') {
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   }
-  return Boolean(allowOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  return true;
 }
 
 const RATE_LIMITS = {
@@ -511,7 +507,7 @@ export default async function handler(req, res) {
   applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
