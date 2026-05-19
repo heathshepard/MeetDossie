@@ -88,23 +88,54 @@ export default async function handler(req, res) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const { data: authUsers } = await supabase.auth.admin.listUsers();
-    const realUsers = authUsers?.users?.filter(u => !u.email?.includes('demo')) || [];
-
-    const active7d = realUsers.filter(u => {
-      if (!u.last_sign_in_at) return false;
-      return new Date(u.last_sign_in_at) > sevenDaysAgo;
-    }).length;
-
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const active30d = realUsers.filter(u => {
-      if (!u.last_sign_in_at) return false;
-      return new Date(u.last_sign_in_at) > thirtyDaysAgo;
-    }).length;
+    // Query auth.users directly for performance (replaces slow listUsers() call)
+    let active7d = 0;
+    let active30d = 0;
+    let neverLoggedIn = 0;
 
-    const neverLoggedIn = realUsers.filter(u => !u.last_sign_in_at).length;
+    try {
+      // Count users active in last 7 days (exclude demo accounts)
+      const { count: count7d, error: error7d } = await supabase
+        .from('auth.users')
+        .select('id', { count: 'exact', head: true })
+        .not('email', 'like', '%demo%')
+        .not('last_sign_in_at', 'is', null)
+        .gte('last_sign_in_at', sevenDaysAgo.toISOString());
+
+      if (error7d) throw error7d;
+      active7d = count7d || 0;
+
+      // Count users active in last 30 days (exclude demo accounts)
+      const { count: count30d, error: error30d } = await supabase
+        .from('auth.users')
+        .select('id', { count: 'exact', head: true })
+        .not('email', 'like', '%demo%')
+        .not('last_sign_in_at', 'is', null)
+        .gte('last_sign_in_at', thirtyDaysAgo.toISOString());
+
+      if (error30d) throw error30d;
+      active30d = count30d || 0;
+
+      // Count users who never logged in (exclude demo accounts)
+      const { count: countNever, error: errorNever } = await supabase
+        .from('auth.users')
+        .select('id', { count: 'exact', head: true })
+        .not('email', 'like', '%demo%')
+        .is('last_sign_in_at', null);
+
+      if (errorNever) throw errorNever;
+      neverLoggedIn = countNever || 0;
+
+    } catch (authQueryError) {
+      console.error('Auth query error:', authQueryError);
+      // Return zeros on error - dashboard will still load with other metrics
+      active7d = 0;
+      active30d = 0;
+      neverLoggedIn = 0;
+    }
 
     metrics.users = {
       total: totalUsers || 0,
