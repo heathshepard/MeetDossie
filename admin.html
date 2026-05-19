@@ -243,6 +243,12 @@ body {
 </div>
 
 <div class="container">
+  <!-- DEBUG PANEL - Always visible -->
+  <div style="background: #1A1A2E; color: #F5EDD8; padding: 20px; border-radius: 12px; margin-bottom: 20px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+    <div style="font-weight: 700; margin-bottom: 12px; color: #C9A84C; font-size: 16px;">🔍 DEBUG PANEL</div>
+    <div id="debug-output">Initializing...</div>
+  </div>
+
   <div id="loading" class="loading">
     <div class="loading-spinner">⏳</div>
     <p>Loading analytics...</p>
@@ -444,6 +450,22 @@ body {
 <script>
 let supabase;
 let refreshInterval;
+let debugLog = [];
+
+function addDebug(message, data = null) {
+  const timestamp = new Date().toLocaleTimeString();
+  debugLog.push({ timestamp, message, data });
+
+  let html = debugLog.map(entry => {
+    let dataStr = '';
+    if (entry.data) {
+      dataStr = `<br><span style="color: #8FAF8F; padding-left: 20px;">${JSON.stringify(entry.data, null, 2).substring(0, 300)}</span>`;
+    }
+    return `<div style="margin-bottom: 8px;"><span style="color: #D4A0A0;">[${entry.timestamp}]</span> ${entry.message}${dataStr}</div>`;
+  }).join('');
+
+  document.getElementById('debug-output').innerHTML = html;
+}
 
 function showError(title, message, details = null) {
   console.error('[Admin]', title, message, details);
@@ -462,29 +484,29 @@ function showError(title, message, details = null) {
 }
 
 async function initSupabase() {
-  console.log('[Admin] Step 1: Fetching public config from /api/public-config...');
+  addDebug('⚙️ Step 1: Fetching Supabase config from /api/public-config');
   try {
     const configResponse = await fetch('/api/public-config');
-    console.log('[Admin] Config response status:', configResponse.status);
-    
+    addDebug(`Config response: ${configResponse.status} ${configResponse.statusText}`);
+
     if (!configResponse.ok) {
       const errorText = await configResponse.text();
+      addDebug('❌ Config API failed', { status: configResponse.status, error: errorText.substring(0, 200) });
       throw new Error(`Config API returned ${configResponse.status}: ${errorText.substring(0, 200)}`);
     }
-    
+
     const config = await configResponse.json();
-    console.log('[Admin] Config received:', { 
-      hasUrl: !!config.supabaseUrl, 
-      hasKey: !!config.supabaseAnonKey
-    });
+    addDebug('✅ Config received', { hasUrl: !!config.supabaseUrl, hasKey: !!config.supabaseAnonKey });
 
     if (!config.supabaseUrl || !config.supabaseAnonKey) {
+      addDebug('❌ Missing Supabase credentials in config');
       throw new Error('Missing Supabase URL or anon key in config response');
     }
 
     supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-    console.log('[Admin] Supabase client initialized');
+    addDebug('✅ Supabase client initialized');
   } catch (error) {
+    addDebug('❌ Init failed', { error: error.message });
     showError('Config Error', 'Failed to load Supabase configuration', error.message);
     throw error;
   }
@@ -492,34 +514,37 @@ async function initSupabase() {
 
 async function checkAuth() {
   try {
-    console.log('[Admin] Step 2: Checking auth...');
+    addDebug('🔐 Step 2: Checking authentication');
     if (!supabase) {
       await initSupabase();
     }
 
-    console.log('[Admin] Getting session...');
+    addDebug('Getting session from Supabase...');
     const { data: { session }, error } = await supabase.auth.getSession();
 
     if (error) {
+      addDebug('❌ Auth error', { error: error.message });
       throw new Error(`Auth error: ${error.message}`);
     }
 
     if (!session) {
-      console.log('[Admin] No session - redirecting to /app.html');
+      addDebug('❌ No session found - redirecting to /app.html');
       window.location.href = '/app.html';
       return null;
     }
 
-    console.log('[Admin] User email:', session.user.email);
+    addDebug('✅ Session found', { email: session.user.email, hasToken: !!session.access_token });
 
     if (session.user.email !== 'heath.shepard@kw.com') {
+      addDebug('❌ Access denied - not admin', { email: session.user.email });
       showError('Access Denied', 'This dashboard is only accessible to administrators.', `Your email: ${session.user.email}`);
       return null;
     }
 
-    console.log('[Admin] Auth check PASSED');
+    addDebug('✅ Auth check PASSED - admin verified');
     return session;
   } catch (error) {
+    addDebug('❌ Auth failed', { error: error.message });
     showError('Authentication Error', 'Failed to verify session', error.message);
     throw error;
   }
@@ -527,32 +552,47 @@ async function checkAuth() {
 
 async function loadDashboard() {
   try {
-    console.log('[Admin] ===== DASHBOARD LOAD START =====');
+    addDebug('🚀 DASHBOARD LOAD START');
     const session = await checkAuth();
-    if (!session) return;
+    if (!session) {
+      addDebug('⚠️ No session - stopping load');
+      return;
+    }
 
-    console.log('[Admin] Step 3: Fetching from /api/admin-dashboard...');
-    const response = await fetch('/api/admin-dashboard', {
+    const apiUrl = `${window.location.origin}/api/admin-dashboard`;
+    addDebug('📡 Step 3: Calling API', { url: apiUrl });
+
+    const response = await fetch(apiUrl, {
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
       },
     });
 
-    console.log('[Admin] API response:', response.status, response.statusText);
+    addDebug(`API response: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Admin] API error body:', errorText);
+      addDebug('❌ API returned error', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText.substring(0, 300)
+      });
       throw new Error(`API returned ${response.status}\n\n${errorText.substring(0, 500)}`);
     }
 
     const data = await response.json();
-    console.log('[Admin] Data received, success:', data.success);
+    addDebug('✅ API data received', {
+      success: data.success,
+      hasMetrics: !!data.metrics,
+      mrr: data.metrics?.revenue?.mrr
+    });
 
     if (!data.success) {
+      addDebug('❌ API returned success=false', { error: data.error });
       throw new Error(data.error || 'API returned success=false');
     }
 
+    addDebug('🎨 Rendering dashboard...');
     renderDashboard(data.metrics);
 
     document.getElementById('loading').style.display = 'none';
@@ -562,10 +602,10 @@ async function loadDashboard() {
     document.getElementById('last-refresh').textContent =
       `Last: ${now.toLocaleTimeString()} · Auto-refresh: 5min`;
 
-    console.log('[Admin] ===== DASHBOARD LOAD SUCCESS =====');
+    addDebug('✅ DASHBOARD LOAD COMPLETE');
 
   } catch (error) {
-    console.error('[Admin] ===== DASHBOARD LOAD FAILED =====', error);
+    addDebug('❌ DASHBOARD LOAD FAILED', { error: error.message, stack: error.stack?.substring(0, 200) });
     showError('Dashboard Error', 'Failed to load analytics', error.message);
   }
 }
@@ -638,7 +678,24 @@ function renderDashboard(metrics) {
   }
 }
 
+// Global error handler
+window.addEventListener('error', (event) => {
+  addDebug('❌ UNCAUGHT ERROR', {
+    message: event.error?.message || event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno
+  });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  addDebug('❌ UNHANDLED PROMISE REJECTION', {
+    reason: event.reason?.message || event.reason
+  });
+});
+
 // Load dashboard on page load
+addDebug('📄 Page loaded - starting dashboard initialization');
 loadDashboard();
 
 // Auto-refresh every 5 minutes (300000ms)
