@@ -595,7 +595,16 @@ body {
     async function initSupabase() {
       try {
         const config = await fetch('/api/config').then(r => r.json());
-        window.supabase = createClient(config.supabaseUrl, config.supabaseKey);
+        window.supabase = createClient(config.supabaseUrl, config.supabaseKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage: window.localStorage,
+            storageKey: 'supabase.auth.token',
+            flowType: 'pkce',
+          },
+        });
         return window.supabase;
       } catch (err) {
         console.error('Failed to initialize Supabase:', err);
