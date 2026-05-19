@@ -11,6 +11,8 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
+  const API_VERSION = '2026-05-19-v2'; // Force cache invalidation
+
   // CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -556,6 +558,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      api_version: API_VERSION,
       generated_at: new Date().toISOString(),
       metrics,
     });
