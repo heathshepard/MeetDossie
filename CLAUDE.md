@@ -32,7 +32,7 @@ This file is read at the start of every Claude Code session. It completely repla
 | Payments | Stripe | Founding price `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo) |
 | Social posting | Zernio | $12/mo, 4 accounts, unlimited posts |
 | Card renderer | htmlcsstoimage.com (HCTI) | Replaced canvas entirely. `HCTI_USER_ID` + `HCTI_API_KEY` in Vercel env vars. Free plan: 50 renders/month. Upgrade to $14/mo at 1,000 renders when volume requires. |
-| Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`) |
+| Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`). Creator plan: $18.33/mo, 30k credits/mo (upgraded 2026-05-19). |
 | Stock video | Pexels API | portrait for vertical, landscape for square |
 | Video assembly | Creatomate | Template ID `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: `Image-K8V` (screen recording URL), `Persona-Name`, `Caption`, `Voiceover` (ElevenLabs Bill voice pre-configured). |
 | Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) for personal + DONE handler. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) for social-post approve/reject callbacks. |
