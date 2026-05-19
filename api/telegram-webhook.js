@@ -76,10 +76,12 @@ async function editMessage(chatId, messageId, text) {
 }
 
 async function sendMessage(chatId, text, replyToMessageId, forceReply, logStep) {
+  console.log('[telegram-webhook] sendMessage CALLED - chatId:', chatId, 'textPreview:', text.substring(0, 50));
   const body = { chat_id: chatId, text, disable_web_page_preview: true };
   if (replyToMessageId) body.reply_to_message_id = replyToMessageId;
   if (forceReply) body.reply_markup = { force_reply: true, selective: true };
   const result = await tgCall('sendMessage', body);
+  console.log('[telegram-webhook] sendMessage RESULT - ok:', result.ok, 'error:', result.data?.description || 'none');
   if (logStep) logStep({
     step: 'sendMessage_called',
     chatId,
@@ -302,12 +304,16 @@ async function handleTextMessage(msg, logStep) {
   const chatId = msg?.chat?.id;
   const messageText = String(msg?.text || '');
 
+  console.log('[telegram-webhook] handleTextMessage START - chatId:', chatId, 'text:', messageText.substring(0, 50));
   if (logStep) logStep({ step: 'text_message_received', chatId, text: messageText.substring(0, 50) });
 
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+    console.log('[telegram-webhook] UNAUTHORIZED - chatId:', chatId, 'expected:', TELEGRAM_CHAT_ID);
     if (logStep) logStep({ step: 'text_message_unauthorized', chatId });
     return;
   }
+
+  console.log('[telegram-webhook] Message authorized, processing...');
 
   const replyTo = msg?.reply_to_message;
 
@@ -462,9 +468,20 @@ module.exports = async function handler(req, res) {
       logStep({ action: 'no_handler', updateKeys: Object.keys(update || {}) });
     }
   } catch (err) {
-    // Log but always return 200 — Telegram retries non-200s aggressively.
+    // Log and send error notification to admin
     console.error('[telegram-webhook] handler threw:', err && err.message, err.stack);
     logStep({ action: 'handler_error', error: err.message, stack: err.stack });
+
+    // Try to send error notification to admin chat
+    try {
+      const chatId = update?.message?.chat?.id || update?.callback_query?.message?.chat?.id || TELEGRAM_CHAT_ID;
+      if (chatId) {
+        const errorMsg = `❌ Webhook error:\n\n${err.message}\n\nStack:\n${err.stack?.substring(0, 500)}`;
+        await tgCall('sendMessage', { chat_id: chatId, text: errorMsg });
+      }
+    } catch (notifyErr) {
+      console.error('[telegram-webhook] Failed to send error notification:', notifyErr);
+    }
   }
 
   if (debugMode) {
