@@ -9,13 +9,14 @@
 const fetch = require('node-fetch');
 const { retryFetch } = require('./_lib/retry.js');
 
-// Brand colors
+// Brand colors (matching CLAUDE.md spec exactly)
 const COLORS = {
-  BLUSH: '#F5EDE4',
-  CORAL: '#C17B5C',
-  SAGE: '#6B8E68',
-  NAVY: '#1A1A2E',
-  GOLD: '#C9A96E',
+  BLUSH: '#F5E6E0',      // Primary accent, card background
+  BLUSH_DEEP: '#D4A0A0', // Border (not used in current template but kept for consistency)
+  CORAL: '#E8836B',      // Accent line, CTA
+  SAGE: '#8BA888',       // Footer URL, success
+  NAVY: '#1A1A2E',       // Headlines, body text
+  GOLD: '#C9A96E',       // Founding badge
   WHITE: '#FFFFFF',
 };
 
@@ -164,25 +165,7 @@ function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemai
       font-size: ${isInstagram ? 28 : 22}px;
       line-height: 1.3;
       color: ${COLORS.NAVY};
-      margin-bottom: ${Math.floor(H * (isInstagram ? 0.04 : 0.05))}px;
-    }
-    .hook-container {
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: ${Math.floor(H * (isInstagram ? 0.04 : 0.05))}px;
-    }
-    .hook-divider {
-      width: 3px;
-      height: ${Math.floor(H * 0.025)}px;
-      background: ${COLORS.SAGE};
-      margin-right: 15px;
-      flex-shrink: 0;
-    }
-    .hook {
-      font-weight: 700;
-      font-size: ${isInstagram ? 32 : 26}px;
-      line-height: 1.2;
-      color: ${COLORS.NAVY};
+      margin-bottom: ${Math.floor(H * (isInstagram ? 0.05 : 0.05))}px;
     }
     .body-container {
       display: flex;
@@ -191,7 +174,7 @@ function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemai
     }
     .body-bar {
       width: 4px;
-      background: ${COLORS.GOLD};
+      background: ${COLORS.CORAL};
       margin-right: ${Math.floor(W * 0.020)}px;
       flex-shrink: 0;
       align-self: stretch;
@@ -225,18 +208,10 @@ function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemai
   <div class="card">
     <div class="stat">${actualStat}</div>
     <div class="stat-label">${actualStatLabel}</div>
-    ${actualHook ? `
-    <div class="hook-container">
-      <div class="hook-divider"></div>
-      <div class="hook">${actualHook}</div>
-    </div>
-    ` : ''}
-    ${bodyText ? `
     <div class="body-container">
       <div class="body-bar"></div>
       <div class="body">${bodyText}</div>
     </div>
-    ` : ''}
     <div class="bottom-row">
       <div class="pill">${pillText}</div>
       <div class="url">meetdossie.com/founding</div>
