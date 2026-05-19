@@ -2,6 +2,7 @@
  * Admin Dashboard API
  * Returns analytics metrics for the Dossie admin dashboard
  * Auth: requires logged-in user with email = heath.shepard@kw.com
+ * Updated: 2026-05-19 - force redeployment to clear Vercel cache
  */
 
 import { createClient } from '@supabase/supabase-js';
