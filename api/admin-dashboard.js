@@ -375,16 +375,12 @@ export default async function handler(req, res) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id);
 
-      // Get last login and email from auth.users
-      const { data: authUser } = await supabase
-        .from('auth.users')
-        .select('last_sign_in_at, email')
-        .eq('id', profile.id)
-        .single();
+      // Get last login and email from auth.users via admin API
+      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
 
       customerUsage.push({
-        name: profile.name || authUser?.email?.split('@')[0] || 'Unknown',
-        email: profile.email || authUser?.email || 'Unknown',
+        name: profile.name || authUser?.user?.email?.split('@')[0] || 'Unknown',
+        email: profile.email || authUser?.user?.email || 'Unknown',
         plan: sub?.plan || 'none',
         documents: docsCount || 0,
         actionsCompleted: actionsCount || 0,
@@ -392,7 +388,7 @@ export default async function handler(req, res) {
         transactions: transactionsCount || 0,
         milestones: milestonesCount || 0,
         shares: sharesCount || 0,
-        lastLogin: authUser?.last_sign_in_at || null,
+        lastLogin: authUser?.user?.last_sign_in_at || null,
         totalActivity: (docsCount || 0) + (actionsCount || 0) + (emailsCount || 0) + (transactionsCount || 0),
       });
     }
@@ -521,18 +517,14 @@ export default async function handler(req, res) {
         .eq('id', sub.user_id)
         .single();
 
-      const { data: authUser } = await supabase
-        .from('auth.users')
-        .select('last_sign_in_at, email')
-        .eq('id', sub.user_id)
-        .single();
+      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(sub.user_id);
 
       const { count: userTransactions } = await supabase
         .from('transactions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', sub.user_id);
 
-      const lastLogin = authUser?.last_sign_in_at ? new Date(authUser.last_sign_in_at) : null;
+      const lastLogin = authUser?.user?.last_sign_in_at ? new Date(authUser.user.last_sign_in_at) : null;
       const now = new Date();
       let activityLevel = 'inactive';
 
@@ -548,8 +540,8 @@ export default async function handler(req, res) {
       const daysSinceSignup = Math.floor((now - signupDate) / (1000 * 60 * 60 * 24));
 
       customerDetails.push({
-        name: profile?.name || authUser?.email?.split('@')[0] || 'Unknown',
-        email: profile?.email || authUser?.email || 'Unknown',
+        name: profile?.name || authUser?.user?.email?.split('@')[0] || 'Unknown',
+        email: profile?.email || authUser?.user?.email || 'Unknown',
         plan: sub.plan,
         lastLogin: lastLogin ? lastLogin.toISOString() : null,
         activityLevel,
