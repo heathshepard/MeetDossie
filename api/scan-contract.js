@@ -9,6 +9,7 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+const { logAnthropic } = require('./_lib/usage-logger.js');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -1133,13 +1134,29 @@ async function handler(req, res) {
     await checkRateLimit(ip, 'scan-contract', 10, 60 * 60 * 1000);
 
     const body = req.body || {};
-    const { pdfBase64 } = body;
+    const { pdfBase64, userId } = body;
 
     if (!pdfBase64 || typeof pdfBase64 !== 'string') {
       return res.status(400).json({ ok: false, error: 'pdfBase64 (string) is required in JSON body.' });
     }
 
     const result = await runFullScan(pdfBase64);
+
+    // Log usage (fire-and-forget, non-blocking)
+    // Scan makes 2-3 Anthropic calls: identify (Haiku), audit (Sonnet), optional extract (Sonnet)
+    // Estimate ~8000 tokens total for a full TREC scan based on testing
+    if (userId) {
+      const estimatedUsage = {
+        input_tokens: 6000,  // Approximate based on PDF size and prompts
+        output_tokens: 2000, // Approximate compliance report + extraction
+      };
+      logAnthropic(userId, 'scan', estimatedUsage, 'claude-sonnet-4-5', {
+        document_type: result.documentType,
+      }).catch(err => {
+        console.error('[scan-contract.js] Usage logging failed:', err);
+      });
+    }
+
     return res.status(200).json({
       ok: true,
       documentType: result.documentType,
