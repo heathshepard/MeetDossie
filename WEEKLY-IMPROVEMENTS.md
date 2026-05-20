@@ -16,6 +16,7 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **App + mobile**
 - The Dossie app now works cleanly on your phone. Full mobile audit and redesign pass: forms stack one field per row, the right keyboard pops up automatically (numeric for prices, email keyboard for emails, phone keyboard for phone numbers), every button is now finger-friendly (44px minimum), modals scroll within the screen instead of getting cut off, and pinch-to-zoom now works if you want to take a closer look.
 - The section tabs at the top of each deal (Deadlines / Deal / Property / Title / etc.) now have a soft fade at the right edge so you can tell at a glance that there's more to swipe through.
+- Talk to Dossie is always one tap away on mobile. As soon as you start scrolling, the top bar transforms into a big, full-width "📞 Talk to Dossie" button that follows you down the page — never have to scroll back up to get to her.
 - The Talk to Dossie button on mobile now sits right next to your avatar at the top, instead of floating in the middle of the screen.
 - The Pipeline icon in the bottom navigation now correctly takes you back to your full pipeline view when you're inside a deal (used to get stuck on the deal screen).
 - Switching between Brief / Pipeline / Emails / Settings remembers where you scrolled on each tab — no more jumping back to the top every time.
