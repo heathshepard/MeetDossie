@@ -604,11 +604,13 @@ When creating voiceover scripts for lifestyle videos:
 
 ```bat
 :: MeetDossie
-cd "C:\Users\Heath Shepard\Desktop\MeetDossie" && claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
+cd "C:\Users\Heath Shepard\Desktop\MeetDossie" && claude --continue --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
 
 :: Dossie
-cd "C:\Users\Heath Shepard\Desktop\Dossie" && claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
+cd "C:\Users\Heath Shepard\Desktop\Dossie" && claude --continue --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
 ```
+
+**`--continue` resumes the most recent session for that working directory.** Closing the window normally and re-launching picks up where you left off. Caveat: switching models (Opus ↔ Sonnet ↔ Haiku) starts a fresh session — before switching models, ask Claude to "save state to memory" so context survives the swap.
 
 ---
 

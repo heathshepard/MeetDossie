@@ -41,6 +41,7 @@ When given a task with a success condition:
 - Never skip staging
 - Never declare something fixed without testing it
 - Never give Heath multiple options when one is clearly correct
+- **NEVER edit bundle files directly** (`assets/workspace-*.js`, built HTML bundles). ALL changes must be made to source files in the Dossie repo (`dossie-app.jsx`, `src/components/*.jsx`, etc.) and then rebuilt via `npm run build`. Bundle files are generated output and get overwritten on every rebuild. Any direct bundle edit will be permanently lost on the next build. Non-negotiable.
 
 ### ENVIRONMENT
 - Staging branch → Vercel preview URL
