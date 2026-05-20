@@ -1,16 +1,23 @@
 // Vercel Serverless Function: /api/stripe-webhook
 // Handles Stripe webhook events:
-//   - checkout.session.completed → create Supabase auth user (if new),
-//     upsert profile + subscription rows, send welcome + password emails.
+//   - checkout.session.completed → create pending_onboarding subscription row;
+//     the /api/complete-onboarding form finishes provisioning.
+//   - invoice.paid → provision direct-invoice customers (e.g. when Heath sends
+//     a Stripe invoice link manually). Creates auth user, profile, subscription
+//     row, sends welcome + password-set emails, notifies Heath via Telegram.
+//     Idempotent: skips re-provisioning if auth user already exists; recurring
+//     invoices only refresh period dates.
 //   - customer.subscription.deleted → mark profile subscription_status = 'cancelled'.
 // Returns 200 on success, 400 on signature failure.
 //
 // Environment:
-//   STRIPE_SECRET_KEY          — Stripe secret key
-//   STRIPE_WEBHOOK_SECRET      — webhook signing secret (whsec_...)
-//   SUPABASE_URL               — Supabase project URL
-//   SUPABASE_SERVICE_ROLE_KEY  — service-role JWT (server-side only)
-//   RESEND_API_KEY             — Resend API key for transactional email
+//   STRIPE_SECRET_KEY              — Stripe secret key
+//   STRIPE_WEBHOOK_SECRET          — webhook signing secret (whsec_...)
+//   SUPABASE_URL                   — Supabase project URL
+//   SUPABASE_SERVICE_ROLE_KEY      — service-role JWT (server-side only)
+//   RESEND_API_KEY                 — Resend API key for transactional email
+//   TELEGRAM_MARKETING_BOT_TOKEN   — Telegram bot token for Heath notifications
+//   TELEGRAM_CHAT_ID               — Heath's Telegram chat ID
 
 const Stripe = require('stripe');
 
@@ -23,9 +30,12 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
+const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
 const PRICE_TIERS = {
-  'price_1TPxxNL920SKTEEiN7Gphq8T': 'founding',
+  [FOUNDING_PRICE_ID]: 'founding',
 };
 
 // Stripe checkout names arrive in whatever case the customer typed
@@ -207,6 +217,37 @@ async function updateProfileByEmail(email, patch) {
   });
 }
 
+async function updateSubscriptionByCustomerId(stripeCustomerId, patch) {
+  if (!stripeCustomerId) return;
+  const encoded = encodeURIComponent(stripeCustomerId);
+  await supabaseFetch(`/rest/v1/subscriptions?stripe_customer_id=eq.${encoded}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify(patch),
+  });
+}
+
+async function notifyHeathOnTelegram({ name, email, source }) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('[stripe-webhook] Telegram not configured — skipping notification');
+    return;
+  }
+  const text = `🎉 <b>NEW FOUNDING MEMBER</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Source:</b> ${source || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}`;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      console.error('[stripe-webhook] Telegram notification failed:', res.status, t.slice(0, 200));
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] Telegram threw:', err && err.message);
+  }
+}
+
 const BRAND_BG = '#FDFCFA';
 const BRAND_NAVY = '#1C2B3A';
 const BRAND_TEXT_SOFT = '#5C6B7A';
@@ -333,6 +374,230 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   // /api/complete-onboarding after the onboarding form is submitted.
 }
 
+// Handle invoice.paid — used for direct Stripe-invoice customers who bypass
+// the website checkout flow (e.g. Heath emails them a hosted-invoice link).
+// Stripe fires invoice.paid on:
+//   - billing_reason='subscription_create' → first invoice for a new sub
+//   - billing_reason='subscription_cycle'  → recurring monthly renewal
+//   - billing_reason='manual'              → ad-hoc invoice
+// We provision (create user/profile/sub + send welcome) only on the FIRST
+// invoice for an email we don't already have an auth user for. Recurring
+// invoices just refresh current_period_start/end on the subscription row.
+async function handleInvoicePaid(stripe, invoice) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping invoice.paid.');
+    return;
+  }
+
+  // Filter: only handle founding-tier invoices. Other line items pass through.
+  const lineItem = invoice?.lines?.data?.[0];
+  const priceId = lineItem?.price?.id || null;
+  if (priceId !== FOUNDING_PRICE_ID) {
+    console.log('[stripe-webhook] invoice.paid skipped — not founding tier. priceId=', priceId, 'invoice=', invoice.id);
+    return;
+  }
+
+  const stripeCustomerId = typeof invoice.customer === 'string'
+    ? invoice.customer
+    : (invoice.customer && invoice.customer.id) || null;
+  const stripeSubscriptionId = typeof invoice.subscription === 'string'
+    ? invoice.subscription
+    : (invoice.subscription && invoice.subscription.id) || null;
+  const billingReason = invoice.billing_reason || null;
+
+  // Pull email + name from invoice first, fall back to Stripe customer object.
+  let customerEmail = invoice.customer_email
+    ? String(invoice.customer_email).toLowerCase()
+    : null;
+  let customerName = toTitleCase(invoice.customer_name || '');
+
+  if ((!customerEmail || !customerName) && stripeCustomerId) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (customer && !customer.deleted) {
+        if (!customerEmail && customer.email) {
+          customerEmail = String(customer.email).toLowerCase();
+        }
+        if (!customerName && customer.name) {
+          customerName = toTitleCase(customer.name);
+        }
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] customers.retrieve failed in invoice.paid:', err && err.message);
+    }
+  }
+
+  if (!customerEmail) {
+    console.error('[stripe-webhook] invoice.paid has no email; cannot provision. invoice=', invoice.id);
+    return;
+  }
+
+  // Fetch subscription period dates from the Stripe subscription.
+  let currentPeriodStart = null;
+  let currentPeriodEnd = null;
+  if (stripeSubscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      if (sub && sub.current_period_start) {
+        currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
+      }
+      if (sub && sub.current_period_end) {
+        currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] subscriptions.retrieve failed in invoice.paid:', err && err.message);
+    }
+  }
+
+  // Idempotency check: does an auth user already exist for this email?
+  // If yes, this is either:
+  //   (a) a recurring invoice for a customer we've already provisioned, or
+  //   (b) a first invoice for a checkout-flow customer (handled by
+  //       complete-onboarding) whose invoice.paid is firing alongside.
+  // In either case, only refresh the subscription period — don't re-send email.
+  const existingAuthUserId = await findAuthUserIdByEmail(customerEmail);
+  if (existingAuthUserId) {
+    console.log('[stripe-webhook] invoice.paid: auth user exists for', customerEmail, '— refreshing subscription only. reason=', billingReason);
+    try {
+      // Refresh by stripe_subscription_id when available (specific row),
+      // fall back to stripe_customer_id (works even if sub row is missing
+      // and we need to upsert).
+      if (stripeSubscriptionId) {
+        await upsertSubscription({
+          user_id: existingAuthUserId,
+          stripe_customer_id: stripeCustomerId,
+          stripe_subscription_id: stripeSubscriptionId,
+          stripe_price_id: priceId,
+          plan: 'founding',
+          status: 'active',
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
+        });
+      } else if (stripeCustomerId) {
+        await updateSubscriptionByCustomerId(stripeCustomerId, {
+          status: 'active',
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
+        });
+      }
+    } catch (err) {
+      console.error('[stripe-webhook] invoice.paid period refresh failed:', err && err.message);
+    }
+    return;
+  }
+
+  // No auth user exists → true direct-invoice provisioning path.
+  // Only run the full provisioning on subscription_create (first invoice).
+  // For subscription_cycle without an auth user, log loudly — that means we
+  // missed the first invoice somehow and Heath should investigate manually.
+  if (billingReason && billingReason !== 'subscription_create' && billingReason !== 'manual') {
+    console.warn('[stripe-webhook] invoice.paid: no auth user but billing_reason=', billingReason, 'email=', customerEmail, 'invoice=', invoice.id, '— refreshing subscription row only, NOT sending welcome.');
+    try {
+      if (stripeSubscriptionId) {
+        await upsertSubscription({
+          user_id: null,
+          stripe_customer_id: stripeCustomerId,
+          stripe_subscription_id: stripeSubscriptionId,
+          stripe_price_id: priceId,
+          plan: 'founding',
+          status: 'active',
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
+        });
+      }
+    } catch (err) {
+      console.error('[stripe-webhook] invoice.paid orphan refresh failed:', err && err.message);
+    }
+    return;
+  }
+
+  console.log('[stripe-webhook] invoice.paid: provisioning direct-invoice customer', customerEmail, 'invoice=', invoice.id);
+
+  // 1) Create Supabase auth user.
+  let userId = null;
+  try {
+    const result = await createAuthUser({ email: customerEmail, fullName: customerName });
+    userId = result.userId;
+  } catch (err) {
+    console.error('[stripe-webhook] createAuthUser failed in invoice.paid:', err && err.message);
+    return;
+  }
+  if (!userId) {
+    console.error('[stripe-webhook] invoice.paid: createAuthUser returned no userId for', customerEmail);
+    return;
+  }
+
+  // 2) Upsert minimal profile. phone/brokerage/market/heard_from left null —
+  //    Heath will collect via email follow-up.
+  try {
+    await upsertProfile({
+      id: userId,
+      email: customerEmail,
+      full_name: customerName || '',
+      plan: 'founding',
+      subscription_status: 'active',
+      subscription_tier: 'founding',
+      stripe_customer_id: stripeCustomerId,
+    });
+  } catch (err) {
+    console.error('[stripe-webhook] upsertProfile failed in invoice.paid:', err && err.message);
+  }
+
+  // 3) Upsert subscription row.
+  try {
+    await upsertSubscription({
+      user_id: userId,
+      stripe_customer_id: stripeCustomerId,
+      stripe_subscription_id: stripeSubscriptionId,
+      stripe_price_id: priceId,
+      plan: 'founding',
+      status: 'active',
+      current_period_start: currentPeriodStart,
+      current_period_end: currentPeriodEnd,
+    });
+  } catch (err) {
+    console.error('[stripe-webhook] upsertSubscription failed in invoice.paid:', err && err.message);
+  }
+
+  // 4) Send welcome email.
+  try {
+    await sendEmail({
+      to: customerEmail,
+      subject: 'Welcome to Dossie',
+      html: welcomeEmailHtml(customerName),
+    });
+  } catch (err) {
+    console.error('[stripe-webhook] welcome email failed in invoice.paid:', err && err.message);
+  }
+
+  // 5) Generate recovery link + send password-set email.
+  try {
+    const actionLink = await generateRecoveryLink(customerEmail);
+    if (actionLink) {
+      await sendEmail({
+        to: customerEmail,
+        subject: 'Welcome to Dossie — Set Your Password',
+        html: setPasswordEmailHtml(actionLink),
+      });
+    } else {
+      console.error('[stripe-webhook] invoice.paid: no action_link returned for', customerEmail);
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] password-set email failed in invoice.paid:', err && err.message);
+  }
+
+  // 6) Notify Heath via Telegram, flagged as direct-invoice source.
+  try {
+    await notifyHeathOnTelegram({
+      name: customerName,
+      email: customerEmail,
+      source: `direct invoice (${invoice.id})`,
+    });
+  } catch (err) {
+    console.error('[stripe-webhook] Telegram notify failed in invoice.paid:', err && err.message);
+  }
+}
+
 async function handleSubscriptionDeleted(subscription) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[stripe-webhook] Supabase not configured — skipping cancellation.');
@@ -420,6 +685,8 @@ module.exports = async function handler(req, res) {
   try {
     if (event.type === 'checkout.session.completed') {
       await handleCheckoutSessionCompleted(stripe, event.data.object);
+    } else if (event.type === 'invoice.paid') {
+      await handleInvoicePaid(stripe, event.data.object);
     } else if (event.type === 'customer.subscription.deleted') {
       await handleSubscriptionDeleted(event.data.object);
     }
