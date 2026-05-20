@@ -83,12 +83,34 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
         <input class="form-input" id="email" name="email" type="email" placeholder="Loading..." required>
       </div>
       <div class="form-field">
+        <label class="form-label" for="phone">Phone</label>
+        <input class="form-input" id="phone" name="phone" type="tel" placeholder="(210) 555-1234" autocomplete="tel" required>
+      </div>
+      <div class="form-field">
         <label class="form-label" for="brokerage">Brokerage</label>
         <input class="form-input" id="brokerage" name="brokerage" type="text" placeholder="e.g. Keller Williams" required>
       </div>
       <div class="form-field">
         <label class="form-label" for="market">Texas market</label>
         <input class="form-input" id="market" name="market" type="text" placeholder="e.g. San Antonio, Austin, DFW..." required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="heard_from">How did you hear about Dossie?</label>
+        <select class="form-input" id="heard_from" name="heard_from" required>
+          <option value="" disabled selected>Choose one...</option>
+          <option value="Facebook">Facebook</option>
+          <option value="Facebook group">Facebook group</option>
+          <option value="Instagram">Instagram</option>
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="TikTok">TikTok</option>
+          <option value="Google search">Google search</option>
+          <option value="Friend or colleague">Friend or colleague</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-field" id="heard_from_detail_field" style="display:none;">
+        <label class="form-label" for="heard_from_detail" id="heard_from_detail_label">Tell us more</label>
+        <input class="form-input" id="heard_from_detail" name="heard_from_detail" type="text" placeholder="">
       </div>
       <button class="cta-primary" type="submit" id="submit-button">Complete Setup</button>
       <div class="status-message" id="status-message"></div>
@@ -107,10 +129,32 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
   var form = document.getElementById("onboarding-form");
   var nameInput = document.getElementById("name");
   var emailInput = document.getElementById("email");
+  var phoneInput = document.getElementById("phone");
   var brokerageInput = document.getElementById("brokerage");
   var marketInput = document.getElementById("market");
+  var heardFromSelect = document.getElementById("heard_from");
+  var heardFromDetailField = document.getElementById("heard_from_detail_field");
+  var heardFromDetailLabel = document.getElementById("heard_from_detail_label");
+  var heardFromDetailInput = document.getElementById("heard_from_detail");
   var submitButton = document.getElementById("submit-button");
   var status = document.getElementById("status-message");
+
+  // Show/hide the detail input based on heard_from selection
+  heardFromSelect.addEventListener("change", function() {
+    var value = heardFromSelect.value;
+    if (value === "Facebook group") {
+      heardFromDetailField.style.display = "";
+      heardFromDetailLabel.textContent = "Which Facebook group?";
+      heardFromDetailInput.placeholder = "e.g. Texas REALTORS, Lab Coat Agents...";
+    } else if (value === "Other") {
+      heardFromDetailField.style.display = "";
+      heardFromDetailLabel.textContent = "Tell us more";
+      heardFromDetailInput.placeholder = "Where did you hear about us?";
+    } else {
+      heardFromDetailField.style.display = "none";
+      heardFromDetailInput.value = "";
+    }
+  });
 
   // Extract session_id from URL query params
   var params = new URLSearchParams(window.location.search);
@@ -168,13 +212,24 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
 
     var name = (nameInput.value || "").trim();
     var email = (emailInput.value || "").trim().toLowerCase();
+    var phone = (phoneInput.value || "").trim();
     var brokerage = (brokerageInput.value || "").trim();
     var market = (marketInput.value || "").trim();
+    var heardFrom = (heardFromSelect.value || "").trim();
+    var heardFromDetail = (heardFromDetailInput.value || "").trim();
+
+    // Combine heard_from + detail into a single value if detail provided
+    var heardFromValue = heardFrom;
+    if ((heardFrom === "Facebook group" || heardFrom === "Other") && heardFromDetail) {
+      heardFromValue = heardFrom + ": " + heardFromDetail;
+    }
 
     if (!name) { showStatus("Please enter your full name.", "error"); return; }
     if (!isValidEmail(email)) { showStatus("That email looks off. Please check it.", "error"); return; }
+    if (!phone) { showStatus("Please enter your phone number.", "error"); return; }
     if (!brokerage) { showStatus("Please enter your brokerage name.", "error"); return; }
     if (!market) { showStatus("Please enter your Texas market.", "error"); return; }
+    if (!heardFrom) { showStatus("Please tell us how you heard about Dossie.", "error"); return; }
 
     submitButton.disabled = true;
     submitButton.textContent = "Setting up your account...";
@@ -188,8 +243,10 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
           session_id: sessionId,
           name: name,
           email: email,
+          phone: phone,
           brokerage: brokerage,
           market: market,
+          heard_from: heardFromValue,
         }),
       });
 

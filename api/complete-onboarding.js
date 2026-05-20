@@ -231,13 +231,13 @@ async function sendEmail({ to, subject, html }) {
   }
 }
 
-async function notifyHeathOnTelegram({ name, email, brokerage, market }) {
+async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom }) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[complete-onboarding] Telegram not configured — skipping notification');
     return;
   }
 
-  const text = `🎉 <b>NEW FOUNDING MEMBER</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}`;
+  const text = `🎉 <b>NEW FOUNDING MEMBER</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -287,8 +287,10 @@ module.exports = async function handler(req, res) {
   const sessionId = (body.session_id || '').trim();
   const name = toTitleCase(body.name || '');
   const email = String(body.email || '').trim().toLowerCase();
+  const phone = (body.phone || '').trim();
   const brokerage = (body.brokerage || '').trim();
   const market = (body.market || '').trim();
+  const heardFrom = (body.heard_from || '').trim();
 
   if (!sessionId || !sessionId.startsWith('cs_')) {
     res.status(400).json({ ok: false, error: 'Invalid session ID.' });
@@ -302,12 +304,20 @@ module.exports = async function handler(req, res) {
     res.status(400).json({ ok: false, error: 'Valid email is required.' });
     return;
   }
+  if (!phone) {
+    res.status(400).json({ ok: false, error: 'Phone is required.' });
+    return;
+  }
   if (!brokerage) {
     res.status(400).json({ ok: false, error: 'Brokerage is required.' });
     return;
   }
   if (!market) {
     res.status(400).json({ ok: false, error: 'Market is required.' });
+    return;
+  }
+  if (!heardFrom) {
+    res.status(400).json({ ok: false, error: 'Please tell us how you heard about Dossie.' });
     return;
   }
 
@@ -333,13 +343,15 @@ module.exports = async function handler(req, res) {
       throw new Error('Failed to create auth user.');
     }
 
-    // Upsert profile with brokerage and market
+    // Upsert profile with brokerage, market, phone, and heard_from
     await upsertProfile({
       id: userId,
       email,
       full_name: name,
+      phone,
       brokerage,
       market,
+      heard_from: heardFrom,
       subscription_tier: 'founding',
       subscription_status: 'active',
       plan: 'founding',
@@ -369,7 +381,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Notify Heath via Telegram
-    await notifyHeathOnTelegram({ name, email, brokerage, market });
+    await notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom });
 
     res.status(200).json({ ok: true, message: 'Onboarding complete.' });
   } catch (err) {
