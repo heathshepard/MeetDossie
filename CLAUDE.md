@@ -35,6 +35,7 @@ This file is read at the start of every Claude Code session. It completely repla
 | Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`). Creator plan: $18.33/mo, 30k credits/mo (upgraded 2026-05-19). |
 | Stock video | Pexels API | portrait for vertical, landscape for square |
 | Video assembly | Creatomate | Template ID `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: `Image-K8V` (screen recording URL), `Persona-Name`, `Caption`, `Voiceover` (ElevenLabs Bill voice pre-configured). |
+| Selfie video editing | Submagic | $16/mo Starter plan (added 2026-05-20). Heath records vertical selfie → uploads to Submagic mobile app → auto-captions + auto-b-roll + multi-format export. Manual upload step (no API on Starter plan; API requires $60/mo Business tier). Workflow doc: `scripts/SELFIE-VIDEO-WORKFLOW.md`. |
 | Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) for personal + DONE handler. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) for social-post approve/reject callbacks. |
 
 **Repo layout — TWO repos:**
@@ -56,8 +57,9 @@ This file is read at the start of every Claude Code session. It completely repla
 | Resend | Free | $0 | Email sending |
 | Pexels | Free | $0 | Stock video API |
 | Stripe | Pay-as-you-go | $0 | 2.9% + 30¢ per transaction |
+| Submagic | Starter | $16.00 | Selfie-video editing (captions, b-roll, multi-format export). Added 2026-05-20. |
 
-**Total monthly fixed costs: $36.33**
+**Total monthly fixed costs: $52.33**
 
 **Variable costs:**
 - Stripe transaction fees (2.9% + 30¢ per charge)
