@@ -160,12 +160,13 @@ ${c}`}}[e]},pr=e=>{var t;return((t=Ia.find(n=>n.id===e))==null?void 0:t.label)||
           .app-sidebar { display: none !important; }
           .app-shell { grid-template-columns: 1fr !important; grid-template-rows: 56px 1fr !important; max-width: 100vw !important; overflow-x: clip !important; }
           /* Header is FIXED at top on mobile so the Talk to Dossie bar always floats above content */
-          .app-header { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; height: 56px !important; padding: 0 12px !important; grid-template-columns: auto 1fr !important; gap: 10px !important; z-index: 120 !important; }
-          .app-header.is-scrolled { grid-template-columns: 1fr !important; padding: 0 12px !important; }
-          .app-header.is-scrolled .app-talk-button { max-width: 100% !important; width: 100% !important; height: 48px !important; font-size: 16px !important; font-weight: 700 !important; justify-self: stretch !important; }
+          .app-header { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; height: 64px !important; padding: 8px 12px !important; padding-top: max(8px, env(safe-area-inset-top, 8px)) !important; grid-template-columns: auto 1fr !important; gap: 10px !important; align-items: center !important; z-index: 120 !important; box-sizing: border-box !important; }
+          .app-header.is-scrolled { grid-template-columns: 1fr !important; }
+          .app-header.is-scrolled .app-talk-button { max-width: 100% !important; width: 100% !important; height: 44px !important; font-size: 16px !important; font-weight: 700 !important; justify-self: stretch !important; align-self: center !important; }
+          .app-header > * { align-self: center !important; }
           .app-wordmark { display: none !important; }
-          /* Push main content down so it doesn't hide under the fixed header (56px) */
-          .app-main { padding: 72px 16px 100px !important; max-width: 100vw !important; overflow-x: clip !important; }
+          /* Push main content down so it doesn't hide under the fixed header (~64px + safe area) */
+          .app-main { padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 100px !important; max-width: 100vw !important; overflow-x: clip !important; }
           .bottom-tab-bar { display: flex !important; }
           .pipeline-grid { grid-template-columns: 1fr !important; overflow-x: visible !important; min-width: 0 !important; }
           .brief-stats-row { flex-direction: column !important; }
