@@ -298,7 +298,7 @@ export default async function handler(req, res) {
       : 0;
 
     const expenses = {
-      // Hardcoded monthly costs (updated 2026-05-19)
+      // Hardcoded monthly costs (updated 2026-05-20)
       claudeAI: 100, // Claude.ai Pro subscription
       anthropicAPI: 50, // Anthropic API usage (separate from Claude.ai)
       elevenLabs: 18.33, // Voice synthesis (Creator plan)
@@ -306,6 +306,7 @@ export default async function handler(req, res) {
       vercel: 0, // Free tier (Hobby)
       stripe: Math.round(stripeMonthlyFees * 100) / 100,
       zernio: 18, // Social media posting (Pro plan)
+      submagic: 12, // Selfie video editing (Starter plan)
       hcti: 0, // Free plan (50 renders/mo, upgrade at $14/mo)
       creatomate: 0, // Free tier
       pexels: 0, // Free API
