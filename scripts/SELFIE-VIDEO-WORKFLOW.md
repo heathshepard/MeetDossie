@@ -32,7 +32,7 @@ Heath records a vertical selfie video (30-60s). Pipeline produces multi-platform
 ## Script formula that converts
 
 Pain → math → reveal → scarcity → CTA. Example:
-> "I pay my transaction coordinator $400 a deal. Last month I closed eight. That's $3,200. And I'm STILL the one waking up at 3 a.m. wondering if she sent the option fee receipt. That's why I built Dossie — an AI transaction coordinator for Texas real estate. $29/month locked forever for the first 50 founding members. 3 spots taken so far. Texas agents — meetdossie.com/founding."
+> "I pay my transaction coordinator $400 a deal. Last month I closed eight. That's $3,200. And I'm STILL the one waking up at 3 a.m. wondering if she sent the option fee receipt. That's why I built Dossie — an AI transaction coordinator for Texas real estate. $29/month locked forever for the first 50 founding members. 6 spots taken so far. Texas agents — meetdossie.com/founding."
 
 - 30-45 seconds at natural pace
 - Specific numbers (specificity converts)
