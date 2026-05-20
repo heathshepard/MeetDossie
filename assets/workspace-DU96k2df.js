@@ -170,8 +170,15 @@ ${c}`}}[e]},ur=e=>{var t;return((t=$a.find(n=>n.id===e))==null?void 0:t.label)||
           .detail-wrap-mobile, .detail-wrap-mobile * { min-width: 0 !important; max-width: 100% !important; }
           .detail-wrap-mobile > div { box-sizing: border-box !important; }
           /* Anchor nav is intentionally horizontally scrollable — restore its row layout */
-          .detail-wrap-mobile nav[aria-label="Dossier sections"] { overflow-x: auto !important; max-width: 100% !important; }
-          .detail-wrap-mobile nav[aria-label="Dossier sections"] > div { min-width: max-content !important; max-width: none !important; flex-wrap: nowrap !important; }
+          .detail-wrap-mobile nav[aria-label="Dossier sections"] {
+            overflow-x: auto !important;
+            max-width: 100% !important;
+            /* Fade right edge so users see content continues offscreen — strong "swipe me" cue */
+            -webkit-mask-image: linear-gradient(to right, black 0%, black 78%, transparent 100%) !important;
+            mask-image: linear-gradient(to right, black 0%, black 78%, transparent 100%) !important;
+            scroll-behavior: smooth !important;
+          }
+          .detail-wrap-mobile nav[aria-label="Dossier sections"] > div { min-width: max-content !important; max-width: none !important; flex-wrap: nowrap !important; padding-right: 28px !important; }
           .detail-wrap-mobile nav[aria-label="Dossier sections"] button { max-width: none !important; min-width: max-content !important; white-space: nowrap !important; word-break: normal !important; }
           .detail-wrap-mobile [data-detail-card] { padding: 14px !important; border-radius: 18px !important; }
           .detail-wrap-mobile [data-detail-address] { font-size: 22px !important; line-height: 1.15 !important; word-break: break-word !important; }
