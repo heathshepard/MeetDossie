@@ -134,7 +134,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 | Solo | $79 | $39 |
 | Team | $199 (3 seats; max 8 at $35/seat) | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (50 spots, 6 taken) | — |
+| **Founding Member** | **$29** (50 spots, 8 taken) | — |
 
 **Add-ons:**
 - Reply Monitoring — $10/mo
@@ -155,7 +155,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $175/month** (6 founding @ $29 + 1 friend @ $1)
+**MRR: $233/month** (8 founding @ $29 + 1 friend @ $1)
 
 | # | Name | Email | Plan | Notes |
 |---|---|---|---|---|
@@ -166,6 +166,8 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 | 5 | Miki Mccarthy | mikirgvrealtor@gmail.com | $29/mo founding member | Rio Grande Valley / Greater McAllen. Joined 2026-05-20. Brokerage: My Real Estate Company. First RGV founding member — geographic expansion milestone. Phone + heard_from TBD (Heath to collect via email). |
 | 6 | Cecilia Whitley | cecilia@sterlingassociatesre.com | $29/mo founding member | Austin. Joined 2026-05-20. Brokerage: Sterling and Associates. First Austin founding member. Phone + heard_from TBD. |
 | 7 | Terry Katz | michellesellshouston@gmail.com | $29/mo founding member | Houston / Spring, TX. Joined 2026-05-20 via DIRECT STRIPE INVOICE (not checkout flow) — required manual recovery (see project_stripe_webhook_gap.md memory). Brokerage TBD. Phone + heard_from TBD. |
+| 8 | Amanda Nuckles | amanda@amandanuckles.com | $29/mo founding member | Central Texas. Joined 2026-05-20. Brokerage: All City Real Estate. Phone: 5127340036. **First customer to use new onboarding form (phone + heard_from captured).** Heard from: Facebook group (specific group TBD — Heath to ask). |
+| 9 | Zelda Cain | zelda@a2zrealestateconsultants.com | $29/mo founding member | Houston. Joined 2026-05-21. Brokerage: A2Z Real Estate Consultants LLC. Phone: (281) 813-6887. Heard from: Friend or colleague (referrer TBD — Heath to ask; possibly Terry, 2nd Houston founder). First word-of-mouth founding signup. |
 
 ---
 
