@@ -215,6 +215,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
 - Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
+- **Amendment drafting** — auto-fill TREC amendment forms (Amendment to Contract TREC 39-9, repair amendments, financing addendums, option period extensions) from natural language. E.g., "add 7 days to option period on 1847 Vintage Way" → Dossie generates the amendment PDF pre-filled and ready for buyer signature. Specced only — not built. Heath flagged 2026-05-21 as a high-priority backlog item.
 
 ---
 
