@@ -29,7 +29,10 @@ nav { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px; display: f
 main { max-width: 760px; margin: 0 auto; padding: 140px 28px 80px; }
 .hero-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--sage-deep); margin-bottom: 14px; }
 h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(40px, 6vw, 64px); font-weight: 600; line-height: 1.05; letter-spacing: -1.5px; color: var(--text-primary); margin-bottom: 12px; }
-.updated { font-size: 13px; color: var(--text-light); font-style: italic; margin-bottom: 48px; }
+.updated { font-size: 13px; color: var(--text-light); font-style: italic; margin-bottom: 28px; }
+
+.draft-banner { background: #FFF4E0; border: 1px solid #E8C870; border-radius: 14px; padding: 14px 18px; margin-bottom: 32px; font-size: 14px; color: #6B5018; }
+.draft-banner strong { color: #4A3712; }
 
 h2 { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600; color: var(--text-primary); margin: 44px 0 14px; letter-spacing: -0.3px; }
 p { font-size: 15px; color: var(--text-secondary); margin-bottom: 14px; }
@@ -42,6 +45,12 @@ a:hover { border-bottom-color: var(--sage); }
 .callout { background: var(--bg-warm); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px 22px; margin: 18px 0 22px; }
 .callout p { margin-bottom: 0; }
 
+table.subprocessors { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 14px; }
+table.subprocessors th, table.subprocessors td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+table.subprocessors th { font-weight: 700; color: var(--text-primary); background: var(--bg-warm); font-size: 13px; }
+table.subprocessors td { color: var(--text-secondary); }
+table.subprocessors td strong { color: var(--text-primary); }
+
 footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--border-light); background: var(--bg-warm); }
 .footer-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 10px; }
 .footer-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 18px; }
@@ -53,6 +62,8 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 @media (max-width: 560px) {
  main { padding: 120px 22px 60px; }
  h1 { letter-spacing: -1px; }
+ table.subprocessors { font-size: 13px; }
+ table.subprocessors th, table.subprocessors td { padding: 8px 8px; }
 }
 </style>
 </head>
@@ -63,29 +74,33 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="nav-mark">D</div>
   <span class="nav-name">Dossie</span>
  </a>
- <a href="/" class="nav-back">← Home</a>
+ <a href="/" class="nav-back">&larr; Home</a>
 </nav>
 
 <main>
  <div class="hero-eyebrow">Legal</div>
  <h1>Privacy Policy</h1>
- <p class="updated">Last updated April 25, 2026</p>
+ <p class="updated">Effective May 21, 2026</p>
+
+ <div class="draft-banner">
+  <strong>Draft pending attorney review.</strong> This document is a working draft and may change before final publication. If you have questions in the meantime, email <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.
+ </div>
 
  <div class="callout">
-  <p><strong>The short version.</strong> We collect only the information needed to run the Service, store your contracts and dossiers in encrypted cloud storage, and never sell your data. You can export or delete your data anytime by emailing us.</p>
+  <p><strong>The short version.</strong> We collect only the information needed to run Dossie. We store your dossiers and documents in encrypted cloud storage. We do not sell your data. We do not share it with marketers or affiliates. AI features are powered by Anthropic, and your data is not used to train their models. You can export or delete your data anytime by emailing us.</p>
  </div>
 
  <h2>1. Who we are</h2>
- <p>This Privacy Policy describes how Dossie AI ("<strong>Dossie</strong>", "<strong>we</strong>", "<strong>us</strong>") collects and uses information when you use the Dossie websites and workspace at meetdossie.com (the "<strong>Service</strong>"). If you have questions, email <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</p>
+ <p>Dossie is operated by <strong>Heath Shepard d/b/a Dossie</strong>, a sole proprietorship based in Texas (we expect to transition to a Texas limited liability company; this Policy will be updated when that happens). References to "<strong>Dossie</strong>", "<strong>we</strong>", "<strong>us</strong>", and "<strong>our</strong>" refer to that entity. This Policy describes how we handle information collected through the Dossie websites and workspace at meetdossie.com (the "<strong>Service</strong>"). Questions? Email <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</p>
 
  <h2>2. Information we collect</h2>
  <ul>
-  <li><strong>Account information.</strong> Name, email address, and (when applicable) brokerage or role, provided when you sign up.</li>
-  <li><strong>Authentication.</strong> Sessions and tokens issued by our authentication provider (Supabase). We do not store your password — Supabase handles password hashing.</li>
-  <li><strong>Transaction data you enter.</strong> Property details, contract dates, party names and contact information, deal notes, checklist progress, and email drafts you create inside the workspace.</li>
-  <li><strong>Documents you upload.</strong> Contracts, addenda, and supporting files. These are stored in our cloud storage and accessible only to your account.</li>
-  <li><strong>Payment information.</strong> If you subscribe, billing is handled by Stripe. We receive your subscription status and the last four digits of your card from Stripe — we do not store full card numbers.</li>
-  <li><strong>Usage and diagnostic data.</strong> IP address, browser type, timestamps, and basic event logs used to operate the Service, prevent abuse, and debug issues.</li>
+  <li><strong>Account information.</strong> Name, email address, phone number, brokerage, market area, and role, provided when you sign up or update your profile.</li>
+  <li><strong>Authentication data.</strong> Sessions and tokens issued by our authentication provider (Supabase). We do not store passwords in plaintext &mdash; Supabase handles password hashing.</li>
+  <li><strong>Transaction (dossier) data you enter.</strong> Property details, contract dates, party names and contact information, deal notes, checklist progress, and email drafts you create inside the workspace.</li>
+  <li><strong>Documents you upload.</strong> Contracts, addenda, and supporting files. These are stored in private cloud storage and accessible only to your account.</li>
+  <li><strong>Usage data.</strong> Login times, feature usage, IP address, browser type, timestamps, and basic event logs &mdash; used to operate the Service, prevent abuse, and debug issues.</li>
+  <li><strong>Payment information.</strong> If you subscribe, billing is handled by Stripe. We receive your subscription status, name, email, and the last four digits of your card from Stripe &mdash; we do not store full card numbers.</li>
  </ul>
 
  <h2>3. How we use information</h2>
@@ -93,48 +108,62 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <li>To provide, maintain, and improve the Service.</li>
   <li>To authenticate you and keep your account secure.</li>
   <li>To process payments and manage your subscription.</li>
-  <li>To send transactional emails (sign-in links, billing receipts, important account notices). We do not send marketing emails without your consent.</li>
+  <li>To send transactional notifications (sign-in links, deadline reminders, billing receipts, account notices). We do not send marketing emails without your consent.</li>
   <li>To respond to support requests.</li>
   <li>To comply with legal obligations and enforce our Terms.</li>
  </ul>
 
- <h2>4. AI processing</h2>
- <p>Several features of the Service use third-party AI models (including Anthropic's Claude) to extract data from contracts you upload, draft messages, and summarize deal status. When you invoke one of these features, the relevant content (such as the text of a contract) is sent to the AI provider for processing under their data-processing terms. We do not allow these providers to use your content to train their models, and the providers we use do not retain your data beyond the time needed to return a response.</p>
+ <h2>4. AI processing disclosure</h2>
+ <p>Several Dossie features (chat, drafting, contract data extraction, summaries) use third-party large language models &mdash; primarily <strong>Anthropic's Claude API</strong>. When you use one of these features, the relevant content (such as the text of a contract or your chat message) is sent to Anthropic for processing under their API terms.</p>
+ <p><strong>Your data is not used to train Anthropic's models.</strong> Anthropic's API terms prohibit training on customer inputs and outputs, and Anthropic does not retain your inputs beyond the time needed to return a response (subject to limited abuse-detection windows defined in their terms).</p>
+ <p>We do not use customer data to train any of our own models. If we ever begin doing so in the future, we will obtain your explicit opt-in consent before any such use.</p>
 
- <h2>5. Where your data is stored</h2>
- <p>Account data, deal data, and document files are stored in <strong>Supabase</strong> (PostgreSQL and Supabase Storage). Supabase data is encrypted at rest and in transit. Payment records are stored by <strong>Stripe</strong>. Service logs may pass through our hosting provider (Vercel).</p>
+ <h2>5. Who we share data with (subprocessors)</h2>
+ <p>We share information only with vetted service providers ("subprocessors") who help us run the Service, under contracts that require them to handle data confidentially. The current list:</p>
 
- <h2>6. We do not sell your data</h2>
- <p>We do not sell, rent, or trade your personal information or the contents of your dossiers. We do not share your data with third parties for their own marketing purposes.</p>
+ <table class="subprocessors">
+  <thead>
+   <tr><th>Provider</th><th>Purpose</th><th>Data processed</th></tr>
+  </thead>
+  <tbody>
+   <tr><td><strong>Supabase</strong></td><td>Database, authentication, file storage</td><td>All account, dossier, and document data</td></tr>
+   <tr><td><strong>Anthropic</strong></td><td>AI text generation (Claude API)</td><td>Chat messages, dossier context, generated drafts</td></tr>
+   <tr><td><strong>Resend</strong></td><td>Transactional email</td><td>Recipient email + content of system emails</td></tr>
+   <tr><td><strong>Stripe</strong></td><td>Payment processing</td><td>Billing info, card last 4, name, email</td></tr>
+   <tr><td><strong>Vercel</strong></td><td>Web hosting + serverless functions</td><td>Server logs, IP addresses</td></tr>
+   <tr><td><strong>ElevenLabs</strong></td><td>Voice synthesis (Morning Brief, voice features)</td><td>Text being synthesized (no PII typically)</td></tr>
+   <tr><td><strong>Creatomate</strong></td><td>Marketing video rendering</td><td>Marketing media only &mdash; no customer data</td></tr>
+   <tr><td><strong>HCTI</strong></td><td>Marketing card image rendering</td><td>Marketing card content only &mdash; no customer data</td></tr>
+   <tr><td><strong>Pexels</strong></td><td>Stock video assets</td><td>None &mdash; we only fetch public assets</td></tr>
+  </tbody>
+ </table>
 
- <h2>7. Sharing limited to operators</h2>
- <p>We share information only with service providers who help us run the Service, under contracts that require them to handle data confidentially: our authentication and database provider (Supabase), our hosting provider (Vercel), our payment processor (Stripe), and the AI providers described above. We may also disclose information when required by law (subpoena, court order) or to protect the rights, safety, or property of Dossie, our users, or the public.</p>
+ <p><strong>We do NOT sell customer data. We do NOT share data with marketers, advertisers, or affiliates.</strong> We may disclose information when required by law (subpoena, court order) or to protect the rights, safety, or property of Dossie, our users, or the public.</p>
 
- <h2>8. Your rights</h2>
+ <h2>6. Data retention</h2>
+ <p>We retain your account, dossier, and document data for as long as your subscription is active. After cancellation we retain your data for <strong>90 days</strong> to allow easy reactivation, then permanently delete it &mdash; except for limited records we are required to keep for tax, billing, or legal purposes (such as Stripe invoices). You may request earlier deletion at any time by emailing <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</p>
+
+ <h2>7. Your rights</h2>
  <ul>
-  <li><strong>Access and export.</strong> You can request a copy of the data associated with your account by emailing <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</li>
-  <li><strong>Correction.</strong> Most data fields are editable directly in the workspace; for anything you can't edit yourself, email us.</li>
+  <li><strong>Access.</strong> You can request a copy of the personal data associated with your account.</li>
+  <li><strong>Correction.</strong> Most data fields are editable directly in the workspace. For anything you can't edit yourself, email us.</li>
   <li><strong>Deletion.</strong> You can request deletion of your account and associated data at any time. We will delete or anonymize your data within 30 days, except where we are required to retain records for legal or accounting reasons.</li>
+  <li><strong>Portability.</strong> You can request your data in a portable format.</li>
   <li><strong>Marketing opt-out.</strong> Any marketing emails we send (if you've opted in) include an unsubscribe link.</li>
  </ul>
+ <p>If you are a California resident, you have rights under the CCPA &mdash; including the right to opt out of any "sale" of personal information, though as noted above we do not sell personal information. If you are in the EEA or UK, you have rights under the GDPR/UK GDPR including access, rectification, erasure, restriction of processing, data portability, and objection. To exercise any of these rights, email <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</p>
 
- <h2>9. California (CCPA) and EU (GDPR) residents</h2>
- <p>If you are a California resident, you have the right under the California Consumer Privacy Act to request access to or deletion of personal information we hold about you, and to opt out of any "sale" of your personal information — though as noted above, <strong>we do not sell personal information</strong>. If you are in the EEA or UK, you have rights under the GDPR/UK GDPR including access, rectification, erasure, restriction of processing, data portability, and objection. To exercise any of these rights, email <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a> and we will respond within the timeframes required by applicable law.</p>
+ <h2>8. Security</h2>
+ <p>We use industry-standard safeguards: TLS in transit, encrypted storage at rest, scoped database access via row-level security, and least-privilege service-role keys held only on our servers. No system is perfectly secure &mdash; please use a strong, unique password and notify us immediately at <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a> if you believe your account has been compromised.</p>
 
- <h2>10. Data retention</h2>
- <p>We retain account and deal data for as long as your account is active. After cancellation we keep your data for up to 30 days to allow reactivation, then permanently delete it (except limited records required for tax, billing, or legal purposes).</p>
+ <h2>9. Children</h2>
+ <p>Dossie is a professional tool for licensed real estate agents and transaction coordinators. The Service is not directed to children under 18 and we do not knowingly collect information from anyone under 18. If you believe a child has provided us information, contact <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a> and we will delete it.</p>
 
- <h2>11. Security</h2>
- <p>We use industry-standard safeguards including TLS in transit, encrypted storage at rest, scoped database access via row-level security, and least-privilege service-role keys held only on our servers. No system is perfectly secure — please use a strong, unique password and notify us immediately at <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a> if you believe your account has been compromised.</p>
+ <h2>10. Changes to this policy</h2>
+ <p>We may update this Privacy Policy from time to time. Material changes will be announced by email or in the workspace at least 14 days before they take effect. The "Effective" date at the top reflects the most recent revision.</p>
 
- <h2>12. Children</h2>
- <p>The Service is not directed to children under 18 and we do not knowingly collect information from them.</p>
-
- <h2>13. Changes to this policy</h2>
- <p>We may update this Privacy Policy from time to time. Material changes will be announced by email or in the workspace at least 14 days before they take effect. The "Last updated" date at the top reflects the most recent revision.</p>
-
- <h2>14. Contact</h2>
- <p>Privacy questions or requests? Email us at <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</p>
+ <h2>11. Contact</h2>
+ <p>Privacy questions or requests? Email <a href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>.</p>
 </main>
 
 <footer>
@@ -142,11 +171,11 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="nav-mark" style="width:30px;height:30px;font-size:13px;">D</div>
   <span class="footer-name">Dossie</span>
  </div>
- <div class="footer-text">Built by a Texas REALTOR® who needed a better way.<br>© 2026 Dossie AI. All rights reserved.</div>
+ <div class="footer-text">Built by a Texas REALTOR who needed a better way.<br>&copy; 2026 Heath Shepard d/b/a Dossie. All rights reserved.</div>
  <div class="footer-links">
   <a href="/" class="footer-link">Home</a>
-  <a href="/privacy.html" class="footer-link">Privacy</a>
-  <a href="/terms.html" class="footer-link">Terms</a>
+  <a href="/privacy" class="footer-link">Privacy</a>
+  <a href="/terms" class="footer-link">Terms</a>
   <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
  </div>
 </footer>

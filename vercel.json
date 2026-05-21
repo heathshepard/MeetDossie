@@ -37,6 +37,14 @@
                      {
                          "source":  "/calculator",
                          "destination":  "/calculator.html"
+                     },
+                     {
+                         "source":  "/privacy",
+                         "destination":  "/privacy.html"
+                     },
+                     {
+                         "source":  "/terms",
+                         "destination":  "/terms.html"
                      }
                  ],
     "headers":  [
