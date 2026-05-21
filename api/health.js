@@ -22,15 +22,10 @@ module.exports = async (req, res) => {
     results.telegram = `error:${e.message}`
   }
 
-  // Check ElevenLabs (minimal TTS test)
+  // Check ElevenLabs (credit-free GET /v1/user — was previously TTS, which burned ~34k chars/mo)
   try {
-    const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
-      method: 'POST',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY?.trim(),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ text: 'test', model_id: 'eleven_monolingual_v1' })
+    const r = await fetch('https://api.elevenlabs.io/v1/user', {
+      headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY?.trim() }
     })
     results.elevenlabs = r.status === 200 ? 'ok' : `error:${r.status}`
   } catch (e) {
