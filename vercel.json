@@ -93,8 +93,16 @@
                       "schedule":  "0 14 * * 1-5"
                   },
                   {
-                      "path":  "/api/cron-deadline-reminders",
+                      "path":  "/api/cron-calculator-deadline-reminders",
                       "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-email-digest",
+                      "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-deadline-reminders",
+                      "schedule":  "5 13 * * *"
                   },
                   {
                       "path":  "/api/cron-pipeline-health",
