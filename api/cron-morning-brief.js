@@ -267,10 +267,21 @@ async function buildBrief() {
     // Match admin-dashboard.js: status='canceled' OR 'cancelled', use updated_at
     // (canceled_at column is unreliable — null on existing cancelled rows).
     const r = await supabaseFetch(
-      `/rest/v1/subscriptions?or=(status.eq.canceled,status.eq.cancelled)&updated_at=gte.${encodeURIComponent(monthStartIso)}&select=id`,
+      `/rest/v1/subscriptions?or=(status.eq.canceled,status.eq.cancelled)&updated_at=gte.${encodeURIComponent(monthStartIso)}&select=id,user_id`,
     );
     if (!r.ok) return '?';
-    return Array.isArray(r.data) ? r.data.length : 0;
+    const rows = Array.isArray(r.data) ? r.data : [];
+    if (rows.length === 0) return 0;
+    // Exclude Heath's own test accounts (same filter as active customers).
+    const userIds = rows.map((row) => row.user_id).filter(Boolean);
+    if (userIds.length === 0) return rows.length;
+    const profFilter = userIds.map((id) => `"${id}"`).join(',');
+    const profResp = await supabaseFetch(
+      `/rest/v1/profiles?id=in.(${profFilter})&select=id,email`,
+    );
+    if (!profResp.ok) return rows.length;
+    const emailById = new Map((profResp.data || []).map((p) => [p.id, p.email]));
+    return rows.filter((row) => !isExcludedEmail(emailById.get(row.user_id))).length;
   }, '?');
 
   // 4. Growth: new paying customers this week (Mon-now).
@@ -370,7 +381,7 @@ async function buildBrief() {
     for (const item of watch) lines.push(item);
   }
   lines.push('');
-  lines.push('📍 Full dashboard: https://meetdossie.com/admin');
+  lines.push('📍 Full dashboard: https://meetdossie.com/admin.html');
 
   return lines.join('\n');
 }
