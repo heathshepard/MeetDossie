@@ -22,9 +22,9 @@ module.exports = async (req, res) => {
     results.telegram = `error:${e.message}`
   }
 
-  // Check ElevenLabs (credit-free GET /v1/user — was previously TTS, which burned ~34k chars/mo)
+  // Check ElevenLabs (credit-free GET /v1/voices — list voices doesn't burn credits like TTS did)
   try {
-    const r = await fetch('https://api.elevenlabs.io/v1/user', {
+    const r = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY?.trim() }
     })
     results.elevenlabs = r.status === 200 ? 'ok' : `error:${r.status}`
