@@ -1,5 +1,15 @@
 // API endpoint to generate Morning Brief script using Claude
-// Takes urgent items and returns a natural conversational script
+// Takes urgent items and returns a natural conversational script.
+//
+// Body params:
+//   userFirstName            - required, string
+//   urgentItems              - required, array
+//   draftCount               - optional, integer (Phase 1 notification system,
+//                              2026-05-20): count of email_queue rows with
+//                              status != 'sent' for this user. Surfaces in
+//                              the brief so Dossie can remind the agent.
+//   weeklyDeadlineCount      - optional, integer: count of TREC deadlines
+//                              within the next 7 days for this user.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,11 +21,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
-  const { userFirstName, urgentItems } = req.body;
+  const { userFirstName, urgentItems, draftCount, weeklyDeadlineCount } = req.body;
 
   if (!userFirstName || !urgentItems) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  // Coerce counts to non-negative integers; treat anything non-numeric as 0.
+  const drafts = Number.isFinite(Number(draftCount)) ? Math.max(0, Math.floor(Number(draftCount))) : 0;
+  const deadlines = Number.isFinite(Number(weeklyDeadlineCount)) ? Math.max(0, Math.floor(Number(weeklyDeadlineCount))) : 0;
 
   try {
     // Build context from urgent items
@@ -33,21 +47,36 @@ export default async function handler(req, res) {
 - Overdue: ${overdueItems.map(a => a.description).join('; ') || 'none'}`;
     }).join('\n\n');
 
+    // Phase 1 notification system context block. Numbers come from the caller
+    // (React app) — keep the wording flexible so the LLM weaves them in
+    // naturally rather than reciting a row.
+    const queueContext = [
+      `- Email drafts in queue (not yet sent): ${drafts}`,
+      `- Deadlines within the next 7 days: ${deadlines}`,
+    ].join('\n');
+
     const prompt = `You are Dossie, a transaction coordinator AI assistant. Write a natural, conversational Morning Brief script for ${userFirstName}.
 
 URGENT ITEMS:
 ${itemsContext}
 
+QUEUE STATUS:
+${queueContext}
+
 INSTRUCTIONS:
 - Write as Dossie speaking directly to ${userFirstName}
 - Start with: "Good morning ${userFirstName}."
 - Be conversational and warm, not robotic
-- Make action ownership clear (what Sarah needs to do vs what you've been handling)
+- Make action ownership clear (what ${userFirstName} needs to do vs what you've been handling)
 - For escalated items with follow-ups: "I've drafted follow-ups for [task] — they're sitting in your Emails queue waiting for you to review and send. This one needs your attention." NEVER say you sent emails — you draft them, the agent sends them. Always frame as drafts waiting for the agent to send.
 - For overdue items: "You need to [task]."
 - Lead with most urgent first (closing soon, then escalated, then overdue)
 - Use client name + property format: "Olivia Park at Cibolo Vista"
 - Keep under 50 seconds when spoken (about 150 words max)
+- QUEUE STATUS handling (use only when nonzero, weave in naturally before the closer; never say "I sent" — drafts only):
+  - If Email drafts in queue > 0: include a line like "You have ${drafts} email draft${drafts === 1 ? '' : 's'} waiting in your Emails queue — review and send ${drafts === 1 ? 'it' : 'them'} when you have a minute."
+  - If Deadlines this week > 0: include a line like "You have ${deadlines} deadline${deadlines === 1 ? '' : 's'} this week."
+  - If both counts are 0, do not mention either.
 - End with exactly these two lines: "Everything else is moving cleanly. Your deals are in good hands." Then: "I've got you covered."
 - CRITICAL: Only mention what is explicitly listed above. If Escalated and Overdue are 'none', do NOT invent tasks or follow-ups. Only reference the Urgent deadline listed.
 
