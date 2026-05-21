@@ -177,18 +177,30 @@ const BRAND_MUTED = '#9CA8B4';
 
 function welcomeEmailHtml(fullName) {
   const name = (fullName || '').trim() || 'there';
-  return `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: ${BRAND_BG};">
-  <h1 style="font-size: 32px; color: ${BRAND_NAVY};">Hi ${name},</h1>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7;">I'm Dossie — your new AI transaction coordinator. I work nights, weekends, and holidays so your deals never stop moving.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7;">Here's how to get started:</p>
-  <ol style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 2;">
-    <li>Complete your agent profile in Settings</li>
-    <li>Open your first dossier — type it or just tell me</li>
-    <li>Upload your contract and I'll scan it automatically</li>
-    <li>Talk to me anytime — I'm always on</li>
+  return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
+  <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1.15; margin: 0 0 24px; color: ${BRAND_NAVY};">Hi ${name},</h1>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Welcome — you're officially a Dossie founding member, locked at <strong style="color: ${BRAND_NAVY};">$29/month for life</strong>. That price never goes up.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">I'm Dossie, your new AI transaction coordinator. I work nights, weekends, and holidays so your deals don't stall.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;"><strong style="color: ${BRAND_NAVY};">First step:</strong> check your inbox for our "Set Your Password" email — that gets you into the app at meetdossie.com/app.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 12px;"><strong style="color: ${BRAND_NAVY};">Then jump into the Founding Files Facebook group:</strong></p>
+  <ul style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 1.8; margin: 0 0 24px; padding-left: 20px;">
+    <li>Early access to new features before anyone else</li>
+    <li>Voting power on what we build next</li>
+    <li>A direct line to Heath (the founder)</li>
+  </ul>
+  <div style="margin: 28px 0;">
+    <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="display: inline-block; padding: 16px 32px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Join Founding Files</a>
+  </div>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 12px;">Once you're in the app, three things to try:</p>
+  <ol style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 1.8; margin: 0 0 24px; padding-left: 20px;">
+    <li>Tell me about a current deal — type it or talk</li>
+    <li>Upload one contract — I'll pull your TREC deadlines automatically</li>
+    <li>Ask me anything — I work 24/7</li>
   </ol>
-  <a href="https://meetdossie.com/app.html" style="display: inline-block; margin-top: 24px; padding: 14px 28px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Open Dossie</a>
-  <p style="margin-top: 40px; font-size: 13px; color: ${BRAND_MUTED};">I've got the rest. — Dossie</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Hit reply if you ever get stuck. Heath reads every email personally and responds within the hour.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Welcome aboard.</p>
+  <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; color: ${BRAND_NAVY}; line-height: 1.4; margin: 0;">— Dossie</p>
 </div>`;
 }
 
@@ -364,7 +376,7 @@ module.exports = async function handler(req, res) {
     // Send welcome email
     await sendEmail({
       to: email,
-      subject: 'Welcome to Dossie',
+      subject: 'Welcome to Dossie — let\'s get you set up',
       html: welcomeEmailHtml(name),
     });
 

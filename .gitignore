@@ -142,3 +142,6 @@ vite.config.ts.timestamp-*
 
 # Exclude entire Media directory — videos, recordings, assets should not be in git repo
 Media/
+
+# Email preview file (regenerated locally for QA)
+welcome-preview.html
