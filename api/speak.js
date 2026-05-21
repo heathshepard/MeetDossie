@@ -100,9 +100,9 @@ export default async function handler(req, res) {
 
     const elevenLabsUrl = 'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc/stream';
     const voiceSettings = {
-      stability: 0.60,
+      stability: 0.75,
       similarity_boost: 0.75,
-      style: 0.45,
+      style: 0.0,
       use_speaker_boost: true,
       speed: voiceSpeed,
     };
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
     // Log for diagnostics
     console.log(`[speak.js] [${requestId}] ElevenLabs URL:`, elevenLabsUrl);
     console.log(`[speak.js] [${requestId}] Voice ID: lxYfHSkYm1EzQzGhdbfc (Luna)`);
-    console.log(`[speak.js] [${requestId}] Model: eleven_flash_v2_5`);
+    console.log(`[speak.js] [${requestId}] Model: eleven_turbo_v2_5`);
     console.log(`[speak.js] [${requestId}] Voice settings:`, JSON.stringify(voiceSettings));
     console.log(`[speak.js] [${requestId}] Speed:`, voiceSpeed);
     console.log(`[speak.js] [${requestId}] Text length:`, cleanText.length);
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           text: cleanText,
-          model_id: 'eleven_flash_v2_5',
+          model_id: 'eleven_turbo_v2_5',
           voice_settings: voiceSettings,
         }),
       },
