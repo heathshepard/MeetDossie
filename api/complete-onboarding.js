@@ -198,6 +198,7 @@ function welcomeEmailHtml(fullName) {
     <li>Upload one contract — I'll pull your TREC deadlines automatically</li>
     <li>Ask me anything — I work 24/7</li>
   </ol>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;"><strong style="color: ${BRAND_NAVY};">A heads-up on how I work:</strong> I'll email you a daily digest at 8am whenever you have email drafts waiting to send (no email on quiet days). I'll also send TREC deadline reminders 7 days out, 1 day out, and the morning of — so nothing slips. You stay in control: I draft, you tap send.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Hit reply if you ever get stuck. Heath reads every email personally and responds within the hour.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Welcome aboard.</p>
   <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; color: ${BRAND_NAVY}; line-height: 1.4; margin: 0;">— Dossie</p>
