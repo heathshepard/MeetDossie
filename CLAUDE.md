@@ -216,6 +216,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - Brevo email nurture sequence (segmented agent vs TC)
 - Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
 - **Amendment drafting** — auto-fill TREC amendment forms (Amendment to Contract TREC 39-9, repair amendments, financing addendums, option period extensions) from natural language. E.g., "add 7 days to option period on 1847 Vintage Way" → Dossie generates the amendment PDF pre-filled and ready for buyer signature. Specced only — not built. Heath flagged 2026-05-21 as a high-priority backlog item.
+- **Social Media Autopilot for agents** — extend the in-house social pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) into a customer-facing add-on. Each agent connects their FB / IG / LinkedIn / TikTok via Zernio, Dossie auto-drafts daily posts from their listings + market data + sphere content templates, sends drafts to their Telegram (or in-app inbox) for one-tap approval, publishes to all platforms. Cost math: ~180 posts/mo per user via Haiku = ~$0.30/mo Claude cost; Zernio flat $18/mo already paid. Price target: $20/mo add-on (founding members $10/mo with 50% discount). Heath flagged 2026-05-21.
 
 ---
 
