@@ -24,7 +24,7 @@
                      },
                      {
                          "source":  "/signin",
-                         "destination":  "/signin.html"
+                         "destination":  "/app.html"
                      },
                      {
                          "source":  "/workspace",
