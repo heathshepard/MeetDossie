@@ -65,7 +65,11 @@
                                                      },
                       "api/cron-publish-approved.js":  {
                                                            "maxDuration":  120
-                                                       }
+                                                       },
+                      "api/cron-weekly-newsletter.js":  {
+                                                            "maxDuration":  60,
+                                                            "includeFiles":  "WEEKLY-IMPROVEMENTS.md"
+                                                        }
                   },
     "crons":  [
                   {
@@ -111,6 +115,10 @@
                   {
                       "path":  "/api/cron-morning-brief",
                       "schedule":  "0 12 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-weekly-newsletter",
+                      "schedule":  "0 15 * * 5"
                   }
               ]
 }
