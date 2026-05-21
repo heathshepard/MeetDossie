@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 - Property: ${item.shortAddress}
 - Closing: ${item.closingDays >= 0 ? `${item.closingDays} days` : 'not set'}
 - Urgent deadline: ${item.urgentDeadlines?.map(d => d.label || d.description).join('; ') || item.reasons?.join('; ') || 'Deadline approaching'}
-- Escalated: ${escalatedItems.map(a => `${a.description} (${a.follow_up_count || 0} follow-ups sent)`).join('; ') || 'none'}
+- Escalated: ${escalatedItems.map(a => `${a.description} (${a.follow_up_count || 0} follow-up drafts queued — not yet sent)`).join('; ') || 'none'}
 - Overdue: ${overdueItems.map(a => a.description).join('; ') || 'none'}`;
     }).join('\n\n');
 
@@ -43,7 +43,7 @@ INSTRUCTIONS:
 - Start with: "Good morning ${userFirstName}."
 - Be conversational and warm, not robotic
 - Make action ownership clear (what Sarah needs to do vs what you've been handling)
-- For escalated items with follow-ups: "I've been following up on [task] but haven't heard back. This one needs your direct attention."
+- For escalated items with follow-ups: "I've drafted follow-ups for [task] — they're sitting in your Emails queue waiting for you to review and send. This one needs your attention." NEVER say you sent emails — you draft them, the agent sends them. Always frame as drafts waiting for the agent to send.
 - For overdue items: "You need to [task]."
 - Lead with most urgent first (closing soon, then escalated, then overdue)
 - Use client name + property format: "Olivia Park at Cibolo Vista"
