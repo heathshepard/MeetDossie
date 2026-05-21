@@ -85,8 +85,9 @@ async function sendTelegramNotification(text, buttons) {
 }
 
 async function sendPublishSummary(published, parkedTiktok, skipped, errors) {
-  const total = published + parkedTiktok + skipped + errors.length;
-  if (total === 0) return; // Don't spam for empty runs
+  // Only notify when something actually happened. Skipped-only runs are noise
+  // — they fire every 30 min as posts wait for their scheduled slot.
+  if (published === 0 && parkedTiktok === 0 && errors.length === 0) return;
 
   const lines = ['📊 <b>PUBLISH SUMMARY</b>', ''];
 
