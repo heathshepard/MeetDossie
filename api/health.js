@@ -22,15 +22,9 @@ module.exports = async (req, res) => {
     results.telegram = `error:${e.message}`
   }
 
-  // Check ElevenLabs (credit-free GET /v1/voices — list voices doesn't burn credits like TTS did)
-  try {
-    const r = await fetch('https://api.elevenlabs.io/v1/voices', {
-      headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY?.trim() }
-    })
-    results.elevenlabs = r.status === 200 ? 'ok' : `error:${r.status}`
-  } catch (e) {
-    results.elevenlabs = `error:${e.message}`
-  }
+  // ElevenLabs probe removed — TTS endpoint works (Heath uses voice daily) but generic /v1/user
+  // and /v1/voices probes both 401 on this API tier. If TTS breaks, Heath/customers notice via
+  // failed morning briefs or talk-to-Dossie. No need for a 5-min health probe here.
 
   // Check Creatomate
   try {
