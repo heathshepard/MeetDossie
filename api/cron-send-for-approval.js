@@ -60,6 +60,34 @@ function formatShortCaption(post) {
   return caption.slice(0, 1020);
 }
 
+function formatVerifierSection(post) {
+  // Surface the content-verifier's verdict + flags at the TOP of the
+  // approval message so Heath knows what to scrutinize before tapping
+  // Approve. Empty string if the post has no verifier_result (e.g. a
+  // legacy post inserted before the verifier pass was wired up).
+  const result = post.verifier_result;
+  if (!result || typeof result !== 'object') return '';
+
+  const verdict = String(result.verdict || '').toLowerCase();
+  const flags = Array.isArray(result.flags) ? result.flags : [];
+  const interesting = flags.filter((f) => ['red', 'yellow'].includes(String(f?.severity || '').toLowerCase()));
+
+  if (verdict === 'approve' && interesting.length === 0) {
+    return '🤖 VERIFIER: ✅ Clean — no flags\n\n';
+  }
+
+  const lines = [`🤖 VERIFIER: ⚠️ ${interesting.length} flag${interesting.length === 1 ? '' : 's'} (${verdict})`];
+  for (const f of interesting.slice(0, 6)) {
+    const sev = String(f.severity || '').toLowerCase();
+    const claim = String(f.claim || '').slice(0, 80);
+    const issue = String(f.issue || '').slice(0, 140);
+    const fix = String(f.fix || '').slice(0, 120);
+    lines.push(`   - [${sev}] "${claim}" — ${issue}${fix ? ' → ' + fix : ''}`);
+  }
+  if (result.summary) lines.push(`   summary: ${String(result.summary).slice(0, 200)}`);
+  return lines.join('\n') + '\n\n';
+}
+
 function formatFullContent(post) {
   // Full post content + hashtags for the second text message
   const platform = post.platform || 'unknown';
@@ -71,8 +99,9 @@ function formatFullContent(post) {
     : '';
   const algo = PLATFORM_RULES_SUMMARY[platform] || '';
   const algoLine = algo ? `\n\n📐 Algorithm: ${algo}` : '';
+  const verifierSection = formatVerifierSection(post);
 
-  return `📝 Full caption for ${platform} (${persona}, topic: ${topic})\n\n${content}\n\nHashtags: ${hashtags}${algoLine}`;
+  return `${verifierSection}📝 Full caption for ${platform} (${persona}, topic: ${topic})\n\n${content}\n\nHashtags: ${hashtags}${algoLine}`;
 }
 
 function inlineKeyboard(postId) {
