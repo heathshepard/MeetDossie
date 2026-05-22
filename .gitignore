@@ -145,3 +145,9 @@ Media/
 
 # Email preview file (regenerated locally for QA)
 welcome-preview.html
+
+# Playwright MCP scratch directory + ad-hoc browser-automation screenshots
+.playwright-mcp/
+northwest-*.png
+tx-form-*.png
+tx-sos-*.png
