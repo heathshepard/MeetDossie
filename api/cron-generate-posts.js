@@ -14,9 +14,139 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
-const AUTO_APPROVE_POSTS = process.env.AUTO_APPROVE_POSTS !== 'false'; // Default true
+// Default flipped 2026-05-20 from true to false. Until the content-verifier pass
+// proves itself across a few clean batches, every post hits the Telegram
+// approval flow. Set AUTO_APPROVE_POSTS=true in Vercel env to restore auto-publish.
+const AUTO_APPROVE_POSTS = process.env.AUTO_APPROVE_POSTS === 'true';
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+// Verifier runs as a cheaper model — it only checks claims against an embedded
+// facts snapshot, doesn't generate copy. Haiku 4.5 is sufficient and adds
+// roughly a few hundred ms + ~$0.001 per post to the batch.
+const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
+
+// ─── Content-Verifier facts snapshot ─────────────────────────────────────
+// REGENERATE THIS BLOCK WHEN CLAUDE.md CHANGES (sections 6 + 7 + 8) or when
+// new founder pain stories are appended to project_heath_founder_pain_stories.md.
+// Last regenerated: 2026-05-20.
+//
+// This snapshot is inlined into the verifier system prompt — never load
+// CLAUDE.md at runtime. The verifier's only job is to compare a draft against
+// these facts and flag fabrications.
+const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only job is to find fabrications, false specifics, and over-claims in customer-facing marketing copy before it ships. You are skeptical, terse, and accurate. You do not rewrite the copy — you flag what needs to change.
+
+## VERIFIED FACTS — the only source of truth for specific claims
+
+### Current customers (9 founding members as of 2026-05-20)
+1. Kimberly Herrera — $29/mo founding member
+2. Tiffany Gill — $29/mo founding member
+3. Brittney YBarbo — $29/mo founding member. Broker, ~80 tx/yr, Southeast Texas. Found Dossie via Facebook search "transaction coordinating in Texas". Control-freak who can't trust delegation. Direct quote: "the lack of systems I have in place isn't sustainable."
+4. Suzanne Page — $1/mo founding friend (FOUNDING_FRIEND coupon)
+   (plus 5 additional founding members not individually named — total of 9)
+
+If a draft references a founding member number, ONLY 1-9 are valid. "Member #10", "#12", "#15" etc. are FABRICATIONS — flag as red.
+
+### Shipped features (these are real, safe to claim)
+- TREC deadline auto-calculation, cited to paragraph
+- Contract PDF scanning
+- Email draft queue (drafts only — agent reviews and sends)
+- Morning Brief with Luna voice (daily audio + text deal summary)
+- Closing milestone cards (shareable, privacy-safe)
+- Dossier pipeline view with deal cards + deadline badges
+- Talk-to-Dossie voice/text chat
+- Natural-language deadlines throughout
+- Founding application flow + Stripe checkout
+- Share Dossie button (desktop sidebar + mobile bottom nav)
+- TREC deadline calculator at meetdossie.com/calculator
+- 10 SEO guide pages + 5 AEO answer pages
+
+### NOT yet built — never claim as live (red flag if claimed)
+- Reply Monitoring
+- AI Autopilot
+- Compliance Vault
+- White Label
+- Brokerage compliance document sending
+- Stripe Payment Links (current checkouts expire 24h)
+- TikTok automation (manual until ~May 20, 2026)
+- Zernio analytics feedback loop
+- Brevo email nurture sequence
+- Bulk email drafts
+- Amendment drafting
+- SMS sending
+- Voice escalation
+- Mobile native app
+- Discord / community platform (Founding Files is the private space, but no Discord)
+
+### Heath behaviors that DO happen
+- He answers Telegram messages from founders
+- He builds Dossie (founder-built product)
+- He's a licensed Texas REALTOR at Keller Williams (City View / Boerne)
+- He runs Plane & Ember (cigar woodwork business)
+
+### Heath behaviors that DO NOT happen (red flag if claimed)
+- Posting code commits to socials
+- Doing live debug streams
+- Running a public Discord
+- Recording weekly office hours
+- Public roadmap streams
+
+### Verified founder pain stories (specifics OK to reference)
+- "TC quit while I was in Italy" — Heath has been through 3 transaction coordinators. The last one quit while he was on vacation in Italy with active transactions in escrow. The 7-8 hour time difference destroyed the vacation.
+- "$400 per file, still waking up at 4:30am wondering if she sent that repair amendment" — the $400/file pain story.
+- "Vacation is the stress test your systems fail" — Heath's reframe.
+- Brittney's "control freak vs. visibility problem" reframe — flagged the Week-5 control_freak_agent angle.
+
+If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm debug session", "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it"), flag as red — those are invented.
+
+### Pricing (locked, real)
+- Founding: $29/mo (50 spots, 9 taken, 41 remaining)
+- Solo: $79/mo, Team: $199/mo, Brokerage: custom
+
+## What to flag
+
+🔴 RED (highest severity — verdict MUST be needs_revision):
+- Founding member numbers past 9
+- Invented timestamps with the air of specificity ("Tuesday at 9:43pm", "10pm debug session", "ship in 48 hours") not documented above
+- Customer names + events not in the verified list above
+- Features claimed as live from the NOT-yet-built list
+- Heath behaviors that don't happen
+- Made-up quoted testimonials
+- Numbers presented as real stats ("80% of our users", "saved $X across the platform") — Dossie has 9 customers; aggregate stats don't exist
+
+🟡 YELLOW (medium severity — flag for human review):
+- Specific stats that COULD be real but can't be verified from the facts above
+- Time-of-day specifics that match a documented pain but with wrong details
+- Quoted customer testimonials that paraphrase but should be checked
+
+🟢 GREEN (lowest severity — optional notes only):
+- Tone mismatch with persona
+- Weak/missing CTA
+- Hashtag count off
+
+## Output format — STRICT JSON ONLY
+
+Return ONLY this JSON shape. No markdown fences. No prose before or after.
+
+{
+  "verdict": "approve" | "needs_revision",
+  "flags": [
+    {
+      "severity": "red" | "yellow" | "green",
+      "claim": "<exact phrase from the draft>",
+      "issue": "<why it's a problem>",
+      "fix": "<suggested generic/hypothetical replacement — not a new fabrication>"
+    }
+  ],
+  "summary": "<one sentence>"
+}
+
+Rules:
+- verdict "approve" ONLY when zero red flags AND at most one yellow flag.
+- verdict "needs_revision" when ANY red flag, OR two+ yellow flags.
+- Always include the flags array, even if empty.
+- Be terse. Total response well under 500 tokens.
+- Never rewrite the draft. Only flag and suggest replacements.
+- Never add new factual claims. When in doubt, suggest more universal/hypothetical framing.`;
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -357,6 +487,124 @@ function extractJson(raw) {
   return JSON.parse(s);
 }
 
+// ─── Content-Verifier pass ──────────────────────────────────────────────
+// Second Anthropic call (Haiku) that scans each generated post against the
+// embedded facts snapshot and returns a JSON verdict. Fails safe: any error
+// or malformed response → needs_revision with an explanatory flag.
+async function verifyPost({ platform, persona, topic, content }) {
+  const userMessage = `Verify this draft. Return only the JSON verdict.\n\nPlatform: ${platform}\nPersona: ${persona}\nTopic: ${topic}\n\nDRAFT:\n${content}`;
+
+  let res, text;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: VERIFIER_MODEL,
+        max_tokens: 800,
+        system: VERIFIER_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+    });
+    text = await res.text();
+  } catch (err) {
+    return {
+      verdict: 'needs_revision',
+      flags: [{
+        severity: 'red',
+        claim: '(verifier API error)',
+        issue: `verifier API call failed: ${String(err && err.message || err).slice(0, 200)}`,
+        fix: 'retry verification or review manually',
+      }],
+      summary: 'Verifier call failed — defaulting to needs_revision (fail-safe).',
+    };
+  }
+
+  if (!res.ok) {
+    return {
+      verdict: 'needs_revision',
+      flags: [{
+        severity: 'red',
+        claim: '(verifier API error)',
+        issue: `verifier returned HTTP ${res.status}: ${String(text || '').slice(0, 200)}`,
+        fix: 'retry verification or review manually',
+      }],
+      summary: 'Verifier HTTP error — defaulting to needs_revision (fail-safe).',
+    };
+  }
+
+  let raw;
+  try {
+    const data = JSON.parse(text);
+    raw = data?.content?.[0]?.text;
+  } catch {
+    raw = null;
+  }
+
+  if (!raw) {
+    return {
+      verdict: 'needs_revision',
+      flags: [{
+        severity: 'red',
+        claim: '(verifier response empty)',
+        issue: 'verifier returned no content block',
+        fix: 'retry verification or review manually',
+      }],
+      summary: 'Verifier returned empty response — defaulting to needs_revision (fail-safe).',
+    };
+  }
+
+  let parsed;
+  try {
+    parsed = extractJson(raw);
+  } catch {
+    return {
+      verdict: 'needs_revision',
+      flags: [{
+        severity: 'red',
+        claim: '(verifier malformed JSON)',
+        issue: 'verifier returned malformed JSON',
+        fix: 'review manually',
+      }],
+      summary: 'Verifier returned malformed JSON — defaulting to needs_revision (fail-safe).',
+      raw_response: String(raw).slice(0, 500),
+    };
+  }
+
+  // Normalize shape — guard against missing keys.
+  const verdict = parsed?.verdict === 'approve' ? 'approve' : 'needs_revision';
+  const flags = Array.isArray(parsed?.flags) ? parsed.flags : [];
+  const summary = typeof parsed?.summary === 'string' ? parsed.summary : '';
+
+  // Defense in depth: even if the model says "approve", if it included any red
+  // flag, override to needs_revision. The content-verifier rules require this.
+  const hasRedFlag = flags.some((f) => String(f?.severity || '').toLowerCase() === 'red');
+  const finalVerdict = hasRedFlag ? 'needs_revision' : verdict;
+
+  return { verdict: finalVerdict, flags, summary };
+}
+
+function formatVerifierFlagsForErrorMessage(verifierResult) {
+  if (!verifierResult) return '';
+  const lines = [];
+  lines.push(`VERIFIER: ${verifierResult.verdict}`);
+  if (verifierResult.summary) lines.push(verifierResult.summary);
+  const flags = Array.isArray(verifierResult.flags) ? verifierResult.flags : [];
+  const interesting = flags.filter((f) => ['red', 'yellow'].includes(String(f?.severity || '').toLowerCase()));
+  for (const f of interesting) {
+    const sev = String(f.severity || '').toLowerCase();
+    const claim = String(f.claim || '').slice(0, 120);
+    const issue = String(f.issue || '').slice(0, 200);
+    const fix = String(f.fix || '').slice(0, 200);
+    lines.push(`[${sev}] "${claim}" — ${issue}${fix ? ' → ' + fix : ''}`);
+  }
+  return lines.join('\n').slice(0, 1800);
+}
+
 // ─── Card renderer (Option B) ────────────────────────────────────────────
 // For Instagram and Facebook posts, generate a branded image card at the
 // same time we insert the row. The PNG lands in Supabase Storage's
@@ -480,6 +728,7 @@ module.exports = async function handler(req, res) {
   let inserted = 0;
   const insertErrors = [];
   const renderSummary = []; // diagnostic: per-eligible-post render outcome
+  const verifierSummary = []; // diagnostic: per-post verifier outcome
   for (let i = 0; i < generated.length; i++) {
     const p = generated[i];
     if (!p || typeof p !== 'object') continue;
@@ -535,6 +784,47 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // ─── Content-Verifier pass ───────────────────────────────────────────
+    // Every freshly-generated post gets a second AI eyeballing it against
+    // the embedded facts snapshot. Posts with red flags or "needs_revision"
+    // verdict are auto-rejected so Heath doesn't see fabrications in the
+    // approval queue.
+    const verifierStart = Date.now();
+    const verifierResult = await verifyPost({
+      platform,
+      persona,
+      topic: topic.key,
+      content: caption,
+    });
+    const verifierMs = Date.now() - verifierStart;
+    const flagsCount = Array.isArray(verifierResult.flags) ? verifierResult.flags.length : 0;
+    console.log(`[verifier] ${postId} verdict=${verifierResult.verdict} flags=${flagsCount} (${verifierMs}ms)`);
+    verifierSummary.push({
+      post_id: postId,
+      verdict: verifierResult.verdict,
+      flags: flagsCount,
+      ms: verifierMs,
+    });
+
+    // Decide row status:
+    //   needs_revision → always rejected (regardless of AUTO_APPROVE_POSTS)
+    //   approve + AUTO_APPROVE_POSTS=true → approved
+    //   approve + AUTO_APPROVE_POSTS=false (default) → draft (manual approval)
+    let rowStatus;
+    if (verifierResult.verdict === 'needs_revision') {
+      rowStatus = 'rejected';
+    } else if (AUTO_APPROVE_POSTS) {
+      rowStatus = 'approved';
+    } else {
+      rowStatus = 'draft';
+    }
+
+    // For rejected posts, surface flag details in error_message for quick
+    // debugging in the Supabase dashboard.
+    const errorMessage = verifierResult.verdict === 'needs_revision'
+      ? formatVerifierFlagsForErrorMessage(verifierResult)
+      : null;
+
     const row = {
       post_id: postId,
       platform,
@@ -543,7 +833,7 @@ module.exports = async function handler(req, res) {
       hook: hook || caption.slice(0, 120),
       cta,
       hashtags,
-      status: AUTO_APPROVE_POSTS ? 'approved' : 'draft',
+      status: rowStatus,
       telegram_sent_at: null,
       zernio_account_id: zernioAccountId,
       persona,
@@ -551,6 +841,8 @@ module.exports = async function handler(req, res) {
       media_url: mediaUrl,
       generated_at: now.toISOString(),
       created_at: now.toISOString(),
+      verifier_result: verifierResult,
+      error_message: errorMessage,
     };
 
     const ins = await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
@@ -571,7 +863,9 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'renders:', renderSummary.filter(r => r.ok).length, '/', renderSummary.length);
+  const verifierApproved = verifierSummary.filter((v) => v.verdict === 'approve').length;
+  const verifierRejected = verifierSummary.filter((v) => v.verdict === 'needs_revision').length;
+  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'renders:', renderSummary.filter(r => r.ok).length, '/', renderSummary.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected);
   return res.status(200).json({
     ok: true,
     generated: generated.length,
@@ -581,5 +875,7 @@ module.exports = async function handler(req, res) {
     force_day: forceDay,
     errors: insertErrors,
     render_summary: renderSummary,
+    verifier_summary: verifierSummary,
+    verifier_totals: { approve: verifierApproved, needs_revision: verifierRejected },
   });
 };
