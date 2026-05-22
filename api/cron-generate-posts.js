@@ -205,7 +205,30 @@ function buildPrompt(topic, plan) {
 ${buildPlatformRulesBlock(p.platform)}`;
   }).join('\n\n');
 
-  return `Generate 6 social media posts for Dossie. Topic for today: ${topic.label}.
+  return `## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
+
+You may ONLY reference verified real facts about Dossie. Hallucinated specifics destroy customer trust the moment they're noticed.
+
+ALLOWED specifics:
+- The founder pain stories saved verbatim in CLAUDE.md and the memory file \`project_heath_founder_pain_stories.md\` (TC quit while Heath was in Italy with deals in escrow; $400/file and still waking at 4:30am wondering if the option fee receipt was sent; "vacation is the stress test your systems fail" reframe; Brittney's "control freak / visibility problem" insight)
+- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently 9 founding members). If you need to count founders, use "9 of 50 founding spots taken" — never go higher.
+- Real product features that exist: TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only, agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat.
+
+FORBIDDEN specifics:
+- Any founding member number past 9 (no "#12", no "#15", etc.)
+- Invented timestamps ("Tuesday 9:43pm", "10pm debug session")
+- Features that aren't shipped yet: bulk email drafts, Reply Monitoring, AI Autopilot, amendment drafting, Social Media Autopilot
+- Heath behaviors that don't happen: Heath posting code commits to socials, Heath doing public debug streams, Heath having a Discord/community
+- Specific customer events not in CLAUDE.md ("Brittney sent a message at X time about Y") — UNLESS the event is documented in CLAUDE.md or in the founder pain stories memory
+- Made-up customer testimonials or quotes you invent
+
+When in doubt, frame as universal/hypothetical rather than specific: "Most agents have had a deadline almost slip at 7am" beats "Brittney had a 7am call about a deadline" (which would require verification).
+
+If the theme of the post (e.g. \`build_in_public\`) tempts you to invent a story, REFRAME instead: write about the GENERAL pattern using verified facts only.
+
+---
+
+Generate 6 social media posts for Dossie. Topic for today: ${topic.label}.
 
 Topic angle:
 ${topic.angle}
