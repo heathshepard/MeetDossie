@@ -15,7 +15,10 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const MODEL = 'claude-sonnet-4-5';
+// Haiku 4.5 is ~3-4x faster than Sonnet 4.5 for field extraction on contracts.
+// Switched 2026-05-23 — Heath flagged scan time as "entirely too long" on desktop.
+// Large PDFs still route to Opus below for the harder extraction job.
+const MODEL = 'claude-haiku-4-5-20251001';
 const IDENTIFY_MODEL = 'claude-haiku-4-5-20251001';
 const MAX_TOKENS = 4096;
 const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
