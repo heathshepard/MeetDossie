@@ -246,8 +246,12 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
     foundingRemaining,
   });
 
-  // Call htmlcsstoimage API with retry
-  // CRITICAL: google_fonts and ms_delay ensure fonts load before screenshot
+  // Call htmlcsstoimage API with retry.
+  // CRITICAL: `google_fonts` is a STRING (pipe-separated font family names),
+  // not a boolean. HCTI's deserializer rejects the request with HTTP 400
+  // "Error deserializing request" when `google_fonts: true` is sent — that
+  // bug went unnoticed since 2026-05-18 and silently failed today's batch.
+  // The font names must match what the <link> tag in the HTML loads.
   const auth = Buffer.from(`${hctiUserId}:${hctiApiKey}`).toString('base64');
   const response = await retryFetch(
     'https://hcti.io/v1/image',
@@ -259,8 +263,8 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
       },
       body: JSON.stringify({
         html,
-        google_fonts: true,  // Enable Google Fonts CDN
-        ms_delay: 2000,      // Wait 2s for fonts to load before screenshot
+        google_fonts: 'Cormorant Garamond|Plus Jakarta Sans',
+        ms_delay: 2000,
       }),
     },
     { name: 'HCTI', maxAttempts: 3, baseDelay: 1000 }
