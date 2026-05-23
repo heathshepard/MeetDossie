@@ -18,6 +18,7 @@
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const STRIPE_FOUNDING_PAYMENT_LINK = process.env.STRIPE_FOUNDING_PAYMENT_LINK;
 
 const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
@@ -67,11 +68,24 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'body_required' });
   }
 
+  // Server-side template substitution. Callers can embed `{{FOUNDING_PAYMENT_LINK}}`
+  // in the body and it gets replaced with the prefilled Stripe Payment Link URL,
+  // so the caller never needs to know the live link value (it's sensitive).
+  let substituted = String(text);
+  if (substituted.includes('{{FOUNDING_PAYMENT_LINK}}')) {
+    if (!STRIPE_FOUNDING_PAYMENT_LINK) {
+      return res.status(500).json({ ok: false, error: 'founding_payment_link_not_configured' });
+    }
+    const url = new URL(STRIPE_FOUNDING_PAYMENT_LINK);
+    url.searchParams.set('prefilled_email', String(to).trim());
+    substituted = substituted.replace(/\{\{FOUNDING_PAYMENT_LINK\}\}/g, url.toString());
+  }
+
   const payload = {
     from: 'Heath at Dossie <heath@meetdossie.com>',
     to: [String(to).trim()],
     subject: String(subject).trim(),
-    html: renderHtml(text),
+    html: renderHtml(substituted),
     reply_to: isValidEmail(replyTo) ? String(replyTo).trim() : 'heath@meetdossie.com',
   };
 
