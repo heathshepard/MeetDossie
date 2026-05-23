@@ -250,7 +250,12 @@ async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, he
     return;
   }
 
-  const text = `🎉 <b>NEW FOUNDING MEMBER</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}`;
+  // NOTE: this fires on onboarding-form completion (account exists, NOT paid).
+  // The "🎉 NEW FOUNDING MEMBER" celebration is reserved for stripe-webhook.js,
+  // which fires only after a successful Stripe payment. Heath flagged 2026-05-23
+  // that the prior duplicate wording made it impossible to tell at a glance
+  // whether a notification meant "they paid" vs "they made an account."
+  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
