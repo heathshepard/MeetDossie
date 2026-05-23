@@ -53,8 +53,12 @@ function renderHtml(text) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    res.setHeader('Allow', 'POST, GET');
+  // POST-only on purpose. A HEAD or GET probe accidentally fired the
+  // handler during initial deploy verification 2026-05-23, sending the
+  // email ~7 hours early. Restricting to POST removes that footgun for
+  // any future one-shot endpoint based on this pattern.
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 
