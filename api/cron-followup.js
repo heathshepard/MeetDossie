@@ -99,13 +99,33 @@ module.exports = async function handler(req, res) {
         const hoursSinceFollowUp = lastFollowUp ? (now - lastFollowUp) / (1000 * 60 * 60) : Infinity;
 
         if (hoursSinceFollowUp >= 24) {
+          // Look up the deal this action item belongs to so the follow-up
+          // email can reference it specifically. Without this the recipient
+          // sees only "your previous message regarding [description]" with no
+          // indication of which deal — confusing when an agent has multiple
+          // active transactions involving the same counterparty.
+          let propertyAddress = null;
+          if (item.transaction_id) {
+            const { data: txRows } = await supabaseFetch(
+              `/rest/v1/transactions?id=eq.${encodeURIComponent(item.transaction_id)}&select=property_address&limit=1`,
+            );
+            if (Array.isArray(txRows) && txRows[0]) {
+              propertyAddress = txRows[0].property_address || null;
+            }
+          }
+
           const greeting = item.assigned_to_name
             ? `Hi ${escapeHtml(item.assigned_to_name)}`
             : 'Hi there';
-          const subject = `Following up — ${item.email_subject || item.description}`;
+          const dealTag = propertyAddress ? ` — ${propertyAddress}` : '';
+          const subject = `Following up${dealTag} — ${item.email_subject || item.description}`;
+          const dealLine = propertyAddress
+            ? `<p style="font-size:14px;color:#7A7468;margin:0 0 18px;">Re: <strong>${escapeHtml(propertyAddress)}</strong></p>`
+            : '';
           const html = `
             <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">
               <p>${greeting},</p>
+              ${dealLine}
               <p>I'm following up on my previous message regarding <strong>${escapeHtml(item.description)}</strong>. Could you please advise when you have a moment?</p>
               <p>Thank you,<br>Dossie</p>
               <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E0D8; font-size: 12px; color: #9CA8B4; line-height: 1.6;">
