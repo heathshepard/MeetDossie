@@ -33,5 +33,10 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 - Clearer error message if a PDF is too big to scan, so you know to compress and re-upload instead of waiting forever.
 - Softer wording when the scan finds items to review — "a few notes to review below" instead of "has compliance issues."
 
+## Week of May 21–27, 2026
+
+**Follow-up emails are clearer now**
+- When Dossie sends an automatic follow-up on a task you haven't heard back on, the email now shows which deal it's about — the property address shows up in the subject line and at the top of the message. No more "wait, which file is this?" when you've got three deals open.
+
 **Notes from Heath:**
 - Pending: weekly post draft → copy specific items above into your Facebook Founding Files post.
