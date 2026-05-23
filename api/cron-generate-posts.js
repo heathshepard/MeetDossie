@@ -37,14 +37,19 @@ const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only j
 
 ## VERIFIED FACTS — the only source of truth for specific claims
 
-### Current customers (9 founding members as of 2026-05-20)
+### Current customers (__FOUNDING_COUNT__ founding members as of run time — count is queried live from the subscriptions table each batch)
 1. Kimberly Herrera — $29/mo founding member
 2. Tiffany Gill — $29/mo founding member
 3. Brittney YBarbo — $29/mo founding member. Broker, ~80 tx/yr, Southeast Texas. Found Dossie via Facebook search "transaction coordinating in Texas". Control-freak who can't trust delegation. Direct quote: "the lack of systems I have in place isn't sustainable."
 4. Suzanne Page — $1/mo founding friend (FOUNDING_FRIEND coupon)
-   (plus 5 additional founding members not individually named — total of 9)
+5. Miki Mccarthy — $29/mo founding member, Rio Grande Valley / Greater McAllen, My Real Estate Company brokerage
+6. Cecilia Whitley — $29/mo founding member, Austin, Sterling and Associates brokerage
+7. Terry Katz — $29/mo founding member, Houston / Spring TX
+8. Amanda Nuckles — $29/mo founding member, Central Texas, All City Real Estate
+9. Zelda Cain — $29/mo founding member, Houston, A2Z Real Estate Consultants LLC
+10. Natalie Megerson — $29/mo founding member, San Antonio + Austin + San Marcos, REAL Broker
 
-If a draft references a founding member number, ONLY 1-9 are valid. "Member #10", "#12", "#15" etc. are FABRICATIONS — flag as red.
+If a draft references a founding member number, ONLY 1-__FOUNDING_COUNT__ are valid. Higher numbers ("#15", "#22") are FABRICATIONS — flag as red.
 
 ### Shipped features (these are real, safe to claim)
 - TREC deadline auto-calculation, cited to paragraph
@@ -99,19 +104,19 @@ If a draft references a founding member number, ONLY 1-9 are valid. "Member #10"
 If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm debug session", "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it"), flag as red — those are invented.
 
 ### Pricing (locked, real)
-- Founding: $29/mo (50 spots, 9 taken, 41 remaining)
+- Founding: $29/mo (50 spots, __FOUNDING_COUNT__ taken, __FOUNDING_REMAINING__ remaining)
 - Solo: $79/mo, Team: $199/mo, Brokerage: custom
 
 ## What to flag
 
 🔴 RED (highest severity — verdict MUST be needs_revision):
-- Founding member numbers past 9
+- Founding member numbers past __FOUNDING_COUNT__
 - Invented timestamps with the air of specificity ("Tuesday at 9:43pm", "10pm debug session", "ship in 48 hours") not documented above
 - Customer names + events not in the verified list above
 - Features claimed as live from the NOT-yet-built list
 - Heath behaviors that don't happen
 - Made-up quoted testimonials
-- Numbers presented as real stats ("80% of our users", "saved $X across the platform") — Dossie has 9 customers; aggregate stats don't exist
+- Numbers presented as real stats ("80% of our users", "saved $X across the platform") — Dossie has __FOUNDING_COUNT__ customers; aggregate stats don't exist
 
 🟡 YELLOW (medium severity — flag for human review):
 - Specific stats that COULD be real but can't be verified from the facts above
@@ -162,6 +167,40 @@ async function supabaseFetch(path, init = {}) {
     try { data = JSON.parse(text); } catch { data = null; }
   }
   return { ok: res.ok, status: res.status, data };
+}
+
+// Live count of active founding subscriptions. Used to substitute
+// __FOUNDING_COUNT__ and __FOUNDING_REMAINING__ in the verifier prompt and
+// the generator's factual-accuracy block. Falls back to the previous
+// hardcoded value (9) if the query fails, with a console.warn so the
+// failure is visible — better than serving content with a fabricated count.
+async function getFoundingMemberCount() {
+  const FOUNDING_TOTAL = 50;
+  const FALLBACK = 9;
+  try {
+    const r = await supabaseFetch(
+      `/rest/v1/subscriptions?select=id&status=in.(active,trialing)&plan=eq.founding`,
+      { headers: { Prefer: 'count=exact' } },
+    );
+    // Supabase returns the count via Content-Range header when Prefer: count=exact
+    // is set; the body is the rows. We have only id selected, so count the array.
+    if (r.ok && Array.isArray(r.data)) {
+      return { taken: r.data.length, remaining: Math.max(0, FOUNDING_TOTAL - r.data.length) };
+    }
+    console.warn('[cron-generate-posts] getFoundingMemberCount: unexpected response', r.status);
+    return { taken: FALLBACK, remaining: FOUNDING_TOTAL - FALLBACK };
+  } catch (err) {
+    console.warn('[cron-generate-posts] getFoundingMemberCount failed:', err && err.message);
+    return { taken: FALLBACK, remaining: FOUNDING_TOTAL - FALLBACK };
+  }
+}
+
+// Substitute __FOUNDING_COUNT__ and __FOUNDING_REMAINING__ placeholders in
+// any prompt string using the live numbers from getFoundingMemberCount().
+function applyFoundingCount(promptText, founding) {
+  return String(promptText)
+    .replace(/__FOUNDING_COUNT__/g, String(founding.taken))
+    .replace(/__FOUNDING_REMAINING__/g, String(founding.remaining));
 }
 
 const PERSONAS = {
@@ -341,11 +380,11 @@ You may ONLY reference verified real facts about Dossie. Hallucinated specifics 
 
 ALLOWED specifics:
 - The founder pain stories saved verbatim in CLAUDE.md and the memory file \`project_heath_founder_pain_stories.md\` (TC quit while Heath was in Italy with deals in escrow; $400/file and still waking at 4:30am wondering if the option fee receipt was sent; "vacation is the stress test your systems fail" reframe; Brittney's "control freak / visibility problem" insight)
-- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently 9 founding members). If you need to count founders, use "9 of 50 founding spots taken" — never go higher.
+- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently __FOUNDING_COUNT__ founding members). If you need to count founders, use "__FOUNDING_COUNT__ of 50 founding spots taken" — never go higher.
 - Real product features that exist: TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only, agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat.
 
 FORBIDDEN specifics:
-- Any founding member number past 9 (no "#12", no "#15", etc.)
+- Any founding member number past __FOUNDING_COUNT__
 - Invented timestamps ("Tuesday 9:43pm", "10pm debug session")
 - Features that aren't shipped yet: bulk email drafts, Reply Monitoring, AI Autopilot, amendment drafting, Social Media Autopilot
 - Heath behaviors that don't happen: Heath posting code commits to socials, Heath doing public debug streams, Heath having a Discord/community
@@ -491,7 +530,7 @@ function extractJson(raw) {
 // Second Anthropic call (Haiku) that scans each generated post against the
 // embedded facts snapshot and returns a JSON verdict. Fails safe: any error
 // or malformed response → needs_revision with an explanatory flag.
-async function verifyPost({ platform, persona, topic, content }) {
+async function verifyPost({ platform, persona, topic, content, founding }) {
   const userMessage = `Verify this draft. Return only the JSON verdict.\n\nPlatform: ${platform}\nPersona: ${persona}\nTopic: ${topic}\n\nDRAFT:\n${content}`;
 
   let res, text;
@@ -506,7 +545,7 @@ async function verifyPost({ platform, persona, topic, content }) {
       body: JSON.stringify({
         model: VERIFIER_MODEL,
         max_tokens: 800,
-        system: VERIFIER_SYSTEM_PROMPT,
+        system: applyFoundingCount(VERIFIER_SYSTEM_PROMPT, founding),
         messages: [{ role: 'user', content: userMessage }],
       }),
     });
@@ -670,11 +709,12 @@ module.exports = async function handler(req, res) {
   const topic = pickTopic();
   const forceDay = parseForceDay(req);
   const plan = getPostPlan(now, { forceDay });
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'at', now.toISOString());
+  const founding = await getFoundingMemberCount();
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'at', now.toISOString());
 
   let raw;
   try {
-    raw = await callAnthropic(buildPrompt(topic, plan));
+    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan), founding));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });
@@ -795,6 +835,7 @@ module.exports = async function handler(req, res) {
       persona,
       topic: topic.key,
       content: caption,
+      founding,
     });
     const verifierMs = Date.now() - verifierStart;
     const flagsCount = Array.isArray(verifierResult.flags) ? verifierResult.flags.length : 0;
