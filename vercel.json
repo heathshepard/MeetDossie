@@ -45,6 +45,14 @@
                      {
                          "source":  "/terms",
                          "destination":  "/terms.html"
+                     },
+                     {
+                         "source":  "/ventures",
+                         "destination":  "/ventures.html"
+                     },
+                     {
+                         "source":  "/studio",
+                         "destination":  "/ventures.html"
                      }
                  ],
     "headers":  [
