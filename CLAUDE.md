@@ -134,7 +134,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 | Solo | $79 | $39 |
 | Team | $199 (3 seats; max 8 at $35/seat) | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (50 spots, 9 taken) | — |
+| **Founding Member** | **$29** (50 spots, 11 taken) | — |
 
 **Add-ons:**
 - Reply Monitoring — $10/mo
@@ -155,7 +155,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $262/month** (9 founding @ $29 + 1 friend @ $1)
+**MRR: $291/month** (10 founding @ $29 + 1 friend @ $1)
 
 | # | Name | Email | Plan | Notes |
 |---|---|---|---|---|
@@ -169,6 +169,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 | 8 | Amanda Nuckles | amanda@amandanuckles.com | $29/mo founding member | Central Texas. Joined 2026-05-20. Brokerage: All City Real Estate. Phone: 5127340036. **First customer to use new onboarding form (phone + heard_from captured).** Heard from: Facebook group (specific group TBD — Heath to ask). |
 | 9 | Zelda Cain | zelda@a2zrealestateconsultants.com | $29/mo founding member | Houston. Joined 2026-05-21. Brokerage: A2Z Real Estate Consultants LLC. Phone: (281) 813-6887. Heard from: Friend or colleague (referrer TBD — Heath to ask; possibly Terry, 2nd Houston founder). First word-of-mouth founding signup. |
 | 10 | Natalie Megerson | natalie@localchoicegroup.com | $29/mo founding member | Markets: San Antonio + Austin + San Marcos (multi-market). Joined 2026-05-22 ~04:10 UTC. Brokerage: REAL Broker. Phone: 5125575549. Heard from: Facebook. **HOT LEAD on TEAM-tier conversion** — DM'd Heath same morning asking to discuss her "large team in San Marcos". Heath's first multi-seat opportunity. Push individual founding signups for each team member while founding spots last. |
+| 11 | Jennifer Beltrán | jenn.casamiateam@gmail.com | $29/mo founding member | Brokerage: Casa Mia Real Estate LLC. Phone: 9568671723. Paid via Stripe on 2026-05-22 14:27 CDT but Stripe webhook never provisioned her — Cole manually provisioned on 2026-05-24 after Jennifer messaged Heath asking where the app was. **SECOND Stripe-webhook-gap incident** (after Terry Katz 2026-05-20) — confirms `project_stripe_webhook_gap.md` is real and unresolved. Password recovery email fired 2026-05-24 so she can set login + first-time access. |
 
 ---
 
