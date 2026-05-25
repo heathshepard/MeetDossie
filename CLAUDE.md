@@ -36,6 +36,7 @@ This file is read at the start of every Claude Code session. It completely repla
 | Stock video | Pexels API | portrait for vertical, landscape for square |
 | Video assembly | Creatomate | Template ID `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: `Image-K8V` (screen recording URL), `Persona-Name`, `Caption`, `Voiceover` (ElevenLabs Bill voice pre-configured). |
 | Selfie video editing | Submagic | $12/mo Starter plan (added 2026-05-20). Heath records vertical selfie → uploads to Submagic mobile app → auto-captions + auto-b-roll + multi-format export. Manual upload step (no API on Starter plan; API requires $60/mo Business tier). Workflow doc: `scripts/SELFIE-VIDEO-WORKFLOW.md`. |
+| AI Video (b-roll) | fal.ai + Kling 2.5 | `FAL_KEY` env var. ~$0.168/sec per clip (~$0.84/5s clip). Replaces Pexels stock footage in AI video pipeline. Endpoint: `POST /api/generate-broll`. Demo script: `scripts/generate-ai-video.js`. Sign up at fal.ai, add credits, copy API key. |
 | Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) for personal + DONE handler. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) for social-post approve/reject callbacks. |
 
 **Repo layout — TWO repos:**
@@ -490,6 +491,7 @@ PEXELS_API_KEY
 ZERNIO_API_KEY
 CREATOMATE_API_KEY
 CREATOMATE_TEMPLATE_ID = 791117d0-665c-4cd0-ba5f-a767f8921f9b
+FAL_KEY
 DEMO_PASSWORD = DossieDemo-VaIiAt6Bab
 DEMO2_PASSWORD = DossieDemo2-John2026
 ```
