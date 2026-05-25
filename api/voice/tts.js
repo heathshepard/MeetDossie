@@ -9,7 +9,7 @@
 const AGENT_VOICE_MAP = {
   // Canonical ElevenLabs default-library voice IDs.
   // Source: https://api.elevenlabs.io/v1/voices (default voices return same IDs across accounts).
-  cole:    'TX3LPaxmHKxFdv7VOQHJ', // Liam — young American male, casual narration
+  cole:    'IKne3meq5aSn9XLyUdCD', // Charlie — natural conversational American male, warm/soft
   hadley:  'XB0fDUnXU5powFXDhCwa', // Charlotte — calm English female, professional
   pierce:  'TxGEqnHWrfWFTfGW9XjX', // Josh — deep American male, warm
   atlas:   'nPczCjzI2devNBz1zQrb', // Brian — American male, deep / authoritative
@@ -86,10 +86,11 @@ module.exports = async (req, res) => {
         text: finalText,
         model_id: 'eleven_turbo_v2_5',
         voice_settings: {
-          stability: 0.5,
+          stability: 0.65,
           similarity_boost: 0.75,
           style: 0.0,
           use_speaker_boost: true,
+          speed: 1.15,
         },
       }),
     });
