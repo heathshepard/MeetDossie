@@ -35,6 +35,10 @@ const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
 // these facts and flag fabrications.
 const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only job is to find fabrications, false specifics, and over-claims in customer-facing marketing copy before it ships. You are skeptical, terse, and accurate. You do not rewrite the copy — you flag what needs to change.
 
+## FICTIONAL MARKETING PERSONAS — NEVER check against the founding member list
+
+Brenda, Patricia, and Victor are FICTIONAL characters used in Dossie's social media marketing content. They are NOT real customers and must NEVER be compared against or checked against the verified founding member list below. Any post written in one of their voices is intentional persona content — the persona name appearing in a post is never a fabrication or an unverified customer claim. Do not flag Brenda, Patricia, or Victor for any reason related to customer verification.
+
 ## VERIFIED FACTS — the only source of truth for specific claims
 
 ### Current customers (__FOUNDING_COUNT__ founding members as of run time — count is queried live from the subscriptions table each batch)
@@ -847,13 +851,22 @@ module.exports = async function handler(req, res) {
       ms: verifierMs,
     });
 
+    // Bug 3 fix: Instagram posts require a media image. If the card renderer
+    // failed (media_url is null), mark the row as 'pending_card' so it is NOT
+    // sent for approval. Approving a no-media Instagram post causes Zernio to
+    // reject it with 400 "Instagram posts require media content."
+    const instagramMissingMedia = platform === 'instagram' && !mediaUrl;
+
     // Decide row status:
     //   needs_revision → always rejected (regardless of AUTO_APPROVE_POSTS)
+    //   instagram + no media_url → pending_card (hold until card is available)
     //   approve + AUTO_APPROVE_POSTS=true → approved
     //   approve + AUTO_APPROVE_POSTS=false (default) → draft (manual approval)
     let rowStatus;
     if (verifierResult.verdict === 'needs_revision') {
       rowStatus = 'rejected';
+    } else if (instagramMissingMedia) {
+      rowStatus = 'pending_card';
     } else if (AUTO_APPROVE_POSTS) {
       rowStatus = 'approved';
     } else {
@@ -861,10 +874,14 @@ module.exports = async function handler(req, res) {
     }
 
     // For rejected posts, surface flag details in error_message for quick
-    // debugging in the Supabase dashboard.
-    const errorMessage = verifierResult.verdict === 'needs_revision'
-      ? formatVerifierFlagsForErrorMessage(verifierResult)
-      : null;
+    // debugging in the Supabase dashboard. For pending_card posts, note why
+    // the row is being held back from approval.
+    let errorMessage = null;
+    if (verifierResult.verdict === 'needs_revision') {
+      errorMessage = formatVerifierFlagsForErrorMessage(verifierResult);
+    } else if (instagramMissingMedia) {
+      errorMessage = 'Instagram requires a media card - card render failed; row held as pending_card until re-rendered.';
+    }
 
     const row = {
       post_id: postId,
@@ -893,6 +910,40 @@ module.exports = async function handler(req, res) {
     });
     if (ins.ok) inserted++;
     else insertErrors.push({ index: i, status: ins.status, body: typeof ins.data === 'string' ? ins.data.slice(0, 200) : JSON.stringify(ins.data).slice(0, 200) });
+  }
+
+  // Bug 2 fix: for every slot in the planned post schedule that produced no
+  // generated post (missing required fields caused a `continue` above), insert
+  // a status='failed' row so the gap is visible in Supabase rather than silent.
+  const generatedKeys = new Set(
+    generated
+      .filter((p) => p && p.persona && p.platform && (p.caption || p.content))
+      .map((p) => `${String(p.persona).toLowerCase()}-${String(p.platform).toLowerCase()}`)
+  );
+  for (let i = 0; i < plan.length; i++) {
+    const slot = plan[i];
+    const slotKey = `${String(slot.persona || '').toLowerCase()}-${String(slot.platform || '').toLowerCase()}`;
+    if (!generatedKeys.has(slotKey)) {
+      const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
+      const failedPostId = `${now.toISOString().slice(0, 10)}-${slot.persona}-${slot.platform}-${i}-failed${testSuffix}`;
+      const failedRow = {
+        post_id: failedPostId,
+        platform: slot.platform,
+        persona: slot.persona,
+        topic: topic.key,
+        status: 'failed',
+        content: '',
+        generated_at: now.toISOString(),
+        created_at: now.toISOString(),
+        error_message: `Post generation failed: missing required fields (caption/platform/persona) for planned slot ${slot.persona}/${slot.platform}`,
+      };
+      console.warn(`[cron-generate-posts] slot ${slotKey} produced no valid post — inserting failed row ${failedPostId}`);
+      await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(failedRow),
+      });
+    }
   }
 
   // Update batch totals.
