@@ -113,7 +113,10 @@
                                                         },
                       "api/generate-broll.js":  {
                                                     "maxDuration":  120
-                                                }
+                                                },
+               "api/cron-coverage-check.js":  {
+                                                    "maxDuration":  60
+                                               }
                   },
     "crons":  [
                   {
@@ -163,6 +166,10 @@
                   {
                       "path":  "/api/cron-weekly-newsletter",
                       "schedule":  "0 15 * * 5"
+                  },
+                  {
+                      "path":  "/api/cron-coverage-check",
+                      "schedule":  "0 1 * * *"
                   }
               ]
 }
