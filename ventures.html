@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Shepard Ventures — Portfolio</title>
+  <title>Shepard Ventures</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -14,123 +16,628 @@
       --gold: #C9A96E;
       --navy: #1A1A2E;
       --coral: #E8836B;
+      --surface: rgba(255, 255, 255, 0.04);
+      --border: rgba(245, 230, 224, 0.10);
+      --text-dim: rgba(245, 230, 224, 0.55);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     html, body {
       min-height: 100vh;
-      background: linear-gradient(180deg, var(--navy) 0%, #2a2a3e 100%);
+      background: var(--navy);
       color: var(--blush);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 16px;
-      padding-bottom: env(safe-area-inset-bottom);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
-    .container {
-      max-width: 1200px;
+
+    /* ---- Auth gate ---- */
+    #auth-gate {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+    #auth-gate.visible { display: flex; }
+    #auth-gate p { color: var(--text-dim); font-size: 0.9rem; }
+
+    /* ---- Shell ---- */
+    #app { display: none; }
+    #app.visible { display: block; }
+
+    /* ---- Layout ---- */
+    .page {
+      max-width: 860px;
       margin: 0 auto;
-      padding: 24px 20px;
+      padding: 28px 18px 60px;
     }
-    h1 {
+
+    /* ---- Hero ---- */
+    .hero {
+      padding: 24px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .hero-title {
       font-family: "Cormorant Garamond", serif;
       font-weight: 600;
-      font-size: clamp(2rem, 6vw, 3.25rem);
+      font-size: clamp(2.1rem, 7vw, 3rem);
       color: var(--blush);
       letter-spacing: -0.01em;
+      line-height: 1.1;
     }
-    .tagline {
+    .hero-tagline {
       font-family: "Cormorant Garamond", serif;
       font-style: italic;
       color: var(--gold);
-      font-size: 1.1rem;
-      margin-top: 4px;
+      font-size: 1.05rem;
+      margin-top: 6px;
     }
-    .panel {
-      margin-top: 24px;
-      padding: 24px;
-      background: rgba(245, 230, 224, 0.05);
-      border: 1px solid rgba(245, 230, 224, 0.12);
-      border-radius: 14px;
-    }
-    .stat-row {
+
+    /* ---- Stat ticker ---- */
+    .stat-bar {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px 28px;
+      gap: 10px 24px;
+      margin-top: 20px;
       align-items: baseline;
-      margin-top: 8px;
-      color: var(--blush);
-      opacity: 0.85;
     }
-    .stat-row strong {
-      color: var(--gold);
-      font-weight: 600;
+    .stat-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
     }
-    .placeholder {
-      margin-top: 16px;
-      color: rgba(245, 230, 224, 0.6);
-      font-size: 0.95rem;
-      line-height: 1.5;
-    }
-    .placeholder code {
-      background: rgba(0,0,0,0.3);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.9em;
-      color: var(--blush);
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 10px;
-      background: var(--sage);
-      color: var(--navy);
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+    .stat-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-left: 8px;
-      vertical-align: middle;
+      color: var(--text-dim);
+      font-weight: 600;
     }
-    @media (prefers-color-scheme: light) {
-      /* still dark — navy is the brand */
+    .stat-value {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.85rem;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
     }
+    .stat-value.dim {
+      color: var(--blush-deep);
+      font-size: 1.5rem;
+    }
+
+    /* ---- Section headers ---- */
+    .section-header {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ---- Company cards ---- */
+    .company-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .company-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .company-card.live {
+      border-color: rgba(139, 168, 136, 0.30);
+    }
+    .company-card.planning {
+      opacity: 0.55;
+    }
+    .company-card-accent {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--coral), var(--gold));
+      border-radius: 14px 14px 0 0;
+    }
+    .company-card.planning .company-card-accent {
+      background: var(--border);
+    }
+    .company-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.45rem;
+      font-weight: 600;
+      color: var(--blush);
+      margin-bottom: 2px;
+    }
+    .company-tagline {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .company-stats {
+      display: flex;
+      gap: 20px;
+    }
+    .company-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .company-stat-val {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .company-stat-lbl {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .company-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      position: absolute;
+      top: 18px;
+      right: 16px;
+    }
+    .company-badge.live {
+      background: rgba(139, 168, 136, 0.18);
+      color: var(--sage);
+      border: 1px solid rgba(139, 168, 136, 0.35);
+    }
+    .company-badge.planning {
+      background: rgba(245, 230, 224, 0.06);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .badge-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ---- Agent strip ---- */
+    .agent-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .agent-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--blush);
+      white-space: nowrap;
+    }
+    .agent-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .agent-dot.idle { background: var(--text-dim); }
+    .agent-dot.active { background: var(--sage); box-shadow: 0 0 6px var(--sage); }
+    .agent-dot.busy { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+    .agent-dot.error { background: var(--coral); box-shadow: 0 0 6px var(--coral); }
+    .agent-role {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-left: 2px;
+    }
+
+    /* ---- Footer ---- */
+    .footer {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer-text {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .footer-burn {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* ---- Skeleton ---- */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(245,230,224,0.06) 25%, rgba(245,230,224,0.10) 50%, rgba(245,230,224,0.06) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+      height: 1em;
+      display: inline-block;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skel-mrr { width: 80px; height: 1.85rem; }
+    .skel-cust { width: 48px; height: 1.85rem; }
+    .skel-stat { width: 56px; height: 1.5rem; }
+
+    /* ---- Error banner ---- */
+    .error-banner {
+      display: none;
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      background: rgba(232, 131, 107, 0.12);
+      border: 1px solid rgba(232, 131, 107, 0.30);
+      border-radius: 8px;
+      color: var(--coral);
+      font-size: 0.85rem;
+    }
+    .error-banner.visible { display: block; }
+
+    /* ---- Last-updated ---- */
+    .updated-label {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .refresh-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--sage);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .refresh-dot.ping { opacity: 1; }
+
+    /* Safe-area on iPhone notch/home bar */
+    body { padding-bottom: env(safe-area-inset-bottom, 0px); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Shepard Ventures <span class="badge">Phase 0</span></h1>
-      <div class="tagline">Build the rails. Run the portfolio.</div>
-    </header>
 
-    <section class="panel">
-      <div class="stat-row">
-        <span>Companies: <strong id="stat-companies">—</strong></span>
-        <span>Agents: <strong id="stat-agents">—</strong></span>
-        <span>MRR: <strong id="stat-mrr">$262</strong></span>
-        <span>Monthly burn: <strong id="stat-burn">$48.33</strong></span>
-      </div>
-      <div class="placeholder">
-        This is the SV-DASH-001 Phase 0 placeholder. Real-time agent stream, per-company drill-downs, and cost-burn rollup land in Phases 1–4. Schema is live: <code>ventures_agents</code>, <code>ventures_companies</code>, <code>ventures_activity_events</code>, <code>ventures_cost_snapshots</code>, <code>ventures_metrics_daily</code>, <code>ventures_messages</code>.
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2 style="font-family: 'Cormorant Garamond', serif; font-weight: 500;">Current org</h2>
-      <div class="placeholder" id="agent-list">Loading…</div>
-    </section>
+  <!-- Auth gate — shown only when not logged in -->
+  <div id="auth-gate">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--gold);">SV</div>
+    <p>This dashboard is restricted. Redirecting to login…</p>
   </div>
 
+  <!-- Main app shell — hidden until auth confirmed -->
+  <div id="app">
+    <div class="page">
+
+      <!-- Hero -->
+      <header class="hero">
+        <h1 class="hero-title">Shepard Ventures</h1>
+        <div class="hero-tagline">Build the rails. Run the portfolio.</div>
+
+        <div class="stat-bar">
+          <div class="stat-chip">
+            <span class="stat-label">Portfolio MRR</span>
+            <span class="stat-value" id="stat-mrr"><span class="skeleton skel-mrr"></span></span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-label">Customers</span>
+            <span class="stat-value" id="stat-customers"><span class="skeleton skel-cust"></span></span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-label">Monthly Burn</span>
+            <span class="stat-value dim" id="stat-burn"><span class="skeleton skel-stat"></span></span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-label">Net</span>
+            <span class="stat-value dim" id="stat-net"><span class="skeleton skel-stat"></span></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Error banner -->
+      <div class="error-banner" id="error-banner"></div>
+
+      <!-- Companies -->
+      <section>
+        <div class="section-header">Portfolio</div>
+        <div class="company-grid" id="company-grid">
+          <!-- Skeleton cards -->
+          <div class="company-card">
+            <div class="skeleton" style="width:100px;height:1.4rem;margin-bottom:8px;"></div>
+            <div class="skeleton" style="width:70%;height:0.8rem;margin-bottom:18px;"></div>
+            <div style="display:flex;gap:20px;">
+              <div><div class="skeleton" style="width:60px;height:1.5rem;"></div></div>
+              <div><div class="skeleton" style="width:40px;height:1.5rem;"></div></div>
+            </div>
+          </div>
+          <div class="company-card planning">
+            <div class="skeleton" style="width:130px;height:1.4rem;margin-bottom:8px;"></div>
+            <div class="skeleton" style="width:65%;height:0.8rem;margin-bottom:18px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Agents -->
+      <section>
+        <div class="section-header">Agents</div>
+        <div class="agent-row" id="agent-row">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="updated-label">
+          <span class="refresh-dot" id="refresh-dot"></span>
+          <span id="updated-at">Loading…</span>
+        </div>
+        <div class="footer-burn" id="footer-burn"></div>
+      </footer>
+
+    </div><!-- /page -->
+  </div><!-- /app -->
+
   <script type="module">
-    // Placeholder only — real data lives behind /api/ventures/* starting Phase 1.
-    // The agent list below is hard-coded; Phase 1 will fetch from /api/ventures/overview.
-    document.getElementById('stat-companies').textContent = '2 (Dossie live, Paralegal planning)';
-    document.getElementById('stat-agents').textContent = '5';
-    document.getElementById('agent-list').innerHTML = [
-      'Cole — Chief of Staff',
-      'Hadley — General Counsel',
-      'Pierce — Growth + CS',
-      'Atlas — Head of Platform Engineering',
-      'Content Verifier — fact-check subagent'
-    ].map(line => `<div style="padding: 6px 0; border-bottom: 1px solid rgba(245,230,224,0.08);">${line}</div>`).join('');
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const POLL_INTERVAL_MS = 30_000;
+    let supabase = null;
+    let pollTimer = null;
+
+    // ---- Bootstrap ----
+    async function bootstrap() {
+      // 1. Fetch Supabase config (same pattern as studio.html)
+      let config;
+      try {
+        config = await fetch('/api/config').then(r => r.json());
+      } catch (e) {
+        showError('Failed to load configuration. Please refresh.');
+        document.getElementById('auth-gate').classList.add('visible');
+        return;
+      }
+
+      supabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage,
+          storageKey: 'supabase.auth.token',
+          flowType: 'pkce',
+        },
+      });
+
+      // 2. Auth check
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        document.getElementById('auth-gate').classList.add('visible');
+        setTimeout(() => { window.location.href = '/welcome.html'; }, 1200);
+        return;
+      }
+
+      // 3. Show app, start fetching
+      document.getElementById('app').classList.add('visible');
+      await loadOverview(session.access_token);
+      startPolling(session.access_token);
+    }
+
+    // ---- Overview fetch ----
+    async function loadOverview(token) {
+      try {
+        const res = await fetch('/api/ventures/overview', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Request failed' }));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        renderOverview(data);
+        hideError();
+        pingRefreshDot();
+      } catch (e) {
+        showError(`Dashboard error: ${e.message}`);
+        console.error('[ventures] overview fetch failed', e);
+      }
+    }
+
+    // ---- Render ----
+    function renderOverview(d) {
+      // Stat bar
+      const mrr = d.totalMrrUsd ?? 0;
+      const cust = d.totalCustomers ?? 0;
+      const burn = d.burn?.monthlyFixedUsd ?? 48.33;
+      const net = mrr - burn;
+
+      setText('stat-mrr', `$${mrr.toLocaleString()}`);
+      setText('stat-customers', cust.toString());
+      setText('stat-burn', `$${burn.toFixed(2)}`);
+      setText('stat-net', net >= 0 ? `$${net.toFixed(2)}` : `-$${Math.abs(net).toFixed(2)}`);
+
+      document.getElementById('stat-net').style.color =
+        net >= 0 ? 'var(--sage)' : 'var(--coral)';
+
+      // Company cards
+      const grid = document.getElementById('company-grid');
+      if (d.companies && d.companies.length > 0) {
+        grid.innerHTML = d.companies.map(co => renderCompanyCard(co)).join('');
+      }
+
+      // Agents
+      const agentRow = document.getElementById('agent-row');
+      const agentRoles = {
+        cole: 'Chief of Staff',
+        hadley: 'General Counsel',
+        pierce: 'Growth + CS',
+        atlas: 'Platform Eng',
+        content_verifier: 'Fact Check',
+      };
+      if (d.agents && d.agents.length > 0) {
+        agentRow.innerHTML = d.agents.map(a => `
+          <div class="agent-chip">
+            <span class="agent-dot ${a.status || 'idle'}"></span>
+            <span>${capitalize(a.name)}</span>
+            <span class="agent-role">${agentRoles[a.name] || ''}</span>
+          </div>
+        `).join('');
+      } else {
+        // Fallback if ventures_agents returned nothing
+        const fallback = [
+          { name: 'Cole', role: 'Chief of Staff' },
+          { name: 'Hadley', role: 'General Counsel' },
+          { name: 'Pierce', role: 'Growth + CS' },
+          { name: 'Atlas', role: 'Platform Eng' },
+        ];
+        agentRow.innerHTML = fallback.map(a => `
+          <div class="agent-chip">
+            <span class="agent-dot idle"></span>
+            <span>${a.name}</span>
+            <span class="agent-role">${a.role}</span>
+          </div>
+        `).join('');
+      }
+
+      // Footer
+      setText('updated-at', `Updated ${timeAgo(new Date(d.generatedAt))}`);
+      setText('footer-burn', d.burn?.note || '');
+    }
+
+    function renderCompanyCard(co) {
+      const isLive = co.status === 'live';
+      const badgeClass = isLive ? 'live' : 'planning';
+      const badgeLabel = isLive ? 'Live' : 'Planning';
+      const statsHtml = isLive
+        ? `<div class="company-stats">
+             <div class="company-stat-item">
+               <span class="company-stat-val">$${(co.mrr ?? 0).toLocaleString()}</span>
+               <span class="company-stat-lbl">MRR</span>
+             </div>
+             <div class="company-stat-item">
+               <span class="company-stat-val">${co.customers ?? 0}</span>
+               <span class="company-stat-lbl">Customers</span>
+             </div>
+             ${co.foundingSpots ? `
+             <div class="company-stat-item">
+               <span class="company-stat-val">${co.foundingSpots.taken}/${co.foundingSpots.total}</span>
+               <span class="company-stat-lbl">Founding</span>
+             </div>` : ''}
+           </div>`
+        : `<div style="font-size:0.8rem;color:var(--text-dim);padding-top:4px;">In development</div>`;
+
+      return `
+        <div class="company-card ${co.status}">
+          <div class="company-card-accent"></div>
+          <span class="company-badge ${badgeClass}">
+            <span class="badge-dot"></span>${badgeLabel}
+          </span>
+          <div class="company-name">${escHtml(co.name)}</div>
+          <div class="company-tagline">${escHtml(co.tagline || '')}</div>
+          ${statsHtml}
+        </div>`;
+    }
+
+    // ---- Polling ----
+    function startPolling(token) {
+      // Refresh Supabase session then poll
+      pollTimer = setInterval(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          clearInterval(pollTimer);
+          window.location.href = '/welcome.html';
+          return;
+        }
+        await loadOverview(session.access_token);
+      }, POLL_INTERVAL_MS);
+    }
+
+    // ---- Helpers ----
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function capitalize(s) {
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function timeAgo(date) {
+      const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (secs < 5) return 'just now';
+      if (secs < 60) return `${secs}s ago`;
+      const mins = Math.floor(secs / 60);
+      if (mins < 60) return `${mins}m ago`;
+      return `${Math.floor(mins / 60)}h ago`;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-banner');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').classList.remove('visible');
+    }
+
+    function pingRefreshDot() {
+      const dot = document.getElementById('refresh-dot');
+      dot.classList.add('ping');
+      setTimeout(() => dot.classList.remove('ping'), 600);
+    }
+
+    // ---- Start ----
+    bootstrap();
   </script>
+
 </body>
 </html>

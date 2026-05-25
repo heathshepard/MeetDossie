@@ -684,9 +684,10 @@ MeetDossie\Media\
 
 ## 32. IMPROVMX EMAIL SETUP
 
-- `heath@meetdossie.com` → forwards to `heath.shepard@kw.com`.
-- `heathshepard@meetdossie.com` → forwards to `heath.shepard@kw.com`.
-- Free plan. KW Exchange spam filter sometimes blocks transactional codes (TikTok issue).
+- `heath@meetdossie.com` → forwards to `heath.shepard@gmail.com`.
+- `heathshepard@meetdossie.com` → forwards to `heath.shepard@gmail.com`.
+- `info@meetdossie.com` → forwards to `heath.shepard@gmail.com`. Added 2026-05-24 (ToS/Privacy contact).
+- Free plan. API key stored in Windows Credential Manager as `ImprovMX_API_Key` (rotate after 2026-05-24 — key went through Telegram). Note: live config forwards to gmail, not KW — confirmed via ImprovMX API 2026-05-24.
 
 ---
 
