@@ -116,6 +116,9 @@
                                                 },
                "api/cron-coverage-check.js":  {
                                                     "maxDuration":  60
+                                               },
+               "api/cron-analytics-sync.js":  {
+                                                    "maxDuration":  60
                                                }
                   },
     "crons":  [
@@ -170,6 +173,10 @@
                   {
                       "path":  "/api/cron-coverage-check",
                       "schedule":  "0 1 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-analytics-sync",
+                      "schedule":  "0 2 * * 0"
                   }
               ]
 }
