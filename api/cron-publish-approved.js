@@ -311,7 +311,7 @@ async function pushToZernio(post) {
         },
         body: JSON.stringify(payload),
       },
-      { name: 'Zernio', maxAttempts: 3, baseDelay: 1000 }
+      { name: 'Zernio', maxAttempts: 3, baseDelay: 2000 }
     );
     const respText = await res.text();
     let data = null;
