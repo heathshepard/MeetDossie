@@ -107,7 +107,10 @@
                       "api/cron-weekly-newsletter.js":  {
                                                             "maxDuration":  60,
                                                             "includeFiles":  "WEEKLY-IMPROVEMENTS.md"
-                                                        }
+                                                        },
+                      "api/generate-broll.js":  {
+                                                    "maxDuration":  120
+                                                }
                   },
     "crons":  [
                   {
