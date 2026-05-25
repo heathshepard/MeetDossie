@@ -356,6 +356,60 @@ function pickTopic() {
   return TOPICS[dayOfYear % TOPICS.length];
 }
 
+// ─── Top-performer hook injection ──────────────────────────────────────────
+// Fetches the 5 highest-engagement hooks from post_analytics (joined to
+// social_posts) and returns them as example strings to inject into the
+// generation prompt. Returns an empty array if the table has no data yet
+// (first weeks before analytics accumulate) — graceful degradation.
+async function fetchTopPerformerHooks() {
+  try {
+    // Join post_analytics to social_posts via social_post_id, order by
+    // engagement_score desc, grab distinct hooks from the top 5.
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/post_analytics?select=hook,platform,persona,engagement_score&engagement_score=gt.0&order=engagement_score.desc&limit=5`,
+    );
+    if (!ok || !Array.isArray(data) || data.length === 0) return [];
+
+    // Deduplicate and filter blank hooks
+    const seen = new Set();
+    const hooks = [];
+    for (const row of data) {
+      const h = String(row.hook || '').trim();
+      if (!h || seen.has(h)) continue;
+      seen.add(h);
+      hooks.push({
+        hook: h,
+        platform: row.platform || 'unknown',
+        persona: row.persona || 'unknown',
+        score: Number(row.engagement_score || 0),
+      });
+    }
+    return hooks;
+  } catch (err) {
+    console.warn('[cron-generate-posts] fetchTopPerformerHooks failed:', err && err.message);
+    return [];
+  }
+}
+
+// Build the top-performer examples block injected into the generation prompt.
+// Returns an empty string when no data is available (first run, no analytics yet).
+function buildTopPerformerBlock(topHooks) {
+  if (!topHooks || topHooks.length === 0) return '';
+  const lines = [
+    '',
+    '## TOP-PERFORMING HOOKS (real engagement data from our past posts)',
+    'These hooks generated the highest engagement on our actual audience.',
+    'Study the PATTERN and TONE — replicate the formula, not the exact words.',
+    'Do not reuse these verbatim. Use them to calibrate your opening energy.',
+    '',
+  ];
+  for (const { hook, platform, persona, score } of topHooks) {
+    lines.push(`- "${hook}" (${platform}/${persona}, score ${score})`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
 // ─── Hook Rotation System ─────────────────────────────────────────────────
 // Five distinct hook formulas cycle through posts so no two adjacent posts
 // open the same way and the algorithm sees variety across the day's batch.
@@ -471,7 +525,7 @@ function buildPlatformNativeBlock(platform) {
   return PLATFORM_NATIVE_FORMAT[platform] || '';
 }
 
-function buildPrompt(topic, plan, dayOfYear) {
+function buildPrompt(topic, plan, dayOfYear, topPerformerBlock) {
   const planLines = plan.map((p, i) => {
     const persona = PERSONAS[p.persona];
     const hookFormula = pickHookFormula(dayOfYear, i);
@@ -486,7 +540,7 @@ ${buildPlatformNativeBlock(p.platform)}
    How to apply: ${hookFormula.instruction}`;
   }).join('\n\n');
 
-  return `## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
+  return `${topPerformerBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
 
 You may ONLY reference verified real facts about Dossie. Hallucinated specifics destroy customer trust the moment they're noticed.
 
@@ -828,11 +882,20 @@ module.exports = async function handler(req, res) {
     const f = pickHookFormula(dayOfYear, i);
     return `${p.persona}/${p.platform}=${f.name}`;
   });
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'at', now.toISOString());
+
+  // Fetch top-performer hooks from post_analytics. Fails gracefully (returns [])
+  // until the analytics pipeline has accumulated data (first few weeks).
+  const topHooks = await fetchTopPerformerHooks();
+  const topPerformerBlock = buildTopPerformerBlock(topHooks);
+  if (topHooks.length > 0) {
+    console.log(`[cron-generate-posts] injecting ${topHooks.length} top-performer hooks into prompt`);
+  }
+
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'top_performer_hooks:', topHooks.length, 'at', now.toISOString());
 
   let raw;
   try {
-    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear), founding));
+    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock), founding));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });
