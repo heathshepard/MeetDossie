@@ -363,6 +363,7 @@
           <div class="stat-chip">
             <span class="stat-label">Monthly Burn</span>
             <span class="stat-value dim" id="stat-burn"><span class="skeleton skel-stat"></span></span>
+            <span class="stat-footnote" id="burn-footnote" style="display:none;font-size:0.65rem;color:var(--text-dim);margin-top:2px;">Fixed only. Stripe fees + API usage additional.</span>
           </div>
           <div class="stat-chip">
             <span class="stat-label">Net</span>
@@ -488,13 +489,18 @@
       // Stat bar
       const mrr = d.totalMrrUsd ?? 0;
       const cust = d.totalCustomers ?? 0;
-      const burn = d.burn?.monthlyFixedUsd ?? 48.33;
+      // costs.totalFixed is the authoritative number; fall back to legacy burn field if API is stale
+      const burn = d.costs?.totalFixed ?? d.burn?.monthlyFixedUsd ?? 149.41;
       const net = mrr - burn;
 
       setText('stat-mrr', `$${mrr.toLocaleString()}`);
       setText('stat-customers', cust.toString());
       setText('stat-burn', `$${burn.toFixed(2)}`);
       setText('stat-net', net >= 0 ? `$${net.toFixed(2)}` : `-$${Math.abs(net).toFixed(2)}`);
+
+      // Show burn footnote now that we have live data
+      const burnFootnote = document.getElementById('burn-footnote');
+      if (burnFootnote) burnFootnote.style.display = 'block';
 
       document.getElementById('stat-net').style.color =
         net >= 0 ? 'var(--sage)' : 'var(--coral)';
@@ -539,9 +545,26 @@
         `).join('');
       }
 
-      // Footer
+      // Footer — full cost breakdown
       setText('updated-at', `Updated ${timeAgo(new Date(d.generatedAt))}`);
-      setText('footer-burn', d.burn?.note || '');
+      const costs = d.costs;
+      if (costs && costs.fixed) {
+        const paidServices = costs.fixed.filter(s => s.amount > 0);
+        const freeServices = costs.fixed.filter(s => s.amount === 0);
+        const freeNames = freeServices.map(s => s.name).join(', ');
+        const paidLine = paidServices
+          .map(s => `${s.name} $${s.amount.toFixed(2)}`)
+          .join(' + ');
+        const footerEl = document.getElementById('footer-burn');
+        if (footerEl) {
+          footerEl.innerHTML =
+            `<span style="color:var(--blush-deep);">Fixed: ${paidLine}</span>` +
+            `<br><span style="opacity:0.55;">Free: ${freeNames}</span>` +
+            `<br><span style="opacity:0.45;">Variable: Stripe fees + Anthropic API</span>`;
+        }
+      } else {
+        setText('footer-burn', d.burn?.note || '');
+      }
     }
 
     function renderCompanyCard(co) {

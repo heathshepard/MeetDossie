@@ -127,9 +127,32 @@ export default async function handler(req, res) {
         },
       ],
       agents,
-      burn: {
-        monthlyFixedUsd: 48.33,
-        note: 'Zernio $18 + ElevenLabs $18.33 + Submagic $12',
+      costs: {
+        fixed: [
+          { name: 'Zernio',       amount: 18.00,  note: '4 social accounts, unlimited posts' },
+          { name: 'ElevenLabs',   amount: 18.33,  note: 'Creator plan, 30k credits/mo' },
+          { name: 'Submagic',     amount: 12.00,  note: 'Starter — selfie video editing' },
+          { name: 'Claude Max',   amount: 100.00, note: 'Anthropic subscription (Heath)' },
+          { name: 'Vercel',       amount: 0,      note: 'Hobby (free)' },
+          { name: 'Supabase',     amount: 0,      note: 'Free tier' },
+          { name: 'Creatomate',   amount: 0,      note: 'Free tier' },
+          { name: 'HCTI',         amount: 0,      note: 'Free tier (50 renders/mo; upgrade $14/mo at 1k)' },
+          { name: 'Resend',       amount: 0,      note: 'Free tier' },
+          { name: 'Pexels',       amount: 0,      note: 'Free API' },
+          { name: 'ImprovMX',     amount: 0,      note: 'Free plan — email forwarding' },
+          { name: 'GitHub',       amount: 0,      note: 'Public repo (free)' },
+          { name: 'Domain',       amount: 1.08,   note: 'meetdossie.com (~$13/yr amortized)' },
+        ],
+        variable: [
+          { name: 'Stripe fees',     note: '2.9% + 30c per transaction' },
+          { name: 'Anthropic API',   note: 'Variable per cron run (cron-generate-posts, DONE handler, etc.)' },
+          { name: 'HCTI overage',    note: '$14/mo if renders exceed 50/mo' },
+        ],
+        oneTime: [
+          { name: 'Northwest Registered Agent', amount: 349.00, note: 'LLC formation — paid 2026-05-22 (invoice 38BF46H9)' },
+        ],
+        // totalFixed is the sum of all fixed[].amount entries above
+        totalFixed: 149.41,
       },
     };
 
