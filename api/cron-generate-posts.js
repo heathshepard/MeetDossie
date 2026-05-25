@@ -356,6 +356,62 @@ function pickTopic() {
   return TOPICS[dayOfYear % TOPICS.length];
 }
 
+// ─── Hook Rotation System ─────────────────────────────────────────────────
+// Five distinct hook formulas cycle through posts so no two adjacent posts
+// open the same way and the algorithm sees variety across the day's batch.
+// Formula is selected per-post by (dayOfYear + postIndex) % 5, guaranteeing:
+//   - Different formula for each post within the same batch
+//   - Formula set shifts each day so the same platform never gets the same
+//     opener two days running
+const HOOK_FORMULAS = [
+  {
+    name: 'STAT',
+    description: 'Lead with a shocking or specific number.',
+    example: '$8,000 a year. For email follow-ups.',
+    instruction: 'Open with a concrete number that creates immediate "wait, really?" tension. The number should feel specific and surprising, not round or generic. State the number first, then the context. E.g. "$400 a file. And she still missed the amendment."',
+  },
+  {
+    name: 'QUESTION',
+    description: 'Open with the exact question the agent is already thinking.',
+    example: 'What happens when your TC quits mid-deal?',
+    instruction: 'Ask the question that is already running through the agent\'s head but that they haven\'t said aloud. Must be a real operational fear, not rhetorical filler. E.g. "Who follows up with the lender when you\'re at a showing?"',
+  },
+  {
+    name: 'CONTRAST',
+    description: 'Before vs after — then vs now.',
+    example: 'Last month: spreadsheets at midnight. This month: Dossie handles it.',
+    instruction: 'Two beats: the old painful reality vs the new Dossie reality. Keep each beat short — 5-8 words each. The contrast should feel earned, not like an ad. E.g. "Last week: three missed follow-ups. This week: Dossie caught all of them."',
+  },
+  {
+    name: 'STORY_OPEN',
+    description: 'Drop directly into a scene.',
+    example: 'She had 6 closings in 10 days and no TC.',
+    instruction: 'Start in the middle of a scene — no setup, no preamble. Immediate situation. The reader should feel like they walked into the room mid-story. E.g. "Friday at 4pm. Option period expires Monday. TC unreachable." Then continue the story.',
+  },
+  {
+    name: 'BOLD_CLAIM',
+    description: 'Make a direct, confident declaration.',
+    example: 'You don\'t need a TC. You need a system.',
+    instruction: 'Lead with a confident declarative statement that challenges a common assumption. Must be true and defensible, not hype. E.g. "Every missed deadline has the same cause. No one was watching."',
+  },
+];
+
+// Returns the hook formula for a given post index within today\'s batch.
+// Uses dayOfYear so the daily cycle shifts even when postIndex repeats across
+// days (i.e., post 0 gets a different formula on Tuesday than on Monday).
+function pickHookFormula(dayOfYear, postIndex) {
+  const idx = (dayOfYear + postIndex) % HOOK_FORMULAS.length;
+  return HOOK_FORMULAS[idx];
+}
+
+// Pre-compute today\'s dayOfYear once for the full batch so all formula picks
+// are consistent within a single run.
+function getDayOfYear() {
+  const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
+  const today = new Date();
+  return Math.floor((today - start) / 86400000);
+}
+
 function buildPlatformRulesBlock(platform) {
   const r = PLATFORM_RULES[platform];
   if (!r) return '';
@@ -369,13 +425,65 @@ function buildPlatformRulesBlock(platform) {
   ].join('\n');
 }
 
-function buildPrompt(topic, plan) {
+// Platform-native format instructions — more opinionated than PLATFORM_RULES.
+// These describe the exact writing style expected, not just the algorithm rules.
+// Injected per-post alongside the hook formula so the model has a complete,
+// coherent brief for the specific platform it\'s writing for.
+const PLATFORM_NATIVE_FORMAT = {
+  facebook: `   FACEBOOK WRITING STYLE — native format:
+   - Emotional storytelling. Write like a real agent posting from their personal page, not a brand account.
+   - 3-5 sentences max for the opening hook before a line break. Then continue the story in 2-3 more short paragraphs.
+   - Conversational tone, like a post from a friend who happens to know real estate inside out.
+   - End with a soft, natural CTA — not a sales pitch. "If you're still doing this manually, meetdossie.com/founding is worth 2 minutes."
+   - NO HASHTAGS. Facebook hashtags add zero distribution value and look spammy. Hard rule.`,
+
+  twitter: `   TWITTER/X WRITING STYLE — native format:
+   - Punchy, opinionated, or contrarian. Opinions and takes get pushed; safe content dies.
+   - First tweet must be under 240 characters — it is the hook that determines whether anyone reads the thread.
+   - For threads: write each tweet as a standalone thought that also connects to the next. The publish system handles threading automatically — do NOT add manual numbering like "1/" or "2/4".
+   - Bold opener. Cut the fluff from word one.
+   - 2-3 hashtags max at the very end of the final tweet only.`,
+
+  instagram: `   INSTAGRAM WRITING STYLE — native format:
+   - Visual-first: the caption supports the image card, not the other way around. The hook must make someone stop scrolling before they even read the card.
+   - Short punchy lines. Put a line break between every sentence — Instagram captions are read on mobile in portrait mode, not as prose blocks.
+   - The first 125 characters show before "more" — front-load the sharpest line.
+   - End with a save-or-share CTA: "Save this for your next transaction" or "Send this to an agent who needs it." Saves and shares beat likes for reach.
+   - 8-10 hashtags at the very end, on their own line after the CTA.`,
+
+  linkedin: `   LINKEDIN WRITING STYLE — native format:
+   - Professional peer-to-peer, not marketer-to-prospect. Write like a broker talking shop with other brokers.
+   - First two lines are visible before the "see more" fold — they must deliver a specific insight, number, or contrarian take. No "Excited to share..." openers.
+   - 1300-2000 characters total (roughly 200-300 words). LinkedIn's algorithm rewards this range with the strongest dwell signal.
+   - Short paragraphs, 1-3 sentences each, heavy line breaks. Skimmable, not dense.
+   - End with a specific operational question that invites readers to reply with their own number or process. "What does your TC actually cost per file when you add the chase time?" beats "Thoughts?" by 3x on replies.
+   - 3-5 professional hashtags at the end.`,
+
+  tiktok: `   TIKTOK WRITING STYLE — native format:
+   - First sentence must be under 8 words and create immediate curiosity or tension. Never start with "I".
+   - Under 150 words total. Shorter = higher completion rate = more reach.
+   - Line break after every 1-2 sentences. No paragraphs. This is mobile, portrait-mode reading.
+   - End with a single clear action: "Link in bio" or "Comment YES if this is you."
+   - 2-3 hashtags at the end.`,
+};
+
+function buildPlatformNativeBlock(platform) {
+  return PLATFORM_NATIVE_FORMAT[platform] || '';
+}
+
+function buildPrompt(topic, plan, dayOfYear) {
   const planLines = plan.map((p, i) => {
     const persona = PERSONAS[p.persona];
+    const hookFormula = pickHookFormula(dayOfYear, i);
     return `${i + 1}. Persona: ${persona.name} (${p.persona}) — ${persona.summary}
    Platform: ${p.platform}
    ${p.notes}
-${buildPlatformRulesBlock(p.platform)}`;
+${buildPlatformRulesBlock(p.platform)}
+${buildPlatformNativeBlock(p.platform)}
+   HOOK FORMULA FOR THIS POST — ${hookFormula.name}:
+   Description: ${hookFormula.description}
+   Example: "${hookFormula.example}"
+   How to apply: ${hookFormula.instruction}`;
   }).join('\n\n');
 
   return `## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
@@ -714,11 +822,17 @@ module.exports = async function handler(req, res) {
   const forceDay = parseForceDay(req);
   const plan = getPostPlan(now, { forceDay });
   const founding = await getFoundingMemberCount();
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'at', now.toISOString());
+  const dayOfYear = getDayOfYear();
+  // Log which hook formulas are assigned to today's batch for diagnostics.
+  const hookAssignments = plan.map((p, i) => {
+    const f = pickHookFormula(dayOfYear, i);
+    return `${p.persona}/${p.platform}=${f.name}`;
+  });
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'at', now.toISOString());
 
   let raw;
   try {
-    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan), founding));
+    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear), founding));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });
