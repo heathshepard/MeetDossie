@@ -20,12 +20,289 @@ const {
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // Marketing approval flow uses a dedicated bot (DossieMarketingBot) so it
 // can hold a webhook without fighting Claudy's getUpdates loop. Falls back
 // to TELEGRAM_BOT_TOKEN only if the marketing-specific token isn't set.
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+
+// ─── Regeneration helpers (used when a post is rejected) ──────────────────
+
+const REGEN_PERSONAS = {
+  brenda: 'Burned-out solo agent, 6 years in, pays her transaction coordinator $8,000/year. Voice: tired, witty, blunt about industry pain. Not whiny - wry. Talks like she\'s telling a friend over coffee at 9pm after the kids are in bed.',
+  patricia: 'Part-time agent, 8-12 deals/year, also has a day job. Voice: practical, budget-conscious, no fluff. Skeptical of anything that sounds like a sales pitch. Cares about whether something pays for itself in 2 deals or fewer.',
+  victor: 'Top producer, 50+ deals/year, runs a small team. Voice: confident, math-driven, ambitious. Talks in margins and capacity. Not cocky - operational. Sees TC cost as a fixed leak and is always looking for the unlock.',
+};
+
+const REGEN_PLATFORM_RULES = {
+  tiktok:    'Hook under 8 words, never start with "I". Under 150 words. Line breaks after every 1-2 sentences. End with "Link in bio". 2-3 hashtags: #txrealestate #realtorlife #trec',
+  instagram: 'Stop-scroll first line (front-load <125 chars). 150-300 words. SAVE/SHARE CTA. 8-10 hashtags at end.',
+  facebook:  'Pain-point or question hook. 200-500 words. Short paragraphs (2-3 sentences). Comment-driving question CTA. NO hashtags.',
+  twitter:   'Punchy/contrarian opener under 280 chars. Thread of 5-8 tweets OR single tweet - nothing in between. End with question or "RT if this helped". 2-3 hashtags at end.',
+  linkedin:  'First two lines visible before fold - specific insight or number. 1300-2000 chars. Short paragraphs. End with a question inviting replies. 3-5 hashtags at end.',
+};
+
+function buildRegenPrompt(platform, persona, topic) {
+  const personaSummary = REGEN_PERSONAS[persona] || persona;
+  const platformRules = REGEN_PLATFORM_RULES[platform] || 'Follow standard social media best practices.';
+  const topicLabel = topic || 'Dossie AI transaction coordinator for Texas real estate agents';
+
+  return `Generate ONE replacement social media post for Dossie. The previous post for this slot was rejected by the editor.
+
+PERSONA: ${persona} - ${personaSummary}
+PLATFORM: ${platform}
+TOPIC ANGLE: ${topicLabel}
+
+PLATFORM RULES (apply strictly):
+${platformRules}
+
+BRAND CONTEXT:
+- Dossie is an AI transaction coordinator for Texas real estate agents.
+- Founding-member pricing is $29/month, locked while subscription stays active.
+- Sign up: meetdossie.com/founding
+- Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect.
+
+PERSONA VOICE - CRITICAL:
+- Write in THIRD PERSON, never first person.
+- NEVER write "I" as if the persona is the poster.
+- Brenda = she/her, Patricia = she/her, Victor = he/him.
+
+FACTUAL ACCURACY - NON-NEGOTIABLE:
+- Only reference real shipped features: TREC deadline auto-calc, contract PDF scanning, email draft queue (agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat.
+- No invented stats, no made-up testimonials, no fabricated timestamps.
+- Frame numbers as hypotheticals: "agents doing 50+ deals a year", "if you're paying around $400 a file".
+- Use "recently" or "over the last few weeks" for Dossie usage timeframes - never imply months/years.
+
+TEXT ENCODING:
+- No em-dashes (use plain hyphens -), no curly quotes, no special Unicode.
+- Plain ASCII only.
+
+Return STRICT JSON only. No markdown fences. No commentary.
+
+{
+  "persona": "${persona}",
+  "platform": "${platform}",
+  "card_body": "<MAX 50 WORDS. Punchy standalone text for image card. 2-3 short sentences.>",
+  "caption": "<full post text for social media, include CTA and hashtags at end>",
+  "hook": "<5-8 words max, pattern-interrupting opener>",
+  "cta": "<CTA line referencing meetdossie.com/founding>",
+  "hashtags": ["hashtag1", "hashtag2"],
+  "stat": "<bold anchor, max 10 chars, e.g. '$29/mo' or '80+'>",
+  "stat_label": "<descriptive phrase, max 50 chars>"
+}`;
+}
+
+async function callAnthropicForRegen(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${text.slice(0, 200)}`);
+  let data;
+  try { data = JSON.parse(text); } catch (e) {
+    throw new Error('Anthropic returned non-JSON: ' + text.slice(0, 200));
+  }
+  const content = data?.content?.[0]?.text;
+  if (!content) throw new Error('Anthropic returned no content block');
+  return content;
+}
+
+function extractRegenJson(raw) {
+  let s = String(raw || '').trim();
+  if (s.startsWith('```')) {
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+  }
+  const firstBrace = s.indexOf('{');
+  const lastBrace = s.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    s = s.slice(firstBrace, lastBrace + 1);
+  }
+  return JSON.parse(s);
+}
+
+// Send the replacement post to Telegram for approval (same 2-message pattern
+// as cron-send-for-approval: image card first, full content + buttons second).
+async function sendReplacementToTelegram(chatId, post) {
+  const platform = post.platform || 'unknown';
+  const persona = post.persona || 'unknown';
+  const hook = String(post.hook || '').trim();
+  const stat = String(post.stat || '').trim();
+  const statLabel = String(post.stat_label || '').trim();
+
+  // Message 1: short preview (no buttons), with card image if available
+  let shortCaption = `Replacement post\n\n${platform} (${persona})\n`;
+  if (hook) shortCaption += `\n${hook}\n`;
+  if (stat) shortCaption += `\n${stat}`;
+  if (statLabel) shortCaption += ` - ${statLabel}`;
+  shortCaption = shortCaption.slice(0, 1020);
+
+  const photoMethod = post.media_url ? 'sendPhoto' : 'sendMessage';
+  const photoBody = post.media_url
+    ? { chat_id: chatId, photo: post.media_url, caption: shortCaption }
+    : { chat_id: chatId, text: shortCaption, disable_web_page_preview: true };
+
+  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${photoMethod}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(photoBody),
+  });
+
+  // Message 2: full content + approve/reject/edit buttons
+  const content = String(post.content || '');
+  const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
+    ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
+    : '';
+
+  const fullText = `Replacement post for ${platform} (${persona})\n\n${content}\n\nHashtags: ${hashtags}`;
+
+  const buttons = {
+    inline_keyboard: [[
+      { text: 'Approve', callback_data: `approve_${post.id}` },
+      { text: 'Reject', callback_data: `reject_${post.id}` },
+      { text: 'Edit', callback_data: `edit_${post.id}` },
+    ]],
+  };
+
+  const textRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: fullText.slice(0, 4096),
+      reply_markup: buttons,
+      disable_web_page_preview: true,
+    }),
+  });
+  const textData = await textRes.json().catch(() => null);
+  const messageId = textData?.result?.message_id || null;
+
+  // Mark the post as sent so cron-send-for-approval doesn't re-queue it
+  if (messageId && post.id) {
+    await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        telegram_sent_at: new Date().toISOString(),
+        telegram_message_id: messageId,
+      }),
+    });
+  }
+}
+
+async function regeneratePost(rejectedPost) {
+  if (!ANTHROPIC_API_KEY) {
+    console.warn('[telegram-webhook] regeneratePost: ANTHROPIC_API_KEY not set, skipping regen');
+    return;
+  }
+  const platform = String(rejectedPost.platform || '').toLowerCase();
+  const persona = String(rejectedPost.persona || '').toLowerCase();
+  const topic = String(rejectedPost.topic || '');
+  if (!platform || !persona) {
+    console.warn('[telegram-webhook] regeneratePost: missing platform or persona on rejected post', rejectedPost.id);
+    return;
+  }
+
+  console.log(`[telegram-webhook] regenerating replacement for ${platform}/${persona} topic="${topic}"`);
+
+  let raw;
+  try {
+    raw = await callAnthropicForRegen(buildRegenPrompt(platform, persona, topic));
+  } catch (err) {
+    console.error('[telegram-webhook] regen Anthropic call failed:', err && err.message);
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = extractRegenJson(raw);
+  } catch (err) {
+    console.error('[telegram-webhook] regen JSON parse failed:', err && err.message, 'raw:', String(raw).slice(0, 200));
+    return;
+  }
+
+  const caption = String(parsed.caption || '').trim();
+  if (!caption) {
+    console.error('[telegram-webhook] regen: no caption in parsed response');
+    return;
+  }
+
+  // Build a unique post_id for the replacement
+  const today = new Date().toISOString().slice(0, 10);
+  const suffix = Math.floor(Date.now() / 1000) % 100000;
+  const postId = `${today}-${persona}-${platform}-regen-${suffix}`;
+
+  // Look up zernio_account_id from existing post (best-effort)
+  const zernioAccountId = rejectedPost.zernio_account_id || null;
+
+  const row = {
+    post_id: postId,
+    platform,
+    content: caption,
+    content_hash: require('crypto').createHash('md5').update(caption).digest('hex'),
+    hook: String(parsed.hook || '').trim() || caption.slice(0, 120),
+    cta: String(parsed.cta || '').trim(),
+    hashtags: Array.isArray(parsed.hashtags)
+      ? parsed.hashtags.map((h) => String(h).replace(/^#/, '').trim()).filter(Boolean)
+      : [],
+    status: 'draft',
+    telegram_sent_at: null,
+    telegram_message_id: null,
+    zernio_account_id: zernioAccountId,
+    persona,
+    topic,
+    media_url: null, // No card render on regen (keep it fast; Heath reviews in Telegram)
+    generated_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    verifier_result: null,
+    error_message: null,
+  };
+
+  const ins = await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(row),
+  });
+
+  if (!ins.ok) {
+    console.error('[telegram-webhook] regen insert failed:', ins.status, JSON.stringify(ins.data).slice(0, 200));
+    return;
+  }
+
+  // Grab the inserted row's id (UUID) for Telegram buttons
+  const insertedRow = Array.isArray(ins.data) && ins.data.length > 0 ? ins.data[0] : null;
+  if (!insertedRow || !insertedRow.id) {
+    console.error('[telegram-webhook] regen: could not get inserted row id');
+    return;
+  }
+
+  console.log(`[telegram-webhook] regen inserted as id=${insertedRow.id} post_id=${postId}`);
+
+  // Send to Telegram for approval
+  const chatId = TELEGRAM_CHAT_ID;
+  if (chatId) {
+    const postForTg = { ...row, ...parsed, id: insertedRow.id };
+    try {
+      await sendReplacementToTelegram(chatId, postForTg);
+      console.log(`[telegram-webhook] regen sent to Telegram for approval`);
+    } catch (err) {
+      console.error('[telegram-webhook] regen Telegram send failed:', err && err.message);
+    }
+  }
+}
 
 const EDIT_PROMPT_PREFIX = '✏️ Editing post ';
 const EDIT_PROMPT_SUFFIX = '. Reply to this message with the new content.';
@@ -281,10 +558,20 @@ async function handleCallbackQuery(cb) {
   if (action === 'reject') {
     await patchPost(postId, { status: 'rejected' });
     await bumpBatchCounter(postId, 'rejected_posts');
-    if (chatId && messageId) {
-      await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected.`);
-    }
+    // Answer the callback immediately so Telegram doesn't show a loading spinner.
+    // The message edit and regen happen after — Vercel keeps the function alive
+    // until the module.exports handler returns (we await this whole chain).
     if (callbackId) await answerCallback(callbackId, 'Rejected');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected. Generating replacement...`);
+    }
+    // Await regen so Vercel doesn't kill the function before it finishes.
+    // Claude API call takes ~3-8s — well within Vercel's 10s default timeout.
+    try {
+      await regeneratePost(post);
+    } catch (err) {
+      console.error('[telegram-webhook] regeneratePost unhandled error:', err && err.message);
+    }
     return;
   }
 

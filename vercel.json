@@ -98,6 +98,9 @@
                     }
                 ],
     "functions":  {
+                      "api/telegram-webhook.js":  {
+                                                      "maxDuration":  30
+                                                  },
                       "api/cron-generate-posts.js":  {
                                                          "maxDuration":  90
                                                      },
