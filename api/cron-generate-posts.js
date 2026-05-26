@@ -35,6 +35,10 @@ const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
 // these facts and flag fabrications.
 const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only job is to find fabrications, false specifics, and over-claims in customer-facing marketing copy before it ships. You are skeptical, terse, and accurate. You do not rewrite the copy — you flag what needs to change.
 
+## FICTIONAL MARKETING PERSONAS — NEVER check against the founding member list
+
+Brenda, Patricia, and Victor are FICTIONAL characters used in Dossie's social media marketing content. They are NOT real customers and must NEVER be compared against or checked against the verified founding member list below. Any post written in one of their voices is intentional persona content — the persona name appearing in a post is never a fabrication or an unverified customer claim. Do not flag Brenda, Patricia, or Victor for any reason related to customer verification.
+
 ## VERIFIED FACTS — the only source of truth for specific claims
 
 ### Current customers (__FOUNDING_COUNT__ founding members as of run time — count is queried live from the subscriptions table each batch)
@@ -352,6 +356,116 @@ function pickTopic() {
   return TOPICS[dayOfYear % TOPICS.length];
 }
 
+// ─── Top-performer hook injection ──────────────────────────────────────────
+// Fetches the 5 highest-engagement hooks from post_analytics (joined to
+// social_posts) and returns them as example strings to inject into the
+// generation prompt. Returns an empty array if the table has no data yet
+// (first weeks before analytics accumulate) — graceful degradation.
+async function fetchTopPerformerHooks() {
+  try {
+    // Join post_analytics to social_posts via social_post_id, order by
+    // engagement_score desc, grab distinct hooks from the top 5.
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/post_analytics?select=hook,platform,persona,engagement_score&engagement_score=gt.0&order=engagement_score.desc&limit=5`,
+    );
+    if (!ok || !Array.isArray(data) || data.length === 0) return [];
+
+    // Deduplicate and filter blank hooks
+    const seen = new Set();
+    const hooks = [];
+    for (const row of data) {
+      const h = String(row.hook || '').trim();
+      if (!h || seen.has(h)) continue;
+      seen.add(h);
+      hooks.push({
+        hook: h,
+        platform: row.platform || 'unknown',
+        persona: row.persona || 'unknown',
+        score: Number(row.engagement_score || 0),
+      });
+    }
+    return hooks;
+  } catch (err) {
+    console.warn('[cron-generate-posts] fetchTopPerformerHooks failed:', err && err.message);
+    return [];
+  }
+}
+
+// Build the top-performer examples block injected into the generation prompt.
+// Returns an empty string when no data is available (first run, no analytics yet).
+function buildTopPerformerBlock(topHooks) {
+  if (!topHooks || topHooks.length === 0) return '';
+  const lines = [
+    '',
+    '## TOP-PERFORMING HOOKS (real engagement data from our past posts)',
+    'These hooks generated the highest engagement on our actual audience.',
+    'Study the PATTERN and TONE — replicate the formula, not the exact words.',
+    'Do not reuse these verbatim. Use them to calibrate your opening energy.',
+    '',
+  ];
+  for (const { hook, platform, persona, score } of topHooks) {
+    lines.push(`- "${hook}" (${platform}/${persona}, score ${score})`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
+// ─── Hook Rotation System ─────────────────────────────────────────────────
+// Five distinct hook formulas cycle through posts so no two adjacent posts
+// open the same way and the algorithm sees variety across the day's batch.
+// Formula is selected per-post by (dayOfYear + postIndex) % 5, guaranteeing:
+//   - Different formula for each post within the same batch
+//   - Formula set shifts each day so the same platform never gets the same
+//     opener two days running
+const HOOK_FORMULAS = [
+  {
+    name: 'STAT',
+    description: 'Lead with a shocking or specific number.',
+    example: '$8,000 a year. For email follow-ups.',
+    instruction: 'Open with a concrete number that creates immediate "wait, really?" tension. The number should feel specific and surprising, not round or generic. State the number first, then the context. E.g. "$400 a file. And she still missed the amendment."',
+  },
+  {
+    name: 'QUESTION',
+    description: 'Open with the exact question the agent is already thinking.',
+    example: 'What happens when your TC quits mid-deal?',
+    instruction: 'Ask the question that is already running through the agent\'s head but that they haven\'t said aloud. Must be a real operational fear, not rhetorical filler. E.g. "Who follows up with the lender when you\'re at a showing?"',
+  },
+  {
+    name: 'CONTRAST',
+    description: 'Before vs after — then vs now.',
+    example: 'Last month: spreadsheets at midnight. This month: Dossie handles it.',
+    instruction: 'Two beats: the old painful reality vs the new Dossie reality. Keep each beat short — 5-8 words each. The contrast should feel earned, not like an ad. E.g. "Last week: three missed follow-ups. This week: Dossie caught all of them."',
+  },
+  {
+    name: 'STORY_OPEN',
+    description: 'Drop directly into a scene.',
+    example: 'She had 6 closings in 10 days and no TC.',
+    instruction: 'Start in the middle of a scene — no setup, no preamble. Immediate situation. The reader should feel like they walked into the room mid-story. E.g. "Friday at 4pm. Option period expires Monday. TC unreachable." Then continue the story.',
+  },
+  {
+    name: 'BOLD_CLAIM',
+    description: 'Make a direct, confident declaration.',
+    example: 'You don\'t need a TC. You need a system.',
+    instruction: 'Lead with a confident declarative statement that challenges a common assumption. Must be true and defensible, not hype. E.g. "Every missed deadline has the same cause. No one was watching."',
+  },
+];
+
+// Returns the hook formula for a given post index within today\'s batch.
+// Uses dayOfYear so the daily cycle shifts even when postIndex repeats across
+// days (i.e., post 0 gets a different formula on Tuesday than on Monday).
+function pickHookFormula(dayOfYear, postIndex) {
+  const idx = (dayOfYear + postIndex) % HOOK_FORMULAS.length;
+  return HOOK_FORMULAS[idx];
+}
+
+// Pre-compute today\'s dayOfYear once for the full batch so all formula picks
+// are consistent within a single run.
+function getDayOfYear() {
+  const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
+  const today = new Date();
+  return Math.floor((today - start) / 86400000);
+}
+
 function buildPlatformRulesBlock(platform) {
   const r = PLATFORM_RULES[platform];
   if (!r) return '';
@@ -365,16 +479,68 @@ function buildPlatformRulesBlock(platform) {
   ].join('\n');
 }
 
-function buildPrompt(topic, plan) {
+// Platform-native format instructions — more opinionated than PLATFORM_RULES.
+// These describe the exact writing style expected, not just the algorithm rules.
+// Injected per-post alongside the hook formula so the model has a complete,
+// coherent brief for the specific platform it\'s writing for.
+const PLATFORM_NATIVE_FORMAT = {
+  facebook: `   FACEBOOK WRITING STYLE — native format:
+   - Emotional storytelling. Write like a real agent posting from their personal page, not a brand account.
+   - 3-5 sentences max for the opening hook before a line break. Then continue the story in 2-3 more short paragraphs.
+   - Conversational tone, like a post from a friend who happens to know real estate inside out.
+   - End with a soft, natural CTA — not a sales pitch. "If you're still doing this manually, meetdossie.com/founding is worth 2 minutes."
+   - NO HASHTAGS. Facebook hashtags add zero distribution value and look spammy. Hard rule.`,
+
+  twitter: `   TWITTER/X WRITING STYLE — native format:
+   - Punchy, opinionated, or contrarian. Opinions and takes get pushed; safe content dies.
+   - First tweet must be under 240 characters — it is the hook that determines whether anyone reads the thread.
+   - For threads: write each tweet as a standalone thought that also connects to the next. The publish system handles threading automatically — do NOT add manual numbering like "1/" or "2/4".
+   - Bold opener. Cut the fluff from word one.
+   - 2-3 hashtags max at the very end of the final tweet only.`,
+
+  instagram: `   INSTAGRAM WRITING STYLE — native format:
+   - Visual-first: the caption supports the image card, not the other way around. The hook must make someone stop scrolling before they even read the card.
+   - Short punchy lines. Put a line break between every sentence — Instagram captions are read on mobile in portrait mode, not as prose blocks.
+   - The first 125 characters show before "more" — front-load the sharpest line.
+   - End with a save-or-share CTA: "Save this for your next transaction" or "Send this to an agent who needs it." Saves and shares beat likes for reach.
+   - 8-10 hashtags at the very end, on their own line after the CTA.`,
+
+  linkedin: `   LINKEDIN WRITING STYLE — native format:
+   - Professional peer-to-peer, not marketer-to-prospect. Write like a broker talking shop with other brokers.
+   - First two lines are visible before the "see more" fold — they must deliver a specific insight, number, or contrarian take. No "Excited to share..." openers.
+   - 1300-2000 characters total (roughly 200-300 words). LinkedIn's algorithm rewards this range with the strongest dwell signal.
+   - Short paragraphs, 1-3 sentences each, heavy line breaks. Skimmable, not dense.
+   - End with a specific operational question that invites readers to reply with their own number or process. "What does your TC actually cost per file when you add the chase time?" beats "Thoughts?" by 3x on replies.
+   - 3-5 professional hashtags at the end.`,
+
+  tiktok: `   TIKTOK WRITING STYLE — native format:
+   - First sentence must be under 8 words and create immediate curiosity or tension. Never start with "I".
+   - Under 150 words total. Shorter = higher completion rate = more reach.
+   - Line break after every 1-2 sentences. No paragraphs. This is mobile, portrait-mode reading.
+   - End with a single clear action: "Link in bio" or "Comment YES if this is you."
+   - 2-3 hashtags at the end.`,
+};
+
+function buildPlatformNativeBlock(platform) {
+  return PLATFORM_NATIVE_FORMAT[platform] || '';
+}
+
+function buildPrompt(topic, plan, dayOfYear, topPerformerBlock) {
   const planLines = plan.map((p, i) => {
     const persona = PERSONAS[p.persona];
+    const hookFormula = pickHookFormula(dayOfYear, i);
     return `${i + 1}. Persona: ${persona.name} (${p.persona}) — ${persona.summary}
    Platform: ${p.platform}
    ${p.notes}
-${buildPlatformRulesBlock(p.platform)}`;
+${buildPlatformRulesBlock(p.platform)}
+${buildPlatformNativeBlock(p.platform)}
+   HOOK FORMULA FOR THIS POST — ${hookFormula.name}:
+   Description: ${hookFormula.description}
+   Example: "${hookFormula.example}"
+   How to apply: ${hookFormula.instruction}`;
   }).join('\n\n');
 
-  return `## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
+  return `${topPerformerBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
 
 You may ONLY reference verified real facts about Dossie. Hallucinated specifics destroy customer trust the moment they're noticed.
 
@@ -710,11 +876,26 @@ module.exports = async function handler(req, res) {
   const forceDay = parseForceDay(req);
   const plan = getPostPlan(now, { forceDay });
   const founding = await getFoundingMemberCount();
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'at', now.toISOString());
+  const dayOfYear = getDayOfYear();
+  // Log which hook formulas are assigned to today's batch for diagnostics.
+  const hookAssignments = plan.map((p, i) => {
+    const f = pickHookFormula(dayOfYear, i);
+    return `${p.persona}/${p.platform}=${f.name}`;
+  });
+
+  // Fetch top-performer hooks from post_analytics. Fails gracefully (returns [])
+  // until the analytics pipeline has accumulated data (first few weeks).
+  const topHooks = await fetchTopPerformerHooks();
+  const topPerformerBlock = buildTopPerformerBlock(topHooks);
+  if (topHooks.length > 0) {
+    console.log(`[cron-generate-posts] injecting ${topHooks.length} top-performer hooks into prompt`);
+  }
+
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'top_performer_hooks:', topHooks.length, 'at', now.toISOString());
 
   let raw;
   try {
-    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan), founding));
+    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock), founding));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });
@@ -847,13 +1028,22 @@ module.exports = async function handler(req, res) {
       ms: verifierMs,
     });
 
+    // Bug 3 fix: Instagram posts require a media image. If the card renderer
+    // failed (media_url is null), mark the row as 'pending_card' so it is NOT
+    // sent for approval. Approving a no-media Instagram post causes Zernio to
+    // reject it with 400 "Instagram posts require media content."
+    const instagramMissingMedia = platform === 'instagram' && !mediaUrl;
+
     // Decide row status:
     //   needs_revision → always rejected (regardless of AUTO_APPROVE_POSTS)
+    //   instagram + no media_url → pending_card (hold until card is available)
     //   approve + AUTO_APPROVE_POSTS=true → approved
     //   approve + AUTO_APPROVE_POSTS=false (default) → draft (manual approval)
     let rowStatus;
     if (verifierResult.verdict === 'needs_revision') {
       rowStatus = 'rejected';
+    } else if (instagramMissingMedia) {
+      rowStatus = 'pending_card';
     } else if (AUTO_APPROVE_POSTS) {
       rowStatus = 'approved';
     } else {
@@ -861,10 +1051,14 @@ module.exports = async function handler(req, res) {
     }
 
     // For rejected posts, surface flag details in error_message for quick
-    // debugging in the Supabase dashboard.
-    const errorMessage = verifierResult.verdict === 'needs_revision'
-      ? formatVerifierFlagsForErrorMessage(verifierResult)
-      : null;
+    // debugging in the Supabase dashboard. For pending_card posts, note why
+    // the row is being held back from approval.
+    let errorMessage = null;
+    if (verifierResult.verdict === 'needs_revision') {
+      errorMessage = formatVerifierFlagsForErrorMessage(verifierResult);
+    } else if (instagramMissingMedia) {
+      errorMessage = 'Instagram requires a media card - card render failed; row held as pending_card until re-rendered.';
+    }
 
     const row = {
       post_id: postId,
@@ -893,6 +1087,40 @@ module.exports = async function handler(req, res) {
     });
     if (ins.ok) inserted++;
     else insertErrors.push({ index: i, status: ins.status, body: typeof ins.data === 'string' ? ins.data.slice(0, 200) : JSON.stringify(ins.data).slice(0, 200) });
+  }
+
+  // Bug 2 fix: for every slot in the planned post schedule that produced no
+  // generated post (missing required fields caused a `continue` above), insert
+  // a status='failed' row so the gap is visible in Supabase rather than silent.
+  const generatedKeys = new Set(
+    generated
+      .filter((p) => p && p.persona && p.platform && (p.caption || p.content))
+      .map((p) => `${String(p.persona).toLowerCase()}-${String(p.platform).toLowerCase()}`)
+  );
+  for (let i = 0; i < plan.length; i++) {
+    const slot = plan[i];
+    const slotKey = `${String(slot.persona || '').toLowerCase()}-${String(slot.platform || '').toLowerCase()}`;
+    if (!generatedKeys.has(slotKey)) {
+      const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
+      const failedPostId = `${now.toISOString().slice(0, 10)}-${slot.persona}-${slot.platform}-${i}-failed${testSuffix}`;
+      const failedRow = {
+        post_id: failedPostId,
+        platform: slot.platform,
+        persona: slot.persona,
+        topic: topic.key,
+        status: 'failed',
+        content: '',
+        generated_at: now.toISOString(),
+        created_at: now.toISOString(),
+        error_message: `Post generation failed: missing required fields (caption/platform/persona) for planned slot ${slot.persona}/${slot.platform}`,
+      };
+      console.warn(`[cron-generate-posts] slot ${slotKey} produced no valid post — inserting failed row ${failedPostId}`);
+      await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(failedRow),
+      });
+    }
   }
 
   // Update batch totals.

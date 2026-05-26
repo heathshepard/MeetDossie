@@ -311,7 +311,7 @@ async function pushToZernio(post) {
         },
         body: JSON.stringify(payload),
       },
-      { name: 'Zernio', maxAttempts: 3, baseDelay: 1000 }
+      { name: 'Zernio', maxAttempts: 3, baseDelay: 2000 }
     );
     const respText = await res.text();
     let data = null;
@@ -657,10 +657,26 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Note: Instagram requires media. Without a media_id attached, Zernio will
-    // 4xx; we capture that error in error_message + status='failed' so we can
-    // diagnose. The IG-card generator endpoint is built separately and will
-    // be wired in once Zernio's media-upload contract is confirmed.
+    // Bug 3 fix: Instagram requires a media image. If media_url is null the
+    // Zernio call will 400 ("Instagram posts require media content"). Skip and
+    // mark failed immediately so Heath can diagnose without wasting a Zernio
+    // request. This is a safety net — cron-generate-posts should already have
+    // blocked these rows at status='pending_card', but if one slips through
+    // (e.g. an older row or a manual status override) we catch it here.
+    if (post.platform === 'instagram' && !post.media_url) {
+      console.error(`[cron-publish-approved] BLOCKING instagram post ${post.id} — media_url is null; Zernio will reject it`);
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'failed',
+          publishing_started_at: null,
+          error_message: 'Instagram requires media_url - card render failed; cannot publish without an image.',
+        }),
+      });
+      errors.push({ id: post.id, platform: post.platform, error: 'Instagram requires media_url — card render failed' });
+      continue;
+    }
 
     console.log(`[cron-publish-approved] Publishing post ${post.id} (${post.platform}, ${post.persona})`);
 
