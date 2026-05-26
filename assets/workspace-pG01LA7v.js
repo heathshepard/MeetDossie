@@ -174,7 +174,7 @@ ${c}`}}[e]},mr=e=>{var t;return((t=Ga.find(n=>n.id===e))==null?void 0:t.label)||
           .app-wordmark { display: none !important; }
           /* Push main content down to clear the 64px at-top header. Scrolled header sits ABOVE
              this padding (overlapping by ~26px) with backdrop blur — looks intentional. */
-          .app-main { padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 100px !important; max-width: 100vw !important; overflow-x: clip !important; }
+          .app-main { padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 120px !important; max-width: 100vw !important; overflow-x: clip !important; }
           .bottom-tab-bar { display: flex !important; }
           .pipeline-grid { grid-template-columns: 1fr !important; overflow-x: visible !important; min-width: 0 !important; }
           .brief-stats-row { flex-direction: column !important; }
