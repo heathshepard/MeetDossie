@@ -180,6 +180,7 @@ ${c}`}}[e]},yr=e=>{var t;return((t=Ja.find(n=>n.id===e))==null?void 0:t.label)||
           .brief-stats-row { flex-direction: column !important; }
           .app-talk-button { justify-self: end !important; width: auto !important; max-width: 60vw !important; height: 44px !important; font-size: 14px !important; padding: 0 14px !important; animation: none !important; }
           .detail-wrap-mobile { max-width: 100% !important; overflow-x: hidden !important; }
+          .detail-wrap-mobile, .detail-wrap-mobile * { min-width: 0 !important; max-width: 100% !important; }
           .detail-wrap-mobile > div { box-sizing: border-box !important; }
           /* Anchor nav is intentionally horizontally scrollable — restore its row layout */
           .detail-wrap-mobile nav[aria-label="Dossier sections"] {
