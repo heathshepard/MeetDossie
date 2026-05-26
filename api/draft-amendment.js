@@ -286,10 +286,7 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ ok: false, error: 'Dossier not found.' });
     }
 
-    // Capture the original value for the audit row before we overwrite it
-    // anywhere else. We don't update the transaction itself here — the
-    // amendment is a draft document, not an executed change. Heath asked
-    // for "draft, don't silently mutate."
+    // Capture the original value for the audit row before we overwrite it.
     let originalValue = null;
     if (amendmentType === 'closing_date') originalValue = tx.closing_date || null;
     else if (amendmentType === 'option_extension') originalValue = tx.option_days != null ? String(tx.option_days) : null;
@@ -349,6 +346,48 @@ module.exports = async function handler(req, res) {
     }
     const amendRows = amendResp.ok ? await amendResp.json() : null;
     const amendRow = Array.isArray(amendRows) ? amendRows[0] : amendRows;
+
+    // Auto-update the dossier fields so the agent's pipeline view reflects
+    // the amended terms. Owner-scoped (id + user_id) so a malformed token
+    // can't touch another agent's deal. We log but don't fail the request
+    // if this update errors — the PDF + amendments audit row are the
+    // load-bearing artifacts; the dossier write is a convenience sync.
+    try {
+      let patchBody = null;
+      if (amendmentType === 'closing_date') {
+        patchBody = { closing_date: newValue };
+      } else if (amendmentType === 'price_change') {
+        const numericPrice = Number(String(newValue).replace(/[^0-9.]/g, ''));
+        if (Number.isFinite(numericPrice)) patchBody = { sale_price: numericPrice };
+      } else if (amendmentType === 'option_extension') {
+        // Extension days are additive — buyer negotiated N more days on top
+        // of the existing option period. Treat the input as a day count and
+        // add to the current option_days (defaulting to 0 if unset).
+        const extDays = parseInt(String(newValue).replace(/[^0-9]/g, ''), 10);
+        if (Number.isFinite(extDays)) {
+          const currentDays = parseInt(tx.option_days, 10);
+          const total = (Number.isFinite(currentDays) ? currentDays : 0) + extDays;
+          patchBody = { option_days: total };
+        }
+      }
+
+      if (patchBody) {
+        const patchResp = await supabaseRest(
+          `transactions?id=eq.${safeTx}&user_id=eq.${safeUid}`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify(patchBody),
+          },
+        );
+        if (!patchResp.ok) {
+          const text = await patchResp.text().catch(() => '');
+          console.error('[draft-amendment] transactions auto-update failed:', text);
+        }
+      }
+    } catch (e) {
+      console.error('[draft-amendment] transactions auto-update threw:', e && e.message);
+    }
 
     const signedUrl = await supabaseStorageSignedUrl(storagePath, 3600);
 
