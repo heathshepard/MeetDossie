@@ -199,7 +199,7 @@ const TOOLS = [
   },
   {
     name: 'update_deal_field',
-    description: 'Update any field on a transaction. Use when agent says anything like: change, update, set, move closing date, extend option period, update price',
+    description: 'Silently edit a field on the dossier — no PDF is produced. Use for record-keeping changes the agent wants reflected in the dossier (e.g., "I forgot to enter the inspector\'s phone", "the title company name was wrong"). DO NOT use when the agent asks to draft, generate, or create an amendment, even if a closing_date / option_days / sale_price change is involved — use draft_amendment for that.',
     input_schema: {
       type: 'object',
       properties: {
@@ -287,6 +287,27 @@ const TOOLS = [
     },
   },
   {
+    name: 'draft_amendment',
+    description: 'Draft a TREC 39-10 Amendment to Contract PDF (the current TREC amendment form — supersedes 39-9). Use whenever the agent says: draft an amendment, generate an amendment, draw up an amendment, write up an amendment, extend the option period, push closing back, change the closing date, change the sale price, reduce the price, increase the price. Produces a signable PDF document — different from update_deal_field which silently edits the dossier without producing a PDF. If the agent asks for both a draft AND a dossier update, call draft_amendment only; the agent applies the change to the dossier once the buyer signs.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Property address or buyer/seller name' },
+        amendment_type: {
+          type: 'string',
+          enum: ['closing_date', 'option_extension', 'price_change'],
+          description: 'closing_date for new close date, option_extension for additional option days, price_change for new sale price',
+        },
+        new_value: {
+          type: 'string',
+          description: 'For closing_date: YYYY-MM-DD. For option_extension: number of additional days as a string ("7"). For price_change: dollar amount as a string ("325000").',
+        },
+        notes: { type: 'string', description: 'Optional special provisions / explanation written into the Other Modifications block.' },
+      },
+      required: ['deal_identifier', 'amendment_type', 'new_value'],
+    },
+  },
+  {
     name: 'answer_question',
     description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies.',
     input_schema: {
@@ -322,7 +343,8 @@ EXECUTION RULES:
 INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
-- Change/update/extend/set/move/update the/correct = update_deal_field
+- Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
+- Change/update/set/correct/fix a field on the dossier (no PDF needed) = update_deal_field
 - Passed/moved to/we are now/advance/next stage/under contract/in inspection = advance_stage
 - What do I have/what's active/what's urgent/pipeline/my deals/show me = get_deals
 - Tell me about/details on/what's the status of/closing date on/who is = get_deal_details

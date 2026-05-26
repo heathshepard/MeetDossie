@@ -13,6 +13,7 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@supabase/supabase-js": "^2.106.0",
     "luxon": "^3.7.2",
+    "pdf-lib": "^1.17.1",
     "resend": "^6.12.3",
     "stripe": "^22.1.0"
   },
