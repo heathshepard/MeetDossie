@@ -98,6 +98,9 @@
                     }
                 ],
     "functions":  {
+                      "api/telegram-webhook.js":  {
+                                                      "maxDuration":  30
+                                                  },
                       "api/cron-generate-posts.js":  {
                                                          "maxDuration":  90
                                                      },
@@ -110,7 +113,13 @@
                                                         },
                       "api/generate-broll.js":  {
                                                     "maxDuration":  120
-                                                }
+                                                },
+               "api/cron-coverage-check.js":  {
+                                                    "maxDuration":  60
+                                               },
+               "api/cron-analytics-sync.js":  {
+                                                    "maxDuration":  60
+                                               }
                   },
     "crons":  [
                   {
@@ -160,6 +169,14 @@
                   {
                       "path":  "/api/cron-weekly-newsletter",
                       "schedule":  "0 15 * * 5"
+                  },
+                  {
+                      "path":  "/api/cron-coverage-check",
+                      "schedule":  "0 1 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-analytics-sync",
+                      "schedule":  "0 2 * * 0"
                   }
               ]
 }
