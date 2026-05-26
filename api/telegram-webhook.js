@@ -523,6 +523,37 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Video approval flow: video_approve_{id} / video_reject_{id}
+  if (data.startsWith('video_approve_')) {
+    const videoId = data.replace('video_approve_', '');
+    await supabaseFetch(`/rest/v1/video_library?id=eq.${encodeURIComponent(videoId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'approved' }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nApproved - will post at next schedule.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Video approved');
+    return;
+  }
+
+  if (data.startsWith('video_reject_')) {
+    const videoId = data.replace('video_reject_', '');
+    await supabaseFetch(`/rest/v1/video_library?id=eq.${encodeURIComponent(videoId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'rejected' }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nRejected.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Video rejected');
+    return;
+  }
+
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
     if (callbackId) await answerCallback(callbackId, 'Unknown action');

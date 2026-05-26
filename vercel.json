@@ -119,7 +119,13 @@
                                                },
                "api/cron-analytics-sync.js":  {
                                                     "maxDuration":  60
-                                               }
+                                               },
+               "api/cron-video-approval.js":  {
+                                                    "maxDuration":  30
+                                               },
+               "api/cron-post-videos.js":  {
+                                                "maxDuration":  60
+                                            }
                   },
     "crons":  [
                   {
@@ -181,6 +187,14 @@
                   {
                       "path":  "/api/cron-analytics-sync",
                       "schedule":  "0 2 * * 0"
+                  },
+                  {
+                      "path":  "/api/cron-video-approval",
+                      "schedule":  "0 10 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-post-videos",
+                      "schedule":  "30 11 * * *"
                   }
               ]
 }
