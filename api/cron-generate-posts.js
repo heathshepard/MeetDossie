@@ -39,6 +39,20 @@ const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only j
 
 Brenda, Patricia, and Victor are FICTIONAL characters used in Dossie's social media marketing content. They are NOT real customers and must NEVER be compared against or checked against the verified founding member list below. Any post written in one of their voices is intentional persona content — the persona name appearing in a post is never a fabrication or an unverified customer claim. Do not flag Brenda, Patricia, or Victor for any reason related to customer verification.
 
+IMPORTANT - PERSONA CONTENT IS LEGITIMATE:
+These posts are written from the perspective of FICTIONAL MARKETING PERSONAS (Brenda, Patricia, Victor). They are invented characters illustrating real agent pain points - NOT real Dossie customers.
+
+ALWAYS APPROVE content that is:
+- A persona's pain story (e.g. "Brenda got a 4:30am call", "Victor missed a deadline")
+- Hypothetical frustrations or scenarios ("imagine losing a deal because...")
+- General agent experiences without specific Dossie usage claims
+
+ONLY FLAG content that:
+- Claims a specific person SIGNED UP for Dossie or is a Dossie MEMBER
+- Gives an exact join date, timestamp, or member number for a real customer
+- Quotes a real customer by name with a specific claim
+- States a specific founding member count as fact (e.g. "47 members" - use "founding spots" language instead)
+
 ## VERIFIED FACTS — the only source of truth for specific claims
 
 ### Current customers (__FOUNDING_COUNT__ founding members as of run time — count is queried live from the subscriptions table each batch)
@@ -1058,6 +1072,27 @@ module.exports = async function handler(req, res) {
       errorMessage = formatVerifierFlagsForErrorMessage(verifierResult);
     } else if (instagramMissingMedia) {
       errorMessage = 'Instagram requires a media card - card render failed; row held as pending_card until re-rendered.';
+    }
+
+    // Notify Heath via Telegram when a post is auto-rejected by the verifier.
+    // Fire-and-forget — a Telegram failure should never block DB insert.
+    if (rowStatus === 'rejected' && verifierResult.verdict === 'needs_revision') {
+      const tgChatId = process.env.TELEGRAM_CHAT_ID || '7874782923';
+      const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (tgToken) {
+        const hookPreview = String(caption).slice(0, 80);
+        const reason = verifierResult.summary || (Array.isArray(verifierResult.flags) && verifierResult.flags.length > 0
+          ? verifierResult.flags.filter(f => f.severity === 'red').map(f => f.issue).join('; ').slice(0, 200)
+          : 'no details');
+        const tgText = `Warning Auto-rejected post (platform: ${platform}, persona: ${persona})\nReason: ${reason}\nHook: ${hookPreview}`;
+        fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: tgChatId, text: tgText }),
+        }).catch((err) => {
+          console.warn('[cron-generate-posts] Telegram auto-reject notification failed:', err && err.message);
+        });
+      }
     }
 
     const row = {

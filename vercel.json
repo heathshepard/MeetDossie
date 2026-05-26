@@ -131,6 +131,10 @@
                       "schedule":  "0 12 * * *"
                   },
                   {
+                      "path":  "/api/cron-pipeline-check",
+                      "schedule":  "0 11 * * *"
+                  },
+                  {
                       "path":  "/api/cron-generate-posts",
                       "schedule":  "0 11 * * *"
                   },
