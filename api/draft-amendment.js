@@ -115,6 +115,24 @@ function formatLongDate(isoLike) {
   return `${months[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}, ${m[1]}`;
 }
 
+// Formats a date as "Month Day" (no year) for use with TREC form fields that
+// have a separate pre-printed "20" prefix before the 2-digit year field.
+function formatLongDateNoYear(isoLike) {
+  if (!isoLike) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(isoLike));
+  if (!m) return String(isoLike);
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${months[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}`;
+}
+
+// Returns the 2-digit year suffix for the TREC "20__" year field.
+function formatTwoDigitYear(isoLike) {
+  if (!isoLike) return '';
+  const m = /^(\d{4})/.exec(String(isoLike));
+  if (!m) return '';
+  return m[1].slice(2);
+}
+
 function formatMoney(value) {
   const n = Number(String(value).replace(/[^0-9.]/g, ''));
   if (!Number.isFinite(n)) return String(value);
@@ -185,7 +203,13 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
 
   if (amendmentType === 'closing_date') {
     safeCheck(form, FIELDS.closingDateCheckbox);
-    safeSetText(form, FIELDS.closingDateText, formatLongDate(newValue));
+    // TREC 39-10 closing date section has a "Month Day" text field followed by
+    // a pre-printed "20" with a 2-digit year suffix field. Fill them separately
+    // so the output reads "August 5, 20 26" (matching the form's pre-printed layout)
+    // rather than "August 5, 2026, 20__" (the full date stuffed into the text field
+    // leaving the year field blank with its pre-printed "20" hanging).
+    safeSetText(form, FIELDS.closingDateText, formatLongDateNoYear(newValue));
+    safeSetText(form, FIELDS.closingDateYearSuffix, formatTwoDigitYear(newValue));
   } else if (amendmentType === 'option_extension') {
     // For an extension, the agent supplies the number of additional days.
     // We don't presume an additional option fee — many extensions are written
