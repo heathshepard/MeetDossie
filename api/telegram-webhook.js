@@ -565,6 +565,24 @@ async function handleCallbackQuery(cb) {
     if (chatId && messageId) {
       await editMessage(chatId, messageId, `${originalBody}\n\n❌ Rejected. Generating replacement...`);
     }
+
+    // Send a confirmation notification so Heath has a record of what was manually rejected.
+    // Uses TELEGRAM_BOT_TOKEN (DossieMarketingBot) — same bot already handling this flow.
+    const rejectChatId = TELEGRAM_CHAT_ID || '7874782923';
+    if (TELEGRAM_BOT_TOKEN && rejectChatId) {
+      const hookPreview = String(post.content || post.hook || '').slice(0, 80);
+      const platform = String(post.platform || 'unknown');
+      const persona = String(post.persona || 'unknown');
+      const notifyText = `Rejected post (${platform} / ${persona})\nHook: ${hookPreview}`;
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: rejectChatId, text: notifyText }),
+      }).catch((err) => {
+        console.warn('[telegram-webhook] reject notification failed:', err && err.message);
+      });
+    }
+
     // Await regen so Vercel doesn't kill the function before it finishes.
     // Claude API call takes ~3-8s — well within Vercel's 10s default timeout.
     try {
