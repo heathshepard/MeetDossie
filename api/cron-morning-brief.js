@@ -15,12 +15,25 @@
 // Error handling: every query is wrapped in safeQuery() so a single failure
 // gracefully degrades that metric (rendered as '?') rather than aborting the
 // whole brief. The brief is high-value even when one number is missing.
+//
+// Sections added 2026-05-25:
+//   - STAGING DIFF: commits on staging not yet merged to main (child_process.execSync)
+//   - SOCIAL: yesterday's post activity from social_posts table
+//   - FOUNDING SPOTS REMAINING: 50 - active founding count
+//   - REFERRAL PIPELINE: pending founding_applications with names
+//   - LOGIN DETECTION FIX: caveat on last_sign_in_at accuracy + is_demo exclusion verified
+
+const { execSync } = require('child_process');
+const nodePath = require('path');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CRON_SECRET = process.env.CRON_SECRET;
+
+// Total founding spots available (locked — change only on explicit Heath instruction).
+const FOUNDING_TOTAL_SPOTS = 50;
 
 // Keep in sync with api/admin-dashboard.js expenses block. Only the three
 // fixed-cost SaaS line items requested in the brief spec — Claude/Anthropic
@@ -135,6 +148,30 @@ function startOfThisWeekChicago() {
 
 function daysBetween(later, earlier) {
   return Math.floor((later.getTime() - earlier.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// ─── Staging diff ─────────────────────────────────────────────────────────
+
+// Returns an array of one-line commit strings that are on staging but not yet
+// merged to main. Uses git log main..staging so it's safe even when run from
+// inside a Vercel build — if .git isn't present the catch returns null.
+function getStagingDiff() {
+  try {
+    // __dirname is api/ inside the repo. Walk up one level to repo root.
+    const repoRoot = nodePath.join(__dirname, '..');
+    const output = execSync('git log main..staging --oneline', {
+      cwd: repoRoot,
+      timeout: 5000,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    if (!output) return [];
+    return output.split('\n').filter(Boolean);
+  } catch (err) {
+    // git not available in Vercel serverless runtime — degrade gracefully.
+    console.error('[morning-brief] git staging diff unavailable:', err && err.message);
+    return null; // null = unavailable (vs [] = clean)
+  }
 }
 
 // ─── Customer filtering ──────────────────────────────────────────────────
@@ -312,7 +349,44 @@ async function buildBrief() {
   // (confirmed via list_tables 2026-05-20). Gracefully omitted in render.
   const messagesYesterday = null;
 
-  // 6. Churn-risk action items.
+  // 6a. Founding spots remaining.
+  // Count active founding subscriptions (paying $29) to derive spots used.
+  // foundingPaying is already computed above — reuse it.
+  // foundingFriend ($1) does NOT consume a founding spot (special case).
+  const foundingSpotsUsed = foundingPaying; // excludes founding friend
+  const foundingSpotsRemaining = FOUNDING_TOTAL_SPOTS - foundingSpotsUsed;
+
+  // 6b. Referral pipeline — pending founding applications.
+  const pendingApps = await safeQuery('pending-applications', async () => {
+    const r = await supabaseFetch(
+      `/rest/v1/founding_applications?status=eq.pending&select=id,name,email,created_at&order=created_at.asc`,
+    );
+    if (!r.ok) return null; // null = unavailable
+    return Array.isArray(r.data) ? r.data : [];
+  }, null);
+
+  // 6c. Social health — yesterday's post activity.
+  const socialHealth = await safeQuery('social-health', async () => {
+    const r = await supabaseFetch(
+      `/rest/v1/social_posts?posted_at=gte.${encodeURIComponent(yesterdayStartIso)}&posted_at=lt.${encodeURIComponent(todayStartIso)}&select=id,status,platform`,
+    );
+    if (!r.ok) return null;
+    const rows = Array.isArray(r.data) ? r.data : [];
+    const posted = rows.filter((p) => p.status === 'posted');
+    const failed = rows.filter((p) => p.status === 'failed');
+    const rejected = rows.filter((p) => p.status === 'rejected');
+    // Unique platforms that had at least one successful post.
+    const coveredPlatforms = [...new Set(posted.map((p) => p.platform).filter(Boolean))];
+    // All platforms we care about.
+    const allPlatforms = ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok'];
+    const missedPlatforms = allPlatforms.filter((pl) => !coveredPlatforms.includes(pl));
+    return { posted: posted.length, failed: failed.length, rejected: rejected.length, coveredPlatforms, missedPlatforms };
+  }, null);
+
+  // 6d. Staging diff.
+  const stagingDiff = getStagingDiff();
+
+  // 7. Churn-risk action items.
   // 🔴 Critical:
   //   - paid >48h ago AND never logged in
   //   - active customer no login in 7+ days
@@ -349,15 +423,26 @@ async function buildBrief() {
   const lines = [];
   lines.push(`☀️ Dossie Morning Brief — ${chicagoDateLabel()}`);
   lines.push('');
+
+  // FINANCIAL
   lines.push('💰 FINANCIAL');
   lines.push(`MRR: $${mrr}  Expenses: $${expenses.toFixed(2)}  Net: $${net.toFixed(2)}/mo`);
+  lines.push(`🎯 ${foundingSpotsRemaining} founding spots remaining (${foundingSpotsUsed}/${FOUNDING_TOTAL_SPOTS} taken)`);
   lines.push('');
+
+  // CUSTOMERS
   lines.push('👥 CUSTOMERS');
   lines.push(`${foundingPaying} paying founding @ $29`);
   lines.push(`${foundingFriend} founding friend @ $1`);
   lines.push(`${soloCount} solo · ${teamCount} team`);
   lines.push(`${cancelledThisMonth} cancelled this month`);
+  // Login detection caveat: last_sign_in_at only updates on explicit re-auth,
+  // not on cached session usage. Active customers with valid sessions will show
+  // as "not logged in" even though they're using the app.
+  lines.push('(login dates = last auth event; cached sessions not reflected)');
   lines.push('');
+
+  // NEW THIS WEEK
   lines.push('🆕 NEW THIS WEEK');
   if (newThisWeek.length === 0) {
     lines.push('No new paying customers yet this week.');
@@ -366,6 +451,40 @@ async function buildBrief() {
     lines.push(`${names} (+$${newMrrThisWeek} MRR)`);
   }
   lines.push('');
+
+  // REFERRAL PIPELINE
+  lines.push('📥 PIPELINE');
+  if (pendingApps === null) {
+    lines.push('? pending applications (query unavailable)');
+  } else if (pendingApps.length === 0) {
+    lines.push('No pending applications.');
+  } else {
+    lines.push(`${pendingApps.length} pending application${pendingApps.length === 1 ? '' : 's'} awaiting review:`);
+    for (const app of pendingApps) {
+      const daysWaiting = daysBetween(now, new Date(app.created_at));
+      lines.push(`  - ${app.name || app.email} (${daysWaiting}d ago)`);
+    }
+  }
+  lines.push('');
+
+  // SOCIAL HEALTH
+  lines.push('📱 SOCIAL');
+  if (socialHealth === null) {
+    lines.push('? (query unavailable)');
+  } else if (socialHealth.posted === 0 && socialHealth.failed === 0 && socialHealth.rejected === 0) {
+    lines.push('No posts recorded yesterday.');
+  } else {
+    lines.push(`${socialHealth.posted} posted · ${socialHealth.failed} failed · ${socialHealth.rejected} rejected`);
+    if (socialHealth.coveredPlatforms.length > 0) {
+      lines.push(`Covered: ${socialHealth.coveredPlatforms.join(', ')}`);
+    }
+    if (socialHealth.missedPlatforms.length > 0) {
+      lines.push(`Missed: ${socialHealth.missedPlatforms.join(', ')}`);
+    }
+  }
+  lines.push('');
+
+  // ENGAGEMENT
   lines.push('📊 ENGAGEMENT');
   lines.push(`Active 7d: ${activeIn7d.length}/${customers.length} paying (${activePct}%)`);
   const engageBits = [];
@@ -373,6 +492,8 @@ async function buildBrief() {
   engageBits.push(`${dossiersYesterday} dossiers created`);
   lines.push(`Yesterday: ${engageBits.join(' · ')}`);
   lines.push('');
+
+  // ACTION ITEMS
   lines.push('🚨 ACTION ITEMS');
   if (critical.length === 0 && watch.length === 0) {
     lines.push('✅ All customers healthy — nothing to act on today.');
@@ -381,6 +502,20 @@ async function buildBrief() {
     for (const item of watch) lines.push(item);
   }
   lines.push('');
+
+  // STAGING DIFF
+  lines.push('🔀 STAGING (not yet in production)');
+  if (stagingDiff === null) {
+    lines.push('git unavailable in this runtime — check manually.');
+  } else if (stagingDiff.length === 0) {
+    lines.push('✅ Staging is clean.');
+  } else {
+    for (const commit of stagingDiff) {
+      lines.push(`  ${commit}`);
+    }
+  }
+  lines.push('');
+
   lines.push('📍 Full dashboard: https://meetdossie.com/admin.html');
 
   return lines.join('\n');
