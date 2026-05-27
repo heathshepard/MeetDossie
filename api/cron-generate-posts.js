@@ -1255,19 +1255,24 @@ module.exports = async function handler(req, res) {
     const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
     const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}${testSuffix}`;
 
-    // ─── Two-gate approval (Improvement 2) ────────────────────────────────
-    // Card render is deferred to AFTER Heath approves the copy in Telegram.
-    // Posts are inserted with media_url=null. When Heath taps Approve on the
-    // copy message, telegram-webhook.js triggers the render and sends a second
-    // Telegram message showing the rendered card for visual approval.
-    // This avoids wasting HCTI renders (50/mo free limit) on posts that get
-    // rejected at the copy stage.
-    //
-    // We still log the card fields so they're available when render fires later.
+    // ─── Card render at generation time ──────────────────────────────────
+    // For Instagram and Facebook posts, render the HCTI card now so the
+    // approval message in Telegram shows the image immediately — single-gate
+    // approve flow. Render failures are non-fatal: post is still inserted as
+    // draft with media_url=null; cron-publish-approved skips the image if absent.
     let mediaUrl = null;
     if (CARD_PLATFORMS.has(platform)) {
-      console.log(`[card-deferred] ${postId} stat="${stat}" stat_label="${stat_label}" hook="${hook.slice(0, 80)}" — render deferred to post-copy-approval`);
-      renderSummary.push({ post_id: postId, platform, ok: null, deferred: true });
+      const cardStart = Date.now();
+      const cardResult = await renderSocialCard({ platform, hook, content: cardBody || caption, persona, post_id: postId, stat, stat_label });
+      const cardMs = Date.now() - cardStart;
+      if (cardResult.ok) {
+        mediaUrl = cardResult.publicUrl;
+        console.log(`[card-render] ${postId} ok url=${mediaUrl} size=${cardResult.size_bytes} (${cardMs}ms)`);
+        renderSummary.push({ post_id: postId, platform, ok: true, url: mediaUrl });
+      } else {
+        console.warn(`[card-render] ${postId} failed status=${cardResult.status} err=${cardResult.error} (${cardMs}ms)`);
+        renderSummary.push({ post_id: postId, platform, ok: false, error: cardResult.error });
+      }
     }
 
     // ─── Content-Verifier pass ───────────────────────────────────────────
@@ -1294,9 +1299,6 @@ module.exports = async function handler(req, res) {
       ms: verifierMs,
     });
 
-    // Two-gate approval: cards are deferred, so instagram_missing_media no longer
-    // applies at generation time. Instagram posts start as 'draft' and enter the
-    // copy-approval gate first. The card renders after Heath approves the copy.
     // Decide row status:
     //   needs_revision → always rejected (regardless of AUTO_APPROVE_POSTS)
     //   approve + AUTO_APPROVE_POSTS=true → approved
