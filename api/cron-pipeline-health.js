@@ -212,10 +212,55 @@ module.exports = async function handler(req, res) {
   const message = lines.join('\n');
   const sent = await sendTelegram(message);
 
+  // ─── Dead Letter Queue + Aging Alert (Improvement 4) ─────────────────────
+  // Run three staleness queries and send a single Telegram alert if anything
+  // is stuck. Only sends when there's actual work to flag — no noise on clean days.
+  const dlqLines = [];
+
+  // 1. Drafts aging out (>36 hours, still draft)
+  const { data: agingDrafts } = await supabaseFetch(
+    `/rest/v1/social_posts?status=eq.draft&created_at=lt.${new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString()}&select=post_id,platform,created_at&order=created_at.asc&limit=20`,
+  );
+  if (Array.isArray(agingDrafts) && agingDrafts.length > 0) {
+    const platforms = agingDrafts.map((p) => p.platform).join(', ');
+    dlqLines.push(`- ${agingDrafts.length} draft${agingDrafts.length === 1 ? '' : 's'} aging out (>36h): ${platforms}`);
+  }
+
+  // 2. Failed posts in the last 48 hours (not yet retried)
+  const { data: failedPosts } = await supabaseFetch(
+    `/rest/v1/social_posts?status=eq.failed&created_at=gt.${new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()}&select=post_id,platform,posted_at&order=created_at.desc&limit=20`,
+  );
+  if (Array.isArray(failedPosts) && failedPosts.length > 0) {
+    const platforms = failedPosts.map((p) => p.platform).join(', ');
+    dlqLines.push(`- ${failedPosts.length} failed post${failedPosts.length === 1 ? '' : 's'} need retry: ${platforms}`);
+  }
+
+  // 3. Videos stuck in pending_heath_review for >24 hours
+  const { data: stuckVideos } = await supabaseFetch(
+    `/rest/v1/video_library?status=eq.pending_heath_review&created_at=lt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&select=id,topic,created_at&order=created_at.asc&limit=10`,
+  );
+  if (Array.isArray(stuckVideos) && stuckVideos.length > 0) {
+    const ids = stuckVideos.map((v) => v.topic || v.id).join(', ');
+    dlqLines.push(`- ${stuckVideos.length} video${stuckVideos.length === 1 ? '' : 's'} awaiting your review: ${ids}`);
+  }
+
+  if (dlqLines.length > 0) {
+    const dlqMessage = `Pipeline health check:\n${dlqLines.join('\n')}`;
+    await sendTelegram(dlqMessage);
+    console.log('[pipeline-health] DLQ alert sent:', dlqLines.join(' | '));
+  } else {
+    console.log('[pipeline-health] DLQ check clean — no aging/failed/stuck items');
+  }
+
   return res.status(200).json({
     ok: true,
     posts: posts.length,
     issues: totalIssues,
-    telegram_sent: sent
+    telegram_sent: sent,
+    dlq: {
+      aging_drafts: Array.isArray(agingDrafts) ? agingDrafts.length : 0,
+      failed_posts: Array.isArray(failedPosts) ? failedPosts.length : 0,
+      stuck_videos: Array.isArray(stuckVideos) ? stuckVideos.length : 0,
+    },
   });
 };
