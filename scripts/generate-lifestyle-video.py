@@ -32,6 +32,7 @@ Env requirements:
   ELEVENLABS_API_KEY - already set
 """
 import argparse
+import base64
 import json
 import os
 import re
@@ -1768,6 +1769,163 @@ def load_env_local() -> dict:
     return loaded
 
 
+# --------------------------------------------------------------------------------------
+# Visual description + voiceover sync (Task 2)
+# --------------------------------------------------------------------------------------
+
+def describe_recording_visually(video_path: str) -> str:
+    """Extract one JPEG frame every 3 seconds from video_path, send each frame
+    to Claude claude-haiku-4-5-20251001 vision, and return a timestamped visual script.
+
+    Requires ANTHROPIC_API_KEY in os.environ.
+
+    Returns a string like:
+      "0:00 - Dashboard shows 6 active deals | 0:03 - User taps Morning Brief card ..."
+
+    Raises RuntimeError on missing API key or subprocess failure.
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY not set — cannot run visual description.")
+
+    video_path = str(video_path)
+    if not os.path.exists(video_path):
+        raise RuntimeError(f"Video file not found: {video_path}")
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # Extract 1 frame every 3 seconds as JPEG
+        frame_pattern = os.path.join(tmp_dir, "frame_%03d.jpg")
+        cmd = [
+            "ffmpeg", "-y", "-i", video_path,
+            "-vf", "fps=1/3",
+            "-q:v", "3",
+            frame_pattern
+        ]
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg frame extraction failed: {result.stderr.decode('utf-8', errors='replace')[:400]}")
+
+        # Collect frames sorted by name
+        frames = sorted(
+            [os.path.join(tmp_dir, f) for f in os.listdir(tmp_dir) if f.endswith(".jpg")]
+        )
+        if not frames:
+            raise RuntimeError("No frames extracted from video — check ffmpeg and video file.")
+
+        print(f"[describe] extracted {len(frames)} frames from {os.path.basename(video_path)}")
+
+        descriptions = []
+        for idx, frame_path in enumerate(frames):
+            timestamp_sec = idx * 3
+            mins = timestamp_sec // 60
+            secs = timestamp_sec % 60
+            ts = f"{mins}:{secs:02d}"
+
+            with open(frame_path, "rb") as f:
+                img_bytes = f.read()
+            img_b64 = base64.standard_b64encode(img_bytes).decode("ascii")
+
+            # Call Anthropic API via urllib (no SDK dependency needed)
+            payload = {
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 150,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": img_b64,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": (
+                                    "Describe in one sentence what is visible on this screen. "
+                                    "Be specific about UI elements, text, and actions shown."
+                                ),
+                            },
+                        ],
+                    }
+                ],
+            }
+            req_data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.anthropic.com/v1/messages",
+                data=req_data,
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    body = json.loads(resp.read().decode("utf-8"))
+                description = body["content"][0]["text"].strip()
+            except urllib.error.HTTPError as e:
+                err_body = e.read().decode("utf-8", errors="replace")[:200]
+                description = f"[API error {e.code}: {err_body}]"
+            except Exception as e:
+                description = f"[error: {e}]"
+
+            print(f"[describe] {ts} - {description[:80]}")
+            descriptions.append(f"{ts} - {description}")
+
+    return " | ".join(descriptions)
+
+
+def generate_synced_voiceover_script(
+    visual_script: str,
+    topic: str,
+    persona: str,
+    voice: str,
+) -> str:
+    """Given a timestamped visual description (from describe_recording_visually),
+    generate a voiceover script that matches the on-screen sequence.
+
+    Uses claude-haiku-4-5-20251001 (fast + cheap). Returns only the voiceover text.
+    Requires ANTHROPIC_API_KEY in os.environ.
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY not set.")
+
+    prompt = (
+        "You are writing a voiceover for a Dossie product demo video. "
+        f"Here is what is on screen second by second: {visual_script}. "
+        "Write a voiceover script that matches the visual sequence exactly. "
+        f"The voice is {persona} ({voice}). "
+        "Rules: conversational, not corporate, under 45 seconds spoken. "
+        "End with 'This is Dossie. Texas agents - meetdossie.com slash founding.' "
+        "Return only the voiceover text, no stage directions."
+    )
+
+    payload = {
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 512,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    req_data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=req_data,
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = json.loads(resp.read().decode("utf-8"))
+    return body["content"][0]["text"].strip()
+
+
 def main():
     # Load .env.local before argparse reads its defaults from os.environ.
     load_env_local()
@@ -1780,6 +1938,8 @@ def main():
     ap.add_argument("--output-prefix", dest="output_prefix", help="filename prefix for finished videos")
     ap.add_argument("--platform", help="target platform string (informational)")
     ap.add_argument("--probe", action="store_true", help="just probe Pexels and dump the response")
+    ap.add_argument("--describe-only", dest="describe_only", action="store_true",
+                    help="run visual frame description on --screen-recording and print the timestamped script, then exit")
     ap.add_argument("--preview-broll", action="store_true",
                     help="gather Pexels candidates, save Media/b-roll/<topic>/candidates.json, print picks, exit")
     ap.add_argument("--no-broll", action="store_true", help="skip Pexels b-roll, use black filler")
@@ -1795,6 +1955,54 @@ def main():
     ap.add_argument("--pexels-key", dest="pexels_key", default=os.environ.get("PEXELS_API_KEY", ""))
     ap.add_argument("--elevenlabs-key", dest="elevenlabs_key", default=os.environ.get("ELEVENLABS_API_KEY", ""))
     args = ap.parse_args()
+
+    # --describe-only mode: run visual frame description on --screen-recording, print, exit.
+    if args.describe_only:
+        if not args.screen_recording:
+            print("ERROR: --describe-only requires --screen-recording <path>", file=sys.stderr)
+            return 2
+        try:
+            visual_script = describe_recording_visually(args.screen_recording)
+        except RuntimeError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 1
+        print("\n=== Visual Script ===")
+        for entry in visual_script.split(" | "):
+            print(entry)
+        return 0
+
+    # RENDER_RULES #7 — platform format enforcement.
+    # Desktop recordings (-desktop-) must NOT route to portrait-only platforms.
+    # Mobile recordings (-mobile-) must NOT route to landscape-only platforms.
+    # This fires regardless of --platform; it validates the source recording
+    # against the target platforms derived from the --platform flag OR defaults.
+    if args.screen_recording:
+        rec_name = os.path.basename(args.screen_recording).lower()
+        portrait_only_platforms = {"tiktok", "instagram"}
+        landscape_only_platforms = {"facebook", "twitter", "linkedin"}
+        # Determine target platforms from --platform or the full default set
+        if args.platform:
+            target_platforms_check = {args.platform.lower()}
+        else:
+            target_platforms_check = set(PLATFORM_TO_ASPECT.keys())
+        if "-desktop-" in rec_name:
+            bad = target_platforms_check & portrait_only_platforms
+            if bad:
+                print(
+                    f"ERROR: Desktop recording cannot route to TikTok/Instagram. "
+                    f"Record a portrait (mobile) version.",
+                    file=sys.stderr,
+                )
+                return 6
+        if "-mobile-" in rec_name:
+            bad = target_platforms_check & landscape_only_platforms
+            if bad:
+                print(
+                    f"ERROR: Portrait recording cannot route to Facebook/Twitter/LinkedIn. "
+                    f"Record a desktop version.",
+                    file=sys.stderr,
+                )
+                return 6
 
     # Probe mode — just dump the Pexels response and exit so we can verify schema.
     if args.probe:
