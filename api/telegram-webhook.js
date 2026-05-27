@@ -555,6 +555,76 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Skit approval flow: skit_approve_{id} / skit_reject_{id}
+  if (data.startsWith('skit_approve_')) {
+    const skitId = data.replace('skit_approve_', '');
+
+    // Fetch skit from skit_queue
+    const { data: skitRows } = await supabaseFetch(
+      `/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}&limit=1`,
+    );
+    const skit = Array.isArray(skitRows) && skitRows.length > 0 ? skitRows[0] : null;
+
+    if (!skit) {
+      if (callbackId) await answerCallback(callbackId, 'Skit not found');
+      return;
+    }
+
+    // Update status to script_approved
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        status: 'script_approved',
+        approved_at: new Date().toISOString(),
+      }),
+    });
+
+    // Edit the approval message
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nScript approved - rendering queued.`);
+    }
+
+    // Notify Heath via personal Claudy bot
+    const PERSONAL_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const topic = skit.topic || skitId;
+    if (PERSONAL_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      const notifyText = `Skit '${topic}' approved! Cole will render it - run: python scripts/produce-skits.py --from-queue ${skitId}`;
+      await fetch(`https://api.telegram.org/bot${PERSONAL_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: notifyText,
+          disable_web_page_preview: true,
+        }),
+      }).catch((err) => {
+        console.warn('[telegram-webhook] skit approval notify failed:', err && err.message);
+      });
+    }
+
+    if (callbackId) await answerCallback(callbackId, 'Script approved - rendering queued');
+    return;
+  }
+
+  if (data.startsWith('skit_reject_')) {
+    const skitId = data.replace('skit_reject_', '');
+
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'rejected' }),
+    });
+
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nSkit rejected.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Skit rejected');
+    return;
+  }
+
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
     if (callbackId) await answerCallback(callbackId, 'Unknown action');

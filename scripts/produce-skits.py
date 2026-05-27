@@ -24,6 +24,8 @@ Reads env from .env.production.local + .env.local in repo root.
 Telegram bot token from .env.production.local or .env.local (TELEGRAM_BOT_TOKEN).
 """
 
+import argparse
+import datetime
 import json
 import os
 import re
@@ -730,12 +732,18 @@ def _generate_kling_clip(prompt: str, scene_idx: int, slug: str, tmp_dir: Path) 
 
 
 def _retry_kling(prompt: str, scene_idx: int, slug: str, tmp_dir: Path) -> tuple:
-    """Try once, retry once on failure. Returns (path, cdn_url) or (None, None)."""
-    path, url = _generate_kling_clip(prompt, scene_idx, slug, tmp_dir)
-    if path is not None:
-        return path, url
-    print(f"  Retrying scene {scene_idx}...")
-    return _generate_kling_clip(prompt, scene_idx, slug, tmp_dir)
+    """Try up to 3 times with 30s backoff. Returns (path, cdn_url) or (None, None)."""
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        path, url = _generate_kling_clip(prompt, scene_idx, slug, tmp_dir)
+        if path is not None:
+            return path, url
+        if attempt < max_attempts:
+            print(f"  Scene {scene_idx} attempt {attempt}/{max_attempts} failed — waiting 30s before retry...")
+            time.sleep(30)
+        else:
+            print(f"  Scene {scene_idx} failed after {max_attempts} attempts — giving up")
+    return None, None
 
 
 # ── ELEVENLABS TTS ────────────────────────────────────────────────────────────
@@ -1045,10 +1053,15 @@ def produce_skit(skit: dict, spots_left: int) -> Path | None:
         print("  ERROR: All scene generations failed")
         return None
 
-    # Fill any missing scene slots by repeating last clip
-    while len(video_clips) < RULES["total_scene_clips"]:
-        print("  Reusing last clip for missing scene slot")
-        video_clips.append(video_clips[-1])
+    # Explicitly verify all N scene clips exist — abort if any missing after retries
+    if len(video_clips) < RULES["total_scene_clips"]:
+        missing = RULES["total_scene_clips"] - len(video_clips)
+        print(
+            f"  ABORT: {missing} scene clip(s) still missing after 3 retries each.\n"
+            f"  Got {len(video_clips)}/{RULES['total_scene_clips']} clips.\n"
+            f"  Cannot produce skit with incomplete clips — check FAL_KEY and Kling availability."
+        )
+        return None
 
     # ── Phase E: CTA card ────────────────────────────────────────────────────
     step("Phase E: Building CTA card (clip 4)")
@@ -1159,9 +1172,110 @@ def check_env():
         sys.exit(1)
 
 
+# ── QUEUE HELPERS ─────────────────────────────────────────────────────────────
+
+def fetch_skit_from_queue(skit_id: str) -> dict | None:
+    """Fetch a skit row from skit_queue by id. Returns None if not found or error."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print("  ERROR: Supabase env vars missing — cannot fetch from queue")
+        return None
+
+    url = f"{SUPABASE_URL}/rest/v1/skit_queue?id=eq.{urllib.parse.quote(skit_id)}&limit=1"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            rows = json.loads(r.read())
+        if not rows:
+            print(f"  ERROR: Skit id={skit_id} not found in skit_queue")
+            return None
+        return rows[0]
+    except Exception as e:
+        print(f"  ERROR: Failed to fetch skit from queue: {e}")
+        return None
+
+
+def patch_skit_queue(skit_id: str, patch: dict) -> bool:
+    """PATCH a row in skit_queue. Returns True on success."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return False
+
+    url = f"{SUPABASE_URL}/rest/v1/skit_queue?id=eq.{urllib.parse.quote(skit_id)}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(patch).encode("utf-8"),
+        headers={
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+        method="PATCH",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return r.status in (200, 204)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        print(f"  WARN: skit_queue PATCH failed ({e.code}): {body[:200]}")
+        return False
+    except Exception as e:
+        print(f"  WARN: skit_queue PATCH error: {e}")
+        return False
+
+
+def _skit_from_queue_row(row: dict) -> dict:
+    """
+    Build a skit dict compatible with produce_skit() from a skit_queue row.
+    script_json must have keys: scenes, lines, topic, caption.
+    """
+    script = row["script_json"]
+    if isinstance(script, str):
+        script = json.loads(script)
+
+    topic = script.get("topic") or row.get("topic", "unknown")
+    today = datetime.date.today().isoformat()
+    slug = f"skit-{topic}-{today}"
+
+    caption = (
+        script.get("caption")
+        or row.get("caption")
+        or f"When the TC disappears mid-transaction. Dossie never does. meetdossie.com/founding"
+    )
+
+    return {
+        "slug": slug,
+        "telegram_caption": (
+            f"Skit: {topic}\n"
+            f"From queue id={row['id']}\n"
+            f"Ready for Submagic captions"
+        ),
+        "scenes": script["scenes"],
+        "lines": [tuple(line) for line in script["lines"]],
+        "_caption_for_library": caption,
+        "_queue_id": row["id"],
+    }
+
+
 # ── ENTRY POINT ───────────────────────────────────────────────────────────────
 
 def main():
+    parser = argparse.ArgumentParser(description="Dossie Skit Video Producer v2")
+    parser.add_argument(
+        "--from-queue",
+        metavar="SKIT_ID",
+        default=None,
+        help="Fetch script from skit_queue table by id and render it",
+    )
+    args = parser.parse_args()
+
     print("=" * 70)
     print("  Dossie Skit Video Producer v2")
     print("  Hardcoded ruleset — pre-flight validator enforced")
@@ -1170,11 +1284,56 @@ def main():
 
     check_env()
 
-    # Fetch founding spot count once for both CTA cards
+    # Fetch founding spot count once
     step("Fetching live founding spot count from Supabase")
     spots_left = fetch_founding_spots_left()
     print(f"  Using: {spots_left} founding spots left")
 
+    # ── MODE A: --from-queue ─────────────────────────────────────────────────
+    if args.from_queue:
+        skit_id = args.from_queue
+        print(f"\n  MODE: --from-queue {skit_id}")
+
+        row = fetch_skit_from_queue(skit_id)
+        if not row:
+            print(f"  ABORT: Could not fetch skit id={skit_id} from queue")
+            sys.exit(1)
+
+        if row.get("status") not in ("script_approved", "render_ready"):
+            print(f"  WARN: Skit status is '{row.get('status')}' (expected script_approved or render_ready)")
+            print("  Proceeding anyway...")
+
+        # Mark render started
+        patch_skit_queue(skit_id, {"render_started_at": datetime.datetime.utcnow().isoformat() + "Z"})
+
+        skit = _skit_from_queue_row(row)
+        out = produce_skit(skit, spots_left)
+
+        if out and out.exists():
+            # Success: update skit_queue + upsert video_library
+            patch_skit_queue(skit_id, {"status": "rendered"})
+
+            # Upsert to video_library with the queue-derived caption
+            caption = skit.get("_caption_for_library", "")
+            _register_video_library_with_caption(skit["slug"], out, caption)
+
+            dur = probe_duration(out)
+            size_mb = out.stat().st_size / 1024 / 1024
+            passed = RULES["min_duration_s"] <= dur <= RULES["max_duration_s"]
+            print(f"\n  OK {skit['slug']}")
+            print(f"     {out}")
+            print(f"     {size_mb:.1f} MB, {dur:.2f}s, QA={'PASS' if passed else 'FAIL'}")
+            sys.exit(0)
+        else:
+            # Failure: revert to script_approved so it can be retried
+            patch_skit_queue(skit_id, {
+                "status": "script_approved",
+                "render_started_at": None,
+            })
+            print(f"\n  FAIL: Skit {skit_id} render failed — reverted to script_approved for retry")
+            sys.exit(1)
+
+    # ── MODE B: default hardcoded skits ─────────────────────────────────────
     results = {}
     for skit in [SKIT_BREAKUP, SKIT_PARADISE]:
         out = produce_skit(skit, spots_left)
@@ -1198,6 +1357,65 @@ def main():
             any_fail = True
 
     sys.exit(1 if any_fail else 0)
+
+
+def _register_video_library_with_caption(slug: str, out_path: Path, caption: str):
+    """
+    Upsert a row in Supabase video_library with a provided caption.
+    Used by --from-queue mode to supply the queue's caption.
+    Non-fatal.
+    """
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print("  WARN: Supabase env vars missing — skipping video_library registration")
+        return
+
+    import datetime as _dt
+    today = _dt.date.today().isoformat()
+    parts = slug.split("-")
+    topic = parts[1] if len(parts) > 1 else slug
+
+    row = {
+        "id": slug,
+        "path": str(out_path),
+        "type": "skit",
+        "topic": topic,
+        "produced_date": today,
+        "status": "approved",
+        "platforms": ["tiktok", "instagram"],
+        "caption": caption or (
+            "When the TC ghosts you mid-contract. Dossie never does. "
+            "meetdossie.com/founding"
+        ),
+        "telegram_message_id": None,
+        "supabase_url": None,
+    }
+
+    payload = json.dumps(row).encode("utf-8")
+    url = f"{SUPABASE_URL}/rest/v1/video_library?on_conflict=id"
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates,return=minimal",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            status = r.status
+        print(f"  OK video_library upserted (HTTP {status}) for id={slug}")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        print(f"  WARN: video_library upsert failed ({e.code}): {body[:200]}")
+    except Exception as e:
+        print(f"  WARN: video_library upsert error: {e}")
+
+
+# ── urllib.parse import for queue helpers ─────────────────────────────────────
+import urllib.parse
 
 
 if __name__ == "__main__":
