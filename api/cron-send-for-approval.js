@@ -21,8 +21,7 @@ const SCORER_MODEL = 'claude-haiku-4-5-20251001';
 
 const MAX_PER_RUN = 12;
 
-// Platforms that require a card image before final publish.
-// Used to detect the two-gate state (copy approved, card not yet rendered).
+// Platforms that attach a card image in the approval message.
 const CARD_PLATFORMS_FOR_APPROVAL = new Set(['instagram', 'facebook']);
 
 // Platform rules summary for the approval message — compact one-liners so
@@ -278,15 +277,7 @@ module.exports = async function handler(req, res) {
     }
     const scoreLine = formatScoreLine(scoreData);
 
-    // ─── Two-gate flow (Improvement 2) ───────────────────────────────────
-    // If the post has no card yet (card render deferred), we send copy-only:
-    //   - No image on message 1 (text preview only)
-    //   - A note in message 2 that Approve = approve copy, card renders next
-    // If the post already has a card (visual approval gate), send card as image.
-    const hasCard = !!(post.media_url);
-    const needsCardRender = CARD_PLATFORMS_FOR_APPROVAL.has(post.platform) && !hasCard;
-
-    // Message 1: Card image (if available) OR text preview with short caption
+    // Message 1: Card image (if available) + short caption preview
     const shortCaption = formatShortCaption(post);
     const photoResult = await telegramSend(TELEGRAM_CHAT_ID, shortCaption, null, post.media_url || null);
     if (!photoResult.ok) {
@@ -295,16 +286,12 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Message 2: Full content + hashtags.
-    // Draft posts get approve/reject buttons, approved posts get no buttons (preview only).
+    // Message 2: Full content + hashtags + approve/reject buttons.
     // Score line is prepended so Heath sees it before tapping Approve.
     const fullContent = formatFullContent(post);
     const isDraft = post.status === 'draft';
     const buttons = isDraft ? inlineKeyboard(post.id) : null;
-    const twoGateNote = (isDraft && needsCardRender)
-      ? '[No card yet - Approve = approve copy, card renders next]\n\n'
-      : '';
-    const prefix = isDraft ? `${scoreLine}${twoGateNote}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
+    const prefix = isDraft ? `${scoreLine}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
     const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
     if (!textResult.ok) {
       console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
