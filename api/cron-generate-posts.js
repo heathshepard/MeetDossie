@@ -558,6 +558,75 @@ function getDayOfYear() {
   return Math.floor((today - start) / 86400000);
 }
 
+// ─── Format Validation (Improvement 3) ────────────────────────────────────
+// Enforces caption length limits and hashtag count rules per platform.
+// Mutates caption in-place (truncation) or strips/trims hashtags.
+// Never throws — returns the corrected caption string.
+
+const CAPTION_LIMITS = {
+  instagram: 2200,
+  twitter: 280,
+  linkedin: 3000,
+  facebook: 63206,
+  tiktok: 2200,
+};
+
+const HASHTAG_RULES = {
+  twitter:   { max: 3 },
+  instagram: { min: 8 },
+  linkedin:  { min: 3, max: 5 },
+  facebook:  { strip: true },
+  tiktok:    { max: 3 },
+};
+
+function validateAndFixCaption(caption, platform) {
+  let text = String(caption || '');
+
+  // 1. Strip all hashtags from Facebook posts
+  const rules = HASHTAG_RULES[platform] || {};
+  if (rules.strip) {
+    const before = text;
+    text = text.replace(/#\w+/g, '').replace(/\s{2,}/g, ' ').trim();
+    if (text !== before) {
+      console.warn(`[cron-generate-posts] [format] stripped hashtags from facebook post`);
+    }
+  }
+
+  // 2. Enforce Twitter max 3 hashtags
+  if (rules.max && platform === 'twitter') {
+    const hashtagMatches = [...text.matchAll(/#\w+/g)];
+    if (hashtagMatches.length > rules.max) {
+      // Remove excess hashtags from the end of the string
+      const excess = hashtagMatches.slice(rules.max);
+      for (const m of excess.reverse()) {
+        text = text.slice(0, m.index) + text.slice(m.index + m[0].length);
+      }
+      text = text.replace(/\s{2,}/g, ' ').trim();
+      console.warn(`[cron-generate-posts] [format] trimmed twitter hashtags to ${rules.max}`);
+    }
+  }
+
+  // 3. Warn if Instagram has fewer than 8 hashtags (don't fail — verifier handles)
+  if (platform === 'instagram' && rules.min) {
+    const count = (text.match(/#\w+/g) || []).length;
+    if (count < rules.min) {
+      console.warn(`[cron-generate-posts] [format] instagram post has ${count} hashtags (min ${rules.min})`);
+    }
+  }
+
+  // 4. Enforce character limits — truncate at last space before limit, append '...'
+  const limit = CAPTION_LIMITS[platform];
+  if (limit && text.length > limit) {
+    let truncated = text.slice(0, limit - 3);
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > limit * 0.8) truncated = truncated.slice(0, lastSpace);
+    text = truncated + '...';
+    console.warn(`[cron-generate-posts] [format] truncated ${platform} caption to ${text.length} chars (limit ${limit})`);
+  }
+
+  return text;
+}
+
 function buildPlatformRulesBlock(platform) {
   const r = PLATFORM_RULES[platform];
   if (!r) return '';
@@ -1159,7 +1228,7 @@ module.exports = async function handler(req, res) {
     const format = String(p.format || 'PERSONA_STORY').toUpperCase();
     const persona = String(p.persona || '').toLowerCase();
     const platform = String(p.platform || '').toLowerCase();
-    const caption = String(p.caption || p.content || '').trim(); // caption = full post text
+    let caption = String(p.caption || p.content || '').trim(); // caption = full post text
     const cardBody = String(p.card_body || '').trim(); // card_body = short card-friendly text
     const hook = String(p.hook || '').trim();
     const cta = String(p.cta || '').trim();
@@ -1172,6 +1241,11 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
+    // ─── Format validation (Improvement 3) ────────────────────────────────
+    // Enforce caption length limits + hashtag rules before insert.
+    // Mutates caption in-place; non-fatal — never blocks the insert.
+    caption = validateAndFixCaption(caption, platform);
+
     let zernioAccountId = null;
     try { zernioAccountId = await lookupZernioAccountId(platform); } catch (_e) { zernioAccountId = null; }
 
@@ -1181,33 +1255,19 @@ module.exports = async function handler(req, res) {
     const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
     const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}${testSuffix}`;
 
-    // Render branded card for Instagram + Facebook. Failure is non-fatal —
-    // the row still inserts with media_url=null and cron-publish-approved
-    // posts a text-only update.
+    // ─── Two-gate approval (Improvement 2) ────────────────────────────────
+    // Card render is deferred to AFTER Heath approves the copy in Telegram.
+    // Posts are inserted with media_url=null. When Heath taps Approve on the
+    // copy message, telegram-webhook.js triggers the render and sends a second
+    // Telegram message showing the rendered card for visual approval.
+    // This avoids wasting HCTI renders (50/mo free limit) on posts that get
+    // rejected at the copy stage.
+    //
+    // We still log the card fields so they're available when render fires later.
     let mediaUrl = null;
     if (CARD_PLATFORMS.has(platform)) {
-      // Debug logging: capture AI-generated card fields
-      console.log(`[AI] ${postId} stat="${stat}" stat_label="${stat_label}" hook="${hook}" card_body="${cardBody.slice(0, 100)}..."`);
-
-      const renderStart = Date.now();
-      const card = await renderSocialCard({
-        platform,
-        hook: hook || caption.slice(0, 120),
-        content: cardBody || caption.slice(0, 200), // Use card_body if available, fallback to caption excerpt
-        persona,
-        post_id: postId,
-        stat,
-        stat_label,
-      });
-      const renderMs = Date.now() - renderStart;
-      if (card.ok) {
-        mediaUrl = card.publicUrl;
-        console.log(`[card] ${postId} -> ${card.publicUrl} (${card.size_bytes} bytes, ${renderMs}ms)`);
-        renderSummary.push({ post_id: postId, platform, ok: true, ms: renderMs, size_bytes: card.size_bytes, public_url: card.publicUrl });
-      } else {
-        console.warn(`[card] ${postId} render failed status=${card.status} err=${String(card.error || '').slice(0, 200)} after ${renderMs}ms`);
-        renderSummary.push({ post_id: postId, platform, ok: false, ms: renderMs, status: card.status, error: String(card.error || '').slice(0, 200) });
-      }
+      console.log(`[card-deferred] ${postId} stat="${stat}" stat_label="${stat_label}" hook="${hook.slice(0, 80)}" — render deferred to post-copy-approval`);
+      renderSummary.push({ post_id: postId, platform, ok: null, deferred: true });
     }
 
     // ─── Content-Verifier pass ───────────────────────────────────────────
@@ -1234,36 +1294,26 @@ module.exports = async function handler(req, res) {
       ms: verifierMs,
     });
 
-    // Bug 3 fix: Instagram posts require a media image. If the card renderer
-    // failed (media_url is null), mark the row as 'pending_card' so it is NOT
-    // sent for approval. Approving a no-media Instagram post causes Zernio to
-    // reject it with 400 "Instagram posts require media content."
-    const instagramMissingMedia = platform === 'instagram' && !mediaUrl;
-
+    // Two-gate approval: cards are deferred, so instagram_missing_media no longer
+    // applies at generation time. Instagram posts start as 'draft' and enter the
+    // copy-approval gate first. The card renders after Heath approves the copy.
     // Decide row status:
     //   needs_revision → always rejected (regardless of AUTO_APPROVE_POSTS)
-    //   instagram + no media_url → pending_card (hold until card is available)
     //   approve + AUTO_APPROVE_POSTS=true → approved
     //   approve + AUTO_APPROVE_POSTS=false (default) → draft (manual approval)
     let rowStatus;
     if (verifierResult.verdict === 'needs_revision') {
       rowStatus = 'rejected';
-    } else if (instagramMissingMedia) {
-      rowStatus = 'pending_card';
     } else if (AUTO_APPROVE_POSTS) {
       rowStatus = 'approved';
     } else {
       rowStatus = 'draft';
     }
 
-    // For rejected posts, surface flag details in error_message for quick
-    // debugging in the Supabase dashboard. For pending_card posts, note why
-    // the row is being held back from approval.
+    // For rejected posts, surface flag details in error_message for quick debugging.
     let errorMessage = null;
     if (verifierResult.verdict === 'needs_revision') {
       errorMessage = formatVerifierFlagsForErrorMessage(verifierResult);
-    } else if (instagramMissingMedia) {
-      errorMessage = 'Instagram requires a media card - card render failed; row held as pending_card until re-rendered.';
     }
 
     // Notify Heath via Telegram when a post is auto-rejected by the verifier.
