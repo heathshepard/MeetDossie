@@ -35,6 +35,31 @@ const ZERNIO_ACCOUNTS = {
 // Default: post video to ALL 5 platforms unless overridden by video.platforms row
 const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linkedin'];
 
+// Returns set of platforms that already had ANY post today (video or text).
+async function getPlatformsPostedToday() {
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const iso = todayStart.toISOString();
+
+  // Check social_posts table
+  const { data: socialRows } = await supabaseFetch(
+    `/rest/v1/social_posts?status=eq.posted&posted_at=gte.${iso}&select=platform`,
+  );
+  // Check video_library table
+  const { data: videoRows } = await supabaseFetch(
+    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${iso}&select=platforms`,
+  );
+
+  const posted = new Set();
+  if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && posted.add(r.platform));
+  if (Array.isArray(videoRows)) {
+    videoRows.forEach((r) => {
+      if (Array.isArray(r.platforms)) r.platforms.forEach((p) => posted.add(p));
+    });
+  }
+  return posted;
+}
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -252,7 +277,16 @@ module.exports = async function handler(req, res) {
   const results = [];
   let allOk = true;
 
+  // Check which platforms already received a post today (text or video) to avoid flooding
+  const alreadyPostedToday = await getPlatformsPostedToday();
+  console.log(`[cron-post-videos] Platforms already posted today: ${[...alreadyPostedToday].join(', ') || 'none'}`);
+
   for (const platform of platforms) {
+    if (alreadyPostedToday.has(platform)) {
+      console.log(`[cron-post-videos] Skipping ${platform} — already posted today`);
+      results.push({ platform, ok: true, skipped: true, reason: 'already posted today' });
+      continue;
+    }
     const result = await postToZernio(platform, video.supabase_url, caption);
     results.push({ platform, ...result });
     if (!result.ok) {
