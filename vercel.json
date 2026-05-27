@@ -197,7 +197,7 @@
                   },
                   {
                       "path":  "/api/cron-post-videos",
-                      "schedule":  "30 11 * * *"
+                      "schedule":  "0 13 * * *"
                   },
                   {
                       "path":  "/api/send-customer-update",
