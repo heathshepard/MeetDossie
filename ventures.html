@@ -15,9 +15,12 @@
       --sage: #8BA888;
       --gold: #C9A96E;
       --navy: #1A1A2E;
+      --navy-mid: #20203a;
       --coral: #E8836B;
       --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
       --border: rgba(245, 230, 224, 0.10);
+      --border-hover: rgba(245, 230, 224, 0.22);
       --text-dim: rgba(245, 230, 224, 0.55);
     }
 
@@ -46,16 +49,14 @@
     }
     #auth-gate.visible { display: flex; }
     #auth-gate p { color: var(--text-dim); font-size: 0.9rem; }
-
-    /* ---- Shell ---- */
     #app { display: none; }
     #app.visible { display: block; }
 
     /* ---- Layout ---- */
     .page {
-      max-width: 860px;
+      max-width: 960px;
       margin: 0 auto;
-      padding: 28px 18px 60px;
+      padding: 28px 18px 80px;
     }
 
     /* ---- Hero ---- */
@@ -79,20 +80,14 @@
       font-size: 1.05rem;
       margin-top: 6px;
     }
-
-    /* ---- Stat ticker ---- */
     .stat-bar {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px 24px;
+      gap: 10px 28px;
       margin-top: 20px;
       align-items: baseline;
     }
-    .stat-chip {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
+    .stat-chip { display: flex; flex-direction: column; gap: 1px; }
     .stat-label {
       font-size: 0.68rem;
       letter-spacing: 0.08em;
@@ -107,9 +102,22 @@
       color: var(--gold);
       line-height: 1;
     }
-    .stat-value.dim {
-      color: var(--blush-deep);
-      font-size: 1.5rem;
+    .stat-value.dim { color: var(--blush-deep); font-size: 1.5rem; }
+    .stat-value.margin-chip {
+      font-size: 1rem;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(139,168,136,0.15);
+      border: 1px solid rgba(139,168,136,0.30);
+      color: var(--sage);
+      font-family: -apple-system, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .stat-value.margin-chip.negative {
+      background: rgba(232,131,107,0.15);
+      border-color: rgba(232,131,107,0.30);
+      color: var(--coral);
     }
 
     /* ---- Section headers ---- */
@@ -145,13 +153,13 @@
       padding: 20px;
       position: relative;
       overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .company-card.live {
-      border-color: rgba(139, 168, 136, 0.30);
+    .company-card.live:hover {
+      border-color: rgba(232, 131, 107, 0.40);
+      box-shadow: 0 0 28px rgba(232, 131, 107, 0.12), 0 0 8px rgba(201, 169, 110, 0.10);
     }
-    .company-card.planning {
-      opacity: 0.55;
-    }
+    .company-card.planning { opacity: 0.55; }
     .company-card-accent {
       position: absolute;
       top: 0; left: 0; right: 0;
@@ -159,9 +167,7 @@
       background: linear-gradient(90deg, var(--coral), var(--gold));
       border-radius: 14px 14px 0 0;
     }
-    .company-card.planning .company-card-accent {
-      background: var(--border);
-    }
+    .company-card.planning .company-card-accent { background: var(--border); }
     .company-name {
       font-family: "Cormorant Garamond", serif;
       font-size: 1.45rem;
@@ -169,20 +175,9 @@
       color: var(--blush);
       margin-bottom: 2px;
     }
-    .company-tagline {
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      margin-bottom: 16px;
-    }
-    .company-stats {
-      display: flex;
-      gap: 20px;
-    }
-    .company-stat-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+    .company-tagline { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 16px; }
+    .company-stats { display: flex; gap: 20px; }
+    .company-stat-item { display: flex; flex-direction: column; gap: 2px; }
     .company-stat-val {
       font-family: "Cormorant Garamond", serif;
       font-size: 1.5rem;
@@ -221,13 +216,104 @@
       color: var(--text-dim);
       border: 1px solid var(--border);
     }
-    .badge-dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: currentColor;
+    .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    /* ---- Social Stats panel ---- */
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .social-stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .social-stat-val {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--blush);
+      line-height: 1;
+    }
+    .social-stat-val.good { color: var(--sage); }
+    .social-stat-val.warn { color: var(--coral); }
+    .social-stat-lbl {
+      font-size: 0.7rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .platform-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .platform-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(245,230,224,0.06);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .platform-pill-count {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gold);
     }
 
-    /* ---- Agent strip ---- */
+    /* ---- Activation panel ---- */
+    .activation-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .activation-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .activation-val {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: var(--blush);
+      line-height: 1;
+    }
+    .activation-val.good { color: var(--sage); }
+    .activation-val.warn { color: var(--coral); }
+    .activation-lbl {
+      font-size: 0.7rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .activation-sub {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ---- Agent strip — clickable chips with pulse ---- */
     .agent-row {
       display: flex;
       flex-wrap: wrap;
@@ -246,92 +332,345 @@
       font-weight: 500;
       color: var(--blush);
       white-space: nowrap;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .agent-chip:hover { border-color: var(--border-hover); background: var(--surface-hover); }
+    .agent-chip.selected {
+      border-color: rgba(201, 169, 110, 0.50);
+      background: rgba(201, 169, 110, 0.08);
     }
     .agent-dot {
-      width: 7px; height: 7px;
+      width: 8px; height: 8px;
       border-radius: 50%;
       background: var(--text-dim);
       flex-shrink: 0;
+      position: relative;
     }
     .agent-dot.idle { background: var(--text-dim); }
-    .agent-dot.active { background: var(--sage); box-shadow: 0 0 6px var(--sage); }
-    .agent-dot.busy { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
-    .agent-dot.error { background: var(--coral); box-shadow: 0 0 6px var(--coral); }
-    .agent-role {
-      font-size: 0.72rem;
-      color: var(--text-dim);
-      margin-left: 2px;
+    .agent-dot.active { background: var(--sage); }
+    .agent-dot.busy { background: var(--gold); }
+    .agent-dot.error { background: var(--coral); }
+
+    /* Pulse ring — only when active or busy */
+    @keyframes pulse-ring {
+      0%   { transform: scale(1);   opacity: 0.6; }
+      70%  { transform: scale(2.2); opacity: 0; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .agent-dot.active::after,
+    .agent-dot.busy::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    .agent-dot.active::after { background: var(--sage); }
+    .agent-dot.busy::after { background: var(--gold); }
+
+    .agent-role { font-size: 0.72rem; color: var(--text-dim); margin-left: 2px; }
+
+    /* ---- Two-panel layout: Activity Feed | Agent Chat ---- */
+    .dual-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 32px;
+      align-items: start;
+    }
+    @media (max-width: 680px) {
+      .dual-panel { grid-template-columns: 1fr; }
     }
 
-    /* ---- Footer ---- */
-    .footer {
-      margin-top: 36px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
+    /* ---- Activity Feed ---- */
+    .panel-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
       display: flex;
+      flex-direction: column;
+      max-height: 480px;
+    }
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
     }
-    .footer-text {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-    .footer-burn {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-
-    /* ---- Skeleton ---- */
-    .skeleton {
-      background: linear-gradient(90deg, rgba(245,230,224,0.06) 25%, rgba(245,230,224,0.10) 50%, rgba(245,230,224,0.06) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 6px;
-      height: 1em;
-      display: inline-block;
-    }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-    .skel-mrr { width: 80px; height: 1.85rem; }
-    .skel-cust { width: 48px; height: 1.85rem; }
-    .skel-stat { width: 56px; height: 1.5rem; }
-
-    /* ---- Error banner ---- */
-    .error-banner {
-      display: none;
-      margin-bottom: 18px;
-      padding: 10px 14px;
-      background: rgba(232, 131, 107, 0.12);
-      border: 1px solid rgba(232, 131, 107, 0.30);
-      border-radius: 8px;
-      color: var(--coral);
-      font-size: 0.85rem;
-    }
-    .error-banner.visible { display: block; }
-
-    /* ---- Last-updated ---- */
-    .updated-label {
+    .panel-title {
       font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
       color: var(--text-dim);
-      display: flex;
-      align-items: center;
-      gap: 5px;
+      font-weight: 600;
     }
-    .refresh-dot {
+    .panel-live-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
       background: var(--sage);
-      opacity: 0;
-      transition: opacity 0.3s;
+      flex-shrink: 0;
     }
-    .refresh-dot.ping { opacity: 1; }
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .panel-live-dot { animation: live-pulse 2.2s ease-in-out infinite; }
 
-    /* Safe-area on iPhone notch/home bar */
-    body { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .feed-list {
+      overflow-y: auto;
+      flex: 1;
+      padding: 0;
+    }
+    .feed-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 0.82rem;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-agent-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .feed-agent-badge.cole     { background: rgba(201,169,110,0.14); color: var(--gold);     border: 1px solid rgba(201,169,110,0.30); }
+    .feed-agent-badge.hadley   { background: rgba(212,160,160,0.14); color: var(--blush-deep); border: 1px solid rgba(212,160,160,0.30); }
+    .feed-agent-badge.pierce   { background: rgba(139,168,136,0.14); color: var(--sage);     border: 1px solid rgba(139,168,136,0.30); }
+    .feed-agent-badge.atlas    { background: rgba(100,120,200,0.14); color: #8aa0e8;         border: 1px solid rgba(100,120,200,0.30); }
+    .feed-agent-badge.carter   { background: rgba(232,131,107,0.14); color: var(--coral);    border: 1px solid rgba(232,131,107,0.30); }
+    .feed-agent-badge.sage     { background: rgba(180,140,220,0.14); color: #c4a0e8;         border: 1px solid rgba(180,140,220,0.30); }
+    .feed-agent-badge.content_verifier { background: rgba(245,230,224,0.08); color: var(--text-dim); border: 1px solid var(--border); }
+    .feed-summary { color: var(--blush); flex: 1; }
+    .feed-time { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+    .feed-empty {
+      padding: 24px 16px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* ---- Agent Chat ---- */
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 480px;
+    }
+    .chat-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 10px 12px 0;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+    }
+    .chat-tab {
+      padding: 4px 10px 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      color: var(--text-dim);
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: transparent;
+      transition: color 0.12s, background 0.12s;
+      white-space: nowrap;
+    }
+    .chat-tab:hover { color: var(--blush); }
+    .chat-tab.active {
+      color: var(--gold);
+      background: rgba(201,169,110,0.10);
+      border-color: var(--border);
+      border-bottom-color: var(--navy-mid);
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--navy-mid);
+    }
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 88%;
+      animation: msg-in 0.15s ease-out;
+    }
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .chat-msg.user { align-self: flex-end; align-items: flex-end; }
+    .chat-msg.assistant { align-self: flex-start; align-items: flex-start; }
+    .chat-bubble {
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .chat-msg.user .chat-bubble {
+      background: rgba(201, 169, 110, 0.18);
+      border: 1px solid rgba(201, 169, 110, 0.30);
+      color: var(--blush);
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.assistant .chat-bubble {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--blush);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg-sender {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .chat-typing {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+    .typing-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      animation: typing-bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+      40%           { transform: translateY(-5px); opacity: 1; }
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1;
+      background: rgba(245,230,224,0.05);
+      border: 1px solid rgba(245,230,224,0.15);
+      border-radius: 8px;
+      padding: 7px 11px;
+      color: var(--blush);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      resize: none;
+      min-height: 36px;
+      max-height: 80px;
+    }
+    .chat-input:focus { border-color: rgba(201,169,110,0.50); }
+    .chat-input::placeholder { color: var(--text-dim); }
+    .chat-send-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(201,169,110,0.18);
+      border: 1px solid rgba(201,169,110,0.40);
+      color: var(--gold);
+      transition: background 0.12s;
+      flex-shrink: 0;
+    }
+    .chat-send-btn:hover:not(:disabled) { background: rgba(201,169,110,0.30); }
+    .chat-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .chat-empty {
+      text-align: center;
+      padding: 24px 16px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    /* ---- File Drop Zone ---- */
+    .file-section { margin-bottom: 32px; }
+    .drop-zone {
+      border: 2px dashed rgba(245,230,224,0.18);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 12px;
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: rgba(201,169,110,0.50);
+      background: rgba(201,169,110,0.04);
+    }
+    .drop-zone-text {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+    .drop-zone-text strong { color: var(--gold); }
+    .drop-zone-sub { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; opacity: 0.7; }
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .file-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 0.82rem;
+    }
+    .file-icon { font-size: 1rem; flex-shrink: 0; }
+    .file-name { flex: 1; color: var(--blush); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 0.70rem; color: var(--text-dim); white-space: nowrap; }
+    .file-upload-progress {
+      height: 2px;
+      background: rgba(201,169,110,0.15);
+      border-radius: 1px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .file-upload-bar {
+      height: 100%;
+      background: var(--gold);
+      border-radius: 1px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    #file-input { display: none; }
 
     /* ---- Tasks panel ---- */
     .tasks-header-row {
@@ -356,7 +695,6 @@
       letter-spacing: 0.03em;
     }
     .btn-new-task:hover { background: rgba(201, 169, 110, 0.24); }
-
     .task-list {
       display: flex;
       flex-direction: column;
@@ -371,12 +709,18 @@
       padding: 10px 14px;
       background: var(--surface);
       border: 1px solid var(--border);
+      border-left: 3px solid transparent;
       border-radius: 10px;
       cursor: pointer;
       transition: border-color 0.15s;
     }
     .task-row:hover { border-color: rgba(245, 230, 224, 0.22); }
     .task-row.expanded { border-color: rgba(201, 169, 110, 0.30); }
+    /* Priority color-coding on left border */
+    .task-row[data-priority="1"] { border-left-color: var(--coral); }
+    .task-row[data-priority="2"] { border-left-color: var(--gold); }
+    .task-row[data-priority="3"] { border-left-color: rgba(245,230,224,0.25); }
+    .task-row[data-priority="4"], .task-row[data-priority="5"] { border-left-color: rgba(139,168,136,0.40); }
     .task-agent-badge {
       padding: 2px 8px;
       border-radius: 999px;
@@ -410,11 +754,7 @@
     .task-status-badge.in_progress{ background: rgba(201,169,110,0.14); color: var(--gold);     border: 1px solid rgba(201,169,110,0.30); }
     .task-status-badge.blocked    { background: rgba(232,131,107,0.14); color: var(--coral);    border: 1px solid rgba(232,131,107,0.30); }
     .task-status-badge.completed  { background: rgba(139,168,136,0.14); color: var(--sage);     border: 1px solid rgba(139,168,136,0.30); }
-    .task-age {
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      white-space: nowrap;
-    }
+    .task-age { font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; }
     .task-detail {
       display: none;
       grid-column: 1 / -1;
@@ -425,12 +765,7 @@
       margin-top: 6px;
     }
     .task-detail.open { display: block; }
-    .task-detail-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
+    .task-detail-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
     .btn-task-action {
       padding: 4px 11px;
       border-radius: 6px;
@@ -455,7 +790,68 @@
       border-radius: 10px;
     }
 
-    /* ---- Task modal ---- */
+    /* ---- Error banner ---- */
+    .error-banner {
+      display: none;
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      background: rgba(232, 131, 107, 0.12);
+      border: 1px solid rgba(232, 131, 107, 0.30);
+      border-radius: 8px;
+      color: var(--coral);
+      font-size: 0.85rem;
+    }
+    .error-banner.visible { display: block; }
+
+    /* ---- Last-updated / live clock ---- */
+    .updated-label {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .refresh-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--sage);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .refresh-dot.ping { opacity: 1; }
+
+    /* ---- Footer ---- */
+    .footer {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer-text { font-size: 0.75rem; color: var(--text-dim); }
+    .footer-burn { font-size: 0.75rem; color: var(--text-dim); }
+
+    /* ---- Skeleton ---- */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(245,230,224,0.06) 25%, rgba(245,230,224,0.10) 50%, rgba(245,230,224,0.06) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+      height: 1em;
+      display: inline-block;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skel-mrr { width: 80px; height: 1.85rem; }
+    .skel-cust { width: 48px; height: 1.85rem; }
+    .skel-stat { width: 56px; height: 1.5rem; }
+
+    /* ---- Modal ---- */
     .modal-backdrop {
       display: none;
       position: fixed;
@@ -484,12 +880,7 @@
       color: var(--blush);
       margin-bottom: 18px;
     }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-bottom: 14px;
-    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
     .form-label {
       font-size: 0.72rem;
       letter-spacing: 0.08em;
@@ -514,39 +905,24 @@
     }
     .form-select option { background: #1e1e34; }
     .form-textarea { resize: vertical; min-height: 72px; }
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 20px;
-    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
     .btn-cancel {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-dim);
+      padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      background: transparent; border: 1px solid var(--border); color: var(--text-dim);
     }
     .btn-submit {
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      background: rgba(201,169,110,0.20);
-      border: 1px solid rgba(201,169,110,0.40);
-      color: var(--gold);
+      padding: 8px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      background: rgba(201,169,110,0.20); border: 1px solid rgba(201,169,110,0.40); color: var(--gold);
     }
     .btn-submit:hover { background: rgba(201,169,110,0.32); }
     .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    body { padding-bottom: env(safe-area-inset-bottom, 0px); }
   </style>
 </head>
 <body>
 
-  <!-- Auth gate — shown only when not logged in -->
+  <!-- Auth gate -->
   <div id="auth-gate">
     <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--gold);margin-bottom:4px;">SV</div>
     <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--text-dim);margin-bottom:24px;letter-spacing:0.06em;">Shepard Ventures</div>
@@ -566,14 +942,14 @@
         <div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
       <button id="google-btn" type="button" onclick="signInWithGoogle()" style="width:100%;padding:10px 18px;font-size:0.9rem;background:rgba(255,255,255,0.06);border:1px solid rgba(245,230,224,0.18);border-radius:8px;color:var(--blush);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;" onmouseover="this.style.background='rgba(255,255,255,0.10)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z" fill="#EA4335"/></svg>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z" fill="#EA4335"/></svg>
         Continue with Google
       </button>
       <div id="login-error" style="display:none;color:#e8836b;font-size:0.82rem;text-align:center;"></div>
     </form>
   </div>
 
-  <!-- Main app shell — hidden until auth confirmed -->
+  <!-- Main app -->
   <div id="app">
     <div class="page">
 
@@ -586,7 +962,6 @@
           </div>
           <button id="signout-btn" onclick="signOut()" style="margin-top:6px;padding:5px 12px;font-size:0.75rem;background:transparent;border:1px solid rgba(245,230,224,0.2);border-radius:6px;color:rgba(245,230,224,0.45);cursor:pointer;white-space:nowrap;font-family:inherit;" onmouseover="this.style.borderColor='rgba(245,230,224,0.4)';this.style.color='rgba(245,230,224,0.7)'" onmouseout="this.style.borderColor='rgba(245,230,224,0.2)';this.style.color='rgba(245,230,224,0.45)'">Sign out</button>
         </div>
-
         <div class="stat-bar">
           <div class="stat-chip">
             <span class="stat-label">Portfolio MRR</span>
@@ -599,11 +974,21 @@
           <div class="stat-chip">
             <span class="stat-label">Monthly Burn</span>
             <span class="stat-value dim" id="stat-burn"><span class="skeleton skel-stat"></span></span>
-            <span class="stat-footnote" id="burn-footnote" style="display:none;font-size:0.65rem;color:var(--text-dim);margin-top:2px;">Fixed only. Stripe fees + API usage additional.</span>
           </div>
           <div class="stat-chip">
             <span class="stat-label">Net</span>
             <span class="stat-value dim" id="stat-net"><span class="skeleton skel-stat"></span></span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-label">Margin</span>
+            <span class="stat-value" id="stat-margin"><span class="skeleton" style="width:56px;height:1.6rem;"></span></span>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="updated-label">
+            <span class="refresh-dot" id="refresh-dot"></span>
+            <span id="updated-at">Loading…</span>
+            <span id="live-clock" style="margin-left:8px;opacity:0.7;"></span>
           </div>
         </div>
       </header>
@@ -611,11 +996,10 @@
       <!-- Error banner -->
       <div class="error-banner" id="error-banner"></div>
 
-      <!-- Companies -->
+      <!-- Portfolio -->
       <section>
         <div class="section-header">Portfolio</div>
         <div class="company-grid" id="company-grid">
-          <!-- Skeleton cards -->
           <div class="company-card">
             <div class="skeleton" style="width:100px;height:1.4rem;margin-bottom:8px;"></div>
             <div class="skeleton" style="width:70%;height:0.8rem;margin-bottom:18px;"></div>
@@ -631,15 +1015,110 @@
         </div>
       </section>
 
+      <!-- Social Media Stats -->
+      <section>
+        <div class="section-header">Social Media — Last 7 Days</div>
+        <div class="social-grid" id="social-grid">
+          <div class="social-stat-card">
+            <span class="skeleton" style="width:48px;height:2rem;display:block;margin-bottom:4px;"></span>
+            <span class="social-stat-lbl">Posts This Week</span>
+          </div>
+          <div class="social-stat-card">
+            <span class="skeleton" style="width:48px;height:2rem;display:block;margin-bottom:4px;"></span>
+            <span class="social-stat-lbl">Posted</span>
+          </div>
+          <div class="social-stat-card">
+            <span class="skeleton" style="width:48px;height:2rem;display:block;margin-bottom:4px;"></span>
+            <span class="social-stat-lbl">Approval Rate</span>
+          </div>
+          <div class="social-stat-card">
+            <span class="skeleton" style="width:48px;height:2rem;display:block;margin-bottom:4px;"></span>
+            <span class="social-stat-lbl">Rejected</span>
+          </div>
+        </div>
+        <div id="platform-breakdown" class="platform-bar" style="margin-bottom:32px;"></div>
+      </section>
+
+      <!-- Activation Metrics -->
+      <section>
+        <div class="section-header">Activation</div>
+        <div class="activation-row" id="activation-row">
+          <div class="activation-card">
+            <span class="skeleton" style="width:48px;height:2.2rem;display:block;margin-bottom:4px;"></span>
+            <span class="activation-lbl">Total Paying</span>
+          </div>
+          <div class="activation-card">
+            <span class="skeleton" style="width:48px;height:2.2rem;display:block;margin-bottom:4px;"></span>
+            <span class="activation-lbl">Active This Week</span>
+          </div>
+          <div class="activation-card">
+            <span class="skeleton" style="width:48px;height:2.2rem;display:block;margin-bottom:4px;"></span>
+            <span class="activation-lbl">Never Logged In</span>
+          </div>
+          <div class="activation-card">
+            <span class="skeleton" style="width:48px;height:2.2rem;display:block;margin-bottom:4px;"></span>
+            <span class="activation-lbl">Activation Rate</span>
+          </div>
+        </div>
+      </section>
+
       <!-- Agents -->
       <section>
-        <div class="section-header">Agents</div>
+        <div class="section-header">Agents — Click to Chat</div>
         <div class="agent-row" id="agent-row">
           <!-- Populated by JS -->
         </div>
       </section>
 
-      <!-- Tasks -->
+      <!-- Activity Feed | Agent Chat — dual panel -->
+      <div class="dual-panel">
+
+        <!-- Activity Feed -->
+        <div class="panel-box">
+          <div class="panel-header">
+            <span class="panel-title">Live Activity Feed</span>
+            <span class="panel-live-dot" title="Realtime"></span>
+          </div>
+          <div class="feed-list" id="feed-list">
+            <div class="feed-empty">Loading activity…</div>
+          </div>
+        </div>
+
+        <!-- Agent Chat -->
+        <div class="panel-box chat-panel">
+          <div class="panel-header">
+            <span class="panel-title">Agent Chat</span>
+            <span id="chat-agent-name" style="font-size:0.75rem;color:var(--gold);"></span>
+          </div>
+          <div class="chat-tabs" id="chat-tabs">
+            <!-- Tabs populated by JS -->
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty">Select an agent above or click a chip to start chatting.</div>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-input" placeholder="Message the agent…" rows="1" disabled></textarea>
+            <button class="chat-send-btn" id="chat-send-btn" disabled>Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Files -->
+      <section class="file-section">
+        <div class="section-header">Files</div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" multiple accept="*/*">
+          <div class="drop-zone-text">
+            <strong>Drop files here</strong> or click to browse
+          </div>
+          <div class="drop-zone-sub">Max 50MB per file — stored in Supabase Storage</div>
+        </div>
+        <div class="file-list" id="file-list">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Open Tasks -->
       <section>
         <div class="tasks-header-row">
           <div class="section-header" style="margin-bottom:0;flex:1;">Open Tasks</div>
@@ -653,8 +1132,8 @@
       <!-- Footer -->
       <footer class="footer">
         <div class="updated-label">
-          <span class="refresh-dot" id="refresh-dot"></span>
-          <span id="updated-at">Loading…</span>
+          <span class="refresh-dot" id="footer-refresh-dot"></span>
+          <span id="footer-updated">—</span>
         </div>
         <div class="footer-burn" id="footer-burn"></div>
       </footer>
@@ -715,17 +1194,37 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    const POLL_INTERVAL_MS = 30_000;
+    // ============================================================
+    // State
+    // ============================================================
     let supabase = null;
-    let pollTimer = null;
+    let _token = null;
+    let _pollTimer = null;
+    let _clockTimer = null;
+    let _realtimeChannel = null;
+    const POLL_INTERVAL_MS = 30_000;
 
-    // ---- Bootstrap ----
+    // Chat state — per-agent conversation history stored in localStorage
+    const AGENTS = [
+      { key: 'cole',             name: 'Cole',             role: 'Chief of Staff' },
+      { key: 'hadley',           name: 'Hadley',           role: 'General Counsel' },
+      { key: 'pierce',           name: 'Pierce',           role: 'Growth + CS' },
+      { key: 'atlas',            name: 'Atlas',            role: 'Platform Eng' },
+      { key: 'carter',           name: 'Carter',           role: 'Product Eng' },
+      { key: 'sage',             name: 'Sage',             role: 'Social Media' },
+      { key: 'content_verifier', name: 'Verifier',         role: 'Fact Check' },
+    ];
+    let _activeAgent = null;
+    let _chatStreaming = false;
+
+    // ============================================================
+    // Bootstrap
+    // ============================================================
     async function bootstrap() {
-      // 1. Fetch Supabase config (same pattern as studio.html)
       let config;
       try {
         config = await fetch('/api/config').then(r => r.json());
-      } catch (e) {
+      } catch {
         showError('Failed to load configuration. Please refresh.');
         document.getElementById('auth-gate').classList.add('visible');
         return;
@@ -742,160 +1241,123 @@
         },
       });
 
-      // 2. Auth check
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         showLoginForm();
         return;
       }
-
-      // 3. Show app, start fetching
       revealApp(session.access_token);
     }
 
-    // ---- Auth helpers ----
     function revealApp(token) {
+      _token = token;
       document.getElementById('auth-gate').classList.remove('visible');
       document.getElementById('app').classList.add('visible');
-      loadOverview(token);
-      startPolling(token);
+
+      loadOverview();
+      loadSocialStats();
+      loadActivation();
+      loadTasks();
+      loadFiles();
+      initChatTabs();
+      initFeedRealtime();
+      loadFeed();
+      startPolling();
+      startClock();
     }
 
-    function showLoginForm() {
-      document.getElementById('auth-gate').classList.add('visible');
-      const btn = document.getElementById('login-btn');
-      const errEl = document.getElementById('login-error');
-
-      document.getElementById('login-form').addEventListener('submit', async () => {
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        errEl.style.display = 'none';
-        btn.disabled = true;
-        btn.textContent = 'Signing in…';
-
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          errEl.textContent = error.message || 'Sign-in failed. Check your credentials.';
-          errEl.style.display = 'block';
-          btn.disabled = false;
-          btn.textContent = 'Sign In';
-          return;
-        }
-
-        // Success — hide gate, show app
-        revealApp(data.session.access_token);
-      });
+    // ============================================================
+    // Live Clock
+    // ============================================================
+    function startClock() {
+      const el = document.getElementById('live-clock');
+      function tick() {
+        const now = new Date();
+        el.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      }
+      tick();
+      _clockTimer = setInterval(tick, 1000);
     }
 
-    // ---- Overview fetch ----
-    async function loadOverview(token) {
+    // ============================================================
+    // Overview
+    // ============================================================
+    async function loadOverview() {
       try {
-        const res = await fetch('/api/ventures/overview', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(err.error || `HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        renderOverview(data);
+        const res = await authFetch('/api/ventures/overview');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        renderOverview(d);
         hideError();
         pingRefreshDot();
       } catch (e) {
         showError(`Dashboard error: ${e.message}`);
-        console.error('[ventures] overview fetch failed', e);
       }
     }
 
-    // ---- Render ----
     function renderOverview(d) {
-      // Stat bar
       const mrr = d.totalMrrUsd ?? 0;
       const cust = d.totalCustomers ?? 0;
-      // costs.totalFixed is the authoritative number; fall back to legacy burn field if API is stale
-      const burn = d.costs?.totalFixed ?? d.burn?.monthlyFixedUsd ?? 149.41;
+      const burn = d.costs?.totalFixed ?? 149.41;
       const net = mrr - burn;
+      const marginPct = mrr > 0 ? Math.round((net / mrr) * 100) : null;
 
       setText('stat-mrr', `$${mrr.toLocaleString()}`);
       setText('stat-customers', cust.toString());
       setText('stat-burn', `$${burn.toFixed(2)}`);
       setText('stat-net', net >= 0 ? `$${net.toFixed(2)}` : `-$${Math.abs(net).toFixed(2)}`);
+      document.getElementById('stat-net').style.color = net >= 0 ? 'var(--sage)' : 'var(--coral)';
 
-      // Show burn footnote now that we have live data
-      const burnFootnote = document.getElementById('burn-footnote');
-      if (burnFootnote) burnFootnote.style.display = 'block';
-
-      document.getElementById('stat-net').style.color =
-        net >= 0 ? 'var(--sage)' : 'var(--coral)';
+      // Margin chip
+      const marginEl = document.getElementById('stat-margin');
+      if (marginPct !== null) {
+        marginEl.className = `stat-value margin-chip${net < 0 ? ' negative' : ''}`;
+        marginEl.textContent = `${marginPct}%`;
+      } else {
+        marginEl.textContent = '—';
+      }
 
       // Company cards
       const grid = document.getElementById('company-grid');
-      if (d.companies && d.companies.length > 0) {
+      if (d.companies?.length) {
         grid.innerHTML = d.companies.map(co => renderCompanyCard(co)).join('');
       }
 
-      // Agents
+      // Agents — render clickable chips with pulse
       const agentRow = document.getElementById('agent-row');
-      const agentRoles = {
-        cole:             'Chief of Staff',
-        hadley:           'General Counsel',
-        pierce:           'Growth + CS',
-        atlas:            'Platform Eng',
-        carter:           'Product Eng',
-        sage:             'Social Media',
-        content_verifier: 'Fact Check',
-      };
-      if (d.agents && d.agents.length > 0) {
-        agentRow.innerHTML = d.agents.map(a => `
-          <div class="agent-chip">
+      if (d.agents?.length) {
+        agentRow.innerHTML = d.agents.map(a => {
+          const meta = AGENTS.find(ag => ag.key === a.name);
+          const role = meta?.role || '';
+          const displayName = a.displayName || capitalize(a.name);
+          return `<div class="agent-chip" data-agent="${escHtml(a.name)}" onclick="selectAgentChat('${escHtml(a.name)}')">
             <span class="agent-dot ${a.status || 'idle'}"></span>
-            <span>${escHtml(a.displayName || capitalize(a.name))}</span>
-            <span class="agent-role">${agentRoles[a.name] || ''}</span>
-          </div>
-        `).join('');
-      } else {
-        // Fallback if ventures_agents returned nothing
-        const fallback = [
-          { name: 'Cole',   role: 'Chief of Staff'  },
-          { name: 'Hadley', role: 'General Counsel'  },
-          { name: 'Pierce', role: 'Growth + CS'      },
-          { name: 'Atlas',  role: 'Platform Eng'     },
-          { name: 'Carter', role: 'Product Eng'      },
-          { name: 'Sage',   role: 'Social Media'     },
-        ];
-        agentRow.innerHTML = fallback.map(a => `
-          <div class="agent-chip">
-            <span class="agent-dot idle"></span>
-            <span>${a.name}</span>
-            <span class="agent-role">${a.role}</span>
-          </div>
-        `).join('');
+            <span>${escHtml(displayName)}</span>
+            <span class="agent-role">${escHtml(role)}</span>
+          </div>`;
+        }).join('');
       }
 
-      // Footer — full cost breakdown
-      setText('updated-at', `Updated ${timeAgo(new Date(d.generatedAt))}`);
-      const costs = d.costs;
-      if (costs && costs.fixed) {
-        const paidServices = costs.fixed.filter(s => s.amount > 0);
-        const freeServices = costs.fixed.filter(s => s.amount === 0);
-        const freeNames = freeServices.map(s => s.name).join(', ');
-        const paidLine = paidServices
-          .map(s => `${s.name} $${s.amount.toFixed(2)}`)
-          .join(' + ');
+      // Footer
+      const updatedAt = new Date(d.generatedAt);
+      setText('updated-at', `Updated ${timeAgo(updatedAt)}`);
+      setText('footer-updated', `Last poll: ${updatedAt.toLocaleTimeString()}`);
+
+      // Footnote for burn
+      const burnFootnote = document.getElementById('burn-footnote');
+      if (burnFootnote) burnFootnote.style.display = 'block';
+
+      if (d.costs?.fixed) {
+        const paid = d.costs.fixed.filter(s => s.amount > 0);
+        const free = d.costs.fixed.filter(s => s.amount === 0).map(s => s.name).join(', ');
+        const paidLine = paid.map(s => `${s.name} $${s.amount.toFixed(2)}`).join(' + ');
         const footerEl = document.getElementById('footer-burn');
         if (footerEl) {
           footerEl.innerHTML =
             `<span style="color:var(--blush-deep);">Fixed: ${paidLine}</span>` +
-            `<br><span style="opacity:0.55;">Free: ${freeNames}</span>` +
+            `<br><span style="opacity:0.55;">Free: ${free}</span>` +
             `<br><span style="opacity:0.45;">Variable: Stripe fees + Anthropic API</span>`;
         }
-      } else {
-        setText('footer-burn', d.burn?.note || '');
       }
     }
 
@@ -933,21 +1395,724 @@
         </div>`;
     }
 
-    // ---- Polling ----
-    function startPolling(token) {
-      // Refresh Supabase session then poll
-      pollTimer = setInterval(async () => {
+    // ============================================================
+    // Social Stats
+    // ============================================================
+    async function loadSocialStats() {
+      try {
+        const res = await authFetch('/api/ventures/social-stats');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        renderSocialStats(d);
+      } catch (e) {
+        console.warn('[social-stats] failed:', e.message);
+        document.getElementById('social-grid').innerHTML =
+          '<div style="grid-column:1/-1;font-size:0.8rem;color:var(--text-dim);">Social stats unavailable.</div>';
+      }
+    }
+
+    function renderSocialStats(d) {
+      const totalPosted = d.totalPosted ?? 0;
+      const totalThisWeek = d.totalThisWeek ?? 0;
+      const approvalRate = d.approvalRate;
+      const rejected = d.byStatus?.rejected ?? 0;
+
+      document.getElementById('social-grid').innerHTML = `
+        <div class="social-stat-card">
+          <span class="social-stat-val">${totalThisWeek}</span>
+          <span class="social-stat-lbl">Posts This Week</span>
+        </div>
+        <div class="social-stat-card">
+          <span class="social-stat-val good">${totalPosted}</span>
+          <span class="social-stat-lbl">Posted</span>
+        </div>
+        <div class="social-stat-card">
+          <span class="social-stat-val ${approvalRate !== null && approvalRate >= 70 ? 'good' : 'warn'}">${approvalRate !== null ? approvalRate + '%' : '—'}</span>
+          <span class="social-stat-lbl">Approval Rate</span>
+        </div>
+        <div class="social-stat-card">
+          <span class="social-stat-val ${rejected > 0 ? 'warn' : ''}">${rejected}</span>
+          <span class="social-stat-lbl">Rejected</span>
+        </div>
+        ${d.totalFailed ? `
+        <div class="social-stat-card">
+          <span class="social-stat-val warn">${d.totalFailed}</span>
+          <span class="social-stat-lbl">Failed</span>
+        </div>` : ''}
+        ${d.allTimePosted !== null ? `
+        <div class="social-stat-card">
+          <span class="social-stat-val" style="color:var(--gold);">${d.allTimePosted}</span>
+          <span class="social-stat-lbl">All-Time Posted</span>
+        </div>` : ''}
+      `;
+
+      // Platform breakdown pills
+      const platformEl = document.getElementById('platform-breakdown');
+      if (d.platformBreakdown?.length) {
+        platformEl.innerHTML = d.platformBreakdown.map(p =>
+          `<span class="platform-pill">
+            ${escHtml(p.label)}
+            <span class="platform-pill-count">${p.count}</span>
+          </span>`
+        ).join('');
+      }
+    }
+
+    // ============================================================
+    // Activation Metrics
+    // ============================================================
+    async function loadActivation() {
+      try {
+        const res = await authFetch('/api/ventures/activation');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        renderActivation(d);
+      } catch (e) {
+        console.warn('[activation] failed:', e.message);
+        document.getElementById('activation-row').innerHTML =
+          '<div style="font-size:0.8rem;color:var(--text-dim);">Activation data unavailable.</div>';
+      }
+    }
+
+    function renderActivation(d) {
+      const neverPct = d.totalPaying > 0
+        ? Math.round((d.neverLoggedIn / d.totalPaying) * 100)
+        : 0;
+
+      document.getElementById('activation-row').innerHTML = `
+        <div class="activation-card">
+          <span class="activation-val">${d.totalPaying}</span>
+          <span class="activation-lbl">Total Paying</span>
+          <span class="activation-sub">${d.registeredNonPaying ?? 0} registered, no plan</span>
+        </div>
+        <div class="activation-card">
+          <span class="activation-val ${d.loggedInThisWeek > 0 ? 'good' : 'warn'}">${d.loggedInThisWeek}</span>
+          <span class="activation-lbl">Active This Week</span>
+          <span class="activation-sub">Logged in last 7 days</span>
+        </div>
+        <div class="activation-card">
+          <span class="activation-val ${d.neverLoggedIn > 0 ? 'warn' : 'good'}">${d.neverLoggedIn}</span>
+          <span class="activation-lbl">Never Logged In</span>
+          <span class="activation-sub">${neverPct}% of paying customers</span>
+        </div>
+        <div class="activation-card">
+          <span class="activation-val ${d.activationRate >= 70 ? 'good' : d.activationRate >= 40 ? '' : 'warn'}">${d.activationRate}%</span>
+          <span class="activation-lbl">Activation Rate</span>
+          <span class="activation-sub">Ever logged in</span>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // Activity Feed
+    // ============================================================
+    let _feedEvents = [];
+
+    async function loadFeed() {
+      try {
+        // Query the ventures_activity_events table for last 20 events
+        const r = await fetch(
+          `${(await supabase.auth.getSession()).data.session?.supabase_url || ''}/rest/v1/ventures_activity_events?select=id,agent_name,event_type,summary,created_at&order=created_at.desc&limit=20`,
+        );
+        // We can't use raw Supabase URL here — use supabase-js directly for the feed
+        // because we're client-side (the token is the user JWT, not service role)
+        const { data, error } = await supabase
+          .from('ventures_activity_events')
+          .select('id,agent_name,event_type,summary,created_at')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw new Error(error.message);
+        _feedEvents = data || [];
+        renderFeed();
+      } catch (e) {
+        console.warn('[feed] initial load failed:', e.message);
+        document.getElementById('feed-list').innerHTML =
+          '<div class="feed-empty">Activity feed unavailable.</div>';
+      }
+    }
+
+    function initFeedRealtime() {
+      if (!supabase) return;
+      try {
+        _realtimeChannel = supabase
+          .channel('ventures-activity')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'ventures_activity_events' },
+            (payload) => {
+              _feedEvents.unshift(payload.new);
+              if (_feedEvents.length > 30) _feedEvents.pop();
+              renderFeed();
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.warn('[feed] realtime subscribe failed:', e.message);
+      }
+    }
+
+    function renderFeed() {
+      const el = document.getElementById('feed-list');
+      if (!_feedEvents.length) {
+        el.innerHTML = '<div class="feed-empty">No activity yet. Agents will appear here as they work.</div>';
+        return;
+      }
+      el.innerHTML = _feedEvents.map(ev => {
+        const agent = ev.agent_name || 'system';
+        const summary = ev.summary || ev.event_type || 'Activity';
+        const when = timeAgo(new Date(ev.created_at));
+        return `
+          <div class="feed-item">
+            <span class="feed-agent-badge ${escHtml(agent)}">${escHtml(capitalize(agent.replace(/_/g,' ')))}</span>
+            <span class="feed-summary">${escHtml(summary)}</span>
+            <span class="feed-time">${escHtml(when)}</span>
+          </div>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // Agent Chat
+    // ============================================================
+    function initChatTabs() {
+      const tabsEl = document.getElementById('chat-tabs');
+      tabsEl.innerHTML = AGENTS.map(a =>
+        `<button class="chat-tab" data-agent="${escHtml(a.key)}" onclick="selectAgentChat('${escHtml(a.key)}')">${escHtml(a.name)}</button>`
+      ).join('');
+    }
+
+    // Exposed globally so agent-chip onclick and tab onclick work
+    window.selectAgentChat = function(agentKey) {
+      const agent = AGENTS.find(a => a.key === agentKey);
+      if (!agent || _chatStreaming) return;
+
+      _activeAgent = agentKey;
+
+      // Update tab highlights
+      document.querySelectorAll('.chat-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.agent === agentKey);
+      });
+      // Update agent chip highlights
+      document.querySelectorAll('.agent-chip').forEach(chip => {
+        chip.classList.toggle('selected', chip.dataset.agent === agentKey);
+      });
+
+      document.getElementById('chat-agent-name').textContent = `${agent.name} — ${agent.role}`;
+      document.getElementById('chat-input').disabled = false;
+      document.getElementById('chat-send-btn').disabled = false;
+      document.getElementById('chat-input').placeholder = `Message ${agent.name}…`;
+      document.getElementById('chat-input').focus();
+
+      renderChatMessages(agentKey);
+    };
+
+    function getChatHistory(agentKey) {
+      try {
+        return JSON.parse(localStorage.getItem(`sv_chat_${agentKey}`) || '[]');
+      } catch { return []; }
+    }
+
+    function saveChatHistory(agentKey, messages) {
+      // Keep last 40 messages per agent
+      const trimmed = messages.slice(-40);
+      localStorage.setItem(`sv_chat_${agentKey}`, JSON.stringify(trimmed));
+    }
+
+    function renderChatMessages(agentKey) {
+      const history = getChatHistory(agentKey);
+      const el = document.getElementById('chat-messages');
+      if (!history.length) {
+        const agent = AGENTS.find(a => a.key === agentKey);
+        el.innerHTML = `<div class="chat-empty">Start a conversation with ${agent?.name || agentKey}.</div>`;
+        return;
+      }
+      el.innerHTML = history.map(m => renderChatBubble(m.role, m.content, agentKey)).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function renderChatBubble(role, content, agentKey) {
+      const agent = AGENTS.find(a => a.key === agentKey) || { name: agentKey };
+      const sender = role === 'user' ? 'You' : agent.name;
+      return `
+        <div class="chat-msg ${escHtml(role)}">
+          <span class="chat-msg-sender">${escHtml(sender)}</span>
+          <div class="chat-bubble">${escHtml(content)}</div>
+        </div>`;
+    }
+
+    async function sendChat(text) {
+      if (!_activeAgent || !text.trim() || _chatStreaming) return;
+      _chatStreaming = true;
+
+      const history = getChatHistory(_activeAgent);
+      history.push({ role: 'user', content: text.trim() });
+      saveChatHistory(_activeAgent, history);
+      renderChatMessages(_activeAgent);
+
+      // Show typing indicator
+      const messagesEl = document.getElementById('chat-messages');
+      const typingId = 'typing-indicator';
+      const typingHtml = `
+        <div class="chat-msg assistant" id="${typingId}">
+          <span class="chat-msg-sender">${escHtml(AGENTS.find(a => a.key === _activeAgent)?.name || _activeAgent)}</span>
+          <div class="chat-typing">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>`;
+      messagesEl.insertAdjacentHTML('beforeend', typingHtml);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      // Disable input during streaming
+      document.getElementById('chat-input').disabled = true;
+      document.getElementById('chat-send-btn').disabled = true;
+
+      let accumulated = '';
+
+      try {
+        const res = await fetch('/api/ventures/chat', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            agent: _activeAgent,
+            messages: history,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`API error ${res.status}`);
+        }
+
+        // Remove typing indicator, add streaming bubble
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+
+        const streamBubbleId = 'stream-bubble';
+        const agentName = escHtml(AGENTS.find(a => a.key === _activeAgent)?.name || _activeAgent);
+        messagesEl.insertAdjacentHTML('beforeend', `
+          <div class="chat-msg assistant" id="${streamBubbleId}">
+            <span class="chat-msg-sender">${agentName}</span>
+            <div class="chat-bubble" id="stream-content"></div>
+          </div>`);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            try {
+              const evt = JSON.parse(raw);
+              if (evt.text) {
+                accumulated += evt.text;
+                const contentEl = document.getElementById('stream-content');
+                if (contentEl) {
+                  contentEl.textContent = accumulated;
+                  messagesEl.scrollTop = messagesEl.scrollHeight;
+                }
+              }
+              if (evt.done) break;
+            } catch { /* skip */ }
+          }
+        }
+
+        // Save assistant response to history
+        if (accumulated) {
+          const updatedHistory = getChatHistory(_activeAgent);
+          updatedHistory.push({ role: 'assistant', content: accumulated });
+          saveChatHistory(_activeAgent, updatedHistory);
+        }
+
+      } catch (e) {
+        console.error('[chat] stream error:', e);
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+        messagesEl.insertAdjacentHTML('beforeend', `
+          <div class="chat-msg assistant">
+            <div class="chat-bubble" style="color:var(--coral);">Error: ${escHtml(e.message)}</div>
+          </div>`);
+      } finally {
+        _chatStreaming = false;
+        document.getElementById('chat-input').disabled = false;
+        document.getElementById('chat-send-btn').disabled = false;
+        document.getElementById('chat-input').focus();
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+    }
+
+    // Chat input wiring
+    document.getElementById('chat-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val) {
+          e.target.value = '';
+          sendChat(val);
+        }
+      }
+    });
+    document.getElementById('chat-send-btn').addEventListener('click', () => {
+      const input = document.getElementById('chat-input');
+      const val = input.value.trim();
+      if (val) {
+        input.value = '';
+        sendChat(val);
+      }
+    });
+
+    // ============================================================
+    // File Upload
+    // ============================================================
+    const DROP_ZONE = document.getElementById('drop-zone');
+    const FILE_INPUT = document.getElementById('file-input');
+
+    DROP_ZONE.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      DROP_ZONE.classList.add('drag-over');
+    });
+    DROP_ZONE.addEventListener('dragleave', () => DROP_ZONE.classList.remove('drag-over'));
+    DROP_ZONE.addEventListener('drop', (e) => {
+      e.preventDefault();
+      DROP_ZONE.classList.remove('drag-over');
+      handleFiles(e.dataTransfer.files);
+    });
+    FILE_INPUT.addEventListener('change', () => handleFiles(FILE_INPUT.files));
+
+    async function handleFiles(fileList) {
+      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+      for (const file of Array.from(fileList)) {
+        if (file.size > MAX_SIZE) {
+          alert(`${file.name} is too large (max 50MB).`);
+          continue;
+        }
+        await uploadFile(file);
+      }
+    }
+
+    async function uploadFile(file) {
+      const rowId = `file-upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const listEl = document.getElementById('file-list');
+
+      // Add a pending row
+      const row = document.createElement('div');
+      row.className = 'file-row';
+      row.id = rowId;
+      row.innerHTML = `
+        <span class="file-icon">&#128196;</span>
+        <span class="file-name">${escHtml(file.name)}</span>
+        <span class="file-meta">${formatBytes(file.size)} — uploading…</span>
+        <div class="file-upload-progress" style="grid-column:1/-1;">
+          <div class="file-upload-bar" id="${rowId}-bar"></div>
+        </div>`;
+      listEl.prepend(row);
+
+      try {
+        // Upload to Supabase Storage bucket 'ventures-files'
+        const path = `uploads/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('ventures-files')
+          .upload(path, file, { contentType: file.type, upsert: false });
+
+        if (uploadErr) throw new Error(uploadErr.message);
+
+        // Animate progress bar to 100%
+        const bar = document.getElementById(`${rowId}-bar`);
+        if (bar) bar.style.width = '100%';
+
+        // Store metadata in ventures_files table via API
+        // We use the user token (not service role) — client-side insert with RLS
+        const { error: metaErr } = await supabase
+          .from('ventures_files')
+          .insert({
+            filename: file.name,
+            storage_path: uploadData.path,
+            size_bytes: file.size,
+            note: null,
+          });
+
+        if (metaErr) console.warn('[file upload] metadata insert failed:', metaErr.message);
+
+        // Update row to success state
+        row.innerHTML = `
+          <span class="file-icon">&#10003;</span>
+          <span class="file-name">${escHtml(file.name)}</span>
+          <span class="file-meta">${formatBytes(file.size)} — ${new Date().toLocaleTimeString()}</span>`;
+
+      } catch (e) {
+        console.error('[file upload] error:', e);
+        row.innerHTML = `
+          <span class="file-icon">&#10007;</span>
+          <span class="file-name">${escHtml(file.name)}</span>
+          <span class="file-meta" style="color:var(--coral);">Upload failed: ${escHtml(e.message)}</span>`;
+      }
+    }
+
+    async function loadFiles() {
+      try {
+        const { data, error } = await supabase
+          .from('ventures_files')
+          .select('id,filename,storage_path,size_bytes,note,uploaded_at')
+          .order('uploaded_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw new Error(error.message);
+        renderFiles(data || []);
+      } catch (e) {
+        console.warn('[files] load failed:', e.message);
+      }
+    }
+
+    function renderFiles(files) {
+      const listEl = document.getElementById('file-list');
+      if (!files.length) {
+        listEl.innerHTML = '<div style="font-size:0.8rem;color:var(--text-dim);padding:8px 0;">No files uploaded yet.</div>';
+        return;
+      }
+      listEl.innerHTML = files.map(f => `
+        <div class="file-row">
+          <span class="file-icon">&#128196;</span>
+          <span class="file-name">${escHtml(f.filename)}</span>
+          <span class="file-meta">${formatBytes(f.size_bytes)} &mdash; ${f.uploaded_at ? timeAgo(new Date(f.uploaded_at)) : 'recently'}</span>
+          ${f.note ? `<span style="font-size:0.72rem;color:var(--text-dim);grid-column:1/-1;">${escHtml(f.note)}</span>` : ''}
+        </div>`).join('');
+    }
+
+    function formatBytes(b) {
+      if (!b) return '—';
+      if (b < 1024) return `${b}B`;
+      if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)}KB`;
+      return `${(b / (1024 * 1024)).toFixed(1)}MB`;
+    }
+
+    // ============================================================
+    // Tasks
+    // ============================================================
+    async function loadTasks() {
+      if (!_token) return;
+      try {
+        const r = await authFetch('/api/ventures/tasks?limit=20');
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { tasks } = await r.json();
+        renderTasks(tasks || []);
+      } catch (e) {
+        console.error('[tasks] fetch failed', e);
+        document.getElementById('task-list').innerHTML = '<div class="task-empty">Could not load tasks.</div>';
+      }
+    }
+
+    function renderTasks(tasks) {
+      const list = document.getElementById('task-list');
+      if (!tasks.length) {
+        list.innerHTML = '<div class="task-empty">No open tasks. Tap "+ New Task" to assign one.</div>';
+        return;
+      }
+      list.innerHTML = tasks.map(t => renderTaskRow(t)).join('');
+
+      list.querySelectorAll('.task-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-task-action')) return;
+          const detail = row.querySelector('.task-detail');
+          if (!detail) return;
+          const isOpen = detail.classList.toggle('open');
+          row.classList.toggle('expanded', isOpen);
+        });
+      });
+
+      list.querySelectorAll('.btn-task-action').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const action = btn.dataset.action;
+          await patchTask(id, action === 'complete' ? 'completed' : 'in_progress');
+          await loadTasks();
+        });
+      });
+    }
+
+    function renderTaskRow(t) {
+      const agentLabel = t.assigned_to
+        ? t.assigned_to.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'Unassigned';
+      const statusClass = t.status || 'pending';
+      const statusLabel = { pending: 'Pending', in_progress: 'In Progress', blocked: 'Blocked', completed: 'Done' }[t.status] || t.status;
+      const age = timeAgo(new Date(t.created_at));
+      const descHtml = t.description
+        ? `<div style="margin-bottom:6px;">${escHtml(t.description)}</div>`
+        : '<div style="margin-bottom:6px;font-style:italic;">No description.</div>';
+      const blockedHtml = t.blocked_reason
+        ? `<div style="color:var(--coral);font-size:0.78rem;margin-bottom:6px;">Blocked: ${escHtml(t.blocked_reason)}</div>` : '';
+      const actionBtns = t.status !== 'completed'
+        ? `<button class="btn-task-action complete" data-id="${escHtml(t.id)}" data-action="complete">Mark Complete</button>
+           ${t.status === 'pending' ? `<button class="btn-task-action" data-id="${escHtml(t.id)}" data-action="start">Start</button>` : ''}`
+        : '';
+
+      const prio = t.priority || 3;
+      return `
+        <div class="task-row" data-priority="${prio}">
+          <span class="task-agent-badge">${escHtml(agentLabel)}</span>
+          <span class="task-title-text">${escHtml(t.title)}</span>
+          <span class="task-status-badge ${statusClass}">${escHtml(statusLabel)}</span>
+          <span class="task-age">${escHtml(age)}</span>
+          <div class="task-detail">
+            ${descHtml}${blockedHtml}
+            <div class="task-detail-actions">${actionBtns}</div>
+          </div>
+        </div>`;
+    }
+
+    async function patchTask(id, status) {
+      if (!_token) return;
+      await authFetch('/api/ventures/tasks', {
+        method: 'PATCH',
+        body: JSON.stringify({ id, status }),
+      });
+    }
+
+    // ---- Task modal ----
+    function initTaskModal() {
+      const modal = document.getElementById('task-modal');
+      document.getElementById('btn-new-task').addEventListener('click', () => modal.classList.add('open'));
+      document.getElementById('task-cancel').addEventListener('click', closeTaskModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeTaskModal(); });
+
+      document.getElementById('task-submit').addEventListener('click', async () => {
+        const title = document.getElementById('task-title').value.trim();
+        if (!title) { document.getElementById('task-title').focus(); return; }
+        const btn = document.getElementById('task-submit');
+        btn.disabled = true;
+        btn.textContent = 'Creating…';
+        try {
+          const r = await authFetch('/api/ventures/tasks', {
+            method: 'POST',
+            body: JSON.stringify({
+              title,
+              description: document.getElementById('task-desc').value.trim() || null,
+              assigned_to: document.getElementById('task-agent').value || null,
+              product: document.getElementById('task-product').value || 'dossie',
+              priority: Number(document.getElementById('task-priority').value) || 3,
+            }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          closeTaskModal();
+          await loadTasks();
+        } catch (e) {
+          btn.textContent = 'Error — retry';
+          console.error('[tasks] create failed', e);
+        } finally {
+          btn.disabled = false;
+          if (btn.textContent === 'Creating…') btn.textContent = 'Create Task';
+        }
+      });
+    }
+
+    function closeTaskModal() {
+      document.getElementById('task-modal').classList.remove('open');
+      document.getElementById('task-title').value = '';
+      document.getElementById('task-desc').value = '';
+      document.getElementById('task-agent').value = '';
+      document.getElementById('task-product').value = 'dossie';
+      document.getElementById('task-priority').value = '3';
+      const btn = document.getElementById('task-submit');
+      btn.textContent = 'Create Task';
+      btn.disabled = false;
+    }
+
+    // ============================================================
+    // Polling
+    // ============================================================
+    function startPolling() {
+      _pollTimer = setInterval(async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          clearInterval(pollTimer);
-          window.location.href = '/welcome.html';
+          clearInterval(_pollTimer);
+          window.location.reload();
           return;
         }
-        await loadOverview(session.access_token);
+        _token = session.access_token;
+        await Promise.all([loadOverview(), loadSocialStats(), loadActivation(), loadTasks()]);
       }, POLL_INTERVAL_MS);
     }
 
-    // ---- Helpers ----
+    // ============================================================
+    // Auth helpers
+    // ============================================================
+    function authFetch(url, opts = {}) {
+      return fetch(url, {
+        ...opts,
+        headers: {
+          'Authorization': `Bearer ${_token}`,
+          'Content-Type': 'application/json',
+          ...(opts.headers || {}),
+        },
+      });
+    }
+
+    function showLoginForm() {
+      document.getElementById('auth-gate').classList.add('visible');
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('login-error');
+
+      document.getElementById('login-form').addEventListener('submit', async () => {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Signing in…';
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          errEl.textContent = error.message || 'Sign-in failed.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          return;
+        }
+        revealApp(data.session.access_token);
+      });
+    }
+
+    async function signInWithGoogle() {
+      const btn = document.getElementById('google-btn');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting…';
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href },
+      });
+      if (error) {
+        btn.disabled = false;
+        btn.innerHTML = 'Continue with Google';
+        const err = document.getElementById('login-error');
+        err.textContent = error.message;
+        err.style.display = 'block';
+      }
+    }
+    window.signInWithGoogle = signInWithGoogle;
+
+    async function signOut() {
+      if (supabase) await supabase.auth.signOut();
+      localStorage.clear();
+      document.getElementById('app').classList.remove('visible');
+      document.getElementById('auth-gate').classList.add('visible');
+    }
+    window.signOut = signOut;
+
+    // ============================================================
+    // Helpers
+    // ============================================================
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
@@ -971,7 +2136,9 @@
       if (secs < 60) return `${secs}s ago`;
       const mins = Math.floor(secs / 60);
       if (mins < 60) return `${mins}m ago`;
-      return `${Math.floor(mins / 60)}h ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      return `${Math.floor(hrs / 24)}d ago`;
     }
 
     function showError(msg) {
@@ -985,190 +2152,19 @@
     }
 
     function pingRefreshDot() {
-      const dot = document.getElementById('refresh-dot');
-      dot.classList.add('ping');
-      setTimeout(() => dot.classList.remove('ping'), 600);
-    }
-
-    // ---- Tasks ----
-    let _taskToken = null; // stored after bootstrap so tasks can auth
-
-    async function loadTasks() {
-      if (!_taskToken) return;
-      try {
-        const r = await fetch('/api/ventures/tasks?limit=15', {
-          headers: { Authorization: `Bearer ${_taskToken}` },
-        });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const { tasks } = await r.json();
-        renderTasks(tasks || []);
-      } catch (e) {
-        console.error('[ventures/tasks] fetch failed', e);
-        document.getElementById('task-list').innerHTML =
-          '<div class="task-empty">Could not load tasks.</div>';
-      }
-    }
-
-    function renderTasks(tasks) {
-      const list = document.getElementById('task-list');
-      if (!tasks.length) {
-        list.innerHTML = '<div class="task-empty">No open tasks. Tap "+ New Task" to assign one.</div>';
-        return;
-      }
-      list.innerHTML = tasks.map(t => renderTaskRow(t)).join('');
-      // Attach expand toggles
-      list.querySelectorAll('.task-row').forEach(row => {
-        row.addEventListener('click', (e) => {
-          if (e.target.closest('.btn-task-action')) return; // let action buttons handle their own clicks
-          const detail = row.querySelector('.task-detail');
-          if (!detail) return;
-          const isOpen = detail.classList.toggle('open');
-          row.classList.toggle('expanded', isOpen);
-        });
-      });
-      // Attach action buttons
-      list.querySelectorAll('.btn-task-action').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.id;
-          const action = btn.dataset.action;
-          await patchTask(id, action === 'complete' ? 'completed' : 'in_progress');
-          await loadTasks();
-        });
+      ['refresh-dot', 'footer-refresh-dot'].forEach(id => {
+        const dot = document.getElementById(id);
+        if (!dot) return;
+        dot.classList.add('ping');
+        setTimeout(() => dot.classList.remove('ping'), 600);
       });
     }
 
-    function renderTaskRow(t) {
-      const agentLabel = t.assigned_to
-        ? t.assigned_to.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-        : 'Unassigned';
-      const statusClass = t.status || 'pending';
-      const statusLabel = {
-        pending: 'Pending', in_progress: 'In Progress',
-        blocked: 'Blocked', completed: 'Done',
-      }[t.status] || t.status;
-      const age = timeAgo(new Date(t.created_at));
-      const descHtml = t.description
-        ? `<div style="margin-bottom:6px;">${escHtml(t.description)}</div>`
-        : '<div style="margin-bottom:6px;font-style:italic;">No description.</div>';
-      const blockedHtml = t.blocked_reason
-        ? `<div style="color:var(--coral);font-size:0.78rem;margin-bottom:6px;">Blocked: ${escHtml(t.blocked_reason)}</div>` : '';
-      const actionBtns = t.status !== 'completed'
-        ? `<button class="btn-task-action complete" data-id="${escHtml(t.id)}" data-action="complete">Mark Complete</button>
-           ${t.status === 'pending' ? `<button class="btn-task-action" data-id="${escHtml(t.id)}" data-action="start">Start</button>` : ''}`
-        : '';
-      return `
-        <div class="task-row">
-          <span class="task-agent-badge">${escHtml(agentLabel)}</span>
-          <span class="task-title-text">${escHtml(t.title)}</span>
-          <span class="task-status-badge ${statusClass}">${escHtml(statusLabel)}</span>
-          <span class="task-age">${escHtml(age)}</span>
-          <div class="task-detail">
-            ${descHtml}${blockedHtml}
-            <div class="task-detail-actions">${actionBtns}</div>
-          </div>
-        </div>`;
-    }
-
-    async function patchTask(id, status) {
-      if (!_taskToken) return;
-      await fetch('/api/ventures/tasks', {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${_taskToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
-      });
-    }
-
-    // ---- Task modal ----
-    function initTaskModal() {
-      const modal = document.getElementById('task-modal');
-      const btnOpen = document.getElementById('btn-new-task');
-      const btnCancel = document.getElementById('task-cancel');
-      const btnSubmit = document.getElementById('task-submit');
-
-      btnOpen.addEventListener('click', () => modal.classList.add('open'));
-      btnCancel.addEventListener('click', closeModal);
-      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-      btnSubmit.addEventListener('click', async () => {
-        const title = document.getElementById('task-title').value.trim();
-        if (!title) { document.getElementById('task-title').focus(); return; }
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'Creating…';
-        try {
-          const r = await fetch('/api/ventures/tasks', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${_taskToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title,
-              description: document.getElementById('task-desc').value.trim() || null,
-              assigned_to: document.getElementById('task-agent').value || null,
-              product: document.getElementById('task-product').value || 'dossie',
-              priority: Number(document.getElementById('task-priority').value) || 3,
-            }),
-          });
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          closeModal();
-          await loadTasks();
-        } catch (e) {
-          console.error('[ventures/tasks] create failed', e);
-          btnSubmit.textContent = 'Error — retry';
-        } finally {
-          btnSubmit.disabled = false;
-          if (btnSubmit.textContent === 'Creating…') btnSubmit.textContent = 'Create Task';
-        }
-      });
-    }
-
-    function closeModal() {
-      const modal = document.getElementById('task-modal');
-      modal.classList.remove('open');
-      document.getElementById('task-title').value = '';
-      document.getElementById('task-desc').value = '';
-      document.getElementById('task-agent').value = '';
-      document.getElementById('task-product').value = 'dossie';
-      document.getElementById('task-priority').value = '3';
-      document.getElementById('task-submit').textContent = 'Create Task';
-      document.getElementById('task-submit').disabled = false;
-    }
-
-    // ---- Google OAuth ----
-    async function signInWithGoogle() {
-      const btn = document.getElementById('google-btn');
-      btn.disabled = true;
-      btn.textContent = 'Redirecting...';
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.href },
-      });
-      if (error) {
-        btn.disabled = false;
-        btn.innerHTML = 'Continue with Google';
-        const err = document.getElementById('login-error');
-        err.textContent = error.message;
-        err.style.display = 'block';
-      }
-    }
-    window.signInWithGoogle = signInWithGoogle;
-
-    // ---- Sign out ----
-    async function signOut() {
-      if (supabase) await supabase.auth.signOut();
-      localStorage.clear();
-      document.getElementById('app').classList.remove('visible');
-      document.getElementById('auth-gate').classList.add('visible');
-    }
-    window.signOut = signOut;
-
-    // ---- Start ----
+    // ============================================================
+    // Start
+    // ============================================================
     initTaskModal();
-    bootstrap().then((token) => {
-      // bootstrap returns the access token on success; use it for task API calls
-      if (token) {
-        _taskToken = token;
-        loadTasks();
-      }
-    });
+    bootstrap();
   </script>
 
 </body>
