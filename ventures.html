@@ -332,6 +332,216 @@
 
     /* Safe-area on iPhone notch/home bar */
     body { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+    /* ---- Tasks panel ---- */
+    .tasks-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .btn-new-task {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 13px;
+      background: rgba(201, 169, 110, 0.14);
+      border: 1px solid rgba(201, 169, 110, 0.35);
+      border-radius: 7px;
+      color: var(--gold);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      letter-spacing: 0.03em;
+    }
+    .btn-new-task:hover { background: rgba(201, 169, 110, 0.24); }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+    .task-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .task-row:hover { border-color: rgba(245, 230, 224, 0.22); }
+    .task-row.expanded { border-color: rgba(201, 169, 110, 0.30); }
+    .task-agent-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(245, 230, 224, 0.08);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .task-title-text {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--blush);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .task-status-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .task-status-badge.pending    { background: rgba(245,230,224,0.08); color: var(--text-dim); border: 1px solid var(--border); }
+    .task-status-badge.in_progress{ background: rgba(201,169,110,0.14); color: var(--gold);     border: 1px solid rgba(201,169,110,0.30); }
+    .task-status-badge.blocked    { background: rgba(232,131,107,0.14); color: var(--coral);    border: 1px solid rgba(232,131,107,0.30); }
+    .task-status-badge.completed  { background: rgba(139,168,136,0.14); color: var(--sage);     border: 1px solid rgba(139,168,136,0.30); }
+    .task-age {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .task-detail {
+      display: none;
+      grid-column: 1 / -1;
+      padding: 8px 0 4px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      border-top: 1px solid var(--border);
+      margin-top: 6px;
+    }
+    .task-detail.open { display: block; }
+    .task-detail-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-task-action {
+      padding: 4px 11px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--blush);
+      transition: background 0.12s;
+    }
+    .btn-task-action:hover { background: rgba(245,230,224,0.08); }
+    .btn-task-action.complete { border-color: rgba(139,168,136,0.40); color: var(--sage); }
+    .btn-task-action.complete:hover { background: rgba(139,168,136,0.12); }
+    .task-empty {
+      padding: 16px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    /* ---- Task modal ---- */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 46, 0.82);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: #1e1e34;
+      border: 1px solid rgba(245,230,224,0.15);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--blush);
+      margin-bottom: 18px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+    .form-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .form-input, .form-select, .form-textarea {
+      background: rgba(245,230,224,0.05);
+      border: 1px solid rgba(245,230,224,0.15);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--blush);
+      font-size: 0.9rem;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: rgba(201,169,110,0.50);
+    }
+    .form-select option { background: #1e1e34; }
+    .form-textarea { resize: vertical; min-height: 72px; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .btn-cancel {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .btn-submit {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(201,169,110,0.20);
+      border: 1px solid rgba(201,169,110,0.40);
+      color: var(--gold);
+    }
+    .btn-submit:hover { background: rgba(201,169,110,0.32); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -403,6 +613,17 @@
         </div>
       </section>
 
+      <!-- Tasks -->
+      <section>
+        <div class="tasks-header-row">
+          <div class="section-header" style="margin-bottom:0;flex:1;">Open Tasks</div>
+          <button class="btn-new-task" id="btn-new-task">+ New Task</button>
+        </div>
+        <div class="task-list" id="task-list">
+          <div class="task-empty">Loading tasks…</div>
+        </div>
+      </section>
+
       <!-- Footer -->
       <footer class="footer">
         <div class="updated-label">
@@ -414,6 +635,56 @@
 
     </div><!-- /page -->
   </div><!-- /app -->
+
+  <!-- New Task Modal -->
+  <div class="modal-backdrop" id="task-modal">
+    <div class="modal-box">
+      <div class="modal-title">New Task</div>
+      <div class="form-group">
+        <label class="form-label" for="task-title">Title</label>
+        <input class="form-input" id="task-title" type="text" placeholder="What needs to get done?" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="task-desc">Description (optional)</label>
+        <textarea class="form-textarea" id="task-desc" placeholder="Context, links, acceptance criteria…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="task-agent">Assign to</label>
+        <select class="form-select" id="task-agent">
+          <option value="">-- Unassigned --</option>
+          <option value="cole">Cole (Chief of Staff)</option>
+          <option value="hadley">Hadley (General Counsel)</option>
+          <option value="pierce">Pierce (Growth + CS)</option>
+          <option value="atlas">Atlas (Platform Eng)</option>
+          <option value="carter">Carter (Product Eng)</option>
+          <option value="sage">Sage (Social Media)</option>
+          <option value="content_verifier">Content Verifier (Fact Check)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="task-product">Company scope</label>
+        <select class="form-select" id="task-product">
+          <option value="dossie">Dossie</option>
+          <option value="cross">Cross-portfolio</option>
+          <option value="paralegal">Paralegal SaaS</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="task-priority">Priority</label>
+        <select class="form-select" id="task-priority">
+          <option value="1">High (P1)</option>
+          <option value="2">Medium-High (P2)</option>
+          <option value="3" selected>Medium (P3)</option>
+          <option value="4">Low (P4)</option>
+          <option value="5">Someday (P5)</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="task-cancel">Cancel</button>
+        <button class="btn-submit" id="task-submit">Create Task</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -457,6 +728,7 @@
       document.getElementById('app').classList.add('visible');
       await loadOverview(session.access_token);
       startPolling(session.access_token);
+      return session.access_token;
     }
 
     // ---- Overview fetch ----
@@ -514,27 +786,31 @@
       // Agents
       const agentRow = document.getElementById('agent-row');
       const agentRoles = {
-        cole: 'Chief of Staff',
-        hadley: 'General Counsel',
-        pierce: 'Growth + CS',
-        atlas: 'Platform Eng',
+        cole:             'Chief of Staff',
+        hadley:           'General Counsel',
+        pierce:           'Growth + CS',
+        atlas:            'Platform Eng',
+        carter:           'Product Eng',
+        sage:             'Social Media',
         content_verifier: 'Fact Check',
       };
       if (d.agents && d.agents.length > 0) {
         agentRow.innerHTML = d.agents.map(a => `
           <div class="agent-chip">
             <span class="agent-dot ${a.status || 'idle'}"></span>
-            <span>${capitalize(a.name)}</span>
+            <span>${escHtml(a.displayName || capitalize(a.name))}</span>
             <span class="agent-role">${agentRoles[a.name] || ''}</span>
           </div>
         `).join('');
       } else {
         // Fallback if ventures_agents returned nothing
         const fallback = [
-          { name: 'Cole', role: 'Chief of Staff' },
-          { name: 'Hadley', role: 'General Counsel' },
-          { name: 'Pierce', role: 'Growth + CS' },
-          { name: 'Atlas', role: 'Platform Eng' },
+          { name: 'Cole',   role: 'Chief of Staff'  },
+          { name: 'Hadley', role: 'General Counsel'  },
+          { name: 'Pierce', role: 'Growth + CS'      },
+          { name: 'Atlas',  role: 'Platform Eng'     },
+          { name: 'Carter', role: 'Product Eng'      },
+          { name: 'Sage',   role: 'Social Media'     },
         ];
         agentRow.innerHTML = fallback.map(a => `
           <div class="agent-chip">
@@ -658,8 +934,157 @@
       setTimeout(() => dot.classList.remove('ping'), 600);
     }
 
+    // ---- Tasks ----
+    let _taskToken = null; // stored after bootstrap so tasks can auth
+
+    async function loadTasks() {
+      if (!_taskToken) return;
+      try {
+        const r = await fetch('/api/ventures/tasks?limit=15', {
+          headers: { Authorization: `Bearer ${_taskToken}` },
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { tasks } = await r.json();
+        renderTasks(tasks || []);
+      } catch (e) {
+        console.error('[ventures/tasks] fetch failed', e);
+        document.getElementById('task-list').innerHTML =
+          '<div class="task-empty">Could not load tasks.</div>';
+      }
+    }
+
+    function renderTasks(tasks) {
+      const list = document.getElementById('task-list');
+      if (!tasks.length) {
+        list.innerHTML = '<div class="task-empty">No open tasks. Tap "+ New Task" to assign one.</div>';
+        return;
+      }
+      list.innerHTML = tasks.map(t => renderTaskRow(t)).join('');
+      // Attach expand toggles
+      list.querySelectorAll('.task-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-task-action')) return; // let action buttons handle their own clicks
+          const detail = row.querySelector('.task-detail');
+          if (!detail) return;
+          const isOpen = detail.classList.toggle('open');
+          row.classList.toggle('expanded', isOpen);
+        });
+      });
+      // Attach action buttons
+      list.querySelectorAll('.btn-task-action').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const action = btn.dataset.action;
+          await patchTask(id, action === 'complete' ? 'completed' : 'in_progress');
+          await loadTasks();
+        });
+      });
+    }
+
+    function renderTaskRow(t) {
+      const agentLabel = t.assigned_to
+        ? t.assigned_to.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'Unassigned';
+      const statusClass = t.status || 'pending';
+      const statusLabel = {
+        pending: 'Pending', in_progress: 'In Progress',
+        blocked: 'Blocked', completed: 'Done',
+      }[t.status] || t.status;
+      const age = timeAgo(new Date(t.created_at));
+      const descHtml = t.description
+        ? `<div style="margin-bottom:6px;">${escHtml(t.description)}</div>`
+        : '<div style="margin-bottom:6px;font-style:italic;">No description.</div>';
+      const blockedHtml = t.blocked_reason
+        ? `<div style="color:var(--coral);font-size:0.78rem;margin-bottom:6px;">Blocked: ${escHtml(t.blocked_reason)}</div>` : '';
+      const actionBtns = t.status !== 'completed'
+        ? `<button class="btn-task-action complete" data-id="${escHtml(t.id)}" data-action="complete">Mark Complete</button>
+           ${t.status === 'pending' ? `<button class="btn-task-action" data-id="${escHtml(t.id)}" data-action="start">Start</button>` : ''}`
+        : '';
+      return `
+        <div class="task-row">
+          <span class="task-agent-badge">${escHtml(agentLabel)}</span>
+          <span class="task-title-text">${escHtml(t.title)}</span>
+          <span class="task-status-badge ${statusClass}">${escHtml(statusLabel)}</span>
+          <span class="task-age">${escHtml(age)}</span>
+          <div class="task-detail">
+            ${descHtml}${blockedHtml}
+            <div class="task-detail-actions">${actionBtns}</div>
+          </div>
+        </div>`;
+    }
+
+    async function patchTask(id, status) {
+      if (!_taskToken) return;
+      await fetch('/api/ventures/tasks', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${_taskToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+    }
+
+    // ---- Task modal ----
+    function initTaskModal() {
+      const modal = document.getElementById('task-modal');
+      const btnOpen = document.getElementById('btn-new-task');
+      const btnCancel = document.getElementById('task-cancel');
+      const btnSubmit = document.getElementById('task-submit');
+
+      btnOpen.addEventListener('click', () => modal.classList.add('open'));
+      btnCancel.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+      btnSubmit.addEventListener('click', async () => {
+        const title = document.getElementById('task-title').value.trim();
+        if (!title) { document.getElementById('task-title').focus(); return; }
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Creating…';
+        try {
+          const r = await fetch('/api/ventures/tasks', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${_taskToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title,
+              description: document.getElementById('task-desc').value.trim() || null,
+              assigned_to: document.getElementById('task-agent').value || null,
+              product: document.getElementById('task-product').value || 'dossie',
+              priority: Number(document.getElementById('task-priority').value) || 3,
+            }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          closeModal();
+          await loadTasks();
+        } catch (e) {
+          console.error('[ventures/tasks] create failed', e);
+          btnSubmit.textContent = 'Error — retry';
+        } finally {
+          btnSubmit.disabled = false;
+          if (btnSubmit.textContent === 'Creating…') btnSubmit.textContent = 'Create Task';
+        }
+      });
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('task-modal');
+      modal.classList.remove('open');
+      document.getElementById('task-title').value = '';
+      document.getElementById('task-desc').value = '';
+      document.getElementById('task-agent').value = '';
+      document.getElementById('task-product').value = 'dossie';
+      document.getElementById('task-priority').value = '3';
+      document.getElementById('task-submit').textContent = 'Create Task';
+      document.getElementById('task-submit').disabled = false;
+    }
+
     // ---- Start ----
-    bootstrap();
+    initTaskModal();
+    bootstrap().then((token) => {
+      // bootstrap returns the access token on success; use it for task API calls
+      if (token) {
+        _taskToken = token;
+        loadTasks();
+      }
+    });
   </script>
 
 </body>
