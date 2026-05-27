@@ -524,16 +524,17 @@ async function handleCallbackQuery(cb) {
   }
 
   // Video approval flow: video_approve_{id} / video_reject_{id}
+  // Approve sets status='heath_approved' — cron-post-videos picks up only heath_approved rows.
   if (data.startsWith('video_approve_')) {
     const videoId = data.replace('video_approve_', '');
     await supabaseFetch(`/rest/v1/video_library?id=eq.${encodeURIComponent(videoId)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ status: 'approved' }),
+      body: JSON.stringify({ status: 'heath_approved' }),
     });
     const originalBody = String(message?.text || '');
     if (chatId && messageId) {
-      await editMessage(chatId, messageId, `${originalBody}\n\nApproved - will post at next schedule.`);
+      await editMessage(chatId, messageId, `${originalBody}\n\nApproved - will post at next cron run.`);
     }
     if (callbackId) await answerCallback(callbackId, 'Video approved');
     return;
