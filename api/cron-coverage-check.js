@@ -178,6 +178,79 @@ function extractJson(raw) {
   return JSON.parse(s);
 }
 
+// ─── Daily platform status digest ────────────────────────────────────────
+// Sends a Telegram summary of the prior 24h posting activity per platform.
+// Fires at the start of every coverage-check run (01:00 UTC = 8PM CST).
+async function sendDailyDigest() {
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, ok } = await supabaseFetch(
+    `/rest/v1/social_posts?select=platform,status&created_at=gte.${encodeURIComponent(since)}`,
+  );
+  if (!ok || !Array.isArray(data)) return;
+
+  // Tally by platform + status
+  const tally = {};
+  const PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'];
+  for (const plat of PLATFORMS) {
+    tally[plat] = { posted: 0, approved: 0, draft: 0, rejected: 0, failed: 0, pending: 0 };
+  }
+  for (const row of data) {
+    const p = row.platform;
+    if (!tally[p]) continue;
+    const s = row.status;
+    if (s === 'posted') tally[p].posted++;
+    else if (s === 'approved') tally[p].approved++;
+    else if (s === 'draft') tally[p].draft++;
+    else if (s === 'rejected') tally[p].rejected++;
+    else if (s === 'failed') tally[p].failed++;
+    else tally[p].pending++;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const lines = [`Daily social status - ${today} (last 24h)`, ''];
+  for (const plat of PLATFORMS) {
+    const t = tally[plat];
+    const parts = [];
+    if (t.posted) parts.push(`${t.posted} posted`);
+    if (t.approved) parts.push(`${t.approved} approved`);
+    if (t.draft) parts.push(`${t.draft} draft`);
+    if (t.rejected) parts.push(`${t.rejected} rejected`);
+    if (t.failed) parts.push(`${t.failed} failed`);
+    if (t.pending) parts.push(`${t.pending} pending`);
+    const summary = parts.length ? parts.join(', ') : 'no activity';
+    lines.push(`${plat.charAt(0).toUpperCase() + plat.slice(1)}: ${summary}`);
+  }
+
+  // Add alert if LinkedIn or TikTok has 0 posted
+  const alerts = [];
+  if (tally.linkedin.posted === 0 && tally.linkedin.approved === 0 && tally.linkedin.draft === 0) {
+    alerts.push('WARNING: LinkedIn has no posts in queue or published today');
+  }
+  if (tally.tiktok.posted === 0 && tally.tiktok.pending === 0) {
+    alerts.push('WARNING: TikTok has no activity today');
+  }
+  if (alerts.length) {
+    lines.push('');
+    lines.push(...alerts);
+  }
+
+  const text = lines.join('\n');
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text }),
+    });
+    console.log('[cron-coverage-check] daily digest sent to Telegram');
+  } catch (err) {
+    console.warn('[cron-coverage-check] digest Telegram send failed:', err && err.message);
+  }
+}
+
 async function lookupZernioAccountId(platform) {
   const encoded = encodeURIComponent(platform);
   const { data } = await supabaseFetch(
@@ -202,6 +275,9 @@ module.exports = async function handler(req, res) {
   if (!ANTHROPIC_API_KEY) {
     return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
   }
+
+  // Fire daily digest first — non-blocking, errors are logged and swallowed.
+  try { await sendDailyDigest(); } catch (e) { console.warn('[cron-coverage-check] digest threw:', e && e.message); }
 
   const now = new Date();
   // UTC date string "YYYY-MM-DD" used for all Supabase date comparisons.

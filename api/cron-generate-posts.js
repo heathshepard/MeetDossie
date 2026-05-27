@@ -46,12 +46,21 @@ ALWAYS APPROVE content that is:
 - A persona's pain story (e.g. "Brenda got a 4:30am call", "Victor missed a deadline")
 - Hypothetical frustrations or scenarios ("imagine losing a deal because...")
 - General agent experiences without specific Dossie usage claims
+- A persona described as USING Dossie (e.g. "She started using Dossie recently", "Victor uses Dossie now", "The morning brief lands in his inbox") — this is fictional persona storytelling, NOT a real customer claim. Approve it.
+- A persona experiencing a Dossie feature in the narrative (e.g. "Now she gets a morning brief", "He saw the deadline tracker pull every date from the contract") — this is persona storytelling. Approve it.
 
 ONLY FLAG content that:
-- Claims a specific person SIGNED UP for Dossie or is a Dossie MEMBER
+- Claims a REAL named person (from the founding member list below) SIGNED UP, joined, or became a Dossie MEMBER — with specifics like join date or member number
 - Gives an exact join date, timestamp, or member number for a real customer
-- Quotes a real customer by name with a specific claim
-- States a specific founding member count as fact (e.g. "47 members" - use "founding spots" language instead)
+- Quotes a real customer by name with a specific claim Heath did not make
+- States a specific founding member count as fact using a number higher than __FOUNDING_COUNT__
+- Claims Brenda, Patricia, or Victor is a "founding member" or gives them a member number (they are fictional personas, not real members)
+
+NEVER FLAG these patterns in persona copy:
+- "[Persona] started using Dossie recently" — fictional usage, fine
+- "[Persona] uses Dossie now" — fictional, fine
+- Persona experiencing any real Dossie feature — fine
+- Persona described as solving pain with Dossie — fine
 
 ## VERIFIED FACTS — the only source of truth for specific claims
 
@@ -611,6 +620,7 @@ TIMEFRAMES & DOSSIE-USAGE DURATION
 - Dossie launched recently. When a persona references how long they've been using Dossie, use "recently" or "over the last few weeks" — NEVER "a few months ago", "for the past year", "since last summer", or any phrasing that implies they've used Dossie for longer than a few weeks.
 - Past-tense scenarios about life BEFORE Dossie are fine and can be specific ("Last year she forgot two lender intros"). The constraint is only on phrasing that puts Dossie in the persona's life on a months/years timescale.
 - "He built Dossie", "Now Dossie does X" are fine. "Now she gets a brief every morning" is fine if it could plausibly have started this week. "Two years ago she was burned out, today Dossie runs her files" is NOT fine — implies a multi-year usage history.
+- AVOID the phrasing "X started using Dossie recently" — the word "started" reads like an onboarding claim and can confuse the content verifier. Instead write: "Now Dossie handles X for her", "She runs her files through Dossie now", or jump directly into describing the result without a sign-up anchor. The fictional nature of the persona means you can describe them using Dossie features without a sign-up sentence.
 
 ALGORITHM OPTIMIZATION
 You are generating content optimized for each platform's algorithm performance. The rules under each post in the plan below are not suggestions — they describe how that platform actually distributes content. Breaking these rules means the post gets shown to fewer people. Apply them strictly per post. The goal is maximum organic reach.
@@ -1170,6 +1180,27 @@ module.exports = async function handler(req, res) {
   const verifierApproved = verifierSummary.filter((v) => v.verdict === 'approve').length;
   const verifierRejected = verifierSummary.filter((v) => v.verdict === 'needs_revision').length;
   console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'renders:', renderSummary.filter(r => r.ok).length, '/', renderSummary.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected);
+
+  // Batch rejection rate alert: if 2+ posts rejected in a single run, send an alert via Claudy.
+  if (verifierRejected >= 2) {
+    const tgChatId = process.env.TELEGRAM_CHAT_ID || '7874782923';
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (tgToken) {
+      const rejectedPlatforms = verifierSummary
+        .filter((v) => v.verdict === 'needs_revision')
+        .map((v) => v.post_id || 'unknown')
+        .join(', ');
+      const alertText = `Verifier rejected ${verifierRejected} posts today (topic: ${topic.key})\nPost IDs: ${rejectedPlatforms}\nCheck social_posts table error_message for details.\nTotal in batch: ${generated.length} generated, ${inserted} inserted, ${verifierApproved} approved`;
+      fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: tgChatId, text: alertText }),
+      }).catch((err) => {
+        console.warn('[cron-generate-posts] batch rejection alert failed:', err && err.message);
+      });
+    }
+  }
+
   return res.status(200).json({
     ok: true,
     generated: generated.length,
