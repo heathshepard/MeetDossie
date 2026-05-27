@@ -330,7 +330,15 @@ async function pushToZernio(post) {
         data,
       };
     }
-    return { ok: true, status: res.status, data, zernio_post_id: data?.id || data?.post_id || null };
+    // Extract Zernio post ID — try all known field names from Zernio's API responses.
+    // Log the full response so we can identify the correct field if still null.
+    const zernioPostId = data?.id || data?.post_id || data?.postId || data?.data?.id || data?.data?.post_id || null;
+    if (!zernioPostId) {
+      console.warn(`[zernio-post-id] post ${post.id} (${post.platform}): could not extract post_id from response. Full response: ${respText.slice(0, 300)}`);
+    } else {
+      console.log(`[zernio-post-id] post ${post.id} (${post.platform}): captured zernio_post_id=${zernioPostId}`);
+    }
+    return { ok: true, status: res.status, data, zernio_post_id: zernioPostId };
   } catch (err) {
     const errorMsg = err && err.message ? `Zernio exception: ${err.message}` : 'No response from Zernio';
     console.error(`[zernio-exception] post ${post.id} (${post.platform}):`, errorMsg);
