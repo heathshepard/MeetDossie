@@ -301,6 +301,19 @@ module.exports = async function handler(req, res) {
       if (!matchedRow) continue; // Zernio post we didn't publish (scheduled from Zernio UI, etc.)
       totalMatched++;
 
+      // Compute engagement_score = weighted sum of key signals.
+      // Weights: likes×1 + comments×3 + shares×2 + saves×2 + clicks×1 + views×0.1
+      // Comments and shares weighted heavily (strong algorithmic signal).
+      // Views weighted low (impressions ≠ engagement).
+      const engagementScore = Math.round(
+        (metrics.likes * 1) +
+        (metrics.comments * 3) +
+        (metrics.shares * 2) +
+        (metrics.saves * 2) +
+        (metrics.clicks * 1) +
+        (metrics.views * 0.1),
+      );
+
       // Upsert into post_analytics (one row per social_post per sync_date)
       const analyticsRow = {
         social_post_id: matchedRow.id,
@@ -311,6 +324,7 @@ module.exports = async function handler(req, res) {
         hook: matchedRow.hook || null,
         synced_at: new Date().toISOString(),
         sync_date: syncDate,
+        engagement_score: engagementScore,
         ...metrics,
       };
 
