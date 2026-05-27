@@ -277,16 +277,7 @@ module.exports = async function handler(req, res) {
   const results = [];
   let allOk = true;
 
-  // Check which platforms already received a post today (text or video) to avoid flooding
-  const alreadyPostedToday = await getPlatformsPostedToday();
-  console.log(`[cron-post-videos] Platforms already posted today: ${[...alreadyPostedToday].join(', ') || 'none'}`);
-
   for (const platform of platforms) {
-    if (alreadyPostedToday.has(platform)) {
-      console.log(`[cron-post-videos] Skipping ${platform} — already posted today`);
-      results.push({ platform, ok: true, skipped: true, reason: 'already posted today' });
-      continue;
-    }
     const result = await postToZernio(platform, video.supabase_url, caption);
     results.push({ platform, ...result });
     if (!result.ok) {
