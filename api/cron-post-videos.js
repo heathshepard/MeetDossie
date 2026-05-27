@@ -217,6 +217,20 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, summary });
   }
 
+  // Guard: never post if caption looks like an internal note
+  const captionCheck = (video.caption || '').trim().toLowerCase();
+  if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
+    const warn = `Video ${video.id} has an invalid caption ("${(video.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
+    console.warn(`[cron-post-videos] ${warn}`);
+    await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
+    await supabaseFetch(
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+      { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+    );
+    summary.skipped.push({ id: video.id, reason: 'invalid caption' });
+    return res.status(200).json({ ok: true, summary });
+  }
+
   // Mark as posting (soft lock)
   const { ok: lockOk } = await supabaseFetch(
     `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
