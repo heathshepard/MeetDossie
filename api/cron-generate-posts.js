@@ -35,6 +35,22 @@ const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
 // these facts and flag fabrications.
 const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only job is to find fabrications, false specifics, and over-claims in customer-facing marketing copy before it ships. You are skeptical, terse, and accurate. You do not rewrite the copy — you flag what needs to change.
 
+## CONTENT FORMATS — know which rules apply
+
+Posts come in four formats. The format is declared in the verification request. Apply format-specific rules:
+
+### PERSONA_STORY posts (Brenda, Patricia, Victor)
+These are fictional Texas agent personas — NOT real customers. Any persona-branded content is intentional. Do NOT flag persona names, persona usage of Dossie, or persona pain stories.
+
+### CAPABILITY_ONELINER posts (Dossie brand voice)
+Dossie brand voice, no persona. Verifier must check: (a) is the claimed feature in the shipped features list? (b) is only ONE feature claimed? Flag any unshipped feature or stacked capability claims as red.
+
+### TREC_EDUCATION posts (Dossie brand voice)
+Dossie brand voice, no persona. Verifier must check: is the TREC fact accurate and in the pre-verified list? Pre-verified facts: option period from execution date, earnest money due within 3 days to title, survey period, title commitment review period (~20 days), closing date extension via amendment, third-party financing contingency. Flag any invented TREC rule or deadline not in this list as red.
+
+### FOUNDER_STORY posts (Heath's real verified stories only)
+Three approved stories: (1) TC quit while Heath was in Italy, (2) $400/file + 4:30am stress about option fee receipts, (3) remote deal management anxiety. Flag any specific detail that is NOT from these three stories (invented addresses, invented dollar amounts, invented timestamps) as red.
+
 ## FICTIONAL MARKETING PERSONAS — NEVER check against the founding member list
 
 Brenda, Patricia, and Victor are FICTIONAL characters used in Dossie's social media marketing content. They are NOT real customers and must NEVER be compared against or checked against the verified founding member list below. Any post written in one of their voices is intentional persona content — the persona name appearing in a post is never a fabrication or an unverified customer claim. Do not flag Brenda, Patricia, or Victor for any reason related to customer verification.
@@ -48,6 +64,7 @@ ALWAYS APPROVE content that is:
 - General agent experiences without specific Dossie usage claims
 - A persona described as USING Dossie (e.g. "She started using Dossie recently", "Victor uses Dossie now", "The morning brief lands in his inbox") — this is fictional persona storytelling, NOT a real customer claim. Approve it.
 - A persona experiencing a Dossie feature in the narrative (e.g. "Now she gets a morning brief", "He saw the deadline tracker pull every date from the contract") — this is persona storytelling. Approve it.
+- CAPABILITY_ONELINER, TREC_EDUCATION, or FOUNDER_STORY posts written in Dossie brand voice (no persona) — these are intentional brand-voice posts. Approve them if facts are accurate per the format-specific rules above.
 
 ONLY FLAG content that:
 - Claims a REAL named person (from the founding member list below) SIGNED UP, joined, or became a Dossie MEMBER — with specifics like join date or member number
@@ -336,19 +353,71 @@ const PLATFORM_RULES = {
   },
 };
 
+// ─── Content Format Definitions ──────────────────────────────────────────────
+// Each post slot specifies a FORMAT that controls whether it uses a persona
+// wrapper or Dossie brand voice directly. Non-persona formats (CAPABILITY_ONELINER,
+// TREC_EDUCATION, FOUNDER_STORY) skip the persona entirely and post as Dossie.
+//
+// FORMAT types:
+//   PERSONA_STORY      — fictional Texas agent persona (Brenda/Patricia/Victor), third-person voice
+//   CAPABILITY_ONELINER — Dossie brand voice, one shipped feature, plain language
+//   TREC_EDUCATION     — Dossie brand voice, real TREC fact + how Dossie handles it
+//   FOUNDER_STORY      — Heath's real verified pain stories only, Dossie brand voice
+//
 // Connected zernio_accounts as of 2026-05-07: facebook, instagram, twitter,
 // tiktok (gated locally), linkedin.
 //
 // Length rules live in PLATFORM_RULES (single source of truth). Per-post
-// notes only carry persona-flavor guidance, not length conflicts.
+// notes only carry format-flavor guidance, not length conflicts.
+//
+// Weekly format mix (Sage playbook 2026-05-27):
+//   2x CAPABILITY_ONELINER (facebook + twitter/linkedin)
+//   2x TREC_EDUCATION (instagram + linkedin)
+//   1x FOUNDER_STORY (facebook — high-credibility platform)
+//   1x PERSONA_STORY (one slot for emotional connection)
 const POST_PLAN_BASE = [
-  { persona: 'brenda',   platform: 'facebook',  notes: 'Story-shaped. Emotional honesty.' },
-  { persona: 'brenda',   platform: 'twitter',   notes: 'One punchline. Tired-but-witty voice.' },
-  { persona: 'patricia', platform: 'facebook',  notes: 'Conversational. Real-numbers focus.' },
-  { persona: 'patricia', platform: 'instagram', notes: 'Plainspoken. Skeptical-of-marketers tone.' },
-  { persona: 'victor',   platform: 'facebook',  notes: 'Operational/strategic framing.' },
-  { persona: 'victor',   platform: 'linkedin',  notes: 'Operational, peer-to-peer. LinkedIn audience: brokers + top producers. Open with a specific operational insight or number; close with a question that invites them to share their own.' },
-  { persona: 'victor',   platform: 'tiktok',    notes: 'Confident, not cocky. Math-driven.' },
+  // CAPABILITY_ONELINER — shows one specific shipped feature in plain Dossie voice
+  {
+    format: 'CAPABILITY_ONELINER',
+    persona: null,
+    platform: 'facebook',
+    notes: 'Feature name -> what it does -> one concrete outcome -> CTA. Plain language, no hype. Facebook audience skews experienced agents — make the feature feel obvious and useful, not trendy.',
+  },
+  // TREC_EDUCATION — teaches Texas agents something real about TREC
+  {
+    format: 'TREC_EDUCATION',
+    persona: null,
+    platform: 'instagram',
+    notes: 'TREC fact/rule -> why it matters -> how Dossie handles it -> CTA. Keep it crisp and mobile-readable. Line breaks between each beat.',
+  },
+  // PERSONA_STORY — one emotional persona slot for connection
+  {
+    format: 'PERSONA_STORY',
+    persona: 'brenda',
+    platform: 'twitter',
+    notes: 'One punchline. Tired-but-witty voice. Third person throughout.',
+  },
+  // CAPABILITY_ONELINER — second slot, LinkedIn/professional audience
+  {
+    format: 'CAPABILITY_ONELINER',
+    persona: null,
+    platform: 'linkedin',
+    notes: 'Peer-to-peer operational voice. Open with the specific capability and a number or outcome. Close with a question that invites brokers/producers to share their own workflow.',
+  },
+  // TREC_EDUCATION — second slot, LinkedIn for professional credibility
+  {
+    format: 'TREC_EDUCATION',
+    persona: null,
+    platform: 'twitter',
+    notes: 'Sharp thread or punchy single tweet. Lead with the TREC rule, follow with the agent consequence, land on how Dossie solves it.',
+  },
+  // FOUNDER_STORY — Heath real stories, high-credibility on Facebook
+  {
+    format: 'FOUNDER_STORY',
+    persona: null,
+    platform: 'facebook',
+    notes: 'Draw ONLY from the three approved Heath pain stories. Specific moment -> what it cost -> what Dossie would have done -> CTA. Conversational, not polished-marketing. This is a founder talking to agents, not a brand announcement.',
+  },
 ];
 
 function getPostPlan(date = new Date(), opts = {}) {
@@ -548,20 +617,140 @@ function buildPlatformNativeBlock(platform) {
   return PLATFORM_NATIVE_FORMAT[platform] || '';
 }
 
-function buildPrompt(topic, plan, dayOfYear, topPerformerBlock) {
-  const planLines = plan.map((p, i) => {
-    const persona = PERSONAS[p.persona];
-    const hookFormula = pickHookFormula(dayOfYear, i);
-    return `${i + 1}. Persona: ${persona.name} (${p.persona}) — ${persona.summary}
-   Platform: ${p.platform}
-   ${p.notes}
-${buildPlatformRulesBlock(p.platform)}
-${buildPlatformNativeBlock(p.platform)}
+// ─── Per-format slot brief builder ───────────────────────────────────────────
+// Returns the brief block for one post slot in the generation prompt.
+// Persona slots use the existing persona + hook-formula pattern.
+// Non-persona slots (CAPABILITY_ONELINER, TREC_EDUCATION, FOUNDER_STORY) get
+// a Dossie brand-voice brief instead — no persona wrapper, no fictional agent.
+function buildSlotBrief(slot, index, dayOfYear) {
+  const { format = 'PERSONA_STORY', persona: personaKey, platform, notes } = slot;
+  const hookFormula = pickHookFormula(dayOfYear, index);
+
+  if (format === 'PERSONA_STORY') {
+    const persona = PERSONAS[personaKey];
+    return `${index + 1}. FORMAT: PERSONA_STORY
+   Persona: ${persona.name} (${personaKey}) — ${persona.summary}
+   Platform: ${platform}
+   ${notes}
+${buildPlatformRulesBlock(platform)}
+${buildPlatformNativeBlock(platform)}
    HOOK FORMULA FOR THIS POST — ${hookFormula.name}:
    Description: ${hookFormula.description}
    Example: "${hookFormula.example}"
    How to apply: ${hookFormula.instruction}`;
-  }).join('\n\n');
+  }
+
+  if (format === 'CAPABILITY_ONELINER') {
+    return `${index + 1}. FORMAT: CAPABILITY_ONELINER — Dossie brand voice, NO persona wrapper
+   Voice: Dossie (warm, capable, Texas-specific, never corporate)
+   Platform: ${platform}
+   ${notes}
+   STRUCTURE: feature name -> what it does -> one concrete outcome -> CTA
+   EXAMPLE CAPTION: "Dossie scans a TREC contract in about 8 seconds. Deadlines auto-calculated, paragraph cited. No math. No spreadsheet. $29/month founding pricing at meetdossie.com/founding"
+   ALLOWED FEATURES (shipped, safe to claim): TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only - agent reviews and sends), morning brief with Luna voice, closing milestone cards, dossier pipeline view with deadline badges, Talk-to-Dossie chat, natural-language deadlines.
+   DO NOT claim any unshipped feature. Keep it to ONE feature per post — do not stack multiple capabilities into one claim.
+   Set "persona" in the output JSON to "dossie" for this slot.
+${buildPlatformRulesBlock(platform)}
+${buildPlatformNativeBlock(platform)}
+   HOOK FORMULA FOR THIS POST — ${hookFormula.name}:
+   Description: ${hookFormula.description}
+   Example: "${hookFormula.example}"
+   How to apply: ${hookFormula.instruction}`;
+  }
+
+  if (format === 'TREC_EDUCATION') {
+    return `${index + 1}. FORMAT: TREC_EDUCATION — Dossie brand voice, NO persona wrapper
+   Voice: Dossie (authoritative but plain-language, peer-to-peer with Texas agents, never corporate)
+   Platform: ${platform}
+   ${notes}
+   STRUCTURE: TREC fact/rule -> why it matters to the agent -> how Dossie handles it -> CTA
+   EXAMPLE CAPTION: "Option period in Texas runs from executed date plus N days. Miss the termination deadline by one minute and the right is gone. Dossie calculates it automatically and flags it in your morning brief. meetdossie.com/founding"
+   PRE-VERIFIED TREC FACTS (safe to reference — pick one per post):
+   - Option period: buyer's right to terminate, runs from execution date; one-minute miss eliminates the right
+   - Earnest money: typically due within 3 days of contract execution to title company
+   - Survey period: buyer obtains survey, seller reviews objections within specified period
+   - Title commitment: typically 20 days for buyer to review and object
+   - Closing date: TREC specifies exact mechanics for extensions via amendment only
+   - Third-party financing contingency: buyer has a financing contingency period; lapse = non-refundable earnest money risk
+   Use only one TREC fact per post. Do NOT invent additional TREC rules or deadlines not listed above.
+   Set "persona" in the output JSON to "dossie" for this slot.
+${buildPlatformRulesBlock(platform)}
+${buildPlatformNativeBlock(platform)}
+   HOOK FORMULA FOR THIS POST — ${hookFormula.name}:
+   Description: ${hookFormula.description}
+   Example: "${hookFormula.example}"
+   How to apply: ${hookFormula.instruction}`;
+  }
+
+  if (format === 'FOUNDER_STORY') {
+    return `${index + 1}. FORMAT: FOUNDER_STORY — Heath's real verified pain stories, Dossie brand voice, NO persona wrapper
+   Voice: Dossie / Heath's authentic founder voice (direct, personal, no polish, talking agent-to-agent)
+   Platform: ${platform}
+   ${notes}
+   STRUCTURE: specific moment -> what it cost -> what Dossie would have done -> CTA
+   THREE APPROVED STORIES — use ONLY these, pick one, do not invent any new details:
+   1. TC quit mid-deal while Heath was traveling internationally (Italy). 7-8 hour time difference. Active transactions in escrow. Vacation destroyed. Quote: "vacation is the stress test your systems fail."
+   2. $400/file cost, still waking up at 4:30am wondering if the option fee receipt was sent (wondering if the repair amendment went out). Paid the TC. Still lost sleep.
+   3. Managing transactions remotely while away from home — constant background anxiety about what might be falling through the cracks without someone watching.
+   DO NOT invent new specifics (timestamps, deal addresses, dollar amounts not listed above). If a detail is not in the three stories above, it is forbidden.
+   Set "persona" in the output JSON to "dossie" for this slot.
+${buildPlatformRulesBlock(platform)}
+${buildPlatformNativeBlock(platform)}
+   HOOK FORMULA FOR THIS POST — ${hookFormula.name}:
+   Description: ${hookFormula.description}
+   Example: "${hookFormula.example}"
+   How to apply: ${hookFormula.instruction}`;
+  }
+
+  // Fallback — treat unknown formats as PERSONA_STORY if persona is set
+  if (personaKey && PERSONAS[personaKey]) {
+    const persona = PERSONAS[personaKey];
+    return `${index + 1}. FORMAT: ${format} (fallback to PERSONA_STORY)
+   Persona: ${persona.name} (${personaKey}) — ${persona.summary}
+   Platform: ${platform}
+   ${notes}
+${buildPlatformRulesBlock(platform)}
+${buildPlatformNativeBlock(platform)}`;
+  }
+
+  return `${index + 1}. FORMAT: ${format} — Dossie brand voice
+   Platform: ${platform}
+   ${notes}
+${buildPlatformRulesBlock(platform)}
+${buildPlatformNativeBlock(platform)}`;
+}
+
+function buildPrompt(topic, plan, dayOfYear, topPerformerBlock) {
+  const planLines = plan.map((p, i) => buildSlotBrief(p, i, dayOfYear)).join('\n\n');
+
+  // Determine if any persona slots exist in this plan (for persona-voice section)
+  const hasPersonaSlots = plan.some((p) => (p.format || 'PERSONA_STORY') === 'PERSONA_STORY');
+  // Determine if any non-persona (brand-voice) slots exist
+  const hasBrandVoiceSlots = plan.some((p) => p.format && p.format !== 'PERSONA_STORY');
+
+  const personaVoiceSection = hasPersonaSlots ? `
+PERSONA VOICE — CRITICAL (applies ONLY to PERSONA_STORY slots)
+- ALL persona content MUST be written in THIRD PERSON, never first person.
+- NEVER write "I" as if the persona is the poster.
+- Write ABOUT the persona, not AS the persona.
+- Examples:
+  * WRONG: "I closed 6 deals this month."
+  * RIGHT: "She closed 6 deals this month."
+  * WRONG: "Last year I paid $8,000 for TC work."
+  * RIGHT: "Last year she paid $8,000 for TC work."
+- Brenda = she/her, Patricia = she/her, Victor = he/him.
+- AVOID the phrasing "X started using Dossie recently" — write "Now Dossie handles X for her" or jump directly into describing the result.
+` : '';
+
+  const brandVoiceSection = hasBrandVoiceSlots ? `
+DOSSIE BRAND VOICE — for CAPABILITY_ONELINER, TREC_EDUCATION, and FOUNDER_STORY slots
+- Write AS Dossie / the Dossie brand — not as a fictional persona, not as a marketer.
+- Warm, capable, Texas-specific, never corporate.
+- Plain language. Real specifics. No hype.
+- First person is allowed for the brand voice ("Dossie scans", "Dossie calculates").
+- Do NOT invent any persona wrapper for these slots. No "Brenda did X." No fictional agent.
+- Set "persona" to "dossie" in the JSON output for these slots.
+` : '';
 
   return `${topPerformerBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
 
@@ -596,20 +785,7 @@ BRAND CONTEXT
 - Founding-member pricing is $29/month, locked while subscription stays active.
 - Sign up: meetdossie.com/founding
 - Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect. No hashtag-stuffing. No "🔥💯🚀" emoji-spam. No "Game changer!" or "Stop scrolling!" hooks.
-
-PERSONA VOICE — CRITICAL
-- ALL persona content MUST be written in THIRD PERSON, never first person.
-- NEVER write "I" as if the persona is the poster.
-- Write ABOUT the persona, not AS the persona.
-- Examples:
-  * WRONG: "I closed 6 deals this month."
-  * RIGHT: "She closed 6 deals this month."
-  * WRONG: "Last year I paid $8,000 for TC work."
-  * RIGHT: "Last year she paid $8,000 for TC work."
-  * WRONG: "I built Dossie to solve this."
-  * RIGHT: "He built Dossie to solve this."
-- Brenda = she/her, Patricia = she/her, Victor = he/him.
-
+${personaVoiceSection}${brandVoiceSection}
 NUMBERS & CLAIMS
 - Any number used in a post (deals/year, $/file, etc.) is fictional and MUST be framed as a hypothetical or example. Use phrasing like "agents doing 50+ deals a year", "if you're paying around $400 a file", "say you do 10-12 deals a year".
 - Do NOT present specific numbers as if they're real stats about the agent or about Dossie's user base. Never write "54 deals" as if reporting fact — write "50+ deals a year" or "an agent doing 50 a year" instead.
@@ -619,8 +795,7 @@ NUMBERS & CLAIMS
 TIMEFRAMES & DOSSIE-USAGE DURATION
 - Dossie launched recently. When a persona references how long they've been using Dossie, use "recently" or "over the last few weeks" — NEVER "a few months ago", "for the past year", "since last summer", or any phrasing that implies they've used Dossie for longer than a few weeks.
 - Past-tense scenarios about life BEFORE Dossie are fine and can be specific ("Last year she forgot two lender intros"). The constraint is only on phrasing that puts Dossie in the persona's life on a months/years timescale.
-- "He built Dossie", "Now Dossie does X" are fine. "Now she gets a brief every morning" is fine if it could plausibly have started this week. "Two years ago she was burned out, today Dossie runs her files" is NOT fine — implies a multi-year usage history.
-- AVOID the phrasing "X started using Dossie recently" — the word "started" reads like an onboarding claim and can confuse the content verifier. Instead write: "Now Dossie handles X for her", "She runs her files through Dossie now", or jump directly into describing the result without a sign-up anchor. The fictional nature of the persona means you can describe them using Dossie features without a sign-up sentence.
+- "Dossie calculates X", "Now Dossie handles it" are fine tense-neutral phrasings. Use them for brand-voice slots.
 
 ALGORITHM OPTIMIZATION
 You are generating content optimized for each platform's algorithm performance. The rules under each post in the plan below are not suggestions — they describe how that platform actually distributes content. Breaking these rules means the post gets shown to fewer people. Apply them strictly per post. The goal is maximum organic reach.
@@ -635,7 +810,8 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 {
   "posts": [
     {
-      "persona": "brenda" | "patricia" | "victor",
+      "format": "PERSONA_STORY" | "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
+      "persona": "brenda" | "patricia" | "victor" | "dossie",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter",
       "card_body": "<MAX 50 WORDS. Punchy, standalone body text for the image card. 2-3 short sentences. Must work visually on the card without the full caption. Example: 'You already answered that. Yesterday. In writing. But here you are, fielding the same question again because your TC's system is sticky notes and prayers.'>",
       "caption": "<the full post text for social media — can be longer, tell the full story, include CTA and hashtags at the end>",
@@ -650,6 +826,8 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 
 Rules:
 - Exactly 6 posts, in the order listed in the plan above.
+- "format" must match the FORMAT specified in the slot brief (PERSONA_STORY, CAPABILITY_ONELINER, TREC_EDUCATION, or FOUNDER_STORY).
+- "persona" must be "dossie" for CAPABILITY_ONELINER, TREC_EDUCATION, and FOUNDER_STORY slots.
 - HASHTAGS: Must be appended to the END of the "caption" field (not just in the array):
   * Instagram: 8-10 hashtags separated by spaces
   * Twitter: 2-3 hashtags separated by spaces
@@ -720,8 +898,8 @@ function extractJson(raw) {
 // Second Anthropic call (Haiku) that scans each generated post against the
 // embedded facts snapshot and returns a JSON verdict. Fails safe: any error
 // or malformed response → needs_revision with an explanatory flag.
-async function verifyPost({ platform, persona, topic, content, founding }) {
-  const userMessage = `Verify this draft. Return only the JSON verdict.\n\nPlatform: ${platform}\nPersona: ${persona}\nTopic: ${topic}\n\nDRAFT:\n${content}`;
+async function verifyPost({ platform, persona, format, topic, content, founding }) {
+  const userMessage = `Verify this draft. Return only the JSON verdict.\n\nFormat: ${format || 'PERSONA_STORY'}\nPlatform: ${platform}\nPersona: ${persona}\nTopic: ${topic}\n\nDRAFT:\n${content}`;
 
   let res, text;
   try {
@@ -904,7 +1082,8 @@ module.exports = async function handler(req, res) {
   // Log which hook formulas are assigned to today's batch for diagnostics.
   const hookAssignments = plan.map((p, i) => {
     const f = pickHookFormula(dayOfYear, i);
-    return `${p.persona}/${p.platform}=${f.name}`;
+    const slotLabel = p.format || (p.persona ? `persona:${p.persona}` : 'unknown');
+    return `${slotLabel}/${p.platform}=${f.name}`;
   });
 
   // Fetch top-performer hooks from post_analytics. Fails gracefully (returns [])
@@ -915,7 +1094,7 @@ module.exports = async function handler(req, res) {
     console.log(`[cron-generate-posts] injecting ${topHooks.length} top-performer hooks into prompt`);
   }
 
-  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'platforms:', plan.map((p) => p.platform).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'top_performer_hooks:', topHooks.length, 'at', now.toISOString());
+  console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'slots:', plan.map((p) => `${p.format || 'PERSONA_STORY'}/${p.platform}`).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'top_performer_hooks:', topHooks.length, 'at', now.toISOString());
 
   let raw;
   try {
@@ -977,6 +1156,7 @@ module.exports = async function handler(req, res) {
   for (let i = 0; i < generated.length; i++) {
     const p = generated[i];
     if (!p || typeof p !== 'object') continue;
+    const format = String(p.format || 'PERSONA_STORY').toUpperCase();
     const persona = String(p.persona || '').toLowerCase();
     const platform = String(p.platform || '').toLowerCase();
     const caption = String(p.caption || p.content || '').trim(); // caption = full post text
@@ -986,8 +1166,9 @@ module.exports = async function handler(req, res) {
     const stat = String(p.stat || '').trim();
     const stat_label = String(p.stat_label || '').trim();
     const hashtags = Array.isArray(p.hashtags) ? p.hashtags.map((h) => String(h).replace(/^#/, '').trim()).filter(Boolean) : [];
+    // Brand-voice formats set persona="dossie" — valid, not a missing field.
     if (!caption || !platform || !persona) {
-      insertErrors.push({ index: i, error: 'missing required field', got: { persona, platform, caption_length: caption.length } });
+      insertErrors.push({ index: i, error: 'missing required field', got: { persona, platform, format, caption_length: caption.length } });
       continue;
     }
 
@@ -1038,6 +1219,7 @@ module.exports = async function handler(req, res) {
     const verifierResult = await verifyPost({
       platform,
       persona,
+      format,
       topic: topic.key,
       content: caption,
       founding,
@@ -1121,7 +1303,8 @@ module.exports = async function handler(req, res) {
       media_url: mediaUrl,
       generated_at: now.toISOString(),
       created_at: now.toISOString(),
-      verifier_result: verifierResult,
+      // Store format in verifier_result metadata — no new column needed
+      verifier_result: { ...verifierResult, content_format: format },
       error_message: errorMessage,
     };
 
@@ -1137,35 +1320,39 @@ module.exports = async function handler(req, res) {
   // Bug 2 fix: for every slot in the planned post schedule that produced no
   // generated post (missing required fields caused a `continue` above), insert
   // a status='failed' row so the gap is visible in Supabase rather than silent.
-  const generatedKeys = new Set(
-    generated
-      .filter((p) => p && p.persona && p.platform && (p.caption || p.content))
-      .map((p) => `${String(p.persona).toLowerCase()}-${String(p.platform).toLowerCase()}`)
-  );
+  //
+  // Key by position (index) rather than persona-platform — new brand-voice formats
+  // can have multiple slots on the same platform with no persona, so persona+platform
+  // is no longer unique. The generated array is positionally ordered to match plan.
+  const successfulIndexes = new Set();
+  for (let i = 0; i < generated.length; i++) {
+    const p = generated[i];
+    if (p && p.platform && (p.caption || p.content)) successfulIndexes.add(i);
+  }
   for (let i = 0; i < plan.length; i++) {
+    if (successfulIndexes.has(i)) continue;
     const slot = plan[i];
-    const slotKey = `${String(slot.persona || '').toLowerCase()}-${String(slot.platform || '').toLowerCase()}`;
-    if (!generatedKeys.has(slotKey)) {
-      const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
-      const failedPostId = `${now.toISOString().slice(0, 10)}-${slot.persona}-${slot.platform}-${i}-failed${testSuffix}`;
-      const failedRow = {
-        post_id: failedPostId,
-        platform: slot.platform,
-        persona: slot.persona,
-        topic: topic.key,
-        status: 'failed',
-        content: '',
-        generated_at: now.toISOString(),
-        created_at: now.toISOString(),
-        error_message: `Post generation failed: missing required fields (caption/platform/persona) for planned slot ${slot.persona}/${slot.platform}`,
-      };
-      console.warn(`[cron-generate-posts] slot ${slotKey} produced no valid post — inserting failed row ${failedPostId}`);
-      await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
-        method: 'POST',
-        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(failedRow),
-      });
-    }
+    const slotLabel = slot.format || (slot.persona ? slot.persona : 'dossie');
+    const slotKey = `${slotLabel}-${String(slot.platform || '').toLowerCase()}-${i}`;
+    const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
+    const failedPostId = `${now.toISOString().slice(0, 10)}-${slotLabel}-${slot.platform}-${i}-failed${testSuffix}`;
+    const failedRow = {
+      post_id: failedPostId,
+      platform: slot.platform,
+      persona: slot.persona || 'dossie',
+      topic: topic.key,
+      status: 'failed',
+      content: '',
+      generated_at: now.toISOString(),
+      created_at: now.toISOString(),
+      error_message: `Post generation failed: missing required fields for planned slot ${slotKey} (format: ${slot.format || 'PERSONA_STORY'})`,
+    };
+    console.warn(`[cron-generate-posts] slot ${slotKey} produced no valid post — inserting failed row ${failedPostId}`);
+    await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(failedRow),
+    });
   }
 
   // Update batch totals.
