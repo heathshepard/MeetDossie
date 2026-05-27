@@ -975,17 +975,77 @@ SCREEN_FREEZE_DETECT_NOISE = 0.005   # ffmpeg freezedetect threshold
 SCREEN_FREEZE_DETECT_DUR = 0.5       # min freeze length to register
 SCREEN_SILENCE_NOISE_DB = -30        # silencedetect threshold for "no audio"
 SCREEN_SILENCE_DUR = 0.5             # min silence length to register
-SCREEN_TRIM_MAX = 8.0                # bumped from 3.0 — desktop captures often
-                                     # have 5-7s of dead air before the brief
-                                     # voiceover starts
+SCREEN_TRIM_MAX = 30.0               # raised from 8.0 — desktop captures can have
+                                     # 15-25s of dead air (loader animation, tab
+                                     # switch, network wait) before actual content.
+                                     # 2026-05-26: trec-deadlines-desktop had 25.7s
+                                     # frozen window; 8.0 cap left 17s of black in
+                                     # the finished video that posted to TikTok.
+SCREEN_BLACK_PIX_TH = 0.15          # blackdetect pixel-brightness threshold (0-1).
+                                     # 0.10 misses dark-but-not-black loader screens;
+                                     # 0.15 is more aggressive without flagging
+                                     # dark-UI content as black.
+SCREEN_BLACK_MIN_DUR = 0.5           # min seconds a black segment must last to count.
+
+
+def detect_black_at_start(screen_rec: Path) -> float:
+    """Find leading black/near-black content at the start of the screen recording.
+
+    Uses ffmpeg blackdetect. Desktop screen recordings often start with a dark
+    loader or blank browser tab before the Dossie UI appears. Returns the
+    black_end timestamp of the last black segment in the contiguous leading
+    black zone (i.e. the first moment real content appears), capped at
+    SCREEN_TRIM_MAX. Returns 0.0 on failure or no leading black.
+
+    This is the PRIMARY dead-air detector for desktop recordings — it catches
+    both pure black frames AND near-black loader screens. The older freeze
+    detector (detect_freeze_at_start) is kept as a secondary fallback.
+    """
+    cmd = [FFMPEG, "-hide_banner", "-i", str(screen_rec),
+           "-vf", f"blackdetect=d={SCREEN_BLACK_MIN_DUR}:pix_th={SCREEN_BLACK_PIX_TH}",
+           "-an", "-f", "null", "-"]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return 0.0
+    text = (proc.stderr or "") + (proc.stdout or "")
+
+    # Parse all (black_start, black_end) pairs.
+    events = []
+    pending_start = None
+    for line in text.splitlines():
+        m = re.search(r"black_start:\s*([\d.]+)", line)
+        if m:
+            pending_start = float(m.group(1))
+            continue
+        m = re.search(r"black_end:\s*([\d.]+)", line)
+        if m and pending_start is not None:
+            events.append((pending_start, float(m.group(1))))
+            pending_start = None
+
+    if not events or events[0][0] > 0.5:
+        # No black starting near the beginning — nothing to trim.
+        return 0.0
+
+    # Walk forward through black windows — stop as soon as there is a gap > 2s
+    # between black segments (real content started).
+    trim_end = events[0][1]
+    for i in range(1, len(events)):
+        gap = events[i][0] - trim_end
+        if gap <= 2.0:
+            trim_end = events[i][1]
+        else:
+            break
+
+    return min(SCREEN_TRIM_MAX, max(0.0, trim_end))
 
 
 def detect_freeze_at_start(screen_rec: Path) -> float:
-    """Find dead air at the start of the screen recording.
+    """Find dead air at the start of the screen recording via freezedetect.
 
-    Runs ffmpeg with the freezedetect filter and parses the first
-    `freeze_end` timestamp. Returns the number of seconds to trim from the
-    beginning (0 if there's motion from frame 1, capped at SCREEN_TRIM_MAX).
+    Secondary detector — catches frozen-but-not-black frames (e.g. a static
+    UI splash that isn't near-black). Returns the first freeze_end where
+    freeze_start was at/near 0, capped at SCREEN_TRIM_MAX.
     Failures return 0 — never abort the render over a detect heuristic.
     """
     cmd = [FFMPEG, "-hide_banner", "-i", str(screen_rec),
@@ -997,6 +1057,9 @@ def detect_freeze_at_start(screen_rec: Path) -> float:
         return 0.0
     text = (proc.stderr or "") + (proc.stdout or "")
     # Look for "freeze_start: 0" or near-zero, then capture the matching freeze_end.
+    # Only take the FIRST freeze window — compressed screen captures fire freeze
+    # throughout the file (duplicate frames in static UI regions), so chaining
+    # multiple windows would trim past real content.
     freeze_start = None
     freeze_end = None
     for line in text.splitlines():
@@ -1055,19 +1118,29 @@ def detect_audio_silence_at_start(screen_rec: Path) -> float:
 
 
 def trim_screen_recording(screen_rec: Path, out_mp4: Path) -> tuple[Path, float]:
-    """Trim leading dead air from the screen recording — both video freeze
-    AND audio silence. Take the MAX so we cut past whichever ends later
-    (Dossie's voice not starting OR the UI not animating).
+    """Trim leading dead air from the screen recording.
 
-    Returns (path_to_use, seconds_trimmed). If no trim is needed the
-    original path is returned untouched and seconds_trimmed is 0.
+    Detection order (take MAX so we cut past whichever ends latest):
+      1. blackdetect — PRIMARY: finds leading black/near-black frames. Most
+         reliable for desktop recordings where the screen is dark before the
+         Dossie UI loads. Cap at SCREEN_TRIM_MAX (30s).
+      2. freezedetect — SECONDARY: catches frozen-but-not-black static UI.
+         Only uses the FIRST freeze window to avoid chaining through compressed
+         captures where static UI regions fire freeze throughout the file.
+      3. silencedetect — catches desktop recordings where the screen has motion
+         (cursor, layout shifts) but audio is silent (no narrator yet).
+
+    If none detect dead air, the original path is returned untouched.
+
+    Returns (path_to_use, seconds_trimmed). seconds_trimmed is 0 when no trim.
     """
+    black_s = detect_black_at_start(screen_rec)
     freeze_s = detect_freeze_at_start(screen_rec)
     silence_s = detect_audio_silence_at_start(screen_rec)
-    trim_s = max(freeze_s, silence_s)
+    trim_s = max(black_s, freeze_s, silence_s)
     if trim_s <= 0.05:
         return screen_rec, 0.0
-    print(f"[screen-rec] dead-air detect: freeze={freeze_s:.2f}s silence={silence_s:.2f}s -> trim={trim_s:.2f}s")
+    print(f"[screen-rec] dead-air detect: black={black_s:.2f}s freeze={freeze_s:.2f}s silence={silence_s:.2f}s -> trim={trim_s:.2f}s")
     cmd = [FFMPEG, "-y", "-ss", f"{trim_s:.3f}", "-i", str(screen_rec),
            "-c", "copy", "-avoid_negative_ts", "make_zero", str(out_mp4)]
     proc = subprocess.run(cmd, capture_output=True, text=True)
