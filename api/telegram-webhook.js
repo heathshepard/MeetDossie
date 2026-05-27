@@ -574,6 +574,97 @@ async function handleCallbackQuery(cb) {
 
   if (action === 'approve') {
     console.log(`[telegram-webhook] APPROVE action for postId="${postId}"`);
+
+    // ─── Two-gate approval (Improvement 2) ────────────────────────────────
+    // Gate 1: post has no card yet (copy approval).
+    //   → Set copy_approved=true, trigger HCTI card render, send rendered card
+    //     as a new Telegram message for visual approval (gate 2).
+    //   → On render failure: alert Heath, set status='failed'.
+    // Gate 2: post already has a card (visual approval).
+    //   → Set status='approved' as normal.
+    const CARD_PLATFORMS = new Set(['instagram', 'facebook']);
+    const needsCard = CARD_PLATFORMS.has(String(post.platform || '')) && !post.media_url;
+
+    if (needsCard) {
+      // Gate 1 — copy approved, render card now
+      await patchPost(postId, { copy_approved: true });
+      if (callbackId) await answerCallback(callbackId, 'Copy approved - rendering card...');
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n✅ Copy approved - rendering card...`);
+      }
+
+      // Trigger card render via the same /api/generate-card endpoint used by cron-generate-posts
+      let renderOk = false;
+      let cardUrl = null;
+      try {
+        const renderRes = await fetch('https://meetdossie.com/api/generate-card', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.CRON_SECRET}`,
+          },
+          body: JSON.stringify({
+            platform: post.platform,
+            hook: post.hook || String(post.content || '').slice(0, 120),
+            content: String(post.content || '').slice(0, 200),
+            persona: post.persona,
+            post_id: post.post_id,
+            stat: post.stat || '',
+            stat_label: post.stat_label || '',
+          }),
+        });
+        const renderText = await renderRes.text();
+        let renderData = null;
+        try { renderData = renderText ? JSON.parse(renderText) : null; } catch { renderData = null; }
+        if (renderRes.ok && renderData?.publicUrl) {
+          renderOk = true;
+          cardUrl = renderData.publicUrl;
+          console.log(`[telegram-webhook] card rendered: ${cardUrl}`);
+          await patchPost(postId, { media_url: cardUrl });
+        } else {
+          console.error('[telegram-webhook] card render failed:', renderRes.status, renderText.slice(0, 200));
+        }
+      } catch (err) {
+        console.error('[telegram-webhook] card render threw:', err && err.message);
+      }
+
+      if (!renderOk) {
+        // Card render failed — alert Heath, mark failed
+        await patchPost(postId, { status: 'failed', error_message: 'Card render failed after copy approval' });
+        if (chatId) {
+          await tgCall('sendMessage', {
+            chat_id: chatId,
+            text: `Card render failed for ${post.platform} post (${post.post_id}). Post marked failed. Check /api/generate-card logs.`,
+            disable_web_page_preview: true,
+          });
+        }
+        return;
+      }
+
+      // Card rendered — send visual approval message (gate 2)
+      const caption = String(post.content || '').slice(0, 1020);
+      const gate2Buttons = {
+        inline_keyboard: [[
+          { text: '✅ Approve', callback_data: `approve_${postId}` },
+          { text: '❌ Reject', callback_data: `reject_${postId}` },
+        ]],
+      };
+      // Send the card as a photo with approve/reject buttons on a text follow-up
+      await tgCall('sendPhoto', {
+        chat_id: chatId,
+        photo: cardUrl,
+        caption: `Card for ${post.platform} (${post.persona}) - check visuals`,
+      });
+      await tgCall('sendMessage', {
+        chat_id: chatId,
+        text: `Visual check: does this card look right for ${post.platform}?\n\nCaption preview: ${caption.slice(0, 300)}...\n\nApprove to publish, Reject to discard.`,
+        reply_markup: gate2Buttons,
+        disable_web_page_preview: true,
+      });
+      return;
+    }
+
+    // Gate 2 (or non-card platform) — full approval
     console.log(`[telegram-webhook] Post object:`, JSON.stringify(post));
     const patchBody = { status: 'approved', approved_at: now };
     console.log(`[telegram-webhook] Patch body:`, JSON.stringify(patchBody));
