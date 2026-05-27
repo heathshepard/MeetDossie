@@ -150,6 +150,158 @@ function daysBetween(later, earlier) {
   return Math.floor((later.getTime() - earlier.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+// ─── Daily video recording brief ─────────────────────────────────────────
+//
+// Generates the "TODAY'S VIDEO" section of the morning brief.
+// Portrait days (Mon/Wed/Fri): phone recording → TikTok + Instagram.
+// Desktop days (Tue/Thu):      screen recording → Facebook + Twitter + LinkedIn.
+// Weekend (Sat/Sun):           no new recording — re-run top performer.
+//
+// Topic rotation uses week index derived from day-of-year so the cycle is
+// calendar-stable regardless of when the cron first ran.
+// Week index = Math.floor(dayOfYear / 7) % 4 → cycles through 4 topics:
+//   0 = Morning Brief, 1 = Pipeline View, 2 = Talk to Dossie, 3 = Document Upload
+
+const VIDEO_TOPICS = [
+  {
+    slug: 'morning-brief',
+    label: 'Morning Brief',
+    portraitSteps: [
+      '- Open meetdossie.com/app on your phone and log in as Sarah',
+      '- Tap the Morning Brief banner at the top of the dashboard',
+      '- Show the brief loading — let it read the first deal summary aloud',
+      '- Scroll the deal list while the audio plays, then tap X to close',
+    ],
+    desktopSteps: [
+      '- Open meetdossie.com/app and log in',
+      '- Click the Morning Brief card at the top of the dashboard',
+      '- Let the brief load and begin reading — keep cursor still while audio plays',
+      '- Scroll down through the deal summary panel, then close the overlay',
+    ],
+  },
+  {
+    slug: 'pipeline-view',
+    label: 'Pipeline View',
+    portraitSteps: [
+      '- Open meetdossie.com/app on your phone and navigate to the Pipeline tab',
+      '- Scroll through the deal cards — show the deadline badges in red and yellow',
+      '- Tap one deal card to open the dossier detail view',
+      '- Scroll the detail to show the action items checklist, then swipe back',
+    ],
+    desktopSteps: [
+      '- Open meetdossie.com/app and click Pipeline in the sidebar',
+      '- Hover over a deal card with a red deadline badge — let the tooltip appear',
+      '- Click the card to open the dossier detail page',
+      '- Scroll to the Action Items section, then hit the browser back button',
+    ],
+  },
+  {
+    slug: 'talk-to-dossie',
+    label: 'Talk to Dossie',
+    portraitSteps: [
+      '- Open meetdossie.com/app on your phone and tap the Talk to Dossie button',
+      '- Type: "What is the option period deadline on 123 Main Street?" and send',
+      '- Show Dossie\'s response with the TREC paragraph citation highlighted',
+      '- Type a follow-up: "Add 3 days to the option period" and show the update',
+    ],
+    desktopSteps: [
+      '- Open meetdossie.com/workspace and select a deal from the sidebar',
+      '- In the chat input type: "What deadlines are coming up this week?" and press Enter',
+      '- Show Dossie\'s response scroll in — pause on the deadline list',
+      '- Type: "Draft an email to the title company confirming closing date" and send',
+    ],
+  },
+  {
+    slug: 'document-upload',
+    label: 'Document Upload',
+    portraitSteps: [
+      '- Open meetdossie.com/app on your phone and tap a deal card to open it',
+      '- Tap the Scan / Upload button in the dossier detail',
+      '- Select or photograph a document (use a blank page or sample contract)',
+      '- Show the document appear in the Documents section of the dossier',
+    ],
+    desktopSteps: [
+      '- Open meetdossie.com/app and click into a dossier from the pipeline',
+      '- Scroll to the Documents section and click Upload Document',
+      '- Select a sample PDF from your desktop and confirm the upload',
+      '- Watch the document card appear in the list with the file name and date',
+    ],
+  },
+];
+
+function buildVideoBrief(now) {
+  // Determine Chicago day of week: 0=Sun, 1=Mon, ..., 6=Sat
+  const dowFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    weekday: 'short',
+  });
+  const dowShort = dowFmt.format(now); // 'Sun', 'Mon', 'Tue', ...
+  const dowMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const dow = dowMap[dowShort] ?? 0;
+
+  // Weekend — no new recording.
+  if (dow === 0 || dow === 6) {
+    return [
+      '🎬 No new recording today — Carter will re-run top performer from the week.',
+    ].join('\n');
+  }
+
+  // Day-of-year for stable week index.
+  const yearFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const dateStr = yearFmt.format(now); // 'YYYY-MM-DD'
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const startOfYear = new Date(Date.UTC(y, 0, 1));
+  const dayOfYear = Math.floor((Date.UTC(y, mo - 1, d) - startOfYear.getTime()) / 86400000);
+  const weekIndex = Math.floor(dayOfYear / 7) % 4;
+  const topic = VIDEO_TOPICS[weekIndex];
+
+  // Is this a portrait day (Mon=1, Wed=3, Fri=5) or desktop day (Tue=2, Thu=4)?
+  const isPortrait = dow === 1 || dow === 3 || dow === 5;
+
+  // Desktop days: alternate demo account by week parity.
+  // Even week index → demo@meetdossie.com (Sarah Whitley)
+  // Odd week index  → demo2@meetdossie.com (John Smith)
+  let demoAccount, demoName;
+  if (isPortrait) {
+    demoAccount = 'demo@meetdossie.com';
+    demoName = 'Sarah Whitley';
+  } else {
+    if (weekIndex % 2 === 0) {
+      demoAccount = 'demo@meetdossie.com';
+      demoName = 'Sarah Whitley';
+    } else {
+      demoAccount = 'demo2@meetdossie.com';
+      demoName = 'John Smith';
+    }
+  }
+
+  // Build save path.
+  const savePath = isPortrait
+    ? `Media/screen-recordings/vertical/${topic.slug}-mobile-${dateStr}.mp4`
+    : `Media/screen-recordings/${topic.slug}-desktop-${dateStr}.mp4`;
+
+  // Build the section.
+  const lines = [];
+  lines.push('🎬 TODAY\'S VIDEO');
+  lines.push('');
+  lines.push(`Format: ${isPortrait ? '📱 PORTRAIT (phone)' : '🖥️ DESKTOP (screen recording)'}`);
+  lines.push(`Topic: ${topic.label}`);
+  lines.push(`Account: ${demoName} — ${demoAccount}`);
+  lines.push('');
+  lines.push('Steps:');
+  const steps = isPortrait ? topic.portraitSteps : topic.desktopSteps;
+  for (const step of steps) lines.push(step);
+  lines.push('');
+  lines.push(`Save as: ${savePath}`);
+  lines.push('');
+  lines.push('Text DONE when saved. Carter will render with synced voiceover and send for review.');
+
+  return lines.join('\n');
+}
+
 // ─── Staging diff ─────────────────────────────────────────────────────────
 
 // Returns an array of one-line commit strings that are on staging but not yet
@@ -465,6 +617,11 @@ async function buildBrief() {
       lines.push(`  - ${app.name || app.email} (${daysWaiting}d ago)`);
     }
   }
+  lines.push('');
+
+  // VIDEO BRIEF
+  const videoBrief = buildVideoBrief(now);
+  lines.push(videoBrief);
   lines.push('');
 
   // SOCIAL HEALTH
