@@ -570,8 +570,13 @@
 
       <!-- Hero -->
       <header class="hero">
-        <h1 class="hero-title">Shepard Ventures</h1>
-        <div class="hero-tagline">Build the rails. Run the portfolio.</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div>
+            <h1 class="hero-title">Shepard Ventures</h1>
+            <div class="hero-tagline">Build the rails. Run the portfolio.</div>
+          </div>
+          <button id="signout-btn" onclick="signOut()" style="margin-top:6px;padding:5px 12px;font-size:0.75rem;background:transparent;border:1px solid rgba(245,230,224,0.2);border-radius:6px;color:rgba(245,230,224,0.45);cursor:pointer;white-space:nowrap;font-family:inherit;" onmouseover="this.style.borderColor='rgba(245,230,224,0.4)';this.style.color='rgba(245,230,224,0.7)'" onmouseout="this.style.borderColor='rgba(245,230,224,0.2)';this.style.color='rgba(245,230,224,0.45)'">Sign out</button>
+        </div>
 
         <div class="stat-bar">
           <div class="stat-chip">
@@ -1117,6 +1122,15 @@
       document.getElementById('task-submit').textContent = 'Create Task';
       document.getElementById('task-submit').disabled = false;
     }
+
+    // ---- Sign out ----
+    async function signOut() {
+      if (supabase) await supabase.auth.signOut();
+      localStorage.clear();
+      document.getElementById('app').classList.remove('visible');
+      document.getElementById('auth-gate').classList.add('visible');
+    }
+    window.signOut = signOut;
 
     // ---- Start ----
     initTaskModal();
