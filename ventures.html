@@ -548,8 +548,20 @@
 
   <!-- Auth gate — shown only when not logged in -->
   <div id="auth-gate">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--gold);">SV</div>
-    <p>This dashboard is restricted. Redirecting to login…</p>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--gold);margin-bottom:4px;">SV</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--text-dim);margin-bottom:24px;letter-spacing:0.06em;">Shepard Ventures</div>
+    <form id="login-form" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;" onsubmit="return false;">
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email</label>
+        <input class="form-input" id="login-email" type="email" autocomplete="email" placeholder="heath@example.com" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input class="form-input" id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+      </div>
+      <button class="btn-submit" id="login-btn" type="submit" style="width:100%;padding:10px 18px;font-size:0.9rem;">Sign In</button>
+      <div id="login-error" style="display:none;color:#e8836b;font-size:0.82rem;text-align:center;"></div>
+    </form>
   </div>
 
   <!-- Main app shell — hidden until auth confirmed -->
@@ -719,16 +731,46 @@
       // 2. Auth check
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        document.getElementById('auth-gate').classList.add('visible');
-        setTimeout(() => { window.location.href = '/welcome.html'; }, 1200);
+        showLoginForm();
         return;
       }
 
       // 3. Show app, start fetching
+      revealApp(session.access_token);
+    }
+
+    // ---- Auth helpers ----
+    function revealApp(token) {
+      document.getElementById('auth-gate').classList.remove('visible');
       document.getElementById('app').classList.add('visible');
-      await loadOverview(session.access_token);
-      startPolling(session.access_token);
-      return session.access_token;
+      loadOverview(token);
+      startPolling(token);
+    }
+
+    function showLoginForm() {
+      document.getElementById('auth-gate').classList.add('visible');
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('login-error');
+
+      document.getElementById('login-form').addEventListener('submit', async () => {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Signing in…';
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          errEl.textContent = error.message || 'Sign-in failed. Check your credentials.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          return;
+        }
+
+        // Success — hide gate, show app
+        revealApp(data.session.access_token);
+      });
     }
 
     // ---- Overview fetch ----
