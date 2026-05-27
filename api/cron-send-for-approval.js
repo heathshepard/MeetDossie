@@ -8,6 +8,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 // Marketing approval flow uses a dedicated bot (DossieMarketingBot) so it
 // can hold a webhook without fighting Claudy's getUpdates loop. Falls back
@@ -15,7 +16,14 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
+// Quality scorer model — Haiku is sufficient for structured JSON scoring.
+const SCORER_MODEL = 'claude-haiku-4-5-20251001';
+
 const MAX_PER_RUN = 12;
+
+// Platforms that require a card image before final publish.
+// Used to detect the two-gate state (copy approved, card not yet rendered).
+const CARD_PLATFORMS_FOR_APPROVAL = new Set(['instagram', 'facebook']);
 
 // Platform rules summary for the approval message — compact one-liners so
 // Heath can sanity-check that the post was generated against the right
@@ -27,6 +35,60 @@ const PLATFORM_RULES_SUMMARY = {
   facebook:  'Pain-point/question hook, 200-500 words, short paragraphs, comment-driving CTA, 2-3 hashtags',
   twitter:   'Punchy/contrarian hook <280 chars, single tweet OR 5-8 thread, RT/quote CTA, 1-2 hashtags',
 };
+
+// ─── Quality Scorer ───────────────────────────────────────────────────────
+// Calls Claude Haiku to score a post on Hook, Platform Fit, and CTA (1-10 each).
+// Returns { hook, platform_fit, cta, composite } or null on any failure.
+// Failure is non-fatal — caller falls back to null and skips score display.
+async function scorePost(caption, platform) {
+  if (!ANTHROPIC_API_KEY) return null;
+  const prompt = `Score this social media post for a Texas real estate software product called Dossie on three dimensions (1-10 each):
+- Hook: Does the opening grab attention in the first line?
+- Platform fit: Is the tone, length, and format right for ${platform}?
+- CTA: Is the call to action clear and compelling?
+
+Post:
+${caption}
+
+Return JSON only: {"hook": N, "platform_fit": N, "cta": N}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: SCORER_MODEL,
+        max_tokens: 100,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data?.content?.[0]?.text || '';
+    // Extract JSON — handle fences or extra whitespace
+    const match = text.match(/\{[^}]+\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]);
+    const hook = Math.min(10, Math.max(1, parseInt(parsed.hook, 10) || 0));
+    const platform_fit = Math.min(10, Math.max(1, parseInt(parsed.platform_fit, 10) || 0));
+    const cta = Math.min(10, Math.max(1, parseInt(parsed.cta, 10) || 0));
+    if (!hook || !platform_fit || !cta) return null;
+    const composite = Math.round(((hook + platform_fit + cta) / 3) * 10) / 10;
+    return { hook, platform_fit, cta, composite };
+  } catch (err) {
+    console.warn('[cron-send-for-approval] scorePost failed:', err && err.message);
+    return null;
+  }
+}
+
+function formatScoreLine(score) {
+  if (!score) return '';
+  return `Score: ${score.composite}/10 (Hook: ${score.hook} | Fit: ${score.platform_fit} | CTA: ${score.cta})\n\n`;
+}
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -178,7 +240,53 @@ module.exports = async function handler(req, res) {
   for (const post of items) {
     if (!post || !post.id) continue;
 
-    // Message 1: Card image with short caption, NO buttons
+    // ─── Quality score (Improvement 1) ───────────────────────────────────
+    // Score the post before sending for approval. Non-fatal: if scoring fails
+    // we still send — just without the score line. Store scores back to DB.
+    const caption = String(post.content || '');
+    const platform = String(post.platform || '');
+    let scoreData = null;
+    // Only score if not already scored (idempotent on re-runs)
+    if (post.score_hook == null) {
+      scoreData = await scorePost(caption, platform);
+      if (scoreData) {
+        // Persist scores to DB — fire-and-forget, non-fatal
+        supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            score_hook: scoreData.hook,
+            score_platform_fit: scoreData.platform_fit,
+            score_cta: scoreData.cta,
+          }),
+        }).catch((err) => console.warn('[cron-send-for-approval] score patch failed:', err && err.message));
+        console.log(`[cron-send-for-approval] scored ${post.id}: ${scoreData.composite}/10`);
+      }
+    } else {
+      // Already scored — reconstruct for display
+      const h = post.score_hook || 0;
+      const f = post.score_platform_fit || 0;
+      const c = post.score_cta || 0;
+      if (h && f && c) {
+        scoreData = {
+          hook: h,
+          platform_fit: f,
+          cta: c,
+          composite: Math.round(((h + f + c) / 3) * 10) / 10,
+        };
+      }
+    }
+    const scoreLine = formatScoreLine(scoreData);
+
+    // ─── Two-gate flow (Improvement 2) ───────────────────────────────────
+    // If the post has no card yet (card render deferred), we send copy-only:
+    //   - No image on message 1 (text preview only)
+    //   - A note in message 2 that Approve = approve copy, card renders next
+    // If the post already has a card (visual approval gate), send card as image.
+    const hasCard = !!(post.media_url);
+    const needsCardRender = CARD_PLATFORMS_FOR_APPROVAL.has(post.platform) && !hasCard;
+
+    // Message 1: Card image (if available) OR text preview with short caption
     const shortCaption = formatShortCaption(post);
     const photoResult = await telegramSend(TELEGRAM_CHAT_ID, shortCaption, null, post.media_url || null);
     if (!photoResult.ok) {
@@ -189,10 +297,14 @@ module.exports = async function handler(req, res) {
 
     // Message 2: Full content + hashtags.
     // Draft posts get approve/reject buttons, approved posts get no buttons (preview only).
+    // Score line is prepended so Heath sees it before tapping Approve.
     const fullContent = formatFullContent(post);
     const isDraft = post.status === 'draft';
     const buttons = isDraft ? inlineKeyboard(post.id) : null;
-    const prefix = isDraft ? '' : '✅ AUTO-APPROVED\n\n';
+    const twoGateNote = (isDraft && needsCardRender)
+      ? '[No card yet - Approve = approve copy, card renders next]\n\n'
+      : '';
+    const prefix = isDraft ? `${scoreLine}${twoGateNote}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
     const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
     if (!textResult.ok) {
       console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
