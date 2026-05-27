@@ -53,3 +53,18 @@ When Heath records a desktop screen recording, dropping `morning-brief-desktop-2
 - Screen recording aspect doesn't match expected handler (portrait→fill OR landscape→blush)
 
 Failed validation aborts the render before the final mux, so no broken file is ever written to `Media/finished-videos/`.
+
+## 2026-05-26 — black screen at start of TikTok video
+
+### Issue found
+
+11. **14-second black screen at the start of trec-deadlines-desktop-2026-05-26-square.mp4** that posted to TikTok. Root cause: the Pexels b-roll clips rendered as black (either Pexels API returned black/corrupt clips or the b-roll ffmpeg pipeline failed silently), causing both the hook card (0-3s) AND the b-roll segment (3-14s) to render solid black. The screen recording segment started at 14s and showed valid Dossie UI content. The finished video had 14.17s of black confirmed by ffmpeg `blackdetect`. The source screen recording itself was fine — the issue was upstream in the b-roll stage.
+
+### Fix applied (2026-05-26)
+
+- `SCREEN_TRIM_MAX` raised from 8.0 to 30.0 — belt-and-suspenders in case of any future dead-air in screen recordings.
+- `detect_freeze_at_start()` restored to first-freeze-window-only behavior with clear comment explaining why chaining windows is wrong for compressed screen captures.
+- New `detect_black_at_start()` function added as primary dead-air detector — uses `blackdetect` which is more reliable than freezedetect for near-black loader screens.
+- `trim_screen_recording()` updated to run black detection first, freeze detection second, silence detection third, and take the MAX.
+- **Hotfix for posted video:** `trec-deadlines-desktop-2026-05-26-square.mp4` trimmed at 14.167s via ffmpeg and re-uploaded to Supabase Storage as `trec-deadlines-desktop-2026-05-26-square-v2.mp4`. `video_library.supabase_url` updated. Fixed video is 16.57s of clean Dossie dashboard content.
+- **TODO:** Add post-render blackdetect validation — if the first 5s of the finished video is >80% black, abort and alert Heath rather than posting silently.
