@@ -12,7 +12,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const AUTHORIZED_EMAIL = 'heath.shepard@kw.com';
+const AUTHORIZED_EMAILS = new Set(['heath.shepard@kw.com', 'heath@meetdossie.com']);
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -53,7 +53,7 @@ async function verifyAuth(req) {
   });
   if (!r.ok) return null;
   const u = await r.json();
-  return u.email === AUTHORIZED_EMAIL ? u : null;
+  return AUTHORIZED_EMAILS.has(u.email) ? u : null;
 }
 
 // Valid agents and statuses — used for input validation
