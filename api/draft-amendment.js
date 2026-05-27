@@ -198,8 +198,9 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
   ].filter(Boolean).join(', ');
   if (propertyLine) safeSetText(form, FIELDS.propertyAddress, propertyLine);
 
-  // Footer — final acceptance date (today)
-  safeSetText(form, FIELDS.finalAcceptanceDate, formatLongDate(new Date().toISOString().slice(0, 10)));
+  // Footer — DATE OF FINAL ACCEPTANCE is left blank intentionally.
+  // The TREC form instructs the broker to fill this in at signing.
+  // Auto-filling garbles the pre-printed footer layout.
 
   if (amendmentType === 'closing_date') {
     safeCheck(form, FIELDS.closingDateCheckbox);
