@@ -53,6 +53,10 @@
                      {
                          "source":  "/studio",
                          "destination":  "/ventures.html"
+                     },
+                     {
+                         "source":  "/media-studio",
+                         "destination":  "/media-studio.html"
                      }
                  ],
     "headers":  [
@@ -137,7 +141,13 @@
                                              },
                "api/cron-generate-skit.js":  {
                                                   "maxDuration":  30
-                                              }
+                                              },
+               "api/get-upload-url.js":  {
+                                             "maxDuration":  15
+                                         },
+               "api/register-video.js":  {
+                                             "maxDuration":  30
+                                         }
                   },
     "crons":  [
                   {

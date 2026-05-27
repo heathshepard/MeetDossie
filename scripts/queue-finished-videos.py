@@ -14,7 +14,9 @@ Run: python scripts/queue-finished-videos.py
 
 import json
 import os
+import subprocess
 import sys
+import tempfile
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -227,6 +229,55 @@ def upload_to_storage(file_path: Path, filename: str) -> str | None:
         return None
 
 
+def compress_video(file_path: Path) -> Path | None:
+    """
+    Compress a video file with ffmpeg to reduce size for upload.
+    Returns path to the compressed temp file, or None if ffmpeg fails.
+    The caller is responsible for cleaning up the temp file.
+    """
+    size_before_mb = file_path.stat().st_size / 1024 / 1024
+    print(f"  File is {size_before_mb:.1f} MB — compressing with ffmpeg...")
+
+    # NamedTemporaryFile with delete=False so we control cleanup
+    tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+    tmp_path = Path(tmp.name)
+    tmp.close()
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(file_path),
+        "-c:v", "libx264",
+        "-crf", "28",
+        "-preset", "fast",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        str(tmp_path),
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            print(f"  ERROR: ffmpeg failed (exit {result.returncode}):")
+            print(result.stderr[-500:])
+            tmp_path.unlink(missing_ok=True)
+            return None
+        size_after_mb = tmp_path.stat().st_size / 1024 / 1024
+        print(f"  Compressed: {size_before_mb:.1f} MB -> {size_after_mb:.1f} MB")
+        return tmp_path
+    except subprocess.TimeoutExpired:
+        print("  ERROR: ffmpeg timed out after 5 minutes")
+        tmp_path.unlink(missing_ok=True)
+        return None
+    except FileNotFoundError:
+        print("  ERROR: ffmpeg not found — install ffmpeg and add it to PATH")
+        tmp_path.unlink(missing_ok=True)
+        return None
+    except Exception as ex:
+        print(f"  ERROR: ffmpeg threw: {ex}")
+        tmp_path.unlink(missing_ok=True)
+        return None
+
+
 def upsert_video_library(row: dict) -> bool:
     """Upsert a row into video_library. Returns True on success."""
     result = supabase_request(
@@ -305,8 +356,26 @@ def main():
         # 2. Generate caption
         caption = generate_caption(filename, info["type"], info["topic"])
 
-        # 3. Upload to Supabase Storage
-        public_url = upload_to_storage(video_path, filename)
+        # 3. Auto-compress if file is larger than 48 MB
+        COMPRESS_THRESHOLD = 48 * 1024 * 1024  # 48 MB
+        upload_path = video_path
+        tmp_compressed: Path | None = None
+
+        if video_path.stat().st_size > COMPRESS_THRESHOLD:
+            tmp_compressed = compress_video(video_path)
+            if tmp_compressed is None:
+                print(f"  ERROR: Compression failed for {filename} — skipping")
+                results["failed"].append(stem)
+                continue
+            upload_path = tmp_compressed
+
+        # Upload to Supabase Storage
+        public_url = upload_to_storage(upload_path, filename)
+
+        # Clean up temp file if we compressed
+        if tmp_compressed is not None:
+            tmp_compressed.unlink(missing_ok=True)
+
         if not public_url:
             print(f"  ERROR: Upload failed for {filename} — skipping")
             results["failed"].append(stem)

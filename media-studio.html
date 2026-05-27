@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dossie Media Studio</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1A1A2E;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 60px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: #F5E6E0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .logo span {
+      font-family: 'Georgia', serif;
+      font-size: 26px;
+      font-weight: bold;
+      color: #E8836B;
+      line-height: 1;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      color: #FFFFFF;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #8BA888;
+      margin-bottom: 36px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #D4A0A0;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    input[type="password"] {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #FFFFFF;
+      font-size: 15px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="password"]:focus {
+      border-color: #E8836B;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
+      margin-top: 14px;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #E8836B;
+      color: #FFFFFF;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #d9724f;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #FFFFFF;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255,255,255,0.15);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed rgba(232,131,107,0.4);
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: #E8836B;
+      background: rgba(232,131,107,0.06);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    .drop-label {
+      font-size: 15px;
+      color: #FFFFFF;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .drop-hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* File info */
+    .file-info {
+      margin-top: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .file-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #FFFFFF;
+      word-break: break-all;
+      margin-bottom: 6px;
+    }
+    .file-meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 10px;
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-type {
+      background: rgba(201,169,110,0.2);
+      color: #C9A96E;
+      border: 1px solid rgba(201,169,110,0.3);
+    }
+    .badge-platform {
+      background: rgba(139,168,136,0.2);
+      color: #8BA888;
+      border: 1px solid rgba(139,168,136,0.3);
+    }
+
+    /* Warning */
+    .warning {
+      margin-top: 14px;
+      background: rgba(232,131,107,0.1);
+      border: 1px solid rgba(232,131,107,0.3);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .warning-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #E8836B;
+      margin-bottom: 8px;
+    }
+    .warning-body {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.6;
+    }
+    .code-block {
+      margin-top: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #8BA888;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    /* Progress */
+    .progress-wrap {
+      margin-top: 20px;
+    }
+    .progress-label {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .progress-bar-bg {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #E8836B;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .progress-pct {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* Success */
+    .success-box {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .success-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #8BA888;
+      margin-bottom: 8px;
+    }
+    .success-id {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      font-family: 'Courier New', monospace;
+      margin-bottom: 12px;
+    }
+    .success-note {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.6;
+    }
+
+    /* Error */
+    .error-box {
+      margin-top: 16px;
+      background: rgba(220,50,50,0.1);
+      border: 1px solid rgba(220,50,50,0.3);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .error-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ff6b6b;
+      margin-bottom: 4px;
+    }
+    .error-msg {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* Auth error inline */
+    .auth-error {
+      font-size: 12px;
+      color: #ff6b6b;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 18px;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      margin: 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo"><span>D</span></div>
+  <h1>Media Studio</h1>
+  <p class="subtitle">Upload finished videos to the posting pipeline</p>
+
+  <!-- AUTH PANEL -->
+  <div class="card" id="auth-panel">
+    <p class="section-title">Studio Access</p>
+    <label for="pwd-input">Password</label>
+    <input type="password" id="pwd-input" placeholder="Enter studio password" autocomplete="current-password" />
+    <p class="auth-error" id="auth-error">Wrong password - try again</p>
+    <button class="btn btn-primary" id="unlock-btn">Unlock Studio</button>
+  </div>
+
+  <!-- UPLOAD PANEL (hidden until unlocked) -->
+  <div class="card" id="upload-panel" style="display:none;">
+    <p class="section-title">Upload Video</p>
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".mp4,video/mp4" />
+      <div class="drop-icon">+</div>
+      <p class="drop-label">Drop a finished video here</p>
+      <p class="drop-hint">or click to browse - .mp4 only</p>
+    </div>
+
+    <!-- File info (hidden until file selected) -->
+    <div class="file-info" id="file-info" style="display:none;">
+      <div class="file-name" id="file-name-display"></div>
+      <div class="file-meta" id="file-meta-display"></div>
+      <div class="badge-row" id="badge-row"></div>
+
+      <!-- Size warning -->
+      <div class="warning" id="size-warning" style="display:none;">
+        <div class="warning-title">File too large - compress before uploading</div>
+        <div class="warning-body">
+          File is <span id="size-mb-display"></span> - Vercel upload limit is 48 MB.
+          Compress with ffmpeg first:
+          <div class="code-block" id="compress-cmd"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress (hidden until uploading) -->
+    <div class="progress-wrap" id="progress-wrap" style="display:none;">
+      <p class="progress-label" id="progress-label">Preparing upload...</p>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <p class="progress-pct" id="progress-pct">0%</p>
+    </div>
+
+    <!-- Error box -->
+    <div class="error-box" id="error-box" style="display:none;">
+      <div class="error-title">Upload failed</div>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <!-- Upload button -->
+    <button class="btn btn-primary" id="upload-btn" disabled style="margin-top:20px;">Upload Video</button>
+  </div>
+
+  <!-- SUCCESS PANEL (hidden until done) -->
+  <div class="card" id="success-panel" style="display:none;">
+    <div class="success-box">
+      <div class="success-icon">&#10003;</div>
+      <div class="success-title">Queued for review</div>
+      <div class="success-id" id="success-id"></div>
+      <p class="success-note">
+        Check DossieMarketingBot for the review message tomorrow morning.
+        The video is now in the posting pipeline.
+      </p>
+      <button class="btn btn-secondary" id="upload-another-btn" style="margin-top:24px;">Upload another</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SESSION_KEY = 'dossie_studio_pwd';
+  const MB_48 = 48 * 1024 * 1024;
+
+  // State
+  let password  = sessionStorage.getItem(SESSION_KEY) || '';
+  let selectedFile   = null;
+  let uploadMetadata = null; // { signedUrl, publicUrl, type, platforms, stem }
+
+  // Elements
+  const authPanel     = document.getElementById('auth-panel');
+  const uploadPanel   = document.getElementById('upload-panel');
+  const successPanel  = document.getElementById('success-panel');
+  const pwdInput      = document.getElementById('pwd-input');
+  const unlockBtn     = document.getElementById('unlock-btn');
+  const authError     = document.getElementById('auth-error');
+  const dropZone      = document.getElementById('drop-zone');
+  const fileInput     = document.getElementById('file-input');
+  const fileInfo      = document.getElementById('file-info');
+  const fileNameDisp  = document.getElementById('file-name-display');
+  const fileMetaDisp  = document.getElementById('file-meta-display');
+  const badgeRow      = document.getElementById('badge-row');
+  const sizeWarning   = document.getElementById('size-warning');
+  const sizeMbDisp    = document.getElementById('size-mb-display');
+  const compressCmd   = document.getElementById('compress-cmd');
+  const progressWrap  = document.getElementById('progress-wrap');
+  const progressLabel = document.getElementById('progress-label');
+  const progressFill  = document.getElementById('progress-fill');
+  const progressPct   = document.getElementById('progress-pct');
+  const errorBox      = document.getElementById('error-box');
+  const errorMsg      = document.getElementById('error-msg');
+  const uploadBtn     = document.getElementById('upload-btn');
+  const successId     = document.getElementById('success-id');
+  const uploadAnotherBtn = document.getElementById('upload-another-btn');
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function formatBytes(bytes) {
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    if (bytes >= 1024 * 1024)        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes >= 1024)               return (bytes / 1024).toFixed(1) + ' KB';
+    return bytes + ' B';
+  }
+
+  function setProgress(pct, label) {
+    progressFill.style.width = pct + '%';
+    progressPct.textContent  = Math.round(pct) + '%';
+    if (label) progressLabel.textContent = label;
+  }
+
+  function showError(msg) {
+    errorBox.style.display = 'block';
+    errorMsg.textContent   = msg;
+  }
+
+  function clearError() {
+    errorBox.style.display = 'none';
+    errorMsg.textContent   = '';
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  function showUploadPanel() {
+    authPanel.style.display   = 'none';
+    uploadPanel.style.display = 'block';
+  }
+
+  // If session already has a password, skip the auth step
+  if (password) showUploadPanel();
+
+  unlockBtn.addEventListener('click', function () {
+    const pwd = pwdInput.value.trim();
+    if (!pwd) return;
+    // We validate the password by trying get-upload-url with a dummy payload
+    // and catching 401. Simpler: just store it and let the first upload validate.
+    // But we want instant feedback — so do a quick probe call.
+    unlockBtn.disabled = true;
+    unlockBtn.textContent = 'Checking...';
+    authError.style.display = 'none';
+
+    fetch('/api/get-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: 'probe.mp4', fileSize: 0, password: pwd }),
+    })
+      .then(function (r) {
+        if (r.status === 401) {
+          authError.style.display = 'block';
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = 'Unlock Studio';
+          return;
+        }
+        // 200 or any non-401 (including storage errors) means password is good
+        password = pwd;
+        sessionStorage.setItem(SESSION_KEY, password);
+        showUploadPanel();
+      })
+      .catch(function () {
+        // Network error — still accept the password (Vercel might be cold)
+        password = pwd;
+        sessionStorage.setItem(SESSION_KEY, password);
+        showUploadPanel();
+      });
+  });
+
+  pwdInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') unlockBtn.click();
+  });
+
+  // ── File selection ────────────────────────────────────────────────────────
+
+  function handleFile(file) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.mp4')) {
+      showError('Only .mp4 files are accepted.');
+      return;
+    }
+
+    clearError();
+    selectedFile   = file;
+    uploadMetadata = null;
+    progressWrap.style.display = 'none';
+
+    // Show file info
+    fileInfo.style.display = 'block';
+    fileNameDisp.textContent = file.name;
+    fileMetaDisp.textContent = formatBytes(file.size);
+
+    // Fetch metadata from server (also validates the password again)
+    badgeRow.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:12px;">Detecting type...</span>';
+    uploadBtn.disabled = true;
+    sizeWarning.style.display = 'none';
+
+    fetch('/api/get-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, fileSize: file.size, password: password }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          showError(data.error || 'Server error');
+          badgeRow.innerHTML = '';
+          return;
+        }
+
+        uploadMetadata = data;
+
+        // Build badges
+        badgeRow.innerHTML = '';
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'badge badge-type';
+        typeBadge.textContent = data.type.replace('_', ' ');
+        badgeRow.appendChild(typeBadge);
+
+        (data.platforms || []).forEach(function (p) {
+          const b = document.createElement('span');
+          b.className = 'badge badge-platform';
+          b.textContent = p;
+          badgeRow.appendChild(b);
+        });
+
+        // Check file size
+        if (file.size > MB_48) {
+          const stem = file.name.replace(/\.mp4$/i, '');
+          const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+          sizeMbDisp.textContent = sizeMb;
+          compressCmd.textContent =
+            'ffmpeg -i "' + file.name + '" -c:v libx264 -crf 28 -preset fast -c:a aac -b:a 128k "' + stem + '-compressed.mp4"';
+          sizeWarning.style.display = 'block';
+          uploadBtn.disabled = true;
+        } else {
+          sizeWarning.style.display = 'none';
+          uploadBtn.disabled = false;
+        }
+      })
+      .catch(function (err) {
+        showError('Could not reach server: ' + (err && err.message));
+        badgeRow.innerHTML = '';
+      });
+  }
+
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', function () {
+    dropZone.classList.remove('drag-over');
+  });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  // ── Upload ────────────────────────────────────────────────────────────────
+
+  uploadBtn.addEventListener('click', function () {
+    if (!selectedFile || !uploadMetadata) return;
+
+    clearError();
+    uploadBtn.disabled = true;
+    progressWrap.style.display = 'block';
+    setProgress(0, 'Uploading to storage...');
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', function (e) {
+      if (e.lengthComputable) {
+        const pct = (e.loaded / e.total) * 90; // reserve last 10% for register step
+        setProgress(pct, 'Uploading...');
+      }
+    });
+
+    xhr.addEventListener('load', function () {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        // Upload succeeded — now register
+        setProgress(90, 'Registering video...');
+        registerVideo();
+      } else {
+        showError('Upload failed: HTTP ' + xhr.status + '. ' + (xhr.responseText || '').slice(0, 200));
+        uploadBtn.disabled = false;
+        progressWrap.style.display = 'none';
+      }
+    });
+
+    xhr.addEventListener('error', function () {
+      showError('Upload failed: network error. Check your connection and try again.');
+      uploadBtn.disabled = false;
+      progressWrap.style.display = 'none';
+    });
+
+    xhr.open('PUT', uploadMetadata.signedUrl);
+    xhr.setRequestHeader('Content-Type', 'video/mp4');
+    xhr.send(selectedFile);
+  });
+
+  function registerVideo() {
+    fetch('/api/register-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stem:      uploadMetadata.stem,
+        type:      uploadMetadata.type,
+        platforms: uploadMetadata.platforms,
+        publicUrl: uploadMetadata.publicUrl,
+        password:  password,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          showError('Register failed: ' + (data.error || 'Unknown error'));
+          uploadBtn.disabled = false;
+          progressWrap.style.display = 'none';
+          return;
+        }
+
+        setProgress(100, 'Done!');
+        setTimeout(function () {
+          uploadPanel.style.display  = 'none';
+          successPanel.style.display = 'block';
+          successId.textContent      = 'ID: ' + data.id;
+        }, 400);
+      })
+      .catch(function (err) {
+        showError('Register request failed: ' + (err && err.message));
+        uploadBtn.disabled = false;
+        progressWrap.style.display = 'none';
+      });
+  }
+
+  // ── Upload another ────────────────────────────────────────────────────────
+
+  uploadAnotherBtn.addEventListener('click', function () {
+    // Reset state
+    selectedFile   = null;
+    uploadMetadata = null;
+    fileInput.value = '';
+    fileInfo.style.display    = 'none';
+    progressWrap.style.display = 'none';
+    errorBox.style.display    = 'none';
+    sizeWarning.style.display = 'none';
+    badgeRow.innerHTML        = '';
+    uploadBtn.disabled        = true;
+
+    successPanel.style.display = 'none';
+    uploadPanel.style.display  = 'block';
+  });
+
+})();
+</script>
+
+</body>
+</html>
