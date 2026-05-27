@@ -5,9 +5,10 @@
  *
  * Auth: Bearer token via Supabase session — heath.shepard@kw.com only.
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ *
+ * Pattern: direct REST fetch with service role key — no supabase-js client.
+ * See Carter's memory: "NO supabase-js client in API routes — direct REST via fetch"
  */
-
-import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,42 +32,58 @@ function applyCors(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type');
 }
 
+// Direct REST helper — Carter's approved pattern for serverless routes
+function supa(path, opts = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  return fetch(url, {
+    ...opts,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    },
+  });
+}
+
 export default async function handler(req, res) {
   applyCors(req, res);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  // --- Auth ---
+  // --- Auth: verify Supabase JWT via /auth/v1/user ---
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized - no token' });
   }
   const token = authHeader.slice(7);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-  if (authErr || !user) {
+  const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!userRes.ok) {
     return res.status(401).json({ error: 'Unauthorized - invalid token' });
   }
-  if (user.email !== AUTHORIZED_EMAIL) {
+  const userData = await userRes.json();
+  if (userData.email !== AUTHORIZED_EMAIL) {
     return res.status(403).json({ error: 'Forbidden - admin only' });
   }
 
   try {
     // --- Revenue rollup from subscriptions ---
-    const { data: subs, error: subsErr } = await supabase
-      .from('subscriptions')
-      .select('plan, status')
-      .eq('status', 'active');
+    const subsRes = await supa('subscriptions?select=plan,status&status=eq.active');
+    if (!subsRes.ok) throw new Error(`subscriptions fetch failed: ${subsRes.status}`);
+    const subs = await subsRes.json();
 
-    if (subsErr) throw subsErr;
-
-    const founding = subs?.filter(s => s.plan === 'founding').length ?? 0;
-    const foundingFriend = subs?.filter(s => s.plan === 'founding_friend').length ?? 0;
-    const solo = subs?.filter(s => s.plan === 'solo').length ?? 0;
-    const team = subs?.filter(s => s.plan === 'team').length ?? 0;
-    const totalCustomers = subs?.length ?? 0;
+    const founding = subs.filter(s => s.plan === 'founding').length;
+    const foundingFriend = subs.filter(s => s.plan === 'founding_friend').length;
+    const solo = subs.filter(s => s.plan === 'solo').length;
+    const team = subs.filter(s => s.plan === 'team').length;
+    const totalCustomers = subs.length;
 
     // MRR: founding @ $29, founding_friend @ $1, solo @ $79, team @ $199
     const dossieMrr =
@@ -78,24 +95,25 @@ export default async function handler(req, res) {
 
     // --- Agent status from ventures_agents ---
     let agents = [];
-    const { data: agentRows, error: agentErr } = await supabase
-      .from('ventures_agents')
-      .select('name, status, last_active_at')
-      .order('name');
-
-    if (!agentErr && agentRows) {
+    const agentRes = await supa('ventures_agents?select=agent_name,display_name,status,last_active_at&order=agent_name.asc');
+    if (agentRes.ok) {
+      const agentRows = await agentRes.json();
       agents = agentRows.map(a => ({
-        name: a.name,
+        name: a.agent_name,
+        displayName: a.display_name,
         status: a.status || 'idle',
         lastActiveAt: a.last_active_at || null,
       }));
     } else {
       // Fallback if ventures_agents isn't queryable yet
       agents = [
-        { name: 'cole', status: 'idle', lastActiveAt: null },
-        { name: 'hadley', status: 'idle', lastActiveAt: null },
-        { name: 'pierce', status: 'idle', lastActiveAt: null },
-        { name: 'atlas', status: 'idle', lastActiveAt: null },
+        { name: 'cole',             displayName: 'Cole',             status: 'idle', lastActiveAt: null },
+        { name: 'hadley',           displayName: 'Hadley',           status: 'idle', lastActiveAt: null },
+        { name: 'pierce',           displayName: 'Pierce',           status: 'idle', lastActiveAt: null },
+        { name: 'atlas',            displayName: 'Atlas',            status: 'idle', lastActiveAt: null },
+        { name: 'carter',           displayName: 'Carter',           status: 'idle', lastActiveAt: null },
+        { name: 'sage',             displayName: 'Sage',             status: 'idle', lastActiveAt: null },
+        { name: 'content_verifier', displayName: 'Content Verifier', status: 'idle', lastActiveAt: null },
       ];
     }
 
