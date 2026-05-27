@@ -1170,6 +1170,27 @@ module.exports = async function handler(req, res) {
   const verifierApproved = verifierSummary.filter((v) => v.verdict === 'approve').length;
   const verifierRejected = verifierSummary.filter((v) => v.verdict === 'needs_revision').length;
   console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'renders:', renderSummary.filter(r => r.ok).length, '/', renderSummary.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected);
+
+  // Batch rejection rate alert: if 2+ posts rejected in a single run, send an alert via Claudy.
+  if (verifierRejected >= 2) {
+    const tgChatId = process.env.TELEGRAM_CHAT_ID || '7874782923';
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (tgToken) {
+      const rejectedPlatforms = verifierSummary
+        .filter((v) => v.verdict === 'needs_revision')
+        .map((v) => v.post_id || 'unknown')
+        .join(', ');
+      const alertText = `Verifier rejected ${verifierRejected} posts today (topic: ${topic.key})\nPost IDs: ${rejectedPlatforms}\nCheck social_posts table error_message for details.\nTotal in batch: ${generated.length} generated, ${inserted} inserted, ${verifierApproved} approved`;
+      fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: tgChatId, text: alertText }),
+      }).catch((err) => {
+        console.warn('[cron-generate-posts] batch rejection alert failed:', err && err.message);
+      });
+    }
+  }
+
   return res.status(200).json({
     ok: true,
     generated: generated.length,
