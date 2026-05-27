@@ -141,7 +141,7 @@ async function postToZernio(platform, videoUrl, caption) {
     if (!res.ok) {
       return { ok: false, error: `Zernio ${res.status}: ${text.slice(0, 300)}`, data };
     }
-    return { ok: true, data, zernio_post_id: data?.id || data?.post_id || null };
+    return { ok: true, data, zernio_post_id: data?.post?._id || data?.id || data?.post_id || null };
   } catch (err) {
     return { ok: false, error: `Zernio exception: ${err && err.message}` };
   }

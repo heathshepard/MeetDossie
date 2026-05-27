@@ -124,7 +124,7 @@
                                                     "maxDuration":  30
                                                },
                "api/cron-post-videos.js":  {
-                                                "maxDuration":  60
+                                                "maxDuration":  120
                                             },
                "api/send-customer-update.js":  {
                                                    "maxDuration":  60
