@@ -1,11 +1,15 @@
 // Vercel Serverless Function: /api/cron-post-videos
 // Runs at 11:30 UTC (6:30am CST) daily.
-// Picks the oldest 'approved' video from video_library and posts it to
-// Zernio for each platform in the platforms array.
 //
-// The video must already be uploaded to Supabase Storage (supabase_url set)
-// before this cron fires. If supabase_url is null, the video is skipped with
-// a warning — run scripts/upload-video.py first.
+// REVIEW GATE FLOW (added 2026-05-27):
+//   1. Videos with status='approved' are sent to Heath via Telegram for review.
+//      Status is set to 'pending_heath_review' — they do NOT auto-post.
+//   2. Heath taps Approve → callback sets status='heath_approved'.
+//   3. Heath taps Reject  → callback sets status='rejected'.
+//   4. On next cron run, only status='heath_approved' videos actually post to Zernio.
+//
+// This cron also handles the Telegram callback for approve/reject buttons
+// via the /api/video-review-callback endpoint (see bottom of this file — separate handler).
 //
 // Auth: Vercel cron header OR Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — "30 11 * * *"
@@ -47,21 +51,61 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-async function sendTelegramNotification(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+async function sendTelegramMessage(text, extra = {}) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return null;
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: TELEGRAM_CHAT_ID,
         text,
-        disable_web_page_preview: true,
+        disable_web_page_preview: false,
+        ...extra,
       }),
     });
+    const data = await res.json();
+    return data;
   } catch (err) {
-    console.error('[cron-post-videos] Telegram notify failed:', err && err.message);
+    console.error('[cron-post-videos] Telegram send failed:', err && err.message);
+    return null;
   }
+}
+
+// Send a video for Heath's review with inline Approve/Reject buttons.
+// Sets status='pending_heath_review' first to prevent double-sends.
+async function sendForHeathReview(video) {
+  // Mark as pending_heath_review so next cron run doesn't re-queue it
+  await supabaseFetch(
+    `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'pending_heath_review' }),
+    },
+  );
+
+  const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
+    ? video.platforms
+    : DEFAULT_PLATFORMS;
+
+  const text = [
+    `Video ready for review: ${video.topic || video.id}`,
+    `Platforms: ${platforms.join(', ')}`,
+    ``,
+    `Watch it here: ${video.supabase_url}`,
+  ].join('\n');
+
+  const inline_keyboard = [[
+    { text: 'Approve', callback_data: `video_approve_${video.id}` },
+    { text: 'Reject',  callback_data: `video_reject_${video.id}` },
+  ]];
+
+  await sendTelegramMessage(text, {
+    reply_markup: { inline_keyboard },
+  });
+
+  console.log(`[cron-post-videos] Sent ${video.id} to Heath for review`);
 }
 
 async function postToZernio(platform, videoUrl, caption) {
@@ -120,35 +164,62 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
-  // Query for the oldest approved video
-  const { data: rows, ok: loadOk } = await supabaseFetch(
-    '/rest/v1/video_library?status=eq.approved&order=created_at.asc&limit=1',
+  const summary = { queued_for_review: [], posted: [], skipped: [] };
+
+  // --- STEP 1: Queue any 'approved' videos for Heath's review (do NOT post them) ---
+  const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
   );
 
-  if (!loadOk) {
-    return res.status(502).json({ ok: false, error: 'Failed to query video_library' });
+  if (!approvedOk) {
+    return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
   }
 
-  const video = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  const approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
+
+  for (const video of approvedVideos) {
+    if (!video.supabase_url) {
+      const warn = `Video ${video.id} is approved but supabase_url is null — run scripts/upload-video.py first`;
+      console.warn(`[cron-post-videos] ${warn}`);
+      await sendTelegramMessage(`Video pipeline: ${warn}`);
+      summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
+      continue;
+    }
+    await sendForHeathReview(video);
+    summary.queued_for_review.push(video.id);
+  }
+
+  // --- STEP 2: Post any 'heath_approved' videos to Zernio ---
+  const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=1',
+  );
+
+  if (!heathApprovedOk) {
+    return res.status(502).json({ ok: false, error: 'Failed to query heath_approved videos' });
+  }
+
+  const video = Array.isArray(heathApprovedRows) && heathApprovedRows.length > 0
+    ? heathApprovedRows[0]
+    : null;
 
   if (!video) {
-    console.log('[cron-post-videos] No approved videos — nothing to do');
-    return res.status(200).json({ ok: true, message: 'no approved videos' });
+    console.log('[cron-post-videos] No heath_approved videos — nothing to post');
+    return res.status(200).json({ ok: true, summary });
   }
 
-  console.log(`[cron-post-videos] Processing approved video: ${video.id}`);
+  console.log(`[cron-post-videos] Posting heath_approved video: ${video.id}`);
 
-  // Check supabase_url is set — required for Zernio video post
   if (!video.supabase_url) {
-    const warn = `Video ${video.id} is approved but supabase_url is null — run scripts/upload-video.py first`;
+    const warn = `Video ${video.id} is heath_approved but supabase_url is null`;
     console.warn(`[cron-post-videos] ${warn}`);
-    await sendTelegramNotification(`Video pipeline: ${warn}`);
-    return res.status(200).json({ ok: true, skipped: true, reason: warn });
+    await sendTelegramMessage(`Video pipeline: ${warn}`);
+    summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
+    return res.status(200).json({ ok: true, summary });
   }
 
   // Mark as posting (soft lock)
   const { ok: lockOk } = await supabaseFetch(
-    `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.approved`,
+    `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -190,10 +261,11 @@ module.exports = async function handler(req, res) {
         }),
       },
     );
-    await sendTelegramNotification(
+    await sendTelegramMessage(
       `Video posted: ${video.id}\nPlatforms: ${platforms.join(', ')}\n${caption.slice(0, 100)}`,
     );
     console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
+    summary.posted.push(video.id);
   } else {
     const errorSummary = results
       .filter((r) => !r.ok)
@@ -211,7 +283,7 @@ module.exports = async function handler(req, res) {
         }),
       },
     );
-    await sendTelegramNotification(
+    await sendTelegramMessage(
       `Video post FAILED: ${video.id}\nErrors: ${errorSummary}`,
     );
     console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
@@ -222,5 +294,6 @@ module.exports = async function handler(req, res) {
     video_id: video.id,
     platforms_attempted: platforms,
     results,
+    summary,
   });
 };
