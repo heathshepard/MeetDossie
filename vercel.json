@@ -125,7 +125,10 @@
                                                },
                "api/cron-post-videos.js":  {
                                                 "maxDuration":  60
-                                            }
+                                            },
+               "api/send-customer-update.js":  {
+                                                   "maxDuration":  60
+                                               }
                   },
     "crons":  [
                   {
@@ -195,6 +198,10 @@
                   {
                       "path":  "/api/cron-post-videos",
                       "schedule":  "30 11 * * *"
+                  },
+                  {
+                      "path":  "/api/send-customer-update",
+                      "schedule":  "0 13 27 5 *"
                   }
               ]
 }
