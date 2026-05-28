@@ -348,16 +348,23 @@
       flex-shrink: 0;
       position: relative;
     }
-    .agent-dot.idle { background: var(--text-dim); }
-    .agent-dot.active { background: var(--sage); }
-    .agent-dot.busy { background: var(--gold); }
-    .agent-dot.error { background: var(--coral); }
+    .agent-dot.idle    { background: var(--text-dim); }
+    .agent-dot.active  { background: var(--sage); }
+    .agent-dot.busy    { background: var(--gold); }
+    .agent-dot.error   { background: var(--coral); }
+    /* working = actively executing a task right now (coral pulse, set via /api/ventures/agent-status) */
+    .agent-dot.working { background: var(--coral); }
 
-    /* Pulse ring — only when active or busy */
+    /* Pulse ring — active/busy use sage/gold; working uses coral ripple */
     @keyframes pulse-ring {
       0%   { transform: scale(1);   opacity: 0.6; }
       70%  { transform: scale(2.2); opacity: 0; }
       100% { transform: scale(2.2); opacity: 0; }
+    }
+    @keyframes pulse-ring-working {
+      0%   { transform: scale(1);   opacity: 0.70; }
+      60%  { transform: scale(2.6); opacity: 0; }
+      100% { transform: scale(2.6); opacity: 0; }
     }
     .agent-dot.active::after,
     .agent-dot.busy::after {
@@ -368,8 +375,22 @@
       background: currentColor;
       animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
     }
-    .agent-dot.active::after { background: var(--sage); }
-    .agent-dot.busy::after { background: var(--gold); }
+    .agent-dot.active::after  { background: var(--sage); }
+    .agent-dot.busy::after    { background: var(--gold); }
+    /* working: slightly faster, slightly wider coral ripple */
+    .agent-dot.working::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--coral);
+      animation: pulse-ring-working 1.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    /* chip border glows faintly coral when agent is working */
+    .agent-chip.is-working {
+      border-color: rgba(232, 131, 107, 0.40);
+      box-shadow: 0 0 0 1px rgba(232, 131, 107, 0.15);
+    }
 
     .agent-role { font-size: 0.72rem; color: var(--text-dim); margin-left: 2px; }
 
@@ -1746,19 +1767,36 @@
           const meta = AGENTS.find(ag => ag.key === a.name);
           const role = meta?.role || '';
           const displayName = a.displayName || capitalize(a.name);
-          // Map heartbeat status to dot class
-          const dotClass = {
-            active: 'active', busy: 'busy', error: 'error',
-            warn: 'busy', stale: 'error', idle: 'idle',
-          }[a.status] || 'idle';
-          const lastActiveText = a.lastActiveAt
-            ? `Last active: ${timeAgo(new Date(a.lastActiveAt))}`
-            : 'Never active';
-          return `<div class="agent-chip" data-agent="${escHtml(a.name)}" onclick="selectAgentChat('${escHtml(a.name)}')">
+
+          // is_working overrides the heartbeat dot class with coral pulse
+          let dotClass;
+          if (a.isWorking) {
+            dotClass = 'working';
+          } else {
+            dotClass = {
+              active: 'active', busy: 'busy', error: 'error',
+              warn: 'busy', stale: 'error', idle: 'idle',
+            }[a.status] || 'idle';
+          }
+
+          // Chip gets a faint coral border when actively working
+          const chipExtra = a.isWorking ? ' is-working' : '';
+
+          // Tooltip shows task description when working, otherwise last-active time
+          let tooltipText;
+          if (a.isWorking && a.taskDescription) {
+            tooltipText = `Working: ${a.taskDescription}`;
+          } else if (a.lastActiveAt) {
+            tooltipText = `Last active: ${timeAgo(new Date(a.lastActiveAt))}`;
+          } else {
+            tooltipText = 'Never active';
+          }
+
+          return `<div class="agent-chip${chipExtra}" data-agent="${escHtml(a.name)}" onclick="selectAgentChat('${escHtml(a.name)}')">
             <span class="agent-dot ${dotClass}"></span>
             <span>${escHtml(displayName)}</span>
             <span class="agent-role">${escHtml(role)}</span>
-            <span class="agent-tooltip">${escHtml(lastActiveText)}</span>
+            <span class="agent-tooltip">${escHtml(tooltipText)}</span>
           </div>`;
         }).join('');
       }
