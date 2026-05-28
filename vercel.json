@@ -150,7 +150,16 @@
                                          },
                "api/cron-pierce-activation.js":  {
                                                      "maxDuration":  60
-                                                 }
+                                                 },
+               "api/cron-sage-trends.js":  {
+                                                "maxDuration":  60
+                                            },
+               "api/cron-cole-orchestration.js":  {
+                                                       "maxDuration":  60
+                                                   },
+               "api/transactions/download-zip.js":  {
+                                                        "maxDuration":  60
+                                                    }
                   },
     "crons":  [
                   {
