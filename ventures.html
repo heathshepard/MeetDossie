@@ -1575,6 +1575,435 @@
       transition: opacity 0.15s;
     }
     .brief-refresh-btn:hover { opacity: 1; }
+
+    /* ============================================================
+       VOICE+CHAT MODAL — Agent Conversation
+       ============================================================ */
+
+    /* Backdrop */
+    #vc-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 24, 0.88);
+      z-index: 800;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #vc-modal-backdrop.open { display: flex; }
+
+    /* Modal box — normal size */
+    #vc-modal {
+      background: var(--navy);
+      border: 1px solid rgba(245,230,224,0.16);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+      position: relative;
+      transition: max-width 0.2s ease, max-height 0.2s ease, border-radius 0.2s ease;
+    }
+
+    /* Full-screen mode */
+    #vc-modal-backdrop.fullscreen {
+      padding: 0;
+      align-items: stretch;
+      justify-content: stretch;
+    }
+    #vc-modal-backdrop.fullscreen #vc-modal {
+      max-width: 100vw;
+      max-height: 100vh;
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      border: none;
+    }
+
+    /* Modal header */
+    #vc-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(245,230,224,0.10);
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+    }
+    .vc-agent-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+    .vc-avatar-cole    { background: rgba(201,169,110,0.22); color: var(--gold);      border: 1.5px solid rgba(201,169,110,0.40); }
+    .vc-avatar-hadley  { background: rgba(212,160,160,0.22); color: var(--blush-deep);border: 1.5px solid rgba(212,160,160,0.40); }
+    .vc-avatar-pierce  { background: rgba(139,168,136,0.22); color: var(--sage);      border: 1.5px solid rgba(139,168,136,0.40); }
+    .vc-avatar-carter  { background: rgba(232,131,107,0.22); color: var(--coral);     border: 1.5px solid rgba(232,131,107,0.40); }
+    .vc-avatar-sage    { background: rgba(180,140,220,0.22); color: #c4a0e8;           border: 1.5px solid rgba(180,140,220,0.40); }
+    .vc-avatar-atlas   { background: rgba(100,120,200,0.22); color: #8aa0e8;           border: 1.5px solid rgba(100,120,200,0.40); }
+    #vc-agent-info { flex: 1; min-width: 0; }
+    #vc-agent-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--blush);
+      line-height: 1.2;
+    }
+    #vc-agent-role {
+      font-size: 0.70rem;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+    .vc-header-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .vc-hdr-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid rgba(245,230,224,0.14);
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .vc-hdr-btn:hover { background: rgba(245,230,224,0.08); color: var(--blush); border-color: rgba(245,230,224,0.28); }
+    #vc-voice-toggle-btn.voice-active {
+      background: rgba(232,131,107,0.18);
+      border-color: rgba(232,131,107,0.45);
+      color: var(--coral);
+    }
+    #vc-close-btn { font-size: 1rem; }
+
+    /* Mode tabs inside header */
+    .vc-mode-tabs {
+      display: flex;
+      gap: 3px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 7px;
+      padding: 3px;
+    }
+    .vc-mode-tab {
+      padding: 3px 10px;
+      font-size: 0.70rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: 5px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      transition: background 0.1s, color 0.1s;
+      font-family: inherit;
+    }
+    .vc-mode-tab.active {
+      background: rgba(232,131,107,0.20);
+      color: var(--coral);
+    }
+
+    /* Body area */
+    #vc-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ---- TEXT/CHAT MODE ---- */
+    #vc-chat-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #vc-transcript {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #16162a;
+      min-height: 0;
+    }
+    .vc-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 85%;
+      animation: msg-in 0.15s ease-out;
+    }
+    .vc-msg.user { align-self: flex-end; align-items: flex-end; }
+    .vc-msg.assistant { align-self: flex-start; align-items: flex-start; }
+    .vc-msg-sender {
+      font-size: 0.63rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .vc-bubble {
+      padding: 9px 13px;
+      border-radius: 14px;
+      font-size: 0.87rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .vc-msg.user .vc-bubble {
+      background: var(--blush);
+      color: var(--navy);
+      border-bottom-right-radius: 4px;
+    }
+    .vc-msg.assistant .vc-bubble {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(245,230,224,0.10);
+      color: var(--blush);
+      border-bottom-left-radius: 4px;
+    }
+    .vc-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 32px 16px;
+      text-align: center;
+    }
+    .vc-empty-avatar {
+      font-size: 2.4rem;
+      margin-bottom: 4px;
+    }
+    .vc-empty-label {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.1rem;
+      color: var(--blush);
+    }
+    .vc-empty-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      max-width: 280px;
+    }
+
+    /* Input row */
+    #vc-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid rgba(245,230,224,0.08);
+      background: rgba(255,255,255,0.02);
+      flex-shrink: 0;
+    }
+    #vc-text-input {
+      flex: 1;
+      background: rgba(245,230,224,0.05);
+      border: 1px solid rgba(245,230,224,0.14);
+      border-radius: 10px;
+      padding: 9px 13px;
+      color: var(--blush);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      min-height: 40px;
+      max-height: 100px;
+      line-height: 1.45;
+      transition: border-color 0.15s;
+    }
+    #vc-text-input:focus { border-color: rgba(232,131,107,0.45); }
+    #vc-text-input::placeholder { color: var(--text-dim); }
+    #vc-send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(232,131,107,0.20);
+      border: 1px solid rgba(232,131,107,0.40);
+      color: var(--coral);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.12s;
+    }
+    #vc-send-btn:hover:not(:disabled) { background: rgba(232,131,107,0.32); }
+    #vc-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Typing indicator */
+    .vc-typing {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+
+    /* Status label */
+    #vc-status {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 4px 14px;
+      min-height: 22px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.02);
+    }
+    #vc-status.active { color: var(--sage); }
+    #vc-status.speaking { color: var(--coral); }
+    #vc-status.thinking { color: var(--gold); }
+
+    /* ---- VOICE MODE ---- */
+    #vc-voice-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 24px 16px 16px;
+      background: #16162a;
+      min-height: 0;
+    }
+
+    /* Waveform bars */
+    .vc-waveform {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      height: 48px;
+    }
+    .vc-waveform-bar {
+      width: 5px;
+      border-radius: 3px;
+      background: var(--coral);
+      opacity: 0.35;
+      transition: height 0.1s ease;
+    }
+    .vc-waveform-bar:nth-child(1) { height: 14px; }
+    .vc-waveform-bar:nth-child(2) { height: 22px; }
+    .vc-waveform-bar:nth-child(3) { height: 30px; }
+    .vc-waveform-bar:nth-child(4) { height: 22px; }
+    .vc-waveform-bar:nth-child(5) { height: 14px; }
+
+    @keyframes wave-pulse {
+      0%, 100% { height: var(--base-h); opacity: 0.35; }
+      50% { height: calc(var(--base-h) * 2.2); opacity: 1; }
+    }
+
+    .vc-waveform.active .vc-waveform-bar:nth-child(1) { --base-h: 14px; animation: wave-pulse 0.8s ease-in-out 0.0s infinite; }
+    .vc-waveform.active .vc-waveform-bar:nth-child(2) { --base-h: 22px; animation: wave-pulse 0.8s ease-in-out 0.15s infinite; }
+    .vc-waveform.active .vc-waveform-bar:nth-child(3) { --base-h: 30px; animation: wave-pulse 0.8s ease-in-out 0.3s infinite; }
+    .vc-waveform.active .vc-waveform-bar:nth-child(4) { --base-h: 22px; animation: wave-pulse 0.8s ease-in-out 0.15s infinite; }
+    .vc-waveform.active .vc-waveform-bar:nth-child(5) { --base-h: 14px; animation: wave-pulse 0.8s ease-in-out 0.0s infinite; }
+
+    /* Mic button */
+    #vc-mic-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(232,131,107,0.15);
+      border: 2px solid rgba(232,131,107,0.40);
+      color: var(--coral);
+      font-size: 1.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    #vc-mic-btn:hover { background: rgba(232,131,107,0.25); }
+    #vc-mic-btn.recording {
+      background: rgba(232,131,107,0.35);
+      border-color: var(--coral);
+      box-shadow: 0 0 0 8px rgba(232,131,107,0.12), 0 0 0 16px rgba(232,131,107,0.05);
+      animation: mic-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 8px rgba(232,131,107,0.12), 0 0 0 16px rgba(232,131,107,0.05); }
+      50% { box-shadow: 0 0 0 12px rgba(232,131,107,0.18), 0 0 0 24px rgba(232,131,107,0.06); }
+    }
+    #vc-mic-btn:disabled { opacity: 0.4; cursor: not-allowed; animation: none; }
+
+    #vc-voice-status {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      text-align: center;
+      min-height: 20px;
+    }
+    #vc-voice-status.recording { color: var(--coral); font-weight: 600; }
+    #vc-voice-status.thinking  { color: var(--gold); }
+    #vc-voice-status.speaking  { color: var(--sage); }
+
+    /* Mini transcript in voice mode */
+    #vc-voice-transcript {
+      width: 100%;
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 4px;
+    }
+    .vc-voice-turn {
+      font-size: 0.78rem;
+      line-height: 1.45;
+      padding: 5px 10px;
+      border-radius: 9px;
+    }
+    .vc-voice-turn.user {
+      background: rgba(245,230,224,0.08);
+      color: var(--blush);
+      text-align: right;
+      align-self: flex-end;
+      max-width: 90%;
+    }
+    .vc-voice-turn.assistant {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-dim);
+      text-align: left;
+      align-self: flex-start;
+      max-width: 90%;
+    }
+
+    /* Voice not supported warning */
+    #vc-voice-unsupported {
+      display: none;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--coral);
+      padding: 20px;
+      line-height: 1.6;
+    }
+    #vc-voice-unsupported.visible { display: block; }
   </style>
 </head>
 <body>
@@ -2054,6 +2483,75 @@
       </div>
     </div>
   </div>
+
+  <!-- ================================================================
+       VOICE + CHAT MODAL
+       ================================================================ -->
+  <div id="vc-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="vc-agent-name">
+    <div id="vc-modal">
+
+      <!-- Header -->
+      <div id="vc-header">
+        <div class="vc-agent-avatar" id="vc-avatar">?</div>
+        <div id="vc-agent-info">
+          <div id="vc-agent-name">Agent</div>
+          <div id="vc-agent-role">Shepard Ventures</div>
+        </div>
+        <!-- Mode tabs -->
+        <div class="vc-mode-tabs">
+          <button class="vc-mode-tab active" id="vc-tab-chat" onclick="vcSetMode('chat')">Chat</button>
+          <button class="vc-mode-tab" id="vc-tab-voice" onclick="vcSetMode('voice')">Voice</button>
+        </div>
+        <!-- Header buttons -->
+        <div class="vc-header-btns">
+          <button class="vc-hdr-btn" id="vc-fullscreen-btn" onclick="vcToggleFullscreen()" title="Fullscreen (F)">&#9974;</button>
+          <button class="vc-hdr-btn" id="vc-close-btn" onclick="vcClose()" title="Close (Esc)">&times;</button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div id="vc-body">
+
+        <!-- CHAT PANE -->
+        <div id="vc-chat-pane">
+          <div id="vc-transcript">
+            <!-- Messages rendered here -->
+            <div class="vc-empty-state" id="vc-empty-state">
+              <div class="vc-empty-avatar">&#129302;</div>
+              <div class="vc-empty-label" id="vc-empty-name">Ready to chat</div>
+              <div class="vc-empty-sub">Ask anything — strategy, status, decisions. Conversation history is saved.</div>
+            </div>
+          </div>
+          <div id="vc-status"></div>
+          <div id="vc-input-row">
+            <textarea id="vc-text-input" placeholder="Message the agent..." rows="1"></textarea>
+            <button id="vc-send-btn" title="Send (Enter)">&#9658;</button>
+          </div>
+        </div>
+
+        <!-- VOICE PANE (hidden by default) -->
+        <div id="vc-voice-pane" style="display:none;">
+          <div class="vc-waveform" id="vc-waveform">
+            <div class="vc-waveform-bar"></div>
+            <div class="vc-waveform-bar"></div>
+            <div class="vc-waveform-bar"></div>
+            <div class="vc-waveform-bar"></div>
+            <div class="vc-waveform-bar"></div>
+          </div>
+          <button id="vc-mic-btn" onclick="vcMicToggle()" title="Click to speak">&#127908;</button>
+          <div id="vc-voice-status">Click the mic to speak</div>
+          <div id="vc-voice-unsupported">
+            Voice recognition is not supported in this browser.<br>
+            Switch to Chrome or Edge, or use <strong>Chat mode</strong>.
+          </div>
+          <div id="vc-voice-transcript">
+            <!-- Last 6 voice turns -->
+          </div>
+        </div>
+
+      </div><!-- /vc-body -->
+    </div><!-- /vc-modal -->
+  </div><!-- /vc-modal-backdrop -->
 
   <script type="module">
     // SQL REQUIRED (run once in Supabase SQL editor before due dates work):
@@ -3931,7 +4429,27 @@
         document.getElementById('expenses-modal').classList.remove('open');
         document.getElementById('social-posts-modal').classList.remove('open');
         document.getElementById('task-modal').classList.remove('open');
+        // If voice modal is fullscreen, exit fullscreen first; else close
+        const vcBackdrop = document.getElementById('vc-modal-backdrop');
+        if (vcBackdrop.classList.contains('open')) {
+          if (_vcFullscreen) {
+            vcToggleFullscreen(); // exit fullscreen only, keep modal open
+          } else {
+            vcClose();
+          }
+          return;
+        }
         return;
+      }
+
+      // F key — toggle fullscreen on vc modal if open
+      if (e.key === 'f' || e.key === 'F') {
+        const vcBackdrop = document.getElementById('vc-modal-backdrop');
+        if (vcBackdrop.classList.contains('open')) {
+          e.preventDefault();
+          vcToggleFullscreen();
+          return;
+        }
       }
 
       if (isTyping) return;
@@ -4041,6 +4559,428 @@
       const textEl = document.getElementById('attention-brief-text');
       if (textEl) textEl.textContent = 'Refreshing…';
       loadSocialStatsForBrief();
+    };
+
+    // ============================================================
+    // VOICE + CHAT MODAL
+    // ============================================================
+
+    // Agent avatar initials + color class
+    const AGENT_AVATAR = {
+      cole:    { initials: 'CO', cls: 'vc-avatar-cole'   },
+      hadley:  { initials: 'HA', cls: 'vc-avatar-hadley' },
+      pierce:  { initials: 'PI', cls: 'vc-avatar-pierce' },
+      carter:  { initials: 'CA', cls: 'vc-avatar-carter' },
+      sage:    { initials: 'SG', cls: 'vc-avatar-sage'   },
+      atlas:   { initials: 'AT', cls: 'vc-avatar-atlas'  },
+    };
+
+    // Module state
+    let _vcAgent = null;          // current agent key
+    let _vcMode = 'chat';         // 'chat' | 'voice'
+    let _vcFullscreen = false;    // fullscreen state
+    let _vcBusy = false;          // waiting for API response
+    let _vcRecognition = null;    // SpeechRecognition instance
+    let _vcRecording = false;     // mic is recording
+    let _vcAudioCtx = null;       // Web Audio context (lazy-init)
+    let _vcVoiceTurns = [];       // last 6 voice-mode turns
+    // In-memory chat history (last 10 for API context; DB is source of truth for display)
+    const _vcChatHistory = {};    // { [agentKey]: [{role, content}] }
+
+    // Open modal for a given agent
+    async function vcOpen(agentKey) {
+      const meta = AGENTS.find(a => a.key === agentKey);
+      if (!meta) return;
+      _vcAgent = agentKey;
+      _vcVoiceTurns = [];
+
+      // Set header
+      const avInfo = AGENT_AVATAR[agentKey] || { initials: agentKey.slice(0,2).toUpperCase(), cls: '' };
+      const avatarEl = document.getElementById('vc-avatar');
+      avatarEl.className = `vc-agent-avatar ${avInfo.cls}`;
+      avatarEl.textContent = avInfo.initials;
+      document.getElementById('vc-agent-name').textContent = meta.name;
+      document.getElementById('vc-agent-role').textContent = meta.role;
+      document.getElementById('vc-empty-name').textContent = `Chat with ${meta.name}`;
+
+      // Update text input placeholder
+      document.getElementById('vc-text-input').placeholder = `Message ${meta.name}...`;
+
+      // Set mode to chat
+      vcSetMode('chat');
+
+      // Open backdrop
+      document.getElementById('vc-modal-backdrop').classList.add('open');
+
+      // Load history from API
+      await vcLoadHistory(agentKey);
+    }
+
+    // Load conversation history from DB
+    async function vcLoadHistory(agentKey) {
+      try {
+        const res = await authFetch(`/api/ventures/voice-chat?agent=${encodeURIComponent(agentKey)}&limit=20`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { turns } = await res.json();
+        if (turns && turns.length > 0) {
+          // Store last 10 in memory for context
+          _vcChatHistory[agentKey] = turns.slice(-10).map(t => ({ role: t.role, content: t.content }));
+          vcRenderTranscript(turns);
+        } else {
+          vcRenderEmptyState(agentKey);
+        }
+      } catch (e) {
+        console.warn('[vc] history load failed:', e.message);
+        // Show empty state — will build history fresh
+        vcRenderEmptyState(agentKey);
+      }
+    }
+
+    function vcRenderEmptyState(agentKey) {
+      const meta = AGENTS.find(a => a.key === agentKey);
+      document.getElementById('vc-transcript').innerHTML = `
+        <div class="vc-empty-state">
+          <div class="vc-empty-avatar">&#129302;</div>
+          <div class="vc-empty-label">Chat with ${escHtml(meta?.name || agentKey)}</div>
+          <div class="vc-empty-sub">Ask anything about the portfolio, Dossie, strategy, or your roadmap. Conversation history is saved and persists across sessions.</div>
+        </div>`;
+    }
+
+    function vcRenderTranscript(turns) {
+      const transcriptEl = document.getElementById('vc-transcript');
+      if (!turns || !turns.length) { vcRenderEmptyState(_vcAgent); return; }
+      const meta = AGENTS.find(a => a.key === _vcAgent);
+      transcriptEl.innerHTML = turns.map(t => vcBubbleHtml(t.role, t.content, meta)).join('');
+      requestAnimationFrame(() => { transcriptEl.scrollTop = transcriptEl.scrollHeight; });
+    }
+
+    function vcBubbleHtml(role, content, meta) {
+      const sender = role === 'user' ? 'You' : (meta?.name || 'Agent');
+      return `<div class="vc-msg ${escHtml(role)}">
+        <span class="vc-msg-sender">${escHtml(sender)}</span>
+        <div class="vc-bubble">${escHtml(content)}</div>
+      </div>`;
+    }
+
+    function vcAppendBubble(role, content) {
+      const meta = AGENTS.find(a => a.key === _vcAgent);
+      const transcriptEl = document.getElementById('vc-transcript');
+      // Remove empty state if present
+      const emptyState = transcriptEl.querySelector('.vc-empty-state');
+      if (emptyState) emptyState.remove();
+      transcriptEl.insertAdjacentHTML('beforeend', vcBubbleHtml(role, content, meta));
+      requestAnimationFrame(() => { transcriptEl.scrollTop = transcriptEl.scrollHeight; });
+    }
+
+    // Send a message (used by both chat and voice modes)
+    async function vcSend(text) {
+      if (!_vcAgent || !text.trim() || _vcBusy) return;
+      _vcBusy = true;
+
+      // Append user message to transcript
+      vcAppendBubble('user', text.trim());
+
+      // Update in-memory history
+      if (!_vcChatHistory[_vcAgent]) _vcChatHistory[_vcAgent] = [];
+      _vcChatHistory[_vcAgent].push({ role: 'user', content: text.trim() });
+      if (_vcChatHistory[_vcAgent].length > 10) _vcChatHistory[_vcAgent].shift();
+
+      // Disable inputs
+      document.getElementById('vc-text-input').disabled = true;
+      document.getElementById('vc-send-btn').disabled = true;
+      document.getElementById('vc-mic-btn').disabled = true;
+      vcSetStatus('Thinking...', 'thinking');
+
+      // Typing indicator in transcript
+      const typingId = 'vc-typing-' + Date.now();
+      const meta = AGENTS.find(a => a.key === _vcAgent);
+      const transcriptEl = document.getElementById('vc-transcript');
+      transcriptEl.insertAdjacentHTML('beforeend', `
+        <div class="vc-msg assistant" id="${typingId}">
+          <span class="vc-msg-sender">${escHtml(meta?.name || _vcAgent)}</span>
+          <div class="vc-typing">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>`);
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+
+      try {
+        const res = await authFetch('/api/ventures/voice-chat', {
+          method: 'POST',
+          body: JSON.stringify({
+            agent_name: _vcAgent,
+            message: text.trim(),
+            history: _vcChatHistory[_vcAgent].slice(-10),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const replyText = data.reply_text || '';
+        const audioBase64 = data.audio_base64;
+
+        // Remove typing indicator
+        document.getElementById(typingId)?.remove();
+
+        // Show reply in transcript
+        vcAppendBubble('assistant', replyText);
+
+        // Update in-memory history
+        _vcChatHistory[_vcAgent].push({ role: 'assistant', content: replyText });
+        if (_vcChatHistory[_vcAgent].length > 10) _vcChatHistory[_vcAgent].shift();
+
+        // Update voice transcript if in voice mode
+        if (_vcMode === 'voice') {
+          _vcVoiceTurns.push({ role: 'user', text: text.trim() });
+          _vcVoiceTurns.push({ role: 'assistant', text: replyText });
+          if (_vcVoiceTurns.length > 12) _vcVoiceTurns = _vcVoiceTurns.slice(-12);
+          vcRenderVoiceTurns();
+        }
+
+        // Play audio if in voice mode and audio available
+        if (_vcMode === 'voice' && audioBase64) {
+          vcSetVoiceStatus('Speaking...', 'speaking');
+          document.getElementById('vc-waveform').classList.add('active');
+          try {
+            await vcPlayAudio(audioBase64);
+          } catch (playErr) {
+            console.warn('[vc] audio playback failed:', playErr.message);
+          }
+          document.getElementById('vc-waveform').classList.remove('active');
+          vcSetVoiceStatus('Click the mic to speak', '');
+        } else if (_vcMode === 'chat') {
+          vcSetStatus('', '');
+        }
+
+      } catch (e) {
+        console.error('[vc] send error:', e);
+        document.getElementById(typingId)?.remove();
+        vcAppendBubble('assistant', `Error: ${e.message}`);
+        vcSetStatus('Error — try again', '');
+        vcSetVoiceStatus('Error — try again', '');
+      } finally {
+        _vcBusy = false;
+        document.getElementById('vc-text-input').disabled = false;
+        document.getElementById('vc-send-btn').disabled = false;
+        document.getElementById('vc-mic-btn').disabled = false;
+        if (_vcMode === 'chat') {
+          document.getElementById('vc-text-input').focus();
+        }
+      }
+    }
+
+    // Play base64 mp3 via Web Audio API
+    async function vcPlayAudio(base64) {
+      if (!_vcAudioCtx) {
+        _vcAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (_vcAudioCtx.state === 'suspended') {
+        await _vcAudioCtx.resume();
+      }
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const audioBuffer = await _vcAudioCtx.decodeAudioData(bytes.buffer);
+      return new Promise((resolve) => {
+        const source = _vcAudioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(_vcAudioCtx.destination);
+        source.onended = resolve;
+        source.start(0);
+      });
+    }
+
+    // Set mode: 'chat' | 'voice'
+    window.vcSetMode = function(mode) {
+      _vcMode = mode;
+      document.getElementById('vc-tab-chat').classList.toggle('active', mode === 'chat');
+      document.getElementById('vc-tab-voice').classList.toggle('active', mode === 'voice');
+      document.getElementById('vc-chat-pane').style.display = mode === 'chat' ? 'flex' : 'none';
+      document.getElementById('vc-voice-pane').style.display = mode === 'voice' ? 'flex' : 'none';
+
+      if (mode === 'voice') {
+        vcInitVoice();
+      } else {
+        // Stop any active recording when switching back to chat
+        vcStopRecording(false);
+        setTimeout(() => { document.getElementById('vc-text-input').focus(); }, 50);
+      }
+    };
+
+    // Init voice mode — check browser support
+    function vcInitVoice() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        document.getElementById('vc-mic-btn').style.display = 'none';
+        document.getElementById('vc-waveform').style.display = 'none';
+        document.getElementById('vc-voice-status').style.display = 'none';
+        document.getElementById('vc-voice-unsupported').classList.add('visible');
+        // Auto-switch back to chat after 2s
+        setTimeout(() => vcSetMode('chat'), 2000);
+        return;
+      }
+      vcRenderVoiceTurns();
+    }
+
+    // Mic toggle
+    window.vcMicToggle = function() {
+      if (_vcBusy) return;
+      if (_vcRecording) {
+        vcStopRecording(true); // true = commit the result
+      } else {
+        vcStartRecording();
+      }
+    };
+
+    function vcStartRecording() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+      _vcRecognition = new SR();
+      _vcRecognition.continuous = false;
+      _vcRecognition.interimResults = false;
+      _vcRecognition.lang = 'en-US';
+
+      _vcRecognition.onstart = () => {
+        _vcRecording = true;
+        document.getElementById('vc-mic-btn').classList.add('recording');
+        vcSetVoiceStatus('Listening...', 'recording');
+      };
+
+      _vcRecognition.onresult = async (event) => {
+        const transcript = event.results[0]?.[0]?.transcript || '';
+        if (transcript.trim()) {
+          vcStopRecording(false);
+          await vcSend(transcript.trim());
+        }
+      };
+
+      _vcRecognition.onerror = (event) => {
+        console.warn('[vc] speech error:', event.error);
+        vcStopRecording(false);
+        vcSetVoiceStatus('Could not hear you — try again', '');
+      };
+
+      _vcRecognition.onend = () => {
+        vcStopRecording(false);
+      };
+
+      try {
+        _vcRecognition.start();
+      } catch (e) {
+        console.warn('[vc] recognition start error:', e.message);
+        vcSetVoiceStatus('Mic unavailable', '');
+      }
+    }
+
+    function vcStopRecording(commit) {
+      _vcRecording = false;
+      document.getElementById('vc-mic-btn').classList.remove('recording');
+      if (_vcRecognition) {
+        try { _vcRecognition.stop(); } catch { /* ignore */ }
+        _vcRecognition = null;
+      }
+      if (!_vcBusy) {
+        vcSetVoiceStatus('Click the mic to speak', '');
+      }
+    }
+
+    function vcRenderVoiceTurns() {
+      const el = document.getElementById('vc-voice-transcript');
+      const last6 = _vcVoiceTurns.slice(-12);
+      if (!last6.length) { el.innerHTML = ''; return; }
+      el.innerHTML = last6.map(t =>
+        `<div class="vc-voice-turn ${escHtml(t.role)}">${escHtml(t.text)}</div>`
+      ).join('');
+      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+    }
+
+    function vcSetStatus(text, cls) {
+      const el = document.getElementById('vc-status');
+      el.textContent = text;
+      el.className = cls ? `active ${cls}` : '';
+    }
+
+    function vcSetVoiceStatus(text, cls) {
+      const el = document.getElementById('vc-voice-status');
+      el.textContent = text;
+      el.className = cls || '';
+    }
+
+    // Fullscreen toggle
+    window.vcToggleFullscreen = function() {
+      _vcFullscreen = !_vcFullscreen;
+      const backdrop = document.getElementById('vc-modal-backdrop');
+      backdrop.classList.toggle('fullscreen', _vcFullscreen);
+      // Update icon
+      const btn = document.getElementById('vc-fullscreen-btn');
+      btn.innerHTML = _vcFullscreen ? '&#x2715;&#xFE0E;' : '&#9974;';
+      btn.title = _vcFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+    };
+
+    // Close modal
+    window.vcClose = function() {
+      document.getElementById('vc-modal-backdrop').classList.remove('open');
+      if (_vcFullscreen) {
+        _vcFullscreen = false;
+        document.getElementById('vc-modal-backdrop').classList.remove('fullscreen');
+      }
+      vcStopRecording(false);
+      // Stop any audio
+      if (_vcAudioCtx && _vcAudioCtx.state === 'running') {
+        _vcAudioCtx.suspend().catch(() => {});
+      }
+      _vcAgent = null;
+    };
+
+    // Close on backdrop click
+    document.getElementById('vc-modal-backdrop').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('vc-modal-backdrop')) vcClose();
+    });
+
+    // Chat input wiring for vc modal
+    document.getElementById('vc-text-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val) {
+          e.target.value = '';
+          vcSend(val);
+        }
+      }
+    });
+
+    document.getElementById('vc-send-btn').addEventListener('click', () => {
+      const input = document.getElementById('vc-text-input');
+      const val = input.value.trim();
+      if (val) {
+        input.value = '';
+        vcSend(val);
+      }
+    });
+
+    // Override agentChipClick to open voice+chat modal
+    // (also keeps the existing feed filter + inline chat selection for backward compat)
+    window.agentChipClick = function(agentKey, event) {
+      // Toggle activity feed filter
+      if (_feedAgentFilter === agentKey) {
+        _feedAgentFilter = null;
+        const filterLabel = document.getElementById('feed-filter-label');
+        if (filterLabel) filterLabel.textContent = '';
+      } else {
+        _feedAgentFilter = agentKey;
+        const filterLabel = document.getElementById('feed-filter-label');
+        if (filterLabel) filterLabel.textContent = ` -- ${capitalize(agentKey)}`;
+      }
+      renderFeed();
+
+      // Open the voice+chat modal
+      vcOpen(agentKey);
     };
 
     // ============================================================
