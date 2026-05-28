@@ -70,13 +70,32 @@ export default async function handler(req, res) {
 
   // ---------- GET ----------
   if (req.method === 'GET') {
-    const { assigned_to, status, limit = '20', include_planning } = req.query;
+    const { assigned_to, status, limit = '20', include_planning, completed } = req.query;
 
     // Build filter string
     let filters = [];
 
     if (assigned_to && VALID_AGENTS.has(assigned_to)) {
       filters.push(`assigned_to=eq.${encodeURIComponent(assigned_to)}`);
+    }
+
+    if (completed === 'true') {
+      // Completed history view — return last N completed tasks ordered by completion date
+      filters.push('status=eq.completed');
+      const qs = [
+        'select=id,title,description,status,assigned_to,product,priority,created_at,completed_at,blocked_reason',
+        ...filters,
+        `limit=${Math.min(Number(limit) || 10, 50)}`,
+        'order=completed_at.desc.nullslast',
+      ].join('&');
+      const r = await supa(`organization_tasks?${qs}`);
+      if (!r.ok) {
+        const err = await r.text();
+        console.error('[ventures/tasks GET completed] supabase error', err);
+        return res.status(500).json({ error: 'Failed to fetch completed tasks' });
+      }
+      const tasks = await r.json();
+      return res.status(200).json({ tasks });
     }
 
     if (status) {
@@ -88,8 +107,8 @@ export default async function handler(req, res) {
         filters.push(`status=in.(${statuses.map(encodeURIComponent).join(',')})`);
       }
     } else if (!include_planning) {
-      // By default exclude planning-only statuses from the task panel
-      filters.push('status=in.(pending,in_progress,blocked,completed)');
+      // By default show open tasks only (exclude completed + planning-only statuses)
+      filters.push('status=in.(pending,in_progress,blocked)');
     }
 
     const qs = [

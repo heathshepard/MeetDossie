@@ -168,7 +168,13 @@
                                            },
                "api/claudy-webhook.js":  {
                                              "maxDuration":  60
-                                         }
+                                         },
+               "api/ventures/cron-health.js":  {
+                                                   "maxDuration":  30
+                                               },
+               "api/ventures/social-posts.js":  {
+                                                    "maxDuration":  30
+                                                }
                   },
     "crons":  [
                   {
