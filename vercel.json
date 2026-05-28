@@ -177,7 +177,13 @@
                                                 },
                "api/ventures/agent-status.js":  {
                                                     "maxDuration":  15
-                                                }
+                                                },
+               "api/ventures/stripe-events.js":  {
+                                                      "maxDuration":  15
+                                                  },
+               "api/ventures/attention-brief.js":  {
+                                                       "maxDuration":  30
+                                                   }
                   },
     "crons":  [
                   {
