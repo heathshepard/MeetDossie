@@ -122,6 +122,21 @@ export default async function handler(req, res) {
     }
     const mrrSparkline = sparkMonths.map(b => ({ label: b.label, mrr: b.mrr }));
 
+    // --- MRR 7-day delta: compare current MRR to MRR 7 days ago ---
+    // Use the sparkline data: last entry is current month, but we need a finer-grained
+    // delta. Compute by summing subs active now vs. subs that were active 7 days ago.
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const mrrNow = totalMrr;
+    let mrr7dAgo = 0;
+    for (const sub of subs) {
+      const subDate = new Date(sub.created_at);
+      if (subDate <= sevenDaysAgo) {
+        mrr7dAgo += (PLAN_AMOUNTS[sub.plan] || 0);
+      }
+    }
+    const mrr7dDelta = mrrNow - mrr7dAgo;
+    const mrr7dPct = mrr7dAgo > 0 ? Math.round((mrr7dDelta / mrr7dAgo) * 100) : (mrrNow > 0 ? 100 : 0);
+
     // --- Agent status from ventures_agents (with heartbeat-aware status + working indicator) ---
     let agents = [];
     const agentRes = await supa('ventures_agents?select=agent_name,display_name,status,last_active_at,last_ping,task_description&order=agent_name.asc');
@@ -195,6 +210,8 @@ export default async function handler(req, res) {
       totalMrrUsd: totalMrr,
       totalCustomers,
       mrrSparkline,
+      mrr7dDelta,
+      mrr7dPct,
       customerRevenue,
       companies: [
         {
@@ -208,6 +225,7 @@ export default async function handler(req, res) {
           delta7d: 1,
           foundingSpots: { taken: founding, total: 50 },
           url: 'https://meetdossie.com',
+          nextMilestone: 'Goal: 20 founding spots ($580 MRR)',
         },
         {
           id: 'paralegal',
@@ -217,6 +235,7 @@ export default async function handler(req, res) {
           mrr: 0,
           customers: 0,
           delta7d: 0,
+          nextMilestone: 'Next: Josh session + form-fill prototype',
         },
       ],
       agents,

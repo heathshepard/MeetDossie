@@ -72,8 +72,9 @@ export default async function handler(req, res) {
   try {
     // Pull all posts from the last 7 days — select only what we need
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const r = await supa(
-      `social_posts?select=id,status,platform,created_at&created_at=gte.${encodeURIComponent(sevenDaysAgo)}&limit=500`
+      `social_posts?select=id,status,platform,created_at,posted_at&created_at=gte.${encodeURIComponent(sevenDaysAgo)}&limit=500`
     );
     if (!r.ok) {
       const err = await r.text();
@@ -95,6 +96,16 @@ export default async function handler(req, res) {
     const totalDraft = byStatus.draft || 0;
     const totalFailed = byStatus.failed || 0;
     const totalPendingVideo = byStatus.pending_video || 0;
+
+    // --- Posted Today: posts with status='posted' and posted_at (or created_at) in last 24h ---
+    const postedToday = posts.filter(p => {
+      if (p.status !== 'posted') return false;
+      const ts = p.posted_at || p.created_at;
+      return ts && ts >= oneDayAgo;
+    }).length;
+
+    // --- In Queue: drafts + approved (ready to post or waiting approval) ---
+    const inQueue = (byStatus.draft || 0) + (byStatus.approved || 0);
 
     const approvalRate = totalApproved + totalRejected > 0
       ? Math.round((totalApproved / (totalApproved + totalRejected)) * 100)
@@ -137,6 +148,8 @@ export default async function handler(req, res) {
       totalDraft,
       totalFailed,
       totalPendingVideo,
+      postedToday,
+      inQueue,
       approvalRate,
       rejectionRate,
       byStatus,
