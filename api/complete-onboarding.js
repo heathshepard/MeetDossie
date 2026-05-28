@@ -169,6 +169,30 @@ async function updateSubscriptionByCustomerId(stripeCustomerId, patch) {
   });
 }
 
+// Upsert the subscription row keyed on stripe_subscription_id.
+// Used as a safety net when complete-onboarding runs before (or instead of)
+// the webhook — ensures the row always exists and is 'active' when the customer
+// completes their onboarding form.
+async function upsertSubscriptionBySubId({
+  userId, stripeCustomerId, stripeSubscriptionId, stripePriceId,
+  currentPeriodStart, currentPeriodEnd,
+}) {
+  await supabaseFetch('/rest/v1/subscriptions?on_conflict=stripe_subscription_id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({
+      user_id: userId,
+      stripe_customer_id: stripeCustomerId,
+      stripe_subscription_id: stripeSubscriptionId,
+      stripe_price_id: stripePriceId || null,
+      plan: 'founding',
+      status: 'active',
+      current_period_start: currentPeriodStart || null,
+      current_period_end: currentPeriodEnd || null,
+    }),
+  });
+}
+
 const BRAND_BG = '#FDFCFA';
 const BRAND_NAVY = '#1C2B3A';
 const BRAND_TEXT_SOFT = '#5C6B7A';
@@ -340,7 +364,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Retrieve Stripe session to get customer ID
+    // Retrieve Stripe session to get customer ID and subscription ID
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -352,6 +376,30 @@ module.exports = async function handler(req, res) {
     const stripeCustomerId = typeof session.customer === 'string'
       ? session.customer
       : session.customer.id;
+
+    // Also resolve the subscription ID and period dates from Stripe so we can
+    // upsert the subscription row even if the webhook hasn't fired yet.
+    const stripeSubscriptionId = typeof session.subscription === 'string'
+      ? session.subscription
+      : (session.subscription && session.subscription.id) || null;
+
+    let currentPeriodStart = null;
+    let currentPeriodEnd = null;
+    let stripePriceId = null;
+    if (stripeSubscriptionId) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        if (sub && sub.current_period_start) {
+          currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
+        }
+        if (sub && sub.current_period_end) {
+          currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        }
+        stripePriceId = sub?.items?.data?.[0]?.price?.id || null;
+      } catch (err) {
+        console.warn('[complete-onboarding] subscriptions.retrieve failed:', err && err.message);
+      }
+    }
 
     // Create Supabase auth user
     const result = await createAuthUser({ email, fullName: name });
@@ -376,8 +424,30 @@ module.exports = async function handler(req, res) {
       stripe_customer_id: stripeCustomerId,
     });
 
-    // Update subscription status to active
-    await updateSubscriptionByCustomerId(stripeCustomerId, { status: 'active' });
+    // Upsert subscription row keyed on stripe_subscription_id.
+    // This is the authoritative write: if the webhook already created the row
+    // (status=pending_onboarding), this upgrades it to active and fills in the
+    // user_id. If the webhook never fired, this creates the row from scratch.
+    // Falls back to PATCH by customer_id if we have no subscription_id.
+    if (stripeSubscriptionId) {
+      await upsertSubscriptionBySubId({
+        userId,
+        stripeCustomerId,
+        stripeSubscriptionId,
+        stripePriceId,
+        currentPeriodStart,
+        currentPeriodEnd,
+      });
+      console.log('[complete-onboarding] subscription upserted by stripe_subscription_id for', email, 'sub=', stripeSubscriptionId);
+    } else {
+      // Fallback: patch by customer ID (works if webhook created the row).
+      // If no row exists, this silently does nothing — the reconcile cron will catch it.
+      await updateSubscriptionByCustomerId(stripeCustomerId, {
+        user_id: userId,
+        status: 'active',
+      });
+      console.warn('[complete-onboarding] no stripe_subscription_id on session — fell back to PATCH by customer_id for', email);
+    }
 
     // Send welcome email
     await sendEmail({

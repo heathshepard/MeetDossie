@@ -368,9 +368,35 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   // The /api/complete-onboarding endpoint will create the auth user and update
   // the subscription status to 'active'.
 
+  // Look up an existing auth user by email — they may already have an account
+  // (e.g. applied via the founding form before paying). We need a real user_id
+  // because the subscriptions.user_id column is NOT NULL.
+  // If no user exists yet, we create a placeholder auth user now and let
+  // complete-onboarding upsert the full profile data on top of it.
+  let userId = null;
+  try {
+    userId = await findAuthUserIdByEmail(customerEmail);
+    if (!userId) {
+      const result = await createAuthUser({ email: customerEmail, fullName: customerName });
+      userId = result.userId;
+      console.log('[stripe-webhook] checkout.session.completed: created placeholder auth user for', customerEmail, 'userId=', userId);
+    } else {
+      console.log('[stripe-webhook] checkout.session.completed: found existing auth user for', customerEmail, 'userId=', userId);
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] checkout.session.completed: failed to resolve userId for', customerEmail, ':', err && err.message);
+    // Do not return — still attempt to store what we can. Without userId the
+    // upsert will fail on the NOT NULL constraint, but we log it clearly.
+  }
+
+  if (!userId) {
+    console.error('[stripe-webhook] checkout.session.completed: no userId resolved for', customerEmail, '— cannot create subscription row. Manual recovery required.');
+    return;
+  }
+
   try {
     await upsertSubscription({
-      user_id: null,
+      user_id: userId,
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: priceId,
@@ -379,8 +405,9 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
     });
+    console.log('[stripe-webhook] checkout.session.completed: subscription row upserted for', customerEmail, 'status=pending_onboarding');
   } catch (err) {
-    console.error('[stripe-webhook] subscription upsert failed:', err && err.message);
+    console.error('[stripe-webhook] subscription upsert failed:', err && err.message, '| userId=', userId, '| stripeCustomerId=', stripeCustomerId);
   }
 
   // Do NOT send welcome email or password-set email here — that happens in
@@ -611,6 +638,110 @@ async function handleInvoicePaid(stripe, invoice) {
   }
 }
 
+// Handle customer.subscription.created — safety net for the checkout flow gap.
+// Fires when Stripe creates a new subscription (always accompanies a
+// checkout.session.completed for subscription-mode checkouts, but fires
+// independently and slightly later). If the checkout handler already wrote the
+// subscription row, this is a no-op (idempotent ON CONFLICT). If the checkout
+// handler failed for any reason (NOT NULL constraint, Vercel timeout, etc.),
+// this catches the gap.
+async function handleSubscriptionCreated(stripe, subscription) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping subscription.created.');
+    return;
+  }
+
+  const stripeSubscriptionId = subscription.id;
+  const stripeCustomerId = typeof subscription.customer === 'string'
+    ? subscription.customer
+    : (subscription.customer && subscription.customer.id) || null;
+
+  // Only handle founding-tier subscriptions.
+  const priceId = subscription?.items?.data?.[0]?.price?.id || null;
+  if (priceId !== FOUNDING_PRICE_ID) {
+    console.log('[stripe-webhook] subscription.created skipped — not founding tier. priceId=', priceId, 'sub=', stripeSubscriptionId);
+    return;
+  }
+
+  // Idempotency check: does a subscription row already exist for this subscription ID?
+  if (stripeSubscriptionId) {
+    try {
+      const encoded = encodeURIComponent(stripeSubscriptionId);
+      const existing = await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}&select=id,status&limit=1`);
+      if (Array.isArray(existing) && existing.length > 0) {
+        console.log('[stripe-webhook] subscription.created: row already exists for sub=', stripeSubscriptionId, 'status=', existing[0].status, '— skipping (idempotent)');
+        return;
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] subscription.created: idempotency check failed:', err && err.message, '— proceeding anyway');
+    }
+  }
+
+  console.log('[stripe-webhook] subscription.created: no existing row — creating safety-net subscription for sub=', stripeSubscriptionId);
+
+  // Resolve customer email from Stripe.
+  let customerEmail = null;
+  let customerName = '';
+  if (stripeCustomerId) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (customer && !customer.deleted) {
+        customerEmail = customer.email ? String(customer.email).toLowerCase() : null;
+        customerName = toTitleCase(customer.name || '');
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] subscription.created: customers.retrieve failed:', err && err.message);
+    }
+  }
+
+  if (!customerEmail) {
+    console.error('[stripe-webhook] subscription.created: no customer email found for sub=', stripeSubscriptionId, '— cannot create subscription row');
+    return;
+  }
+
+  // Resolve or create auth user.
+  let userId = null;
+  try {
+    userId = await findAuthUserIdByEmail(customerEmail);
+    if (!userId) {
+      const result = await createAuthUser({ email: customerEmail, fullName: customerName });
+      userId = result.userId;
+      console.log('[stripe-webhook] subscription.created: created placeholder auth user for', customerEmail);
+    } else {
+      console.log('[stripe-webhook] subscription.created: found existing auth user for', customerEmail, 'userId=', userId);
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] subscription.created: failed to resolve userId for', customerEmail, ':', err && err.message);
+    return;
+  }
+
+  if (!userId) {
+    console.error('[stripe-webhook] subscription.created: no userId resolved for', customerEmail, '— cannot create subscription row');
+    return;
+  }
+
+  const currentPeriodStart = subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString() : null;
+  const currentPeriodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString() : null;
+
+  try {
+    await upsertSubscription({
+      user_id: userId,
+      stripe_customer_id: stripeCustomerId,
+      stripe_subscription_id: stripeSubscriptionId,
+      stripe_price_id: priceId,
+      plan: 'founding',
+      status: 'pending_onboarding',
+      current_period_start: currentPeriodStart,
+      current_period_end: currentPeriodEnd,
+    });
+    console.log('[stripe-webhook] subscription.created: safety-net subscription row created for', customerEmail);
+  } catch (err) {
+    console.error('[stripe-webhook] subscription.created: upsert failed:', err && err.message);
+  }
+}
+
 async function handleSubscriptionDeleted(subscription) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[stripe-webhook] Supabase not configured — skipping cancellation.');
@@ -700,6 +831,8 @@ module.exports = async function handler(req, res) {
       await handleCheckoutSessionCompleted(stripe, event.data.object);
     } else if (event.type === 'invoice.paid') {
       await handleInvoicePaid(stripe, event.data.object);
+    } else if (event.type === 'customer.subscription.created') {
+      await handleSubscriptionCreated(stripe, event.data.object);
     } else if (event.type === 'customer.subscription.deleted') {
       await handleSubscriptionDeleted(event.data.object);
     }
