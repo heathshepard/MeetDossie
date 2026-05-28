@@ -19,9 +19,13 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'documents';
 
-// Max total raw bytes we'll ZIP and stream. 40 MB keeps us within Vercel
-// Hobby response limits and prevents timeouts on slow connections.
-const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
+// Max total raw bytes we'll ZIP and stream.
+// Vercel Hobby serverless caps the response payload at 6 MB (uncompressed body).
+// We cap source bytes at 5 MB — ZIP overhead (STORE = no compression + headers)
+// adds <1% so the final ZIP stays comfortably under 6 MB.
+// Most compliance packages are 2-5 typical PDFs which fit easily.
+// For larger packages, agents should use "Send to Compliance" email (Resend 40MB cap).
+const MAX_TOTAL_BYTES = 5 * 1024 * 1024;
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -60,26 +64,23 @@ async function supaFetch(path, opts = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// Fetch a signed URL for a Storage object so we can download it.
-async function getSignedUrl(storagePath) {
-  const url = `${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${encodeURIComponent(storagePath)}`;
+// Download a Storage object directly using the service role key.
+// This matches the pattern in send-compliance-packet.js and avoids the
+// extra round trip that signed URLs require.
+async function downloadStorageObject(storagePath) {
+  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
   const res = await fetch(url, {
-    method: 'POST',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ expiresIn: 300 }), // 5 minutes
   });
-  if (!res.ok) return null;
-  const body = await res.json().catch(() => null);
-  if (!body || !body.signedURL) return null;
-  // signedURL is a path like /storage/v1/object/sign/... — prepend base URL
-  const signedUrl = body.signedURL.startsWith('http')
-    ? body.signedURL
-    : `${SUPABASE_URL}${body.signedURL}`;
-  return signedUrl;
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Storage download ${res.status} for ${storagePath}: ${errText.slice(0, 200)}`);
+  }
+  const arrayBuf = await res.arrayBuffer();
+  return Buffer.from(arrayBuf);
 }
 
 // ─── Minimal ZIP writer ──────────────────────────────────────────────────────
@@ -291,23 +292,11 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    const signedUrl = await getSignedUrl(storagePath);
-    if (!signedUrl) {
-      console.warn(`[download-zip] could not get signed URL for doc ${doc.id} — skipping`);
-      continue;
-    }
-
     let fileData;
     try {
-      const fileRes = await fetch(signedUrl);
-      if (!fileRes.ok) {
-        console.warn(`[download-zip] fetch failed for doc ${doc.id}: ${fileRes.status} — skipping`);
-        continue;
-      }
-      const arrayBuf = await fileRes.arrayBuffer();
-      fileData = Buffer.from(arrayBuf);
+      fileData = await downloadStorageObject(storagePath);
     } catch (err) {
-      console.warn(`[download-zip] download threw for doc ${doc.id}:`, err.message, '— skipping');
+      console.warn(`[download-zip] download failed for doc ${doc.id}:`, err.message, '— skipping');
       continue;
     }
 
