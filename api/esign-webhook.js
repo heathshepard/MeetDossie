@@ -57,7 +57,9 @@ function readRawBody(req) {
 }
 
 // Verify HMAC-SHA256 signature from DocuSeal.
-// DocuSeal sends the signature in the x-docuseal-signature header.
+// DocuSeal sends: X-Docuseal-Signature: <timestamp>.<sha256>
+// The sha256 is HMAC-SHA256("<timestamp>.<rawBody>", DOCUSEAL_WEBHOOK_SECRET) in hex.
+// We also enforce a 5-minute replay-attack window.
 function verifyDocusealSignature(rawBody, signatureHeader) {
   if (!DOCUSEAL_WEBHOOK_SECRET) {
     // If secret not set yet, log and pass through (allows testing without secret).
@@ -68,12 +70,33 @@ function verifyDocusealSignature(rawBody, signatureHeader) {
     console.warn('[esign-webhook] Missing x-docuseal-signature header.');
     return false;
   }
+
+  // Header format: "<timestamp>.<sha256hex>"
+  const dotIndex = signatureHeader.indexOf('.');
+  if (dotIndex === -1) {
+    console.warn('[esign-webhook] x-docuseal-signature has unexpected format (no dot separator).');
+    return false;
+  }
+  const timestamp = signatureHeader.slice(0, dotIndex);
+  const receivedHex = signatureHeader.slice(dotIndex + 1);
+
+  // Replay-attack guard: reject webhooks older than 5 minutes.
+  const tsSeconds = parseInt(timestamp, 10);
+  if (!tsSeconds || Math.abs(Date.now() / 1000 - tsSeconds) > 300) {
+    console.warn('[esign-webhook] Webhook timestamp outside 5-minute window — possible replay attack.');
+    return false;
+  }
+
+  // Compute expected HMAC over "<timestamp>.<rawBody>".
+  const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
   const expected = crypto
     .createHmac('sha256', DOCUSEAL_WEBHOOK_SECRET)
-    .update(rawBody)
+    .update(signedPayload)
     .digest('hex');
+
   // Constant-time comparison to prevent timing attacks.
-  const sigBuf = Buffer.from(signatureHeader, 'hex');
+  // Both buffers must be the same length (hex strings of the same digest are always 64 chars).
+  const sigBuf = Buffer.from(receivedHex.padEnd(64, '0'), 'hex');
   const expBuf = Buffer.from(expected, 'hex');
   if (sigBuf.length !== expBuf.length) return false;
   return crypto.timingSafeEqual(sigBuf, expBuf);
