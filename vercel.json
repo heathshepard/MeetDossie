@@ -159,7 +159,10 @@
                                                    },
                "api/transactions/download-zip.js":  {
                                                         "maxDuration":  60
-                                                    }
+                                                    },
+               "api/cron-stripe-reconcile.js":  {
+                                                    "maxDuration":  60
+                                                }
                   },
     "crons":  [
                   {
