@@ -834,6 +834,310 @@
     .footer-text { font-size: 0.75rem; color: var(--text-dim); }
     .footer-burn { font-size: 0.75rem; color: var(--text-dim); }
 
+    /* ---- Clickable stat card ---- */
+    .stat-chip.clickable { cursor: pointer; }
+    .stat-chip.clickable:hover .stat-value { color: var(--coral); }
+
+    /* ---- Expenses Modal ---- */
+    .expense-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .expense-row:last-child { border-bottom: none; }
+    .expense-name { font-size: 0.88rem; color: var(--blush); font-weight: 500; }
+    .expense-note { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+    .expense-amount { font-family: "Cormorant Garamond", serif; font-size: 1.1rem; font-weight: 600; color: var(--gold); white-space: nowrap; }
+    .expense-amount.zero { color: var(--sage); font-size: 0.9rem; }
+    .expense-divider {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 14px 0 6px;
+      font-weight: 600;
+    }
+    .revenue-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .revenue-row:last-child { border-bottom: none; }
+    .revenue-name { font-size: 0.85rem; color: var(--blush); }
+    .revenue-plan {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(201,169,110,0.12);
+      border: 1px solid rgba(201,169,110,0.28);
+      color: var(--gold);
+      font-weight: 600;
+      margin-top: 2px;
+      display: inline-block;
+    }
+    .revenue-amount { font-family: "Cormorant Garamond", serif; font-size: 1.1rem; font-weight: 600; color: var(--sage); white-space: nowrap; }
+    .modal-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .modal-tab {
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      background: transparent;
+      transition: all 0.12s;
+    }
+    .modal-tab.active { background: rgba(201,169,110,0.14); border-color: rgba(201,169,110,0.35); color: var(--gold); }
+
+    /* ---- MRR Sparkline ---- */
+    .sparkline-wrap {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sparkline-svg { display: block; overflow: visible; }
+    .sparkline-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ---- Founding progress bar ---- */
+    .founding-widget {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 32px;
+    }
+    .founding-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .founding-count {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--gold);
+    }
+    .founding-remaining {
+      font-size: 0.78rem;
+      color: var(--coral);
+      font-weight: 600;
+    }
+    .founding-track {
+      height: 8px;
+      background: rgba(245,230,224,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .founding-bar {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--coral), var(--gold));
+      width: 0%;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .founding-sub {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* ---- Activation drill-down ---- */
+    .activation-drill {
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .activation-drill-toggle {
+      font-size: 0.72rem;
+      color: var(--gold);
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .activation-drill-toggle:hover { opacity: 0.8; }
+    .activation-customer-list {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 10px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .activation-customer-list.open { display: flex; }
+    .activation-cust-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+    .activation-cust-name { color: var(--blush); font-weight: 500; }
+    .activation-cust-email { font-size: 0.68rem; color: var(--text-dim); margin-top: 1px; }
+    .activation-cust-login { font-size: 0.72rem; white-space: nowrap; }
+    .activation-cust-login.never { color: var(--coral); font-weight: 600; }
+    .activation-cust-login.recent { color: var(--sage); }
+    .activation-cust-login.old { color: var(--text-dim); }
+
+    /* ---- Agent tooltip ---- */
+    .agent-chip { position: relative; }
+    .agent-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2a2a48;
+      border: 1px solid var(--border-hover);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      color: var(--blush);
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .agent-chip:hover .agent-tooltip { display: block; }
+
+    /* ---- Social post modal ---- */
+    .social-stat-card { cursor: pointer; transition: border-color 0.15s; }
+    .social-stat-card:hover { border-color: rgba(201,169,110,0.40); }
+    .platform-pill { cursor: pointer; transition: background 0.12s; }
+    .platform-pill:hover { background: rgba(201,169,110,0.10); }
+    .post-preview-row {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .post-preview-row:last-child { border-bottom: none; }
+    .post-preview-hook { font-size: 0.88rem; color: var(--blush); margin-bottom: 4px; }
+    .post-preview-meta { font-size: 0.72rem; color: var(--text-dim); display: flex; gap: 10px; flex-wrap: wrap; }
+    .post-status-pill {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .post-status-pill.posted   { background: rgba(139,168,136,0.16); color: var(--sage); border: 1px solid rgba(139,168,136,0.30); }
+    .post-status-pill.draft    { background: rgba(245,230,224,0.08); color: var(--text-dim); border: 1px solid var(--border); }
+    .post-status-pill.approved { background: rgba(201,169,110,0.14); color: var(--gold); border: 1px solid rgba(201,169,110,0.30); }
+    .post-status-pill.rejected { background: rgba(232,131,107,0.14); color: var(--coral); border: 1px solid rgba(232,131,107,0.30); }
+    .post-status-pill.failed   { background: rgba(232,131,107,0.20); color: var(--coral); border: 1px solid rgba(232,131,107,0.40); }
+
+    /* ---- Completed tasks section ---- */
+    .completed-toggle {
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+    }
+    .completed-toggle:hover { color: var(--blush); }
+    .completed-list {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .completed-list.open { display: flex; }
+    .task-row.completed-task { opacity: 0.65; }
+
+    /* ---- Cron Health panel ---- */
+    .cron-section { margin-bottom: 32px; }
+    .cron-toggle {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    .cron-toggle:hover { opacity: 0.8; }
+    .cron-toggle-arrow {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+    .cron-toggle-arrow.open { transform: rotate(90deg); }
+    .cron-grid {
+      display: none;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .cron-grid.open { display: grid; }
+    .cron-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 0.8rem;
+    }
+    .cron-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cron-dot.ok      { background: var(--sage); }
+    .cron-dot.warn    { background: var(--gold); }
+    .cron-dot.critical{ background: var(--coral); }
+    .cron-dot.error   { background: #ff4444; }
+    .cron-dot.unknown { background: var(--text-dim); }
+    .cron-label { flex: 1; color: var(--blush); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cron-age   { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; }
+    .cron-summary {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 0.72rem;
+    }
+    .cron-summary-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-dim);
+    }
+    .cron-summary-chip .cron-dot { width: 6px; height: 6px; }
+
+    /* ---- Modal wide variant ---- */
+    .modal-box.wide { max-width: 600px; }
+
     /* ---- Skeleton ---- */
     .skeleton {
       background: linear-gradient(90deg, rgba(245,230,224,0.06) 25%, rgba(245,230,224,0.10) 50%, rgba(245,230,224,0.06) 75%);
@@ -963,16 +1267,20 @@
           <button id="signout-btn" onclick="signOut()" style="margin-top:6px;padding:5px 12px;font-size:0.75rem;background:transparent;border:1px solid rgba(245,230,224,0.2);border-radius:6px;color:rgba(245,230,224,0.45);cursor:pointer;white-space:nowrap;font-family:inherit;" onmouseover="this.style.borderColor='rgba(245,230,224,0.4)';this.style.color='rgba(245,230,224,0.7)'" onmouseout="this.style.borderColor='rgba(245,230,224,0.2)';this.style.color='rgba(245,230,224,0.45)'">Sign out</button>
         </div>
         <div class="stat-bar">
-          <div class="stat-chip">
+          <div class="stat-chip" id="mrr-chip" style="cursor:default;">
             <span class="stat-label">Portfolio MRR</span>
             <span class="stat-value" id="stat-mrr"><span class="skeleton skel-mrr"></span></span>
+            <div class="sparkline-wrap" id="sparkline-wrap" style="display:none;">
+              <svg class="sparkline-svg" id="sparkline-svg" width="120" height="32" viewBox="0 0 120 32"></svg>
+              <div class="sparkline-labels" id="sparkline-labels"></div>
+            </div>
           </div>
           <div class="stat-chip">
             <span class="stat-label">Customers</span>
             <span class="stat-value" id="stat-customers"><span class="skeleton skel-cust"></span></span>
           </div>
-          <div class="stat-chip">
-            <span class="stat-label">Monthly Burn</span>
+          <div class="stat-chip clickable" id="burn-chip" onclick="openExpensesModal()" title="Click to see expense breakdown">
+            <span class="stat-label">Monthly Burn &#9432;</span>
             <span class="stat-value dim" id="stat-burn"><span class="skeleton skel-stat"></span></span>
           </div>
           <div class="stat-chip">
@@ -1011,6 +1319,23 @@
           <div class="company-card planning">
             <div class="skeleton" style="width:130px;height:1.4rem;margin-bottom:8px;"></div>
             <div class="skeleton" style="width:65%;height:0.8rem;margin-bottom:18px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Founding Spots Widget -->
+      <section>
+        <div class="section-header">Founding Spots</div>
+        <div class="founding-widget" id="founding-widget">
+          <div class="founding-header">
+            <div>
+              <div class="founding-count" id="founding-count"><span class="skeleton" style="width:60px;height:1.4rem;display:inline-block;"></span></div>
+              <div class="founding-sub">of 50 founding spots filled</div>
+            </div>
+            <div class="founding-remaining" id="founding-remaining"></div>
+          </div>
+          <div class="founding-track">
+            <div class="founding-bar" id="founding-bar"></div>
           </div>
         </div>
       </section>
@@ -1058,6 +1383,15 @@
           <div class="activation-card">
             <span class="skeleton" style="width:48px;height:2.2rem;display:block;margin-bottom:4px;"></span>
             <span class="activation-lbl">Activation Rate</span>
+          </div>
+        </div>
+        <!-- Customer drill-down list -->
+        <div class="activation-drill">
+          <span class="activation-drill-toggle" id="activation-drill-toggle" onclick="toggleActivationDrill()">
+            <span id="activation-drill-arrow">&#9654;</span> Show customers
+          </span>
+          <div class="activation-customer-list" id="activation-customer-list">
+            <!-- Populated by JS -->
           </div>
         </div>
       </section>
@@ -1127,6 +1461,23 @@
         <div class="task-list" id="task-list">
           <div class="task-empty">Loading tasks…</div>
         </div>
+        <div class="completed-toggle" id="completed-toggle" onclick="toggleCompletedTasks()">
+          <span id="completed-arrow">&#9654;</span> Show completed tasks
+        </div>
+        <div class="completed-list" id="completed-list">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Cron Health -->
+      <section class="cron-section">
+        <div class="cron-toggle" onclick="toggleCronSection()" id="cron-toggle-row">
+          <div class="section-header" style="margin-bottom:0;flex:1;">Cron Health <span id="cron-toggle-arrow" class="cron-toggle-arrow">&#9654;</span></div>
+        </div>
+        <div id="cron-summary" class="cron-summary"></div>
+        <div class="cron-grid" id="cron-grid">
+          <!-- Populated by JS -->
+        </div>
       </section>
 
       <!-- Footer -->
@@ -1140,6 +1491,41 @@
 
     </div><!-- /page -->
   </div><!-- /app -->
+
+  <!-- Expenses / Revenue Modal -->
+  <div class="modal-backdrop" id="expenses-modal">
+    <div class="modal-box wide">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="modal-title" style="margin-bottom:0;">Finances</div>
+        <button onclick="document.getElementById('expenses-modal').classList.remove('open')" style="background:transparent;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tab-expenses" onclick="switchExpensesTab('expenses')">Expenses</button>
+        <button class="modal-tab" id="tab-revenue" onclick="switchExpensesTab('revenue')">Revenue</button>
+      </div>
+      <!-- Expenses tab -->
+      <div id="expenses-content">
+        <div id="expenses-list"></div>
+      </div>
+      <!-- Revenue tab -->
+      <div id="revenue-content" style="display:none;">
+        <div id="revenue-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Social Posts Modal -->
+  <div class="modal-backdrop" id="social-posts-modal">
+    <div class="modal-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="modal-title" style="margin-bottom:0;" id="social-posts-modal-title">Recent Posts</div>
+        <button onclick="document.getElementById('social-posts-modal').classList.remove('open')" style="background:transparent;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <div id="social-posts-list">
+        <div style="text-align:center;padding:20px;font-size:0.82rem;color:var(--text-dim);">Loading…</div>
+      </div>
+    </div>
+  </div>
 
   <!-- New Task Modal -->
   <div class="modal-backdrop" id="task-modal">
@@ -1204,6 +1590,9 @@
     let _realtimeChannel = null;
     const POLL_INTERVAL_MS = 30_000;
 
+    // State for expenses modal
+    let _overviewData = null;
+
     // Chat state — per-agent conversation history stored in localStorage
     const AGENTS = [
       { key: 'cole',             name: 'Cole',             role: 'Chief of Staff' },
@@ -1259,9 +1648,12 @@
       loadActivation();
       loadTasks();
       loadFiles();
+      loadCronHealth();
       initChatTabs();
       initFeedRealtime();
       loadFeed();
+      // Poll activity feed every 60s as a fallback if realtime fails
+      setInterval(loadFeed, 60_000);
       startPolling();
       startClock();
     }
@@ -1296,6 +1688,8 @@
     }
 
     function renderOverview(d) {
+      _overviewData = d; // store for expenses modal
+
       const mrr = d.totalMrrUsd ?? 0;
       const cust = d.totalCustomers ?? 0;
       const burn = d.costs?.totalFixed ?? 149.41;
@@ -1317,23 +1711,54 @@
         marginEl.textContent = '—';
       }
 
+      // MRR Sparkline
+      if (d.mrrSparkline?.length >= 2) {
+        renderSparkline(d.mrrSparkline);
+      }
+
+      // Founding spots widget
+      const dossie = d.companies?.find(c => c.id === 'dossie');
+      if (dossie?.foundingSpots) {
+        const taken = dossie.foundingSpots.taken;
+        const total = dossie.foundingSpots.total;
+        const remaining = total - taken;
+        const pct = Math.min((taken / total) * 100, 100);
+        setText('founding-count', `${taken} / ${total}`);
+        const remEl = document.getElementById('founding-remaining');
+        if (remEl) remEl.textContent = `${remaining} remaining`;
+        // Animate bar (defer to next frame so transition fires)
+        requestAnimationFrame(() => {
+          const bar = document.getElementById('founding-bar');
+          if (bar) bar.style.width = `${pct}%`;
+        });
+      }
+
       // Company cards
       const grid = document.getElementById('company-grid');
       if (d.companies?.length) {
         grid.innerHTML = d.companies.map(co => renderCompanyCard(co)).join('');
       }
 
-      // Agents — render clickable chips with pulse
+      // Agents — render clickable chips with pulse + heartbeat tooltip
       const agentRow = document.getElementById('agent-row');
       if (d.agents?.length) {
         agentRow.innerHTML = d.agents.map(a => {
           const meta = AGENTS.find(ag => ag.key === a.name);
           const role = meta?.role || '';
           const displayName = a.displayName || capitalize(a.name);
+          // Map heartbeat status to dot class
+          const dotClass = {
+            active: 'active', busy: 'busy', error: 'error',
+            warn: 'busy', stale: 'error', idle: 'idle',
+          }[a.status] || 'idle';
+          const lastActiveText = a.lastActiveAt
+            ? `Last active: ${timeAgo(new Date(a.lastActiveAt))}`
+            : 'Never active';
           return `<div class="agent-chip" data-agent="${escHtml(a.name)}" onclick="selectAgentChat('${escHtml(a.name)}')">
-            <span class="agent-dot ${a.status || 'idle'}"></span>
+            <span class="agent-dot ${dotClass}"></span>
             <span>${escHtml(displayName)}</span>
             <span class="agent-role">${escHtml(role)}</span>
+            <span class="agent-tooltip">${escHtml(lastActiveText)}</span>
           </div>`;
         }).join('');
       }
@@ -1343,23 +1768,144 @@
       setText('updated-at', `Updated ${timeAgo(updatedAt)}`);
       setText('footer-updated', `Last poll: ${updatedAt.toLocaleTimeString()}`);
 
-      // Footnote for burn
-      const burnFootnote = document.getElementById('burn-footnote');
-      if (burnFootnote) burnFootnote.style.display = 'block';
-
       if (d.costs?.fixed) {
         const paid = d.costs.fixed.filter(s => s.amount > 0);
-        const free = d.costs.fixed.filter(s => s.amount === 0).map(s => s.name).join(', ');
         const paidLine = paid.map(s => `${s.name} $${s.amount.toFixed(2)}`).join(' + ');
         const footerEl = document.getElementById('footer-burn');
         if (footerEl) {
           footerEl.innerHTML =
-            `<span style="color:var(--blush-deep);">Fixed: ${paidLine}</span>` +
-            `<br><span style="opacity:0.55;">Free: ${free}</span>` +
-            `<br><span style="opacity:0.45;">Variable: Stripe fees + Anthropic API</span>`;
+            `<span style="color:var(--blush-deep);cursor:pointer;" onclick="openExpensesModal()">Fixed: ${paidLine} &#9432;</span>`;
         }
       }
     }
+
+    // ============================================================
+    // MRR Sparkline
+    // ============================================================
+    function renderSparkline(data) {
+      const svg = document.getElementById('sparkline-svg');
+      const labelsEl = document.getElementById('sparkline-labels');
+      if (!svg || !labelsEl) return;
+
+      const W = 120, H = 32, PAD = 3;
+      const values = data.map(d => d.mrr);
+      const maxVal = Math.max(...values, 1);
+      const minVal = 0;
+
+      const pts = values.map((v, i) => {
+        const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
+        const y = H - PAD - ((v - minVal) / (maxVal - minVal)) * (H - PAD * 2);
+        return [x, y];
+      });
+
+      const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+      const areaD = pathD + ` L${pts[pts.length-1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
+
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#C9A96E" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#C9A96E" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaD}" fill="url(#spark-grad)"/>
+        <path d="${pathD}" fill="none" stroke="#C9A96E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${pts.map((p, i) => i === pts.length - 1
+          ? `<circle cx="${p[0]}" cy="${p[1]}" r="2.5" fill="#C9A96E"/>`
+          : '').join('')}
+      `;
+
+      labelsEl.innerHTML = data.map(d => `<span>${escHtml(d.label)}</span>`).join('');
+      document.getElementById('sparkline-wrap').style.display = 'flex';
+    }
+
+    // ============================================================
+    // Expenses / Revenue Modal
+    // ============================================================
+    window.openExpensesModal = function() {
+      if (!_overviewData) return;
+      renderExpensesContent(_overviewData);
+      document.getElementById('expenses-modal').classList.add('open');
+    };
+
+    window.switchExpensesTab = function(tab) {
+      document.getElementById('tab-expenses').classList.toggle('active', tab === 'expenses');
+      document.getElementById('tab-revenue').classList.toggle('active', tab === 'revenue');
+      document.getElementById('expenses-content').style.display = tab === 'expenses' ? 'block' : 'none';
+      document.getElementById('revenue-content').style.display = tab === 'revenue' ? 'block' : 'none';
+    };
+
+    function renderExpensesContent(d) {
+      const costs = d.costs || {};
+
+      // Expenses tab
+      let expHtml = '';
+      if (costs.fixed?.length) {
+        const paid = costs.fixed.filter(s => s.amount > 0);
+        const free = costs.fixed.filter(s => s.amount === 0);
+        expHtml += `<div class="expense-divider">Fixed — Paid</div>`;
+        expHtml += paid.map(s => `
+          <div class="expense-row">
+            <div><div class="expense-name">${escHtml(s.name)}</div>${s.note ? `<div class="expense-note">${escHtml(s.note)}</div>` : ''}</div>
+            <div class="expense-amount">$${s.amount.toFixed(2)}/mo</div>
+          </div>`).join('');
+        expHtml += `<div class="expense-divider">Fixed — Free Tier</div>`;
+        expHtml += free.map(s => `
+          <div class="expense-row">
+            <div><div class="expense-name">${escHtml(s.name)}</div>${s.note ? `<div class="expense-note">${escHtml(s.note)}</div>` : ''}</div>
+            <div class="expense-amount zero">Free</div>
+          </div>`).join('');
+      }
+      if (costs.variable?.length) {
+        expHtml += `<div class="expense-divider">Variable</div>`;
+        expHtml += costs.variable.map(s => `
+          <div class="expense-row">
+            <div><div class="expense-name">${escHtml(s.name)}</div>${s.note ? `<div class="expense-note">${escHtml(s.note)}</div>` : ''}</div>
+            <div class="expense-amount" style="color:var(--text-dim);font-size:0.75rem;">Variable</div>
+          </div>`).join('');
+      }
+      if (costs.oneTime?.length) {
+        expHtml += `<div class="expense-divider">One-Time</div>`;
+        expHtml += costs.oneTime.map(s => `
+          <div class="expense-row">
+            <div><div class="expense-name">${escHtml(s.name)}</div>${s.note ? `<div class="expense-note">${escHtml(s.note)}</div>` : ''}</div>
+            <div class="expense-amount" style="color:var(--blush-deep);">$${s.amount.toFixed(2)}</div>
+          </div>`).join('');
+      }
+      expHtml += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-weight:600;">
+        <span style="font-size:0.85rem;color:var(--blush);">Total Fixed Monthly</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--coral);">$${(costs.totalFixed || 0).toFixed(2)}</span>
+      </div>`;
+      document.getElementById('expenses-list').innerHTML = expHtml;
+
+      // Revenue tab
+      const revenue = d.customerRevenue || [];
+      let revHtml = '';
+      if (revenue.length) {
+        revHtml += revenue.map(r => `
+          <div class="revenue-row">
+            <div>
+              <div class="revenue-name">${escHtml(r.name)}</div>
+              <span class="revenue-plan">${escHtml(r.plan)}</span>
+            </div>
+            <div class="revenue-amount">$${r.monthlyUsd}/mo</div>
+          </div>`).join('');
+        const total = revenue.reduce((sum, r) => sum + r.monthlyUsd, 0);
+        revHtml += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-weight:600;">
+          <span style="font-size:0.85rem;color:var(--blush);">Total MRR</span>
+          <span style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--sage);">$${total}/mo</span>
+        </div>`;
+      } else {
+        revHtml = '<div style="padding:16px;text-align:center;font-size:0.82rem;color:var(--text-dim);">No active customers found.</div>';
+      }
+      document.getElementById('revenue-list').innerHTML = revHtml;
+    }
+
+    // Close expenses modal on backdrop click
+    document.getElementById('expenses-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('expenses-modal'))
+        document.getElementById('expenses-modal').classList.remove('open');
+    });
 
     function renderCompanyCard(co) {
       const isLive = co.status === 'live';
@@ -1418,45 +1964,91 @@
       const rejected = d.byStatus?.rejected ?? 0;
 
       document.getElementById('social-grid').innerHTML = `
-        <div class="social-stat-card">
+        <div class="social-stat-card" onclick="openSocialPostsModal('all')" title="Click to see recent posts">
           <span class="social-stat-val">${totalThisWeek}</span>
           <span class="social-stat-lbl">Posts This Week</span>
         </div>
-        <div class="social-stat-card">
+        <div class="social-stat-card" onclick="openSocialPostsModal('all')" title="Click to see recent posts">
           <span class="social-stat-val good">${totalPosted}</span>
           <span class="social-stat-lbl">Posted</span>
         </div>
-        <div class="social-stat-card">
+        <div class="social-stat-card" title="Approval rate this week">
           <span class="social-stat-val ${approvalRate !== null && approvalRate >= 70 ? 'good' : 'warn'}">${approvalRate !== null ? approvalRate + '%' : '—'}</span>
           <span class="social-stat-lbl">Approval Rate</span>
         </div>
-        <div class="social-stat-card">
+        <div class="social-stat-card" title="Rejected posts this week">
           <span class="social-stat-val ${rejected > 0 ? 'warn' : ''}">${rejected}</span>
           <span class="social-stat-lbl">Rejected</span>
         </div>
         ${d.totalFailed ? `
-        <div class="social-stat-card">
+        <div class="social-stat-card" title="Failed posts this week">
           <span class="social-stat-val warn">${d.totalFailed}</span>
           <span class="social-stat-lbl">Failed</span>
         </div>` : ''}
         ${d.allTimePosted !== null ? `
-        <div class="social-stat-card">
+        <div class="social-stat-card" onclick="openSocialPostsModal('all')" title="Click to see recent posts">
           <span class="social-stat-val" style="color:var(--gold);">${d.allTimePosted}</span>
           <span class="social-stat-lbl">All-Time Posted</span>
         </div>` : ''}
       `;
 
-      // Platform breakdown pills
+      // Platform breakdown pills — clickable
       const platformEl = document.getElementById('platform-breakdown');
       if (d.platformBreakdown?.length) {
         platformEl.innerHTML = d.platformBreakdown.map(p =>
-          `<span class="platform-pill">
+          `<span class="platform-pill" onclick="openSocialPostsModal('${escHtml(p.platform)}')" title="See last 5 ${escHtml(p.label)} posts">
             ${escHtml(p.label)}
             <span class="platform-pill-count">${p.count}</span>
           </span>`
         ).join('');
       }
     }
+
+    // ============================================================
+    // Social Posts Modal
+    // ============================================================
+    window.openSocialPostsModal = async function(platform) {
+      const modal = document.getElementById('social-posts-modal');
+      const titleEl = document.getElementById('social-posts-modal-title');
+      const listEl = document.getElementById('social-posts-list');
+      const label = platform === 'all' ? 'All Platforms' : capitalize(platform);
+      titleEl.textContent = `Recent Posts — ${label}`;
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;font-size:0.82rem;color:var(--text-dim);">Loading…</div>';
+      modal.classList.add('open');
+
+      try {
+        const url = platform === 'all'
+          ? '/api/ventures/social-posts?limit=5'
+          : `/api/ventures/social-posts?platform=${encodeURIComponent(platform)}&limit=5`;
+        const res = await authFetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const posts = data.posts || [];
+        if (!posts.length) {
+          listEl.innerHTML = '<div style="padding:16px;text-align:center;font-size:0.82rem;color:var(--text-dim);">No posts found.</div>';
+          return;
+        }
+        listEl.innerHTML = posts.map(p => {
+          const statusCls = p.status || 'draft';
+          const when = p.postedAt ? timeAgo(new Date(p.postedAt)) : (p.createdAt ? timeAgo(new Date(p.createdAt)) : '');
+          return `<div class="post-preview-row">
+            <div class="post-preview-hook">${escHtml(p.hook || '(no hook)')}</div>
+            <div class="post-preview-meta">
+              <span class="post-status-pill ${statusCls}">${escHtml(p.status || 'draft')}</span>
+              <span>${escHtml(p.platform || '')}</span>
+              ${when ? `<span>${escHtml(when)}</span>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = `<div style="padding:16px;text-align:center;font-size:0.82rem;color:var(--coral);">Error: ${escHtml(e.message)}</div>`;
+      }
+    };
+
+    document.getElementById('social-posts-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('social-posts-modal'))
+        document.getElementById('social-posts-modal').classList.remove('open');
+    });
 
     // ============================================================
     // Activation Metrics
@@ -1474,7 +2066,10 @@
       }
     }
 
+    let _activationCustomers = [];
+
     function renderActivation(d) {
+      _activationCustomers = d.customers || [];
       const neverPct = d.totalPaying > 0
         ? Math.round((d.neverLoggedIn / d.totalPaying) * 100)
         : 0;
@@ -1501,7 +2096,41 @@
           <span class="activation-sub">Ever logged in</span>
         </div>
       `;
+
+      // Populate customer drill-down
+      renderActivationCustomers();
     }
+
+    function renderActivationCustomers() {
+      const listEl = document.getElementById('activation-customer-list');
+      if (!listEl || !_activationCustomers.length) return;
+      listEl.innerHTML = _activationCustomers.map(c => {
+        let loginClass, loginText;
+        if (c.neverLoggedIn) {
+          loginClass = 'never'; loginText = 'Never logged in';
+        } else if (c.activatedThisWeek) {
+          loginClass = 'recent'; loginText = `Active: ${timeAgo(new Date(c.lastSignIn))}`;
+        } else {
+          loginClass = 'old'; loginText = c.lastSignIn ? `Last: ${timeAgo(new Date(c.lastSignIn))}` : '—';
+        }
+        return `<div class="activation-cust-row">
+          <div>
+            <div class="activation-cust-name">${escHtml(c.name || 'Unknown')}</div>
+            <div class="activation-cust-email">${escHtml(c.email || '')}</div>
+          </div>
+          <div class="activation-cust-login ${loginClass}">${escHtml(loginText)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    window.toggleActivationDrill = function() {
+      const list = document.getElementById('activation-customer-list');
+      const arrow = document.getElementById('activation-drill-arrow');
+      const toggle = document.getElementById('activation-drill-toggle');
+      const isOpen = list.classList.toggle('open');
+      arrow.textContent = isOpen ? '▼' : '▶';
+      toggle.childNodes[toggle.childNodes.length - 1].textContent = isOpen ? ' Hide customers' : ' Show customers';
+    };
 
     // ============================================================
     // Activity Feed
@@ -1981,6 +2610,52 @@
       });
     }
 
+    // ---- Completed tasks ----
+    let _completedLoaded = false;
+
+    window.toggleCompletedTasks = async function() {
+      const list = document.getElementById('completed-list');
+      const arrow = document.getElementById('completed-arrow');
+      const isOpen = list.classList.toggle('open');
+      arrow.textContent = isOpen ? '▼' : '▶';
+      const toggle = document.getElementById('completed-toggle');
+      // Update label text node
+      toggle.childNodes[toggle.childNodes.length - 1].textContent = isOpen ? ' Hide completed tasks' : ' Show completed tasks';
+
+      if (isOpen && !_completedLoaded) {
+        list.innerHTML = '<div class="task-empty">Loading…</div>';
+        try {
+          const r = await authFetch('/api/ventures/tasks?completed=true&limit=10');
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const { tasks } = await r.json();
+          _completedLoaded = true;
+          if (!tasks?.length) {
+            list.innerHTML = '<div class="task-empty">No completed tasks yet.</div>';
+          } else {
+            list.innerHTML = tasks.map(t => renderCompletedTaskRow(t)).join('');
+          }
+        } catch (e) {
+          list.innerHTML = `<div class="task-empty" style="color:var(--coral);">Error: ${escHtml(e.message)}</div>`;
+        }
+      }
+    };
+
+    function renderCompletedTaskRow(t) {
+      const agentLabel = t.assigned_to
+        ? t.assigned_to.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'Unassigned';
+      const completedText = t.completed_at ? `Done ${timeAgo(new Date(t.completed_at))}` : 'Completed';
+      const prio = t.priority || 3;
+      return `
+        <div class="task-row completed-task" data-priority="${prio}">
+          <span class="task-agent-badge">${escHtml(agentLabel)}</span>
+          <span class="task-title-text">${escHtml(t.title)}</span>
+          <span class="task-status-badge completed">Done</span>
+          <span class="task-age">${escHtml(completedText)}</span>
+          ${t.description ? `<div class="task-detail open" style="display:block;"><div>${escHtml(t.description)}</div></div>` : ''}
+        </div>`;
+    }
+
     // ---- Task modal ----
     function initTaskModal() {
       const modal = document.getElementById('task-modal');
@@ -2031,8 +2706,57 @@
     }
 
     // ============================================================
+    // Cron Health
+    // ============================================================
+    let _cronOpen = false;
+
+    async function loadCronHealth() {
+      try {
+        const res = await authFetch('/api/ventures/cron-health');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        renderCronHealth(d);
+      } catch (e) {
+        console.warn('[cron-health] failed:', e.message);
+        document.getElementById('cron-summary').innerHTML =
+          '<span style="font-size:0.72rem;color:var(--text-dim);">Cron health unavailable.</span>';
+      }
+    }
+
+    function renderCronHealth(d) {
+      // Summary chips
+      const summaryEl = document.getElementById('cron-summary');
+      summaryEl.innerHTML = `
+        <span class="cron-summary-chip"><span class="cron-dot ok"></span>${d.okCount} ok</span>
+        <span class="cron-summary-chip"><span class="cron-dot warn"></span>${d.warnCount} warn</span>
+        <span class="cron-summary-chip"><span class="cron-dot error"></span>${d.errorCount} error</span>
+        <span class="cron-summary-chip"><span class="cron-dot unknown"></span>${d.unknownCount} no data</span>
+      `;
+
+      // Grid rows
+      const grid = document.getElementById('cron-grid');
+      grid.innerHTML = (d.crons || []).map(c => {
+        const ageText = c.lastRun ? timeAgo(new Date(c.lastRun)) : 'Never';
+        return `<div class="cron-row">
+          <span class="cron-dot ${c.health}" title="${escHtml(c.health)}"></span>
+          <span class="cron-label" title="${escHtml(c.name)}">${escHtml(c.label)}</span>
+          <span class="cron-age">${escHtml(ageText)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    window.toggleCronSection = function() {
+      _cronOpen = !_cronOpen;
+      const grid = document.getElementById('cron-grid');
+      const arrow = document.getElementById('cron-toggle-arrow');
+      grid.classList.toggle('open', _cronOpen);
+      arrow.classList.toggle('open', _cronOpen);
+    };
+
+    // ============================================================
     // Polling
     // ============================================================
+    let _pollCount = 0;
     function startPolling() {
       _pollTimer = setInterval(async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -2042,7 +2766,11 @@
           return;
         }
         _token = session.access_token;
-        await Promise.all([loadOverview(), loadSocialStats(), loadActivation(), loadTasks()]);
+        _pollCount++;
+        const tasks = [loadOverview(), loadSocialStats(), loadActivation(), loadTasks()];
+        // Refresh cron health every 10 polls (~5 min at 30s interval)
+        if (_pollCount % 10 === 0) tasks.push(loadCronHealth());
+        await Promise.all(tasks);
       }, POLL_INTERVAL_MS);
     }
 

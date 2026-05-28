@@ -75,7 +75,7 @@ export default async function handler(req, res) {
 
   try {
     // --- Revenue rollup from subscriptions ---
-    const subsRes = await supa('subscriptions?select=plan,status&status=eq.active');
+    const subsRes = await supa('subscriptions?select=plan,status,created_at&status=eq.active&order=created_at.asc');
     if (!subsRes.ok) throw new Error(`subscriptions fetch failed: ${subsRes.status}`);
     const subs = await subsRes.json();
 
@@ -86,6 +86,7 @@ export default async function handler(req, res) {
     const totalCustomers = subs.length;
 
     // MRR: founding @ $29, founding_friend @ $1, solo @ $79, team @ $199
+    const PLAN_AMOUNTS = { founding: 29, founding_friend: 1, solo: 79, team: 199 };
     const dossieMrr =
       (founding * 29) +
       (foundingFriend * 1) +
@@ -93,17 +94,56 @@ export default async function handler(req, res) {
       (team * 199);
     const totalMrr = dossieMrr; // only one live company right now
 
-    // --- Agent status from ventures_agents ---
+    // --- MRR Sparkline: cumulative MRR by month over last 6 months ---
+    // Build monthly buckets for the past 6 months
+    const now = new Date();
+    const sparkMonths = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      sparkMonths.push({
+        year: d.getFullYear(),
+        month: d.getMonth(), // 0-indexed
+        label: d.toLocaleString('en-US', { month: 'short' }),
+        mrr: 0,
+      });
+    }
+
+    // For each active subscription, add its MRR to the month it was created
+    // and all subsequent months (cumulative MRR growth)
+    for (const sub of subs) {
+      const subDate = new Date(sub.created_at);
+      const amount = PLAN_AMOUNTS[sub.plan] || 0;
+      for (const bucket of sparkMonths) {
+        const bucketStart = new Date(bucket.year, bucket.month, 1);
+        if (subDate <= bucketStart) {
+          bucket.mrr += amount;
+        }
+      }
+    }
+    const mrrSparkline = sparkMonths.map(b => ({ label: b.label, mrr: b.mrr }));
+
+    // --- Agent status from ventures_agents (with heartbeat-aware status) ---
     let agents = [];
     const agentRes = await supa('ventures_agents?select=agent_name,display_name,status,last_active_at&order=agent_name.asc');
     if (agentRes.ok) {
       const agentRows = await agentRes.json();
-      agents = agentRows.map(a => ({
-        name: a.agent_name,
-        displayName: a.display_name,
-        status: a.status || 'idle',
-        lastActiveAt: a.last_active_at || null,
-      }));
+      const nowMs = Date.now();
+      agents = agentRows.map(a => {
+        const lastActive = a.last_active_at ? new Date(a.last_active_at) : null;
+        let heartbeatStatus = 'idle';
+        if (lastActive) {
+          const ageHours = (nowMs - lastActive.getTime()) / 3600000;
+          if (ageHours <= 24) heartbeatStatus = a.status || 'active';
+          else if (ageHours <= 72) heartbeatStatus = 'warn';
+          else heartbeatStatus = 'stale';
+        }
+        return {
+          name: a.agent_name,
+          displayName: a.display_name,
+          status: heartbeatStatus,
+          lastActiveAt: a.last_active_at || null,
+        };
+      });
     } else {
       // Fallback if ventures_agents isn't queryable yet
       agents = [
@@ -117,10 +157,36 @@ export default async function handler(req, res) {
       ];
     }
 
+    // --- Per-customer revenue breakdown (for Revenue modal) ---
+    // Join subscriptions with profiles for names
+    const profilesRes = await supa('profiles?select=id,full_name,email&is_demo=eq.false&limit=200');
+    let profileMap = {};
+    if (profilesRes.ok) {
+      const profiles = await profilesRes.json();
+      for (const p of profiles) profileMap[p.id] = { name: p.full_name || p.email || 'Unknown', email: p.email };
+    }
+    // Also fetch user_id from subscriptions for the name join
+    const subsWithIdRes = await supa('subscriptions?select=user_id,plan,status&status=eq.active&limit=200');
+    let customerRevenue = [];
+    if (subsWithIdRes.ok) {
+      const subsWithId = await subsWithIdRes.json();
+      customerRevenue = subsWithId.map(s => {
+        const profile = profileMap[s.user_id] || { name: 'Unknown', email: '' };
+        return {
+          name: profile.name,
+          email: profile.email,
+          plan: s.plan,
+          monthlyUsd: PLAN_AMOUNTS[s.plan] || 0,
+        };
+      }).sort((a, b) => b.monthlyUsd - a.monthlyUsd);
+    }
+
     const payload = {
       generatedAt: new Date().toISOString(),
       totalMrrUsd: totalMrr,
       totalCustomers,
+      mrrSparkline,
+      customerRevenue,
       companies: [
         {
           id: 'dossie',
