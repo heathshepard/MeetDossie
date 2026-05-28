@@ -59,8 +59,9 @@ This file is read at the start of every Claude Code session. It completely repla
 | Pexels | Free | $0 | Stock video API |
 | Stripe | Pay-as-you-go | $0 | 2.9% + 30¢ per transaction |
 | Submagic | Starter | $12.00 | Selfie-video editing (captions, b-roll, multi-format export). Added 2026-05-20. |
+| Hiscox | E&O / Professional Liability | $33.32 | $1M/$1M coverage, $500 deductible. Quote #S111.020.194. Added 2026-05-28. Paid personally — reimburse from Mercury once funded. |
 
-**Total monthly fixed costs: $48.33**
+**Total monthly fixed costs: $81.65**
 
 **Variable costs:**
 - Stripe transaction fees (2.9% + 30¢ per charge)
@@ -219,7 +220,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
 - Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
-- **Amendment drafting** — auto-fill TREC amendment forms (Amendment to Contract TREC 39-9, repair amendments, financing addendums, option period extensions) from natural language. E.g., "add 7 days to option period on 1847 Vintage Way" → Dossie generates the amendment PDF pre-filled and ready for buyer signature. Specced only — not built. Heath flagged 2026-05-21 as a high-priority backlog item.
+- **Amendment drafting** — ✅ LIVE. `api/draft-amendment.js` handles TREC 39-10 Amendment to Contract PDF generation for `closing_date`, `option_extension`, and `price_change` amendment types. AcroForm fields are filled and the PDF is uploaded to Supabase Storage. Natural language entry point still TBD (e.g., "add 7 days to option period on 1847 Vintage Way" → auto-route to API).
 - **Social Media Autopilot for agents** — extend the in-house social pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) into a customer-facing add-on. Each agent connects their FB / IG / LinkedIn / TikTok via Zernio, Dossie auto-drafts daily posts from their listings + market data + sphere content templates, sends drafts to their Telegram (or in-app inbox) for one-tap approval, publishes to all platforms. Cost math: ~180 posts/mo per user via Haiku = ~$0.30/mo Claude cost; Zernio flat $18/mo already paid. Price target: $20/mo add-on (founding members $10/mo with 50% discount). Heath flagged 2026-05-21. Full strategy: `SOCIAL-MEDIA-AUTOPILOT-STRATEGY.md`.
 - **SMS escalation via Twilio** — critical-tier deadline reminders + draft-aging alerts. ~$0.0075/msg, ~50¢/agent/mo at typical volume. Requires phone capture (already done in onboarding 2026-05-20) + opt-in toggle in Settings. Not in this week's notification build — deferred Phase 2.
 - **Voice escalation via Twilio Voice** — last-resort phone-call escalation when all other channels fail to reach the agent within N hours of a deadline. ~$0.013/call. Phase 3 — only after SMS is in place and we know which deadlines trigger voice escalation. Deferred.
