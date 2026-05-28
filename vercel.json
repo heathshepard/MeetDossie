@@ -147,7 +147,10 @@
                                          },
                "api/register-video.js":  {
                                              "maxDuration":  30
-                                         }
+                                         },
+               "api/cron-pierce-activation.js":  {
+                                                     "maxDuration":  60
+                                                 }
                   },
     "crons":  [
                   {
