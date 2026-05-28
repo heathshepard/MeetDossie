@@ -162,7 +162,13 @@
                                                     },
                "api/cron-stripe-reconcile.js":  {
                                                     "maxDuration":  60
-                                                }
+                                                },
+               "api/transcribe-video.js":  {
+                                               "maxDuration":  60
+                                           },
+               "api/claudy-webhook.js":  {
+                                             "maxDuration":  60
+                                         }
                   },
     "crons":  [
                   {
