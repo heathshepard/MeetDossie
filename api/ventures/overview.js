@@ -122,14 +122,21 @@ export default async function handler(req, res) {
     }
     const mrrSparkline = sparkMonths.map(b => ({ label: b.label, mrr: b.mrr }));
 
-    // --- Agent status from ventures_agents (with heartbeat-aware status) ---
+    // --- Agent status from ventures_agents (with heartbeat-aware status + working indicator) ---
     let agents = [];
-    const agentRes = await supa('ventures_agents?select=agent_name,display_name,status,last_active_at&order=agent_name.asc');
+    const agentRes = await supa('ventures_agents?select=agent_name,display_name,status,last_active_at,last_ping,task_description&order=agent_name.asc');
     if (agentRes.ok) {
       const agentRows = await agentRes.json();
       const nowMs = Date.now();
       agents = agentRows.map(a => {
         const lastActive = a.last_active_at ? new Date(a.last_active_at) : null;
+        const lastPing   = a.last_ping      ? new Date(a.last_ping)      : null;
+
+        // is_working: true when status='working' AND last_ping is within 5 minutes
+        // (stale pings older than 5 min are treated as idle to avoid stuck indicators)
+        const pingAgeMin = lastPing ? (nowMs - lastPing.getTime()) / 60000 : Infinity;
+        const isWorking  = a.status === 'working' && pingAgeMin < 5;
+
         let heartbeatStatus = 'idle';
         if (lastActive) {
           const ageHours = (nowMs - lastActive.getTime()) / 3600000;
@@ -142,6 +149,8 @@ export default async function handler(req, res) {
           displayName: a.display_name,
           status: heartbeatStatus,
           lastActiveAt: a.last_active_at || null,
+          isWorking,
+          taskDescription: isWorking ? (a.task_description || null) : null,
         };
       });
     } else {
