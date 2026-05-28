@@ -29,6 +29,9 @@
     html, body {
       min-height: 100vh;
       background: var(--navy);
+      /* Improvement #1: dot-grid background */
+      background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
+      background-size: 24px 24px;
       color: var(--blush);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 16px;
@@ -1243,6 +1246,289 @@
     .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
     body { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+    /* ---- Improvement #2: Day counter sub-label ---- */
+    .day-counter {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-left: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ---- Improvement #3: Revenue velocity ticker ---- */
+    .velocity-ticker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      padding: 6px 10px;
+      background: rgba(201,169,110,0.06);
+      border: 1px solid rgba(201,169,110,0.15);
+      border-radius: 8px;
+    }
+    .velocity-item { display: flex; align-items: center; gap: 4px; }
+    .velocity-val { color: var(--gold); font-weight: 600; font-family: "Cormorant Garamond", serif; font-size: 0.85rem; }
+
+    /* ---- Improvement #4: Command bar ---- */
+    #cmd-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26,26,46,0.70);
+      z-index: 500;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 15vh;
+    }
+    #cmd-backdrop.open { display: flex; }
+    #cmd-box {
+      background: #1e1e34;
+      border: 1px solid rgba(245,230,224,0.20);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+    #cmd-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(245,230,224,0.10);
+      padding: 16px 18px;
+      color: var(--blush);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+    }
+    #cmd-input::placeholder { color: var(--text-dim); }
+    #cmd-results { max-height: 320px; overflow-y: auto; padding: 6px 0; }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      font-size: 0.88rem;
+      color: var(--blush);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .cmd-item:hover, .cmd-item.focused { background: rgba(201,169,110,0.10); }
+    .cmd-item-icon { font-size: 1rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .cmd-item-label { flex: 1; }
+    .cmd-item-kbd {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(245,230,224,0.08);
+      border: 1px solid rgba(245,230,224,0.15);
+      color: var(--text-dim);
+      font-family: monospace;
+    }
+    .cmd-empty { padding: 20px 18px; font-size: 0.82rem; color: var(--text-dim); text-align: center; }
+
+    /* ---- Improvement #5: Customer health table ---- */
+    .customer-health-wrap { margin-bottom: 32px; overflow-x: auto; }
+    .customer-health-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .customer-health-table th {
+      text-align: left;
+      padding: 7px 12px;
+      font-size: 0.66rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .customer-health-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(245,230,224,0.05);
+      vertical-align: middle;
+    }
+    .customer-health-table tr:last-child td { border-bottom: none; }
+    .customer-health-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
+    .health-status-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .health-status-pill.active  { background: rgba(139,168,136,0.16); color: var(--sage); border: 1px solid rgba(139,168,136,0.30); }
+    .health-status-pill.at-risk { background: rgba(201,169,110,0.14); color: var(--gold); border: 1px solid rgba(201,169,110,0.30); }
+    .health-status-pill.never   { background: rgba(232,131,107,0.14); color: var(--coral); border: 1px solid rgba(232,131,107,0.30); }
+
+    /* Customer detail modal */
+    #cust-detail-modal .cust-detail-stat { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+    #cust-detail-modal .cust-detail-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+    #cust-detail-modal .cust-detail-val { font-size: 0.92rem; color: var(--blush); }
+    .btn-email-followup {
+      width: 100%;
+      padding: 10px 18px;
+      margin-top: 14px;
+      background: rgba(139,168,136,0.15);
+      border: 1px solid rgba(139,168,136,0.35);
+      border-radius: 8px;
+      color: var(--sage);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.12s;
+    }
+    .btn-email-followup:hover { background: rgba(139,168,136,0.25); }
+
+    /* ---- Improvement #6: Ambient alert banner ---- */
+    #alert-banner {
+      display: none;
+      background: var(--coral);
+      color: #fff;
+      padding: 9px 16px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #alert-banner.hidden { display: none !important; }
+    #alert-banner-text { flex: 1; }
+    #alert-banner-dismiss {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.8);
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    #alert-banner-dismiss:hover { color: #fff; }
+
+    /* ---- Improvement #7: Stripe events feed ---- */
+    .stripe-events-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .stripe-event-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .stripe-event-row:last-child { border-bottom: none; }
+    .stripe-event-icon { font-size: 0.95rem; flex-shrink: 0; }
+    .stripe-event-desc { flex: 1; color: var(--blush); }
+    .stripe-event-amount { font-family: "Cormorant Garamond", serif; font-size: 1rem; color: var(--sage); font-weight: 600; white-space: nowrap; }
+    .stripe-event-time { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; }
+
+    /* ---- Improvement #8: Keyboard shortcuts modal ---- */
+    #hotkeys-modal .hotkey-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    #hotkeys-modal .hotkey-row:last-child { border-bottom: none; }
+    #hotkeys-modal .hotkey-desc { color: var(--blush); }
+    #hotkeys-modal .hotkey-keys { display: flex; gap: 4px; }
+    .kbd {
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(245,230,224,0.08);
+      border: 1px solid rgba(245,230,224,0.18);
+      color: var(--text-dim);
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+    .footer-hotkeys-link {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .footer-hotkeys-link:hover { color: var(--blush); }
+
+    /* ---- Improvement #9: Mobile bottom nav ---- */
+    #mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #1a1a2e;
+      border-top: 1px solid rgba(245,230,224,0.12);
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .mobile-nav-inner {
+      display: flex;
+      height: 60px;
+      align-items: stretch;
+    }
+    .mobile-nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(245,230,224,0.45);
+      cursor: pointer;
+      transition: color 0.15s;
+      user-select: none;
+    }
+    .mobile-nav-tab:hover, .mobile-nav-tab.active { color: var(--coral); }
+    .mobile-nav-icon { font-size: 1.1rem; }
+    @media (max-width: 767px) {
+      #mobile-bottom-nav { display: block; }
+      .page { padding-bottom: 90px; }
+    }
+
+    /* ---- Improvement #10: AI attention brief ---- */
+    #attention-brief-card {
+      display: none;
+      background: rgba(245,230,224,0.06);
+      border: 1px solid rgba(245,230,224,0.18);
+      border-left: 3px solid var(--blush-deep);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 0.87rem;
+      color: var(--blush);
+      line-height: 1.55;
+    }
+    #attention-brief-card.visible { display: block; }
+    #attention-brief-card .brief-header {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blush-deep);
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -1272,6 +1558,45 @@
       </button>
       <div id="login-error" style="display:none;color:#e8836b;font-size:0.82rem;text-align:center;"></div>
     </form>
+  </div>
+
+  <!-- Improvement #4: Command Bar -->
+  <div id="cmd-backdrop" role="dialog" aria-modal="true" aria-label="Command bar">
+    <div id="cmd-box">
+      <input id="cmd-input" type="text" placeholder="Type a command or search..." autocomplete="off" spellcheck="false">
+      <div id="cmd-results"></div>
+    </div>
+  </div>
+
+  <!-- Improvement #5: Customer detail modal -->
+  <div class="modal-backdrop" id="cust-detail-modal">
+    <div class="modal-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="modal-title" style="margin-bottom:0;" id="cust-modal-name">Customer</div>
+        <button onclick="document.getElementById('cust-detail-modal').classList.remove('open')" style="background:transparent;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <div id="cust-modal-body"></div>
+      <button class="btn-email-followup" id="cust-email-btn">Draft follow-up email</button>
+    </div>
+  </div>
+
+  <!-- Improvement #8: Keyboard shortcuts modal -->
+  <div class="modal-backdrop" id="hotkeys-modal">
+    <div class="modal-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="modal-title" style="margin-bottom:0;">Keyboard Shortcuts</div>
+        <button onclick="document.getElementById('hotkeys-modal').classList.remove('open')" style="background:transparent;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <div>
+        <div class="hotkey-row"><span class="hotkey-desc">Open command bar</span><div class="hotkey-keys"><span class="kbd">/</span></div></div>
+        <div class="hotkey-row"><span class="hotkey-desc">Go to Dossie app</span><div class="hotkey-keys"><span class="kbd">G</span><span class="kbd">D</span></div></div>
+        <div class="hotkey-row"><span class="hotkey-desc">Go to Ventures top</span><div class="hotkey-keys"><span class="kbd">G</span><span class="kbd">V</span></div></div>
+        <div class="hotkey-row"><span class="hotkey-desc">Focus agent chat</span><div class="hotkey-keys"><span class="kbd">A</span></div></div>
+        <div class="hotkey-row"><span class="hotkey-desc">Open expenses</span><div class="hotkey-keys"><span class="kbd">E</span></div></div>
+        <div class="hotkey-row"><span class="hotkey-desc">Show this modal</span><div class="hotkey-keys"><span class="kbd">?</span></div></div>
+        <div class="hotkey-row"><span class="hotkey-desc">Close any modal</span><div class="hotkey-keys"><span class="kbd">Esc</span></div></div>
+      </div>
+    </div>
   </div>
 
   <!-- Main app -->
@@ -1318,15 +1643,35 @@
             <span class="refresh-dot" id="refresh-dot"></span>
             <span id="updated-at">Loading…</span>
             <span id="live-clock" style="margin-left:8px;opacity:0.7;"></span>
+            <span class="day-counter" id="day-counter"></span>
           </div>
         </div>
       </header>
 
+      <!-- Improvement #3: Revenue velocity ticker -->
+      <div class="velocity-ticker" id="velocity-ticker" style="display:none;">
+        <span class="velocity-item">ARR <span class="velocity-val" id="velocity-arr">—</span></span>
+        <span class="velocity-item" id="velocity-week-item" style="display:none;">+ <span class="velocity-val" id="velocity-new-week">0</span> new this week</span>
+        <span class="velocity-item">Founding <span class="velocity-val" id="velocity-spots">—</span> spots left</span>
+      </div>
+
       <!-- Error banner -->
       <div class="error-banner" id="error-banner"></div>
 
+      <!-- Improvement #6: Ambient alert banner -->
+      <div id="alert-banner" class="hidden">
+        <span id="alert-banner-text"></span>
+        <button id="alert-banner-dismiss" onclick="document.getElementById('alert-banner').classList.add('hidden')" title="Dismiss">&times;</button>
+      </div>
+
+      <!-- Improvement #10: AI attention brief -->
+      <div id="attention-brief-card">
+        <div class="brief-header">Today's Attention Brief</div>
+        <div id="attention-brief-text"></div>
+      </div>
+
       <!-- Portfolio -->
-      <section>
+      <section id="overview-section">
         <div class="section-header">Portfolio</div>
         <div class="company-grid" id="company-grid">
           <div class="company-card">
@@ -1362,7 +1707,7 @@
       </section>
 
       <!-- Social Media Stats -->
-      <section>
+      <section id="social-section">
         <div class="section-header">Social Media — Last 7 Days</div>
         <div class="social-grid" id="social-grid">
           <div class="social-stat-card">
@@ -1386,7 +1731,7 @@
       </section>
 
       <!-- Activation Metrics -->
-      <section>
+      <section id="activation-section">
         <div class="section-header">Activation</div>
         <div class="activation-row" id="activation-row">
           <div class="activation-card">
@@ -1417,8 +1762,37 @@
         </div>
       </section>
 
+      <!-- Improvement #5: Customer Health Table -->
+      <section id="customers-section">
+        <div class="section-header">Customer Health</div>
+        <div class="customer-health-wrap">
+          <table class="customer-health-table" id="customer-health-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Plan</th>
+                <th>Joined</th>
+                <th>Last Login</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="customer-health-tbody">
+              <tr><td colspan="5" style="padding:16px;color:var(--text-dim);font-size:0.82rem;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Improvement #7: Stripe Events -->
+      <section id="stripe-events-section">
+        <div class="section-header">Recent Stripe Events <span id="stripe-refresh-indicator" style="font-size:0.68rem;color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0;"></span></div>
+        <div class="stripe-events-wrap" id="stripe-events-wrap">
+          <div class="stripe-event-row"><span style="font-size:0.8rem;color:var(--text-dim);">Loading...</span></div>
+        </div>
+      </section>
+
       <!-- Agents -->
-      <section>
+      <section id="agents-section">
         <div class="section-header">Agents — Click to Chat</div>
         <div class="agent-row" id="agent-row">
           <!-- Populated by JS -->
@@ -1474,7 +1848,7 @@
       </section>
 
       <!-- Open Tasks -->
-      <section>
+      <section id="tasks-section">
         <div class="tasks-header-row">
           <div class="section-header" style="margin-bottom:0;flex:1;">Open Tasks</div>
           <button class="btn-new-task" id="btn-new-task">+ New Task</button>
@@ -1507,10 +1881,39 @@
           <span class="refresh-dot" id="footer-refresh-dot"></span>
           <span id="footer-updated">—</span>
         </div>
-        <div class="footer-burn" id="footer-burn"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="footer-burn" id="footer-burn"></div>
+          <span class="footer-hotkeys-link" onclick="document.getElementById('hotkeys-modal').classList.add('open')">Keyboard shortcuts</span>
+        </div>
       </footer>
 
     </div><!-- /page -->
+
+    <!-- Improvement #9: Mobile Bottom Nav -->
+    <nav id="mobile-bottom-nav" aria-label="Bottom navigation">
+      <div class="mobile-nav-inner">
+        <div class="mobile-nav-tab" onclick="mobileNavTo('overview-section')" title="Overview">
+          <span class="mobile-nav-icon">&#128202;</span>
+          <span>Overview</span>
+        </div>
+        <div class="mobile-nav-tab" onclick="mobileNavTo('customers-section')" title="Customers">
+          <span class="mobile-nav-icon">&#128100;</span>
+          <span>Customers</span>
+        </div>
+        <div class="mobile-nav-tab" onclick="mobileNavTo('social-section')" title="Social">
+          <span class="mobile-nav-icon">&#128293;</span>
+          <span>Social</span>
+        </div>
+        <div class="mobile-nav-tab" onclick="mobileNavTo('agents-section')" title="Agents">
+          <span class="mobile-nav-icon">&#129302;</span>
+          <span>Agents</span>
+        </div>
+        <div class="mobile-nav-tab" onclick="mobileNavTo('tasks-section')" title="Tasks">
+          <span class="mobile-nav-icon">&#9989;</span>
+          <span>Tasks</span>
+        </div>
+      </div>
+    </nav>
   </div><!-- /app -->
 
   <!-- Expenses / Revenue Modal -->
@@ -1677,6 +2080,27 @@
       setInterval(loadFeed, 60_000);
       startPolling();
       startClock();
+
+      // Improvement #2: day counter
+      updateDayCounter();
+
+      // Improvement #7: Stripe events (load now + every 60s)
+      loadStripeEvents();
+      setInterval(loadStripeEvents, 60_000);
+
+      // Improvement #10: AI attention brief (after 4s so other data has loaded)
+      setTimeout(() => {
+        const snap = {
+          mrr: _overviewData?.totalMrrUsd,
+          customers: _overviewData?.totalCustomers,
+          neverLoggedIn: _activationDataForBanner?.neverLoggedIn,
+          loggedInThisWeek: _activationDataForBanner?.loggedInThisWeek,
+          foundingSpots: _overviewData?.companies?.find(c => c.id === 'dossie')?.foundingSpots?.taken,
+          netRevenue: (_overviewData?.totalMrrUsd ?? 0) - (_overviewData?.costs?.totalFixed ?? 0),
+          cronErrors: _cronDataForBanner?.errorCount,
+        };
+        loadAttentionBrief(snap);
+      }, 4000);
     }
 
     // ============================================================
@@ -1800,6 +2224,9 @@
           </div>`;
         }).join('');
       }
+
+      // Improvement #3: velocity ticker
+      renderVelocityTicker(d);
 
       // Footer
       const updatedAt = new Date(d.generatedAt);
@@ -2137,6 +2564,15 @@
 
       // Populate customer drill-down
       renderActivationCustomers();
+
+      // Improvement #5: customer health table
+      if (d.customers?.length) {
+        renderCustomerHealthTable(d.customers);
+      }
+
+      // Improvement #6: save for banner + evaluate
+      _activationDataForBanner = d;
+      evaluateAlertBanner(d, _cronDataForBanner);
     }
 
     function renderActivationCustomers() {
@@ -2762,6 +3198,10 @@
     }
 
     function renderCronHealth(d) {
+      // Improvement #6: save for ambient alert banner
+      _cronDataForBanner = d;
+      evaluateAlertBanner(_activationDataForBanner, d);
+
       // Summary chips
       const summaryEl = document.getElementById('cron-summary');
       summaryEl.innerHTML = `
@@ -2924,6 +3364,381 @@
         dot.classList.add('ping');
         setTimeout(() => dot.classList.remove('ping'), 600);
       });
+    }
+
+    // ============================================================
+    // Improvement #2: Live ticking clock with day counter
+    // Clock already ticks (startClock) — add day counter here
+    // ============================================================
+    function updateDayCounter() {
+      const el = document.getElementById('day-counter');
+      if (!el) return;
+      const start = new Date('2026-01-01T00:00:00');
+      const today = new Date();
+      const days = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+      el.textContent = `Day ${days} of building Dossie`;
+    }
+
+    // ============================================================
+    // Improvement #3: Revenue velocity ticker
+    // ============================================================
+    function renderVelocityTicker(d) {
+      const mrr = d.totalMrrUsd ?? 0;
+      const arr = mrr * 12;
+      const foundingSpots = d.companies?.find(c => c.id === 'dossie')?.foundingSpots;
+      const spotsLeft = foundingSpots ? (foundingSpots.total - foundingSpots.taken) : '—';
+
+      document.getElementById('velocity-arr').textContent = `$${arr.toLocaleString()}`;
+      document.getElementById('velocity-spots').textContent = spotsLeft;
+      document.getElementById('velocity-ticker').style.display = 'flex';
+    }
+
+    // ============================================================
+    // Improvement #4: Slash-key command bar
+    // ============================================================
+    const COMMANDS = [
+      { label: 'New task',           icon: '&#43;',    action: () => { closeCommandBar(); document.getElementById('btn-new-task').click(); } },
+      { label: 'Message Carter',      icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('carter'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Hadley',      icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('hadley'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Cole',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('cole'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Pierce',      icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('pierce'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Sage',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('sage'); document.getElementById('chat-input').focus(); } },
+      { label: 'View expenses',       icon: '&#128181;', action: () => { closeCommandBar(); openExpensesModal(); } },
+      { label: 'View customers',      icon: '&#128100;', action: () => { closeCommandBar(); document.getElementById('customers-section')?.scrollIntoView({ behavior: 'smooth' }); } },
+      { label: 'Go to Dossie app',    icon: '&#128279;', action: () => { closeCommandBar(); window.open('https://meetdossie.com/app', '_blank'); } },
+      { label: 'Keyboard shortcuts',  icon: '&#9000;',   action: () => { closeCommandBar(); document.getElementById('hotkeys-modal').classList.add('open'); } },
+    ];
+
+    let _cmdFocusIdx = 0;
+    let _cmdFiltered = [...COMMANDS];
+
+    function openCommandBar() {
+      const bd = document.getElementById('cmd-backdrop');
+      bd.classList.add('open');
+      const input = document.getElementById('cmd-input');
+      input.value = '';
+      _cmdFiltered = [...COMMANDS];
+      _cmdFocusIdx = 0;
+      renderCommandResults();
+      setTimeout(() => input.focus(), 30);
+    }
+
+    function closeCommandBar() {
+      document.getElementById('cmd-backdrop').classList.remove('open');
+    }
+
+    function renderCommandResults() {
+      const el = document.getElementById('cmd-results');
+      if (!_cmdFiltered.length) {
+        el.innerHTML = '<div class="cmd-empty">No commands found</div>';
+        return;
+      }
+      el.innerHTML = _cmdFiltered.map((c, i) => `
+        <div class="cmd-item ${i === _cmdFocusIdx ? 'focused' : ''}" data-idx="${i}">
+          <span class="cmd-item-icon">${c.icon}</span>
+          <span class="cmd-item-label">${escHtml(c.label)}</span>
+        </div>`).join('');
+      el.querySelectorAll('.cmd-item').forEach(item => {
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          const idx = Number(item.dataset.idx);
+          _cmdFiltered[idx]?.action();
+        });
+      });
+    }
+
+    document.getElementById('cmd-input').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      _cmdFiltered = COMMANDS.filter(c => c.label.toLowerCase().includes(q));
+      _cmdFocusIdx = 0;
+      renderCommandResults();
+    });
+
+    document.getElementById('cmd-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closeCommandBar(); return; }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _cmdFocusIdx = Math.min(_cmdFocusIdx + 1, _cmdFiltered.length - 1);
+        renderCommandResults();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _cmdFocusIdx = Math.max(_cmdFocusIdx - 1, 0);
+        renderCommandResults();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        _cmdFiltered[_cmdFocusIdx]?.action();
+      }
+    });
+
+    document.getElementById('cmd-backdrop').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('cmd-backdrop')) closeCommandBar();
+    });
+
+    // ============================================================
+    // Improvement #5: Per-customer health table
+    // ============================================================
+    let _customerHealthData = [];
+
+    function renderCustomerHealthTable(customers) {
+      _customerHealthData = customers;
+      const tbody = document.getElementById('customer-health-tbody');
+      if (!customers.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--text-dim);font-size:0.82rem;">No customers yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = customers.map((c, i) => {
+        let statusClass, statusLabel;
+        if (c.neverLoggedIn) {
+          statusClass = 'never'; statusLabel = 'Never';
+        } else if (c.activatedThisWeek) {
+          statusClass = 'active'; statusLabel = 'Active';
+        } else {
+          statusClass = 'at-risk'; statusLabel = 'At Risk';
+        }
+        const joined = c.joined ? new Date(c.joined).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+        const lastLogin = c.neverLoggedIn ? 'Never' : (c.lastSignIn ? timeAgo(new Date(c.lastSignIn)) : '—');
+        const plan = c.plan || 'Founding';
+        return `<tr data-cust-idx="${i}" style="cursor:pointer;" onclick="openCustomerDetail(${i})">
+          <td style="color:var(--blush);font-weight:500;">${escHtml(c.name || 'Unknown')}</td>
+          <td style="color:var(--text-dim);">${escHtml(plan)}</td>
+          <td style="color:var(--text-dim);">${escHtml(joined)}</td>
+          <td class="${statusClass === 'never' ? 'activation-cust-login never' : statusClass === 'active' ? 'activation-cust-login recent' : 'activation-cust-login old'}" style="white-space:nowrap;">${escHtml(lastLogin)}</td>
+          <td><span class="health-status-pill ${statusClass}">${escHtml(statusLabel)}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    window.openCustomerDetail = function(idx) {
+      const c = _customerHealthData[idx];
+      if (!c) return;
+      document.getElementById('cust-modal-name').textContent = c.name || 'Customer';
+      const joined = c.joined ? new Date(c.joined).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      const lastLogin = c.neverLoggedIn ? 'Never logged in' : (c.lastSignIn ? new Date(c.lastSignIn).toLocaleDateString() : '—');
+      let statusLabel = c.neverLoggedIn ? 'Never activated' : (c.activatedThisWeek ? 'Active this week' : 'At risk — inactive');
+      document.getElementById('cust-modal-body').innerHTML = `
+        <div class="cust-detail-stat"><span class="cust-detail-lbl">Email</span><span class="cust-detail-val">${escHtml(c.email || '—')}</span></div>
+        <div class="cust-detail-stat"><span class="cust-detail-lbl">Plan</span><span class="cust-detail-val">${escHtml(c.plan || 'Founding')}</span></div>
+        <div class="cust-detail-stat"><span class="cust-detail-lbl">Joined</span><span class="cust-detail-val">${escHtml(joined)}</span></div>
+        <div class="cust-detail-stat"><span class="cust-detail-lbl">Last Login</span><span class="cust-detail-val">${escHtml(lastLogin)}</span></div>
+        <div class="cust-detail-stat"><span class="cust-detail-lbl">Status</span><span class="cust-detail-val">${escHtml(statusLabel)}</span></div>
+      `;
+      // Wire email button
+      const emailBtn = document.getElementById('cust-email-btn');
+      emailBtn.onclick = () => {
+        const subject = encodeURIComponent(`Checking in — how's Dossie working for you?`);
+        const body = encodeURIComponent(`Hi ${c.name?.split(' ')[0] || 'there'},\n\nI wanted to check in and see how things are going with Dossie.\n\nIs there anything you need help with or any questions I can answer?\n\nBest,\nHeath`);
+        window.open(`mailto:${c.email || ''}?subject=${subject}&body=${body}`, '_blank');
+      };
+      document.getElementById('cust-detail-modal').classList.add('open');
+    };
+
+    document.getElementById('cust-detail-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('cust-detail-modal'))
+        document.getElementById('cust-detail-modal').classList.remove('open');
+    });
+
+    // ============================================================
+    // Improvement #6: Ambient alert banner
+    // ============================================================
+    function evaluateAlertBanner(activationData, cronData) {
+      const banner = document.getElementById('alert-banner');
+      const textEl = document.getElementById('alert-banner-text');
+      if (!banner || !textEl) return;
+
+      let msg = '';
+
+      // Priority 1: customers never logged in
+      if (activationData && activationData.neverLoggedIn > 0) {
+        msg = `${activationData.neverLoggedIn} customer${activationData.neverLoggedIn > 1 ? 's have' : ' has'} never logged in — take action now.`;
+      }
+      // Priority 2: no growth this week (check if newThisWeek = 0)
+      else if (activationData && activationData.newThisWeek === 0) {
+        msg = 'No new customers this week. Time to run an outreach push.';
+      }
+      // Priority 3: cron errors
+      else if (cronData && cronData.errorCount > 0) {
+        const errorCrons = (cronData.crons || []).filter(c => c.health === 'critical' || c.health === 'error');
+        const name = errorCrons[0]?.label || 'A cron job';
+        msg = `${name} has not run in over 48 hours — check cron health.`;
+      }
+
+      if (msg) {
+        textEl.textContent = msg;
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    let _cronDataForBanner = null;
+    let _activationDataForBanner = null;
+
+    // ============================================================
+    // Improvement #7: Stripe events feed
+    // ============================================================
+    let _stripeEventsTimer = null;
+
+    async function loadStripeEvents() {
+      try {
+        const res = await authFetch('/api/ventures/stripe-events');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { events } = await res.json();
+        renderStripeEvents(events || []);
+        const indicator = document.getElementById('stripe-refresh-indicator');
+        if (indicator) indicator.textContent = `refreshed ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+      } catch (e) {
+        console.warn('[stripe-events] failed:', e.message);
+        document.getElementById('stripe-events-wrap').innerHTML =
+          '<div class="stripe-event-row"><span style="font-size:0.8rem;color:var(--text-dim);">Stripe events unavailable.</span></div>';
+      }
+    }
+
+    function renderStripeEvents(events) {
+      const wrap = document.getElementById('stripe-events-wrap');
+      if (!events.length) {
+        wrap.innerHTML = '<div class="stripe-event-row"><span style="font-size:0.8rem;color:var(--text-dim);">No recent Stripe events.</span></div>';
+        return;
+      }
+      const typeIcons = {
+        'payment_intent.succeeded': '&#9989;',
+        'invoice.payment_succeeded': '&#128181;',
+        'invoice.payment_failed': '&#10060;',
+        'customer.subscription.created': '&#127775;',
+        'customer.subscription.updated': '&#128260;',
+        'customer.subscription.deleted': '&#128683;',
+      };
+      wrap.innerHTML = events.map(ev => {
+        const icon = typeIcons[ev.type] || '&#9472;';
+        const when = timeAgo(new Date(ev.timestamp));
+        return `<div class="stripe-event-row">
+          <span class="stripe-event-icon">${icon}</span>
+          <span class="stripe-event-desc">${escHtml(ev.description)}</span>
+          ${ev.amount ? `<span class="stripe-event-amount">${escHtml(ev.amount)}</span>` : ''}
+          <span class="stripe-event-time">${escHtml(when)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // Improvement #8: Keyboard hotkeys (global)
+    // ============================================================
+    let _gKeyPressed = false;
+    let _gKeyTimer = null;
+
+    document.addEventListener('keydown', (e) => {
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable;
+
+      // Always allow Escape to close modals
+      if (e.key === 'Escape') {
+        closeCommandBar();
+        document.getElementById('hotkeys-modal').classList.remove('open');
+        document.getElementById('cust-detail-modal').classList.remove('open');
+        document.getElementById('expenses-modal').classList.remove('open');
+        document.getElementById('social-posts-modal').classList.remove('open');
+        document.getElementById('task-modal').classList.remove('open');
+        return;
+      }
+
+      if (isTyping) return;
+
+      // / → command bar
+      if (e.key === '/') {
+        e.preventDefault();
+        openCommandBar();
+        return;
+      }
+
+      // ? → hotkeys modal
+      if (e.key === '?') {
+        e.preventDefault();
+        document.getElementById('hotkeys-modal').classList.add('open');
+        return;
+      }
+
+      // A → focus agent chat
+      if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        document.getElementById('chat-input').focus();
+        return;
+      }
+
+      // E → expenses
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        openExpensesModal();
+        return;
+      }
+
+      // G then D / G then V (chord)
+      if (e.key === 'g' || e.key === 'G') {
+        _gKeyPressed = true;
+        clearTimeout(_gKeyTimer);
+        _gKeyTimer = setTimeout(() => { _gKeyPressed = false; }, 1500);
+        return;
+      }
+
+      if (_gKeyPressed) {
+        if (e.key === 'd' || e.key === 'D') {
+          _gKeyPressed = false;
+          window.open('https://meetdossie.com/app', '_blank');
+        } else if (e.key === 'v' || e.key === 'V') {
+          _gKeyPressed = false;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    });
+
+    // ============================================================
+    // Improvement #9: Mobile bottom nav scroll
+    // ============================================================
+    window.mobileNavTo = function(sectionId) {
+      const el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // ============================================================
+    // Improvement #10: AI attention brief
+    // ============================================================
+    const BRIEF_CACHE_KEY = 'sv_attention_brief';
+    const BRIEF_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+    async function loadAttentionBrief(snapshot) {
+      // Check sessionStorage cache
+      try {
+        const cached = sessionStorage.getItem(BRIEF_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.ts < BRIEF_CACHE_TTL) {
+            displayAttentionBrief(parsed.brief);
+            return;
+          }
+        }
+      } catch {}
+
+      // Fetch from API
+      try {
+        const res = await authFetch('/api/ventures/attention-brief', {
+          method: 'POST',
+          body: JSON.stringify({ snapshot }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { brief } = await res.json();
+        if (brief) {
+          sessionStorage.setItem(BRIEF_CACHE_KEY, JSON.stringify({ brief, ts: Date.now() }));
+          displayAttentionBrief(brief);
+        }
+      } catch (e) {
+        console.warn('[attention-brief] failed:', e.message);
+      }
+    }
+
+    function displayAttentionBrief(text) {
+      const card = document.getElementById('attention-brief-card');
+      const textEl = document.getElementById('attention-brief-text');
+      if (!card || !textEl) return;
+      textEl.textContent = text;
+      card.classList.add('visible');
     }
 
     // ============================================================
