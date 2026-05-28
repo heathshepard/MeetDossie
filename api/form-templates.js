@@ -49,6 +49,8 @@ const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
+  // No origin = same-origin request (browser omits header). Always allow.
+  if (!origin) return true;
   let allowOrigin = null;
   if (typeof origin === 'string' && origin.length > 0) {
     if (
