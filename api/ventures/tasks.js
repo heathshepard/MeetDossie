@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       // Completed history view — return last N completed tasks ordered by completion date
       filters.push('status=eq.completed');
       const qs = [
-        'select=id,title,description,status,assigned_to,product,priority,created_at,completed_at,blocked_reason',
+        'select=id,title,description,status,assigned_to,product,priority,created_at,completed_at,blocked_reason,due_date',
         ...filters,
         `limit=${Math.min(Number(limit) || 10, 50)}`,
         'order=completed_at.desc.nullslast',
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
     }
 
     const qs = [
-      'select=id,title,description,status,assigned_to,product,priority,created_at,completed_at,blocked_reason',
+      'select=id,title,description,status,assigned_to,product,priority,created_at,completed_at,blocked_reason,due_date',
       ...filters,
       `limit=${Math.min(Number(limit) || 20, 100)}`,
       'order=created_at.desc',
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
     try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; }
     catch { return res.status(400).json({ error: 'Invalid JSON body' }); }
 
-    const { title, description, assigned_to, product, priority, status: reqStatus } = body || {};
+    const { title, description, assigned_to, product, priority, status: reqStatus, due_date } = body || {};
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return res.status(400).json({ error: 'title is required' });
@@ -147,6 +147,12 @@ export default async function handler(req, res) {
     }
     const finalStatus = (reqStatus && VALID_STATUSES.has(reqStatus)) ? reqStatus : 'pending';
 
+    // Validate due_date format (YYYY-MM-DD) if provided
+    let dueDateVal = null;
+    if (due_date && /^\d{4}-\d{2}-\d{2}$/.test(due_date)) {
+      dueDateVal = due_date;
+    }
+
     const row = {
       title: title.trim(),
       description: description ? String(description).trim() : null,
@@ -154,6 +160,7 @@ export default async function handler(req, res) {
       product: product || null,
       priority: priority ? Math.min(Math.max(Number(priority) || 3, 1), 5) : 3,
       status: finalStatus,
+      due_date: dueDateVal,
     };
 
     const r = await supa('organization_tasks', {

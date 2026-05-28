@@ -778,6 +778,19 @@
     .task-status-badge.in_progress{ background: rgba(201,169,110,0.14); color: var(--gold);     border: 1px solid rgba(201,169,110,0.30); }
     .task-status-badge.blocked    { background: rgba(232,131,107,0.14); color: var(--coral);    border: 1px solid rgba(232,131,107,0.30); }
     .task-status-badge.completed  { background: rgba(139,168,136,0.14); color: var(--sage);     border: 1px solid rgba(139,168,136,0.30); }
+    .task-overdue-badge {
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(232,131,107,0.30);
+      color: var(--coral);
+      border: 1px solid rgba(232,131,107,0.55);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
     .task-age { font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; }
     .task-detail {
       display: none;
@@ -925,6 +938,23 @@
       transition: all 0.12s;
     }
     .modal-tab.active { background: rgba(201,169,110,0.14); border-color: rgba(201,169,110,0.35); color: var(--gold); }
+
+    /* ---- MRR 7-day delta chip ---- */
+    .mrr-delta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .mrr-delta-chip.positive { background: rgba(139,168,136,0.16); color: var(--sage); border: 1px solid rgba(139,168,136,0.30); }
+    .mrr-delta-chip.negative { background: rgba(232,131,107,0.14); color: var(--coral); border: 1px solid rgba(232,131,107,0.30); }
+    .mrr-delta-chip.zero     { background: rgba(245,230,224,0.07); color: var(--text-dim); border: 1px solid var(--border); }
 
     /* ---- MRR Sparkline ---- */
     .sparkline-wrap {
@@ -1362,9 +1392,10 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
-    .health-status-pill.active  { background: rgba(139,168,136,0.16); color: var(--sage); border: 1px solid rgba(139,168,136,0.30); }
-    .health-status-pill.at-risk { background: rgba(201,169,110,0.14); color: var(--gold); border: 1px solid rgba(201,169,110,0.30); }
-    .health-status-pill.never   { background: rgba(232,131,107,0.14); color: var(--coral); border: 1px solid rgba(232,131,107,0.30); }
+    .health-status-pill.active     { background: rgba(139,168,136,0.16); color: var(--sage); border: 1px solid rgba(139,168,136,0.30); }
+    .health-status-pill.at-risk    { background: rgba(201,169,110,0.14); color: var(--gold); border: 1px solid rgba(201,169,110,0.30); }
+    .health-status-pill.never      { background: rgba(232,131,107,0.14); color: var(--coral); border: 1px solid rgba(232,131,107,0.30); }
+    .health-status-pill.churn-risk { background: rgba(232,131,107,0.25); color: #fff; border: 1px solid rgba(232,131,107,0.60); font-weight: 800; }
 
     /* Customer detail modal */
     #cust-detail-modal .cust-detail-stat { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
@@ -1528,7 +1559,22 @@
       color: var(--blush-deep);
       font-weight: 700;
       margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+    .brief-refresh-btn {
+      background: transparent;
+      border: none;
+      color: var(--blush-deep);
+      font-size: 0.85rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 2px;
+      opacity: 0.7;
+      transition: opacity 0.15s;
+    }
+    .brief-refresh-btn:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -1666,7 +1712,10 @@
 
       <!-- Improvement #10: AI attention brief -->
       <div id="attention-brief-card">
-        <div class="brief-header">Today's Attention Brief</div>
+        <div class="brief-header">
+          <span>Today's Attention Brief</span>
+          <button class="brief-refresh-btn" onclick="refreshAttentionBrief()" title="Refresh brief">&#8635;</button>
+        </div>
         <div id="attention-brief-text"></div>
       </div>
 
@@ -1773,11 +1822,12 @@
                 <th>Plan</th>
                 <th>Joined</th>
                 <th>Last Login</th>
+                <th>Days Inactive</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody id="customer-health-tbody">
-              <tr><td colspan="5" style="padding:16px;color:var(--text-dim);font-size:0.82rem;">Loading...</td></tr>
+              <tr><td colspan="6" style="padding:16px;color:var(--text-dim);font-size:0.82rem;">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1805,7 +1855,7 @@
         <!-- Activity Feed -->
         <div class="panel-box">
           <div class="panel-header">
-            <span class="panel-title">Live Activity Feed</span>
+            <span class="panel-title">Live Activity Feed<span id="feed-filter-label" style="color:var(--gold);font-weight:700;"></span></span>
             <span class="panel-live-dot" title="Realtime"></span>
           </div>
           <div class="feed-list" id="feed-list">
@@ -1994,6 +2044,10 @@
           <option value="5">Someday (P5)</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="task-due-date">Due Date (optional)</label>
+        <input class="form-input" id="task-due-date" type="date">
+      </div>
       <div class="modal-actions">
         <button class="btn-cancel" id="task-cancel">Cancel</button>
         <button class="btn-submit" id="task-submit">Create Task</button>
@@ -2002,6 +2056,9 @@
   </div>
 
   <script type="module">
+    // SQL REQUIRED (run once in Supabase SQL editor before due dates work):
+    // ALTER TABLE ventures_tasks ADD COLUMN IF NOT EXISTS due_date date;
+    //
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     // ============================================================
@@ -2088,19 +2145,32 @@
       loadStripeEvents();
       setInterval(loadStripeEvents, 60_000);
 
-      // Improvement #10: AI attention brief (after 4s so other data has loaded)
-      setTimeout(() => {
-        const snap = {
-          mrr: _overviewData?.totalMrrUsd,
-          customers: _overviewData?.totalCustomers,
-          neverLoggedIn: _activationDataForBanner?.neverLoggedIn,
-          loggedInThisWeek: _activationDataForBanner?.loggedInThisWeek,
-          foundingSpots: _overviewData?.companies?.find(c => c.id === 'dossie')?.foundingSpots?.taken,
-          netRevenue: (_overviewData?.totalMrrUsd ?? 0) - (_overviewData?.costs?.totalFixed ?? 0),
-          cronErrors: _cronDataForBanner?.errorCount,
-        };
-        loadAttentionBrief(snap);
-      }, 4000);
+      // Improvement #3 fix: chain loadAttentionBrief after social stats resolves so
+      // postsThisWeek + approvalRate are available in the snapshot
+      loadSocialStatsForBrief();
+    }
+
+    // Separate function that loads social stats and then fires the brief
+    async function loadSocialStatsForBrief() {
+      // Wait for social stats (already loaded above, but we need the return value)
+      let socialData = null;
+      try {
+        const res = await authFetch('/api/ventures/social-stats');
+        if (res.ok) socialData = await res.json();
+      } catch { /* silent — brief will just lack social data */ }
+
+      const snap = {
+        mrr: _overviewData?.totalMrrUsd,
+        customers: _overviewData?.totalCustomers,
+        neverLoggedIn: _activationDataForBanner?.neverLoggedIn,
+        loggedInThisWeek: _activationDataForBanner?.loggedInThisWeek,
+        foundingSpots: _overviewData?.companies?.find(c => c.id === 'dossie')?.foundingSpots?.taken,
+        netRevenue: (_overviewData?.totalMrrUsd ?? 0) - (_overviewData?.costs?.totalFixed ?? 0),
+        cronErrors: _cronDataForBanner?.errorCount,
+        postsThisWeek: socialData?.totalThisWeek,
+        approvalRate: socialData?.approvalRate,
+      };
+      loadAttentionBrief(snap);
     }
 
     // ============================================================
@@ -2142,6 +2212,27 @@
       const marginPct = mrr > 0 ? Math.round((net / mrr) * 100) : null;
 
       setText('stat-mrr', `$${mrr.toLocaleString()}`);
+      // MRR 7-day delta chip
+      const mrrEl = document.getElementById('stat-mrr');
+      if (mrrEl && d.mrr7dDelta !== undefined) {
+        const delta = d.mrr7dDelta;
+        const pct = d.mrr7dPct ?? 0;
+        let chipClass, chipText;
+        if (delta > 0) {
+          chipClass = 'positive';
+          chipText = `↑ +$${delta} (${pct}% 7d)`;
+        } else if (delta < 0) {
+          chipClass = 'negative';
+          chipText = `↓ -$${Math.abs(delta)} (${pct}% 7d)`;
+        } else {
+          chipClass = 'zero';
+          chipText = '— flat 7d';
+        }
+        // Remove any existing delta chip before appending
+        const existingChip = mrrEl.parentElement.querySelector('.mrr-delta-chip');
+        if (existingChip) existingChip.remove();
+        mrrEl.insertAdjacentHTML('afterend', `<span class="mrr-delta-chip ${chipClass}">${chipText}</span>`);
+      }
       setText('stat-customers', cust.toString());
       setText('stat-burn', `$${burn.toFixed(2)}`);
       setText('stat-net', net >= 0 ? `$${net.toFixed(2)}` : `-$${Math.abs(net).toFixed(2)}`);
@@ -2216,7 +2307,7 @@
             tooltipText = 'Never active';
           }
 
-          return `<div class="agent-chip${chipExtra}" data-agent="${escHtml(a.name)}" onclick="selectAgentChat('${escHtml(a.name)}')">
+          return `<div class="agent-chip${chipExtra}" data-agent="${escHtml(a.name)}" onclick="agentChipClick('${escHtml(a.name)}', event)">
             <span class="agent-dot ${dotClass}"></span>
             <span>${escHtml(displayName)}</span>
             <span class="agent-role">${escHtml(role)}</span>
@@ -2394,6 +2485,10 @@
            </div>`
         : `<div style="font-size:0.8rem;color:var(--text-dim);padding-top:4px;">In development</div>`;
 
+      const milestoneHtml = co.nextMilestone
+        ? `<div style="font-size:0.72rem;color:var(--text-dim);font-style:italic;margin-top:12px;line-height:1.4;">${escHtml(co.nextMilestone)}</div>`
+        : '';
+
       return `
         <div class="company-card ${co.status}">
           <div class="company-card-accent"></div>
@@ -2403,6 +2498,7 @@
           <div class="company-name">${escHtml(co.name)}</div>
           <div class="company-tagline">${escHtml(co.tagline || '')}</div>
           ${statsHtml}
+          ${milestoneHtml}
         </div>`;
     }
 
@@ -2422,11 +2518,17 @@
       }
     }
 
+    // Store social data so attention brief can reference it
+    let _socialStatsData = null;
+
     function renderSocialStats(d) {
+      _socialStatsData = d;
       const totalPosted = d.totalPosted ?? 0;
       const totalThisWeek = d.totalThisWeek ?? 0;
       const approvalRate = d.approvalRate;
       const rejected = d.byStatus?.rejected ?? 0;
+      const postedToday = d.postedToday ?? 0;
+      const inQueue = d.inQueue ?? 0;
 
       document.getElementById('social-grid').innerHTML = `
         <div class="social-stat-card" onclick="openSocialPostsModal('all')" title="Click to see recent posts">
@@ -2444,6 +2546,14 @@
         <div class="social-stat-card" title="Rejected posts this week">
           <span class="social-stat-val ${rejected > 0 ? 'warn' : ''}">${rejected}</span>
           <span class="social-stat-lbl">Rejected</span>
+        </div>
+        <div class="social-stat-card" title="Posts published in last 24 hours">
+          <span class="social-stat-val ${postedToday > 0 ? 'good' : 'warn'}">${postedToday}</span>
+          <span class="social-stat-lbl">Posted Today</span>
+        </div>
+        <div class="social-stat-card" onclick="openSocialPostsModal('all')" title="Drafts + approved waiting to post">
+          <span class="social-stat-val" style="color:var(--gold);">${inQueue}</span>
+          <span class="social-stat-lbl">In Queue</span>
         </div>
         ${d.totalFailed ? `
         <div class="social-stat-card" title="Failed posts this week">
@@ -2610,6 +2720,14 @@
     // Activity Feed
     // ============================================================
     let _feedEvents = [];
+    let _feedAgentFilter = null; // null = no filter, string = filter to this agent
+
+    const FEED_EVENT_ICONS = {
+      task_started:    '&#9881;',  // ⚙️
+      task_completed:  '&#9989;',  // ✅
+      deploy:          '&#128640;', // 🚀
+      payment:         '&#128179;', // 💳
+    };
 
     async function loadFeed() {
       try {
@@ -2657,16 +2775,22 @@
 
     function renderFeed() {
       const el = document.getElementById('feed-list');
-      if (!_feedEvents.length) {
-        el.innerHTML = '<div class="feed-empty">No activity yet. Agents will appear here as they work.</div>';
+      const events = _feedAgentFilter
+        ? _feedEvents.filter(ev => ev.agent_name === _feedAgentFilter)
+        : _feedEvents;
+
+      if (!events.length) {
+        el.innerHTML = `<div class="feed-empty">${_feedAgentFilter ? `No activity from ${_feedAgentFilter}.` : 'No activity yet. Agents will appear here as they work.'}</div>`;
         return;
       }
-      el.innerHTML = _feedEvents.map(ev => {
+      el.innerHTML = events.map(ev => {
         const agent = ev.agent_name || 'system';
         const summary = ev.summary || ev.event_type || 'Activity';
         const when = timeAgo(new Date(ev.created_at));
+        const icon = FEED_EVENT_ICONS[ev.event_type] || '&#128202;'; // 📊 default
         return `
           <div class="feed-item">
+            <span style="font-size:0.85rem;flex-shrink:0;margin-top:1px;">${icon}</span>
             <span class="feed-agent-badge ${escHtml(agent)}">${escHtml(capitalize(agent.replace(/_/g,' ')))}</span>
             <span class="feed-summary">${escHtml(summary)}</span>
             <span class="feed-time">${escHtml(when)}</span>
@@ -2683,6 +2807,24 @@
         `<button class="chat-tab" data-agent="${escHtml(a.key)}" onclick="selectAgentChat('${escHtml(a.key)}')">${escHtml(a.name)}</button>`
       ).join('');
     }
+
+    // Agent chip click: selects chat + toggles feed filter
+    window.agentChipClick = function(agentKey, event) {
+      // Toggle feed filter: clicking same chip again clears it
+      if (_feedAgentFilter === agentKey) {
+        _feedAgentFilter = null;
+        // Update filter indicator on feed panel header
+        const filterLabel = document.getElementById('feed-filter-label');
+        if (filterLabel) filterLabel.textContent = '';
+      } else {
+        _feedAgentFilter = agentKey;
+        const filterLabel = document.getElementById('feed-filter-label');
+        if (filterLabel) filterLabel.textContent = ` — ${capitalize(agentKey)}`;
+      }
+      renderFeed();
+      // Also select agent chat
+      selectAgentChat(agentKey);
+    };
 
     // Exposed globally so agent-chip onclick and tab onclick work
     window.selectAgentChat = function(agentKey) {
@@ -3022,7 +3164,15 @@
         list.innerHTML = '<div class="task-empty">No open tasks. Tap "+ New Task" to assign one.</div>';
         return;
       }
-      list.innerHTML = tasks.map(t => renderTaskRow(t)).join('');
+      // Sort: overdue tasks first (due_date < today), then by priority
+      const today = new Date().toISOString().slice(0, 10);
+      const sorted = [...tasks].sort((a, b) => {
+        const aOverdue = a.due_date && a.due_date < today ? 1 : 0;
+        const bOverdue = b.due_date && b.due_date < today ? 1 : 0;
+        if (bOverdue !== aOverdue) return bOverdue - aOverdue;
+        return (a.priority || 3) - (b.priority || 3);
+      });
+      list.innerHTML = sorted.map(t => renderTaskRow(t)).join('');
 
       list.querySelectorAll('.task-row').forEach(row => {
         row.addEventListener('click', (e) => {
@@ -3062,15 +3212,22 @@
            ${t.status === 'pending' ? `<button class="btn-task-action" data-id="${escHtml(t.id)}" data-action="start">Start</button>` : ''}`
         : '';
 
+      // Due date + overdue badge
+      const today = new Date().toISOString().slice(0, 10);
+      const isOverdue = t.due_date && t.due_date < today && t.status !== 'completed';
+      const dueDateHtml = t.due_date
+        ? `<div style="font-size:0.72rem;margin-bottom:4px;color:${isOverdue ? 'var(--coral)' : 'var(--text-dim)'};">Due: ${escHtml(t.due_date)}</div>`
+        : '';
+
       const prio = t.priority || 3;
       return `
         <div class="task-row" data-priority="${prio}">
           <span class="task-agent-badge">${escHtml(agentLabel)}</span>
           <span class="task-title-text">${escHtml(t.title)}</span>
-          <span class="task-status-badge ${statusClass}">${escHtml(statusLabel)}</span>
+          ${isOverdue ? '<span class="task-overdue-badge">OVERDUE</span>' : `<span class="task-status-badge ${statusClass}">${escHtml(statusLabel)}</span>`}
           <span class="task-age">${escHtml(age)}</span>
           <div class="task-detail">
-            ${descHtml}${blockedHtml}
+            ${dueDateHtml}${descHtml}${blockedHtml}
             <div class="task-detail-actions">${actionBtns}</div>
           </div>
         </div>`;
@@ -3144,6 +3301,7 @@
         btn.disabled = true;
         btn.textContent = 'Creating…';
         try {
+          const dueDate = document.getElementById('task-due-date').value || null;
           const r = await authFetch('/api/ventures/tasks', {
             method: 'POST',
             body: JSON.stringify({
@@ -3152,6 +3310,7 @@
               assigned_to: document.getElementById('task-agent').value || null,
               product: document.getElementById('task-product').value || 'dossie',
               priority: Number(document.getElementById('task-priority').value) || 3,
+              due_date: dueDate,
             }),
           });
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -3174,6 +3333,7 @@
       document.getElementById('task-agent').value = '';
       document.getElementById('task-product').value = 'dossie';
       document.getElementById('task-priority').value = '3';
+      document.getElementById('task-due-date').value = '';
       const btn = document.getElementById('task-submit');
       btn.textContent = 'Create Task';
       btn.disabled = false;
@@ -3215,10 +3375,15 @@
       const grid = document.getElementById('cron-grid');
       grid.innerHTML = (d.crons || []).map(c => {
         const ageText = c.lastRun ? timeAgo(new Date(c.lastRun)) : 'Never';
-        return `<div class="cron-row">
+        const nextRunText = c.schedule ? cronNextRunText(c.schedule) : '';
+        // Map cron name to endpoint path
+        const endpoint = `/api/${c.name}`;
+        return `<div class="cron-row" style="flex-wrap:wrap;gap:6px 10px;">
           <span class="cron-dot ${c.health}" title="${escHtml(c.health)}"></span>
-          <span class="cron-label" title="${escHtml(c.name)}">${escHtml(c.label)}</span>
-          <span class="cron-age">${escHtml(ageText)}</span>
+          <span class="cron-label" title="${escHtml(c.name)}" style="flex:1;min-width:100px;">${escHtml(c.label)}</span>
+          <span class="cron-age" style="flex-shrink:0;">${escHtml(ageText)}</span>
+          ${nextRunText ? `<span style="font-size:0.65rem;color:var(--text-dim);width:100%;padding-left:18px;">Next: ${escHtml(nextRunText)}</span>` : ''}
+          <button class="btn-cron-trigger" data-endpoint="${escHtml(endpoint)}" onclick="triggerCron('${escHtml(c.name)}','${escHtml(endpoint)}')" title="Trigger now" style="margin-left:auto;padding:2px 8px;font-size:0.65rem;font-weight:700;background:rgba(201,169,110,0.10);border:1px solid rgba(201,169,110,0.25);border-radius:5px;color:var(--gold);cursor:pointer;white-space:nowrap;">&#9654; Trigger</button>
         </div>`;
       }).join('');
     }
@@ -3230,6 +3395,91 @@
       grid.classList.toggle('open', _cronOpen);
       arrow.classList.toggle('open', _cronOpen);
     };
+
+    // Parse a cron schedule string and return a human-readable "next run in X" string
+    // Supports simple cases: every N minutes (*/N), hourly, daily at H:MM UTC
+    function cronNextRunText(schedule) {
+      try {
+        const parts = schedule.trim().split(/\s+/);
+        if (parts.length !== 5) return '';
+        const [min, hour, dom, month, dow] = parts;
+        const now = new Date();
+        const nowUtc = new Date(now.toISOString()); // UTC equivalent
+
+        // Every N minutes: */N * * * *
+        if (min.startsWith('*/') && hour === '*' && dom === '*' && month === '*' && dow === '*') {
+          const n = parseInt(min.slice(2));
+          if (!isNaN(n)) {
+            const minsLeft = n - (nowUtc.getUTCMinutes() % n);
+            return minsLeft <= 1 ? 'in < 1 min' : `in ${minsLeft} min`;
+          }
+        }
+        // Every hour at :MM — MM * * * *
+        if (hour === '*' && dom === '*' && month === '*' && dow === '*' && !min.startsWith('*/')) {
+          const m = parseInt(min);
+          if (!isNaN(m)) {
+            const minsLeft = m > nowUtc.getUTCMinutes()
+              ? m - nowUtc.getUTCMinutes()
+              : 60 - nowUtc.getUTCMinutes() + m;
+            return `in ${minsLeft} min`;
+          }
+        }
+        // Daily at H:MM UTC — MM H * * *  (or MM H * * 0-6 or similar)
+        if (!min.startsWith('*/') && !hour.startsWith('*/') && dom === '*' && month === '*') {
+          const h = parseInt(hour);
+          const m = parseInt(min);
+          if (!isNaN(h) && !isNaN(m)) {
+            const targetMin = h * 60 + m;
+            const nowMin = nowUtc.getUTCHours() * 60 + nowUtc.getUTCMinutes();
+            let diffMin = targetMin - nowMin;
+            if (diffMin < 0) diffMin += 24 * 60; // next day
+            if (diffMin < 60) return `in ${diffMin} min`;
+            const hrs = Math.floor(diffMin / 60);
+            const mins = diffMin % 60;
+            return mins > 0 ? `in ${hrs}h ${mins}m` : `in ${hrs}h`;
+          }
+        }
+        return schedule;
+      } catch {
+        return '';
+      }
+    }
+
+    // Trigger a cron endpoint manually — requires CRON_SECRET which is server-side only.
+    // The dashboard doesn't have the secret, so we call a proxy endpoint that validates
+    // the user JWT and then fires the cron with its secret internally.
+    window.triggerCron = async function(cronName, endpoint) {
+      const btn = document.querySelector(`[data-endpoint="${CSS.escape(endpoint)}"]`);
+      if (btn) { btn.textContent = '…'; btn.disabled = true; }
+      try {
+        const r = await authFetch('/api/ventures/trigger-cron', {
+          method: 'POST',
+          body: JSON.stringify({ cronName }),
+        });
+        const result = await r.json();
+        if (btn) {
+          btn.textContent = r.ok ? '✓ Done' : '✗ Fail';
+          setTimeout(() => { btn.textContent = '▶ Trigger'; btn.disabled = false; }, 3000);
+        }
+        if (!r.ok) console.warn('[trigger-cron] failed:', result);
+      } catch (e) {
+        if (btn) { btn.textContent = '✗ Error'; setTimeout(() => { btn.textContent = '▶ Trigger'; btn.disabled = false; }, 3000); }
+        console.error('[trigger-cron] error:', e);
+      }
+    };
+
+    // ============================================================
+    // loadAll — refresh all sections (used by command bar)
+    // ============================================================
+    function loadAll() {
+      loadOverview();
+      loadSocialStats();
+      loadActivation();
+      loadTasks();
+      loadCronHealth();
+      loadStripeEvents();
+      loadFeed();
+    }
 
     // ============================================================
     // Polling
@@ -3397,16 +3647,21 @@
     // Improvement #4: Slash-key command bar
     // ============================================================
     const COMMANDS = [
-      { label: 'New task',           icon: '&#43;',    action: () => { closeCommandBar(); document.getElementById('btn-new-task').click(); } },
-      { label: 'Message Carter',      icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('carter'); document.getElementById('chat-input').focus(); } },
-      { label: 'Message Hadley',      icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('hadley'); document.getElementById('chat-input').focus(); } },
-      { label: 'Message Cole',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('cole'); document.getElementById('chat-input').focus(); } },
-      { label: 'Message Pierce',      icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('pierce'); document.getElementById('chat-input').focus(); } },
-      { label: 'Message Sage',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('sage'); document.getElementById('chat-input').focus(); } },
-      { label: 'View expenses',       icon: '&#128181;', action: () => { closeCommandBar(); openExpensesModal(); } },
-      { label: 'View customers',      icon: '&#128100;', action: () => { closeCommandBar(); document.getElementById('customers-section')?.scrollIntoView({ behavior: 'smooth' }); } },
-      { label: 'Go to Dossie app',    icon: '&#128279;', action: () => { closeCommandBar(); window.open('https://meetdossie.com/app', '_blank'); } },
-      { label: 'Keyboard shortcuts',  icon: '&#9000;',   action: () => { closeCommandBar(); document.getElementById('hotkeys-modal').classList.add('open'); } },
+      { label: 'New task',              icon: '&#43;',    action: () => { closeCommandBar(); document.getElementById('btn-new-task').click(); } },
+      { label: 'Message Carter',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('carter'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Hadley',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('hadley'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Cole',          icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('cole'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Pierce',        icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('pierce'); document.getElementById('chat-input').focus(); } },
+      { label: 'Message Sage',          icon: '&#129302;', action: () => { closeCommandBar(); selectAgentChat('sage'); document.getElementById('chat-input').focus(); } },
+      { label: 'View expenses',         icon: '&#128181;', action: () => { closeCommandBar(); openExpensesModal(); } },
+      { label: 'View customers',        icon: '&#128100;', action: () => { closeCommandBar(); document.getElementById('customers-section')?.scrollIntoView({ behavior: 'smooth' }); } },
+      { label: 'Go to Dossie app',      icon: '&#128279;', action: () => { closeCommandBar(); window.open('https://meetdossie.com/app', '_blank'); } },
+      { label: 'Keyboard shortcuts',    icon: '&#9000;',   action: () => { closeCommandBar(); document.getElementById('hotkeys-modal').classList.add('open'); } },
+      // 4 new commands (Improvement #7)
+      { label: 'Refresh Dashboard',     icon: '&#8635;',   action: () => { closeCommandBar(); loadAll(); } },
+      { label: 'Open Social Queue',     icon: '&#128293;', action: () => { closeCommandBar(); openSocialPostsModal('all'); } },
+      { label: 'Trigger Morning Cron',  icon: '&#9654;',   action: () => { closeCommandBar(); triggerCron('cron-generate-posts', '/api/cron-generate-posts'); } },
+      { label: 'View Task Board',       icon: '&#9989;',   action: () => { closeCommandBar(); document.getElementById('tasks-section')?.scrollIntoView({ behavior: 'smooth' }); } },
     ];
 
     let _cmdFocusIdx = 0;
@@ -3447,9 +3702,23 @@
       });
     }
 
+    // Fuzzy match: every character in query must appear in order in the label (subsequence check)
+    function fuzzyMatch(label, query) {
+      if (!query) return true;
+      const l = label.toLowerCase();
+      const q = query.toLowerCase();
+      let li = 0;
+      for (let qi = 0; qi < q.length; qi++) {
+        li = l.indexOf(q[qi], li);
+        if (li === -1) return false;
+        li++;
+      }
+      return true;
+    }
+
     document.getElementById('cmd-input').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase();
-      _cmdFiltered = COMMANDS.filter(c => c.label.toLowerCase().includes(q));
+      const q = e.target.value;
+      _cmdFiltered = COMMANDS.filter(c => fuzzyMatch(c.label, q));
       _cmdFocusIdx = 0;
       renderCommandResults();
     });
@@ -3480,15 +3749,37 @@
     let _customerHealthData = [];
 
     function renderCustomerHealthTable(customers) {
-      _customerHealthData = customers;
+      // Compute days inactive for each customer
+      const enriched = customers.map(c => {
+        let daysInactive = null;
+        if (c.neverLoggedIn) {
+          // Count from join date if available, else treat as very old
+          daysInactive = c.joined
+            ? Math.floor((Date.now() - new Date(c.joined).getTime()) / 86400000)
+            : 9999;
+        } else if (c.lastSignIn) {
+          daysInactive = Math.floor((Date.now() - new Date(c.lastSignIn).getTime()) / 86400000);
+        } else {
+          daysInactive = 0;
+        }
+        return { ...c, daysInactive };
+      });
+
+      // Sort descending by days inactive (most inactive first)
+      enriched.sort((a, b) => (b.daysInactive ?? 0) - (a.daysInactive ?? 0));
+
+      _customerHealthData = enriched;
       const tbody = document.getElementById('customer-health-tbody');
-      if (!customers.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--text-dim);font-size:0.82rem;">No customers yet.</td></tr>';
+      if (!enriched.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);font-size:0.82rem;">No customers yet.</td></tr>';
         return;
       }
-      tbody.innerHTML = customers.map((c, i) => {
+      tbody.innerHTML = enriched.map((c, i) => {
         let statusClass, statusLabel;
-        if (c.neverLoggedIn) {
+        const isChurnRisk = (c.daysInactive ?? 0) >= 30;
+        if (isChurnRisk) {
+          statusClass = 'churn-risk'; statusLabel = 'CHURN RISK';
+        } else if (c.neverLoggedIn) {
           statusClass = 'never'; statusLabel = 'Never';
         } else if (c.activatedThisWeek) {
           statusClass = 'active'; statusLabel = 'Active';
@@ -3498,11 +3789,14 @@
         const joined = c.joined ? new Date(c.joined).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
         const lastLogin = c.neverLoggedIn ? 'Never' : (c.lastSignIn ? timeAgo(new Date(c.lastSignIn)) : '—');
         const plan = c.plan || 'Founding';
+        const daysText = c.daysInactive === 9999 ? '—' : (c.daysInactive !== null ? c.daysInactive.toString() : '—');
+        const daysColor = (c.daysInactive ?? 0) >= 30 ? 'var(--coral)' : (c.daysInactive ?? 0) >= 7 ? 'var(--gold)' : 'var(--sage)';
         return `<tr data-cust-idx="${i}" style="cursor:pointer;" onclick="openCustomerDetail(${i})">
           <td style="color:var(--blush);font-weight:500;">${escHtml(c.name || 'Unknown')}</td>
           <td style="color:var(--text-dim);">${escHtml(plan)}</td>
           <td style="color:var(--text-dim);">${escHtml(joined)}</td>
-          <td class="${statusClass === 'never' ? 'activation-cust-login never' : statusClass === 'active' ? 'activation-cust-login recent' : 'activation-cust-login old'}" style="white-space:nowrap;">${escHtml(lastLogin)}</td>
+          <td class="${c.neverLoggedIn ? 'activation-cust-login never' : c.activatedThisWeek ? 'activation-cust-login recent' : 'activation-cust-login old'}" style="white-space:nowrap;">${escHtml(lastLogin)}</td>
+          <td style="color:${daysColor};font-weight:${(c.daysInactive ?? 0) >= 30 ? '700' : '400'};">${escHtml(daysText)}</td>
           <td><span class="health-status-pill ${statusClass}">${escHtml(statusLabel)}</span></td>
         </tr>`;
       }).join('');
@@ -3740,6 +4034,14 @@
       textEl.textContent = text;
       card.classList.add('visible');
     }
+
+    // Improvement #3: refresh button clears cache and re-fires
+    window.refreshAttentionBrief = function() {
+      try { sessionStorage.removeItem(BRIEF_CACHE_KEY); } catch {}
+      const textEl = document.getElementById('attention-brief-text');
+      if (textEl) textEl.textContent = 'Refreshing…';
+      loadSocialStatsForBrief();
+    };
 
     // ============================================================
     // Start
