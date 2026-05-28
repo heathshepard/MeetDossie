@@ -78,6 +78,84 @@ def create_bucket(bucket_name):
             print(f"ERROR creating bucket: {e.code} {body}")
             return False
 
+CHUNK_SIZE = 6 * 1024 * 1024  # 6MB chunks for TUS resumable upload
+
+
+def upload_file_resumable(file_path: Path, bucket_name, auth_key):
+    """Upload large file via Supabase TUS resumable upload protocol"""
+    file_name = file_path.name
+    file_size = file_path.stat().st_size
+    print(f"Using resumable upload for {file_name} ({file_size:,} bytes)...")
+
+    tus_url = f"{SUPABASE_URL}/storage/v1/upload/resumable"
+
+    # Step 1: Create upload session
+    create_req = urllib.request.Request(
+        tus_url,
+        data=b"",
+        headers={
+            "Authorization": f"Bearer {auth_key}",
+            "Content-Length": "0",
+            "Upload-Length": str(file_size),
+            "Tus-Resumable": "1.0.0",
+            "Upload-Metadata": f"bucketName {_b64(bucket_name)},objectName {_b64(file_name)},contentType {_b64('video/mp4')}",
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(create_req, timeout=30) as r:
+            location = r.headers.get("Location")
+            if not location:
+                print("ERROR: No Location header in TUS create response")
+                sys.exit(1)
+            print(f"OK TUS session created: ...{location[-40:]}")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace") if e.fp else ""
+        print(f"ERROR creating TUS session: {e.code} {body}")
+        sys.exit(1)
+
+    # Step 2: Upload chunks
+    offset = 0
+    with open(file_path, "rb") as f:
+        while offset < file_size:
+            chunk = f.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            chunk_req = urllib.request.Request(
+                location,
+                data=chunk,
+                headers={
+                    "Authorization": f"Bearer {auth_key}",
+                    "Content-Length": str(len(chunk)),
+                    "Content-Type": "application/offset+octet-stream",
+                    "Tus-Resumable": "1.0.0",
+                    "Upload-Offset": str(offset),
+                },
+                method="PATCH"
+            )
+            try:
+                with urllib.request.urlopen(chunk_req, timeout=120) as r:
+                    new_offset = int(r.headers.get("Upload-Offset", offset + len(chunk)))
+                    pct = int(new_offset * 100 / file_size)
+                    print(f"  Uploaded {new_offset:,}/{file_size:,} bytes ({pct}%)")
+                    offset = new_offset
+            except urllib.error.HTTPError as e:
+                body = e.read().decode("utf-8", "replace") if e.fp else ""
+                print(f"ERROR uploading chunk at offset {offset}: {e.code} {body}")
+                sys.exit(1)
+
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
+    print(f"OK Resumable upload complete")
+    print(f" Public URL: {public_url}")
+    return public_url
+
+
+def _b64(s):
+    import base64
+    return base64.b64encode(s.encode("utf-8")).decode("ascii")
+
+
 def upload_file(file_path: Path, bucket_name, access_token=None):
     """Upload file to Supabase Storage and return public URL"""
     if not file_path.exists():
@@ -88,9 +166,6 @@ def upload_file(file_path: Path, bucket_name, access_token=None):
     file_size = file_path.stat().st_size
     print(f"Uploading {file_name} ({file_size:,} bytes)...")
 
-    url = f"{SUPABASE_URL}/storage/v1/object/{bucket_name}/{file_name}"
-    file_bytes = file_path.read_bytes()
-
     # Priority: SERVICE_ROLE_KEY > access_token > ANON_KEY
     if SUPABASE_SERVICE_ROLE_KEY:
         auth_key = SUPABASE_SERVICE_ROLE_KEY
@@ -98,6 +173,14 @@ def upload_file(file_path: Path, bucket_name, access_token=None):
         auth_key = access_token
     else:
         auth_key = SUPABASE_ANON_KEY
+
+    # Files over 50MB must use the TUS resumable upload endpoint
+    STANDARD_UPLOAD_LIMIT = 50 * 1024 * 1024  # 50MB
+    if file_size > STANDARD_UPLOAD_LIMIT:
+        return upload_file_resumable(file_path, bucket_name, auth_key)
+
+    url = f"{SUPABASE_URL}/storage/v1/object/{bucket_name}/{file_name}"
+    file_bytes = file_path.read_bytes()
 
     req = urllib.request.Request(
         url,
@@ -121,6 +204,13 @@ def upload_file(file_path: Path, bucket_name, access_token=None):
 
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace") if e.fp else ""
+        # Supabase returns HTTP 400 with statusCode "409" when file already exists
+        is_duplicate = e.code == 409 or ('"409"' in body and "Duplicate" in body)
+        if is_duplicate:
+            print(f"OK File already exists in storage (duplicate) -- using existing URL")
+            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
+            print(f" Public URL: {public_url}")
+            return public_url
         print(f"ERROR uploading: {e.code} {body}")
         sys.exit(1)
 
