@@ -29,6 +29,213 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+// Haiku is sufficient for structured scoring and fact-checking — cheaper and fast.
+const SCORER_MODEL = 'claude-haiku-4-5-20251001';
+const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
+
+// ─── Quality Scorer (mirrors cron-send-for-approval.js scorePost) ──────────
+// Scores a replacement post on Hook, Platform Fit, and CTA (1-10 each).
+// Returns { hook, platform_fit, cta, composite } or null on any failure.
+// Failure is non-fatal — caller falls back gracefully.
+async function scorePost(caption, platform) {
+  if (!ANTHROPIC_API_KEY) return null;
+  const prompt = `Score this social media post for a Texas real estate software product called Dossie on three dimensions (1-10 each):
+- Hook: Does the opening grab attention in the first line?
+- Platform fit: Is the tone, length, and format right for ${platform}?
+- CTA: Is the call to action clear and compelling?
+
+Post:
+${caption}
+
+Return JSON only: {"hook": N, "platform_fit": N, "cta": N}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: SCORER_MODEL,
+        max_tokens: 100,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data?.content?.[0]?.text || '';
+    const match = text.match(/\{[^}]+\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]);
+    const hook = Math.min(10, Math.max(1, parseInt(parsed.hook, 10) || 0));
+    const platform_fit = Math.min(10, Math.max(1, parseInt(parsed.platform_fit, 10) || 0));
+    const cta = Math.min(10, Math.max(1, parseInt(parsed.cta, 10) || 0));
+    if (!hook || !platform_fit || !cta) return null;
+    const composite = Math.round(((hook + platform_fit + cta) / 3) * 10) / 10;
+    return { hook, platform_fit, cta, composite };
+  } catch (err) {
+    console.warn('[telegram-webhook] scorePost failed:', err && err.message);
+    return null;
+  }
+}
+
+function formatScoreLine(score) {
+  if (!score) return '';
+  return `Score: ${score.composite}/10 (Hook: ${score.hook} | Fit: ${score.platform_fit} | CTA: ${score.cta})\n\n`;
+}
+
+// ─── Content Verifier (mirrors cron-generate-posts.js verifyPost) ──────────
+// Minimal facts snapshot inlined so the verifier can run without loading
+// external files. Checks for fabricated specifics, unshipped features, and
+// over-claims. Fails safe: any error -> needs_revision verdict.
+//
+// NOTE: __FOUNDING_COUNT__ is substituted at call time from a live DB query;
+// we hard-code a conservative fallback (9) if that query fails.
+const REGEN_VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only job is to find fabrications, false specifics, and over-claims in marketing copy before it ships. You are skeptical, terse, and accurate.
+
+## PERSONA CONTENT — NEVER flag fictional personas
+Brenda, Patricia, and Victor are FICTIONAL marketing personas — NOT real customers. Do not flag persona names or their usage of Dossie.
+
+ALWAYS APPROVE content that is:
+- A persona pain story or fictional Dossie usage (e.g. "She got a morning brief", "Victor uses Dossie now")
+- Hypothetical scenarios ("imagine losing a deal because...")
+- CAPABILITY_ONELINER, TREC_EDUCATION, or FOUNDER_STORY brand-voice posts where facts are accurate
+
+ONLY FLAG content that:
+- Claims a REAL named founding member SIGNED UP with a specific date or member number past __FOUNDING_COUNT__
+- Quotes a real customer with invented specifics
+- Claims a feature NOT in the shipped list as live
+- Uses invented timestamps with false air of specificity
+
+## SHIPPED FEATURES (safe to claim)
+TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (agent sends), morning brief with Luna voice, closing milestone cards, dossier pipeline view with deadline badges, Talk-to-Dossie chat, natural-language deadlines.
+
+## NOT BUILT — flag if claimed as live
+Reply Monitoring, AI Autopilot, Compliance Vault, White Label, amendment drafting, bulk email drafts, SMS sending, mobile native app, brokerage compliance document sending.
+
+## VERIFIED FOUNDER PAIN STORIES (specifics OK)
+- TC quit while Heath was in Italy with active transactions; 7-8hr time difference destroyed vacation
+- $400/file, still waking at 4:30am wondering if option fee receipt was sent
+- "Vacation is the stress test your systems fail"
+
+FLAG anything else presented as a real Heath-specific story detail.
+
+## Output format — STRICT JSON ONLY
+{"verdict": "approve" | "needs_revision", "flags": [{"severity": "red"|"yellow"|"green", "claim": "...", "issue": "...", "fix": "..."}], "summary": "..."}
+Rules: verdict "approve" only when zero red flags AND at most one yellow flag. Always include flags array even if empty.`;
+
+async function verifyRegenPost({ platform, persona, caption }) {
+  const founding = await getRegenFoundingCount();
+  const systemPrompt = REGEN_VERIFIER_SYSTEM_PROMPT.replace(/__FOUNDING_COUNT__/g, String(founding));
+  const userMessage = `Verify this replacement post draft. Return only the JSON verdict.\n\nPlatform: ${platform}\nPersona: ${persona}\n\nDRAFT:\n${caption}`;
+
+  let res, text;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: VERIFIER_MODEL,
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+    });
+    text = await res.text();
+  } catch (err) {
+    return {
+      verdict: 'needs_revision',
+      flags: [{ severity: 'red', claim: '(verifier API error)', issue: String(err && err.message || err).slice(0, 200), fix: 'retry or review manually' }],
+      summary: 'Verifier call failed — defaulting to needs_revision (fail-safe).',
+    };
+  }
+
+  if (!res.ok) {
+    return {
+      verdict: 'needs_revision',
+      flags: [{ severity: 'red', claim: '(verifier HTTP error)', issue: `HTTP ${res.status}`, fix: 'retry or review manually' }],
+      summary: `Verifier HTTP ${res.status} — defaulting to needs_revision (fail-safe).`,
+    };
+  }
+
+  let raw;
+  try {
+    const data = JSON.parse(text);
+    raw = data?.content?.[0]?.text;
+  } catch { raw = null; }
+
+  if (!raw) {
+    return {
+      verdict: 'needs_revision',
+      flags: [{ severity: 'red', claim: '(verifier empty response)', issue: 'no content block returned', fix: 'review manually' }],
+      summary: 'Verifier returned empty response — defaulting to needs_revision.',
+    };
+  }
+
+  let parsed;
+  try {
+    // Strip markdown fences if present
+    let s = String(raw).trim();
+    if (s.startsWith('```')) s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+    const fb = s.indexOf('{'); const lb = s.lastIndexOf('}');
+    if (fb >= 0 && lb > fb) s = s.slice(fb, lb + 1);
+    parsed = JSON.parse(s);
+  } catch {
+    return {
+      verdict: 'needs_revision',
+      flags: [{ severity: 'red', claim: '(verifier malformed JSON)', issue: 'could not parse verifier response', fix: 'review manually' }],
+      summary: 'Verifier returned malformed JSON — defaulting to needs_revision.',
+    };
+  }
+
+  const verdict = parsed?.verdict === 'approve' ? 'approve' : 'needs_revision';
+  const flags = Array.isArray(parsed?.flags) ? parsed.flags : [];
+  const summary = typeof parsed?.summary === 'string' ? parsed.summary : '';
+  const hasRedFlag = flags.some((f) => String(f?.severity || '').toLowerCase() === 'red');
+  return { verdict: hasRedFlag ? 'needs_revision' : verdict, flags, summary };
+}
+
+function formatVerifierLine(verifierResult) {
+  if (!verifierResult) return '';
+  const verdict = String(verifierResult.verdict || '').toLowerCase();
+  const flags = Array.isArray(verifierResult.flags) ? verifierResult.flags : [];
+  const interesting = flags.filter((f) => ['red', 'yellow'].includes(String(f?.severity || '').toLowerCase()));
+
+  if (verdict === 'approve' && interesting.length === 0) {
+    return '🤖 VERIFIER: ✅ Clean — no flags\n\n';
+  }
+
+  const lines = [`🤖 VERIFIER: ⚠️ ${interesting.length} flag${interesting.length === 1 ? '' : 's'} (${verdict})`];
+  for (const f of interesting.slice(0, 4)) {
+    const sev = String(f.severity || '').toLowerCase();
+    const claim = String(f.claim || '').slice(0, 60);
+    const issue = String(f.issue || '').slice(0, 120);
+    lines.push(`   - [${sev}] "${claim}" — ${issue}`);
+  }
+  if (verifierResult.summary) lines.push(`   ${String(verifierResult.summary).slice(0, 160)}`);
+  return lines.join('\n') + '\n\n';
+}
+
+// Live founding member count for the verifier prompt — same pattern as
+// cron-generate-posts.js getFoundingMemberCount(). Hard-coded fallback
+// if the query fails so the verifier still runs.
+async function getRegenFoundingCount() {
+  try {
+    const r = await supabaseFetch(
+      `/rest/v1/subscriptions?select=id&status=in.(active,trialing)&plan=eq.founding`,
+    );
+    if (r.ok && Array.isArray(r.data)) return r.data.length;
+  } catch (err) {
+    console.warn('[telegram-webhook] getRegenFoundingCount failed:', err && err.message);
+  }
+  return 9; // conservative fallback
+}
 
 // ─── Regeneration helpers (used when a post is rejected) ──────────────────
 
@@ -161,13 +368,16 @@ async function sendReplacementToTelegram(chatId, post) {
     body: JSON.stringify(photoBody),
   });
 
-  // Message 2: full content + approve/reject/edit buttons
+  // Message 2: full content + score + verifier + approve/reject/edit buttons
   const content = String(post.content || '');
   const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
     ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
     : '';
 
-  const fullText = `Replacement post for ${platform} (${persona})\n\n${content}\n\nHashtags: ${hashtags}`;
+  const scoreLine = post.score ? formatScoreLine(post.score) : '';
+  const verifierLine = post.verifierResult ? formatVerifierLine(post.verifierResult) : '';
+
+  const fullText = `${verifierLine}${scoreLine}Replacement post for ${platform} (${persona})\n\n${content}\n\nHashtags: ${hashtags}`;
 
   const buttons = {
     inline_keyboard: [[
@@ -240,6 +450,17 @@ async function regeneratePost(rejectedPost) {
     return;
   }
 
+  // ─── Score + verify in parallel (non-blocking) ─────────────────────────
+  // Run both quality scoring and content verification concurrently to keep
+  // the replacement flow fast. Both fail safe: null score = skip display,
+  // verifier error = needs_revision (still sends to Telegram for Heath review).
+  const [score, verifierResult] = await Promise.all([
+    scorePost(caption, platform),
+    verifyRegenPost({ platform, persona, caption }),
+  ]);
+
+  console.log(`[telegram-webhook] regen score=${score ? score.composite + '/10' : 'null'} verifier=${verifierResult.verdict} flags=${Array.isArray(verifierResult.flags) ? verifierResult.flags.length : 0}`);
+
   // Build a unique post_id for the replacement
   const today = new Date().toISOString().slice(0, 10);
   const suffix = Math.floor(Date.now() / 1000) % 100000;
@@ -248,6 +469,10 @@ async function regeneratePost(rejectedPost) {
   // Look up zernio_account_id from existing post (best-effort)
   const zernioAccountId = rejectedPost.zernio_account_id || null;
 
+  // Replacements always land as 'draft' regardless of verifier verdict —
+  // Heath sees both the score and verifier flags in Telegram and decides.
+  // A needs_revision verdict is surfaced prominently in the message so Heath
+  // knows to scrutinize it before tapping Approve.
   const row = {
     post_id: postId,
     platform,
@@ -267,7 +492,7 @@ async function regeneratePost(rejectedPost) {
     media_url: null, // No card render on regen (keep it fast; Heath reviews in Telegram)
     generated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
-    verifier_result: null,
+    verifier_result: verifierResult || null,
     error_message: null,
   };
 
@@ -291,10 +516,10 @@ async function regeneratePost(rejectedPost) {
 
   console.log(`[telegram-webhook] regen inserted as id=${insertedRow.id} post_id=${postId}`);
 
-  // Send to Telegram for approval
+  // Send to Telegram for approval — include score and verifier results
   const chatId = TELEGRAM_CHAT_ID;
   if (chatId) {
-    const postForTg = { ...row, ...parsed, id: insertedRow.id };
+    const postForTg = { ...row, ...parsed, id: insertedRow.id, score, verifierResult };
     try {
       await sendReplacementToTelegram(chatId, postForTg);
       console.log(`[telegram-webhook] regen sent to Telegram for approval`);
