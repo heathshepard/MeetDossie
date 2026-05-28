@@ -219,14 +219,6 @@
                       "schedule":  "0 13 * * *"
                   },
                   {
-                      "path":  "/api/send-customer-update",
-                      "schedule":  "0 13 27 5 *"
-                  },
-                  {
-                      "path":  "/api/cron-social-digest",
-                      "schedule":  "5 12 * * *"
-                  },
-                  {
                       "path":  "/api/cron-verify-posts",
                       "schedule":  "45 * * * *"
                   },
