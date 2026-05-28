@@ -199,14 +199,15 @@ ${context}`;
 // ─── Check if sage_trend_briefs table exists ─────────────────────────────────
 
 async function tableExists() {
-  // Query Supabase information_schema via PostgREST. If the table doesn't exist,
-  // the query to it will 404. We use a lightweight count request as a probe.
+  // Query the table with limit=1. PostgREST returns:
+  //   200/206 = table exists + rows (or empty)
+  //   404     = table not found ("relation does not exist")
+  // Any other status (401, 500) we treat as "exists" to avoid blocking the run.
   const { ok, status } = await supaFetch(
     'sage_trend_briefs?select=id&limit=1',
-    { headers: { Prefer: 'count=exact' } },
   );
-  // 404 means table unknown to PostgREST, 200/206 means it exists.
-  return ok || status === 406; // 406 = no rows but table exists
+  if (status === 404) return false; // table missing
+  return true; // exists or unknown error — let the upsert fail with a clearer message
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
