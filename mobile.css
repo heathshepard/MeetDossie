@@ -45,7 +45,7 @@ input[type="radio"] {
   }
 
   .app-main {
-    padding: 16px 16px 80px !important;
+    padding: 72px 16px calc(80px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* --- BOTTOM TAB BAR (MOBILE NAV) --- */
@@ -310,7 +310,7 @@ input[type="radio"] {
 
   /* --- SPACING --- */
   .app-main {
-    padding: 12px 12px 80px !important;
+    padding: 72px 12px calc(80px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* --- ANALYTICS CARDS --- */
