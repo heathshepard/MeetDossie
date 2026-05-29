@@ -2876,7 +2876,14 @@
     async function loadOverview() {
       try {
         const res = await authFetch('/api/ventures/overview');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          let detail = '';
+          try {
+            const errBody = await res.clone().json();
+            if (errBody.debug_email) detail = ` (session email: ${errBody.debug_email})`;
+          } catch (_) {}
+          throw new Error(`HTTP ${res.status}${detail}`);
+        }
         const d = await res.json();
         renderOverview(d);
         hideError();
