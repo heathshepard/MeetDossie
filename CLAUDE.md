@@ -113,7 +113,7 @@ After EVERY Carter staging push, Cole AUTOMATICALLY spawns Quinn — no prompt f
 
 The two-step gate:
 
-1. **Quinn auto-runs** — Cole spawns Quinn immediately after every staging commit. Quinn tests, fixes failures with Carter (up to 3 loops), then reports to Heath on Telegram: "QUINN: ✅ All clear on staging. Ready to merge when you are."
+1. **Quinn auto-runs** — Cole spawns Quinn immediately after every staging commit. Quinn tests, fixes ALL failures with Carter (up to 3 loops) — including "non-blocking" issues. Nothing ships with known errors. Then Quinn reports to Heath: "QUINN: ✅ All clear on staging. Ready to merge when you are."
 
 2. **Heath says "merge it"** — Quinn passing is NOT sufficient to merge. Cole waits for Heath's explicit "merge it" before touching main. No exceptions. Not for quick fixes, not for urgent patches.
 
