@@ -109,15 +109,13 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ### Pre-merge QA gate (mandatory)
 
-Before every `git merge staging` -> `main`, Quinn MUST run and pass.
+Before every `git merge staging` -> `main`, TWO things must happen IN ORDER:
 
-To run Quinn:
-- Spawn the `quinn` agent with: "Run your full standard test suite on staging. Report results to Telegram."
-- Wait for Quinn's Telegram report
-- Only merge if Quinn replies "All clear. Safe to merge."
-- If Quinn flags failures, fix them on staging first, then re-run Quinn
+1. **Quinn must pass** — Spawn the `quinn` agent: "Run your full standard test suite on staging. Report results to Telegram." If Quinn flags failures, fix on staging and re-run Quinn first.
 
-This rule has no exceptions. Even "quick fixes" go through Quinn.
+2. **Heath must say "merge it"** — After Quinn passes, send Heath a Telegram summary of what's ready and wait for his explicit approval. Quinn passing is NOT sufficient to merge. Cole never auto-merges.
+
+This rule has no exceptions. Not for quick fixes, not for urgent patches. Quinn + Heath approval, every time.
 
 ---
 
