@@ -11,6 +11,20 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026 (continued, late build)
+
+**Residential Lease transactions - Landlord and Tenant**
+- Dossie now tracks rental transactions, not just purchases. When you create a new dossier, choose "Residential Lease (Landlord)" if you represent the owner, or "Residential Lease (Tenant)" if you represent the renter.
+- Every lease dossier gets its own Lease section with all the fields that matter: monthly rent, security deposit, pet policy and pet deposit, application fee, lease start and end dates, and an auto-calculated lease term.
+- Key dates are tracked in one place: application submitted, application approved, lease signed, move-in, move-out, and a renewal deadline Dossie calculates automatically as 60 days before the lease ends.
+- If you represent the landlord, Dossie tracks the tenant's contact info, number of occupants, and whether background and credit checks are complete. If you represent the tenant, Dossie shows the landlord's contact info instead.
+- The Move-In Condition Report section lets you check it off as complete and note any pre-existing damage in writing - timestamped and saved.
+- Three lease-specific reminder emails fire automatically: when the renewal deadline is 30 days and 7 days away, the day before move-in, and an urgent alert if HOA approval is required but not received within 7 days of lease start.
+- The lease form package (TAR 2001 Residential Lease, TAR 2003 Move-In Condition Form, Wire Fraud Warning) attaches automatically when you create the dossier.
+- Talk to Dossie understands lease updates: say "application approved," "lease signed," "tenant moves in June 1," "monthly rent is $1,500," or "background check complete" and Dossie records it instantly.
+
+---
+
 ## Week of May 29, 2026 (continued, evening build)
 
 **New Construction (Buyer) transaction type**
@@ -70,6 +84,9 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Download ZIP improvements**
 - The compliance ZIP download is now formatted for SkySlope and Dotloop. Documents are automatically sorted - contract first, then amendments, then addenda, then disclosures - and each file gets a numbered prefix (01-Contract.pdf, 02-Amendment.pdf, etc.) so your brokerage portal uploads them in the right order.
 - Every ZIP now includes a cover sheet (00-COVER.txt) with the property address, buyer and seller names, and document count for easy reference.
+
+**Land purchase dossiers**
+- We added a full Land Purchase transaction type. When you open a file for vacant land, Dossie shows a dedicated Land Details section with everything a land deal needs: total acreage, legal description, parcel/tax ID, current zoning, deed restriction review, survey type (boundary, ALTA, fence), survey ordered/received dates, utilities confirmed (water, sewer, electric, gas, internet, road access), FEMA flood zone, wetlands flag, and Phase 1 environmental study tracking. The Land Purchase form set (TREC 9 Unimproved Property Contract, TREC 25 Farm and Ranch, Third Party Financing Addendum, Buyer Rep, and Wire Fraud Warning) is auto-attached when you create the dossier. You can also tell Dossie things like "survey received" or "flood zone is Zone X" and she updates the file automatically.
 
 ---
 
