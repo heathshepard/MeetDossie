@@ -189,7 +189,10 @@
                                              },
                "api/cron-sage-intelligence.js":  {
                                                       "maxDuration":  60
-                                                  }
+                                                  },
+               "api/cron-activation-drip.js":  {
+                                                    "maxDuration":  60
+                                                }
                   },
     "crons":  [
                   {
