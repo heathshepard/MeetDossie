@@ -206,7 +206,7 @@ const TOOLS = [
         deal_identifier: { type: 'string', description: 'Any part of the address, buyer name, or seller name' },
         field: {
           type: 'string',
-          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type'],
+          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type','option_fee_amount','option_fee_paid_at','option_fee_paid_to','earnest_money_amount','earnest_money_deposited_at','earnest_money_confirmed_at','earnest_money_title_company','inspection_scheduled_at','inspection_completed_at','inspection_report_received','appraisal_ordered_at','appraisal_received_at','appraisal_value'],
           description: 'The field to update using snake_case',
         },
         value: { type: 'string', description: 'The new value' },
@@ -288,19 +288,19 @@ const TOOLS = [
   },
   {
     name: 'draft_amendment',
-    description: 'Draft a TREC 39-10 Amendment to Contract PDF (the current TREC amendment form — supersedes 39-9). Use whenever the agent says: draft an amendment, generate an amendment, draw up an amendment, write up an amendment, extend the option period, push closing back, change the closing date, change the sale price, reduce the price, increase the price. Produces a signable PDF document — different from update_deal_field which silently edits the dossier without producing a PDF. If the agent asks for both a draft AND a dossier update, call draft_amendment only; the agent applies the change to the dossier once the buyer signs.',
+    description: 'Draft a TREC 39-10 Amendment to Contract PDF (the current TREC amendment form — supersedes 39-9). Use whenever the agent says: draft an amendment, generate an amendment, draw up an amendment, write up an amendment, extend the option period, push closing back, change the closing date, change the sale price, reduce the price, increase the price, draft a repair amendment, list repairs seller must fix. Produces a signable PDF document — different from update_deal_field which silently edits the dossier without producing a PDF. If the agent asks for both a draft AND a dossier update, call draft_amendment only; the agent applies the change to the dossier once the buyer signs.',
     input_schema: {
       type: 'object',
       properties: {
         deal_identifier: { type: 'string', description: 'Property address or buyer/seller name' },
         amendment_type: {
           type: 'string',
-          enum: ['closing_date', 'option_extension', 'price_change'],
-          description: 'closing_date for new close date, option_extension for additional option days, price_change for new sale price',
+          enum: ['closing_date', 'option_extension', 'price_change', 'repair_items'],
+          description: 'closing_date for new close date, option_extension for additional option days, price_change for new sale price, repair_items for a repair amendment listing items seller must fix',
         },
         new_value: {
           type: 'string',
-          description: 'For closing_date: YYYY-MM-DD. For option_extension: number of additional days as a string ("7"). For price_change: dollar amount as a string ("325000").',
+          description: 'For closing_date: YYYY-MM-DD. For option_extension: number of additional days as a string ("7"). For price_change: dollar amount as a string ("325000"). For repair_items: JSON array of repair item strings e.g. ["HVAC filter replacement","Leaking faucet in master bath"].',
         },
         notes: { type: 'string', description: 'Optional special provisions / explanation written into the Other Modifications block.' },
       },
@@ -366,7 +366,7 @@ INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
 - Write a contract/offer/purchase agreement, fill the forms, prepare the paperwork, make an offer = fill_forms (fills TREC 20-16 + financing addendum — beats create_dossier when agent gives full contract details)
-- Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
+- Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price, draft a repair amendment/list repairs seller must fix = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
 - Change/update/set/correct/fix a field on the dossier (no PDF needed) = update_deal_field
 - Passed/moved to/we are now/advance/next stage/under contract/in inspection = advance_stage
 - What do I have/what's active/what's urgent/pipeline/my deals/show me = get_deals
@@ -396,7 +396,7 @@ COMMON STAGE PHRASES → CANONICAL ID:
 - "closed", "closing complete", "done", "funded" → closed
 
 CANONICAL FIELD NAMES — use ONLY these exact values for update_deal_field.field:
-closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type
+closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type, option_fee_amount, option_fee_paid_at, option_fee_paid_to, earnest_money_amount, earnest_money_deposited_at, earnest_money_confirmed_at, earnest_money_title_company, inspection_scheduled_at, inspection_completed_at, inspection_report_received, appraisal_ordered_at, appraisal_received_at, appraisal_value
 
 COMMON FIELD PHRASES → CANONICAL NAME:
 - "closing date", "close date", "closes on" → closing_date
@@ -426,6 +426,18 @@ COMMON FIELD PHRASES → CANONICAL NAME:
 - "survey deadline", "survey date" → survey_deadline
 - "HOA documents deadline", "HOA docs" → hoa_document_deadline
 - "loan approval", "loan approval deadline", "approval date" → loan_approval_deadline
+- "option fee amount", "option fee paid", "how much was the option fee" → option_fee_amount
+- "option fee paid to", "who got the option fee" → option_fee_paid_to
+- "earnest money amount", "how much earnest money" → earnest_money_amount
+- "earnest money deposited", "EM deposited", "deposit sent" → earnest_money_deposited_at
+- "earnest money confirmed", "EM confirmed", "title confirmed earnest" → earnest_money_confirmed_at
+- "earnest money title company", "where is the earnest money" → earnest_money_title_company
+- "inspection scheduled", "inspection date", "when is the inspection" → inspection_scheduled_at
+- "inspection complete", "inspection done", "inspector finished" → inspection_completed_at
+- "inspection report received", "got the inspection report" → inspection_report_received
+- "appraisal ordered", "appraisal ordered at" → appraisal_ordered_at
+- "appraisal received", "appraisal came back", "got the appraisal" → appraisal_received_at
+- "appraisal value", "appraised at", "appraisal came in at" → appraisal_value
 
 CANONICAL EMAIL TYPES — use ONLY these exact values for draft_email.email_type:
 - buyer-welcome (welcome email to buyer at contract start)

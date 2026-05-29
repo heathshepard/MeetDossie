@@ -191,8 +191,15 @@ async function loadActiveCustomers() {
 }
 
 // All non-closed transactions for a single user.
+// Also fetches the new Block 3/4/5 tracking columns used for conditional reminders.
 async function loadOpenTransactions(userId) {
-  const fields = ['id', 'user_id', 'property_address', 'status', ...DEADLINE_FIELDS.map((f) => f.col)].join(',');
+  const baseFields = ['id', 'user_id', 'property_address', 'status', ...DEADLINE_FIELDS.map((f) => f.col)];
+  const conditionalFields = [
+    'earnest_money_confirmed_at',
+    'inspection_completed_at',
+    'appraisal_received_at',
+  ];
+  const fields = [...baseFields, ...conditionalFields].join(',');
   const r = await supabaseFetch(
     `/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}&or=(status.is.null,status.neq.closed)&select=${fields}`,
   );
@@ -310,6 +317,123 @@ module.exports = async function handler(req, res) {
           });
 
           summary.reminders_sent++;
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 3 conditional: option_expiration_date within T-2 and earnest
+        // money not yet confirmed. Uses synthetic deadline_type key so it never
+        // collides with the standard option_expiration_date reminders.
+        // -----------------------------------------------------------------------
+        if (tx.option_expiration_date && !tx.earnest_money_confirmed_at) {
+          const optYmd = String(tx.option_expiration_date).slice(0, 10);
+          const t2Date = addDaysYMD(today, 2);
+          const t1Date = addDaysYMD(today, 1);
+          const matchDaysOut = optYmd === t2Date ? 2 : optYmd === t1Date ? 1 : null;
+          if (matchDaysOut !== null) {
+            const condKey = `earnest_money_not_confirmed|${matchDaysOut}`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Action needed: earnest money not confirmed for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: 'Option period expires — earnest money not yet confirmed',
+                deadlineDateYMD: optYmd,
+                daysOut: matchDaysOut,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'earnest_money_not_confirmed',
+                  deadline_date: optYmd,
+                  days_out: matchDaysOut,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'earnest_money_not_confirmed', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 4 conditional: option_expiration_date within T-3 and inspection
+        // not yet completed.
+        // -----------------------------------------------------------------------
+        if (tx.option_expiration_date && !tx.inspection_completed_at) {
+          const optYmd = String(tx.option_expiration_date).slice(0, 10);
+          const t3Date = addDaysYMD(today, 3);
+          if (optYmd === t3Date) {
+            const condKey = `inspection_not_completed|3`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Heads up: inspection not yet complete — option expires in 3 days for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: 'Option period expires — inspection not yet completed',
+                deadlineDateYMD: optYmd,
+                daysOut: 3,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'inspection_not_completed',
+                  deadline_date: optYmd,
+                  days_out: 3,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'inspection_not_completed', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 5 conditional: appraisal_deadline within T-2 and appraisal not
+        // yet received.
+        // -----------------------------------------------------------------------
+        if (tx.appraisal_deadline && !tx.appraisal_received_at) {
+          const apprYmd = String(tx.appraisal_deadline).slice(0, 10);
+          const t2Date = addDaysYMD(today, 2);
+          if (apprYmd === t2Date) {
+            const condKey = `appraisal_not_received|2`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Action needed: no appraisal received — deadline in 2 days for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: 'Appraisal deadline approaching — no appraisal received yet',
+                deadlineDateYMD: apprYmd,
+                daysOut: 2,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'appraisal_not_received',
+                  deadline_date: apprYmd,
+                  days_out: 2,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'appraisal_not_received', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
         }
       }
     }
