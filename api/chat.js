@@ -206,7 +206,7 @@ const TOOLS = [
         deal_identifier: { type: 'string', description: 'Any part of the address, buyer name, or seller name' },
         field: {
           type: 'string',
-          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type','option_fee_amount','option_fee_paid_at','option_fee_paid_to','earnest_money_amount','earnest_money_deposited_at','earnest_money_confirmed_at','earnest_money_title_company','inspection_scheduled_at','inspection_completed_at','inspection_report_received','appraisal_ordered_at','appraisal_received_at','appraisal_value','title_commitment_received_at','title_commitment_effective_date','survey_ordered_at','survey_received_at','survey_clear','loan_approval_received_at','clear_to_close_at','hoa_docs_requested_at','hoa_docs_received_at','recorded_deed_received_at','title_policy_delivered_at','cda_signed_at','closed_at','iabs_delivered_at','sellers_disclosure_received_at','buyer_rep_signed_at','pre_approval_received','pre_approval_letter_url'],
+          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type','option_fee_amount','option_fee_paid_at','option_fee_paid_to','earnest_money_amount','earnest_money_deposited_at','earnest_money_confirmed_at','earnest_money_title_company','inspection_scheduled_at','inspection_completed_at','inspection_report_received','appraisal_ordered_at','appraisal_received_at','appraisal_value','title_commitment_received_at','title_commitment_effective_date','survey_ordered_at','survey_received_at','survey_clear','loan_approval_received_at','clear_to_close_at','hoa_docs_requested_at','hoa_docs_received_at','recorded_deed_received_at','title_policy_delivered_at','cda_signed_at','closed_at','iabs_delivered_at','sellers_disclosure_received_at','buyer_rep_signed_at','pre_approval_received','pre_approval_letter_url','land_acreage','land_legal_description','land_parcel_id','land_zoning','land_deed_restrictions_reviewed','land_deed_restrictions_notes','land_survey_type','land_survey_ordered_date','land_survey_received_date','land_survey_clear','land_survey_notes','land_fence_survey_required','land_water_source','land_sewer_source','land_electric_confirmed','land_gas_confirmed','land_internet_confirmed','land_road_access_confirmed','land_flood_zone','land_flood_map_checked','land_flood_map_checked_date','land_wetlands_present','land_environmental_notes','land_phase1_required','land_phase1_received','land_phase1_received_date','builder_name','builder_rep_name','builder_rep_phone','builder_rep_email','builder_contract_date','builder_warranty_company','builder_warranty_expiration','builder_warranty_received','co_received_date','co_number','expected_completion_date','punch_list_notes','punch_list_cleared','punch_list_cleared_date'],
           description: 'The field to update using snake_case',
         },
         value: { type: 'string', description: 'The new value' },
@@ -446,7 +446,7 @@ COMMON STAGE PHRASES → CANONICAL ID:
 - "closed", "closing complete", "done", "funded" → closed
 
 CANONICAL FIELD NAMES — use ONLY these exact values for update_deal_field.field:
-closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type, option_fee_amount, option_fee_paid_at, option_fee_paid_to, earnest_money_amount, earnest_money_deposited_at, earnest_money_confirmed_at, earnest_money_title_company, inspection_scheduled_at, inspection_completed_at, inspection_report_received, appraisal_ordered_at, appraisal_received_at, appraisal_value, title_commitment_received_at, title_commitment_effective_date, survey_ordered_at, survey_received_at, survey_clear, loan_approval_received_at, clear_to_close_at, hoa_docs_requested_at, hoa_docs_received_at, recorded_deed_received_at, title_policy_delivered_at, cda_signed_at, closed_at, iabs_delivered_at, sellers_disclosure_received_at, buyer_rep_signed_at, pre_approval_received, pre_approval_letter_url
+closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type, option_fee_amount, option_fee_paid_at, option_fee_paid_to, earnest_money_amount, earnest_money_deposited_at, earnest_money_confirmed_at, earnest_money_title_company, inspection_scheduled_at, inspection_completed_at, inspection_report_received, appraisal_ordered_at, appraisal_received_at, appraisal_value, title_commitment_received_at, title_commitment_effective_date, survey_ordered_at, survey_received_at, survey_clear, loan_approval_received_at, clear_to_close_at, hoa_docs_requested_at, hoa_docs_received_at, recorded_deed_received_at, title_policy_delivered_at, cda_signed_at, closed_at, iabs_delivered_at, sellers_disclosure_received_at, buyer_rep_signed_at, pre_approval_received, pre_approval_letter_url, land_acreage, land_legal_description, land_parcel_id, land_zoning, land_deed_restrictions_reviewed, land_deed_restrictions_notes, land_survey_type, land_survey_ordered_date, land_survey_received_date, land_survey_clear, land_survey_notes, land_fence_survey_required, land_water_source, land_sewer_source, land_electric_confirmed, land_gas_confirmed, land_internet_confirmed, land_road_access_confirmed, land_flood_zone, land_flood_map_checked, land_flood_map_checked_date, land_wetlands_present, land_environmental_notes, land_phase1_required, land_phase1_received, land_phase1_received_date, builder_name, builder_rep_name, builder_rep_phone, builder_rep_email, builder_contract_date, builder_warranty_company, builder_warranty_expiration, builder_warranty_received, co_received_date, co_number, expected_completion_date, punch_list_notes, punch_list_cleared, punch_list_cleared_date
 
 COMMON FIELD PHRASES → CANONICAL NAME:
 - "closing date", "close date", "closes on" → closing_date
@@ -505,6 +505,46 @@ COMMON FIELD PHRASES → CANONICAL NAME:
 - "buyer rep signed", "buyer representation agreement signed", "TAR 1501 signed" → buyer_rep_signed_at
 - "pre-approval received", "got pre-approval", "buyer is pre-approved", "pre-approval letter" → pre_approval_received (set to "true"; follow up with answer_question prompting agent to upload the document in the dossier)
 - "pre-approval letter URL", "link to pre-approval" → pre_approval_letter_url
+- "acreage", "acres", "how many acres", "[X] acres" → land_acreage (numeric value)
+- "legal description", "land legal description" → land_legal_description
+- "parcel ID", "parcel number", "tax ID", "tax parcel" → land_parcel_id
+- "zoning", "zoned as", "current zoning", "zone classification" → land_zoning
+- "deed restrictions reviewed", "reviewed deed restrictions", "deed restrictions checked" → land_deed_restrictions_reviewed (set to "true")
+- "deed restriction notes", "deed restrictions notes" → land_deed_restrictions_notes
+- "survey type", "what kind of survey", "boundary survey", "ALTA survey", "fence survey" → land_survey_type
+- "land survey ordered", "ordered the land survey" → land_survey_ordered_date
+- "land survey received", "survey came back", "got the land survey" → land_survey_received_date
+- "land survey clear", "survey is clear", "survey passed" → land_survey_clear (set to "true")
+- "land survey notes", "survey comments" → land_survey_notes
+- "fence survey required", "need a fence survey" → land_fence_survey_required (set to "true")
+- "water source", "municipal water", "well water", "city water" → land_water_source
+- "sewer source", "septic", "municipal sewer", "city sewer" → land_sewer_source
+- "electric confirmed", "electricity confirmed", "power confirmed" → land_electric_confirmed (set to "true")
+- "gas confirmed", "natural gas confirmed" → land_gas_confirmed (set to "true")
+- "internet confirmed", "telecom confirmed", "fiber confirmed" → land_internet_confirmed (set to "true")
+- "road access confirmed", "easement confirmed", "road easement" → land_road_access_confirmed (set to "true")
+- "flood zone", "FEMA zone", "zone [X]", "flood zone [X]" → land_flood_zone (text like "Zone X")
+- "flood map checked", "checked the flood map" → land_flood_map_checked (set to "true")
+- "flood map checked date", "when was flood map checked" → land_flood_map_checked_date
+- "wetlands present", "there are wetlands", "wetlands on the property" → land_wetlands_present (set to "true")
+- "environmental notes", "environmental concerns" → land_environmental_notes
+- "Phase 1 required", "Phase 1 ESA needed", "environmental study required" → land_phase1_required (set to "true")
+- "Phase 1 received", "Phase 1 ESA received", "got the Phase 1" → land_phase1_received (set to "true")
+- "Phase 1 received date", "when did we get the Phase 1" → land_phase1_received_date
+- "builder name", "builder company", "who is the builder" → builder_name
+- "builder rep", "builder sales rep", "sales rep name", "builder contact" → builder_rep_name
+- "builder rep phone", "builder sales rep phone" → builder_rep_phone
+- "builder rep email", "builder sales rep email" → builder_rep_email
+- "builder contract date", "contract signed with builder", "builder contract signed" → builder_contract_date
+- "warranty company", "builder warranty company", "home warranty company" → builder_warranty_company
+- "warranty expires", "builder warranty expiration", "warranty expiration date" → builder_warranty_expiration
+- "warranty received", "got the warranty document", "warranty document received" → builder_warranty_received (set to "true")
+- "CO received", "certificate of occupancy received", "got the CO", "CO date" → co_received_date (today's date)
+- "CO number", "certificate of occupancy number" → co_number
+- "expected completion", "estimated completion date", "expected finish date", "home expected to be done" → expected_completion_date
+- "punch list cleared", "punch list complete", "all punch list items fixed" → punch_list_cleared (set to "true") and punch_list_cleared_date (today)
+- "punch list notes", "punch list items", "walkthrough notes" → punch_list_notes
+- "mark [phase] complete", "foundation done", "framing done", "framing complete", "drywall done", "finishes done", "walkthrough complete", "CO phase complete" → construction_phases (use answer_question to tell agent phases are updated in the Builder section of the dossier; the phase tracker UI handles this interactively)
 
 CANONICAL EMAIL TYPES — use ONLY these exact values for draft_email.email_type:
 - buyer-welcome (welcome email to buyer at contract start)

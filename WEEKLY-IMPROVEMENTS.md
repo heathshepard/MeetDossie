@@ -11,6 +11,19 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026 (continued, evening build)
+
+**New Construction (Buyer) transaction type**
+- Dossie now handles new construction purchases as a completely separate transaction type — not just a relabeled resale dossier. When you create a dossier for a new build, you get everything the resale flow has plus a full Builder section built specifically for how builders work.
+- The Builder section tracks the builder company name, the sales rep's name, phone, and email, and the contract date with the builder. When you get the warranty document, you check it off and Dossie records it. If the builder warranty is expiring in the next 30 days, Dossie sends you a reminder email.
+- The Construction Phase Tracker follows the home from Foundation through Certificate of Occupancy — seven phases total. Tap any phase and set it to Not Started, In Progress, or Complete. Dossie timestamps it when you mark it complete.
+- CO and possession are tracked separately from the closing date so nothing gets confused. Set the expected completion date, and if the CO hasn't been received within 7 days of that date, Dossie sends you a warning email.
+- The Punch List section gives you a free-text area to capture everything found on the final walkthrough. When all items are cleared, check "Punch list cleared" and Dossie records the date.
+- The New Construction form package is now in the Form Library: TREC 23 (incomplete construction), TREC 24 (completed construction), Third Party Financing Addendum, Buyer Rep Agreement, and Wire Fraud Warning. Apply all five to a dossier in one tap.
+- Talk to Dossie understands new construction updates: say "CO received," "builder warranty expires June 15," "punch list cleared," or "the builder rep is John Smith at 210-555-1234" and Dossie updates the dossier immediately.
+
+---
+
 ## Week of May 29, 2026 (continued, afternoon build)
 
 **Pre-Contract dossiers**
