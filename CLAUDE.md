@@ -651,14 +651,17 @@ When creating voiceover scripts for lifestyle videos:
 
 ---
 
-## 24. POSTING SCHEDULE (caps enforced in `cron-publish-approved.js`)
+## 24. POSTING SCHEDULE (caps enforced in `posting_schedule` DB table; TikTok posts park as `pending_video` until DONE pipeline attaches a video)
 
 | Platform | Slots (CST) | Cap |
 |---|---|---|
-| Facebook | 9AM, 12PM, 6PM | 1/day |
-| Twitter | 8AM, 12PM, 4PM | 2/day |
+| Facebook | 9AM, 6PM | 2/day |
+| Twitter | 8AM, 12PM, 4PM | 3/day |
 | Instagram | 8AM, 6PM | 1/day |
-| TikTok | 7AM, 7PM | 1/day (inactive) |
+| LinkedIn | 7AM, 12PM | 1/day |
+| TikTok | 7AM, 7PM | 1/day (ACTIVE - video required via DONE pipeline) |
+
+**Daily generation target: 8 posts** (2 Facebook, 3 Twitter, 1 Instagram, 1 LinkedIn, 1 TikTok)
 
 ---
 
