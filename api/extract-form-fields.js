@@ -28,7 +28,15 @@ const ALLOWED_ORIGINS = new Set([
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
-const ALLOWED_FORM_TYPES = new Set(['resale-contract', 'financing-addendum', 'termination-notice']);
+const ALLOWED_FORM_TYPES = new Set([
+  'resale-contract',
+  'financing-addendum',
+  'termination-notice',
+  'unimproved-property',
+  'new-home-incomplete',
+  'new-home-complete',
+  'farm-ranch',
+]);
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
@@ -105,6 +113,112 @@ Fields to extract:
 - buyer_name (string): Buyer's full name.
 - contract_effective_date (string): ISO date YYYY-MM-DD of original contract.
 - termination_reason (string): Brief reason for termination if stated.
+`,
+  'unimproved-property': `
+Extract these fields for the TREC 9 Unimproved Property Contract (land purchase — no structures).
+Return ONLY fields that are present or can be inferred.
+
+Fields to extract:
+- buyer_name (string): Full legal name(s) of buyer(s).
+- seller_name (string): Full legal name(s) of seller(s).
+- property_address (string): Street address or rural route description.
+- city_state_zip (string): City, state, zip if known.
+- county (string): Texas county. Example: "Bexar"
+- legal_description (string): Lot/block/subdivision or survey abstract description.
+- land_acreage (number): Acres of the land. Example: 5.5
+- land_parcel_id (string): Parcel/tax ID if stated.
+- sale_price (number): Total purchase price in dollars.
+- earnest_money (number): Earnest money amount. Default 1% of purchase price if not stated.
+- option_fee (number): Option period fee. Default 100 if not stated.
+- option_days (number): Option period days. Default 10 if not stated.
+- loan_amount (number): Loan amount if financed.
+- down_payment_pct (number): Down payment as percentage if stated.
+- down_payment_amt (number): Down payment dollar amount.
+- closing_date (string): ISO date YYYY-MM-DD.
+- title_company (string): Title company name if stated.
+- financing_type (string): One of: "conventional", "fha", "va", "usda", "cash".
+- contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
+`,
+  'new-home-incomplete': `
+Extract these fields for the TREC 23 New Home Contract - Incomplete Construction.
+Return ONLY fields that are present or can be inferred.
+
+Fields to extract:
+- buyer_name (string): Full legal name(s) of buyer(s).
+- seller_name (string): Full legal name(s) of seller(s) or builder company name.
+- property_address (string): Lot address or street address of the new construction.
+- city_state_zip (string): City, state, zip.
+- county (string): Texas county.
+- legal_description (string): Lot/block/subdivision.
+- sale_price (number): Contract price / purchase price.
+- earnest_money (number): Earnest money amount. Default 1% if not stated.
+- option_fee (number): Option fee. Default 100 if not stated.
+- option_days (number): Option days. Default 10 if not stated.
+- loan_amount (number): Loan amount if financed.
+- down_payment_pct (number): Down payment percentage.
+- down_payment_amt (number): Down payment dollar amount.
+- closing_date (string): ISO date YYYY-MM-DD (estimated closing/completion date).
+- title_company (string): Title company name if stated.
+- financing_type (string): One of: "conventional", "fha", "va", "usda", "cash".
+- builder_name (string): Builder company name.
+- builder_rep_name (string): Builder's sales representative name.
+- builder_rep_phone (string): Builder rep phone.
+- expected_completion_date (string): ISO date YYYY-MM-DD when construction expected to complete.
+- contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
+`,
+  'new-home-complete': `
+Extract these fields for the TREC 24 New Home Contract - Completed Construction.
+Return ONLY fields that are present or can be inferred.
+
+Fields to extract:
+- buyer_name (string): Full legal name(s) of buyer(s).
+- seller_name (string): Full legal name(s) of seller(s) or builder company name.
+- property_address (string): Street address of the completed new construction.
+- city_state_zip (string): City, state, zip.
+- county (string): Texas county.
+- legal_description (string): Lot/block/subdivision.
+- sale_price (number): Purchase price.
+- earnest_money (number): Earnest money amount. Default 1% if not stated.
+- option_fee (number): Option fee. Default 100 if not stated.
+- option_days (number): Option days. Default 10 if not stated.
+- loan_amount (number): Loan amount if financed.
+- down_payment_pct (number): Down payment percentage.
+- down_payment_amt (number): Down payment dollar amount.
+- closing_date (string): ISO date YYYY-MM-DD.
+- title_company (string): Title company name if stated.
+- financing_type (string): One of: "conventional", "fha", "va", "usda", "cash".
+- builder_name (string): Builder company name.
+- builder_rep_name (string): Builder's sales representative name.
+- builder_rep_phone (string): Builder rep phone.
+- builder_warranty_company (string): Home warranty company name if stated.
+- co_received_date (string): ISO date YYYY-MM-DD when certificate of occupancy was issued.
+- co_number (string): Certificate of occupancy number if stated.
+- contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
+`,
+  'farm-ranch': `
+Extract these fields for the TREC 25 Farm and Ranch Contract (land with improvements).
+Return ONLY fields that are present or can be inferred.
+
+Fields to extract:
+- buyer_name (string): Full legal name(s) of buyer(s).
+- seller_name (string): Full legal name(s) of seller(s).
+- property_address (string): Street address or rural route description.
+- city_state_zip (string): City, state, zip if known.
+- county (string): Texas county.
+- legal_description (string): Survey/abstract/lot description for the farm or ranch parcel.
+- land_acreage (number): Total acres. Example: 100.5
+- land_parcel_id (string): Parcel/tax ID if stated.
+- sale_price (number): Total purchase price.
+- earnest_money (number): Earnest money amount. Default 1% if not stated.
+- option_fee (number): Option fee. Default 100 if not stated.
+- option_days (number): Option days. Default 10 if not stated.
+- loan_amount (number): Loan amount if financed.
+- down_payment_pct (number): Down payment percentage.
+- down_payment_amt (number): Down payment dollar amount.
+- closing_date (string): ISO date YYYY-MM-DD.
+- title_company (string): Title company name if stated.
+- financing_type (string): One of: "conventional", "fha", "va", "usda", "cash".
+- contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
 `,
 };
 
@@ -190,8 +304,9 @@ function postProcess(formType, fields, message) {
     fv.earnest_money = Math.round(Number(fv.sale_price) * 0.01);
   }
 
-  // Default option_fee = $100 for resale contracts
-  if (!fv.option_fee && formType === 'resale-contract') {
+  // Default option_fee = $100 for purchase contracts (resale, land, new home, farm-ranch)
+  const purchaseForms = new Set(['resale-contract', 'unimproved-property', 'new-home-incomplete', 'new-home-complete', 'farm-ranch']);
+  if (!fv.option_fee && purchaseForms.has(formType)) {
     fv.option_fee = 100;
   }
 

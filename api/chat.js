@@ -309,7 +309,7 @@ const TOOLS = [
   },
   {
     name: 'fill_forms',
-    description: 'Fill out TREC contract forms for a buyer purchase. Use whenever the agent says: write a contract, fill out a contract, write up an offer, prepare the paperwork, write an offer, make an offer, purchase agreement, fill the forms. Extracts all field values from the agent\'s message and fills the relevant TREC forms (20-16 Contract + Third Party Financing Addendum for financed purchases). Produces ready-to-sign PDF documents in the dossier.',
+    description: 'Fill out TREC contract forms. Use whenever the agent says: write a contract, fill out a contract, write up an offer, prepare the paperwork, write an offer, make an offer, purchase agreement, fill the forms. Selects the right TREC form based on transaction type: TREC 20-16 for residential resale, TREC 9-17 for unimproved land, TREC 25-14 for farm and ranch, TREC 23-18 for new construction (incomplete), TREC 24-18 for new construction (completed). Produces ready-to-sign PDF documents in the dossier.',
     input_schema: {
       type: 'object',
       properties: {
@@ -319,7 +319,12 @@ const TOOLS = [
         },
         message: {
           type: 'string',
-          description: 'The agent\'s full message with all contract details: address, price, buyer name, financing type, down payment, closing date, option period, etc.',
+          description: 'The agent\'s full message with all contract details: address, price, buyer name, financing type, down payment, closing date, option period, transaction type, etc.',
+        },
+        form_type_override: {
+          type: 'string',
+          enum: ['resale-contract', 'unimproved-property', 'farm-ranch', 'new-home-incomplete', 'new-home-complete'],
+          description: 'Override the auto-selected form type. Use when: agent explicitly says "land contract" or "unimproved property" -> unimproved-property; agent says "farm and ranch" or "farm contract" -> farm-ranch; agent says "new construction incomplete" or "builder contract not done" -> new-home-incomplete; agent says "new construction completed" or "builder contract home is done" -> new-home-complete. For standard residential resale, omit this field.',
         },
         include_financing_addendum: {
           type: 'boolean',
@@ -410,7 +415,10 @@ EXECUTION RULES:
 INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
-- Write a contract/offer/purchase agreement, fill the forms, prepare the paperwork, make an offer = fill_forms (fills TREC 20-16 + financing addendum — beats create_dossier when agent gives full contract details)
+- Write a contract/offer/purchase agreement, fill the forms, prepare the paperwork, make an offer = fill_forms (auto-selects form: TREC 20-16 for residential resale, TREC 9-17 for land/unimproved property, TREC 25-14 for farm and ranch, TREC 23-18 for new construction not yet done, TREC 24-18 for completed new construction)
+- Land contract / unimproved property contract / write a contract for land = fill_forms with form_type_override: "unimproved-property"
+- Farm and ranch contract / farm contract / ranch contract = fill_forms with form_type_override: "farm-ranch"
+- New construction contract / builder contract / new home contract = fill_forms; use form_type_override "new-home-incomplete" if not done building, "new-home-complete" if home is complete
 - Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price, draft a repair amendment/list repairs seller must fix = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
 - Change/update/set/correct/fix a field on the dossier (no PDF needed) = update_deal_field
 - Passed/moved to/we are now/advance/next stage/under contract/in inspection = advance_stage
