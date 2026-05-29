@@ -186,7 +186,10 @@
                                                    },
                "api/cron-render-videos.js":  {
                                                  "maxDuration":  270
-                                             }
+                                             },
+               "api/cron-sage-intelligence.js":  {
+                                                      "maxDuration":  60
+                                                  }
                   },
     "crons":  [
                   {
