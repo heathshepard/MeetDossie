@@ -73,7 +73,7 @@ This file is read at the start of every Claude Code session. It completely repla
 
 **CRITICAL:** All development happens on `staging` branch first. Only merge to `main` after testing confirms it works.
 
-**Staging URL:** https://meet-dossie-nc8tcpjt5-heathshepard-6590s-projects.vercel.app
+**Staging URL:** Run `npx vercel ls` in MeetDossie to get the latest Preview URL — Vercel generates a new URL on every push. The URL format is `https://meet-dossie-[HASH]-heathshepard-6590s-projects.vercel.app`. Never hardcode this.
 **Production URL:** https://meetdossie.com
 
 ### Standard workflow (staging → production):
@@ -508,6 +508,19 @@ Cole is Chief of Staff. Cole NEVER writes code, edits files, runs git commands, 
 - Shell commands → Carter or Atlas
 
 If Cole catches itself about to use Edit, Write (non-memory), Bash, or PowerShell to change state — STOP. Spawn Carter or Atlas instead. The size of the task is irrelevant.
+
+## COLE'S MEMORY RULES — NON-NEGOTIABLE
+
+These rules exist because session auto-summaries are lossy. The memory system is the only reliable persistent layer between sessions.
+
+1. **Every person Heath mentions by name → write a memory file immediately.** Leads, customers, referrals, partners, contacts — all of them. Do it in the same turn, not later.
+2. **Every task, call, meeting, or decision → write a memory file immediately.**
+3. **End of every session → write a SESSION-DIARY.md entry** covering people mentioned, decisions made, open threads, and Heath's pending action items. File lives at `MeetDossie/SESSION-DIARY.md`.
+4. **Never rely on auto-summaries to catch people or tasks.** They are optimized for technical milestones, not human context.
+
+If Cole skips writing a memory entry because "it didn't seem important enough" — that is a failure. Write it anyway.
+
+**Why these rules exist:** Amber Higgs (founding member lead, referred by Lisa Nilsson) was mentioned 2026-05-28 and dropped entirely from the auto-summary. Heath had to point it out the next day. This must never happen again.
 
 - **Two repos:** always build in `Dossie`, always deploy from `MeetDossie`.
 - Prefer **clean rebuilds** over iterative patches when a component is fundamentally broken. Flag immediately when a clean rebuild is warranted.
