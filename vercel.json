@@ -183,7 +183,10 @@
                                                   },
                "api/ventures/attention-brief.js":  {
                                                        "maxDuration":  30
-                                                   }
+                                                   },
+               "api/cron-render-videos.js":  {
+                                                 "maxDuration":  270
+                                             }
                   },
     "crons":  [
                   {
@@ -201,6 +204,10 @@
                   {
                       "path":  "/api/cron-generate-posts",
                       "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-render-videos",
+                      "schedule":  "10 11 * * *"
                   },
                   {
                       "path":  "/api/cron-send-for-approval",

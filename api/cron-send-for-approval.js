@@ -106,17 +106,15 @@ async function supabaseFetch(path, init = {}) {
 }
 
 function formatShortCaption(post) {
-  // Short caption for the card image: hook + stat only, under 1024 chars
+  // Short caption for the media preview: hook + platform/persona, under 1024 chars
   const platform = post.platform || 'unknown';
   const persona = post.persona || 'unknown';
   const hook = String(post.hook || '').trim();
-  const stat = String(post.stat || '').trim();
-  const statLabel = String(post.stat_label || '').trim();
+  const hasVideo = !!post.media_url;
+  const mediaType = hasVideo && isVideoUrl(post.media_url) ? 'video' : hasVideo ? 'image' : 'no media yet';
 
-  let caption = `📝 ${platform} (${persona})\n`;
-  if (hook) caption += `\n${hook}\n`;
-  if (stat) caption += `\n${stat}`;
-  if (statLabel) caption += ` — ${statLabel}`;
+  let caption = `${platform} (${persona}) - ${mediaType}\n`;
+  if (hook) caption += `\n${hook}`;
 
   return caption.slice(0, 1020);
 }
@@ -175,18 +173,29 @@ function inlineKeyboard(postId) {
   };
 }
 
-async function telegramSend(chatId, text, replyMarkup, photoUrl) {
-  // If photoUrl is provided, use sendPhoto; otherwise use sendMessage
-  const method = photoUrl ? 'sendPhoto' : 'sendMessage';
+// Detect if a media URL is a video (MP4) or image (PNG/JPG).
+// Used to route to sendVideo vs sendPhoto in Telegram.
+function isVideoUrl(url) {
+  return /\.(mp4|mov|webm)(\?|$)/i.test(String(url || ''));
+}
+
+async function telegramSend(chatId, text, replyMarkup, mediaUrl) {
+  // If mediaUrl is provided: route to sendVideo (MP4) or sendPhoto (image).
+  // Otherwise use sendMessage.
+  let method = 'sendMessage';
+  if (mediaUrl) {
+    method = isVideoUrl(mediaUrl) ? 'sendVideo' : 'sendPhoto';
+  }
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
-  const body = {
-    chat_id: chatId,
-  };
+  const body = { chat_id: chatId };
 
-  if (photoUrl) {
-    body.photo = photoUrl;
+  if (mediaUrl && method === 'sendVideo') {
+    body.video = mediaUrl;
     // Telegram caption limit is 1024 characters
+    body.caption = text.length > 1020 ? text.slice(0, 1020) + '...' : text;
+  } else if (mediaUrl && method === 'sendPhoto') {
+    body.photo = mediaUrl;
     body.caption = text.length > 1020 ? text.slice(0, 1020) + '...' : text;
   } else {
     body.text = text;
