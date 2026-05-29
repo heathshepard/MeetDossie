@@ -12,8 +12,8 @@
 //      (compares now-in-platform-tz against time_slots).
 //   3. Skip the platform once max_per_day is reached for today.
 //   4. tiktok rows are flipped to status='pending_video' (Zernio rejects
-//      text-only TikTok); they'll be picked up later when a video is
-//      attached via the DONE pipeline.
+//      text-only TikTok); they'll be picked up when a video is attached
+//      via the DONE pipeline. TikTok is ACTIVE at 1/day (cap in posting_schedule).
 //   5. Zernio errors land in social_posts.error_message and the row flips
 //      to status='failed' (replaces the prior "leave at approved for retry"
 //      behaviour, which silently masked permanent failures).
@@ -95,7 +95,7 @@ async function sendPublishSummary(published, parkedTiktok, skipped, errors) {
     lines.push(`✅ <b>${published} posted successfully</b>`);
   }
   if (parkedTiktok > 0) {
-    lines.push(`⏸️ ${parkedTiktok} TikTok parked for video`);
+    lines.push(`🎬 ${parkedTiktok} TikTok queued for video (DONE pipeline)`);
   }
   if (skipped > 0) {
     lines.push(`⏭️ ${skipped} skipped (schedule/cap/lock)`);

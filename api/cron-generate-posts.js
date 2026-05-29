@@ -1,8 +1,11 @@
 // Vercel Serverless Function: /api/cron-generate-posts
 // Daily content generator for Dossie's marketing pipeline.
-//   - Generates 7 social posts per day via Claude Sonnet:
-//     Brenda (Facebook + Twitter), Patricia (Facebook + Instagram),
-//     Victor (Facebook + LinkedIn + TikTok),
+//   - Generates 8 social posts per day via Claude Sonnet:
+//     CAPABILITY_ONELINER (Facebook), TREC_EDUCATION (Instagram),
+//     PERSONA_STORY/brenda (Twitter), CAPABILITY_ONELINER (LinkedIn),
+//     TREC_EDUCATION (Twitter), FOUNDER_STORY (Facebook),
+//     PERSONA_STORY/victor (Twitter - 3rd daily slot),
+//     PERSONA_STORY/victor (TikTok - activates DONE video pipeline),
 //     rotating topic chosen by day-of-year.
 //   - Inserts each post into social_posts as status='draft'.
 //   - Wraps the run in a content_batches row for tracking.
@@ -370,11 +373,12 @@ const PLATFORM_RULES = {
 // Length rules live in PLATFORM_RULES (single source of truth). Per-post
 // notes only carry format-flavor guidance, not length conflicts.
 //
-// Weekly format mix (Sage playbook 2026-05-27):
-//   2x CAPABILITY_ONELINER (facebook + twitter/linkedin)
-//   2x TREC_EDUCATION (instagram + linkedin)
+// Weekly format mix (updated 2026-05-29 — 8 posts/day):
+//   2x CAPABILITY_ONELINER (facebook + linkedin)
+//   2x TREC_EDUCATION (instagram + twitter)
 //   1x FOUNDER_STORY (facebook — high-credibility platform)
-//   1x PERSONA_STORY (one slot for emotional connection)
+//   2x PERSONA_STORY/brenda+victor (twitter — fills 3/day cap)
+//   1x PERSONA_STORY/victor (tiktok — feeds DONE video pipeline)
 const POST_PLAN_BASE = [
   // CAPABILITY_ONELINER — shows one specific shipped feature in plain Dossie voice
   {
@@ -404,7 +408,7 @@ const POST_PLAN_BASE = [
     platform: 'linkedin',
     notes: 'Peer-to-peer operational voice. Open with the specific capability and a number or outcome. Close with a question that invites brokers/producers to share their own workflow.',
   },
-  // TREC_EDUCATION — second slot, LinkedIn for professional credibility
+  // TREC_EDUCATION — second slot, Twitter for professional credibility
   {
     format: 'TREC_EDUCATION',
     persona: null,
@@ -417,6 +421,22 @@ const POST_PLAN_BASE = [
     persona: null,
     platform: 'facebook',
     notes: 'Draw ONLY from the three approved Heath pain stories. Specific moment -> what it cost -> what Dossie would have done -> CTA. Conversational, not polished-marketing. This is a founder talking to agents, not a brand announcement.',
+  },
+  // PERSONA_STORY — Victor third Twitter slot (fills the 3/day cap)
+  {
+    format: 'PERSONA_STORY',
+    persona: 'victor',
+    platform: 'twitter',
+    notes: 'Confident, math-driven voice. Volume-agent angle. Third person throughout. A sharp operational take — margins, deal count, efficiency. One punchy thread or single tweet.',
+  },
+  // PERSONA_STORY — TikTok slot. Generates caption+hook for the DONE video pipeline.
+  // cron-publish-approved parks these as pending_video; a video must be attached
+  // before they publish. Short-form, curiosity-first, under 150 words.
+  {
+    format: 'PERSONA_STORY',
+    persona: 'victor',
+    platform: 'tiktok',
+    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. End with "Link in bio" or "Comment YES if this is you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
   },
 ];
 
@@ -844,7 +864,7 @@ If the theme of the post (e.g. \`build_in_public\`) tempts you to invent a story
 
 ---
 
-Generate 6 social media posts for Dossie. Topic for today: ${topic.label}.
+Generate 8 social media posts for Dossie. Topic for today: ${topic.label}.
 
 Topic angle:
 ${topic.angle}
@@ -869,7 +889,7 @@ TIMEFRAMES & DOSSIE-USAGE DURATION
 ALGORITHM OPTIMIZATION
 You are generating content optimized for each platform's algorithm performance. The rules under each post in the plan below are not suggestions — they describe how that platform actually distributes content. Breaking these rules means the post gets shown to fewer people. Apply them strictly per post. The goal is maximum organic reach.
 
-POST PLAN (6 posts):
+POST PLAN (8 posts):
 
 ${planLines}
 
@@ -894,7 +914,7 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 }
 
 Rules:
-- Exactly 6 posts, in the order listed in the plan above.
+- Exactly 8 posts, in the order listed in the plan above.
 - "format" must match the FORMAT specified in the slot brief (PERSONA_STORY, CAPABILITY_ONELINER, TREC_EDUCATION, or FOUNDER_STORY).
 - "persona" must be "dossie" for CAPABILITY_ONELINER, TREC_EDUCATION, and FOUNDER_STORY slots.
 - HASHTAGS: Must be appended to the END of the "caption" field (not just in the array):
