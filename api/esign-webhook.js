@@ -457,6 +457,38 @@ module.exports = async function handler(req, res) {
 
       // Telegram notification.
       await sendTelegramNotification(fileName);
+
+      // If the completed document is a wire fraud warning, mark it acknowledged.
+      if (docRow && docRow.id) {
+        try {
+          const docTypeRes = await supa(
+            `documents?id=eq.${encodeURIComponent(docRow.id)}&select=document_type&limit=1`,
+            { headers: { Prefer: '' } }
+          );
+          if (docTypeRes.ok) {
+            const docTypeRows = await docTypeRes.json().catch(() => []);
+            const docType = Array.isArray(docTypeRows) && docTypeRows[0] ? docTypeRows[0].document_type : null;
+            if (docType === 'wire_fraud_warning') {
+              const ackRes = await supa(
+                `wire_fraud_deliveries?document_id=eq.${encodeURIComponent(docRow.id)}`,
+                {
+                  method: 'PATCH',
+                  body: JSON.stringify({ acknowledged_at: new Date().toISOString() }),
+                  headers: { Prefer: 'return=minimal' },
+                }
+              );
+              if (!ackRes.ok) {
+                const ackText = await ackRes.text().catch(() => '');
+                console.warn('[esign-webhook] wire_fraud_deliveries ack update failed:', ackRes.status, ackText.slice(0, 200));
+              } else {
+                console.log('[esign-webhook] wire fraud warning acknowledged for document', docRow.id);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[esign-webhook] wire fraud ack error (non-fatal):', err && err.message);
+        }
+      }
     }
 
     res.status(200).json({ ok: true, allSigned });
