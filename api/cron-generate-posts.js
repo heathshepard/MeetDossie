@@ -902,12 +902,12 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
       "format": "PERSONA_STORY" | "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
       "persona": "brenda" | "patricia" | "victor" | "dossie",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter",
-      "card_body": "<MAX 50 WORDS. Punchy, standalone body text for the image card. 2-3 short sentences. Must work visually on the card without the full caption. Example: 'You already answered that. Yesterday. In writing. But here you are, fielding the same question again because your TC's system is sticky notes and prayers.'>",
+      "voiceover_script": "<35-45 second spoken script for ElevenLabs TTS. Conversational, present-tense, no em-dashes. Ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.' Never use special characters. Approx 400-500 chars.>",
       "caption": "<the full post text for social media — can be longer, tell the full story, include CTA and hashtags at the end>",
       "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
       "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
       "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
-      "stat": "<bold anchor — single value, max 10 characters. Examples: '$29/mo', '80+', '$8,000', '9:47pm'. Pulled directly from the post — no new claims. This is the headline of an image card, must read at a glance.>",
+      "stat": "<bold anchor — single value, max 10 characters. Examples: '$29/mo', '80+', '$8,000', '9:47pm'. Pulled directly from the post — no new claims.>",
       "stat_label": "<plain descriptive phrase, max 50 characters. Examples: 'per year for a solo TC', 'deals this month', 'what the stress costs'>"
     }
   ]
@@ -925,11 +925,11 @@ Rules:
   * TikTok: 2-3 hashtags separated by spaces
 - "hashtags" array must match what's in caption (no leading "#", no spaces in array entries).
 - "stat" and "stat_label" are required for every post. Pull the stat from
-  something the post actually says — never invent a new number. The card
-  renderer uses these as the visual anchor, so they must read clean.
-- CARD BODY: "card_body" is ONLY for the image card. Max 50 words. 2-3 punchy
-  sentences that work standalone visually. No long-form storytelling. This is
-  separate from "caption" — keep it tight and card-friendly.
+  something the post actually says — never invent a new number.
+- VOICEOVER SCRIPT: "voiceover_script" is the spoken narration for ElevenLabs TTS, used to
+  build the Creatomate video. Conversational, present-tense. Must end with
+  "This is Dossie. Texas agents - meetdossie.com slash founding." No em-dashes,
+  no curly quotes, no special characters. Approx 400-500 chars (35-45s at natural pace).
 - CAPTION: "caption" is the full post text that appears on social media. Can be
   longer, tell the full story. Must include CTA and hashtags at the end.
 - TEXT ENCODING: Never use em-dashes (—), en-dashes (–), curly quotes (" " ' '),
@@ -1101,41 +1101,12 @@ function formatVerifierFlagsForErrorMessage(verifierResult) {
   return lines.join('\n').slice(0, 1800);
 }
 
-// ─── Card renderer (Option B) ────────────────────────────────────────────
-// For Instagram and Facebook posts, generate a branded image card at the
-// same time we insert the row. The PNG lands in Supabase Storage's
-// `social-cards` bucket and the public URL goes into social_posts.media_url.
-// cron-publish-approved.js then attaches it as mediaItems[0] when posting
-// to Zernio — no separate render step needed at publish time.
-//
-// /api/generate-card is a Node.js endpoint that spawns scripts/render-card.py
-// as a child process. Replaces the broken Python serverless approach.
-const CARD_PLATFORMS = new Set(['instagram', 'facebook']);
-
-async function renderSocialCard({ platform, hook, content, persona, post_id, stat, stat_label }) {
-  // ALWAYS use the public production alias. Going through VERCEL_URL hits the
-  // per-deployment URL, which is gated by Vercel's deployment-protection auth
-  // page (returns 401 HTML, not JSON) — that's exactly what was silently
-  // dropping every Instagram + Facebook card render. The published alias has
-  // no protection.
-  const host = 'https://meetdossie.com';
-  const url = `${host}/api/generate-card`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.CRON_SECRET}`,
-    },
-    body: JSON.stringify({ platform, hook, content, persona, post_id, stat, stat_label }),
-  });
-  const text = await res.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-  if (!res.ok || !data?.publicUrl) {
-    return { ok: false, status: res.status, error: text.slice(0, 300) };
-  }
-  return { ok: true, publicUrl: data.publicUrl, size_bytes: data.size_bytes };
-}
+// ─── Card renderer — KILLED 2026-05-29 ────────────────────────────────────
+// Image card (HCTI) pipeline is permanently retired. ALL social posts are now
+// video-only. Posts flow directly to video_required=true status; the Creatomate
+// pipeline attaches a rendered video via cron-send-for-approval or the DONE
+// handler before Zernio publish. No card render step. No HCTI API calls.
+// CARD_PLATFORMS and renderSocialCard are intentionally removed.
 
 async function lookupZernioAccountId(platform) {
   const encoded = encodeURIComponent(platform);
@@ -1240,8 +1211,8 @@ module.exports = async function handler(req, res) {
 
   let inserted = 0;
   const insertErrors = [];
-  const renderSummary = []; // diagnostic: per-eligible-post render outcome
   const verifierSummary = []; // diagnostic: per-post verifier outcome
+  // renderSummary removed 2026-05-29 — HCTI image cards retired, video-only pipeline
   for (let i = 0; i < generated.length; i++) {
     const p = generated[i];
     if (!p || typeof p !== 'object') continue;
@@ -1249,7 +1220,7 @@ module.exports = async function handler(req, res) {
     const persona = String(p.persona || '').toLowerCase();
     const platform = String(p.platform || '').toLowerCase();
     let caption = String(p.caption || p.content || '').trim(); // caption = full post text
-    const cardBody = String(p.card_body || '').trim(); // card_body = short card-friendly text
+    const voiceoverScript = String(p.voiceover_script || '').trim(); // spoken TTS script for Creatomate video
     const hook = String(p.hook || '').trim();
     const cta = String(p.cta || '').trim();
     const stat = String(p.stat || '').trim();
@@ -1275,25 +1246,11 @@ module.exports = async function handler(req, res) {
     const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
     const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}${testSuffix}`;
 
-    // ─── Card render at generation time ──────────────────────────────────
-    // For Instagram and Facebook posts, render the HCTI card now so the
-    // approval message in Telegram shows the image immediately — single-gate
-    // approve flow. Render failures are non-fatal: post is still inserted as
-    // draft with media_url=null; cron-publish-approved skips the image if absent.
-    let mediaUrl = null;
-    if (CARD_PLATFORMS.has(platform)) {
-      const cardStart = Date.now();
-      const cardResult = await renderSocialCard({ platform, hook, content: cardBody || caption, persona, post_id: postId, stat, stat_label });
-      const cardMs = Date.now() - cardStart;
-      if (cardResult.ok) {
-        mediaUrl = cardResult.publicUrl;
-        console.log(`[card-render] ${postId} ok url=${mediaUrl} size=${cardResult.size_bytes} (${cardMs}ms)`);
-        renderSummary.push({ post_id: postId, platform, ok: true, url: mediaUrl });
-      } else {
-        console.warn(`[card-render] ${postId} failed status=${cardResult.status} err=${cardResult.error} (${cardMs}ms)`);
-        renderSummary.push({ post_id: postId, platform, ok: false, error: cardResult.error });
-      }
-    }
+    // Image card render removed 2026-05-29 — all posts are video-only.
+    // media_url stays null until cron-send-for-approval or the DONE handler
+    // attaches a Creatomate-rendered video URL. video_required=true signals
+    // the downstream pipeline that a video must be attached before Zernio publish.
+    const mediaUrl = null;
 
     // ─── Content-Verifier pass ───────────────────────────────────────────
     // Every freshly-generated post gets a second AI eyeballing it against
@@ -1372,7 +1329,9 @@ module.exports = async function handler(req, res) {
       zernio_account_id: zernioAccountId,
       persona,
       topic: topic.key,
-      media_url: mediaUrl,
+      media_url: mediaUrl, // null — video attached downstream by Creatomate pipeline
+      voiceover_script: voiceoverScript || null, // spoken TTS text for Creatomate render
+      video_required: true, // all posts require a video before Zernio publish (2026-05-29 pivot)
       generated_at: now.toISOString(),
       created_at: now.toISOString(),
       // Store format in verifier_result metadata — no new column needed
@@ -1438,7 +1397,7 @@ module.exports = async function handler(req, res) {
 
   const verifierApproved = verifierSummary.filter((v) => v.verdict === 'approve').length;
   const verifierRejected = verifierSummary.filter((v) => v.verdict === 'needs_revision').length;
-  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'renders:', renderSummary.filter(r => r.ok).length, '/', renderSummary.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected);
+  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected, '(video-only mode: no card renders)');
 
   // Batch rejection rate alert: if 2+ posts rejected in a single run, send an alert via Claudy.
   if (verifierRejected >= 2) {
@@ -1468,7 +1427,7 @@ module.exports = async function handler(req, res) {
     topic: topic.key,
     force_day: forceDay,
     errors: insertErrors,
-    render_summary: renderSummary,
+    video_only_mode: true, // image cards retired 2026-05-29; all posts have video_required=true
     verifier_summary: verifierSummary,
     verifier_totals: { approve: verifierApproved, needs_revision: verifierRejected },
   });

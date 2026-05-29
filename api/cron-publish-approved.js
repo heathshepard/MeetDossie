@@ -665,24 +665,26 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Bug 3 fix: Instagram requires a media image. If media_url is null the
-    // Zernio call will 400 ("Instagram posts require media content"). Skip and
-    // mark failed immediately so Heath can diagnose without wasting a Zernio
-    // request. This is a safety net — cron-generate-posts should already have
-    // blocked these rows at status='pending_card', but if one slips through
-    // (e.g. an older row or a manual status override) we catch it here.
-    if (post.platform === 'instagram' && !post.media_url) {
-      console.error(`[cron-publish-approved] BLOCKING instagram post ${post.id} — media_url is null; Zernio will reject it`);
+    // 2026-05-29: ALL posts are now video-only. Block any post where video_required=true
+    // and media_url is still null — the Creatomate pipeline must attach a video first.
+    // Also preserve the legacy Instagram-specific block for older rows without video_required.
+    const needsVideo = post.video_required === true || post.platform === 'instagram';
+    if (needsVideo && !post.media_url) {
+      const blockReason = post.video_required
+        ? 'video_required=true but media_url is null — Creatomate pipeline must render and attach video before publish'
+        : 'Instagram requires media_url — no video attached yet';
+      console.error(`[cron-publish-approved] BLOCKING ${post.platform} post ${post.id} — ${blockReason}`);
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
-          status: 'failed',
+          status: 'pending_video',
           publishing_started_at: null,
-          error_message: 'Instagram requires media_url - card render failed; cannot publish without an image.',
+          error_message: blockReason,
         }),
       });
-      errors.push({ id: post.id, platform: post.platform, error: 'Instagram requires media_url — card render failed' });
+      // Don't count as error — this is expected state while video renders
+      skips.push({ id: post.id, platform: post.platform, reason: blockReason });
       continue;
     }
 
