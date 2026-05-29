@@ -1,11 +1,12 @@
 // Vercel Serverless Function: /api/cron-generate-posts
 // Daily content generator for Dossie's marketing pipeline.
-//   - Generates 8 social posts per day via Claude Sonnet:
+//   - Generates 9 social posts per day via Claude Sonnet:
 //     CAPABILITY_ONELINER (Facebook), TREC_EDUCATION (Instagram),
 //     PERSONA_STORY/brenda (Twitter), CAPABILITY_ONELINER (LinkedIn),
 //     TREC_EDUCATION (Twitter), FOUNDER_STORY (Facebook),
 //     PERSONA_STORY/victor (Twitter - 3rd daily slot),
 //     PERSONA_STORY/victor (TikTok - activates DONE video pipeline),
+//     TREC_EDUCATION (YouTube - educational 60-90s voiceover, added 2026-05-29),
 //     rotating topic chosen by day-of-year.
 //   - Inserts each post into social_posts as status='draft'.
 //   - Wraps the run in a content_batches row for tracking.
@@ -354,6 +355,14 @@ const PLATFORM_RULES = {
     timing: "Best performing: Tuesday-Thursday 7-10AM CST. Friday morning also lands well for ops-minded audiences.",
     hashtags: "REQUIRED: 3-5 hashtags at end. Use: #realestate #transactioncoordinator #texasrealestate #proptech #realtors",
   },
+  youtube: {
+    hook_rule: "First sentence must hook the viewer in under 10 words — state the specific problem or outcome. YouTube viewers decide in the first 3 seconds. Examples: 'Your option period deadline is 8 days away.' or 'Most Texas agents miss this TREC rule.'",
+    length_rule: "Description: 150-300 words. The voiceover_script should target 60-90 seconds spoken (550-800 chars) — longer than TikTok/Instagram, educational depth expected. YouTube rewards watch time, not brevity.",
+    format_rule: "Description uses short paragraphs. Voiceover is conversational and structured: intro problem, explain the rule or feature, show the solution, CTA. No bullet points in voiceover — write for ears, not eyes.",
+    cta_rule: "End description with 'Subscribe for more Texas real estate tips + Link: meetdossie.com/founding'. Voiceover ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.'",
+    timing: "Best performing: 9AM-12PM CST (14:00-17:00 UTC). Post 1/day max.",
+    hashtags: "REQUIRED: 3-5 hashtags at end of description. Use: #texasrealestate #realtortips #trec #transactioncoordinator #realestateagent",
+  },
 };
 
 // ─── Content Format Definitions ──────────────────────────────────────────────
@@ -369,16 +378,18 @@ const PLATFORM_RULES = {
 //
 // Connected zernio_accounts as of 2026-05-07: facebook, instagram, twitter,
 // tiktok (gated locally), linkedin.
+// YouTube added 2026-05-29 — account ID via ZERNIO_YOUTUBE_ACCOUNT_ID env var.
 //
 // Length rules live in PLATFORM_RULES (single source of truth). Per-post
 // notes only carry format-flavor guidance, not length conflicts.
 //
-// Weekly format mix (updated 2026-05-29 — 8 posts/day):
+// Weekly format mix (updated 2026-05-29 — 9 posts/day, YouTube added):
 //   2x CAPABILITY_ONELINER (facebook + linkedin)
 //   2x TREC_EDUCATION (instagram + twitter)
 //   1x FOUNDER_STORY (facebook — high-credibility platform)
 //   2x PERSONA_STORY/brenda+victor (twitter — fills 3/day cap)
 //   1x PERSONA_STORY/victor (tiktok — feeds DONE video pipeline)
+//   1x TREC_EDUCATION (youtube — educational long-form, 60-90s voiceover)
 const POST_PLAN_BASE = [
   // CAPABILITY_ONELINER — shows one specific shipped feature in plain Dossie voice
   {
@@ -437,6 +448,16 @@ const POST_PLAN_BASE = [
     persona: 'victor',
     platform: 'tiktok',
     notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. End with "Link in bio" or "Comment YES if this is you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
+  },
+  // TREC_EDUCATION — YouTube slot. Educational long-form (60-90s voiceover).
+  // YouTube rewards watch time — more depth than TikTok/Instagram.
+  // Video required: cron-publish-approved will park as pending_video if media_url is null.
+  // Account ID: ZERNIO_YOUTUBE_ACCOUNT_ID env var (Heath must add in Vercel dashboard).
+  {
+    format: 'TREC_EDUCATION',
+    persona: null,
+    platform: 'youtube',
+    notes: 'Educational angle — teach one TREC rule, show how Dossie handles it, give the agent a takeaway they can use today. Voiceover should be 60-90 seconds (550-800 chars). More depth than TikTok — YouTube audience expects to learn something, not just feel something. Description (caption) supports the video. 3-5 hashtags at end.',
   },
 ];
 
@@ -589,6 +610,7 @@ const CAPTION_LIMITS = {
   linkedin: 3000,
   facebook: 63206,
   tiktok: 2200,
+  youtube: 5000, // YouTube description limit is 5000 chars
 };
 
 const HASHTAG_RULES = {
@@ -597,6 +619,7 @@ const HASHTAG_RULES = {
   linkedin:  { min: 3, max: 5 },
   facebook:  { strip: true },
   tiktok:    { max: 3 },
+  youtube:   { min: 3, max: 5 },
 };
 
 function validateAndFixCaption(caption, platform) {
@@ -700,6 +723,14 @@ const PLATFORM_NATIVE_FORMAT = {
    - Line break after every 1-2 sentences. No paragraphs. This is mobile, portrait-mode reading.
    - End with a single clear action: "Link in bio" or "Comment YES if this is you."
    - 2-3 hashtags at the end.`,
+
+  youtube: `   YOUTUBE WRITING STYLE — native format:
+   - This is the description field. It supports the video — write for someone who just watched and wants to learn more or take action.
+   - Open with 1-2 punchy sentences restating the core value of the video. Then expand with context (1-2 short paragraphs).
+   - YouTube description is read AFTER the video, not instead of it — don't repeat the voiceover verbatim. Complement it.
+   - Include a clear CTA paragraph: "Try Dossie free: meetdossie.com/founding" + "Subscribe for more Texas real estate tips."
+   - 3-5 relevant hashtags at the end.
+   VOICEOVER NOTE: For YouTube, the voiceover_script should be 60-90 seconds (550-800 chars). More educational depth than TikTok. Structure: state the problem -> explain the TREC rule or feature with one concrete example -> show how Dossie handles it -> CTA. Conversational, not scripted. End with "This is Dossie. Texas agents - meetdossie.com slash founding."`,
 };
 
 function buildPlatformNativeBlock(platform) {
@@ -864,7 +895,7 @@ If the theme of the post (e.g. \`build_in_public\`) tempts you to invent a story
 
 ---
 
-Generate 8 social media posts for Dossie. Topic for today: ${topic.label}.
+Generate 9 social media posts for Dossie. Topic for today: ${topic.label}.
 
 Topic angle:
 ${topic.angle}
@@ -889,7 +920,7 @@ TIMEFRAMES & DOSSIE-USAGE DURATION
 ALGORITHM OPTIMIZATION
 You are generating content optimized for each platform's algorithm performance. The rules under each post in the plan below are not suggestions — they describe how that platform actually distributes content. Breaking these rules means the post gets shown to fewer people. Apply them strictly per post. The goal is maximum organic reach.
 
-POST PLAN (8 posts):
+POST PLAN (9 posts):
 
 ${planLines}
 
@@ -901,7 +932,7 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
     {
       "format": "PERSONA_STORY" | "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
       "persona": "brenda" | "patricia" | "victor" | "dossie",
-      "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter",
+      "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter" | "youtube",
       "voiceover_script": "<35-45 second spoken script for ElevenLabs TTS. Conversational, present-tense, no em-dashes. Ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.' Never use special characters. Approx 400-500 chars.>",
       "caption": "<the full post text for social media — can be longer, tell the full story, include CTA and hashtags at the end>",
       "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
@@ -914,7 +945,7 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 }
 
 Rules:
-- Exactly 8 posts, in the order listed in the plan above.
+- Exactly 9 posts, in the order listed in the plan above.
 - "format" must match the FORMAT specified in the slot brief (PERSONA_STORY, CAPABILITY_ONELINER, TREC_EDUCATION, or FOUNDER_STORY).
 - "persona" must be "dossie" for CAPABILITY_ONELINER, TREC_EDUCATION, and FOUNDER_STORY slots.
 - HASHTAGS: Must be appended to the END of the "caption" field (not just in the array):
@@ -1246,11 +1277,17 @@ module.exports = async function handler(req, res) {
     const testSuffix = forceDay !== null ? `-test${Math.floor(Date.now() / 1000) % 100000}` : '';
     const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}${testSuffix}`;
 
-    // Image card render removed 2026-05-29 — all posts are video-only.
-    // media_url stays null until cron-send-for-approval or the DONE handler
-    // attaches a Creatomate-rendered video URL. video_required=true signals
-    // the downstream pipeline that a video must be attached before Zernio publish.
+    // Image card render removed 2026-05-29.
+    // media_url stays null until the DONE handler attaches a Creatomate-rendered
+    // video URL. video_required is platform-specific: only instagram and tiktok
+    // require media before Zernio will publish. Twitter, LinkedIn, and Facebook
+    // are text-only and must NOT be gated on video -- setting video_required=true
+    // for those platforms caused LinkedIn/Twitter to stop posting permanently.
     const mediaUrl = null;
+    // Platforms that require a video/image attachment before publishing.
+    // All others publish text-only via Zernio without any media gate.
+    const VIDEO_REQUIRED_PLATFORMS = new Set(["instagram", "tiktok", "youtube"]);
+    const platformVideoRequired = VIDEO_REQUIRED_PLATFORMS.has(platform);
 
     // ─── Content-Verifier pass ───────────────────────────────────────────
     // Every freshly-generated post gets a second AI eyeballing it against
@@ -1331,7 +1368,7 @@ module.exports = async function handler(req, res) {
       topic: topic.key,
       media_url: mediaUrl, // null — video attached downstream by Creatomate pipeline
       voiceover_script: voiceoverScript || null, // spoken TTS text for Creatomate render
-      video_required: true, // all posts require a video before Zernio publish (2026-05-29 pivot)
+      video_required: platformVideoRequired, // only instagram+tiktok require media; twitter/linkedin/facebook publish text-only
       generated_at: now.toISOString(),
       created_at: now.toISOString(),
       // Store format in verifier_result metadata — no new column needed

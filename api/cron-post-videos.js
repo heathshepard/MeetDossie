@@ -26,16 +26,20 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
 const ZERNIO_POSTS_URL = 'https://zernio.com/api/v1/posts';
 
 // Zernio account IDs — matches api/cron-publish-approved.js
+// YouTube account ID is read from ZERNIO_YOUTUBE_ACCOUNT_ID env var (set in Vercel dashboard).
+// Heath: find this in your Zernio dashboard under Connected Accounts -> YouTube -> Account ID.
 const ZERNIO_ACCOUNTS = {
   tiktok:    '69f15791985e734bf3d13b89',
   instagram: '69f25431985e734bf3d8fcbe',
   facebook:  '69f253c3985e734bf3d8f9bc',
   twitter:   '69f255c6985e734bf3d90ba1',
   linkedin:  '69fccd7392b3d8e85f8f12be',
+  youtube:   process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null,
 };
 
-// Default: post video to ALL 5 platforms unless overridden by video.platforms row
-const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linkedin'];
+// Default: post video to all connected platforms unless overridden by video.platforms row.
+// YouTube is included — videos are the only thing YouTube accepts, which matches our video_library content.
+const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linkedin', 'youtube'];
 
 // Returns set of platforms that already had ANY post today (video or text).
 async function getPlatformsPostedToday() {
@@ -135,16 +139,27 @@ async function sendForHeathReview(video) {
   console.log(`[cron-post-videos] Sent ${video.id} to Heath for review`);
 }
 
-async function postToZernio(platform, videoUrl, caption) {
+async function postToZernio(platform, videoUrl, caption, topic) {
   const accountId = ZERNIO_ACCOUNTS[platform];
   if (!accountId) {
     return { ok: false, error: `No Zernio account ID for platform: ${platform}` };
   }
 
+  const platformBlock = { platform, accountId };
+
+  // YouTube requires a title in platformSpecificData.
+  // Use topic as title (max 100 chars), fall back to first line of caption.
+  if (platform === 'youtube') {
+    const rawTitle = topic || caption.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
+    platformBlock.platformSpecificData = {
+      title: rawTitle.replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
+    };
+  }
+
   const payload = {
     content: caption,
     mediaItems: [{ url: videoUrl, type: 'video' }],
-    platforms: [{ platform, accountId }],
+    platforms: [platformBlock],
     publishNow: true,
   };
 
@@ -280,7 +295,7 @@ module.exports = async function handler(req, res) {
   let allOk = true;
 
   for (const platform of platforms) {
-    const result = await postToZernio(platform, video.supabase_url, caption);
+    const result = await postToZernio(platform, video.supabase_url, caption, video.topic);
     results.push({ platform, ...result });
     if (!result.ok) {
       allOk = false;
