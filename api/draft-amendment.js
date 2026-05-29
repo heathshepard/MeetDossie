@@ -30,7 +30,7 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
-const ALLOWED_TYPES = new Set(['closing_date', 'option_extension', 'price_change']);
+const ALLOWED_TYPES = new Set(['closing_date', 'option_extension', 'price_change', 'repair_items']);
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
@@ -202,7 +202,27 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
   // The TREC form instructs the broker to fill this in at signing.
   // Auto-filling garbles the pre-printed footer layout.
 
-  if (amendmentType === 'closing_date') {
+  if (amendmentType === 'repair_items') {
+    // repair_items: newValue is a JSON array of repair item strings OR a
+    // comma-separated plain string. notes contains the repair completion deadline.
+    let items = [];
+    try {
+      const parsed = JSON.parse(newValue);
+      items = Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch (e) {
+      items = String(newValue).split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    const deadline = notes ? String(notes).slice(0, 40) : '';
+    const numbered = items.map((item, i) => `${i + 1}. ${item}`).join('; ');
+    const repairText = deadline
+      ? `Seller agrees to complete all repairs using licensed contractors by ${deadline}: ${numbered}`
+      : `Seller agrees to complete all repairs using licensed contractors: ${numbered}`;
+
+    safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
+    safeSetText(form, 'Text 8', repairText.slice(0, 80));
+    if (repairText.length > 80) safeSetText(form, 'Text 9', repairText.slice(80, 160));
+    if (repairText.length > 160) safeSetText(form, 'Text 10', repairText.slice(160, 240));
+  } else if (amendmentType === 'closing_date') {
     safeCheck(form, FIELDS.closingDateCheckbox);
     // TREC 39-10 closing date section has a "Month Day" text field followed by
     // a pre-printed "20" with a 2-digit year suffix field. Fill them separately

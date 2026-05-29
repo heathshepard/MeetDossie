@@ -11,6 +11,25 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026
+
+**Option period tracking**
+- Dossie now tracks the option fee in detail: how much it was, who it was paid to, and when it was delivered. All editable right inside the dossier.
+- Earnest money gets its own tracking section too: deposit amount, when it was sent to title, and when title confirmed they have it. If your option period is expiring soon and earnest money hasn't been confirmed, Dossie will warn you right on the screen and send you a reminder email.
+
+**Inspection tracking**
+- The Inspection section in every dossier now shows the inspector's name, phone, and email alongside the inspection date. You can record when the inspection happened and check off when the report came in. If the inspection isn't done three days before your option expires, Dossie will flag it.
+
+**Appraisal tracking**
+- Dossie now tracks when the appraisal was ordered, when it came back, and the appraised value. If the home appraises below the sale price, a red banner appears right in the dossier telling you exactly how big the gap is and reminding you about the TREC 49-1 option.
+- TREC 49-1 (Right to Terminate Due to Lender's Appraisal) is now in the Form Library so you can attach it to any transaction in one tap.
+- If the appraisal deadline is two days away and no appraisal has been received, Dossie sends you an email reminder.
+
+**Repair amendments**
+- You can now ask Dossie to "draft a repair amendment for the HVAC filter and the leaking faucet in the master bath, deadline June 15" and she'll fill out TREC 39-10 with a numbered list of repairs and the completion deadline. No more typing it out by hand.
+
+---
+
 ## Week of May 13–20, 2026
 
 **App + mobile**
@@ -40,3 +59,19 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 **Notes from Heath:**
 - Pending: weekly post draft → copy specific items above into your Facebook Founding Files post.
+
+## Week of May 28, 2026
+
+**DossieSign — fill it, sign it, send it**
+- You can now send contracts for digital signature right inside Dossie. Upload any PDF, Dossie routes it to buyer 1, then buyer 2, then you — in order, automatically. No more DocuSign tab-switching.
+- After the last signature lands, Dossie emails the fully executed contract to the seller's agent automatically. One workflow, zero manual forwarding.
+- You can fill out a TREC contract just by talking to Dossie — tell her "write a contract to purchase 123 Main St for $425,000" and she fills in the form fields from the conversation. The filled PDF lands in your dossier instantly.
+
+**Form Library**
+- Every standard TREC form is now inside Dossie — browse all 12 forms by category, search by name or form number, and attach any form to a deal in one click. No more downloading from the TREC website.
+
+**Form Packages**
+- New deals start faster. Apply the full Buyer Transaction or Seller Transaction package in one click and all the right forms land in the dossier together. You can also build your own custom package and save it.
+
+**Desktop layout**
+- The document buttons in each deal (Upload, E-sign, Form Library, Packages) now sit in a clean horizontal row on desktop instead of stacking vertically. Easier to scan, faster to use.
