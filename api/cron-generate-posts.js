@@ -599,6 +599,50 @@ function getDayOfYear() {
   return Math.floor((today - start) / 86400000);
 }
 
+// ─── Sage Intelligence fetch ──────────────────────────────────────────────────
+// Pulls the most recent row from sage_intelligence (written by cron-sage-intelligence.js
+// which runs at 06:00 UTC, 5 hours before this cron). Used to weight content pillar
+// and persona selection based on what's actually performing.
+// Fails gracefully — returns null if table is empty or query fails.
+async function fetchSageIntelligence() {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/sage_intelligence?select=top_platform,top_pillar,top_persona,top_format,daily_brief,material_low,queue_depth&order=created_at.desc&limit=1`,
+    );
+    if (!ok || !Array.isArray(data) || data.length === 0) return null;
+    return data[0];
+  } catch (err) {
+    console.warn('[cron-generate-posts] fetchSageIntelligence failed:', err && err.message);
+    return null;
+  }
+}
+
+// Build the Sage intelligence context block injected at the top of the generation prompt.
+// Returns an empty string when no intelligence data is available (first run, no analytics yet).
+function buildSageIntelligenceBlock(intel) {
+  if (!intel) return '';
+  const lines = [
+    '',
+    '## SAGE INTELLIGENCE BRIEF (from this morning\'s analytics run)',
+    'Sage has analyzed the last 14 days of post performance. Apply this intelligence when selecting content angles.',
+    '',
+  ];
+  if (intel.top_pillar) {
+    lines.push(`Top-performing content pillar: ${intel.top_pillar.toUpperCase()} — weight this pillar 2x when selecting topic angles.`);
+  }
+  if (intel.top_persona) {
+    lines.push(`Top-performing persona: ${intel.top_persona.toUpperCase()} — if multiple persona slots exist today, lead with this persona\'s angle.`);
+  }
+  if (intel.top_platform) {
+    lines.push(`Highest avg engagement platform: ${intel.top_platform} — this platform\'s format + hook style is worth replicating on others.`);
+  }
+  if (intel.daily_brief) {
+    lines.push('', `Sage\'s recommendation for today: ${intel.daily_brief}`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
 // ─── Format Validation (Improvement 3) ────────────────────────────────────
 // Enforces caption length limits and hashtag count rules per platform.
 // Mutates caption in-place (truncation) or strips/trims hashtags.
@@ -840,7 +884,7 @@ ${buildPlatformRulesBlock(platform)}
 ${buildPlatformNativeBlock(platform)}`;
 }
 
-function buildPrompt(topic, plan, dayOfYear, topPerformerBlock) {
+function buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock) {
   const planLines = plan.map((p, i) => buildSlotBrief(p, i, dayOfYear)).join('\n\n');
 
   // Determine if any persona slots exist in this plan (for persona-voice section)
@@ -872,7 +916,7 @@ DOSSIE BRAND VOICE — for CAPABILITY_ONELINER, TREC_EDUCATION, and FOUNDER_STOR
 - Set "persona" to "dossie" in the JSON output for these slots.
 ` : '';
 
-  return `${topPerformerBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
+  return `${sageIntelBlock || ''}${topPerformerBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
 
 You may ONLY reference verified real facts about Dossie. Hallucinated specifics destroy customer trust the moment they're noticed.
 
@@ -1177,6 +1221,17 @@ module.exports = async function handler(req, res) {
     return `${slotLabel}/${p.platform}=${f.name}`;
   });
 
+  // Fetch Sage intelligence brief (written by cron-sage-intelligence at 06:00 UTC).
+  // Fails gracefully — returns null until analytics accumulate. When present, weights
+  // top pillar and persona 2x in the prompt and injects Sage's daily recommendation.
+  const sageIntel = await fetchSageIntelligence();
+  const sageIntelBlock = buildSageIntelligenceBlock(sageIntel);
+  if (sageIntel) {
+    console.log(`[cron-generate-posts] sage intelligence: top_pillar=${sageIntel.top_pillar} top_persona=${sageIntel.top_persona} top_platform=${sageIntel.top_platform}`);
+  } else {
+    console.log('[cron-generate-posts] no sage intelligence available yet (table empty or first run)');
+  }
+
   // Fetch top-performer hooks from post_analytics. Fails gracefully (returns [])
   // until the analytics pipeline has accumulated data (first few weeks).
   const topHooks = await fetchTopPerformerHooks();
@@ -1189,7 +1244,7 @@ module.exports = async function handler(req, res) {
 
   let raw;
   try {
-    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock), founding));
+    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock), founding));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });
@@ -1467,5 +1522,11 @@ module.exports = async function handler(req, res) {
     video_only_mode: true, // image cards retired 2026-05-29; all posts have video_required=true
     verifier_summary: verifierSummary,
     verifier_totals: { approve: verifierApproved, needs_revision: verifierRejected },
+    sage_intelligence: sageIntel ? {
+      top_pillar: sageIntel.top_pillar,
+      top_persona: sageIntel.top_persona,
+      top_platform: sageIntel.top_platform,
+      brief_preview: sageIntel.daily_brief ? sageIntel.daily_brief.slice(0, 120) : null,
+    } : null,
   });
 };
