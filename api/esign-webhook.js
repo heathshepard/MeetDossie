@@ -232,6 +232,44 @@ async function downloadAndStoreSigned(sr, fileName) {
   return newDoc?.id || null;
 }
 
+// Email the seller's agent the fully executed PDF as an attachment.
+async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress) {
+  if (!RESEND_API_KEY || !sellerAgentEmail) return;
+  try {
+    const base64Pdf = pdfBuffer.toString('base64');
+    const subject = propertyAddress
+      ? `Executed contract: ${propertyAddress}`
+      : `Executed contract: ${fileName}`;
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Dossie <heath@meetdossie.com>',
+        to: [sellerAgentEmail],
+        subject,
+        html: `
+          <p>Hi ${sellerAgentName || 'there'},</p>
+          <p>Please find the fully executed purchase contract attached. All parties have signed.</p>
+          <p>Sent via <strong>DossieSign</strong> &mdash; transaction management for Texas REALTORS.</p>
+          <p style="color:#888;font-size:12px;">Dossie &mdash; Your deals. Her job.</p>
+        `,
+        attachments: [
+          {
+            filename: fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`,
+            content: base64Pdf,
+          },
+        ],
+      }),
+    });
+    console.log(`[esign-webhook] Seller agent email sent to ${sellerAgentEmail}`);
+  } catch (err) {
+    console.error('[esign-webhook] Seller agent Resend email failed:', err && err.message);
+  }
+}
+
 async function sendCompletionEmail(agentEmail, agentName, fileName) {
   if (!RESEND_API_KEY || !agentEmail) return;
   try {
@@ -355,8 +393,46 @@ module.exports = async function handler(req, res) {
       const docRow = await fetchDocumentRow(sr.document_id);
       const fileName = docRow?.file_name || 'Document.pdf';
 
+      // Fetch property address for seller agent email subject line (best-effort).
+      let propertyAddress = null;
+      if (sr.transaction_id) {
+        try {
+          const txRes = await supa(`transactions?id=eq.${encodeURIComponent(sr.transaction_id)}&select=property_address&limit=1`);
+          if (txRes.ok) {
+            const txRows = await txRes.json().catch(() => []);
+            propertyAddress = (Array.isArray(txRows) && txRows[0]?.property_address) ? txRows[0].property_address : null;
+          }
+        } catch (_) { /* non-fatal */ }
+      }
+
       // Download the signed PDF and store it back in Supabase.
-      const signedDocId = await downloadAndStoreSigned(sr, fileName);
+      // We also capture the raw PDF buffer so we can email it to the seller's agent.
+      let signedDocId = null;
+      let signedPdfBuffer = null;
+
+      if (DOCUSEAL_API_KEY) {
+        try {
+          // Fetch submission details to get the signed document URL.
+          const detailRes = await fetch(`${DOCUSEAL_BASE}/submissions/${encodeURIComponent(sr.docuseal_submission_id)}`, {
+            headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+          });
+          if (detailRes.ok) {
+            const submission = await detailRes.json().catch(() => null);
+            const signedUrl = submission?.documents?.[0]?.url;
+            if (signedUrl) {
+              const pdfRes = await fetch(signedUrl);
+              if (pdfRes.ok) {
+                signedPdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[esign-webhook] Error fetching signed PDF for seller agent email:', err && err.message);
+        }
+      }
+
+      // Use the existing downloadAndStoreSigned path for storage + documents row.
+      signedDocId = await downloadAndStoreSigned(sr, fileName);
 
       // Mark the request completed.
       await markRequestCompleted(sr.id, signedDocId);
@@ -364,6 +440,20 @@ module.exports = async function handler(req, res) {
       // Send agent email notification.
       const agentInfo = await fetchAgentEmailForUser(sr.user_id);
       await sendCompletionEmail(agentInfo?.email, agentInfo?.full_name, fileName);
+
+      // If a seller's agent email is on the signature request, send them the executed PDF.
+      if (sr.seller_agent_email && signedPdfBuffer) {
+        await sendSellerAgentEmail(
+          sr.seller_agent_email,
+          sr.seller_agent_name || null,
+          fileName,
+          signedPdfBuffer,
+          propertyAddress
+        );
+      } else if (sr.seller_agent_email && !signedPdfBuffer) {
+        // DOCUSEAL_API_KEY not set or PDF fetch failed — log so we know to retry.
+        console.warn(`[esign-webhook] seller_agent_email set (${sr.seller_agent_email}) but could not fetch signed PDF buffer — skipping seller email.`);
+      }
 
       // Telegram notification.
       await sendTelegramNotification(fileName);

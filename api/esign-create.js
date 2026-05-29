@@ -305,6 +305,14 @@ module.exports = async function handler(req, res) {
     // Phase 3: pre-fill data for template submissions
     const prefillData = (body.prefillData && typeof body.prefillData === 'object') ? body.prefillData : null;
 
+    // Agent-as-final-signer fields
+    const agentSignerEmail = sanitizeString(body.agentSignerEmail, { maxLength: 200 }) || null;
+    const agentSignerName = sanitizeString(body.agentSignerName, { maxLength: 200 }) || 'Agent';
+
+    // Seller's agent fields (stored on the signature_requests row; used by webhook on completion)
+    const sellerAgentName = sanitizeString(body.sellerAgentName, { maxLength: 200 }) || null;
+    const sellerAgentEmail = sanitizeString(body.sellerAgentEmail, { maxLength: 200 }) || null;
+
     if (!documentId) {
       throw new ValidationError('documentId is required.');
     }
@@ -319,11 +327,27 @@ module.exports = async function handler(req, res) {
         throw new ValidationError(`Signer "${s.name}" must have a valid email address.`);
       }
     }
+    if (agentSignerEmail && !agentSignerEmail.includes('@')) {
+      throw new ValidationError('agentSignerEmail must be a valid email address.');
+    }
+    if (sellerAgentEmail && !sellerAgentEmail.includes('@')) {
+      throw new ValidationError('sellerAgentEmail must be a valid email address.');
+    }
 
     // Fetch the document (verifies ownership).
     const doc = await getDocumentRow(documentId, userId);
     const fileName = doc.file_name || 'Document.pdf';
     const transactionId = doc.transaction_id || null;
+
+    // Build the full ordered signers list.
+    // If agentSignerEmail is provided, append the agent as the last signer so
+    // DocuSeal routes sequentially: buyers first, then agent.
+    const allSigners = agentSignerEmail
+      ? [
+          ...signers,
+          { name: agentSignerName, email: agentSignerEmail, role: 'Agent' },
+        ]
+      : signers;
 
     let submissionResult;
 
@@ -344,27 +368,30 @@ module.exports = async function handler(req, res) {
           };
         }
       }
-      submissionResult = await docusealCreateFromTemplate({ templateId, signers, message, prefillData: prefill });
+      submissionResult = await docusealCreateFromTemplate({ templateId, signers: allSigners, message, prefillData: prefill });
     } else {
       // Phase 1 path — direct PDF submission.
       // Generate a 5-minute signed URL so DocuSeal can pull the PDF.
       const signedUrl = await generateSignedUrl(doc.storage_path, 300);
-      submissionResult = await docusealCreateFromPdf({ documentUrl: signedUrl, fileName, signers, message, fields });
+      submissionResult = await docusealCreateFromPdf({ documentUrl: signedUrl, fileName, signers: allSigners, message, fields });
     }
 
     const submissionId = String(submissionResult.id || '');
 
     // Normalise signer list from DocuSeal response.
+    // allSigners is the source of truth for name/email/role if DocuSeal omits them.
     const signerRows = (Array.isArray(submissionResult.submitters) ? submissionResult.submitters : []).map((sub, i) => ({
-      name: sub.name || signers[i]?.name || '',
-      email: sub.email || signers[i]?.email || '',
-      role: sub.role || signers[i]?.role || 'Signer',
+      name: sub.name || allSigners[i]?.name || '',
+      email: sub.email || allSigners[i]?.email || '',
+      role: sub.role || allSigners[i]?.role || 'Signer',
       status: sub.status || 'sent',
       signingUrl: sub.embed_src || null,
       uuid: sub.uuid || null,
     }));
 
     // Persist the signature request.
+    // seller_agent_name / seller_agent_email are stored here so the webhook can
+    // send the executed PDF to the seller's agent when all parties have signed.
     const inserted = await insertSignatureRequest({
       user_id: userId,
       transaction_id: transactionId,
@@ -373,6 +400,8 @@ module.exports = async function handler(req, res) {
       status: 'sent',
       signers: signerRows,
       message: message || null,
+      ...(sellerAgentName ? { seller_agent_name: sellerAgentName } : {}),
+      ...(sellerAgentEmail ? { seller_agent_email: sellerAgentEmail } : {}),
     });
 
     return res.status(200).json({
