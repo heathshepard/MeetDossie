@@ -1082,6 +1082,173 @@
     }
     .agent-chip:hover .agent-tooltip { display: block; }
 
+    /* ---- Agent Activity Panel ---- */
+    .agent-activity-section { margin-bottom: 32px; }
+    .agent-activity-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .agent-activity-refresh {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      user-select: none;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .agent-activity-refresh:hover { border-color: var(--border-hover); color: var(--blush); }
+    .agent-activity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 12px;
+    }
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .agent-card.status-active  { border-color: rgba(232,131,107,0.35); }
+    .agent-card.status-active::before  { background: linear-gradient(90deg, var(--coral), rgba(232,131,107,0.4)); }
+    .agent-card.status-active  { box-shadow: 0 0 24px rgba(232,131,107,0.10); }
+    .agent-card.status-blocked { border-color: rgba(201,169,110,0.35); }
+    .agent-card.status-blocked::before { background: linear-gradient(90deg, var(--gold), rgba(201,169,110,0.4)); }
+    .agent-card.status-completed { border-color: rgba(139,168,136,0.35); }
+    .agent-card.status-completed::before { background: linear-gradient(90deg, var(--sage), rgba(139,168,136,0.4)); }
+    .agent-card.status-idle::before { background: var(--border); }
+    .agent-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .agent-card-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--blush);
+      line-height: 1;
+    }
+    .agent-card-role {
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .agent-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .agent-status-badge.active    { background: rgba(232,131,107,0.16); color: var(--coral);   border: 1px solid rgba(232,131,107,0.35); }
+    .agent-status-badge.idle      { background: rgba(245,230,224,0.07); color: var(--text-dim); border: 1px solid var(--border); }
+    .agent-status-badge.completed { background: rgba(139,168,136,0.16); color: var(--sage);    border: 1px solid rgba(139,168,136,0.35); }
+    .agent-status-badge.blocked   { background: rgba(201,169,110,0.16); color: var(--gold);    border: 1px solid rgba(201,169,110,0.35); }
+    .agent-status-badge.unknown   { background: rgba(245,230,224,0.07); color: var(--text-dim); border: 1px solid var(--border); }
+    /* pulse dot inside status badge */
+    .agent-status-badge .badge-pulse {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .agent-status-badge.active .badge-pulse {
+      animation: badge-pulse-ring 1.4s cubic-bezier(0.215,0.61,0.355,1) infinite;
+    }
+    @keyframes badge-pulse-ring {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(1.5); }
+    }
+    .agent-card-task {
+      font-size: 0.82rem;
+      color: var(--blush);
+      line-height: 1.4;
+      min-height: 1.4em;
+      word-break: break-word;
+    }
+    .agent-card-task.empty { color: var(--text-dim); font-style: italic; }
+    .agent-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .agent-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .agent-card-meta-label { color: var(--text-dim); }
+    .agent-card-meta-value { color: var(--blush); font-weight: 500; }
+    .agent-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 2px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .btn-new-agent-task {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(201,169,110,0.10);
+      border: 1px solid rgba(201,169,110,0.28);
+      border-radius: 6px;
+      color: var(--gold);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+      letter-spacing: 0.02em;
+    }
+    .btn-new-agent-task:hover { background: rgba(201,169,110,0.22); }
+    .agent-heartbeat-age {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+    .agent-heartbeat-age.stale { color: var(--coral); }
+    /* skeleton state */
+    .agent-card-skeleton .agent-card-name { width: 80px; }
+    .agent-card-skeleton .agent-card-task { width: 100%; }
+    .agent-activity-last-updated {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
     /* ---- Social post modal ---- */
     .social-stat-card { cursor: pointer; transition: border-color 0.15s; }
     .social-stat-card:hover { border-color: rgba(201,169,110,0.40); }
@@ -2278,6 +2445,24 @@
         </div>
       </section>
 
+      <!-- Agent Activity Panel -->
+      <section class="agent-activity-section" id="agent-activity-section">
+        <div class="agent-activity-header-row">
+          <div class="section-header" style="margin-bottom:0;flex:1;">Agent Activity</div>
+          <span class="agent-activity-refresh" id="agent-activity-refresh" onclick="loadAgentActivity(true)" title="Refresh agent status">
+            <span id="agent-activity-refresh-dot" class="refresh-dot"></span>
+            Refresh
+          </span>
+        </div>
+        <div class="agent-activity-grid" id="agent-activity-grid">
+          <!-- Populated by JS -->
+          <div class="agent-card status-idle"><div class="agent-card-top"><div><div class="agent-card-name skeleton skel-stat" style="width:90px;height:1.3rem;"></div><div class="agent-card-role skeleton skel-stat" style="width:60px;height:0.9rem;margin-top:4px;"></div></div></div><div class="agent-card-task skeleton" style="width:100%;height:1rem;"></div></div>
+          <div class="agent-card status-idle"><div class="agent-card-top"><div><div class="agent-card-name skeleton skel-stat" style="width:90px;height:1.3rem;"></div><div class="agent-card-role skeleton skel-stat" style="width:60px;height:0.9rem;margin-top:4px;"></div></div></div><div class="agent-card-task skeleton" style="width:100%;height:1rem;"></div></div>
+          <div class="agent-card status-idle"><div class="agent-card-top"><div><div class="agent-card-name skeleton skel-stat" style="width:90px;height:1.3rem;"></div><div class="agent-card-role skeleton skel-stat" style="width:60px;height:0.9rem;margin-top:4px;"></div></div></div><div class="agent-card-task skeleton" style="width:100%;height:1rem;"></div></div>
+        </div>
+        <div class="agent-activity-last-updated" id="agent-activity-updated"></div>
+      </section>
+
       <!-- Activity Feed | Agent Chat — dual panel -->
       <div class="dual-panel">
 
@@ -2634,6 +2819,7 @@
       // Poll activity feed every 60s as a fallback if realtime fails
       setInterval(loadFeed, 60_000);
       startPolling();
+      startAgentActivityPolling();
       startClock();
 
       // Improvement #2: day counter
@@ -3977,6 +4163,137 @@
       loadCronHealth();
       loadStripeEvents();
       loadFeed();
+    }
+
+    // ============================================================
+    // Agent Activity Panel
+    // ============================================================
+    let _agentActivityTimer = null;
+    const AGENT_ACTIVITY_POLL_MS = 30_000;
+
+    async function loadAgentActivity(manual = false) {
+      try {
+        const res = await authFetch('/api/ventures/agent-status');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderAgentActivity(data.agents || [], data.generatedAt);
+
+        // Ping the refresh dot on manual refresh
+        if (manual) {
+          const dot = document.getElementById('agent-activity-refresh-dot');
+          if (dot) { dot.classList.add('ping'); setTimeout(() => dot.classList.remove('ping'), 600); }
+        }
+      } catch (e) {
+        console.warn('[agent-activity] load failed:', e.message);
+        // Don't overwrite skeletons with an error — the rest of the page is fine
+      }
+    }
+
+    function renderAgentActivity(agents, generatedAt) {
+      const grid = document.getElementById('agent-activity-grid');
+      if (!grid) return;
+
+      if (!agents.length) {
+        grid.innerHTML = '<div style="font-size:0.82rem;color:var(--text-dim);">No agent data yet — agents will appear here once they self-report status.</div>';
+        return;
+      }
+
+      grid.innerHTML = agents.map(a => renderAgentCard(a)).join('');
+
+      const updEl = document.getElementById('agent-activity-updated');
+      if (updEl && generatedAt) {
+        updEl.textContent = `Last updated ${timeAgo(new Date(generatedAt))}`;
+      }
+    }
+
+    function renderAgentCard(a) {
+      const status    = a.status || 'idle';
+      const statusLabel = { active: 'Active', idle: 'Idle', completed: 'Done', blocked: 'Blocked' }[status] || 'Unknown';
+      const badgeClass  = { active: 'active', idle: 'idle', completed: 'completed', blocked: 'blocked' }[status] || 'unknown';
+
+      // Task line
+      let taskHtml;
+      if (a.taskDescription) {
+        taskHtml = `<div class="agent-card-task">${escHtml(a.taskDescription)}</div>`;
+      } else {
+        taskHtml = `<div class="agent-card-task empty">${status === 'idle' ? 'Available — no active task' : 'No task description'}</div>`;
+      }
+
+      // Meta row: started, ETA
+      const metaParts = [];
+      if (a.startedAt && status !== 'idle') {
+        metaParts.push(`<span class="agent-card-meta-item"><span class="agent-card-meta-label">Started</span>&nbsp;<span class="agent-card-meta-value">${escHtml(timeAgo(new Date(a.startedAt)))}</span></span>`);
+      }
+      if (a.estimatedCompletionAt && status === 'active') {
+        const etaDate = new Date(a.estimatedCompletionAt);
+        const etaMs   = etaDate.getTime() - Date.now();
+        const etaLabel = etaMs > 0 ? `in ${fmtDuration(etaMs)}` : 'overdue';
+        metaParts.push(`<span class="agent-card-meta-item"><span class="agent-card-meta-label">ETA</span>&nbsp;<span class="agent-card-meta-value">${escHtml(etaLabel)}</span></span>`);
+      }
+      if (a.completedAt && status === 'completed') {
+        metaParts.push(`<span class="agent-card-meta-item"><span class="agent-card-meta-label">Completed</span>&nbsp;<span class="agent-card-meta-value">${escHtml(timeAgo(new Date(a.completedAt)))}</span></span>`);
+      }
+      const metaHtml = metaParts.length
+        ? `<div class="agent-card-meta">${metaParts.join('')}</div>`
+        : '';
+
+      // Heartbeat age
+      const heartbeatTs = a.lastHeartbeatAt || a.lastActiveAt;
+      let heartbeatHtml = '';
+      if (heartbeatTs) {
+        const isStale = a.isStale;
+        heartbeatHtml = `<span class="agent-heartbeat-age${isStale ? ' stale' : ''}">Last seen ${escHtml(timeAgo(new Date(heartbeatTs)))}</span>`;
+      } else {
+        heartbeatHtml = `<span class="agent-heartbeat-age">Never active</span>`;
+      }
+
+      // New Task button — links to agent chat tab (opens chat panel to that agent)
+      const newTaskBtn = `<button class="btn-new-agent-task" onclick="agentActivityNewTask('${escHtml(a.name)}')">+ New Task</button>`;
+
+      return `
+        <div class="agent-card status-${escHtml(status)}">
+          <div class="agent-card-top">
+            <div>
+              <div class="agent-card-name">${escHtml(a.displayName || a.name)}</div>
+              <div class="agent-card-role">${escHtml(a.role || '')}</div>
+            </div>
+            <span class="agent-status-badge ${escHtml(badgeClass)}">
+              <span class="badge-pulse"></span>
+              ${escHtml(statusLabel)}
+            </span>
+          </div>
+          ${taskHtml}
+          ${metaHtml}
+          <div class="agent-card-footer">
+            ${heartbeatHtml}
+            ${newTaskBtn}
+          </div>
+        </div>`;
+    }
+
+    // Format milliseconds into "2h 15m" or "45m" or "30s"
+    function fmtDuration(ms) {
+      const totalSecs = Math.floor(Math.abs(ms) / 1000);
+      if (totalSecs < 60) return `${totalSecs}s`;
+      const mins = Math.floor(totalSecs / 60);
+      if (mins < 60) return `${mins}m`;
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`;
+    }
+
+    // "New Task" button: scroll to chat panel + open that agent's chat tab
+    window.agentActivityNewTask = function(agentKey) {
+      selectAgentChat(agentKey);
+      const chatPanel = document.querySelector('.chat-panel');
+      if (chatPanel) chatPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) { chatInput.disabled = false; chatInput.focus(); }
+    };
+
+    function startAgentActivityPolling() {
+      loadAgentActivity(false);
+      _agentActivityTimer = setInterval(() => loadAgentActivity(false), AGENT_ACTIVITY_POLL_MS);
     }
 
     // ============================================================
