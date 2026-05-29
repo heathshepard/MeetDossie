@@ -11,6 +11,13 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026 (hotfix)
+
+**Form Library cleaned up**
+- The Land Purchase form package was carrying extra forms it didn't need (New Home Contract forms snuck in during the build). Cleaned up - it now contains exactly the right five forms: TREC 9, TREC 25, Financing Addendum, Buyer Rep Agreement, and Wire Fraud Warning.
+
+---
+
 ## Week of May 29, 2026 (continued, late build)
 
 **Residential Lease transactions - Landlord and Tenant**
@@ -172,3 +179,4 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 **Full buyer-side transaction lifecycle — complete**
 - The full buyer-side residential resale workflow is now covered from pre-contract through post-closing: pre-approval, buyer rep agreement, IABS delivery, contract fill and sign, wire fraud warning, option period tracking, earnest money confirmation, inspection scheduling, repair amendments, appraisal tracking, title commitment, loan approval, HOA documents, pre-closing checklist, closing, and post-closing deed and CDA tracking. Every phase. Every document. Every deadline.
+
