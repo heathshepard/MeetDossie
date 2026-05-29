@@ -395,10 +395,20 @@ async function loadSchedules() {
   return Array.isArray(data) ? data : [];
 }
 
-// Count how many posts already published for `platform` today (in the platform tz).
+// Count how many posts have been published (or are being published right now) for
+// `platform` today (in the platform tz).
+//
+// BUG FIX (2026-05-29): Previously only counted status='posted'. This caused a
+// race condition within a single cron run: when post A was being sent to Zernio
+// (status='publishing'), post B's cap check saw 0 'posted' rows and slipped through,
+// resulting in 2+ LinkedIn posts firing in the same 30-min window. The fix counts
+// BOTH 'posted' AND 'publishing' rows so in-flight publishes block concurrent ones.
+//
+// We use posted_at for 'posted' rows (accurate timestamp) and created_at as a proxy
+// for 'publishing' rows (publishing_started_at column exists but the check against
+// today's date range on created_at is fine — these are same-day rows by definition).
 async function countPostedToday(platform, tz) {
-  // BUG FIX (2026-05-18): Use luxon for proper timezone handling with automatic DST support.
-  // Previous attempts at manual offset calculation were error-prone.
+  // Use luxon for proper timezone handling with automatic DST support.
   const now = DateTime.now().setZone(tz);
   const startOfDay = now.startOf('day').toUTC().toJSDate();
   const endOfDay = now.endOf('day').toUTC().toJSDate();
@@ -408,15 +418,28 @@ async function countPostedToday(platform, tz) {
 
   console.log(`[countPostedToday] ${platform} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
 
-  const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
+  // Count 'posted' rows: use posted_at timestamp (accurate).
+  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
     `&select=id,post_id,posted_at`;
-  const { data, ok } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
-  if (!ok) return 0;
-  const count = Array.isArray(data) ? data.length : 0;
+  const { data: postedData, ok: postedOk } = await supabaseFetch(`/rest/v1/social_posts?${postedFilter}`);
+  const postedCount = postedOk && Array.isArray(postedData) ? postedData.length : 0;
+
+  // Count 'publishing' rows: use publishing_started_at timestamp (set when lock acquired).
+  // This catches posts currently in-flight during this cron run so the cap blocks them.
+  const publishingFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.publishing` +
+    `&publishing_started_at=gte.${encodeURIComponent(startOfDayUtc)}` +
+    `&publishing_started_at=lte.${encodeURIComponent(endOfDayUtc)}` +
+    `&select=id,post_id,publishing_started_at`;
+  const { data: publishingData, ok: publishingOk } = await supabaseFetch(`/rest/v1/social_posts?${publishingFilter}`);
+  const publishingCount = publishingOk && Array.isArray(publishingData) ? publishingData.length : 0;
+
+  const count = postedCount + publishingCount;
   if (count > 0) {
-    console.log(`[countPostedToday] ${platform}: found ${count} posts:`, data.map(p => `${p.post_id} at ${p.posted_at}`).join(', '));
+    const postedIds = postedOk && Array.isArray(postedData) ? postedData.map(p => `${p.post_id}(posted)`) : [];
+    const publishingIds = publishingOk && Array.isArray(publishingData) ? publishingData.map(p => `${p.post_id}(publishing)`) : [];
+    console.log(`[countPostedToday] ${platform}: found ${count} (${postedCount} posted + ${publishingCount} publishing):`, [...postedIds, ...publishingIds].join(', '));
   }
   return count;
 }
@@ -430,7 +453,11 @@ async function isDueForPublish(platform, schedules) {
   const tz = 'America/Chicago'; // Default timezone for day calculation
   const today = nowInTz(tz);
   const row = schedules.find((s) => s.platform === platform && s.day_of_week === today.dow);
-  if (!row) return { due: true, reason: `no schedule row for ${platform} on day ${today.dow} — falling back to immediate` };
+  // BUG FIX (2026-05-29): Previously returned due:true (uncapped publish) when no
+  // schedule row existed for this platform+day combo. That let stale approved rows
+  // fire on days they shouldn't publish (e.g. a Sunday row with no schedule entry
+  // published immediately). Correct behaviour: no schedule = do not publish today.
+  if (!row) return { due: false, reason: `no schedule row for ${platform} on day ${today.dow} — skipping` };
 
   const slots = (row.time_slots || []).map(hhmmToMin).sort((a, b) => a - b);
   const nowMin = hhmmToMin(today.hhmm);
