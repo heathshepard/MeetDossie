@@ -136,7 +136,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 | Solo | $79 | $39 |
 | Team | $199 (3 seats; max 8 at $35/seat) | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (50 spots, 11 taken) | — |
+| **Founding Member** | **$29** (50 spots, 12 taken, 38 remaining) | — |
 
 **Add-ons:**
 - Reply Monitoring — $10/mo
@@ -157,7 +157,7 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $320/month** (11 founding @ $29 + 1 friend @ $1)
+**MRR: $349/month** (12 founding @ $29 + 1 friend @ $1)
 
 | # | Name | Email | Plan | Notes |
 |---|---|---|---|---|
