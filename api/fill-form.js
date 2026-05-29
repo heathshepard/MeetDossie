@@ -8,8 +8,13 @@
 // Returns: { ok: true, documentId, storagePath, signedUrl }
 
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
-const fs = require('fs');
-const path = require('path');
+
+// Base64-embedded TREC forms — same pattern as api/draft-amendment.js.
+// These are the fillable PDFs from the TREC Base folder, encoded at build time.
+// Using embedded base64 avoids external fetches at runtime (Vercel edge-safe).
+let TREC_RESALE_BASE64, TREC_FINANCING_BASE64;
+try { TREC_RESALE_BASE64 = require('./_assets/trec-resale-base64.js'); } catch (e) { TREC_RESALE_BASE64 = null; }
+try { TREC_FINANCING_BASE64 = require('./_assets/trec-financing-base64.js'); } catch (e) { TREC_FINANCING_BASE64 = null; }
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
@@ -42,13 +47,15 @@ const FORM_CONFIGS = {
     storagePath: 'form-templates/trec-20-16-resale.pdf',
     fallbackUrl: 'https://www.trec.texas.gov/sites/default/files/pdf-forms/20-16.pdf',
     fieldType: 'acroform',
+    base64Asset: TREC_RESALE_BASE64,  // embedded base64 from _assets/trec-resale-base64.js
   },
   '40-9': {
     name: 'Third Party Financing Addendum',
-    short_name: 'Third Party Financing',
+    short_name: 'Third Party Financing Addendum',
     storagePath: 'form-templates/trec-40-9-financing.pdf',
     fallbackUrl: 'https://www.trec.texas.gov/sites/default/files/pdf-forms/40-9.pdf',
     fieldType: 'acroform',
+    base64Asset: TREC_FINANCING_BASE64,  // embedded base64 from _assets/trec-financing-base64.js
   },
   'hoa-addendum': {
     name: 'Addendum for Property Subject to Mandatory Membership in Property Owners Association',
@@ -56,6 +63,7 @@ const FORM_CONFIGS = {
     storagePath: 'form-templates/trec-hoa-addendum.pdf',
     fallbackUrl: 'https://www.trec.texas.gov/sites/default/files/pdf-forms/36-8.pdf',
     fieldType: 'acroform',
+    base64Asset: null,  // no embedded asset yet; falls back to Supabase Storage or URL
   },
   'lead-paint': {
     name: 'Lead-Based Paint Addendum',
@@ -63,6 +71,7 @@ const FORM_CONFIGS = {
     storagePath: 'form-templates/lead-paint-addendum.pdf',
     fallbackUrl: null,
     fieldType: 'acroform',
+    base64Asset: null,  // no embedded asset yet; falls back to Supabase Storage
   },
 };
 
@@ -407,10 +416,24 @@ async function fillLeadPaint(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// Get blank PDF bytes — try Supabase Storage first, then TREC URL
+// Get blank PDF bytes
+// Priority: 1) embedded base64 asset, 2) Supabase Storage, 3) TREC URL
 // ---------------------------------------------------------------------------
 async function getBlankPdf(formConfig) {
-  // Try Supabase Storage form-templates bucket first
+  // 1. Embedded base64 asset (fastest — no network needed)
+  if (formConfig.base64Asset) {
+    try {
+      const bytes = Buffer.from(formConfig.base64Asset, 'base64');
+      if (bytes.length > 1000) {
+        console.log('[fill-form] loaded from embedded base64:', formConfig.storagePath);
+        return bytes;
+      }
+    } catch (e) {
+      console.warn('[fill-form] base64 decode failed:', e.message);
+    }
+  }
+
+  // 2. Supabase Storage form-templates bucket
   try {
     const bytes = await supabaseStorageDownload(formConfig.storagePath, 'form-templates');
     if (bytes && bytes.length > 1000) {
@@ -421,7 +444,7 @@ async function getBlankPdf(formConfig) {
     console.log('[fill-form] not in form-templates storage, will try URL:', e.message);
   }
 
-  // Fall back to TREC URL
+  // 3. Fall back to TREC URL
   if (formConfig.fallbackUrl) {
     const resp = await fetch(formConfig.fallbackUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Dossie/1.0)' },
