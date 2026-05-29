@@ -3415,12 +3415,7 @@
 
     async function loadFeed() {
       try {
-        // Query the ventures_activity_events table for last 20 events
-        const r = await fetch(
-          `${(await supabase.auth.getSession()).data.session?.supabase_url || ''}/rest/v1/ventures_activity_events?select=id,agent_name,event_type,summary,created_at&order=created_at.desc&limit=20`,
-        );
-        // We can't use raw Supabase URL here — use supabase-js directly for the feed
-        // because we're client-side (the token is the user JWT, not service role)
+        // Use supabase-js directly — client-side JWT auth, service role not available here
         const { data, error } = await supabase
           .from('ventures_activity_events')
           .select('id,agent_name,event_type,summary,created_at')
