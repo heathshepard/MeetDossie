@@ -308,6 +308,28 @@ const TOOLS = [
     },
   },
   {
+    name: 'fill_forms',
+    description: 'Fill out TREC contract forms for a buyer purchase. Use whenever the agent says: write a contract, fill out a contract, write up an offer, prepare the paperwork, write an offer, make an offer, purchase agreement, fill the forms. Extracts all field values from the agent\'s message and fills the relevant TREC forms (20-16 Contract + Third Party Financing Addendum for financed purchases). Produces ready-to-sign PDF documents in the dossier.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: {
+          type: 'string',
+          description: 'Property address or buyer/seller name to identify the existing dossier. Required if filling forms for an existing deal.',
+        },
+        message: {
+          type: 'string',
+          description: 'The agent\'s full message with all contract details: address, price, buyer name, financing type, down payment, closing date, option period, etc.',
+        },
+        include_financing_addendum: {
+          type: 'boolean',
+          description: 'Whether to also fill the Third Party Financing Addendum (40-9). Default true for all non-cash deals.',
+        },
+      },
+      required: ['message'],
+    },
+  },
+  {
     name: 'answer_question',
     description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies.',
     input_schema: {
@@ -343,6 +365,7 @@ EXECUTION RULES:
 INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
+- Write a contract/offer/purchase agreement, fill the forms, prepare the paperwork, make an offer = fill_forms (fills TREC 20-16 + financing addendum — beats create_dossier when agent gives full contract details)
 - Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
 - Change/update/set/correct/fix a field on the dossier (no PDF needed) = update_deal_field
 - Passed/moved to/we are now/advance/next stage/under contract/in inspection = advance_stage
