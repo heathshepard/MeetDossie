@@ -1,20 +1,16 @@
-// Vercel Serverless Function: /api/fill-form
+﻿// Vercel Serverless Function: /api/fill-form
 // Fills a TREC form PDF with field values and uploads to Supabase Storage.
+// PDF source: embedded base64 assets (same pattern as draft-amendment.js).
+// Field names verified against actual AcroForm field inspection of each PDF.
 //
-// POST { transaction_id, trec_number, field_values: { buyer_name, seller_name, ... } }
-// trec_number: '20-16' | '40-9' | 'hoa-addendum' | 'lead-paint'
+// POST { transaction_id, form_type, field_values }
+// form_type: resale-contract | financing-addendum | termination-notice
+// (Amendment is handled by /api/draft-amendment)
+//
 // Authorization: Bearer <supabase user JWT>
-//
-// Returns: { ok: true, documentId, storagePath, signedUrl }
+// Returns: { ok: true, documentId, storagePath, signedUrl, fileName, formName }
 
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
-
-// Base64-embedded TREC forms — same pattern as api/draft-amendment.js.
-// These are the fillable PDFs from the TREC Base folder, encoded at build time.
-// Using embedded base64 avoids external fetches at runtime (Vercel edge-safe).
-let TREC_RESALE_BASE64, TREC_FINANCING_BASE64;
-try { TREC_RESALE_BASE64 = require('./_assets/trec-resale-base64.js'); } catch (e) { TREC_RESALE_BASE64 = null; }
-try { TREC_FINANCING_BASE64 = require('./_assets/trec-financing-base64.js'); } catch (e) { TREC_FINANCING_BASE64 = null; }
+const { PDFDocument } = require('pdf-lib');
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
@@ -35,54 +31,34 @@ const ALLOWED_ORIGINS = new Set([
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
-// ---------------------------------------------------------------------------
-// TREC form source PDFs — stored in Supabase Storage 'form-templates' bucket.
-// These are the canonical fillable PDFs uploaded from the TREC Base folder.
-// If not in Supabase storage yet, fall back to TREC.texas.gov URLs.
-// ---------------------------------------------------------------------------
+// Form configs -- base64 assets embedded at deploy time.
+// Field names from actual AcroForm inspection of each PDF (see scripts/inspect_resale_fields.py).
 const FORM_CONFIGS = {
-  '20-16': {
+  'resale-contract': {
     name: 'One to Four Family Residential Contract (Resale)',
-    short_name: 'TREC 20-16 Contract',
-    storagePath: 'form-templates/trec-20-16-resale.pdf',
-    fallbackUrl: 'https://www.trec.texas.gov/sites/default/files/pdf-forms/20-16.pdf',
-    fieldType: 'acroform',
-    base64Asset: TREC_RESALE_BASE64,  // embedded base64 from _assets/trec-resale-base64.js
+    shortName: 'TREC-Resale-Contract',
+    getBase64: function() { return require('./_assets/trec-resale-base64.js'); },
+    documentType: 'resale_contract',
   },
-  '40-9': {
-    name: 'Third Party Financing Addendum',
-    short_name: 'Third Party Financing Addendum',
-    storagePath: 'form-templates/trec-40-9-financing.pdf',
-    fallbackUrl: 'https://www.trec.texas.gov/sites/default/files/pdf-forms/40-9.pdf',
-    fieldType: 'acroform',
-    base64Asset: TREC_FINANCING_BASE64,  // embedded base64 from _assets/trec-financing-base64.js
+  'financing-addendum': {
+    name: 'Third Party Financing Addendum (TREC 40)',
+    shortName: 'TREC-Financing-Addendum',
+    getBase64: function() { return require('./_assets/trec-financing-base64.js'); },
+    documentType: 'financing_addendum',
   },
-  'hoa-addendum': {
-    name: 'Addendum for Property Subject to Mandatory Membership in Property Owners Association',
-    short_name: 'HOA Addendum',
-    storagePath: 'form-templates/trec-hoa-addendum.pdf',
-    fallbackUrl: 'https://www.trec.texas.gov/sites/default/files/pdf-forms/36-8.pdf',
-    fieldType: 'acroform',
-    base64Asset: null,  // no embedded asset yet; falls back to Supabase Storage or URL
-  },
-  'lead-paint': {
-    name: 'Lead-Based Paint Addendum',
-    short_name: 'Lead Paint Disclosure',
-    storagePath: 'form-templates/lead-paint-addendum.pdf',
-    fallbackUrl: null,
-    fieldType: 'acroform',
-    base64Asset: null,  // no embedded asset yet; falls back to Supabase Storage
+  'termination-notice': {
+    name: 'Notice of Sellers Termination of Contract',
+    shortName: 'TREC-Termination-Notice',
+    getBase64: function() { return require('./_assets/trec-termination-base64.js'); },
+    documentType: 'termination_notice',
   },
 };
 
-const ALLOWED_TREC_NUMBERS = new Set(Object.keys(FORM_CONFIGS));
+const ALLOWED_FORM_TYPES = new Set(Object.keys(FORM_CONFIGS));
 
-// ---------------------------------------------------------------------------
-// CORS
-// ---------------------------------------------------------------------------
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
-  if (!origin) return true; // Same-origin request — always allow
+  if (!origin) return true;
   let allowOrigin = null;
   if (
     ALLOWED_ORIGINS.has(origin) ||
@@ -100,87 +76,65 @@ function applyCors(req, res) {
   return Boolean(allowOrigin);
 }
 
-// ---------------------------------------------------------------------------
-// Supabase helpers (identical pattern to draft-amendment.js)
-// ---------------------------------------------------------------------------
-async function supabaseRest(path_part, init) {
-  const url = `${SUPABASE_URL}/rest/v1/${path_part}`;
+async function supabaseRest(pathPart, init) {
+  const url = SUPABASE_URL + '/rest/v1/' + pathPart;
   const headers = {
     apikey: SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
     'Content-Type': 'application/json',
     ...((init && init.headers) || {}),
   };
   return fetch(url, { ...init, headers });
 }
 
-async function supabaseStorageDownload(storagePath, bucketName) {
-  const url = `${SUPABASE_URL}/storage/v1/object/${bucketName}/${storagePath}`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Storage download failed (${response.status}): ${text.slice(0, 200)}`);
-  }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
 async function supabaseStorageUpload(storagePath, buffer, contentType) {
-  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
+  const url = SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + storagePath;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
       'Content-Type': contentType,
       'x-upsert': 'false',
     },
     body: buffer,
   });
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Storage upload failed (${response.status}): ${text.slice(0, 300)}`);
+    const text = await response.text().catch(function() { return ''; });
+    throw new Error('Storage upload failed (' + response.status + '): ' + text.slice(0, 300));
   }
 }
 
-async function supabaseStorageSignedUrl(storagePath, expiresInSeconds = 3600) {
-  const url = `${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${storagePath}`;
+async function supabaseStorageSignedUrl(storagePath, expiresInSeconds) {
+  if (expiresInSeconds === undefined) expiresInSeconds = 3600;
+  const url = SUPABASE_URL + '/storage/v1/object/sign/' + BUCKET + '/' + storagePath;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ expiresIn: expiresInSeconds }),
   });
   if (!response.ok) return null;
-  const json = await response.json().catch(() => null);
+  const json = await response.json().catch(function() { return null; });
   if (!json || !json.signedURL) return null;
-  const p = json.signedURL.startsWith('/') ? json.signedURL : `/${json.signedURL}`;
-  return `${SUPABASE_URL}/storage/v1${p}`;
+  const p = json.signedURL.startsWith('/') ? json.signedURL : '/' + json.signedURL;
+  return SUPABASE_URL + '/storage/v1' + p;
 }
 
 async function supabaseStorageRemove(storagePath) {
-  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
+  const url = SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + storagePath;
   await fetch(url, {
     method: 'DELETE',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
     },
-  }).catch(() => {});
+  }).catch(function() {});
 }
 
-// ---------------------------------------------------------------------------
-// Safe field setters — same pattern as draft-amendment.js
-// ---------------------------------------------------------------------------
 function safeSetText(form, name, value) {
   try {
     const field = form.getTextField(name);
@@ -190,7 +144,7 @@ function safeSetText(form, name, value) {
     if (max && v.length > max) v = v.slice(0, max);
     field.setText(v);
   } catch (e) {
-    console.warn('[fill-form] could not set field', name, ':', e && e.message);
+    console.warn('[fill-form] could not set text field', JSON.stringify(name), ':', e && e.message);
   }
 }
 
@@ -199,27 +153,29 @@ function safeCheck(form, name) {
     const box = form.getCheckBox(name);
     if (box) box.check();
   } catch (e) {
-    console.warn('[fill-form] could not check box', name, ':', e && e.message);
+    console.warn('[fill-form] could not check box', JSON.stringify(name), ':', e && e.message);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Format helpers
-// ---------------------------------------------------------------------------
-function formatMoney(value) {
-  const n = Number(String(value || '').replace(/[^0-9.]/g, ''));
-  if (!Number.isFinite(n)) return String(value || '');
-  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+// "2026-05-28" -> "05/28/2026"
+function formatDate(isoLike) {
+  if (!isoLike) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(isoLike));
+  if (!m) return String(isoLike);
+  return m[2] + '/' + m[3] + '/' + m[1];
 }
 
+// "2026-05-28" -> "May 28"
 function formatLongDateNoYear(isoLike) {
   if (!isoLike) return '';
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(isoLike));
   if (!m) return String(isoLike);
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  return `${months[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}`;
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  return months[parseInt(m[2], 10) - 1] + ' ' + parseInt(m[3], 10);
 }
 
+// "2026-05-28" -> "26"
 function formatTwoDigitYear(isoLike) {
   if (!isoLike) return '';
   const m = /^(\d{4})/.exec(String(isoLike));
@@ -227,268 +183,180 @@ function formatTwoDigitYear(isoLike) {
   return m[1].slice(2);
 }
 
-function formatDate(isoLike) {
-  if (!isoLike) return '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(isoLike));
-  if (!m) return String(isoLike);
-  return `${m[2]}/${m[3]}/${m[1]}`;
+function formatMoney(value) {
+  const n = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(n)) return String(value || '');
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 // ---------------------------------------------------------------------------
-// PDF FILL FUNCTIONS — one per form type
+// RESALE CONTRACT (TREC 20-16/20-17)
+// Ported from RESALE_FIELD_MAP + RESALE_BUTTON_MAP in document_field_maps.py
+// Verified against AcroForm inspection of One-to-Four-Family-Residential-Contract-Resale.pdf
 // ---------------------------------------------------------------------------
-
-// TREC 20-16: One-to-Four Family Residential Contract (Resale)
-async function fill2016(pdfDoc, fv) {
+async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // PARTIES
   if (fv.buyer_name) safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name);
   if (fv.seller_name) safeSetText(form, 'Seller and', fv.seller_name);
 
-  // PROPERTY
-  if (fv.property_address) {
-    safeSetText(form, 'Texas known as', fv.property_address);
-    safeSetText(form, 'Address of Property', fv.property_address);
-    safeSetText(form, 'Address of Property_2', fv.property_address);
-    safeSetText(form, 'Addr of Prop', fv.property_address);
+  const addr = fv.property_address || '';
+  if (addr) {
+    safeSetText(form, 'Texas known as', addr);
+    safeSetText(form, 'Address of Property', addr);
+    safeSetText(form, 'Address of Property_2', addr);
+    safeSetText(form, 'Addr of Prop', addr);
   }
-  if (fv.city) safeSetText(form, 'Addition City of', fv.city);
   if (fv.county) safeSetText(form, 'County of', fv.county);
+  if (fv.city_state_zip) safeSetText(form, 'Addition City of', fv.city_state_zip);
   if (fv.legal_description) safeSetText(form, 'A LAND Lot', fv.legal_description);
 
-  // SALES PRICE
-  if (fv.purchase_price != null) {
-    const priceStr = formatMoney(fv.purchase_price);
-    // Paragraph 3B — "Sum of all financing" financing checkbox + total
-    safeCheck(form, 'B Sum of all financing described in the attached');
-    // undefined_4 = total sales price
-    safeSetText(form, 'undefined_4', priceStr);
-    // Cash portion (down payment) if we know it
-    if (fv.down_payment_amt != null) {
-      safeSetText(form, 'undefined_2', formatMoney(fv.down_payment_amt));
+  const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
+  if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
+  if (fv.sale_price != null && fv.sale_price !== '') safeSetText(form, 'undefined_4', formatMoney(fv.sale_price));
+  if (fv.down_payment_amt != null && fv.down_payment_amt !== '') safeSetText(form, 'undefined_2', formatMoney(fv.down_payment_amt));
+  if (fv.loan_amount != null && fv.loan_amount !== '') safeSetText(form, 'undefined_3', formatMoney(fv.loan_amount));
+
+  if (fv.earnest_money != null && fv.earnest_money !== '') safeSetText(form, 'earnest money of', formatMoney(fv.earnest_money));
+  if (fv.option_fee != null && fv.option_fee !== '') safeSetText(form, 'Option Fee in the form of', formatMoney(fv.option_fee));
+
+  if (fv.contract_effective_date) {
+    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
+    safeSetText(form, 'Date', ds);
+  }
+
+  if (fv.closing_date) {
+    const cd = String(fv.closing_date);
+    if (cd.includes('-')) {
+      safeSetText(form, 'A The closing of the sale will be on or before', formatLongDateNoYear(cd));
+      safeSetText(form, '20', formatTwoDigitYear(cd));
+    } else {
+      safeSetText(form, 'A The closing of the sale will be on or before', cd);
     }
-    // Financing amount
-    if (fv.loan_amount != null) {
-      safeSetText(form, 'undefined_3', formatMoney(fv.loan_amount));
-    }
   }
 
-  // EARNEST MONEY
-  if (fv.earnest_money != null) {
-    safeSetText(form, 'earnest money of', formatMoney(fv.earnest_money));
-  }
-
-  // OPTION PERIOD
-  if (fv.option_fee != null) {
-    safeSetText(form, 'Option Fee in the form of', formatMoney(fv.option_fee));
-  }
-
-  // TITLE COMPANY
   if (fv.title_company) {
     safeSetText(form, 'insurance Title Policy issued by', fv.title_company);
     safeSetText(form, 'Escrow Agent', fv.title_company);
   }
 
-  // CLOSING DATE — Paragraph 9A
-  // Field "A The closing of the sale will be on or before" = "Month Day"
-  // Field "20" = 2-digit year
-  if (fv.closing_date) {
-    safeSetText(form, 'A The closing of the sale will be on or before', formatLongDateNoYear(fv.closing_date));
-    safeSetText(form, '20', formatTwoDigitYear(fv.closing_date));
+  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
+
+  if (fv.hoa_exists === true) {
+    safeCheck(form, 'is');
+    safeCheck(form, 'Addendum for Property Subject to');
+  } else {
+    safeCheck(form, 'is not');
   }
 
-  // PROPERTY CONDITION — default "As Is"
   safeCheck(form, '1 Buyer accepts the Property As Is');
 
-  // HOA
-  if (fv.hoa_exists === true) {
-    safeCheck(form, 'is');  // Property IS subject to mandatory HOA
-  } else {
-    safeCheck(form, 'is not');  // Property is NOT subject to mandatory HOA
-  }
-
-  // ADDENDA CHECKBOXES
-  if (fv.financing_type && fv.financing_type !== 'cash') {
-    safeCheck(form, 'Third Party Financing Addendum');
-  }
-  if (fv.hoa_exists === true) {
-    safeCheck(form, 'Addendum for Property Subject to');
-  }
-
-  // LISTING AGENT (from profile)
   if (fv.listing_agent_name) {
     safeSetText(form, 'Listing Associates Name', fv.listing_agent_name);
     safeSetText(form, 'List Assoc Name', fv.listing_agent_name);
   }
-  if (fv.listing_broker_firm) {
-    safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm);
-  }
-  if (fv.listing_agent_phone) {
-    safeSetText(form, 'Phone_3', fv.listing_agent_phone);
-  }
-  if (fv.listing_agent_email) {
-    safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email);
-  }
-  if (fv.listing_agent_license) {
-    safeSetText(form, 'License No_5', fv.listing_agent_license);
-  }
+  if (fv.listing_broker_firm) safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm);
+  if (fv.listing_agent_phone) safeSetText(form, 'Phone_3', fv.listing_agent_phone);
+  if (fv.listing_agent_email) safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email);
+  if (fv.listing_agent_license) safeSetText(form, 'License No_5', fv.listing_agent_license);
 
   return pdfDoc;
 }
 
-// TREC 40-9: Third Party Financing Addendum
-async function fill409(pdfDoc, fv) {
+// ---------------------------------------------------------------------------
+// THIRD PARTY FINANCING ADDENDUM (TREC 40-9/40-11)
+// Ported from FINANCING_FIELD_MAP + FINANCING_BUTTON_MAP in document_field_maps.py
+// Verified against AcroForm inspection of Third-Party-Financing-Addendum-TREC-40.pdf
+// Key: 'a A first mortgage loan in the principal amount of' is /Btn (checkbox), not text.
+// ---------------------------------------------------------------------------
+async function fillFinancingAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // HEADER
-  const addrLine = [fv.property_address, fv.city].filter(Boolean).join(', ');
-  if (addrLine) {
-    safeSetText(form, 'Street Address and City', addrLine);
-    safeSetText(form, 'Address of Property', addrLine);
+  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (propertyFull) safeSetText(form, 'Street Address and City', propertyFull);
+
+  const ft = String(fv.financing_type || '').toLowerCase();
+
+  if (ft && ft !== 'cash') {
+    safeCheck(form, 'a A first mortgage loan in the principal amount of');
+    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
   }
 
-  // FINANCING TYPE
-  const ft = String(fv.financing_type || '').toLowerCase();
-  if (ft === 'conventional') {
+  if (ft === 'conventional' || fv.financing_conventional === true) {
     safeCheck(form, '1 Conventional Financing');
-    safeCheck(form, 'a A first mortgage loan in the principal amount of');
-    // Buyer approval contingency
-    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
-    // Fill principal amount
-    if (fv.loan_amount != null) {
+    if (fv.loan_amount != null && fv.loan_amount !== '') {
       safeSetText(form, 'any financed PMI premium due in full in 1', formatMoney(fv.loan_amount));
     }
-  } else if (ft === 'fha') {
+  } else if (ft === 'fha' || fv.financing_fha === true) {
     safeCheck(form, '3 FHA Insured Financing A Section');
-    safeCheck(form, 'a A first mortgage loan in the principal amount of');
-    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
-    if (fv.loan_amount != null) {
-      // FHA amount goes in separate field
+    if (fv.loan_amount != null && fv.loan_amount !== '') {
       safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', formatMoney(fv.loan_amount));
     }
-  } else if (ft === 'va') {
+  } else if (ft === 'va' || fv.financing_va === true) {
     safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
-    safeCheck(form, 'a A first mortgage loan in the principal amount of');
-    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
-    if (fv.loan_amount != null) {
+    if (fv.loan_amount != null && fv.loan_amount !== '') {
       safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', formatMoney(fv.loan_amount));
     }
   } else if (ft === 'usda') {
     safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
-    safeCheck(form, 'a A first mortgage loan in the principal amount of');
-    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
   }
 
   return pdfDoc;
 }
 
-// HOA Addendum
-async function fillHoaAddendum(pdfDoc, fv) {
+// ---------------------------------------------------------------------------
+// NOTICE OF SELLERS TERMINATION OF CONTRACT
+// Ported from TERMINATION_FIELD_MAP in document_field_maps.py
+// Verified against AcroForm inspection of Notice-of-Sellers-Termination-of-Contract.pdf
+// ---------------------------------------------------------------------------
+async function fillTerminationNotice(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  const addrLine = [fv.property_address, fv.city].filter(Boolean).join(', ');
-  if (addrLine) safeSetText(form, 'Street Address and City', addrLine);
-  if (fv.hoa_name) safeSetText(form, 'Name of Property Owners Association Association and Phone Number', fv.hoa_name);
-  if (fv.hoa_phone) safeSetText(form, 'Name of Property Owners Association Association and Phone Number',
-    `${fv.hoa_name || ''}  ${fv.hoa_phone}`);
+  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (propertyFull) safeSetText(form, 'Street Address and City', propertyFull);
 
-  // Default: buyer doesn't require subdivision info unless told otherwise
-  safeCheck(form, '4Buyer does not require delivery of the Subdivision Information');
+  if (fv.seller_name) safeSetText(form, 'BETWEEN THE UNDERSIGNED SELLER AND', fv.seller_name);
+  if (fv.buyer_name) safeSetText(form, 'BUYER', fv.buyer_name);
 
-  return pdfDoc;
-}
+  if (fv.contract_effective_date) {
+    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
+    safeSetText(form, 'Date', ds);
+  }
 
-// Lead-Based Paint Addendum
-async function fillLeadPaint(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
-
-  const addrLine = [fv.property_address, fv.city].filter(Boolean).join(', ');
-  if (addrLine) safeSetText(form, 'Street Address and City', addrLine);
-
-  // Default: seller has no knowledge of lead (agent must update if seller does)
-  safeCheck(form, 'Check Box7');  // Seller has no knowledge
-  safeCheck(form, 'Check Box9');  // No records
-  safeCheck(form, 'Check Box11'); // Buyer received pamphlet
-  safeCheck(form, 'Check Box12'); // Buyer has 10-day inspection right
+  const today = new Date().toISOString().slice(0, 10);
+  safeSetText(form, 'Date_2', formatDate(today));
 
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
-// Get blank PDF bytes
-// Priority: 1) embedded base64 asset, 2) Supabase Storage, 3) TREC URL
+// Load base64 PDF and return filled bytes
 // ---------------------------------------------------------------------------
-async function getBlankPdf(formConfig) {
-  // 1. Embedded base64 asset (fastest — no network needed)
-  if (formConfig.base64Asset) {
-    try {
-      const bytes = Buffer.from(formConfig.base64Asset, 'base64');
-      if (bytes.length > 1000) {
-        console.log('[fill-form] loaded from embedded base64:', formConfig.storagePath);
-        return bytes;
-      }
-    } catch (e) {
-      console.warn('[fill-form] base64 decode failed:', e.message);
-    }
-  }
+async function fillForm(formType, fieldValues) {
+  const config = FORM_CONFIGS[formType];
+  if (!config) throw new ValidationError('Unknown form_type: ' + formType);
 
-  // 2. Supabase Storage form-templates bucket
-  try {
-    const bytes = await supabaseStorageDownload(formConfig.storagePath, 'form-templates');
-    if (bytes && bytes.length > 1000) {
-      console.log('[fill-form] loaded from form-templates storage:', formConfig.storagePath);
-      return bytes;
-    }
-  } catch (e) {
-    console.log('[fill-form] not in form-templates storage, will try URL:', e.message);
-  }
+  const base64 = config.getBase64();
+  const pdfBytes = Buffer.from(base64, 'base64');
 
-  // 3. Fall back to TREC URL
-  if (formConfig.fallbackUrl) {
-    const resp = await fetch(formConfig.fallbackUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Dossie/1.0)' },
-    });
-    if (!resp.ok) throw new Error(`Could not download form from ${formConfig.fallbackUrl} (${resp.status})`);
-    const ab = await resp.arrayBuffer();
-    return Buffer.from(ab);
-  }
-
-  throw new Error(`No source available for form ${formConfig.storagePath}`);
-}
-
-// ---------------------------------------------------------------------------
-// Main fill orchestrator
-// ---------------------------------------------------------------------------
-async function fillForm(trecNumber, fieldValues) {
-  const config = FORM_CONFIGS[trecNumber];
-  if (!config) throw new ValidationError(`Unknown form: ${trecNumber}`);
-
-  const pdfBytes = await getBlankPdf(config);
   let pdfDoc;
   try {
     pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
   } catch (e) {
-    throw new Error(`Failed to load PDF for ${trecNumber}: ${e.message}`);
+    throw new Error('Failed to load PDF for ' + formType + ': ' + (e && e.message));
   }
 
   const fv = fieldValues || {};
 
-  switch (trecNumber) {
-    case '20-16':   await fill2016(pdfDoc, fv); break;
-    case '40-9':    await fill409(pdfDoc, fv); break;
-    case 'hoa-addendum': await fillHoaAddendum(pdfDoc, fv); break;
-    case 'lead-paint':   await fillLeadPaint(pdfDoc, fv); break;
+  switch (formType) {
+    case 'resale-contract':    await fillResaleContract(pdfDoc, fv); break;
+    case 'financing-addendum': await fillFinancingAddendum(pdfDoc, fv); break;
+    case 'termination-notice': await fillTerminationNotice(pdfDoc, fv); break;
     default:
-      throw new ValidationError(`No fill handler for form ${trecNumber}`);
+      throw new ValidationError('No fill handler for form_type: ' + formType);
   }
 
-  // Flatten so the agent can print/send without interactive editing
-  try {
-    pdfDoc.getForm().flatten();
-  } catch (e) {
-    console.warn('[fill-form] flatten failed:', e && e.message);
-  }
+  try { pdfDoc.getForm().flatten(); } catch (e) { console.warn('[fill-form] flatten failed:', e && e.message); }
 
   return await pdfDoc.save();
 }
@@ -522,36 +390,35 @@ module.exports = async function handler(req, res) {
 
   try {
     const ip = clientIpFromReq(req);
-    await checkRateLimit(ip, 'fill-form', 20, 60 * 60 * 1000); // 20/hour
+    await checkRateLimit(ip, 'fill-form', 20, 60 * 60 * 1000);
 
     const { userId } = await verifySupabaseToken(req);
 
     let body = req.body;
     if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch { body = {}; }
+      try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
     body = body || {};
 
     const transactionId = sanitizeString(body.transaction_id, { maxLength: 200 });
-    const trecNumber = sanitizeString(body.trec_number, { maxLength: 50 });
+    const formType = sanitizeString(body.form_type, { maxLength: 50 });
     const fieldValues = (body.field_values && typeof body.field_values === 'object') ? body.field_values : {};
 
     if (!transactionId) throw new ValidationError('transaction_id is required.');
-    if (!trecNumber) throw new ValidationError('trec_number is required.');
-    if (!ALLOWED_TREC_NUMBERS.has(trecNumber)) {
-      throw new ValidationError(`trec_number must be one of: ${[...ALLOWED_TREC_NUMBERS].join(', ')}`);
+    if (!formType) throw new ValidationError('form_type is required.');
+    if (!ALLOWED_FORM_TYPES.has(formType)) {
+      throw new ValidationError('form_type must be one of: ' + [...ALLOWED_FORM_TYPES].join(', '));
     }
 
-    // Verify user owns the transaction
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
-      `transactions?id=eq.${safeTx}&user_id=eq.${safeUid}&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,closing_date&limit=1`,
+      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name&limit=1',
       { method: 'GET' },
     );
     if (!txResp.ok) {
-      const text = await txResp.text().catch(() => '');
-      throw new Error(`transaction fetch failed (${txResp.status}): ${text.slice(0, 200)}`);
+      const text = await txResp.text().catch(function() { return ''; });
+      throw new Error('transaction fetch failed (' + txResp.status + '): ' + text.slice(0, 200));
     }
     const txRows = await txResp.json();
     const tx = (Array.isArray(txRows) && txRows[0]) || null;
@@ -559,51 +426,80 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ ok: false, error: 'Dossier not found.' });
     }
 
-    // Merge transaction data with agent-supplied field values
-    // Agent-supplied values take precedence over transaction record
-    const mergedFields = {
-      buyer_name:       tx.buyer_name || null,
-      seller_name:      tx.seller_name || null,
-      property_address: tx.property_address || null,
-      city:             tx.city_state_zip || null,
-      purchase_price:   tx.sale_price || null,
-      earnest_money:    tx.earnest_money || null,
-      option_fee:       tx.option_fee || null,
-      closing_date:     tx.closing_date || null,
-      ...fieldValues,  // agent-supplied overrides
+    let profile = {};
+    try {
+      const profResp = await supabaseRest(
+        'profiles?id=eq.' + safeUid + '&select=full_name,phone,email,brokerage,trec_license_number&limit=1',
+        { method: 'GET' },
+      );
+      if (profResp.ok) {
+        const profRows = await profResp.json();
+        profile = (Array.isArray(profRows) && profRows[0]) || {};
+      }
+    } catch (e) {
+      console.warn('[fill-form] profile fetch failed (non-fatal):', e && e.message);
+    }
+
+    // Normalize transaction data, mirroring normalize_transaction.py
+    const ft = tx.financing_type || (tx.lender_name ? 'conventional' : null);
+    const txDefaults = {
+      buyer_name:              tx.buyer_name || '',
+      seller_name:             tx.seller_name || '',
+      property_address:        tx.property_address || '',
+      city_state_zip:          tx.city_state_zip || '',
+      property_full:           [tx.property_address, tx.city_state_zip].filter(Boolean).join(', '),
+      county:                  tx.county || '',
+      legal_description:       tx.legal_description || '',
+      sale_price:              tx.sale_price != null ? String(tx.sale_price) : '',
+      earnest_money:           tx.earnest_money != null ? String(tx.earnest_money) : '',
+      option_fee:              tx.option_fee != null ? String(tx.option_fee) : '',
+      closing_date:            tx.closing_date || '',
+      contract_effective_date: tx.contract_effective_date || '',
+      title_company:           tx.title_company || '',
+      loan_amount:             tx.loan_amount != null ? String(tx.loan_amount) : '',
+      financing_type:          ft || '',
+      financing_addendum:      Boolean(ft && ft !== 'cash'),
+      financing_conventional:  ft === 'conventional',
+      financing_fha:           ft === 'fha',
+      financing_va:            ft === 'va',
+      listing_agent_name:      profile.full_name || '',
+      listing_broker_firm:     profile.brokerage || '',
+      listing_agent_phone:     profile.phone || '',
+      listing_agent_email:     profile.email || '',
+      listing_agent_license:   profile.trec_license_number || '',
     };
 
-    // Fill the form
-    console.log('[fill-form] filling', trecNumber, 'for tx', transactionId);
-    const filledBytes = await fillForm(trecNumber, mergedFields);
+    // Agent-supplied field_values override transaction defaults
+    const mergedFields = Object.assign({}, txDefaults, fieldValues);
+
+    console.log('[fill-form] filling', formType, 'for tx', transactionId);
+    const filledBytes = await fillForm(formType, mergedFields);
     const buffer = Buffer.from(filledBytes);
 
-    // Upload to Supabase Storage
     const ts = Date.now();
-    const config = FORM_CONFIGS[trecNumber];
-    const safeName = `filled-${trecNumber}-${ts}.pdf`;
-    const storagePath = `${userId}/${transactionId}/${safeName}`;
+    const config = FORM_CONFIGS[formType];
+    const safeName = config.shortName + '-' + ts + '.pdf';
+    const storagePath = userId + '/' + transactionId + '/' + safeName;
     storagePathForCleanup = storagePath;
     await supabaseStorageUpload(storagePath, buffer, 'application/pdf');
 
-    // Insert documents row
     const docResp = await supabaseRest('documents', {
       method: 'POST',
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify({
         transaction_id: transactionId,
         user_id: userId,
-        file_name: `${config.short_name}.pdf`,
+        file_name: safeName,
         file_type: 'application/pdf',
-        document_type: 'filled_form',
+        document_type: config.documentType,
         storage_path: storagePath,
         file_size: buffer.length,
         status: 'filled',
       }),
     });
     if (!docResp.ok) {
-      const text = await docResp.text().catch(() => '');
-      throw new Error(`documents insert failed (${docResp.status}): ${text.slice(0, 300)}`);
+      const text = await docResp.text().catch(function() { return ''; });
+      throw new Error('documents insert failed (' + docResp.status + '): ' + text.slice(0, 300));
     }
     const docRows = await docResp.json();
     const docRow = Array.isArray(docRows) ? docRows[0] : docRows;
@@ -615,8 +511,9 @@ module.exports = async function handler(req, res) {
       documentId: docRow && docRow.id ? docRow.id : null,
       storagePath,
       signedUrl,
-      fileName: `${config.short_name}.pdf`,
+      fileName: safeName,
       formName: config.name,
+      formType,
     });
 
   } catch (error) {
