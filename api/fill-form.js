@@ -58,6 +58,47 @@ const FORM_CONFIGS = {
     getBase64: function() { return require('./_assets/tar-wire-fraud-base64.js'); },
     documentType: 'wire_fraud_warning',
   },
+  // Block 9B — HOA Addendum (TREC 36-11)
+  // NOTE: Replace api/_assets/trec-hoa-addendum-base64.js with the real TREC 36-11 PDF
+  // when available. Field names below are best-guess and must be verified against AcroForm.
+  'hoa-addendum': {
+    name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-11)',
+    shortName: 'TREC-HOA-Addendum',
+    getBase64: function() { return require('./_assets/trec-hoa-addendum-base64.js'); },
+    documentType: 'hoa_addendum',
+  },
+  // Block 9C — Lead-Based Paint Addendum (OP-L)
+  // NOTE: Replace api/_assets/trec-lead-paint-base64.js with the real OP-L PDF.
+  'lead-paint-addendum': {
+    name: 'Addendum for Sellers Disclosure of Information on Lead-Based Paint',
+    shortName: 'OP-L-Lead-Paint',
+    getBase64: function() { return require('./_assets/trec-lead-paint-base64.js'); },
+    documentType: 'lead_paint_addendum',
+  },
+  // Block 9E — Buyer Representation Agreement (TAR 1501)
+  // NOTE: Replace api/_assets/tar-buyer-rep-base64.js with the real TAR 1501 PDF.
+  'buyer-rep-agreement': {
+    name: 'Residential Buyer Representation Agreement (TAR 1501)',
+    shortName: 'TAR-Buyer-Rep',
+    getBase64: function() { return require('./_assets/tar-buyer-rep-base64.js'); },
+    documentType: 'buyer_rep_agreement',
+  },
+  // Block 10 — TREC 49-1 Appraisal Termination
+  // NOTE: Replace api/_assets/trec-49-1-base64.js with the real TREC 49-1 PDF.
+  'appraisal-termination': {
+    name: 'Right to Terminate Due to Lenders Appraisal (TREC 49-1)',
+    shortName: 'TREC-49-1',
+    getBase64: function() { return require('./_assets/trec-49-1-base64.js'); },
+    documentType: 'appraisal_termination',
+  },
+  // Block 12 — T-47 Affidavit
+  // NOTE: Replace api/_assets/t47-affidavit-base64.js with the real T-47 PDF.
+  't47-affidavit': {
+    name: 'T-47 Residential Real Property Affidavit',
+    shortName: 'T-47-Affidavit',
+    getBase64: function() { return require('./_assets/t47-affidavit-base64.js'); },
+    documentType: 't47_affidavit',
+  },
 };
 
 const ALLOWED_FORM_TYPES = new Set(Object.keys(FORM_CONFIGS));
@@ -360,6 +401,120 @@ async function fillWireFraudWarning(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
+// HOA ADDENDUM (TREC 36-11)
+// Block 9B — pre-fills hoa_name, hoa_phone, hoa_management_company from transaction
+// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// ---------------------------------------------------------------------------
+async function fillHoaAddendum(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = fv.property_address || '';
+  if (addr) {
+    safeSetText(form, 'Street Address and City', addr);
+    safeSetText(form, 'Property Address', addr);
+  }
+  if (fv.hoa_name) safeSetText(form, 'Name of Property Owners Association', fv.hoa_name);
+  if (fv.hoa_phone) safeSetText(form, 'Phone', fv.hoa_phone);
+  if (fv.hoa_management_company) safeSetText(form, 'Management Company', fv.hoa_management_company);
+  if (fv.hoa_monthly_fee != null && fv.hoa_monthly_fee !== '') safeSetText(form, 'Monthly Assessment', formatMoney(fv.hoa_monthly_fee));
+  if (fv.hoa_initiation_fee != null && fv.hoa_initiation_fee !== '') safeSetText(form, 'Initiation Fee', formatMoney(fv.hoa_initiation_fee));
+  if (fv.hoa_transfer_fee != null && fv.hoa_transfer_fee !== '') safeSetText(form, 'Transfer Fee', formatMoney(fv.hoa_transfer_fee));
+  if (fv.mandatory_membership === true) safeCheck(form, 'Mandatory Membership');
+  if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
+  if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// LEAD-BASED PAINT ADDENDUM (OP-L)
+// Block 9C — auto-trigger if year_built < 1978
+// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// ---------------------------------------------------------------------------
+async function fillLeadPaintAddendum(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
+  if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
+  if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
+  // Seller disclosure options
+  if (fv.seller_aware_of_hazards === true) {
+    safeCheck(form, 'Seller is aware of lead-based paint hazards');
+  } else {
+    safeCheck(form, 'Seller has no knowledge of lead-based paint');
+  }
+  // 10-day inspection right (default checked)
+  if (fv.buyer_10_day_inspection_right !== false) {
+    safeCheck(form, '10 Day Inspection');
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  safeSetText(form, 'Date', formatDate(today));
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// BUYER REPRESENTATION AGREEMENT (TAR 1501)
+// Block 9E — pre-fills agent/brokerage info from profile
+// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// ---------------------------------------------------------------------------
+async function fillBuyerRepAgreement(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  if (fv.buyer_name_1) safeSetText(form, 'Client Name', fv.buyer_name_1);
+  if (fv.buyer_name_2) safeSetText(form, 'Client Name 2', fv.buyer_name_2);
+  if (fv.listing_agent_name) safeSetText(form, 'Broker Associate', fv.listing_agent_name);
+  if (fv.listing_agent_license) safeSetText(form, 'License No', fv.listing_agent_license);
+  if (fv.listing_broker_firm) safeSetText(form, 'Broker', fv.listing_broker_firm);
+  if (fv.listing_agent_phone) safeSetText(form, 'Phone', fv.listing_agent_phone);
+  if (fv.representation_start_date) safeSetText(form, 'Start Date', formatDate(fv.representation_start_date));
+  if (fv.representation_end_date) safeSetText(form, 'End Date', formatDate(fv.representation_end_date));
+  if (fv.compensation_percentage != null && fv.compensation_percentage !== '') {
+    safeSetText(form, 'Compensation', String(fv.compensation_percentage) + '%');
+  }
+  if (fv.geographic_area) safeSetText(form, 'Geographic Area', fv.geographic_area);
+  const today = new Date().toISOString().slice(0, 10);
+  safeSetText(form, 'Date', formatDate(today));
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// TREC 49-1 — Right to Terminate Due to Lender's Appraisal
+// Block 10 — pre-fills appraisal_value from transaction
+// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// ---------------------------------------------------------------------------
+async function fillAppraisalTermination(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
+  if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
+  if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
+  if (fv.contract_date) safeSetText(form, 'Contract Date', formatDate(fv.contract_date));
+  if (fv.appraisal_deadline) safeSetText(form, 'Appraisal Deadline', formatDate(fv.appraisal_deadline));
+  if (fv.appraised_value != null && fv.appraised_value !== '') {
+    safeSetText(form, 'Appraised Value', formatMoney(fv.appraised_value));
+  }
+  if (fv.sales_price != null && fv.sales_price !== '') {
+    safeSetText(form, 'Sales Price', formatMoney(fv.sales_price));
+  }
+  if (fv.termination_date) safeSetText(form, 'Termination Date', formatDate(fv.termination_date));
+  const today = new Date().toISOString().slice(0, 10);
+  if (!fv.termination_date) safeSetText(form, 'Termination Date', formatDate(today));
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// T-47 AFFIDAVIT — Residential Real Property Affidavit
+// Block 12 — pre-fills seller names and property address
+// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// ---------------------------------------------------------------------------
+async function fillT47Affidavit(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  if (fv.seller_name_1) safeSetText(form, 'Affiant Name', fv.seller_name_1);
+  if (fv.seller_name_2) safeSetText(form, 'Affiant Name 2', fv.seller_name_2);
+  if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
+  if (fv.survey_date) safeSetText(form, 'Survey Date', formatDate(fv.survey_date));
+  if (fv.surveyor_name) safeSetText(form, 'Surveyor Name', fv.surveyor_name);
+  const today = new Date().toISOString().slice(0, 10);
+  safeSetText(form, 'Date', formatDate(today));
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
 // Load base64 PDF and return filled bytes
 // ---------------------------------------------------------------------------
 async function fillForm(formType, fieldValues) {
@@ -379,10 +534,15 @@ async function fillForm(formType, fieldValues) {
   const fv = fieldValues || {};
 
   switch (formType) {
-    case 'resale-contract':    await fillResaleContract(pdfDoc, fv); break;
-    case 'financing-addendum': await fillFinancingAddendum(pdfDoc, fv); break;
-    case 'termination-notice': await fillTerminationNotice(pdfDoc, fv); break;
-    case 'wire-fraud-warning': await fillWireFraudWarning(pdfDoc, fv); break;
+    case 'resale-contract':       await fillResaleContract(pdfDoc, fv); break;
+    case 'financing-addendum':    await fillFinancingAddendum(pdfDoc, fv); break;
+    case 'termination-notice':    await fillTerminationNotice(pdfDoc, fv); break;
+    case 'wire-fraud-warning':    await fillWireFraudWarning(pdfDoc, fv); break;
+    case 'hoa-addendum':          await fillHoaAddendum(pdfDoc, fv); break;
+    case 'lead-paint-addendum':   await fillLeadPaintAddendum(pdfDoc, fv); break;
+    case 'buyer-rep-agreement':   await fillBuyerRepAgreement(pdfDoc, fv); break;
+    case 'appraisal-termination': await fillAppraisalTermination(pdfDoc, fv); break;
+    case 't47-affidavit':         await fillT47Affidavit(pdfDoc, fv); break;
     default:
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
@@ -444,7 +604,7 @@ module.exports = async function handler(req, res) {
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
-      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name&limit=1',
+      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline&limit=1',
       { method: 'GET' },
     );
     if (!txResp.ok) {
@@ -498,6 +658,18 @@ module.exports = async function handler(req, res) {
       listing_agent_phone:     profile.phone || '',
       listing_agent_email:     profile.email || '',
       listing_agent_license:   profile.trec_license_number || '',
+      // HOA fields (Block 9B)
+      hoa_name:                tx.hoa_name || '',
+      hoa_phone:               tx.hoa_phone || '',
+      hoa_management_company:  tx.hoa_management_company || '',
+      // Appraisal fields (Block 10)
+      appraised_value:         tx.appraisal_value != null ? String(tx.appraisal_value) : '',
+      appraisal_deadline:      tx.appraisal_deadline || '',
+      sales_price:             tx.sale_price != null ? String(tx.sale_price) : '',
+      // Seller name split for T-47 and other multi-seller forms
+      seller_name_1:           tx.seller_name || '',
+      // Year built for lead paint trigger
+      year_built:              tx.year_built || null,
     };
 
     // Agent-supplied field_values override transaction defaults
