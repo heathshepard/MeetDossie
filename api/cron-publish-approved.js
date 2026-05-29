@@ -42,7 +42,12 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const ZERNIO_POSTS_URL = 'https://zernio.com/api/v1/posts';
-const MAX_PER_RUN = 8;
+const MAX_PER_RUN = 10; // bumped from 8 to 10 — 9 posts/day with YouTube added (2026-05-29)
+
+// YouTube account ID is stored in env var — Heath must add ZERNIO_YOUTUBE_ACCOUNT_ID
+// in Vercel dashboard (Settings -> Environment Variables). Value comes from Zernio
+// dashboard under Connected Accounts -> YouTube -> Account ID.
+const ZERNIO_YOUTUBE_ACCOUNT_ID = process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null;
 
 // Twitter thread split with hard caps. Verified on the 838-char Brenda thread
 // that previously exploded into 15 sub-fragments because the LLM had written
@@ -284,6 +289,16 @@ async function pushToZernio(post) {
     } else if (chunks.length === 1) {
       topContent = chunks[0];
     }
+  }
+
+  // YouTube requires a title in platformSpecificData.
+  // Use the hook field (already trimmed to <= 8 words) as the video title,
+  // fall back to first line of caption. Strip special chars Zernio may reject.
+  if (post.platform === 'youtube') {
+    const rawTitle = post.hook || text.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
+    platformBlock.platformSpecificData = {
+      title: String(rawTitle).replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
+    };
   }
 
   const payload = {
@@ -665,9 +680,10 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // 2026-05-29: ALL posts are now video-only. Block any post where video_required=true
-    // and media_url is still null — the Creatomate pipeline must attach a video first.
-    // Also preserve the legacy Instagram-specific block for older rows without video_required.
+    // Media gate: block publish if the post requires a video/image that hasn't been attached yet.
+    // video_required is set per-platform in cron-generate-posts: true for instagram+tiktok only.
+    // Twitter, LinkedIn, and Facebook have video_required=false and publish text-only.
+    // Legacy instagram guard retained for older rows that pre-date the video_required column.
     const needsVideo = post.video_required === true || post.platform === 'instagram';
     if (needsVideo && !post.media_url) {
       const blockReason = post.video_required
