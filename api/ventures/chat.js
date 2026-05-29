@@ -14,6 +14,7 @@ const AUTHORIZED_EMAILS = new Set([
   'heath.shepard@kw.com',
   'heath@meetdossie.com',
   'heath.shepard@gmail.com',
+  'heathshepard@meetdossie.com',
 ]);
 
 const AGENT_PROMPTS = {

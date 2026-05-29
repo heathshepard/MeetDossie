@@ -12,7 +12,12 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const AUTHORIZED_EMAILS = new Set(['heath.shepard@kw.com', 'heath@meetdossie.com', 'heath.shepard@gmail.com']);
+const AUTHORIZED_EMAILS = new Set([
+  'heath.shepard@kw.com',
+  'heath@meetdossie.com',
+  'heath.shepard@gmail.com',
+  'heathshepard@meetdossie.com',
+]);
 
 // CORS — mirrors the pattern used in admin-dashboard.js
 const ALLOWED_ORIGINS = new Set([
@@ -70,7 +75,8 @@ export default async function handler(req, res) {
   }
   const userData = await userRes.json();
   if (!AUTHORIZED_EMAILS.has(userData.email)) {
-    return res.status(403).json({ error: 'Forbidden - admin only' });
+    // Include the email in the error so we can diagnose unexpected auth identities
+    return res.status(403).json({ error: 'Forbidden - admin only', debug_email: userData.email || 'null' });
   }
 
   try {

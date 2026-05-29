@@ -45,7 +45,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET  = process.env.CRON_SECRET;
 
-const AUTHORIZED_EMAILS = new Set(['heath.shepard@kw.com', 'heath@meetdossie.com', 'heath.shepard@gmail.com']);
+const AUTHORIZED_EMAILS = new Set(['heath.shepard@kw.com', 'heath@meetdossie.com', 'heath.shepard@gmail.com', 'heathshepard@meetdossie.com']);
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
