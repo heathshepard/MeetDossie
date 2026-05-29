@@ -206,7 +206,7 @@ const TOOLS = [
         deal_identifier: { type: 'string', description: 'Any part of the address, buyer name, or seller name' },
         field: {
           type: 'string',
-          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline'],
+          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type'],
           description: 'The field to update using snake_case',
         },
         value: { type: 'string', description: 'The new value' },
@@ -396,7 +396,7 @@ COMMON STAGE PHRASES → CANONICAL ID:
 - "closed", "closing complete", "done", "funded" → closed
 
 CANONICAL FIELD NAMES — use ONLY these exact values for update_deal_field.field:
-closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline
+closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type
 
 COMMON FIELD PHRASES → CANONICAL NAME:
 - "closing date", "close date", "closes on" → closing_date

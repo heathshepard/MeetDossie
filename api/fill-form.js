@@ -52,6 +52,12 @@ const FORM_CONFIGS = {
     getBase64: function() { return require('./_assets/trec-termination-base64.js'); },
     documentType: 'termination_notice',
   },
+  'wire-fraud-warning': {
+    name: 'Wire Fraud Warning (TAR 2517)',
+    shortName: 'TAR-Wire-Fraud-Warning',
+    getBase64: function() { return require('./_assets/tar-wire-fraud-base64.js'); },
+    documentType: 'wire_fraud_warning',
+  },
 };
 
 const ALLOWED_FORM_TYPES = new Set(Object.keys(FORM_CONFIGS));
@@ -330,6 +336,30 @@ async function fillTerminationNotice(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
+// WIRE FRAUD WARNING (TAR 2517)
+// Fields: buyer_name, buyer_email, property_address, agent_name, agent_license, delivery_date
+// Note: TAR 2517 base64 PDF must be populated in _assets/tar-wire-fraud-base64.js
+// before this form will produce output. The field names below are best-guess —
+// adjust after inspecting the actual AcroForm fields in TAR 2517 if needed.
+// ---------------------------------------------------------------------------
+async function fillWireFraudWarning(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+
+  // Best-effort field fills — TAR 2517 AcroForm fields may differ from these names.
+  // After obtaining the real PDF, run scripts/inspect_resale_fields.py to get exact names.
+  const today = fv.delivery_date || new Date().toISOString().slice(0, 10);
+
+  if (fv.buyer_name) safeSetText(form, 'Buyer Name', fv.buyer_name);
+  if (fv.buyer_email) safeSetText(form, 'Buyer Email', fv.buyer_email);
+  if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
+  if (fv.agent_name) safeSetText(form, 'Agent Name', fv.agent_name);
+  if (fv.agent_license) safeSetText(form, 'License No', fv.agent_license);
+  if (today) safeSetText(form, 'Date', formatDate(today));
+
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
 // Load base64 PDF and return filled bytes
 // ---------------------------------------------------------------------------
 async function fillForm(formType, fieldValues) {
@@ -352,6 +382,7 @@ async function fillForm(formType, fieldValues) {
     case 'resale-contract':    await fillResaleContract(pdfDoc, fv); break;
     case 'financing-addendum': await fillFinancingAddendum(pdfDoc, fv); break;
     case 'termination-notice': await fillTerminationNotice(pdfDoc, fv); break;
+    case 'wire-fraud-warning': await fillWireFraudWarning(pdfDoc, fv); break;
     default:
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
@@ -503,6 +534,27 @@ module.exports = async function handler(req, res) {
     }
     const docRows = await docResp.json();
     const docRow = Array.isArray(docRows) ? docRows[0] : docRows;
+
+    // If this is a wire fraud warning, insert a delivery tracking row.
+    if (formType === 'wire-fraud-warning' && docRow && docRow.id) {
+      const wfdPayload = {
+        transaction_id: transactionId,
+        user_id: userId,
+        document_id: docRow.id,
+        delivered_at: new Date().toISOString(),
+        buyer_name: mergedFields.buyer_name || null,
+        buyer_email: mergedFields.buyer_email || null,
+      };
+      const wfdResp = await supabaseRest('wire_fraud_deliveries', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(wfdPayload),
+      });
+      if (!wfdResp.ok) {
+        const text = await wfdResp.text().catch(function() { return ''; });
+        console.warn('[fill-form] wire_fraud_deliveries insert failed (non-fatal):', wfdResp.status, text.slice(0, 200));
+      }
+    }
 
     const signedUrl = await supabaseStorageSignedUrl(storagePath, 3600);
 
