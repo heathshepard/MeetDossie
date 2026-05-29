@@ -3,7 +3,7 @@
 // for TREC form filling via /api/fill-form.
 //
 // POST {
-//   trec_number: '20-16' | '40-9' | 'hoa-addendum' | 'lead-paint',
+//   form_type: 'resale-contract' | 'financing-addendum' | 'termination-notice',
 //   message: "write a contract for 123 Main St, $300k, John Smith buying, conventional loan...",
 //   transaction: { property_address, buyer_name, seller_name, purchase_price, closing_date, ... }
 // }
@@ -28,7 +28,7 @@ const ALLOWED_ORIGINS = new Set([
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
-const ALLOWED_TREC_NUMBERS = new Set(['20-16', '40-9', 'hoa-addendum', 'lead-paint']);
+const ALLOWED_FORM_TYPES = new Set(['resale-contract', 'financing-addendum', 'termination-notice']);
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
@@ -54,7 +54,7 @@ function applyCors(req, res) {
 // Field schema descriptions per form type
 // ---------------------------------------------------------------------------
 const FIELD_SCHEMAS = {
-  '20-16': `
+  'resale-contract': `
 Extract these fields from the agent's message and transaction context.
 Return a JSON object with ONLY the fields that are present or can be inferred.
 Do NOT guess or fabricate values.
@@ -63,14 +63,14 @@ Fields to extract:
 - buyer_name (string): Full legal name(s) of buyer(s). Example: "John Smith" or "John Smith and Jane Smith"
 - seller_name (string): Full legal name(s) of seller(s).
 - property_address (string): Street address only, no city/state. Example: "123 Main St"
-- city (string): City, state, zip or full location. Example: "San Antonio, TX 78230"
+- city_state_zip (string): City, state, zip. Example: "San Antonio, TX 78230"
 - county (string): Texas county. Example: "Bexar"
 - legal_description (string): Lot/block/subdivision if known.
-- purchase_price (number): Total purchase price in dollars. Example: 300000
+- sale_price (number): Total purchase price in dollars. Example: 300000
 - earnest_money (number): Earnest money amount. Default 1% of purchase price if not stated.
 - option_fee (number): Option period fee in dollars. Default 100 if not stated.
 - option_days (number): Option period days. Default 10 if not stated.
-- loan_amount (number): Loan amount = purchase_price - down_payment_amt
+- loan_amount (number): Loan amount = sale_price - down_payment_amt
 - down_payment_pct (number): Down payment as percentage. Example: 3.5
 - down_payment_amt (number): Down payment dollar amount.
 - closing_date (string): ISO date YYYY-MM-DD. Calculate from close_in_days if stated.
@@ -78,20 +78,15 @@ Fields to extract:
 - title_company (string): Title company name if stated.
 - financing_type (string): One of: "conventional", "fha", "va", "usda", "cash". Default "conventional" if loan mentioned.
 - hoa_exists (boolean): true if HOA mentioned or suspected, false if not.
-- possession (string): "closing" default.
-- listing_agent_name (string): Agent's name from profile.
-- listing_agent_phone (string): Agent's phone from profile.
-- listing_agent_email (string): Agent's email from profile.
-- listing_agent_license (string): Agent's TREC license number from profile.
-- listing_broker_firm (string): Agent's brokerage name.
+- contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
 `,
-  '40-9': `
+  'financing-addendum': `
 Extract these fields for the Third Party Financing Addendum.
 Return ONLY fields that are present or can be inferred.
 
 Fields to extract:
 - property_address (string): Street address.
-- city (string): City, state, zip.
+- city_state_zip (string): City, state, zip.
 - buyer_name (string): Buyer's full name.
 - financing_type (string): One of: "conventional", "fha", "va", "usda". Required.
 - loan_amount (number): Principal loan amount in dollars.
@@ -99,38 +94,29 @@ Fields to extract:
 - interest_rate_max (number): Maximum interest rate (e.g., 8.0 for 8%).
 - loan_term_years (number): Loan term in years (default 30).
 `,
-  'hoa-addendum': `
-Extract these fields for the HOA Addendum.
+  'termination-notice': `
+Extract these fields for the Notice of Sellers Termination of Contract.
 Return ONLY fields that are present or can be inferred.
 
 Fields to extract:
 - property_address (string): Street address.
-- city (string): City, state, zip.
-- hoa_name (string): Name of the homeowners association.
-- hoa_phone (string): HOA phone number if known.
-`,
-  'lead-paint': `
-Extract these fields for the Lead-Based Paint Addendum.
-Return ONLY fields that are present or can be inferred.
-
-Fields to extract:
-- property_address (string): Street address.
-- city (string): City, state, zip.
+- city_state_zip (string): City, state, zip.
 - seller_name (string): Seller's full name.
 - buyer_name (string): Buyer's full name.
-- year_built (number): Year the home was built (important: required for pre-1978 homes).
+- contract_effective_date (string): ISO date YYYY-MM-DD of original contract.
+- termination_reason (string): Brief reason for termination if stated.
 `,
 };
 
 // ---------------------------------------------------------------------------
 // Extract fields via Claude Haiku
 // ---------------------------------------------------------------------------
-async function extractFieldsWithAI(trecNumber, message, transaction) {
+async function extractFieldsWithAI(formType, message, transaction) {
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
 
-  const schema = FIELD_SCHEMAS[trecNumber] || FIELD_SCHEMAS['20-16'];
+  const schema = FIELD_SCHEMAS[formType] || FIELD_SCHEMAS['resale-contract'];
 
   // Build context from existing transaction record
   const txContext = transaction && typeof transaction === 'object'
@@ -188,7 +174,7 @@ Extract the form fields as a JSON object.`;
 // ---------------------------------------------------------------------------
 // Post-process: calculate derived fields and apply defaults
 // ---------------------------------------------------------------------------
-function postProcess(trecNumber, fields, message) {
+function postProcess(formType, fields, message) {
   const fv = { ...fields };
   const today = new Date();
 
@@ -199,23 +185,23 @@ function postProcess(trecNumber, fields, message) {
     fv.closing_date = cd.toISOString().slice(0, 10);
   }
 
-  // Default earnest_money = 1% of purchase_price
-  if (!fv.earnest_money && fv.purchase_price) {
-    fv.earnest_money = Math.round(Number(fv.purchase_price) * 0.01);
+  // Default earnest_money = 1% of sale_price (use sale_price key to match fill-form.js)
+  if (!fv.earnest_money && fv.sale_price) {
+    fv.earnest_money = Math.round(Number(fv.sale_price) * 0.01);
   }
 
-  // Default option_fee = $100
-  if (!fv.option_fee && trecNumber === '20-16') {
+  // Default option_fee = $100 for resale contracts
+  if (!fv.option_fee && formType === 'resale-contract') {
     fv.option_fee = 100;
   }
 
   // Calculate loan_amount from down_payment
-  if (!fv.loan_amount && fv.purchase_price) {
+  if (!fv.loan_amount && fv.sale_price) {
     if (fv.down_payment_amt) {
-      fv.loan_amount = Number(fv.purchase_price) - Number(fv.down_payment_amt);
+      fv.loan_amount = Number(fv.sale_price) - Number(fv.down_payment_amt);
     } else if (fv.down_payment_pct) {
-      fv.down_payment_amt = Math.round(Number(fv.purchase_price) * Number(fv.down_payment_pct) / 100);
-      fv.loan_amount = Number(fv.purchase_price) - fv.down_payment_amt;
+      fv.down_payment_amt = Math.round(Number(fv.sale_price) * Number(fv.down_payment_pct) / 100);
+      fv.loan_amount = Number(fv.sale_price) - fv.down_payment_amt;
     }
   }
 
@@ -276,21 +262,21 @@ module.exports = async function handler(req, res) {
     }
     body = body || {};
 
-    const trecNumber = sanitizeString(body.trec_number, { maxLength: 50 });
+    const formType = sanitizeString(body.form_type, { maxLength: 50 });
     const message = sanitizeString(body.message, { maxLength: 2000 });
     const transaction = (body.transaction && typeof body.transaction === 'object') ? body.transaction : {};
 
-    if (!trecNumber) throw new ValidationError('trec_number is required.');
-    if (!ALLOWED_TREC_NUMBERS.has(trecNumber)) {
-      throw new ValidationError(`trec_number must be one of: ${[...ALLOWED_TREC_NUMBERS].join(', ')}`);
+    if (!formType) throw new ValidationError('form_type is required.');
+    if (!ALLOWED_FORM_TYPES.has(formType)) {
+      throw new ValidationError(`form_type must be one of: ${[...ALLOWED_FORM_TYPES].join(', ')}`);
     }
     if (!message) throw new ValidationError('message is required.');
 
     // Extract fields with AI
-    const rawFields = await extractFieldsWithAI(trecNumber, message, transaction);
+    const rawFields = await extractFieldsWithAI(formType, message, transaction);
 
     // Post-process and apply defaults
-    const fieldValues = postProcess(trecNumber, rawFields, message);
+    const fieldValues = postProcess(formType, rawFields, message);
 
     return res.status(200).json({
       ok: true,
