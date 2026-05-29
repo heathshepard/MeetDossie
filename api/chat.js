@@ -330,6 +330,51 @@ const TOOLS = [
     },
   },
   {
+    name: 'send_wire_fraud_warning',
+    description: 'Send a TAR 2517 Wire Fraud Warning to the buyer for acknowledgment via DocuSeal e-sign. Use whenever the agent says anything like: send wire fraud warning, send the fraud warning, send TAR 2517, send buyer the wire fraud notice, deliver the wire fraud warning. This fills the TAR 2517 form and routes it to the buyer for electronic signature.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name to identify the transaction' },
+        buyer_name: { type: 'string', description: 'Full name of the buyer receiving the wire fraud warning' },
+        buyer_email: { type: 'string', description: 'Email address of the buyer — required to send DocuSeal link' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'log_offer',
+    description: 'Log an offer received on a seller-side transaction. Use whenever the agent says anything like: we got an offer, received an offer, got a bid, offer came in, buyer submitted an offer, an offer was submitted. Creates a record in the offer comparison table for the dossier.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or seller name to identify the listing' },
+        buyer_name: { type: 'string', description: 'Name of the buyer making the offer' },
+        offer_price: { type: 'number', description: 'The offer price in dollars' },
+        earnest_money: { type: 'number', description: 'Earnest money amount in dollars' },
+        option_fee: { type: 'number', description: 'Option fee amount in dollars' },
+        option_days: { type: 'number', description: 'Number of option period days' },
+        closing_date: { type: 'string', description: 'Requested closing date as YYYY-MM-DD' },
+        financing_type: { type: 'string', enum: ['conventional', 'fha', 'va', 'cash', 'other'], description: 'Type of financing' },
+        notes: { type: 'string', description: 'Any additional terms or notes about the offer' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'initiate_termination',
+    description: 'Generate a TREC 38-7 Buyer Termination of Contract form. Use whenever the agent says anything like: buyer wants to terminate, buyer is terminating, generate termination, draft the termination, buyer is backing out, buyer is walking away, terminate the contract, file for termination.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name to identify the transaction' },
+        termination_reason: { type: 'string', description: 'Reason the buyer is terminating (e.g., inspection results, financing denied, option period)' },
+        option_fee_return_requested: { type: 'boolean', description: 'Whether the buyer is requesting return of the option fee' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
     name: 'answer_question',
     description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies.',
     input_schema: {
@@ -372,6 +417,9 @@ INTENT MAPPING:
 - What do I have/what's active/what's urgent/pipeline/my deals/show me = get_deals
 - Tell me about/details on/what's the status of/closing date on/who is = get_deal_details
 - Draft/email/send/write/intro/introduction/notify = draft_email
+- Send wire fraud warning/TAR 2517/fraud notice to buyer = send_wire_fraud_warning
+- We got an offer/received an offer/offer came in/buyer submitted/got a bid = log_offer (seller-side)
+- Buyer wants to terminate/buyer is terminating/buyer is backing out/terminate the contract/draft the termination/TREC 38-7 = initiate_termination
 - Everything else = answer_question
 
 CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
@@ -455,7 +503,7 @@ COMMON FIELD PHRASES → CANONICAL NAME:
 - "gave the client the IABS", "delivered the IABS", "sent the IABS", "IABS delivered" → iabs_delivered_at
 - "seller's disclosure received", "got the seller disclosure", "OP-H received" → sellers_disclosure_received_at
 - "buyer rep signed", "buyer representation agreement signed", "TAR 1501 signed" → buyer_rep_signed_at
-- "pre-approval received", "got pre-approval", "buyer is pre-approved", "pre-approval letter" → pre_approval_received
+- "pre-approval received", "got pre-approval", "buyer is pre-approved", "pre-approval letter" → pre_approval_received (set to "true"; follow up with answer_question prompting agent to upload the document in the dossier)
 - "pre-approval letter URL", "link to pre-approval" → pre_approval_letter_url
 
 CANONICAL EMAIL TYPES — use ONLY these exact values for draft_email.email_type:

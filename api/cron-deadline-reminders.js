@@ -196,10 +196,13 @@ async function loadOpenTransactions(userId) {
   const baseFields = ['id', 'user_id', 'property_address', 'status', ...DEADLINE_FIELDS.map((f) => f.col)];
   const conditionalFields = [
     'earnest_money_confirmed_at',
+    'inspection_scheduled_at',
     'inspection_completed_at',
     'appraisal_received_at',
     'loan_approval_received_at',
     'hoa_docs_received_at',
+    'inspector_name',
+    'inspector_phone',
   ];
   const fields = [...baseFields, ...conditionalFields].join(',');
   const r = await supabaseFetch(
@@ -439,14 +442,14 @@ module.exports = async function handler(req, res) {
         }
 
         // -----------------------------------------------------------------------
-        // BLOCK 6 conditional: loan_approval_deadline within T-2 and loan not
-        // yet approved.
+        // BLOCK 6 conditional: loan_approval_deadline within T-3 or T-1 and
+        // loan not yet approved. (Spec calls for T-3 and T-1 escalation cadence.)
         // -----------------------------------------------------------------------
         if (tx.loan_approval_deadline && !tx.loan_approval_received_at) {
           const loanYmd = String(tx.loan_approval_deadline).slice(0, 10);
-          const t2Date = addDaysYMD(today, 2);
+          const t1Date = addDaysYMD(today, 1);
           const t3Date = addDaysYMD(today, 3);
-          const loanDaysOut = loanYmd === t2Date ? 2 : loanYmd === t3Date ? 3 : null;
+          const loanDaysOut = loanYmd === t1Date ? 1 : loanYmd === t3Date ? 3 : null;
           if (loanDaysOut !== null) {
             const condKey = `loan_approval_not_received|${loanDaysOut}`;
             if (!fired.has(condKey)) {
@@ -513,6 +516,93 @@ module.exports = async function handler(req, res) {
             } else {
               summary.reminders_skipped_already_sent++;
             }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 13/14: inspection_scheduled_at T-1 reminder.
+        // Fires the day before a scheduled inspection to prompt the agent to
+        // confirm inspector access and readiness.
+        // -----------------------------------------------------------------------
+        if (tx.inspection_scheduled_at) {
+          const inspScheduledYmd = String(tx.inspection_scheduled_at).slice(0, 10);
+          const t1Date = addDaysYMD(today, 1);
+          if (inspScheduledYmd === t1Date) {
+            const condKey = `inspection_scheduled_tomorrow|1`;
+            if (!fired.has(condKey)) {
+              const inspectorInfo = tx.inspector_name
+                ? `${tx.inspector_name}${tx.inspector_phone ? ' (' + tx.inspector_phone + ')' : ''}`
+                : 'your inspector';
+              const condSubject = `Tomorrow: inspection scheduled — confirm access for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: `Inspection tomorrow with ${inspectorInfo} — confirm access and readiness`,
+                deadlineDateYMD: inspScheduledYmd,
+                daysOut: 1,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'inspection_scheduled_tomorrow',
+                  deadline_date: inspScheduledYmd,
+                  days_out: 1,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'inspection_scheduled_tomorrow', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 13/14: Wire fraud warning not sent check.
+        // Fires once per transaction if no wire_fraud_deliveries row exists.
+        // Uses a synthetic deadline_type so the dedup table catches repeats.
+        // Only fires for transactions that have a property_address (i.e., are real
+        // deals with a contract), not bare pre-contract stubs.
+        // -----------------------------------------------------------------------
+        if (tx.property_address && tx.status !== 'pre_contract') {
+          const wfdKey = `wire_fraud_not_sent|0`;
+          if (!fired.has(wfdKey)) {
+            // Query wire_fraud_deliveries for this transaction.
+            const wfdResp = await supabaseFetch(
+              `/rest/v1/wire_fraud_deliveries?transaction_id=eq.${encodeURIComponent(tx.id)}&select=id&limit=1`,
+            );
+            const wfdRows = (wfdResp.ok && wfdResp.data) ? wfdResp.data : [];
+            if (wfdRows.length === 0) {
+              // No wire fraud warning on file — send a one-time alert.
+              const condSubject = `Action needed: wire fraud warning not sent for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: 'Wire fraud warning has not been sent to the buyer — deliver TAR 2517 now',
+                deadlineDateYMD: today,
+                daysOut: 0,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'wire_fraud_not_sent',
+                  deadline_date: today,
+                  days_out: 0,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'wire_fraud_not_sent', status: condSend.status });
+              }
+            }
+          } else {
+            summary.reminders_skipped_already_sent++;
           }
         }
       }

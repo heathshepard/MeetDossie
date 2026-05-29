@@ -124,3 +124,21 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 **Desktop layout**
 - The document buttons in each deal (Upload, E-sign, Form Library, Packages) now sit in a clean horizontal row on desktop instead of stacking vertically. Easier to scan, faster to use.
+
+---
+
+## Week of May 29, 2026 (final lifecycle build — Blocks 13 and 14)
+
+**Talk to Dossie understands every stage of the deal now**
+- Ask Dossie to "send the wire fraud warning to Sarah Martinez" and she triggers the TAR 2517 form + routes it to the buyer for signature — no hunting for the form yourself.
+- Tell Dossie "we got an offer for $415,000 with $5,000 earnest money and a 7-day option, closing July 15" and she logs it in the offer comparison table for that listing. No manual entry.
+- Say "buyer wants to terminate" and Dossie surfaces TREC 38-7 (Buyer Termination of Contract) immediately — prefilled with the deal details and ready to send.
+- When the buyer's pre-approval letter comes in, tell Dossie "pre-approval received" — she marks it confirmed and prompts you to upload the document to the dossier.
+
+**Smarter reminder emails**
+- If an inspection is scheduled for tomorrow, Dossie now emails you the night before to confirm the inspector and access — includes the inspector name and phone number in the message.
+- Loan approval reminders now fire at both T-3 (three days out) and T-1 (the day before the deadline), not just T-3. You'll always get a second warning if nothing has been confirmed.
+- If no wire fraud warning has been sent for an active deal, Dossie now sends a one-time alert so nothing falls through the cracks on this legally sensitive document.
+
+**Full buyer-side transaction lifecycle — complete**
+- The full buyer-side residential resale workflow is now covered from pre-contract through post-closing: pre-approval, buyer rep agreement, IABS delivery, contract fill and sign, wire fraud warning, option period tracking, earnest money confirmation, inspection scheduling, repair amendments, appraisal tracking, title commitment, loan approval, HOA documents, pre-closing checklist, closing, and post-closing deed and CDA tracking. Every phase. Every document. Every deadline.
