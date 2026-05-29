@@ -107,6 +107,18 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 **Never run `vercel --prod` manually** — Vercel auto-deploys from GitHub.
 **Never push directly to main** — always go through staging first.
 
+### Pre-merge QA gate (mandatory)
+
+Before every `git merge staging` -> `main`, Quinn MUST run and pass.
+
+To run Quinn:
+- Spawn the `quinn` agent with: "Run your full standard test suite on staging. Report results to Telegram."
+- Wait for Quinn's Telegram report
+- Only merge if Quinn replies "All clear. Safe to merge."
+- If Quinn flags failures, fix them on staging first, then re-run Quinn
+
+This rule has no exceptions. Even "quick fixes" go through Quinn.
+
 ---
 
 ## 4. BRAND RULES
