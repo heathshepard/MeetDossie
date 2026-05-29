@@ -21,13 +21,15 @@
 //
 // Deadline fields tracked (every column in public.transactions that ends in
 // _date or _deadline and represents a TREC-style milestone):
-//   - option_expiration_date  → "Option period expires"
-//   - closing_date            → "Closing"
-//   - appraisal_deadline      → "Appraisal deadline"
-//   - survey_deadline         → "Survey deadline"
-//   - hoa_document_deadline   → "HOA document deadline"
-//   - loan_approval_deadline  → "Loan approval deadline"
-//   - possession_date         → "Possession"
+//   - option_expiration_date    → "Option period expires"
+//   - closing_date              → "Closing"
+//   - appraisal_deadline        → "Appraisal deadline"
+//   - survey_deadline           → "Survey deadline"
+//   - hoa_document_deadline     → "HOA document deadline"
+//   - loan_approval_deadline    → "Loan approval deadline"
+//   - possession_date           → "Possession"
+//   - expected_completion_date  → "Expected completion (new construction)" — T-7 if CO not received
+//   - builder_warranty_expiration → "Builder warranty expiration" — T-30
 //
 // Customer filter mirrors cron-morning-brief.js:
 //   - profiles.is_demo = true            → skip
@@ -203,6 +205,11 @@ async function loadOpenTransactions(userId) {
     'hoa_docs_received_at',
     'inspector_name',
     'inspector_phone',
+    // New construction fields
+    'transaction_type',
+    'expected_completion_date',
+    'co_received_date',
+    'builder_warranty_expiration',
   ];
   const fields = [...baseFields, ...conditionalFields].join(',');
   const r = await supabaseFetch(
@@ -603,6 +610,87 @@ module.exports = async function handler(req, res) {
             }
           } else {
             summary.reminders_skipped_already_sent++;
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // NEW CONSTRUCTION: expected_completion_date within T-7 and CO not
+        // yet received. Only fires for new_home_purchase transactions.
+        // -----------------------------------------------------------------------
+        if (tx.transaction_type === 'new_home_purchase' && tx.expected_completion_date && !tx.co_received_date) {
+          const compYmd = String(tx.expected_completion_date).slice(0, 10);
+          const t7Date = addDaysYMD(today, 7);
+          const t3Date = addDaysYMD(today, 3);
+          const t1Date = addDaysYMD(today, 1);
+          const compDaysOut = compYmd === t7Date ? 7 : compYmd === t3Date ? 3 : compYmd === t1Date ? 1 : null;
+          if (compDaysOut !== null) {
+            const condKey = `new_construction_completion_no_co|${compDaysOut}`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Action needed: expected completion in ${compDaysOut === 1 ? '1 day' : `${compDaysOut} days`} — CO not received for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: `Expected completion approaching — Certificate of Occupancy not yet received`,
+                deadlineDateYMD: compYmd,
+                daysOut: compDaysOut,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'new_construction_completion_no_co',
+                  deadline_date: compYmd,
+                  days_out: compDaysOut,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'new_construction_completion_no_co', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // NEW CONSTRUCTION: builder_warranty_expiration within T-30 and T-7.
+        // Fires for any transaction that has a builder_warranty_expiration set.
+        // -----------------------------------------------------------------------
+        if (tx.builder_warranty_expiration) {
+          const warrantyYmd = String(tx.builder_warranty_expiration).slice(0, 10);
+          const t30Date = addDaysYMD(today, 30);
+          const t7Date = addDaysYMD(today, 7);
+          const warrantyDaysOut = warrantyYmd === t30Date ? 30 : warrantyYmd === t7Date ? 7 : null;
+          if (warrantyDaysOut !== null) {
+            const condKey = `builder_warranty_expiring|${warrantyDaysOut}`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Heads up: builder warranty expires in ${warrantyDaysOut} days for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: `Builder warranty expiring — confirm all warranty documents are on file`,
+                deadlineDateYMD: warrantyYmd,
+                daysOut: warrantyDaysOut,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'builder_warranty_expiring',
+                  deadline_date: warrantyYmd,
+                  days_out: warrantyDaysOut,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'builder_warranty_expiring', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
           }
         }
       }
