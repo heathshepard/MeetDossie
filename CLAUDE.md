@@ -109,13 +109,15 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ### Pre-merge QA gate (mandatory)
 
-Before every `git merge staging` -> `main`, TWO things must happen IN ORDER:
+After EVERY Carter staging push, Cole AUTOMATICALLY spawns Quinn — no prompt from Heath required. Quinn runs her full test suite, sends results to Telegram, and loops with Carter to fix failures. Heath just receives the report and decides.
 
-1. **Quinn must pass** — Spawn the `quinn` agent: "Run your full standard test suite on staging. Report results to Telegram." If Quinn flags failures, fix on staging and re-run Quinn first.
+The two-step gate:
 
-2. **Heath must say "merge it"** — After Quinn passes, send Heath a Telegram summary of what's ready and wait for his explicit approval. Quinn passing is NOT sufficient to merge. Cole never auto-merges.
+1. **Quinn auto-runs** — Cole spawns Quinn immediately after every staging commit. Quinn tests, fixes failures with Carter (up to 3 loops), then reports to Heath on Telegram: "QUINN: ✅ All clear on staging. Ready to merge when you are."
 
-This rule has no exceptions. Not for quick fixes, not for urgent patches. Quinn + Heath approval, every time.
+2. **Heath says "merge it"** — Quinn passing is NOT sufficient to merge. Cole waits for Heath's explicit "merge it" before touching main. No exceptions. Not for quick fixes, not for urgent patches.
+
+Cole never auto-merges. Heath is always the final gate.
 
 ---
 
