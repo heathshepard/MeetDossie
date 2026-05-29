@@ -295,12 +295,27 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
+    // Auto-reject low-quality drafts before sending to Telegram.
+    // Threshold: composite < 5.5/10 (below 55%) gets silently rejected.
+    // Composite 5.5-7.3 gets a warning prepended; 7.4+ goes through normally.
+    if (post.status === 'draft' && scoreData && scoreData.composite < 5.5) {
+      const rejectReason = `Auto-rejected by quality scorer: composite ${scoreData.composite}/10 (Hook:${scoreData.hook} Fit:${scoreData.platform_fit} CTA:${scoreData.cta}) — below 5.5 threshold`;
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'rejected', rejection_reason: rejectReason }),
+      }).catch((err) => console.warn('[cron-send-for-approval] auto-reject patch failed:', err && err.message));
+      console.log(`[cron-send-for-approval] auto-rejected ${post.id}: composite ${scoreData.composite}/10`);
+      continue;
+    }
+
     // Message 2: Full content + hashtags + approve/reject buttons.
     // Score line is prepended so Heath sees it before tapping Approve.
     const fullContent = formatFullContent(post);
     const isDraft = post.status === 'draft';
     const buttons = isDraft ? inlineKeyboard(post.id) : null;
-    const prefix = isDraft ? `${scoreLine}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
+    const warningPrefix = (scoreData && scoreData.composite >= 5.5 && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '';
+    const prefix = isDraft ? `${warningPrefix}${scoreLine}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
     const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
     if (!textResult.ok) {
       console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
