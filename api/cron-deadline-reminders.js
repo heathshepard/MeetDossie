@@ -198,6 +198,8 @@ async function loadOpenTransactions(userId) {
     'earnest_money_confirmed_at',
     'inspection_completed_at',
     'appraisal_received_at',
+    'loan_approval_received_at',
+    'hoa_docs_received_at',
   ];
   const fields = [...baseFields, ...conditionalFields].join(',');
   const r = await supabaseFetch(
@@ -429,6 +431,84 @@ module.exports = async function handler(req, res) {
                 summary.reminders_sent++;
               } else {
                 summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'appraisal_not_received', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 6 conditional: loan_approval_deadline within T-2 and loan not
+        // yet approved.
+        // -----------------------------------------------------------------------
+        if (tx.loan_approval_deadline && !tx.loan_approval_received_at) {
+          const loanYmd = String(tx.loan_approval_deadline).slice(0, 10);
+          const t2Date = addDaysYMD(today, 2);
+          const t3Date = addDaysYMD(today, 3);
+          const loanDaysOut = loanYmd === t2Date ? 2 : loanYmd === t3Date ? 3 : null;
+          if (loanDaysOut !== null) {
+            const condKey = `loan_approval_not_received|${loanDaysOut}`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Action needed: loan approval not confirmed — deadline in ${loanDaysOut} days for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: `Loan approval deadline approaching — awaiting lender confirmation`,
+                deadlineDateYMD: loanYmd,
+                daysOut: loanDaysOut,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'loan_approval_not_received',
+                  deadline_date: loanYmd,
+                  days_out: loanDaysOut,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'loan_approval_not_received', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // BLOCK 7 conditional: hoa_document_deadline within T-3 and HOA docs
+        // not yet received.
+        // -----------------------------------------------------------------------
+        if (tx.hoa_document_deadline && !tx.hoa_docs_received_at) {
+          const hoaYmd = String(tx.hoa_document_deadline).slice(0, 10);
+          const t3Date = addDaysYMD(today, 3);
+          if (hoaYmd === t3Date) {
+            const condKey = `hoa_docs_not_received|3`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Action needed: HOA documents not received — deadline in 3 days for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: 'HOA document deadline in 3 days — documents not yet received',
+                deadlineDateYMD: hoaYmd,
+                daysOut: 3,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'hoa_docs_not_received',
+                  deadline_date: hoaYmd,
+                  days_out: 3,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'hoa_docs_not_received', status: condSend.status });
               }
             } else {
               summary.reminders_skipped_already_sent++;

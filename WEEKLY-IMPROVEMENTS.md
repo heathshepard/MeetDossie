@@ -11,6 +11,29 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026 (continued)
+
+**Title commitment and survey tracking**
+- Every dossier now has a Title Commitment and Survey section. Tap to record when the title commitment arrived, what the effective date is, when the survey was ordered, and when it came back. Check off "Survey clear" when the title company confirms it. Dossie tracks all of it in one place.
+- You can also mark the loan as approved and flip the "Clear to close" toggle right from that section. If the loan approval deadline is three days away and the loan hasn't been confirmed, Dossie sends you a reminder email.
+
+**HOA document tracking (expanded)**
+- The HOA section now tracks when you requested the HOA documents and when they arrived. Check off "received" and Dossie timestamps it. If the HOA document deadline is three days away and the documents haven't come in, Dossie sends you an email reminder.
+
+**Closing checklist**
+- Each dossier now has a built-in pre-closing checklist so nothing slips through on closing day. Buyer-side dossiers get: CD reviewed, commission amounts verified, prorations verified, payoff confirmed, wire fraud warning acknowledged, final walkthrough, repairs verified, and fixtures confirmed. Seller-side dossiers get: CD reviewed, net proceeds match, payoff confirmed with lender, and keys ready. Check each item off as you go.
+
+**Post-closing tracking**
+- After the close, Dossie tracks the three things that always get dropped: recorded deed received, title policy delivered to the buyer, and CDA signed by the broker. Check all three and Dossie offers to archive the dossier automatically.
+- CDA (Commission Disbursement Authorization) has been added to the Form Library so you can attach it to any dossier.
+- T-47 Residential Real Property Affidavit has also been added to the Form Library.
+
+**Download ZIP improvements**
+- The compliance ZIP download is now formatted for SkySlope and Dotloop. Documents are automatically sorted - contract first, then amendments, then addenda, then disclosures - and each file gets a numbered prefix (01-Contract.pdf, 02-Amendment.pdf, etc.) so your brokerage portal uploads them in the right order.
+- Every ZIP now includes a cover sheet (00-COVER.txt) with the property address, buyer and seller names, and document count for easy reference.
+
+---
+
 ## Week of May 29, 2026
 
 **Option period tracking**
