@@ -205,11 +205,21 @@ async function loadOpenTransactions(userId) {
     'hoa_docs_received_at',
     'inspector_name',
     'inspector_phone',
+    'transaction_type',
+    'lease_renewal_deadline',
+    'lease_move_in_date',
+    'lease_hoa_approval_required',
+    'lease_hoa_approval_received',
+    'lease_start_date',
     // New construction fields
     'transaction_type',
     'expected_completion_date',
     'co_received_date',
     'builder_warranty_expiration',
+    // Land purchase fields
+    'land_survey_ordered_date',
+    'land_survey_received_date',
+    'land_survey_clear',
   ];
   const fields = [...baseFields, ...conditionalFields].join(',');
   const r = await supabaseFetch(
@@ -655,6 +665,49 @@ module.exports = async function handler(req, res) {
         }
 
         // -----------------------------------------------------------------------
+        // LAND PURCHASE: land_survey_ordered_date set but land_survey_received_date
+        // not yet set — remind at T-3 using the generic survey_deadline if present,
+        // or fire a standalone reminder at T-3 from survey_ordered_date.
+        // -----------------------------------------------------------------------
+        if (tx.transaction_type === 'land' && tx.land_survey_ordered_date && !tx.land_survey_received_date) {
+          const surveyDeadlineYmd = tx.survey_deadline
+            ? String(tx.survey_deadline).slice(0, 10)
+            : null;
+          if (surveyDeadlineYmd) {
+            const t3Date = addDaysYMD(today, 3);
+            if (surveyDeadlineYmd === t3Date) {
+              const condKey = `land_survey_not_received|3`;
+              if (!fired.has(condKey)) {
+                const condSubject = `Action needed: land survey not received — deadline in 3 days for ${tx.property_address || 'your dossier'}`;
+                const condHtml = buildEmailHtml({
+                  firstName: cust.first_name,
+                  propertyAddress: tx.property_address,
+                  deadlineLabel: 'Survey deadline in 3 days — land survey not yet received',
+                  deadlineDateYMD: surveyDeadlineYmd,
+                  daysOut: 3,
+                });
+                const condSend = await sendResend(cust.email, condSubject, condHtml);
+                if (condSend.ok) {
+                  await recordReminder({
+                    transaction_id: tx.id,
+                    user_id: cust.user_id,
+                    deadline_type: 'land_survey_not_received',
+                    deadline_date: surveyDeadlineYmd,
+                    days_out: 3,
+                    email_to: cust.email,
+                  });
+                  summary.reminders_sent++;
+                } else {
+                  summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'land_survey_not_received', status: condSend.status });
+                }
+              } else {
+                summary.reminders_skipped_already_sent++;
+              }
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
         // NEW CONSTRUCTION: builder_warranty_expiration within T-30 and T-7.
         // Fires for any transaction that has a builder_warranty_expiration set.
         // -----------------------------------------------------------------------
@@ -687,6 +740,121 @@ module.exports = async function handler(req, res) {
                 summary.reminders_sent++;
               } else {
                 summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'builder_warranty_expiring', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // LEASE: lease_renewal_deadline within T-30 and T-7.
+        // -----------------------------------------------------------------------
+        const isLeaseType = tx.transaction_type === 'residential_lease_landlord' || tx.transaction_type === 'residential_lease_tenant';
+        if (isLeaseType && tx.lease_renewal_deadline) {
+          const renewYmd = String(tx.lease_renewal_deadline).slice(0, 10);
+          const t30Date = addDaysYMD(today, 30);
+          const t7Date = addDaysYMD(today, 7);
+          const renewDaysOut = renewYmd === t30Date ? 30 : renewYmd === t7Date ? 7 : null;
+          if (renewDaysOut !== null) {
+            const condKey = `lease_renewal_deadline|${renewDaysOut}`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Lease renewal deadline in ${renewDaysOut} days for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: `Lease renewal decision needed — ${renewDaysOut} days until the renewal deadline`,
+                deadlineDateYMD: renewYmd,
+                daysOut: renewDaysOut,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'lease_renewal_deadline',
+                  deadline_date: renewYmd,
+                  days_out: renewDaysOut,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'lease_renewal_deadline', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // LEASE: lease_move_in_date is tomorrow — prompt agent to confirm access.
+        // -----------------------------------------------------------------------
+        if (isLeaseType && tx.lease_move_in_date) {
+          const moveInYmd = String(tx.lease_move_in_date).slice(0, 10);
+          const t1Date = addDaysYMD(today, 1);
+          if (moveInYmd === t1Date) {
+            const condKey = `lease_move_in_tomorrow|1`;
+            if (!fired.has(condKey)) {
+              const condSubject = `Tomorrow: tenant moves in — confirm keys and access for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: 'Tenant move-in is tomorrow — confirm keys, access codes, and move-in condition report',
+                deadlineDateYMD: moveInYmd,
+                daysOut: 1,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'lease_move_in_tomorrow',
+                  deadline_date: moveInYmd,
+                  days_out: 1,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'lease_move_in_tomorrow', status: condSend.status });
+              }
+            } else {
+              summary.reminders_skipped_already_sent++;
+            }
+          }
+        }
+
+        // -----------------------------------------------------------------------
+        // LEASE: HOA approval required but not received with lease start <= 7 days.
+        // -----------------------------------------------------------------------
+        if (isLeaseType && tx.lease_hoa_approval_required && !tx.lease_hoa_approval_received && tx.lease_start_date) {
+          const startYmd = String(tx.lease_start_date).slice(0, 10);
+          const daysToStart = Math.round((new Date(startYmd) - new Date(today)) / 86400000);
+          if (daysToStart <= 7 && daysToStart >= 0) {
+            const condKey = `lease_hoa_approval_not_received|${daysToStart}`;
+            if (!fired.has(condKey)) {
+              const daysCopy = daysToStart === 0 ? 'today' : daysToStart === 1 ? '1 day' : `${daysToStart} days`;
+              const condSubject = `Urgent: HOA approval not received — lease starts in ${daysCopy} for ${tx.property_address || 'your dossier'}`;
+              const condHtml = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: `HOA approval required but not yet received — lease start is ${daysToStart === 0 ? 'today' : daysToStart === 1 ? 'tomorrow' : `in ${daysToStart} days`}`,
+                deadlineDateYMD: startYmd,
+                daysOut: daysToStart,
+              });
+              const condSend = await sendResend(cust.email, condSubject, condHtml);
+              if (condSend.ok) {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: 'lease_hoa_approval_not_received',
+                  deadline_date: startYmd,
+                  days_out: daysToStart,
+                  email_to: cust.email,
+                });
+                summary.reminders_sent++;
+              } else {
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: 'lease_hoa_approval_not_received', status: condSend.status });
               }
             } else {
               summary.reminders_skipped_already_sent++;
