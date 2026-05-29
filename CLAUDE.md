@@ -191,6 +191,35 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - Anchor nav in dossier detail view
 - Natural language deadlines throughout ("Option period expires in 2 days")
 - Settings data flow fixed (`profiles` table is source of truth)
+- Desktop document buttons inline layout (horizontal row on desktop, stacked on mobile — 2026-05-28)
+- Agent voice conversations in Ventures dashboard (`api/ventures/voice-chat.js` + ventures.html — 2026-05-28)
+- Ventures auth isolation (ventures.html uses `ventures.auth.token` storage key, independent from Dossie app session — 2026-05-28)
+
+**Documents + E-sign:**
+- DocuSeal e-sign — all 3 phases (2026-05-28):
+  - Phase 1: direct PDF upload → DocuSeal → signed URL → submitters emailed (`api/esign-create.js`)
+  - Phase 2: field placement coordinates sent per signer
+  - Phase 3: template-based submission with transaction auto-prefill
+  - Supporting endpoints: `api/esign-webhook.js` (HMAC-SHA256 verified), `api/esign-download.js`, `api/esign-status.js`, `api/esign-templates.js`
+  - UI: `EsignModal.jsx` in React app
+- Form Library — TREC form browser + attach-to-transaction (2026-05-28):
+  - `public.form_templates` table (12 TREC forms across purchase/addendum/disclosure/listing categories)
+  - `api/form-templates.js` — GET (grouped by category) + POST {action:'attach'}
+  - `FormLibraryModal.jsx` — search by name or TREC number, Browse Forms tab with Attach buttons
+- Form Packages — pre-built form bundles, one-click apply (2026-05-28):
+  - `public.form_packages` + `public.form_package_items` tables
+  - System defaults: Buyer Transaction + Seller Transaction (pre-seeded, locked)
+  - `api/form-packages.js` — GET/POST {action:'apply'|'create'}/PATCH/DELETE
+  - Packages tab (default in FormLibraryModal) — sage badge (buyer), coral badge (seller), gold badge (custom)
+  - Apply Package bulk-attaches all forms, skips duplicates
+- Fill-and-sign Phase 1 — voice → filled TREC contract (2026-05-28):
+  - `api/fill-form.js` — loads base64-embedded PDF, fills AcroForm fields with pdf-lib, uploads to Supabase Storage, creates documents row
+  - `api/extract-form-fields.js` — Claude Haiku NLP extraction from agent natural language ("write a contract to purchase 123 Main St")
+  - Base64-embedded PDFs: `api/_assets/trec-resale-base64.js` (resale contract), `api/_assets/trec-financing-base64.js` (financing addendum), `api/_assets/trec-termination-base64.js` (termination notice)
+  - Supports form types: `resale-contract`, `financing-addendum`, `termination-notice`, `amendment`
+  - Field maps ported from Python (`scripts/document_field_maps.py`) — 257 AcroForm fields on resale contract
+  - Talk to Dossie integration: agent says "fill out a contract..." → extract-form-fields → fill-form → document created
+- Amendment drafting — `api/draft-amendment.js` fills TREC 39-10 for `closing_date`, `option_extension`, `price_change` types (shipped pre-2026-05-28); natural language entry via Talk to Dossie now wired through fill-form.js
 
 **Conversion + leads:**
 - Founding application flow (7-field form including `heard_from` → Telegram approval buttons → Stripe checkout → Resend approval email)
@@ -220,7 +249,12 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
 - Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
-- **Amendment drafting** — ✅ LIVE. `api/draft-amendment.js` handles TREC 39-10 Amendment to Contract PDF generation for `closing_date`, `option_extension`, and `price_change` amendment types. AcroForm fields are filled and the PDF is uploaded to Supabase Storage. Natural language entry point still TBD (e.g., "add 7 days to option period on 1847 Vintage Way" → auto-route to API).
+- **Amendment drafting** — ✅ LIVE including natural language entry. `api/draft-amendment.js` handles TREC 39-10 for `closing_date`, `option_extension`, `price_change`. Natural language now routes through Talk to Dossie → `api/extract-form-fields.js` → `api/fill-form.js`. Full end-to-end wired 2026-05-28.
+- **Fill-and-sign Phase 2** — interactive field placement UI (drag-and-drop signature/date/initials fields onto PDF canvas before sending to DocuSeal). Phase 1 auto-places fields; Phase 2 gives agents visual control. Not built yet.
+- **Fill-and-sign remaining form generators** — HOA Addendum (TREC 36-11), Lead-Based Paint Addendum (OP-L), Seller's Disclosure Notice (OP-H). PDFs exist in `Dossie Forms/TREC Base/`, no JS generators yet.
+- **TREC 49-1** (Right to Terminate Due to Lender's Appraisal — new Jan 2025, separated from 40-11 financing addendum). Not in Dossie form library or generators yet.
+- **Dossier transaction type expansion** — add `transaction_type` field to transactions table + auto-load correct form package on dossier creation (types: buyer_purchase, seller_listing, new_home_purchase, land_purchase, residential_lease_landlord, residential_lease_tenant). Currently all dossiers use same package.
+- **More Form Packages** — land purchase, new home purchase, rental listing (landlord), rental (tenant) packages not yet built. Only Buyer Transaction + Seller Transaction exist as system defaults.
 - **Social Media Autopilot for agents** — extend the in-house social pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) into a customer-facing add-on. Each agent connects their FB / IG / LinkedIn / TikTok via Zernio, Dossie auto-drafts daily posts from their listings + market data + sphere content templates, sends drafts to their Telegram (or in-app inbox) for one-tap approval, publishes to all platforms. Cost math: ~180 posts/mo per user via Haiku = ~$0.30/mo Claude cost; Zernio flat $18/mo already paid. Price target: $20/mo add-on (founding members $10/mo with 50% discount). Heath flagged 2026-05-21. Full strategy: `SOCIAL-MEDIA-AUTOPILOT-STRATEGY.md`.
 - **SMS escalation via Twilio** — critical-tier deadline reminders + draft-aging alerts. ~$0.0075/msg, ~50¢/agent/mo at typical volume. Requires phone capture (already done in onboarding 2026-05-20) + opt-in toggle in Settings. Not in this week's notification build — deferred Phase 2.
 - **Voice escalation via Twilio Voice** — last-resort phone-call escalation when all other channels fail to reach the agent within N hours of a deadline. ~$0.013/call. Phase 3 — only after SMS is in place and we know which deadlines trigger voice escalation. Deferred.
@@ -441,6 +475,16 @@ Highlights:
 - `GOLD-2026-05-10-v7-pipeline-complete`
 - `GOLD-2026-05-11-v2-first-autonomous-posts`
 - `GOLD-2026-05-11-v3-pipeline-live-social-posting`
+- `GOLD-2026-05-28-v1-lisa-nilsson-stripe-webhook-whisper`
+- `GOLD-2026-05-28-v2-dashboard-insurance-crons`
+- `GOLD-2026-05-28-v3-dashboard-improvements`
+- `GOLD-2026-05-28-v4-dashboard-30-improvements`
+- `GOLD-2026-05-28-v5-agent-voice-chat`
+- `GOLD-2026-05-28-v7-esign-live`
+- `GOLD-2026-05-28-v8-form-library-live`
+- `GOLD-2026-05-28-v9-desktop-document-buttons-inline`
+- `GOLD-2026-05-28-v10-form-packages-live`
+- `GOLD-2026-05-28-v12-fill-and-sign-phase1`
 
 ---
 
