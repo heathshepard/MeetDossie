@@ -11,6 +11,32 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026 (continued, afternoon build)
+
+**Pre-Contract dossiers**
+- You can now open a dossier before you have a signed contract. Choose "Pre-Contract" when creating a new file and Dossie tracks the three things that matter in the showing phase: IABS delivery, the buyer rep agreement, and the pre-approval letter. Check each one off as it lands. When all three are done, Dossie prompts you to advance the dossier straight to Under Contract.
+- Every active dossier now shows a soft reminder if the IABS hasn't been recorded as delivered — the banner shows up in the Deadlines section so it's the first thing you see.
+
+**Offer comparison (seller-side)**
+- Seller-side dossiers now have an Offers tab. Log each offer as it comes in — price, financing type, earnest money, option fee, option days, closing date, escalation clause. Dossie color-codes each offer (green = over list price, yellow = near list, red = below) so you can read the room at a glance. Update each offer's status (Pending / Accepted / Rejected / Countered) with one tap.
+
+**Seller's Net Sheet**
+- Right inside the Offers tab, click "Net Sheet" and enter the commission, mortgage payoff, escrow fee, and title costs. Dossie calculates the seller's estimated net proceeds in real time — line by line. Hit Print to get a clean PDF you can hand the seller at the listing appointment.
+
+**Lead Paint disclosure banner**
+- If a property was built before 1978, Dossie now shows a red banner in the dossier telling you the Lead Paint Addendum (OP-L) is required. No more forgetting on older homes.
+
+**Seller's Disclosure reminder**
+- Seller-side dossiers now show a reminder if the Seller's Disclosure Notice (OP-H) hasn't been received yet. Tap to mark it received and Dossie timestamps it.
+
+**More forms for fill-and-sign (DossieSign)**
+- Five more forms are now available through Talk to Dossie: HOA Addendum, Lead Paint Addendum, Buyer Rep Agreement, TREC 49-1 (Appraisal Termination), and T-47 Affidavit. Note: these forms use placeholder PDFs until the official TREC/TAR versions are loaded by Heath — the structure is live, just needs the real PDFs dropped in.
+
+**MLS number now shows in the dossier header**
+- For seller-side transactions, the MLS number now appears prominently at the top of the dossier so you never have to dig for it.
+
+---
+
 ## Week of May 29, 2026 (continued)
 
 **Title commitment and survey tracking**

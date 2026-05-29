@@ -206,7 +206,7 @@ const TOOLS = [
         deal_identifier: { type: 'string', description: 'Any part of the address, buyer name, or seller name' },
         field: {
           type: 'string',
-          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type','option_fee_amount','option_fee_paid_at','option_fee_paid_to','earnest_money_amount','earnest_money_deposited_at','earnest_money_confirmed_at','earnest_money_title_company','inspection_scheduled_at','inspection_completed_at','inspection_report_received','appraisal_ordered_at','appraisal_received_at','appraisal_value','title_commitment_received_at','title_commitment_effective_date','survey_ordered_at','survey_received_at','survey_clear','loan_approval_received_at','clear_to_close_at','hoa_docs_requested_at','hoa_docs_received_at','recorded_deed_received_at','title_policy_delivered_at','cda_signed_at','closed_at'],
+          enum: ['closing_date','contract_effective_date','option_days','financing_days','sale_price','earnest_money','option_fee','buyer_name','seller_name','property_address','city_state_zip','notes','title_company','title_officer_name','title_officer_email','title_officer_phone','lender_name','loan_officer_name','loan_officer_email','loan_officer_phone','hoa_name','hoa_phone','hoa_management_company','inspector_name','inspector_phone','inspector_email','mls_number','bedrooms','bathrooms','sqft','year_built','possession_date','appraisal_deadline','survey_deadline','hoa_document_deadline','loan_approval_deadline','transaction_type','option_fee_amount','option_fee_paid_at','option_fee_paid_to','earnest_money_amount','earnest_money_deposited_at','earnest_money_confirmed_at','earnest_money_title_company','inspection_scheduled_at','inspection_completed_at','inspection_report_received','appraisal_ordered_at','appraisal_received_at','appraisal_value','title_commitment_received_at','title_commitment_effective_date','survey_ordered_at','survey_received_at','survey_clear','loan_approval_received_at','clear_to_close_at','hoa_docs_requested_at','hoa_docs_received_at','recorded_deed_received_at','title_policy_delivered_at','cda_signed_at','closed_at','iabs_delivered_at','sellers_disclosure_received_at','buyer_rep_signed_at','pre_approval_received','pre_approval_letter_url'],
           description: 'The field to update using snake_case',
         },
         value: { type: 'string', description: 'The new value' },
@@ -223,7 +223,7 @@ const TOOLS = [
         deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name' },
         stage: {
           type: 'string',
-          enum: ['active-listing','under-contract','option-period','inspection','financing','title-survey','clear-to-close','closed','next'],
+          enum: ['pre-contract','active-listing','under-contract','option-period','inspection','financing','title-survey','clear-to-close','closed','next'],
           description: "Target stage id, or 'next' to advance to the next stage",
         },
       },
@@ -375,6 +375,7 @@ INTENT MAPPING:
 - Everything else = answer_question
 
 CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
+- pre-contract (before an executed contract — buyer rep, pre-approval, showing phase)
 - active-listing (property is listed, not yet under contract)
 - under-contract (executed contract, before option period)
 - option-period (within the option period)
@@ -386,6 +387,7 @@ CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
 - next (advance to the next stage automatically)
 
 COMMON STAGE PHRASES → CANONICAL ID:
+- "pre-contract", "pre contract", "before contract", "showing", "buyer rep" → pre-contract
 - "active listing", "listing", "just listed" → active-listing
 - "under contract", "executed", "in contract", "went under contract" → under-contract
 - "option period", "option", "in option" → option-period
@@ -396,7 +398,7 @@ COMMON STAGE PHRASES → CANONICAL ID:
 - "closed", "closing complete", "done", "funded" → closed
 
 CANONICAL FIELD NAMES — use ONLY these exact values for update_deal_field.field:
-closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type, option_fee_amount, option_fee_paid_at, option_fee_paid_to, earnest_money_amount, earnest_money_deposited_at, earnest_money_confirmed_at, earnest_money_title_company, inspection_scheduled_at, inspection_completed_at, inspection_report_received, appraisal_ordered_at, appraisal_received_at, appraisal_value, title_commitment_received_at, title_commitment_effective_date, survey_ordered_at, survey_received_at, survey_clear, loan_approval_received_at, clear_to_close_at, hoa_docs_requested_at, hoa_docs_received_at, recorded_deed_received_at, title_policy_delivered_at, cda_signed_at, closed_at
+closing_date, contract_effective_date, option_days, financing_days, sale_price, earnest_money, option_fee, buyer_name, seller_name, property_address, city_state_zip, notes, title_company, title_officer_name, title_officer_email, title_officer_phone, lender_name, loan_officer_name, loan_officer_email, loan_officer_phone, hoa_name, hoa_phone, hoa_management_company, inspector_name, inspector_phone, inspector_email, mls_number, bedrooms, bathrooms, sqft, year_built, possession_date, appraisal_deadline, survey_deadline, hoa_document_deadline, loan_approval_deadline, transaction_type, option_fee_amount, option_fee_paid_at, option_fee_paid_to, earnest_money_amount, earnest_money_deposited_at, earnest_money_confirmed_at, earnest_money_title_company, inspection_scheduled_at, inspection_completed_at, inspection_report_received, appraisal_ordered_at, appraisal_received_at, appraisal_value, title_commitment_received_at, title_commitment_effective_date, survey_ordered_at, survey_received_at, survey_clear, loan_approval_received_at, clear_to_close_at, hoa_docs_requested_at, hoa_docs_received_at, recorded_deed_received_at, title_policy_delivered_at, cda_signed_at, closed_at, iabs_delivered_at, sellers_disclosure_received_at, buyer_rep_signed_at, pre_approval_received, pre_approval_letter_url
 
 COMMON FIELD PHRASES → CANONICAL NAME:
 - "closing date", "close date", "closes on" → closing_date
@@ -450,6 +452,11 @@ COMMON FIELD PHRASES → CANONICAL NAME:
 - "recorded deed received", "deed recorded" → recorded_deed_received_at
 - "title policy delivered", "title policy sent to buyer" → title_policy_delivered_at
 - "CDA signed", "commission disbursement signed", "broker signed the CDA" → cda_signed_at
+- "gave the client the IABS", "delivered the IABS", "sent the IABS", "IABS delivered" → iabs_delivered_at
+- "seller's disclosure received", "got the seller disclosure", "OP-H received" → sellers_disclosure_received_at
+- "buyer rep signed", "buyer representation agreement signed", "TAR 1501 signed" → buyer_rep_signed_at
+- "pre-approval received", "got pre-approval", "buyer is pre-approved", "pre-approval letter" → pre_approval_received
+- "pre-approval letter URL", "link to pre-approval" → pre_approval_letter_url
 
 CANONICAL EMAIL TYPES — use ONLY these exact values for draft_email.email_type:
 - buyer-welcome (welcome email to buyer at contract start)
