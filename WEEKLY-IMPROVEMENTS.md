@@ -11,6 +11,14 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of May 29, 2026 (fill-and-sign expansion)
+
+**Fill-and-sign now works for land and new construction contracts**
+- Tell Dossie "fill out a contract for [address]" on a land or new construction dossier and she picks the right TREC form automatically. Land purchases use TREC 9 (Unimproved Property Contract). Farm and ranch deals use TREC 25 (Farm and Ranch Contract). New construction uses TREC 23 (incomplete) or TREC 24 (completed) depending on where the build stands. No more downloading the wrong form.
+- All four new forms are embedded and ready - no setup required.
+
+---
+
 ## Week of May 29, 2026 (hotfix)
 
 **Form Library cleaned up**
