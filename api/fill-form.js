@@ -442,6 +442,8 @@ function formatMoney(value) {
 //   [CheckBox] "will" -> sale_price_credited (sale price credited checkbox)
 //   [CheckBox] "will not be credited to the Sales Price at closing Time is of the" -> default checked
 // SECTION 5 — EARNEST MONEY / OPTION FEE
+//   [TextField] "the Title Company and Buyers lenders Check one box only" -> option_period_days
+//     (field name is a PDF artifact; positioned at the "__ days after Effective Date" blank in §5.B)
 //   [TextField] "earnest money of" -> earnest_money
 //   [TextField] "Option Fee in the form of" -> option_fee
 //   [TextField] "Seller or Listing Broker" -> listing_agent_name (option fee recipient)
@@ -459,7 +461,7 @@ function formatMoney(value) {
 //   [TextField] "receipt or the date specified in this paragraph whichever is earlier" -> title_objection_days
 //   [TextField] "Commitment other than items 6A1 through 9 above or which prohibit the following use" -> permitted_use
 //   [TextField] "the Commitment Exception Documents and the survey Buyers failure to object within the" -> exception_objection_days
-//   [CheckBox] "A TITLE POLICY Seller shall furnish to Buyer at" -> title_seller_expense (Seller pays title)
+//   [CheckBox] "A TITLE POLICY Seller shall furnish to Buyer at" -> checked by default (seller pays title); override with fv.title_buyer_expense=true
 //   [CheckBox] "Sellers" -> survey_sellers_expense
 //   [CheckBox] "Buyer" -> survey_buyer_expense (default)
 //   [CheckBox] "1Within" -> survey_option_1within
@@ -479,8 +481,10 @@ function formatMoney(value) {
 // SECTION 9 — CLOSING
 //   [TextField] "A The closing of the sale will be on or before" -> closing_date (month + day)
 //   [TextField] "20" -> closing_date (2-digit year)
-// SECTION 11 — CASUALTY LOSS
-//   (no text fields; handled by general doc)
+// SECTION 11 — SPECIAL PROVISIONS (free-text block, page 6)
+//   [TextField] "Text3"   -> special_provisions (line 1)
+//   [TextField] "Text3 2" -> special_provisions (line 2; split on \n)
+//   [TextField] "Text3 3" -> special_provisions (line 3; split on \n)
 // SECTION 15 — CLOSING COSTS / NOTICES
 //   [TextField] "to escrow agent within" -> funding_notice_days
 //   [TextField] "to escrow agent within 1" -> funding_notice_days_2
@@ -624,7 +628,6 @@ function formatMoney(value) {
 //   [TextField] "Contract Concerning_2" -> property_address
 //   [TextField] "Contract Concerning_3" -> property_address
 //   [TextField] "Contract Concerning_4" -> property_address
-//   [TextField] "the Title Company and Buyers lenders Check one box only" -> title_company
 // AC FIELDS (commission/other broker fields with maxLen=3)
 //   [TextField] "AC1","AC4","AC numb 1".."AC numb 4" -> commission percentages (left blank by default)
 //   [TextField] "Text6","Text7","Text1","Text2" -> buyer/seller signature date segments
@@ -647,7 +650,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Contract Concerning_2', addr);
   safeSetText(form, 'Contract Concerning_3', addr);
   safeSetText(form, 'Contract Concerning_4', addr);
-  safeSetText(form, 'the Title Company and Buyers lenders Check one box only', fv.title_company || '');
+  safeSetText(form, 'the Title Company and Buyers lenders Check one box only', fv.option_period_days != null ? String(fv.option_period_days) : '');
 
   // Legal description: "A LAND Lot" = full legal or lot portion, "Block" = block, "undefined" = lot number
   safeSetText(form, 'A LAND Lot', fv.legal_description || '');
@@ -688,6 +691,21 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '');
   // Survey option: default Buyer pays
   safeCheck(form, 'Buyer');
+
+  // SECTION 11 — SPECIAL PROVISIONS (free-text block, 3 lines on page 6)
+  // Field names Text3, Text3 2, Text3 3 confirmed via position inspection (y=479/468/457, page 6)
+  if (fv.special_provisions) {
+    const lines = fv.special_provisions.split('\n');
+    safeSetText(form, 'Text3', lines[0] || '');
+    safeSetText(form, 'Text3 2', lines[1] || '');
+    safeSetText(form, 'Text3 3', lines[2] || '');
+  }
+
+  // TITLE EXPENSE — default: Seller pays title (standard in San Antonio ~90% of transactions)
+  // Override by passing fv.title_buyer_expense = true
+  if (fv.title_buyer_expense !== true) {
+    safeCheck(form, 'A TITLE POLICY Seller shall furnish to Buyer at');
+  }
 
   // PROPERTY CONDITION (Section 7)
   // Default: Buyer accepts As-Is (most common in Texas resale)
