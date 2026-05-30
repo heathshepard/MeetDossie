@@ -58,22 +58,33 @@ const FORM_CONFIGS = {
     getBase64: function() { return require('./_assets/tar-wire-fraud-base64.js'); },
     documentType: 'wire_fraud_warning',
   },
-  // Block 9B — HOA Addendum (TREC 36-11)
-  // NOTE: Replace api/_assets/trec-hoa-addendum-base64.js with the real TREC 36-11 PDF
-  // when available. Field names below are best-guess and must be verified against AcroForm.
+  // Block 9B — HOA Addendum (TREC 36-10)
   'hoa-addendum': {
-    name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-11)',
+    name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-10)',
     shortName: 'TREC-HOA-Addendum',
     getBase64: function() { return require('./_assets/trec-hoa-addendum-base64.js'); },
     documentType: 'hoa_addendum',
   },
   // Block 9C — Lead-Based Paint Addendum (OP-L)
-  // NOTE: Replace api/_assets/trec-lead-paint-base64.js with the real OP-L PDF.
   'lead-paint-addendum': {
     name: 'Addendum for Sellers Disclosure of Information on Lead-Based Paint',
     shortName: 'OP-L-Lead-Paint',
     getBase64: function() { return require('./_assets/trec-lead-paint-base64.js'); },
     documentType: 'lead_paint_addendum',
+  },
+  // Seller's Disclosure Notice (TREC 55-0)
+  'sellers-disclosure': {
+    name: "Seller's Disclosure Notice (TREC 55-0)",
+    shortName: 'TREC-55-SDN',
+    getBase64: function() { return require('./_assets/trec-sellers-disclosure-base64.js'); },
+    documentType: 'sellers_disclosure',
+  },
+  // Amendment to Contract (TREC 39-10)
+  'amendment': {
+    name: 'Amendment to Contract (TREC 39-10)',
+    shortName: 'TREC-39-Amendment',
+    getBase64: function() { return require('./_assets/trec-39-10-base64.js'); },
+    documentType: 'amendment',
   },
   // Block 9E — Buyer Representation Agreement (TAR 1501)
   // NOTE: Replace api/_assets/tar-buyer-rep-base64.js with the real TAR 1501 PDF.
@@ -436,51 +447,93 @@ async function fillWireFraudWarning(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// HOA ADDENDUM (TREC 36-11)
-// Block 9B — pre-fills hoa_name, hoa_phone, hoa_management_company from transaction
-// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// HOA ADDENDUM (TREC 36-10)
+// Block 9B — verified field names from AcroForm inspection of TREC 36-10 PDF
 // ---------------------------------------------------------------------------
 async function fillHoaAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  const addr = fv.property_address || '';
-  if (addr) {
-    safeSetText(form, 'Street Address and City', addr);
-    safeSetText(form, 'Property Address', addr);
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  safeSetText(form, 'Name of Property Owners Association Association and Phone Number',
+    [fv.hoa_name, fv.hoa_phone].filter(Boolean).join(' '));
+  if (fv.hoa_transfer_fee != null && fv.hoa_transfer_fee !== '') {
+    safeSetText(form, 'D DEPOSITS FOR RESERVES Buyer shall pay any deposits...', formatMoney(fv.hoa_transfer_fee));
   }
-  if (fv.hoa_name) safeSetText(form, 'Name of Property Owners Association', fv.hoa_name);
-  if (fv.hoa_phone) safeSetText(form, 'Phone', fv.hoa_phone);
-  if (fv.hoa_management_company) safeSetText(form, 'Management Company', fv.hoa_management_company);
-  if (fv.hoa_monthly_fee != null && fv.hoa_monthly_fee !== '') safeSetText(form, 'Monthly Assessment', formatMoney(fv.hoa_monthly_fee));
-  if (fv.hoa_initiation_fee != null && fv.hoa_initiation_fee !== '') safeSetText(form, 'Initiation Fee', formatMoney(fv.hoa_initiation_fee));
-  if (fv.hoa_transfer_fee != null && fv.hoa_transfer_fee !== '') safeSetText(form, 'Transfer Fee', formatMoney(fv.hoa_transfer_fee));
-  if (fv.mandatory_membership === true) safeCheck(form, 'Mandatory Membership');
-  if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
+  // Default: Seller obtains subdivision info (Paragraph A1, most common)
+  safeCheck(form, '1 Within');
+  safeSetText(form, 'the Subdivision Information to the Buyer If Seller delivers...', fv.subdivision_info_days || '10');
+  // Default: Buyer does NOT require updated resale cert
+  safeCheck(form, 'does not require an updated resale certificate...');
+  // Default: Buyer pays title company for info (Paragraph D)
+  safeCheck(form, 'Buyer');
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
 // LEAD-BASED PAINT ADDENDUM (OP-L)
-// Block 9C — auto-trigger if year_built < 1978
-// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// Block 9C — verified field names from AcroForm inspection of OP-L PDF
 // ---------------------------------------------------------------------------
 async function fillLeadPaintAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  // Date fields — fill today's date for all six signature date slots
+  const today = formatDate(new Date().toISOString().slice(0, 10));
+  ['Date', 'Date_2', 'Date_3', 'Date_4', 'Date_5', 'Date_6'].forEach(function(f) { safeSetText(form, f, today); });
+  // Default: Seller has no knowledge, no reports
+  safeCheck(form, 'Check Box8');   // B1(b): no knowledge
+  safeCheck(form, 'Check Box10');  // B2(b): no reports
+  // Default: Buyer retains 10-day inspection right
+  safeCheck(form, 'Check Box12'); // C2: retains right
+  safeCheck(form, 'Check Box13'); // D1: acknowledges receipt
+  safeCheck(form, 'Check Box14'); // D2: acknowledges EPA pamphlet
+  // Overrides from field_values
+  if (fv.seller_aware_of_hazards) {
+    safeCheck(form, 'Check Box7'); // B1(a): seller IS aware
+    if (fv.hazard_explanation) safeSetText(form, 'undefined', fv.hazard_explanation);
+  }
+  if (fv.seller_has_records) {
+    safeCheck(form, 'Check Box9'); // B2(a): seller HAS records
+    if (fv.documents_list) safeSetText(form, 'undefined_2', fv.documents_list);
+  }
+  if (fv.buyer_waives_inspection) safeCheck(form, 'Check Box11'); // C1: waives
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// SELLER'S DISCLOSURE NOTICE (TREC 55-0)
+// XFA-based form — address fields use subform path notation
+// ---------------------------------------------------------------------------
+async function fillSellersDisclosure(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) {
+    safeSetText(form, 'form1[0].#subform[0].TextField1[0]', addr);
+    safeSetText(form, 'form1[0].#subform[1].TextField1[1]', addr);
+    safeSetText(form, 'form1[0].#subform[2].TextField1[2]', addr);
+    safeSetText(form, 'form1[0].#subform[4].TextField1[3]', addr);
+  }
+  if (fv.seller_occupied === true) safeCheck(form, 'form1[0].#subform[0].CheckBox1[0]');
+  else if (fv.seller_occupied === false) safeCheck(form, 'form1[0].#subform[0].CheckBox2[0]');
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// AMENDMENT TO CONTRACT (TREC 39-10)
+// Pre-fills party names, property address, and effective date from transaction.
+// Agent supplies the specific amendment change via field_values.
+// ---------------------------------------------------------------------------
+async function fillAmendment(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
   if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
   if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
-  // Seller disclosure options
-  if (fv.seller_aware_of_hazards === true) {
-    safeCheck(form, 'Seller is aware of lead-based paint hazards');
-  } else {
-    safeCheck(form, 'Seller has no knowledge of lead-based paint');
-  }
-  // 10-day inspection right (default checked)
-  if (fv.buyer_10_day_inspection_right !== false) {
-    safeCheck(form, '10 Day Inspection');
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  if (fv.contract_effective_date) {
+    safeSetText(form, 'Date', formatDate(fv.contract_effective_date));
   }
   const today = new Date().toISOString().slice(0, 10);
-  safeSetText(form, 'Date', formatDate(today));
+  safeSetText(form, 'Date_2', formatDate(today));
   return pdfDoc;
 }
 
@@ -881,6 +934,8 @@ async function fillForm(formType, fieldValues) {
     case 'wire-fraud-warning':    await fillWireFraudWarning(pdfDoc, fv); break;
     case 'hoa-addendum':          await fillHoaAddendum(pdfDoc, fv); break;
     case 'lead-paint-addendum':   await fillLeadPaintAddendum(pdfDoc, fv); break;
+    case 'sellers-disclosure':    await fillSellersDisclosure(pdfDoc, fv); break;
+    case 'amendment':             await fillAmendment(pdfDoc, fv); break;
     case 'buyer-rep-agreement':   await fillBuyerRepAgreement(pdfDoc, fv); break;
     case 'appraisal-termination': await fillAppraisalTermination(pdfDoc, fv); break;
     case 't47-affidavit':         await fillT47Affidavit(pdfDoc, fv); break;
@@ -947,7 +1002,7 @@ module.exports = async function handler(req, res) {
       '40-9':  'financing-addendum',
       '40-11': 'financing-addendum',
       '38-7':  'termination-notice',
-      '39-10': 'resale-contract',   // amendment — handled by draft-amendment.js but map defensively
+      '39-10': 'amendment',
       '9-17':  'unimproved-property',
       '23-18': 'new-home-incomplete',
       '24-18': 'new-home-complete',
@@ -1149,7 +1204,8 @@ module.exports = async function handler(req, res) {
       if (error.retryAfterSeconds) res.setHeader('Retry-After', String(error.retryAfterSeconds));
       return res.status(429).json({ ok: false, error: 'Too many requests. Try again later.' });
     }
-    console.error('[fill-form] error:', error && error.message ? error.message : error);
-    return res.status(500).json({ ok: false, error: 'Could not fill that form. Try again.' });
+    const msg = (error && error.message) ? error.message : String(error);
+    console.error('[fill-form] error:', msg);
+    return res.status(422).json({ ok: false, error: msg || 'Could not fill that form.' });
   }
 };
