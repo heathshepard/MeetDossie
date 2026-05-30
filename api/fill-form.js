@@ -632,14 +632,6 @@ function formatMoney(value) {
 async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // Derive initials from names (first letter of each word, max 3 chars)
-  function initials(name) {
-    if (!name) return '';
-    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
-  }
-  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
-  const sellerInit = fv.seller_initials || initials(fv.seller_name);
-
   // PARTIES
   safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
   safeSetText(form, 'Seller and', fv.seller_name || '');
@@ -861,28 +853,8 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
   safeSetText(form, 'when mailed to', fv.notice_address_2 || '');
 
-  // INITIALS — all repeater initials fields on each page
-  var buyerInitFields = [
-    'Initialed for identification by Buyer',
-    'Initialed for identification by Buyer_2',
-    'Initialed for identification by Buyer_3',
-    'Initialed for identification by Buyer_4',
-    'Initialed for identification by Buyer_5',
-  ];
-
   // SECTION 12 — Buyer's expenses / closing cost credit (dollar amount, not initials)
   safeSetText(form, 'Buyers Expenses as allowed by the lender', fv.buyer_closing_cost_credit != null && fv.buyer_closing_cost_credit !== '' ? formatMoney(fv.buyer_closing_cost_credit) : '');
-  var sellerInitFields = [
-    'and Seller',
-    'and Seller_2',
-    'and Seller_3',
-    'and Seller_4',
-    'and Seller_5',
-    'and Seller_6',
-    'and Seller_7',
-  ];
-  buyerInitFields.forEach(function(f) { safeSetText(form, f, buyerInit); });
-  sellerInitFields.forEach(function(f) { safeSetText(form, f, sellerInit); });
 
   // UNDEFINED PLACEHOLDER FIELDS (page number + sequence fields auto-populated by TREC)
   // Leave blank — PDF reader fills these from field calculation scripts
@@ -962,13 +934,6 @@ async function fillResaleContract(pdfDoc, fv) {
 async function fillFinancingAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  function initials(name) {
-    if (!name) return '';
-    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
-  }
-  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
-  const sellerInit = fv.seller_initials || initials(fv.seller_name);
-
   // PROPERTY
   const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   safeSetText(form, 'Street Address and City', propertyFull);
@@ -1041,12 +1006,6 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
     safeSetText(form, 'per annum for the first_3', fv.reverse_per_annum || '');
   }
-
-  // INITIALS
-  safeSetText(form, 'Initialed for identification by Buyer', buyerInit);
-  safeSetText(form, 'undefined_2', buyerInit);
-  safeSetText(form, 'and Seller', sellerInit);
-  safeSetText(form, 'undefined_3', sellerInit);
 
   return pdfDoc;
 }
@@ -1898,13 +1857,6 @@ async function fillT47Affidavit(pdfDoc, fv) {
 async function fillUnimprovedProperty(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  function initials(name) {
-    if (!name) return '';
-    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
-  }
-  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
-  const sellerInit = fv.seller_initials || initials(fv.seller_name);
-
   // Load base64 — asset exports { base64Pdf }
   // (Already loaded by fillForm; pdfDoc is passed in)
 
@@ -2153,25 +2105,6 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
 
   // NOTICE ADDRESS
   safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
-
-  // INITIALS
-  var buyerInitFields9 = [
-    'Initialed for identification by Buyer',
-    'Initialed for identification by Buyer_2',
-    'Initialed for identification by Buyer_3',
-    'Initialed for identification by Buyer_4',
-    'Initialed for identification by Buyer_5',
-  ];
-  var sellerInitFields9 = [
-    'and Seller',
-    'and Seller_2',
-    'and Seller_3',
-    'and Seller_4',
-    'and Seller_5',
-    'and Seller_6',
-  ];
-  buyerInitFields9.forEach(function(f) { safeSetText(form, f, buyerInit); });
-  sellerInitFields9.forEach(function(f) { safeSetText(form, f, sellerInit); });
 
   // BUYER/SELLER SIGNATURE PAGE FIELDS
   safeSetText(form, 'Buyer 4', fv.buyer_name || '');
