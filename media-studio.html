@@ -323,6 +323,126 @@
       border-top: 1px solid rgba(255,255,255,0.07);
       margin: 24px 0;
     }
+
+    /* Raw clips zone */
+    .clip-list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .clip-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .clip-handle {
+      color: rgba(255,255,255,0.25);
+      font-size: 14px;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+    .clip-name {
+      flex: 1;
+      font-size: 13px;
+      color: #FFFFFF;
+      word-break: break-all;
+    }
+    .clip-type-select {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      color: #FFFFFF;
+      font-size: 12px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+    .clip-remove {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      font-size: 16px;
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+    .clip-remove:hover { color: #ff6b6b; }
+    .clip-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .clip-status.uploading {
+      background: rgba(201,169,110,0.2);
+      color: #C9A96E;
+    }
+    .clip-status.done {
+      background: rgba(139,168,136,0.2);
+      color: #8BA888;
+    }
+    .clip-status.error {
+      background: rgba(220,50,50,0.15);
+      color: #ff6b6b;
+    }
+    .assemble-result {
+      margin-top: 16px;
+      background: rgba(139,168,136,0.1);
+      border: 1px solid rgba(139,168,136,0.3);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .assemble-result .result-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #8BA888;
+      margin-bottom: 8px;
+    }
+    .assemble-result .result-url {
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      color: rgba(255,255,255,0.6);
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+    .assemble-result .result-verdict {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .assemble-result .result-verdict.pass { color: #8BA888; }
+    .assemble-result .result-verdict.fail { color: #E8836B; }
+    .assemble-result .result-verdict.skip { color: rgba(255,255,255,0.4); }
+    .assemble-result .result-report {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+    .assemble-fallback {
+      margin-top: 16px;
+      background: rgba(232,131,107,0.1);
+      border: 1px solid rgba(232,131,107,0.3);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .assemble-fallback .fallback-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #E8836B;
+      margin-bottom: 8px;
+    }
+    .assemble-fallback .fallback-body {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -386,6 +506,34 @@
 
     <!-- Upload button -->
     <button class="btn btn-primary" id="upload-btn" disabled style="margin-top:20px;">Upload Video</button>
+  </div>
+
+  <!-- RAW CLIPS PANEL (hidden until unlocked) -->
+  <div class="card" id="raw-clips-panel" style="display:none; margin-top: 24px;">
+    <p class="section-title">Raw Clips - Upload for Assembly</p>
+    <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:18px;line-height:1.5;">
+      Drop raw .mp4 clips in order. Set each clip type (selfie = keeps audio, screen = muted). Then click Assemble - Sage will verify the result.
+    </p>
+
+    <!-- Drop zone for raw clips -->
+    <div class="drop-zone" id="raw-drop-zone">
+      <input type="file" id="raw-file-input" accept=".mp4,video/mp4" multiple />
+      <div class="drop-icon">+</div>
+      <p class="drop-label">Drop raw clips here (multiple OK)</p>
+      <p class="drop-hint">Upload order = assembly order - .mp4 only</p>
+    </div>
+
+    <!-- Clip list -->
+    <div class="clip-list" id="clip-list"></div>
+
+    <!-- Upload all + assemble button -->
+    <button class="btn btn-primary" id="assemble-btn" disabled style="margin-top:18px;">
+      Upload &amp; Assemble Video
+    </button>
+
+    <!-- Assembly result -->
+    <div class="assemble-result" id="assemble-result" style="display:none;"></div>
+    <div class="assemble-fallback" id="assemble-fallback" style="display:none;"></div>
   </div>
 
   <!-- SUCCESS PANEL (hidden until done) -->
@@ -470,6 +618,8 @@
   function showUploadPanel() {
     authPanel.style.display   = 'none';
     uploadPanel.style.display = 'block';
+    var rawPanel = document.getElementById('raw-clips-panel');
+    if (rawPanel) rawPanel.style.display = 'block';
   }
 
   // If session already has a password, skip the auth step
@@ -698,6 +848,245 @@
 
     successPanel.style.display = 'none';
     uploadPanel.style.display  = 'block';
+  });
+
+  // ── Raw Clips + Assembly ──────────────────────────────────────────────────
+
+  const rawClipsPanel  = document.getElementById('raw-clips-panel');
+  const rawDropZone    = document.getElementById('raw-drop-zone');
+  const rawFileInput   = document.getElementById('raw-file-input');
+  const clipList       = document.getElementById('clip-list');
+  const assembleBtn    = document.getElementById('assemble-btn');
+  const assembleResult = document.getElementById('assemble-result');
+  const assembleFallback = document.getElementById('assemble-fallback');
+
+  // clips array: { file, url, type, status }
+  var rawClips = [];
+
+  // rawClipsPanel is shown via showUploadPanel() which already handles it.
+
+  function renderClipList() {
+    clipList.innerHTML = '';
+    rawClips.forEach(function (clip, i) {
+      var row = document.createElement('div');
+      row.className = 'clip-row';
+      row.dataset.index = i;
+
+      var handle = document.createElement('span');
+      handle.className = 'clip-handle';
+      handle.textContent = String(i + 1) + '.';
+
+      var nameEl = document.createElement('span');
+      nameEl.className = 'clip-name';
+      nameEl.textContent = clip.file.name;
+
+      var typeSelect = document.createElement('select');
+      typeSelect.className = 'clip-type-select';
+      var selfieOpt = document.createElement('option');
+      selfieOpt.value = 'selfie';
+      selfieOpt.textContent = 'selfie (audio)';
+      var screenOpt = document.createElement('option');
+      screenOpt.value = 'screen';
+      screenOpt.textContent = 'screen (muted)';
+      typeSelect.appendChild(selfieOpt);
+      typeSelect.appendChild(screenOpt);
+      typeSelect.value = clip.type;
+      typeSelect.addEventListener('change', function () {
+        rawClips[i].type = typeSelect.value;
+      });
+
+      var statusEl = document.createElement('span');
+      statusEl.className = 'clip-status ' + clip.status;
+      statusEl.textContent = clip.status === 'pending' ? 'ready'
+        : clip.status === 'uploading' ? 'uploading...'
+        : clip.status === 'done' ? 'uploaded'
+        : 'error';
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'clip-remove';
+      removeBtn.textContent = 'x';
+      removeBtn.addEventListener('click', function () {
+        rawClips.splice(i, 1);
+        renderClipList();
+        assembleBtn.disabled = rawClips.length === 0;
+      });
+
+      row.appendChild(handle);
+      row.appendChild(nameEl);
+      row.appendChild(typeSelect);
+      row.appendChild(statusEl);
+      row.appendChild(removeBtn);
+      clipList.appendChild(row);
+    });
+
+    assembleBtn.disabled = rawClips.length === 0;
+  }
+
+  function addRawFiles(files) {
+    Array.from(files).forEach(function (f) {
+      if (!f.name.toLowerCase().endsWith('.mp4')) return;
+      // Guess type from filename
+      var guessedType = f.name.toLowerCase().includes('screen') || f.name.toLowerCase().includes('pipeline') || f.name.toLowerCase().includes('app')
+        ? 'screen'
+        : 'selfie';
+      rawClips.push({ file: f, url: null, type: guessedType, status: 'pending' });
+    });
+    renderClipList();
+  }
+
+  rawFileInput.addEventListener('change', function () {
+    if (rawFileInput.files && rawFileInput.files.length > 0) {
+      addRawFiles(rawFileInput.files);
+      rawFileInput.value = '';
+    }
+  });
+
+  rawDropZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    rawDropZone.classList.add('drag-over');
+  });
+  rawDropZone.addEventListener('dragleave', function () {
+    rawDropZone.classList.remove('drag-over');
+  });
+  rawDropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    rawDropZone.classList.remove('drag-over');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addRawFiles(e.dataTransfer.files);
+    }
+  });
+
+  assembleBtn.addEventListener('click', async function () {
+    if (rawClips.length === 0) return;
+    if (!password) { showError('Enter password first'); return; }
+
+    assembleBtn.disabled = true;
+    assembleBtn.textContent = 'Uploading clips...';
+    assembleResult.style.display = 'none';
+    assembleFallback.style.display = 'none';
+
+    // Step 1: Upload each clip to Supabase Storage via get-upload-url
+    for (var i = 0; i < rawClips.length; i++) {
+      var clip = rawClips[i];
+      if (clip.url) continue; // already uploaded
+
+      clip.status = 'uploading';
+      renderClipList();
+
+      try {
+        // Get a signed upload URL
+        var rawFilename = 'raw-' + Date.now() + '-' + clip.file.name;
+        var urlRes = await fetch('/api/get-upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: rawFilename,
+            fileSize: clip.file.size,
+            password: password,
+          }),
+        });
+        var urlData = await urlRes.json();
+        if (!urlData.ok) {
+          clip.status = 'error';
+          renderClipList();
+          assembleBtn.disabled = false;
+          assembleBtn.textContent = 'Upload & Assemble Video';
+          return;
+        }
+
+        // PUT the file to the signed URL
+        var putRes = await fetch(urlData.signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'video/mp4' },
+          body: clip.file,
+        });
+        if (!putRes.ok) {
+          clip.status = 'error';
+          renderClipList();
+          assembleBtn.disabled = false;
+          assembleBtn.textContent = 'Upload & Assemble Video';
+          return;
+        }
+
+        clip.url = urlData.publicUrl;
+        clip.status = 'done';
+        renderClipList();
+      } catch (uploadErr) {
+        clip.status = 'error';
+        renderClipList();
+        assembleBtn.disabled = false;
+        assembleBtn.textContent = 'Upload & Assemble Video';
+        return;
+      }
+    }
+
+    // Step 2: Call assemble-video
+    assembleBtn.textContent = 'Assembling...';
+
+    var clipsPayload = rawClips.map(function (c) {
+      var entry = { url: c.url, type: c.type };
+      if (c.type === 'screen') {
+        entry.start = 9;
+        entry.duration = 8;
+      }
+      return entry;
+    });
+
+    try {
+      var asmRes = await fetch('/api/assemble-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + password,
+        },
+        body: JSON.stringify({
+          clips: clipsPayload,
+          outputName: 'studio-assembly-' + Date.now(),
+          spec: { width: 1080, height: 1920, fps: 30 },
+        }),
+      });
+      var asmData = await asmRes.json();
+
+      if (asmData.ok && asmData.renderUrl) {
+        var gemini = asmData.gemini || {};
+        var verdict = gemini.verdict || 'SKIP';
+        var verdictClass = verdict === 'PASS' ? 'pass' : verdict === 'FAIL' ? 'fail' : 'skip';
+        var verdictLabel = verdict === 'PASS' ? 'PASS - Ready to post'
+          : verdict === 'FAIL' ? 'FAIL - See issues below'
+          : 'Gemini not configured (GEMINI_API_KEY missing)';
+
+        assembleResult.innerHTML =
+          '<div class="result-title">Assembly complete</div>' +
+          '<div class="result-url"><a href="' + asmData.renderUrl + '" target="_blank" style="color:#C9A96E;">' + asmData.renderUrl + '</a></div>' +
+          '<div class="result-verdict ' + verdictClass + '">Sage: ' + verdictLabel + '</div>' +
+          (gemini.duration_estimate ? '<div style="font-size:12px;color:rgba(255,255,255,0.4);">Duration: ' + gemini.duration_estimate + '</div>' : '') +
+          (gemini.full_report ? '<div class="result-report">' + gemini.full_report + '</div>' : '');
+        assembleResult.style.display = 'block';
+      } else if (asmData.fallback) {
+        assembleFallback.innerHTML =
+          '<div class="fallback-title">Cloud assembly unavailable - run locally</div>' +
+          '<div class="fallback-body">' +
+          'Creatomate error: ' + (asmData.creatomateError || 'unknown') + '<br><br>' +
+          'Run this in your terminal (MeetDossie folder):<br>' +
+          '<code style="background:rgba(0,0,0,0.3);display:block;padding:8px;border-radius:4px;margin-top:6px;font-size:11px;">scripts\\build-italy-v4.bat</code><br>' +
+          'A Telegram message has also been sent to Heath with instructions.' +
+          '</div>';
+        assembleFallback.style.display = 'block';
+      } else {
+        assembleFallback.innerHTML =
+          '<div class="fallback-title">Assembly failed</div>' +
+          '<div class="fallback-body">' + (asmData.error || JSON.stringify(asmData)) + '</div>';
+        assembleFallback.style.display = 'block';
+      }
+    } catch (asmErr) {
+      assembleFallback.innerHTML =
+        '<div class="fallback-title">Assembly request failed</div>' +
+        '<div class="fallback-body">' + asmErr.message + '</div>';
+      assembleFallback.style.display = 'block';
+    }
+
+    assembleBtn.disabled = false;
+    assembleBtn.textContent = 'Upload & Assemble Video';
   });
 
 })();
