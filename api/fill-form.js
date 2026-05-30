@@ -442,8 +442,7 @@ function formatMoney(value) {
 //   [CheckBox] "will" -> sale_price_credited (sale price credited checkbox)
 //   [CheckBox] "will not be credited to the Sales Price at closing Time is of the" -> default checked
 // SECTION 5 — EARNEST MONEY / OPTION FEE
-//   [TextField] "the Title Company and Buyers lenders Check one box only" -> option_period_days
-//     (field name is a PDF artifact; positioned at the "__ days after Effective Date" blank in §5.B)
+//   [TextField] "days after the Effective Date if" -> option_period_days (confirmed via inspect_all_fields.js)
 //   [TextField] "earnest money of" -> earnest_money
 //   [TextField] "Option Fee in the form of" -> option_fee
 //   [TextField] "Seller or Listing Broker" -> listing_agent_name (option fee recipient)
@@ -650,7 +649,9 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Contract Concerning_2', addr);
   safeSetText(form, 'Contract Concerning_3', addr);
   safeSetText(form, 'Contract Concerning_4', addr);
-  safeSetText(form, 'the Title Company and Buyers lenders Check one box only', fv.option_period_days != null ? String(fv.option_period_days) : '');
+
+  // OPTION PERIOD DAYS (Section 5) — field confirmed via inspect_all_fields.js
+  safeSetText(form, 'days after the Effective Date if', fv.option_period_days != null ? String(fv.option_period_days) : '');
 
   // Legal description: "A LAND Lot" = full legal or lot portion, "Block" = block, "undefined" = lot number
   safeSetText(form, 'A LAND Lot', fv.legal_description || '');
@@ -2784,7 +2785,7 @@ module.exports = async function handler(req, res) {
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
-      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date&limit=1',
+      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,seller_email,seller_phone,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date&limit=1',
       { method: 'GET' },
     );
     if (!txResp.ok) {
@@ -2831,21 +2832,34 @@ module.exports = async function handler(req, res) {
 
     // Normalize transaction data, mirroring normalize_transaction.py
     const ft = tx.financing_type || (tx.lender_name ? 'conventional' : null);
+    // Section 3: down payment is purchase price minus loan amount (no separate DB column).
+    const rawSalePrice = tx.sale_price != null ? Number(tx.sale_price) : 0;
+    const rawLoanAmount = tx.loan_amount != null ? Number(tx.loan_amount) : 0;
+    const computedDownPayment = rawSalePrice > 0 && rawSalePrice > rawLoanAmount
+      ? String(rawSalePrice - rawLoanAmount)
+      : '';
     const txDefaults = {
       buyer_name:              tx.buyer_name || '',
       seller_name:             tx.seller_name || '',
+      // Section 21 Notices — seller contact info from transaction record
+      seller_email:            tx.seller_email || '',
+      seller_phone:            tx.seller_phone || '',
       property_address:        tx.property_address || '',
       city_state_zip:          tx.city_state_zip || '',
       property_full:           [tx.property_address, tx.city_state_zip].filter(Boolean).join(', '),
       county:                  tx.county || '',
       legal_description:       tx.legal_description || '',
-      sale_price:              tx.sale_price != null ? String(tx.sale_price) : '',
+      sale_price:              rawSalePrice > 0 ? String(rawSalePrice) : '',
+      // Section 3A: down payment = sale_price - loan_amount (cash portion buyer brings to closing)
+      down_payment_amt:        computedDownPayment,
       earnest_money:           tx.earnest_money != null ? String(tx.earnest_money) : '',
       option_fee:              tx.option_fee != null ? String(tx.option_fee) : '',
+      // Section 5: option period days from option_days column
+      option_period_days:      tx.option_days != null ? tx.option_days : null,
       closing_date:            tx.closing_date || '',
       contract_effective_date: tx.contract_effective_date || '',
       title_company:           tx.title_company || '',
-      loan_amount:             tx.loan_amount != null ? String(tx.loan_amount) : '',
+      loan_amount:             rawLoanAmount > 0 ? String(rawLoanAmount) : '',
       financing_type:          ft || '',
       financing_addendum:      Boolean(ft && ft !== 'cash'),
       financing_conventional:  ft === 'conventional',
@@ -2863,7 +2877,7 @@ module.exports = async function handler(req, res) {
       // Appraisal fields (Block 10)
       appraised_value:         tx.appraisal_value != null ? String(tx.appraisal_value) : '',
       appraisal_deadline:      tx.appraisal_deadline || '',
-      sales_price:             tx.sale_price != null ? String(tx.sale_price) : '',
+      sales_price:             rawSalePrice > 0 ? String(rawSalePrice) : '',
       // Seller name split for T-47 and other multi-seller forms
       seller_name_1:           tx.seller_name || '',
       // Year built for lead paint trigger
