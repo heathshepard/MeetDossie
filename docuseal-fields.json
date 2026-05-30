@@ -24,9 +24,9 @@
       {
         "page": 0,
         "attachment_uuid": "40cf3142-c321-469a-a28d-a7b42306bf78",
-        "x": 0.455,
-        "y": 0.114,
-        "w": 0.35,
+        "x": 0.09,
+        "y": 0.08,
+        "w": 0.3,
         "h": 0.016
       }
     ]
@@ -40,9 +40,9 @@
       {
         "page": 0,
         "attachment_uuid": "40cf3142-c321-469a-a28d-a7b42306bf78",
-        "x": 0.215,
-        "y": 0.1275,
-        "w": 0.58,
+        "x": 0.42,
+        "y": 0.08,
+        "w": 0.38,
         "h": 0.016
       }
     ]
@@ -208,7 +208,7 @@
     ]
   },
   {
-    "name": "no_residential_leases",
+    "name": "has_residential_leases",
     "type": "checkbox",
     "required": false,
     "submitter_uuid": "00f4ba7d-7814-4426-8612-9ef9dab0c810",
@@ -224,7 +224,7 @@
     ]
   },
   {
-    "name": "no_fixture_leases",
+    "name": "has_fixture_leases",
     "type": "checkbox",
     "required": false,
     "submitter_uuid": "00f4ba7d-7814-4426-8612-9ef9dab0c810",
@@ -240,7 +240,7 @@
     ]
   },
   {
-    "name": "no_natural_resource_leases",
+    "name": "has_natural_resource_leases",
     "type": "checkbox",
     "required": false,
     "submitter_uuid": "00f4ba7d-7814-4426-8612-9ef9dab0c810",
@@ -424,8 +424,8 @@
       {
         "page": 1,
         "attachment_uuid": "40cf3142-c321-469a-a28d-a7b42306bf78",
-        "x": 0.44,
-        "y": 0.541,
+        "x": 0.4425,
+        "y": 0.5446,
         "w": 0.014,
         "h": 0.014
       }
@@ -440,8 +440,8 @@
       {
         "page": 1,
         "attachment_uuid": "40cf3142-c321-469a-a28d-a7b42306bf78",
-        "x": 0.536,
-        "y": 0.541,
+        "x": 0.5385,
+        "y": 0.5446,
         "w": 0.014,
         "h": 0.014
       }
@@ -2203,6 +2203,38 @@
         "x": 0.21,
         "y": 0.038,
         "w": 0.52,
+        "h": 0.016
+      }
+    ]
+  },
+  {
+    "name": "possession_leaseback",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "00f4ba7d-7814-4426-8612-9ef9dab0c810",
+    "areas": [
+      {
+        "page": 5,
+        "attachment_uuid": "40cf3142-c321-469a-a28d-a7b42306bf78",
+        "x": 0.655,
+        "y": 0.1535,
+        "w": 0.014,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "license_holder_name",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "00f4ba7d-7814-4426-8612-9ef9dab0c810",
+    "areas": [
+      {
+        "page": 4,
+        "attachment_uuid": "40cf3142-c321-469a-a28d-a7b42306bf78",
+        "x": 0.48,
+        "y": 0.268,
+        "w": 0.42,
         "h": 0.016
       }
     ]
