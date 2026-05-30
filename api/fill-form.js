@@ -662,12 +662,16 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'County of', fv.county || '');
 
   // SALES PRICE (Section 3)
+  // Field positions confirmed via PDF coordinate inspection (2026-05-29):
+  //   undefined_2 = wide left-aligned label row (not a dollar field — leave blank)
+  //   undefined_3 = 3A dollar: cash portion of sales price (down payment / purchase price - loan)
+  //   undefined_4 = 3B dollar: sum of all financing (loan amount)
+  //   undefined_5 = 3C dollar: total Sales Price (purchase price)
   const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
   if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
-  safeSetText(form, 'undefined_2', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
-  safeSetText(form, 'undefined_3', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
-  safeSetText(form, 'undefined_4', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
-  safeSetText(form, 'undefined_5', fv.additional_cash_closing != null && fv.additional_cash_closing !== '' ? formatMoney(fv.additional_cash_closing) : '');
+  safeSetText(form, 'undefined_3', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
+  safeSetText(form, 'undefined_4', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
+  safeSetText(form, 'undefined_5', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
   // Sale price credited: default "will not be credited" (standard resale)
   if (fv.sale_price_credited === true) {
     safeCheck(form, 'will');
@@ -677,11 +681,19 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.listing_commission_total != null && fv.listing_commission_total !== '' ? formatMoney(fv.listing_commission_total) : '');
 
   // EARNEST MONEY / OPTION FEE (Section 5)
-  safeSetText(form, 'earnest money of', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
+  // Field positions confirmed via PDF coordinate inspection (2026-05-29):
+  //   undefined_6       = Escrow Agent name (Section 5A header, page 2 y=699)
+  //   as earnest money to  = primary earnest money DOLLAR (page 2 y=689 x=293 w=72)
+  //   as earnest money to 2 = option fee DOLLAR (page 2 y=689 x=488 w=75)
+  //   earnest money of  = additional earnest money row (page 2 y=657)
+  //   Option Fee in the form of = option fee form label text (page 2)
+  safeSetText(form, 'undefined_6', fv.title_company || '');
+  safeSetText(form, 'as earnest money to', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
+  safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
+  safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
   safeSetText(form, 'Option Fee in the form of', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'Seller or Listing Broker', fv.listing_agent_name || '');
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
-  safeSetText(form, 'as earnest money to', fv.earnest_money_to || fv.title_company || '');
 
   // TITLE COMPANY / ESCROW (Section 6)
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
@@ -844,10 +856,11 @@ async function fillResaleContract(pdfDoc, fv) {
     safeCheck(form, 'Buyer only');
   }
 
-  // Commission fields — AC fields have maxLen=3; strip "%" suffix
+  // Commission fields — AC numb 1 is the buyer agent commission field in Section 10.
+  // AC1 confirmed via PDF coordinate inspection (2026-05-29) to be the buyer phone area code
+  // parenthetical in Section 21 Notices — do NOT fill with commission value (Bug 5 fix).
   if (fv.buyer_agent_commission) {
     const commStr = String(fv.buyer_agent_commission).replace('%', '').trim().slice(0, 3);
-    safeSetText(form, 'AC1', commStr);
     safeSetText(form, 'AC numb 1', commStr);
   }
 
@@ -883,9 +896,14 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'is acknowledged_3', fv.additional_earnest_receipt_date || '');
   safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
 
-  // NOTICE ADDRESSES
+  // NOTICE ADDRESSES (Section 21)
+  // Field positions confirmed via PDF coordinate inspection (2026-05-29):
+  //   "when mailed to handdelivered..." = Section 21 "To Buyer at" (page 8)
+  //   "undefined_19"                   = Section 21 "To Seller at" (page 8 y=698 x=386)
+  //   "when mailed to"                 = renders inside broker fee disclosure parenthetical (page 10)
+  //                                      — do NOT fill with seller name (Bug 3 fix)
   safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
-  safeSetText(form, 'when mailed to', fv.notice_address_2 || '');
+  safeSetText(form, 'undefined_19', fv.notice_address_2 || '');
 
   // SECTION 12 — Buyer's expenses / closing cost credit (dollar amount, not initials)
   safeSetText(form, 'Buyers Expenses as allowed by the lender', fv.buyer_closing_cost_credit != null && fv.buyer_closing_cost_credit !== '' ? formatMoney(fv.buyer_closing_cost_credit) : '');
@@ -2921,6 +2939,8 @@ module.exports = async function handler(req, res) {
       hoa_management_company:  tx.hoa_management_company || '',
       // Section 22 — HOA addendum checkbox (auto-set when hoa===true)
       hoa_addendum:            tx.hoa === true,
+      // Section 22 — Propane Gas addendum: only check when explicitly true (Bug 4 fix)
+      propane_addendum:        tx.propane_gas_addendum === true,
       // Section 7 — Property condition (as-is vs. as-is with repairs)
       // Default: as-is unless explicitly false
       as_is_with_repairs:      tx.as_is === false,
