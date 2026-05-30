@@ -233,7 +233,9 @@ async function downloadAndStoreSigned(sr, fileName) {
 }
 
 // Email the seller's agent the fully executed PDF as an attachment.
-async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress, agentEmail) {
+// dossieUserEmail is the transaction owner's email (from profiles) — used as reply_to
+// so the seller's agent can reply directly to the Dossie user who initiated the signing.
+async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress, dossieUserEmail) {
   if (!RESEND_API_KEY || !sellerAgentEmail) return;
   try {
     const base64Pdf = pdfBuffer.toString('base64');
@@ -249,7 +251,7 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
       body: JSON.stringify({
         from: 'Dossie <dossie@meetdossie.com>',
         to: [sellerAgentEmail],
-        ...(agentEmail ? { reply_to: agentEmail } : {}),
+        ...(dossieUserEmail ? { reply_to: dossieUserEmail } : {}),
         subject,
         html: `
           <p>Hi ${sellerAgentName || 'there'},</p>
@@ -438,11 +440,12 @@ module.exports = async function handler(req, res) {
       // Mark the request completed.
       await markRequestCompleted(sr.id, signedDocId);
 
-      // Send agent email notification.
-      const agentInfo = await fetchAgentEmailForUser(sr.user_id);
-      await sendCompletionEmail(agentInfo?.email, agentInfo?.full_name, fileName);
+      // Fetch the Dossie user's profile (transaction owner) for notifications + reply_to.
+      const dossieUser = await fetchAgentEmailForUser(sr.user_id);
+      await sendCompletionEmail(dossieUser?.email, dossieUser?.full_name, fileName);
 
       // If a seller's agent email is on the signature request, send them the executed PDF.
+      // reply_to is set to the Dossie user's own email so the seller's agent can reply directly to them.
       if (sr.seller_agent_email && signedPdfBuffer) {
         await sendSellerAgentEmail(
           sr.seller_agent_email,
@@ -450,10 +453,9 @@ module.exports = async function handler(req, res) {
           fileName,
           signedPdfBuffer,
           propertyAddress,
-          agentInfo?.email || null
+          dossieUser?.email || null
         );
       } else if (sr.seller_agent_email && !signedPdfBuffer) {
-        // DOCUSEAL_API_KEY not set or PDF fetch failed — log so we know to retry.
         console.warn(`[esign-webhook] seller_agent_email set (${sr.seller_agent_email}) but could not fetch signed PDF buffer — skipping seller email.`);
       }
 
