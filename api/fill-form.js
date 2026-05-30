@@ -442,7 +442,7 @@ function formatMoney(value) {
 //   [CheckBox] "will" -> sale_price_credited (sale price credited checkbox)
 //   [CheckBox] "will not be credited to the Sales Price at closing Time is of the" -> default checked
 // SECTION 5 — EARNEST MONEY / OPTION FEE
-//   [TextField] "days after the Effective Date if" -> option_period_days (confirmed via inspect_all_fields.js)
+//   [TextField] "undefined_8" -> option_period_days (correct field for resale contract; "days after the Effective Date if" belongs to TREC 49-1, not this form)
 //   [TextField] "earnest money of" -> earnest_money
 //   [TextField] "Option Fee in the form of" -> option_fee
 //   [TextField] "Seller or Listing Broker" -> listing_agent_name (option fee recipient)
@@ -650,8 +650,9 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Contract Concerning_3', addr);
   safeSetText(form, 'Contract Concerning_4', addr);
 
-  // OPTION PERIOD DAYS (Section 5) — field confirmed via inspect_all_fields.js
-  safeSetText(form, 'days after the Effective Date if', fv.option_period_days != null ? String(fv.option_period_days) : '');
+  // OPTION PERIOD DAYS (Section 5) — field "undefined_8" in TREC 20-17 resale contract
+  // NOTE: "days after the Effective Date if" belongs to TREC 49-1 (appraisal termination), not this form
+  safeSetText(form, 'undefined_8', fv.option_period_days != null ? String(fv.option_period_days) : '');
 
   // Legal description: "A LAND Lot" = full legal or lot portion, "Block" = block, "undefined" = lot number
   safeSetText(form, 'A LAND Lot', fv.legal_description || '');
