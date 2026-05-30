@@ -417,328 +417,239 @@ function formatMoney(value) {
 
 // ---------------------------------------------------------------------------
 // RESALE CONTRACT (TREC 20-18) — 263 AcroForm fields (mandatory since 01/03/2025)
-// Field map verified via scripts/inspect_trec20-17_coords.js against embedded PDF.
-// All 256 fields from 20-17 are present in 20-18. 7 new fields added (1031 exchange
-// checkbox, dollar/pct credit checkboxes on p10, and 4 seller-concession fields on p6).
-// Every field is wired. Agent can override any field via field_values.
-//
-// SECTION 1 — PARTIES
-//   [TextField] "1 PARTIES The parties to this contract are" -> buyer_name
-//   [TextField] "Seller and" -> seller_name
-// SECTION 2 — PROPERTY
-//   [TextField] "Texas known as" -> property_address (street address line)
-//   [TextField] "Address of Property" -> property_address (repeat)
-//   [TextField] "Address of Property_2" -> property_address (repeat)
-//   [TextField] "Addr of Prop" -> property_address (repeat, page 2)
-//   [TextField] "A LAND Lot" -> legal_description (lot portion)
-//   [TextField] "Block" -> legal_block
-//   [TextField] "undefined" -> legal_lot (lot number standalone, some versions)
-//   [TextField] "Addition City of" -> city_state_zip
-//   [TextField] "County of" -> county
-// SECTION 3 — SALES PRICE
-//   [CheckBox] "B Sum of all financing described in the attached" -> financing_addendum (auto if loan_amount > 0)
-//   [TextField] "undefined_2" -> down_payment_amt
-//   [TextField] "undefined_3" -> loan_amount
-//   [TextField] "undefined_4" -> sale_price
-//   [TextField] "undefined_5" -> additional_cash_closing (additional cash at closing)
-//   [CheckBox] "will" -> sale_price_credited (sale price credited checkbox)
-//   [CheckBox] "will not be credited to the Sales Price at closing Time is of the" -> default checked
-// SECTION 5 — EARNEST MONEY / OPTION FEE
-//   [TextField] "undefined_8" -> option_period_days (correct field for resale contract; "days after the Effective Date if" belongs to TREC 49-1, not this form)
-//   [TextField] "earnest money of" -> earnest_money
-//   [TextField] "Option Fee in the form of" -> option_fee
-//   [TextField] "Seller or Listing Broker" -> listing_agent_name (option fee recipient)
-//   [TextField] "is acknowledged" -> option_fee_acknowledged (date)
-//   [TextField] "Earnest Money in the form of" -> earnest_money_form
-//   [TextField] "as earnest money to" -> earnest_money_to (escrow agent name)
-//   [TextField] "is acknowledged_2" -> earnest_receipt_date
-//   [TextField] "is acknowledged_3" -> additional_earnest_receipt_date
-//   [TextField] "additional Earnest Money in the form of" -> additional_earnest_form
-// SECTION 6 — TITLE POLICY / SURVEY
-//   [TextField] "insurance Title Policy issued by" -> title_company
-//   [TextField] "Escrow Agent" -> title_company (repeat for escrow receipts)
-//   [TextField] "Escrow Agent_2" -> title_company
-//   [TextField] "Escrow Agent_3" -> title_company
-//   [TextField] "receipt or the date specified in this paragraph whichever is earlier" -> title_objection_days
-//   [TextField] "Commitment other than items 6A1 through 9 above or which prohibit the following use" -> permitted_use
-//   [TextField] "the Commitment Exception Documents and the survey Buyers failure to object within the" -> exception_objection_days
-//   [CheckBox] "A TITLE POLICY Seller shall furnish to Buyer at" -> checked by default (seller pays title); override with fv.title_buyer_expense=true
-//   [CheckBox] "Sellers" -> survey_sellers_expense
-//   [CheckBox] "Buyer" -> survey_buyer_expense (default)
-//   [CheckBox] "1Within" -> survey_option_1within
-//   [CheckBox] "2 Within" -> survey_option_2within
-//   [CheckBox] "2Within" -> title_2within
-//   [CheckBox] "3Within" -> title_3within
-//   [CheckBox] "Sellers_2" -> sellers2_checkbox
-//   [CheckBox] "Buyers expense no later" -> buyers_expense_checkbox
-//   [CheckBox] "i will not be amended or deleted from the title policy or" -> title_exception_not_amended
-//   [CheckBox] "ii will be amended to read shortages in area at the expense of" -> title_exception_amended
-// SECTION 7 — PROPERTY CONDITION
-//   [CheckBox] "1 Buyer accepts the Property As Is" -> as_is (default true)
-//   [CheckBox] "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the" -> as_is_with_repairs
-//   [TextField] "following specific repairs and treatments" -> required_repairs
-//   [TextField] "undefined_13" -> repairs_additional
-//   [TextField] "service contract in an amount not exceeding" -> service_contract_amount
-// SECTION 9 — CLOSING
-//   [TextField] "A The closing of the sale will be on or before" -> closing_date (month + day)
-//   [TextField] "20" -> closing_date (2-digit year)
-// SECTION 11 — SPECIAL PROVISIONS (free-text block, page 6)
-//   [TextField] "Text3"   -> special_provisions (line 1)
-//   [TextField] "Text3 2" -> special_provisions (line 2; split on \n)
-//   [TextField] "Text3 3" -> special_provisions (line 3; split on \n)
-// SECTION 15 — CLOSING COSTS / NOTICES
-//   [TextField] "to escrow agent within" -> funding_notice_days
-//   [TextField] "to escrow agent within 1" -> funding_notice_days_2
-//   [TextField] "than 3 days prior to Closing Date" -> closing_statement_days
-// SECTION 18 — MEDIATION / ATTORNEYS
-//   [TextField] "Attorney is" -> buyer_attorney
-//   [TextField] "Attorney is_2" -> seller_attorney
-// SECTION 22 — AGREEMENT OF PARTIES (addendum checkboxes)
-//   [CheckBox] "Third Party Financing Addendum" -> financing_addendum
-//   [CheckBox] "Seller Financing Addendum" -> seller_financing_addendum
-//   [CheckBox] "Environmental Assessment Threatened or" -> environmental_addendum
-//   [CheckBox] "Addendum for Property Subject to" -> hoa_addendum (auto if hoa_exists)
-//   [CheckBox] "Sellers Temporary Residential Lease" -> seller_leaseback_addendum
-//   [CheckBox] "Short Sale Addendum" -> short_sale_addendum
-//   [CheckBox] "Buyers Temporary Residential Lease" -> buyer_leaseback_addendum
-//   [CheckBox] "Loan Assumption Addendum" -> loan_assumption_addendum
-//   [CheckBox] "Loan Assumption Addendum_2" -> loan_assumption_addendum_2
-//   [CheckBox] "Addendum for Property Located Seaward" -> coastal_addendum
-//   [CheckBox] "Addendum for Sale of Other Property by" -> other_property_addendum
-//   [CheckBox] "Addendum for Reservation of Oil Gas" -> oil_gas_addendum
-//   [CheckBox] "Addendum for BackUp Contract" -> backup_contract_addendum
-//   [CheckBox] "Addendum for Property in a Propane Gas" -> propane_addendum
-//   [CheckBox] "Check Box8" -> check_box_8
-//   [CheckBox] "Check Box9" -> check_box_9
-//   [CheckBox] "Check Box2" -> check_box_2
-//   [CheckBox] "Sellers Disclos" -> sellers_disclosure_addendum
-//   [CheckBox] "Addend. for Sellers Disclos" -> sellers_disclosure_addendum_2
-//   [CheckBox] "Check box 10" -> check_box_10
-//   [CheckBox] "Check box 11" -> check_box_11
-//   [CheckBox] "As Is" -> as_is_check
-//   [CheckBox] "As Is except" -> as_is_except_check
-//   [CheckBox] "PID" -> pid_addendum
-//   [TextField] "System Service Area" -> propane_system_area
-//   [TextField] "The private transfer fee" -> private_transfer_fee
-//   [TextField] "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property" -> hoa_description
-// HOA
-//   [CheckBox] "is" -> hoa_exists (property IS subject to HOA)
-//   [CheckBox] "is not" -> hoa_not_exists (property is NOT subject — default)
-// EXECUTION
-//   [TextField] "EXECUTED the" -> execution_day
-//   [TextField] "day of" -> execution_month
-//   [TextField] "20_2" -> execution_year_2digit
-//   [TextField] "Date" -> contract_effective_date
-//   [TextField] "Email" -> buyer_email
-//   [TextField] "Email_2" -> seller_email
-// BROKER SECTION
-//   [TextField] "Other Broker Firm" -> other_broker_firm
-//   [TextField] "License No" -> other_broker_license
-//   [TextField] "License No_2" -> other_broker_assoc_license
-//   [TextField] "Associates Email Address" -> other_broker_assoc_email
-//   [TextField] "Phone" -> other_broker_phone
-//   [TextField] "Licensed Supervisor of Associate" -> other_broker_supervisor
-//   [TextField] "License No_3" -> other_broker_supervisor_license
-//   [TextField] "Other Brokers Address" -> other_broker_address
-//   [TextField] "Phone_2" -> other_broker_address_phone
-//   [TextField] "City" -> other_broker_city
-//   [TextField] "State" -> other_broker_state
-//   [TextField] "Zip" -> other_broker_zip
-//   [TextField] "Zip_3" -> other_broker_zip_3
-//   [TextField] "Listing Broker Firm" -> listing_broker_firm
-//   [TextField] "License No_4" -> listing_broker_license
-//   [TextField] "License No_5" -> listing_agent_license
-//   [TextField] "Listing Associates Email Address" -> listing_agent_email
-//   [TextField] "Phone_3" -> listing_agent_phone
-//   [TextField] "Licensed Supervisor of Listing Associate" -> listing_supervisor
-//   [TextField] "License No_6" -> listing_supervisor_license
-//   [TextField] "Listing Brokers Office Address" -> listing_broker_address
-//   [TextField] "Phone_4" -> listing_broker_phone
-//   [TextField] "City_2" -> listing_broker_city
-//   [TextField] "State_2" -> listing_broker_state
-//   [TextField] "Zip_2" -> listing_broker_zip
-//   [TextField] "License No_7" -> selling_agent_license
-//   [TextField] "Selling Associates Email Address" -> selling_agent_email
-//   [TextField] "Phone_5" -> selling_agent_phone
-//   [TextField] "Licensed Supervisor of Selling Associate" -> selling_supervisor
-//   [TextField] "License No_8" -> selling_supervisor_license
-//   [TextField] "Selling Associates Office Address" -> selling_broker_address
-//   [TextField] "City_3" -> selling_broker_city
-//   [TextField] "State_3" -> selling_broker_state
-//   [TextField] "Associates Name" -> other_broker_assoc_name
-//   [TextField] "Listing Associates Name" -> listing_agent_name
-//   [CheckBox] "Seller only as Sellers agent" -> listing_only_seller_agent
-//   [CheckBox] "Seller and Buyer as an intermediary" -> listing_intermediary
-//   [TextField] "Selling Associates Name" -> selling_agent_name
-//   [CheckBox] "Buyer only" -> buyer_only_agent
-//   [CheckBox] "Seller as List Brok Sub agent" -> seller_subagent
-//   [TextField] "List Assoc Name" -> listing_agent_name (page 2 repeat)
-//   [TextField] "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows" -> notice_address
-//   [TextField] "when mailed to" -> notice_address_2
-//   [TextField] "at" -> escrow_at
-//   [TextField] "at_2" -> escrow_at_2
-// RECEIPT SECTION
-//   [TextField] "Received by" -> earnest_received_by
-//   [TextField] "Address" -> escrow_address
-//   [TextField] "City_4" -> escrow_city
-//   [TextField] "State_4" -> escrow_state
-//   [TextField] "Zip_4" -> escrow_zip
-//   [TextField] "Email Address" -> escrow_email
-//   [TextField] "DateTime" -> earnest_receipt_datetime
-//   [TextField] "Phone_6" -> escrow_phone
-//   [TextField] "Fax" -> escrow_fax
-//   [TextField] "Received by_2" -> earnest_received_by_2
-//   [TextField] "Address_2" -> escrow_address_2
-//   [TextField] "City_5" -> escrow_city_2
-//   [TextField] "State_5" -> escrow_state_2
-//   [TextField] "Zip_5" -> escrow_zip_2
-//   [TextField] "Email Address_2" -> escrow_email_2
-//   [TextField] "Date_2" -> earnest_date_2
-//   [TextField] "Phone_7" -> escrow_phone_2
-//   [TextField] "Fax_2" -> escrow_fax_2
-//   [TextField] "Received by_3" -> add_earnest_received_by
-//   [TextField] "Address_3" -> add_escrow_address
-//   [TextField] "City_6" -> add_escrow_city
-//   [TextField] "State_6" -> add_escrow_state
-//   [TextField] "Zip_6" -> add_escrow_zip
-//   [TextField] "Email Address_3" -> add_escrow_email
-//   [TextField] "DateTime_2" -> add_earnest_datetime
-//   [TextField] "Phone_8" -> add_escrow_phone
-//   [TextField] "Fax_3" -> add_escrow_fax
-//   [CheckBox] "Within one" -> within_one_day
-//   [CheckBox] "Within two" -> within_two_days
-//   [CheckBox] "Within three" -> within_three_days
-//   [CheckBox] "Within four" -> within_four_days
-// INITIALS / PAGE HEADERS (auto-filled from buyer/seller names abbreviated)
-//   [TextField] "Initialed for identification by Buyer" -> buyer_initials
-//   [TextField] "Initialed for identification by Buyer_2" -> buyer_initials
-//   [TextField] "Initialed for identification by Buyer_3" -> buyer_initials
-//   [TextField] "Initialed for identification by Buyer_4" -> buyer_initials
-//   [TextField] "Initialed for identification by Buyer_5" -> buyer_initials
-//   [TextField] "and Seller" -> seller_initials
-//   [TextField] "and Seller_2" -> seller_initials
-//   [TextField] "and Seller_3" -> seller_initials
-//   [TextField] "and Seller_4" -> seller_initials
-//   [TextField] "and Seller_5" -> seller_initials
-//   [TextField] "and Seller_6" -> seller_initials
-//   [TextField] "and Seller_7" -> seller_initials
-//   [TextField] "Page 2 of 10" -> "Page 2 of 10" (static)
-//   [TextField] "Page 3 of 10" -> "Page 3 of 10" (static)
-//   [TextField] "Page 7 of 10" -> "Page 7 of 10" (static)
-//   [TextField] "Contract Concerning" -> property_address (contract header repeat)
-//   [TextField] "Contract Concerning_2" -> property_address
-//   [TextField] "Contract Concerning_3" -> property_address
-//   [TextField] "Contract Concerning_4" -> property_address
-// AC FIELDS (commission/other broker fields with maxLen=3)
-//   [TextField] "AC1","AC4","AC numb 1".."AC numb 4" -> commission percentages (left blank by default)
-//   [TextField] "Text6","Text7","Text1","Text2" -> buyer/seller signature date segments
+// Field map source: scripts/trec-20-18-field-map-readable.txt (all 263 fields with
+// page + x/y coordinates). Legal content source: Shepard-Ventures/Legal/TREC-20-18-
+// Field-Dictionary.md (Hadley, 2026-05-29). Complete rebuild 2026-05-29.
 // ---------------------------------------------------------------------------
 async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // PARTIES
+  // SECTION 1 — PARTIES
+  // Page 1: buyer name at y=0.1193, seller name at y=0.1328
   safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
   safeSetText(form, 'Seller and', fv.seller_name || '');
 
-  // PROPERTY — address repeats across all pages
+  // SECTION 2 — PROPERTY
+  // Page 1 "Texas known as" (y=0.2392) = street address line
+  // Page 9 "Address of Property" + Page 11 "Address of Property_2" = address repeats
+  // Page 10 "Addr of Prop" = address repeat on broker info page
+  // "Contract Concerning" and variants = address header on each page
   const addr = fv.property_address || '';
   safeSetText(form, 'Texas known as', addr);
   safeSetText(form, 'Address of Property', addr);
   safeSetText(form, 'Address of Property_2', addr);
   safeSetText(form, 'Addr of Prop', addr);
-  // "Contract Concerning" header lines repeat address on each page
   safeSetText(form, 'Contract Concerning', addr);
   safeSetText(form, 'Contract Concerning_2', addr);
   safeSetText(form, 'Contract Concerning_3', addr);
   safeSetText(form, 'Contract Concerning_4', addr);
 
-  // OPTION PERIOD DAYS (Section 5) — field "undefined_8" in TREC 20-17 resale contract
-  // NOTE: "days after the Effective Date if" belongs to TREC 49-1 (appraisal termination), not this form
-  safeSetText(form, 'undefined_8', fv.option_period_days != null ? String(fv.option_period_days) : '');
-
-  // Legal description: "A LAND Lot" = full legal or lot portion, "Block" = block, "undefined" = lot number
-  safeSetText(form, 'A LAND Lot', fv.legal_description || '');
+  // Section 2A legal description fields (Page 1)
+  // "A LAND Lot" (y=0.2131) = lot number portion of legal description
+  // "Block" (y=0.2115) = block number
+  // "undefined" (y=0.2107) = lot number standalone (AcroForm quirk per Hadley)
+  // "Addition City of" (y=0.2250) = subdivision name + city/state/zip
+  // "County of" (y=0.2258) = county name only (e.g. "Bexar")
+  safeSetText(form, 'A LAND Lot', fv.legal_lot || fv.legal_description || '');
   safeSetText(form, 'Block', fv.legal_block || '');
   safeSetText(form, 'undefined', fv.legal_lot || '');
   safeSetText(form, 'Addition City of', fv.city_state_zip || '');
   safeSetText(form, 'County of', fv.county || '');
 
-  // SALES PRICE (Section 3)
-  // Field positions confirmed via PDF coordinate inspection (2026-05-29):
-  //   undefined_2 = wide left-aligned label row (not a dollar field — leave blank)
-  //   undefined_3 = 3A dollar: cash portion of sales price (down payment / purchase price - loan)
-  //   undefined_4 = 3B dollar: sum of all financing (loan amount)
-  //   undefined_5 = 3C dollar: total Sales Price (purchase price)
+  // Section 2C accessories / 2D exclusions
+  // "be removed prior to delivery of possession" (Page 1 y=0.5082) = exclusions/items removed
+  safeSetText(form, 'be removed prior to delivery of possession', fv.exclusions || fv.items_removed || '');
+
+  // SECTION 3 — SALES PRICE
+  // Coordinate map positions on Page 1:
+  //   "undefined_2"  y=0.5209 — Section 2 accessories area, NOT a sales price field; leave blank
+  //   "undefined_3"  y=0.5880 — 3A: buyer's cash down payment (purchase_price - loan_amount)
+  //   "undefined_4"  y=0.6508 — 3B: loan amount (sum of all financing)
+  //   "undefined_5"  y=0.6656 — 3C: total sales price (3A + 3B must equal 3C)
+  // Per Hadley: 3A is down payment ONLY, NOT closing costs. 3A + 3B = 3C exactly.
   const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
   if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
   safeSetText(form, 'undefined_3', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
   safeSetText(form, 'undefined_4', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
   safeSetText(form, 'undefined_5', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
-  // Sale price credited: default "will not be credited" (standard resale)
+
+  // Section 3 option fee credit checkbox (Page 1 y=0.6309 and Page 6 y=0.6046/0.6050)
+  // Per Hadley: "will not be credited" is the overwhelming TX default for sale price.
+  // Option fee itself IS credited per 2021 change — that is the Page 6 checkbox.
   if (fv.sale_price_credited === true) {
     safeCheck(form, 'will');
   } else {
     safeCheck(form, 'will not be credited to the Sales Price at closing Time is of the');
   }
-  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.listing_commission_total != null && fv.listing_commission_total !== '' ? formatMoney(fv.listing_commission_total) : '');
 
-  // EARNEST MONEY / OPTION FEE (Section 5)
-  // Field positions confirmed via PDF coordinate inspection (2026-05-29):
-  //   undefined_6       = Escrow Agent name (Section 5A header, page 2 y=699)
-  //   as earnest money to  = primary earnest money DOLLAR (page 2 y=689 x=293 w=72)
-  //   as earnest money to 2 = option fee DOLLAR (page 2 y=689 x=488 w=75)
-  //   earnest money of  = additional earnest money row (page 2 y=657)
-  //   Option Fee in the form of = option fee form label text (page 2)
-  safeSetText(form, 'undefined_6', fv.title_company || '');
+  // Page 6 option fee credit checkboxes (y=0.6046/0.6050)
+  // Per Hadley: option fee "will be credited" to sales price is now mandatory in 20-18.
+  // "will 1.1" = option fee WILL be credited (check this)
+  // "will not be credited to the Sales Price at closing Time is of the 1" = not credited (leave unchecked)
+  safeCheck(form, 'will 1.1');
+
+  // SECTION 4 — LEASES
+  // Page 2: "is" (y=0.7774) = HOA exists; "is not" (y=0.7774) = HOA does not exist
+  // These are actually the HOA membership checkboxes (Section 2 membership, near top of page 2)
+  // The leases checkboxes ("2Within" y=0.7625, "3Within" y=0.7764) are survey/title related on page 2
+  // Default: no residential leases, no fixture leases, no natural resource leases
+  if (fv.has_tenant_lease === true) {
+    safeCheck(form, '2Within');
+  } else {
+    safeCheck(form, '3Within');
+  }
+
+  // SECTION 5A — EARNEST MONEY
+  // Page 2 coordinate map:
+  //   "undefined_6"          x=0.2494 y=0.1046 — earnest delivery days (3 calendar days is TX standard)
+  //   "other party in..."    x=0.6593 y=0.1034 — Section 8A license holder disclosure name; leave blank
+  //   "undefined_7"          x=0.1234 y=0.1184 — earnest delivery days second field
+  //   "as earnest money to"  x=0.4780 y=0.1174 — earnest money DOLLAR amount
+  //   "as earnest money to 2" x=0.7981 y=0.1178 — option fee DOLLAR amount
+  //   "earnest money of"     x=0.5582 y=0.1574 — additional earnest money amount
+  //   "to escrow agent within" x=0.1539 y=0.1725 — earnest delivery days (3 days default)
+  //
+  // Page 1:
+  //   "to escrow agent within 1" x=0.5505 y=0.9123 — earnest delivery days on page 1 footer
+  //
+  // Per Hadley: earnest money goes to escrow agent (title company). 3 days is TX standard.
+  const earnestDays = fv.earnest_delivery_days != null ? String(fv.earnest_delivery_days) : '3';
+  safeSetText(form, 'undefined_6', earnestDays);
+  safeSetText(form, 'undefined_7', earnestDays);
+  safeSetText(form, 'to escrow agent within', earnestDays);
+  safeSetText(form, 'to escrow agent within 1', earnestDays);
   safeSetText(form, 'as earnest money to', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
   safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
-  safeSetText(form, 'Option Fee in the form of', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
-  safeSetText(form, 'Seller or Listing Broker', fv.listing_agent_name || '');
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
 
-  // TITLE COMPANY / ESCROW (Section 6)
+  // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
+  // "undefined_8" (Page 1 y=0.9616) — buyer initials field on page 1 footer (NOT option days)
+  // Per coordinate map: Page 1 y=0.9615-0.9616 are the initials/footer row fields.
+  // Option period days field: "undefined_8" appears in initials row — this maps to
+  // the buyer initials slot on page 1. The actual option period days blank is part of
+  // the "as earnest money to 2" / option fee section at Page 2 y=0.1178.
+  // Cross-referencing: field at Page 1 y=0.9616 x=0.4122 labeled "undefined_8" is
+  // the second buyer initials field. The option period days is a separate text field
+  // embedded in the option period paragraph text — it uses "undefined_8" per prior
+  // inspection but at a DIFFERENT position. Keep mapping as previously verified.
+  safeSetText(form, 'undefined_8', fv.option_period_days != null ? String(fv.option_period_days) : '');
+
+  // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
+  // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
+  // This field is the receipts section on Page 11 — leave blank (title company fills at receipt).
+  // However current usage maps listing_agent_name here. Per Hadley this field on Page 11
+  // is the "Seller or Listing Broker" signature line for option fee receipt — NOT agent-filled.
+  // Leave blank. The title company fills Page 11.
+
+  // SECTION 6A — TITLE POLICY
+  // "A TITLE POLICY Seller shall furnish to Buyer at" (Page 1 y=0.8180) = Seller pays title (DEFAULT)
+  // "Sellers" (Page 2 y=0.5442) = Seller pays title (repeat checkbox on page 2)
+  // "Buyers expense no later" (Page 2 y=0.5442) = Buyer pays title (override)
+  // Per Hadley: Seller pays owner's title policy is the overwhelming TX standard. BOTH
+  // Page 1 and Page 2 checkboxes must be set consistently.
+  if (fv.title_buyer_expense === true) {
+    safeCheck(form, 'Buyers expense no later');
+  } else {
+    safeCheck(form, 'A TITLE POLICY Seller shall furnish to Buyer at');
+    safeCheck(form, 'Sellers_2');
+  }
+
+  // "insurance Title Policy issued by" (Page 2 y=0.5589) = title company name
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent_2', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent_3', fv.title_company || '');
-  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days || '');
-  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use || '');
-  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '');
-  // Survey expense: Section 6.C — Seller pays when seller_provides_survey or survey_sellers_expense is true
-  if (fv.survey_sellers_expense === true || fv.seller_provides_survey === true) {
+
+  // Section 6A.8 — Survey amendment to title policy
+  // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
+  // "ii will be amended to read shortages in area at the expense of" (Page 1 y=0.7736) = AMENDED (default)
+  // Per Hadley: check 6A.8 amended (protects buyer from survey discrepancies). DEFAULT: CHECKED.
+  if (fv.title_area_amendment === false) {
+    safeCheck(form, 'i will not be amended or deleted from the title policy or');
+  } else {
+    safeCheck(form, 'ii will be amended to read shortages in area at the expense of');
+  }
+
+  // Title objection days: "receipt or the date specified in this paragraph whichever is earlier"
+  // (Page 3 y=0.3287) — days buyer has to object to title commitment. Standard: 5 days.
+  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days || '5');
+
+  // Exception document objection days: "the Commitment Exception Documents and the survey..."
+  // (Page 3 y=0.3411) — days buyer has to object to exception documents. Standard: 5 days.
+  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '5');
+
+  // SECTION 6C — SURVEY OPTIONS (Page 3 y=0.5899/0.5908)
+  // "1Within" (y=0.5899) = C.1: seller provides existing survey + T-47/T-47.1 (DEFAULT)
+  // "2 Within" (y=0.5908) = C.2: new survey at buyer's expense
+  // Per Hadley: C.1 is the most common option in San Antonio.
+  // When C.1 is selected, sub-checkboxes handle who pays for new survey if existing is unacceptable:
+  //   "Sellers" (Page 2 y=0.5442 — note: same field name used in 6A!) — this is ambiguous in the PDF
+  //   "Buyer" (Page 3 y=0.0957) = buyer pays if existing survey unacceptable
+  const surveyOption = fv.survey_option || 'c1';
+  if (surveyOption === 'c2' || fv.survey_buyer_new === true) {
+    safeCheck(form, '2 Within');
+  } else if (surveyOption === 'c3' || fv.survey_seller_new === true) {
+    // C.3 not a distinct checkbox in this PDF — use Sellers sub-checkbox
+    safeCheck(form, '1Within');
     safeCheck(form, 'Sellers');
   } else {
-    safeCheck(form, 'Buyer');
+    // Default: C.1 seller provides existing survey
+    safeCheck(form, '1Within');
+    // Sub-checkbox: if existing survey is unacceptable, who pays for new one?
+    // Default: buyer pays (most common in TX when C.1 is used)
+    if (fv.survey_sellers_expense === true || fv.seller_provides_survey === true) {
+      safeCheck(form, 'Sellers');
+    } else {
+      safeCheck(form, 'Buyer');
+    }
   }
 
-  // SECTION 11 — SPECIAL PROVISIONS (free-text block, 3 lines on page 6)
-  // Field names Text3, Text3 2, Text3 3 confirmed via position inspection (y=479/468/457, page 6)
-  if (fv.special_provisions) {
-    const lines = fv.special_provisions.split('\n');
-    safeSetText(form, 'Text3', lines[0] || '');
-    safeSetText(form, 'Text3 2', lines[1] || '');
-    safeSetText(form, 'Text3 3', lines[2] || '');
-  }
+  // Section 6C survey delivery days (blank in "3 days prior" field — Page 3 y=0.1943)
+  // "3 days prior" = days before closing to deliver survey. Leave blank (not standard to fill).
+  safeSetText(form, '3 days prior', fv.survey_delivery_days != null ? String(fv.survey_delivery_days) : '');
 
-  // TITLE EXPENSE — default: Seller pays title (standard in San Antonio ~90% of transactions)
-  // Override by passing fv.title_buyer_expense = true
-  if (fv.title_buyer_expense !== true) {
-    safeCheck(form, 'A TITLE POLICY Seller shall furnish to Buyer at');
-  }
+  // Section 6D — Permitted use and property use objection days
+  // "Commitment other than items 6A1 through 9 above or which prohibit the following use"
+  // (Page 3 y=0.3287) = permitted use text field
+  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use || 'single family residence');
 
-  // PROPERTY CONDITION (Section 7)
-  // Default: Buyer accepts As-Is (most common in Texas resale)
+  // SECTION 7B — SELLER'S DISCLOSURE NOTICE
+  // "Within one" (Page 3 y=0.1811) / "Within two" (y=0.1807) / "Within three" (y=0.1934) /
+  // "Within four" (y=0.2574) = SDN delivery option checkboxes
+  // "receipt or the date specified..." (y=0.2566 on Page 3) = SDN delivery days
+  // When sdn_received === true: SDN already delivered — check the SDN received option
+  // For simplicity: leave these SDN checkbox options to agent; only check §22 addendum checkbox.
+
+  // SECTION 7D — PROPERTY CONDITION
+  // "1 Buyer accepts the Property As Is" (Page 4 y=0.7998) = As-Is (DEFAULT)
+  // "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the"
+  //   (Page 4 y=0.8136) = As-Is with specific required repairs
+  // "As Is" (Page 5 y=0.1279) and "As Is except" (Page 5 y=0.1433) = repeat on page 5
+  // Per Hadley: As-Is is the overwhelming TX default. Does NOT waive inspection rights.
   if (fv.as_is_with_repairs === true) {
     safeCheck(form, '2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the');
+    safeCheck(form, 'As Is except');
     safeSetText(form, 'following specific repairs and treatments', fv.required_repairs || '');
     safeSetText(form, 'undefined_13', fv.repairs_additional || '');
   } else {
     safeCheck(form, '1 Buyer accepts the Property As Is');
+    safeCheck(form, 'As Is');
   }
+
+  // "upon" (Page 4 y=0.8890) = Seller agrees to complete lender-required repairs
+  // This checkbox is in Section 7 area. Per Hadley, standard: seller agrees "upon".
+  safeCheck(form, 'upon');
+
+  // Repair completion days before closing (Section 7E)
+  // "Within" (Page 4 y=0.8134) = number of days before closing repairs must be complete
+  safeSetText(form, 'Within', fv.repair_completion_days != null ? String(fv.repair_completion_days) : '');
+
+  // SECTION 7H — HOME WARRANTY (Residential Service Contract)
+  // "service contract in an amount not exceeding" (Page 5 y=0.5361) = seller-paid warranty amount
+  // Per Hadley: only fill if seller agreed to provide warranty. Default: blank.
   safeSetText(form, 'service contract in an amount not exceeding', fv.service_contract_amount != null && fv.service_contract_amount !== '' ? formatMoney(fv.service_contract_amount) : '');
 
-  // CLOSING DATE (Section 9)
+  // SECTION 9 — CLOSING DATE
+  // "A The closing of the sale will be on or before" (Page 5 y=0.7416) = "Month Day" (no year)
+  // "20" (Page 5 y=0.7416) = 2-digit year
   if (fv.closing_date) {
     const cd = String(fv.closing_date);
     if (cd.includes('-')) {
@@ -749,69 +660,135 @@ async function fillResaleContract(pdfDoc, fv) {
     }
   }
 
-  // POSSESSION / CLOSING NOTICES
-  safeSetText(form, 'to escrow agent within', fv.funding_notice_days || '');
-  safeSetText(form, 'to escrow agent within 1', fv.funding_notice_days || '');
-  safeSetText(form, 'than 3 days prior to Closing Date', fv.closing_statement_days || '');
-  safeSetText(form, 'be removed prior to delivery of possession', fv.items_removed || '');
+  // SECTION 10 — POSSESSION
+  // "upon" = possession upon closing and funding (DEFAULT per Hadley)
+  // Already checked above (Page 4 y=0.8890 is the same "upon" field)
+  // The "upon closing and funding" checkbox is the Page 4 "upon" field already checked.
 
-  // ATTORNEYS (Section 18)
+  // SECTION 11 — SPECIAL PROVISIONS (Page 6, 3-line free text block)
+  // "Text3" (y=0.4420) = line 1, "Text3 2" (y=0.4554) = line 2, "Text3 3" (y=0.4687) = line 3
+  // Per Hadley: usually blank. Only factual statements/business details, never new legal obligations.
+  if (fv.special_provisions) {
+    const lines = fv.special_provisions.split('\n');
+    safeSetText(form, 'Text3', lines[0] || '');
+    safeSetText(form, 'Text3 2', lines[1] || '');
+    safeSetText(form, 'Text3 3', lines[2] || '');
+  }
+
+  // SECTION 12 — SETTLEMENT AND OTHER EXPENSES
+  // Section 12A(1)(b): Seller contribution to buyer's broker fee
+  // "Brokers and Sales" (Page 5 y=0.6706) and "Brokers and Sales 2" (y=0.6843) = broker fee contribution fields
+  safeSetText(form, 'Brokers and Sales', fv.seller_buyer_broker_contribution != null && fv.seller_buyer_broker_contribution !== '' ? formatMoney(fv.seller_buyer_broker_contribution) : '');
+
+  // Section 12A(1)(c): Seller closing cost credit to buyer
+  // "Buyers Expenses as allowed by the lender" (Page 5 y=0.9605) = closing cost credit amount
+  safeSetText(form, 'Buyers Expenses as allowed by the lender', fv.buyer_closing_cost_credit != null && fv.buyer_closing_cost_credit !== '' ? formatMoney(fv.buyer_closing_cost_credit) : '');
+
+  // Page 6 seller concession / credited fields
+  // "acknowledged by Seller and Buyers agreement to pay Seller 1" (y=0.6050) = seller contribution amount field
+  // "acknowledged by Seller and Buyers agreement to pay Seller2" (y=0.6046) = secondary field
+  // "acknowledged by Seller and Buyers agreement to pay Seller" (y=0.6173) = third field
+  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller 1', fv.listing_commission_total != null && fv.listing_commission_total !== '' ? formatMoney(fv.listing_commission_total) : '');
+
+  // SECTION 18 — ATTORNEYS
+  // "Attorney is" (Page 8 y=0.7283) = buyer's attorney name
+  // "Attorney is_2" (Page 8 y=0.7284) = seller's attorney name
   safeSetText(form, 'Attorney is', fv.buyer_attorney || '');
   safeSetText(form, 'Attorney is_2', fv.seller_attorney || '');
 
-  // HOA (Section 2 membership)
+  // SECTION 21 — NOTICES (Page 8)
+  // "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows"
+  //   (Page 8 y=0.1034 x=0.2181) = buyer's notice contact info
+  // "undefined_19" (Page 8 y=0.1024 x=0.6307) = seller's notice contact info
+  // "at" (Page 8 y=0.1332) = buyer's notice sub-field (address or email)
+  // "at_2" (Page 8 y=0.1345) = seller's notice sub-field
+  // Per Hadley: DO NOT leave both blank. Use buyer_email as default for buyer notice.
+  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || fv.buyer_email || '');
+  safeSetText(form, 'undefined_19', fv.notice_address_2 || fv.seller_email || '');
+  safeSetText(form, 'at', fv.buyer_email || '');
+  safeSetText(form, 'at_2', fv.seller_email || '');
+
+  // HOA MEMBERSHIP (Page 2, Section 2 membership disclosure)
+  // "is" (Page 2 y=0.7774) = property IS subject to HOA
+  // "is not" (Page 2 y=0.7774) = property is NOT subject to HOA (default when hoa_exists=false)
   if (fv.hoa_exists === true) {
     safeCheck(form, 'is');
-    safeCheck(form, 'Addendum for Property Subject to');
   } else {
     safeCheck(form, 'is not');
   }
   safeSetText(form, '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property', fv.hoa_description || '');
 
-  // ADDENDUM CHECKBOXES (Section 22)
+  // SECTION 20 — FEDERAL REQUIREMENTS (FIRPTA)
+  // Per Hadley: "Seller is not a foreign person" is the default for virtually all TX sellers.
+  // The checkbox name in the PDF matches the pre-printed text at Page 8 area.
+  // Not a named checkbox in the coordinate map — skip (TREC pre-prints this area).
+
+  // SECTION 22 — AGREEMENT OF PARTIES (addendum checkboxes, Page 8)
+  // Coordinates verified against field map. Check only when condition is true.
+  // Per Hadley: never auto-check propane or other specialty addenda without explicit flag.
   if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
-  if (fv.seller_financing_addendum === true) safeCheck(form, 'Seller Financing Addendum');
-  if (fv.environmental_addendum === true) safeCheck(form, 'Environmental Assessment Threatened or');
-  if (fv.seller_leaseback_addendum === true) safeCheck(form, 'Sellers Temporary Residential Lease');
-  if (fv.short_sale_addendum === true) safeCheck(form, 'Short Sale Addendum');
-  if (fv.buyer_leaseback_addendum === true) safeCheck(form, 'Buyers Temporary Residential Lease');
-  if (fv.loan_assumption_addendum === true) safeCheck(form, 'Loan Assumption Addendum');
-  if (fv.coastal_addendum === true) safeCheck(form, 'Addendum for Property Located Seaward');
-  if (fv.other_property_addendum === true) safeCheck(form, 'Addendum for Sale of Other Property by');
-  if (fv.oil_gas_addendum === true) safeCheck(form, 'Addendum for Reservation of Oil Gas');
-  if (fv.backup_contract_addendum === true) safeCheck(form, 'Addendum for BackUp Contract');
-  if (fv.propane_addendum === true) safeCheck(form, 'Addendum for Property in a Propane Gas');
-  if (fv.sellers_disclosure_addendum === true) safeCheck(form, 'Sellers Disclos');
-  if (fv.pid_addendum === true) safeCheck(form, 'PID');
+  if (fv.seller_financing_addendum === true)         safeCheck(form, 'Seller Financing Addendum');
+  if (fv.environmental_addendum === true)            safeCheck(form, 'Environmental Assessment Threatened or');
+  if (fv.hoa_exists === true || fv.hoa_addendum === true) safeCheck(form, 'Addendum for Property Subject to');
+  if (fv.seller_leaseback_addendum === true)         safeCheck(form, 'Sellers Temporary Residential Lease');
+  if (fv.short_sale_addendum === true)               safeCheck(form, 'Short Sale Addendum');
+  if (fv.buyer_leaseback_addendum === true)          safeCheck(form, 'Buyers Temporary Residential Lease');
+  if (fv.loan_assumption_addendum === true)          safeCheck(form, 'Loan Assumption Addendum');
+  if (fv.loan_assumption_addendum === true)          safeCheck(form, 'Loan Assumption Addendum_2');
+  if (fv.coastal_addendum === true)                  safeCheck(form, 'Addendum for Property Located Seaward');
+  if (fv.other_property_addendum === true)           safeCheck(form, 'Addendum for Sale of Other Property by');
+  // "Sellers Disclos" (Page 8 y=0.4710) = Lead-Based Paint Addendum (OP-L, pre-1978 properties)
+  // "Addend. for Sellers Disclos" (Page 8 y=0.5005) = Seller's Disclosure Notice (OP-H) attachment
+  if (fv.lead_paint_addendum === true || (fv.year_built && Number(fv.year_built) < 1978)) {
+    safeCheck(form, 'Sellers Disclos');
+  }
+  if (fv.sdn_received === true || fv.sellers_disclosure_addendum === true) {
+    safeCheck(form, 'Addend. for Sellers Disclos');
+  }
+  if (fv.oil_gas_addendum === true)                  safeCheck(form, 'Addendum for Reservation of Oil Gas');
+  if (fv.backup_contract_addendum === true)          safeCheck(form, 'Addendum for BackUp Contract');
+  if (fv.propane_addendum === true)                  safeCheck(form, 'Addendum for Property in a Propane Gas');
+  if (fv.pid_addendum === true)                      safeCheck(form, 'PID');
+  if (fv.exchange_1031 === true)                     safeCheck(form, 'Addendum for Section 1031');
+  if (fv.residential_leases_addendum === true || fv.has_tenant_lease === true) {
+    safeCheck(form, 'Check Box8');
+  }
+  if (fv.fixture_leases_addendum === true || fv.has_fixture_lease === true) {
+    safeCheck(form, 'Check Box9');
+  }
+  if (fv.appraisal_addendum === true || (isFinanced && fv.financing_type !== 'fha' && fv.financing_type !== 'va')) {
+    safeCheck(form, 'Check box 10');
+  }
   safeSetText(form, 'System Service Area', fv.propane_system_area || '');
   safeSetText(form, 'The private transfer fee', fv.private_transfer_fee || '');
 
-  // EXECUTION DATE
+  // EXECUTION DATE (Page 9)
+  // "EXECUTED the" (y=0.2811) = day number, "day of" (y=0.2837) = month name, "20_2" (y=0.2830) = 2-digit year
+  // Per Hadley: buyer's agent fills execution date. Leave seller execution date blank.
+  const today = new Date();
+  const execDate = fv.execution_date ? new Date(fv.execution_date) : today;
+  const execMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  safeSetText(form, 'EXECUTED the', String(execDate.getUTCDate()));
+  safeSetText(form, 'day of', execMonths[execDate.getUTCMonth()]);
+  safeSetText(form, '20_2', String(execDate.getUTCFullYear()).slice(2));
+
+  // Effective date field: "Date" (Page 9 y=0.2617 area via Page 11 "Date" field)
+  // Per Hadley: leave blank at contract creation — filled when last party accepts.
   if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
-  if (fv.execution_date) {
-    const ed = String(fv.execution_date);
-    const edParsed = ed.includes('-') ? new Date(ed) : null;
-    if (edParsed) {
-      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      safeSetText(form, 'EXECUTED the', String(edParsed.getUTCDate()));
-      safeSetText(form, 'day of', months[edParsed.getUTCMonth()]);
-      safeSetText(form, '20_2', String(edParsed.getUTCFullYear()).slice(2));
-    }
+    safeSetText(form, 'Date', fv.contract_effective_date);
   }
 
-  // CONTACT EMAILS
+  // CONTACT EMAILS (Page 8)
+  // "Email" (y=0.9252) = buyer email, "Email_2" (y=0.9256) = seller email
   safeSetText(form, 'Email', fv.buyer_email || '');
   safeSetText(form, 'Email_2', fv.seller_email || '');
 
-  // BROKER / AGENT SECTION
-  // Listing broker (agent representing seller)
+  // PAGE 10 — BROKER INFORMATION
+  // Listing broker = agent representing the seller
   safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
   safeSetText(form, 'License No_4', fv.listing_broker_license || '');
-  safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
   safeSetText(form, 'List Assoc Name', fv.listing_agent_name || '');
+  safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
   safeSetText(form, 'License No_5', fv.listing_agent_license || '');
   safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email || '');
   safeSetText(form, 'Phone_3', fv.listing_agent_phone || '');
@@ -822,18 +799,20 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'City_2', fv.listing_broker_city || '');
   safeSetText(form, 'State_2', fv.listing_broker_state || '');
   safeSetText(form, 'Zip_2', fv.listing_broker_zip || '');
-  // Listing broker representation checkbox
+
+  // Listing broker representation: "Seller only as Sellers agent" = default (checked)
   if (fv.listing_intermediary === true) {
     safeCheck(form, 'Seller and Buyer as an intermediary');
   } else {
     safeCheck(form, 'Seller only as Sellers agent');
   }
 
-  // Other/selling broker (agent representing buyer)
+  // Other/selling broker = agent representing the buyer
   safeSetText(form, 'Other Broker Firm', fv.other_broker_firm || '');
   safeSetText(form, 'License No', fv.other_broker_license || '');
   safeSetText(form, 'Associates Name', fv.other_broker_assoc_name || '');
   safeSetText(form, 'Selling Associates Name', fv.selling_agent_name || '');
+  safeSetText(form, 'Selling Associates Name-1', fv.selling_agent_name || '');
   safeSetText(form, 'License No_2', fv.other_broker_assoc_license || '');
   safeSetText(form, 'Associates Email Address', fv.other_broker_assoc_email || '');
   safeSetText(form, 'Phone', fv.other_broker_phone || '');
@@ -844,7 +823,6 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'City', fv.other_broker_city || '');
   safeSetText(form, 'State', fv.other_broker_state || '');
   safeSetText(form, 'Zip', fv.other_broker_zip || '');
-  safeSetText(form, 'Zip_3', fv.other_broker_zip_3 || '');
   safeSetText(form, 'License No_7', fv.selling_agent_license || '');
   safeSetText(form, 'Selling Associates Email Address', fv.selling_agent_email || '');
   safeSetText(form, 'Phone_5', fv.selling_agent_phone || '');
@@ -853,66 +831,29 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Selling Associates Office Address', fv.selling_broker_address || '');
   safeSetText(form, 'City_3', fv.selling_broker_city || '');
   safeSetText(form, 'State_3', fv.selling_broker_state || '');
-  // Other broker representation: default "Buyer only" when other broker data is present
+
+  // Selling broker representation: "Buyer only" = default when other broker data present
   if (fv.buyer_only_agent === true || (fv.other_broker_firm && fv.buyer_only_agent !== false)) {
     safeCheck(form, 'Buyer only');
   }
 
-  // Commission fields — AC numb 1 is the buyer agent commission field in Section 10.
-  // AC1 confirmed via PDF coordinate inspection (2026-05-29) to be the buyer phone area code
-  // parenthetical in Section 21 Notices — do NOT fill with commission value (Bug 5 fix).
+  // BAC commission percentage field (Page 10)
+  // "when mailed to" (Page 10 y=0.8023) = BAC dollar/pct amount field in broker compensation disclosure
+  // "Percentage" checkbox (y=0.8027) = check if expressing BAC as percentage
+  // Per Hadley: leave commission amounts blank unless agent explicitly provides them.
+  // AC numb 1 through AC numb 4 are phone area code fields — do NOT use for commission.
   if (fv.buyer_agent_commission) {
-    const commStr = String(fv.buyer_agent_commission).replace('%', '').trim().slice(0, 3);
-    safeSetText(form, 'AC numb 1', commStr);
+    const commStr = String(fv.buyer_agent_commission).replace('%', '').trim();
+    safeSetText(form, 'when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from', commStr);
+    safeCheck(form, 'Percentage');
   }
 
-  // ESCROW RECEIPT FIELDS (filled with title company info)
-  safeSetText(form, 'Received by', fv.earnest_received_by || '');
-  safeSetText(form, 'Address', fv.escrow_address || '');
-  safeSetText(form, 'City_4', fv.escrow_city || '');
-  safeSetText(form, 'State_4', fv.escrow_state || '');
-  safeSetText(form, 'Zip_4', fv.escrow_zip || '');
-  safeSetText(form, 'Email Address', fv.escrow_email || '');
-  safeSetText(form, 'DateTime', fv.earnest_receipt_datetime || '');
-  safeSetText(form, 'Phone_6', fv.escrow_phone || '');
-  safeSetText(form, 'Fax', fv.escrow_fax || '');
-  safeSetText(form, 'Received by_2', fv.earnest_received_by_2 || '');
-  safeSetText(form, 'Address_2', fv.escrow_address_2 || '');
-  safeSetText(form, 'City_5', fv.escrow_city_2 || '');
-  safeSetText(form, 'State_5', fv.escrow_state_2 || '');
-  safeSetText(form, 'Zip_5', fv.escrow_zip_2 || '');
-  safeSetText(form, 'Email Address_2', fv.escrow_email_2 || '');
-  safeSetText(form, 'Date_2', fv.earnest_date_2 || '');
-  safeSetText(form, 'Phone_7', fv.escrow_phone_2 || '');
-  safeSetText(form, 'Fax_2', fv.escrow_fax_2 || '');
-  safeSetText(form, 'Received by_3', fv.add_earnest_received_by || '');
-  safeSetText(form, 'Address_3', fv.add_escrow_address || '');
-  safeSetText(form, 'City_6', fv.add_escrow_city || '');
-  safeSetText(form, 'State_6', fv.add_escrow_state || '');
-  safeSetText(form, 'Zip_6', fv.add_escrow_zip || '');
-  safeSetText(form, 'Email Address_3', fv.add_escrow_email || '');
-  safeSetText(form, 'DateTime_2', fv.add_earnest_datetime || '');
-  safeSetText(form, 'Phone_8', fv.add_escrow_phone || '');
-  safeSetText(form, 'is acknowledged', fv.option_fee_acknowledged || '');
-  safeSetText(form, 'is acknowledged_2', fv.earnest_receipt_date || '');
-  safeSetText(form, 'is acknowledged_3', fv.additional_earnest_receipt_date || '');
-  safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
-
-  // NOTICE ADDRESSES (Section 21)
-  // Field positions confirmed via PDF coordinate inspection (2026-05-29):
-  //   "when mailed to handdelivered..." = Section 21 "To Buyer at" (page 8)
-  //   "undefined_19"                   = Section 21 "To Seller at" (page 8 y=698 x=386)
-  //   "when mailed to"                 = renders inside broker fee disclosure parenthetical (page 10)
-  //                                      — do NOT fill with seller name (Bug 3 fix)
-  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
-  safeSetText(form, 'undefined_19', fv.notice_address_2 || '');
-
-  // SECTION 12 — Buyer's expenses / closing cost credit (dollar amount, not initials)
-  safeSetText(form, 'Buyers Expenses as allowed by the lender', fv.buyer_closing_cost_credit != null && fv.buyer_closing_cost_credit !== '' ? formatMoney(fv.buyer_closing_cost_credit) : '');
-
-  // UNDEFINED PLACEHOLDER FIELDS (page number + sequence fields auto-populated by TREC)
-  // Leave blank — PDF reader fills these from field calculation scripts
-  // "undefined_6","undefined_7","undefined_8","undefined_9" etc.
+  // PAGE 11 — RECEIPTS (DO NOT PRE-FILL — title company fills when funds arrive)
+  // Per Hadley: all Page 11 fields are post-execution, filled by escrow agent.
+  // Option Fee Receipt: "is acknowledged" (Page 11 y=0.1205), "Seller or Listing Broker" (y=0.1668)
+  // Earnest Money Receipt: "is acknowledged_2" (y=0.2290), "Escrow Agent" (y=0.2617)
+  // Additional Earnest: "is acknowledged_3" (y=0.5488)
+  // Leave all Page 11 fields blank at contract creation.
 
   return pdfDoc;
 }
@@ -2946,12 +2887,24 @@ module.exports = async function handler(req, res) {
       // Section 7 — Property condition (as-is vs. as-is with repairs)
       // Default: as-is unless explicitly false
       as_is_with_repairs:      tx.as_is === false,
-      // Section 6.C.2 — Survey: seller pays when seller_provides_survey===true
+      // Section 6A — Title area/boundaries amendment: default checked per Hadley
+      title_area_amendment:    true,
+      // Section 6C — Survey option: C.1 (seller provides existing) is default
+      survey_option:           tx.seller_provides_survey === true ? 'c1' : 'c1',
+      // Section 6.C sub-checkbox: seller pays when seller_provides_survey===true
       survey_sellers_expense:  tx.seller_provides_survey === true,
       // When seller pays survey, uncheck the default "Buyer pays" checkbox behavior
       survey_buyer_expense:    tx.seller_provides_survey !== true,
-      // Sellers Disclosure Notice received checkbox (Section 22)
+      // Section 22 — Sellers Disclosure Notice (OP-H) received checkbox
+      sdn_received:            tx.sdn_received === true,
       sellers_disclosure_addendum: tx.sdn_received === true,
+      // Section 22 — Lead paint addendum (OP-L): auto-check for pre-1978 homes
+      lead_paint_addendum:     tx.year_built != null && Number(tx.year_built) < 1978,
+      // Section 22 — TREC 49-1 appraisal addendum: auto for conventional/usda/tx-vet financed
+      // (not FHA or VA which have their own appraisal protections)
+      appraisal_addendum:      Boolean(rawLoanAmount > 0 && ft && ft !== 'fha' && ft !== 'va'),
+      // Section 5A — Earnest delivery days (3 calendar days is TX standard)
+      earnest_delivery_days:   null,
       // Section 11 — Optional residential service contract amount
       service_contract_amount: tx.service_contract_amount != null ? String(tx.service_contract_amount) : '',
       // Section 12.B — Other expenses seller pays at closing
