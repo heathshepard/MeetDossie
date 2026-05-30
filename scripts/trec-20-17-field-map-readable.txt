@@ -1,0 +1,298 @@
+--- Page 1 ---
+Page 1   x=0.4578   y=0.1193    TextField     "1 PARTIES The parties to this contract are"  [maxLen: null]
+Page 1   x=0.2019   y=0.1328    TextField     "Seller and"  [maxLen: null]
+Page 1   x=0.2074   y=0.2131    TextField     "A LAND Lot"  [maxLen: null]
+Page 1   x=0.3624   y=0.2115    TextField     "Block"  [maxLen: null]
+Page 1   x=0.5054   y=0.2107    TextField     "undefined"  [maxLen: null]
+Page 1   x=0.2572   y=0.2250    TextField     "Addition City of"  [maxLen: null]
+Page 1   x=0.6327   y=0.2258    TextField     "County of"  [maxLen: null]
+Page 1   x=0.2632   y=0.2392    TextField     "Texas known as"  [maxLen: null]
+Page 1   x=0.5281   y=0.5082    TextField     "be removed prior to delivery of possession"  [maxLen: null]
+Page 1   x=0.1200   y=0.5209    TextField     "undefined_2"  [maxLen: null]
+Page 1   x=0.7469   y=0.5880    TextField     "undefined_3"  [maxLen: null]
+Page 1   x=0.5123   y=0.6309    CheckBox      "B Sum of all financing described in the attached"
+Page 1   x=0.1236   y=0.6478    CheckBox      "Check Box2"
+Page 1   x=0.4074   y=0.6483    CheckBox      "Loan Assumption Addendum"
+Page 1   x=0.7469   y=0.6508    TextField     "undefined_4"  [maxLen: null]
+Page 1   x=0.7469   y=0.6656    TextField     "undefined_5"  [maxLen: null]
+Page 1   x=0.0785   y=0.7421    CheckBox      "i will not be amended or deleted from the title policy or"
+Page 1   x=0.0777   y=0.7736    CheckBox      "ii will be amended to read shortages in area at the expense of"
+Page 1   x=0.0783   y=0.8180    CheckBox      "A TITLE POLICY Seller shall furnish to Buyer at"
+Page 1   x=0.0991   y=0.8641    CheckBox      "Sellers"
+Page 1   x=0.0975   y=0.8820    CheckBox      "Seller"
+Page 1   x=0.5505   y=0.9123    TextField     "to escrow agent within 1"  [maxLen: null]
+Page 1   x=0.3443   y=0.9615    TextField     "Initialed for identification by Buyer"  [maxLen: null]
+Page 1   x=0.4122   y=0.9616    TextField     "undefined_8"  [maxLen: null]
+Page 1   x=0.5663   y=0.9615    TextField     "and Seller"  [maxLen: null]
+Page 1   x=0.6471   y=0.9615    TextField     "undefined_9"  [maxLen: null]
+
+--- Page 2 ---
+Page 2   x=0.2099   y=0.0381    TextField     "Page 2 of 10"  [maxLen: null]
+Page 2   x=0.2494   y=0.1046    TextField     "undefined_6"  [maxLen: null]
+Page 2   x=0.6593   y=0.1034    TextField     "other party in writing before entering into a contract of sale  Disclose if applicable"  [maxLen: null]
+Page 2   x=0.1234   y=0.1184    TextField     "undefined_7"  [maxLen: null]
+Page 2   x=0.4780   y=0.1174    TextField     "as earnest money to"  [maxLen: null]
+Page 2   x=0.7981   y=0.1178    TextField     "as earnest money to 2"  [maxLen: null]
+Page 2   x=0.5582   y=0.1574    TextField     "earnest money of"  [maxLen: null]
+Page 2   x=0.1539   y=0.1725    TextField     "to escrow agent within"  [maxLen: null]
+Page 2   x=0.1243   y=0.3559    TextField     "the Title Company and Buyers lenders Check one box only"  [maxLen: null]
+Page 2   x=0.5131   y=0.5442    CheckBox      "Sellers_2"
+Page 2   x=0.6020   y=0.5442    CheckBox      "Buyers expense no later"
+Page 2   x=0.4651   y=0.5589    TextField     "insurance Title Policy issued by"  [maxLen: null]
+Page 2   x=0.1242   y=0.7625    CheckBox      "2Within"
+Page 2   x=0.1231   y=0.7764    CheckBox      "3Within"
+Page 2   x=0.7101   y=0.7774    CheckBox      "is"
+Page 2   x=0.8160   y=0.7774    CheckBox      "is not"
+Page 2   x=0.3443   y=0.9583    TextField     "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property"  [maxLen: null]
+Page 2   x=0.4133   y=0.9583    TextField     "and Seller_2"  [maxLen: null]
+Page 2   x=0.5663   y=0.9589    TextField     "undefined_10"  [maxLen: null]
+Page 2   x=0.6471   y=0.9589    TextField     "undefined_11"  [maxLen: null]
+
+--- Page 3 ---
+Page 3   x=0.2127   y=0.0365    TextField     "Page 3 of 10"  [maxLen: null]
+Page 3   x=0.0949   y=0.0957    CheckBox      "Buyer"
+Page 3   x=0.2047   y=0.0971    TextField     "than 3 days prior to Closing Date"  [maxLen: null]
+Page 3   x=0.4487   y=0.1799    CheckBox      "Within one"
+Page 3   x=0.5352   y=0.1807    CheckBox      "Within two"
+Page 3   x=0.0967   y=0.2085    CheckBox      "Within three"
+Page 3   x=0.2041   y=0.2081    TextField     "3 days prior"  [maxLen: null]
+Page 3   x=0.0982   y=0.2498    CheckBox      "Within four"
+Page 3   x=0.2031   y=0.2490    TextField     "receipt or the date specified in this paragraph whichever is earlier"  [maxLen: null]
+Page 3   x=0.1927   y=0.3211    TextField     "Commitment other than items 6A1 through 9 above or which prohibit the following use"  [maxLen: null]
+Page 3   x=0.6059   y=0.3335    TextField     "the Commitment Exception Documents and the survey Buyers failure to object within the"  [maxLen: null]
+Page 3   x=0.7412   y=0.5824    CheckBox      "1Within"
+Page 3   x=0.7803   y=0.5832    CheckBox      "2 Within"
+Page 3   x=0.3443   y=0.9564    TextField     "Property Code requires Seller to notify Buyer as follows"  [maxLen: null]
+Page 3   x=0.4144   y=0.9564    TextField     "and Seller_3"  [maxLen: null]
+Page 3   x=0.5663   y=0.9564    TextField     "undefined_12"  [maxLen: null]
+Page 3   x=0.6471   y=0.9564    TextField     "The private transfer fee"  [maxLen: null]
+
+--- Page 4 ---
+Page 4   x=0.2098   y=0.0367    TextField     "Contract Concerning"  [maxLen: null]
+Page 4   x=0.4823   y=0.5937    TextField     "Text4"  [maxLen: null]
+Page 4   x=0.1445   y=0.6058    TextField     "Text4 2"  [maxLen: null]
+Page 4   x=0.1439   y=0.6173    TextField     "Text4 3"  [maxLen: null]
+Page 4   x=0.1020   y=0.7455    CheckBox      "1 Buyer accepts the Property As Is"
+Page 4   x=0.1020   y=0.7593    CheckBox      "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the"
+Page 4   x=0.5218   y=0.7603    TextField     "Within"  [maxLen: null]
+Page 4   x=0.1018   y=0.8347    CheckBox      "upon"
+Page 4   x=0.3443   y=0.9605    TextField     "Initialed for identification by Buyer_2"  [maxLen: null]
+Page 4   x=0.4133   y=0.9605    TextField     "undefined_14"  [maxLen: null]
+Page 4   x=0.5663   y=0.9605    TextField     "and Seller_4"  [maxLen: null]
+Page 4   x=0.6481   y=0.9605    TextField     "undefined_15"  [maxLen: null]
+
+--- Page 5 ---
+Page 5   x=0.2098   y=0.0384    TextField     "Contract Concerning_2"  [maxLen: null]
+Page 5   x=0.0963   y=0.0774    CheckBox      "As Is"
+Page 5   x=0.0966   y=0.0928    CheckBox      "As Is except"
+Page 5   x=0.4937   y=0.1082    TextField     "following specific repairs and treatments"  [maxLen: null]
+Page 5   x=0.1471   y=0.1215    TextField     "undefined_13"  [maxLen: null]
+Page 5   x=0.6890   y=0.4856    TextField     "service contract in an amount not exceeding"  [maxLen: null]
+Page 5   x=0.6345   y=0.6226    TextField     "Brokers and Sales"  [maxLen: null]
+Page 5   x=0.1333   y=0.6378    TextField     "Brokers and Sales 2"  [maxLen: null]
+Page 5   x=0.4752   y=0.6937    TextField     "A The closing of the sale will be on or before"  [maxLen: null]
+Page 5   x=0.7216   y=0.6937    TextField     "20"  [maxLen: null]
+Page 5   x=0.3443   y=0.9605    TextField     "Initialed for identification by Buyer_3"  [maxLen: null]
+Page 5   x=0.4133   y=0.9605    TextField     "Buyers Expenses as allowed by the lender"  [maxLen: null]
+Page 5   x=0.5663   y=0.9605    TextField     "and Seller_5"  [maxLen: null]
+Page 5   x=0.6471   y=0.9605    TextField     "undefined_16"  [maxLen: null]
+
+--- Page 6 ---
+Page 6   x=0.2103   y=0.0390    TextField     "Contract Concerning_3"  [maxLen: null]
+Page 6   x=0.5743   y=0.0976    CheckBox      "will"
+Page 6   x=0.8156   y=0.0976    CheckBox      "will not be credited to the Sales Price at closing Time is of the"
+Page 6   x=0.5722   y=0.3814    TextField     "Text3"  [maxLen: null]
+Page 6   x=0.0973   y=0.3948    TextField     "Text3 2"  [maxLen: null]
+Page 6   x=0.0973   y=0.4081    TextField     "Text3 3"  [maxLen: null]
+Page 6   x=0.5737   y=0.5239    TextField     "acknowledged by Seller and Buyers agreement to pay Seller"  [maxLen: null]
+Page 6   x=0.3443   y=0.9561    TextField     "Initialed for identification by Buyer_4"  [maxLen: null]
+Page 6   x=0.4133   y=0.9569    TextField     "undefined_17"  [maxLen: null]
+Page 6   x=0.5663   y=0.9570    TextField     "and Seller_6"  [maxLen: null]
+Page 6   x=0.6471   y=0.9578    TextField     "undefined_18"  [maxLen: null]
+
+--- Page 7 ---
+Page 7   x=0.2114   y=0.0395    TextField     "Page 7 of 10"  [maxLen: null]
+Page 7   x=0.3453   y=0.9588    TextField     "AC numb 1"  [maxLen: 3]
+Page 7   x=0.4104   y=0.9585    TextField     "AC numb 2"  [maxLen: 3]
+Page 7   x=0.5631   y=0.9583    TextField     "AC numb 3"  [maxLen: 3]
+Page 7   x=0.6445   y=0.9581    TextField     "AC numb 4"  [maxLen: 3]
+
+--- Page 8 ---
+Page 8   x=0.2106   y=0.0377    TextField     "Contract Concerning_4"  [maxLen: null]
+Page 8   x=0.2181   y=0.1009    TextField     "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows"  [maxLen: null]
+Page 8   x=0.6307   y=0.0999    TextField     "undefined_19"  [maxLen: null]
+Page 8   x=0.1010   y=0.1332    TextField     "at"  [maxLen: null]
+Page 8   x=0.5172   y=0.1332    TextField     "at_2"  [maxLen: null]
+Page 8   x=0.2275   y=0.1644    TextField     "AC1"  [maxLen: 3]
+Page 8   x=0.2714   y=0.1651    TextField     "Phone 51"  [maxLen: null]
+Page 8   x=0.6444   y=0.1629    TextField     "AC4"  [maxLen: 3]
+Page 8   x=0.6878   y=0.1629    TextField     "Fax 52"  [maxLen: null]
+Page 8   x=0.2199   y=0.1969    TextField     "Phone 52"  [maxLen: null]
+Page 8   x=0.6332   y=0.1981    TextField     "undefined numb 21"  [maxLen: null]
+Page 8   x=0.2179   y=0.2279    TextField     "undefined_20-0"  [maxLen: null]
+Page 8   x=0.6324   y=0.2272    TextField     "undefined numb 22-0"  [maxLen: null]
+Page 8   x=0.0979   y=0.2681    TextField     "undefined_20"  [maxLen: null]
+Page 8   x=0.5168   y=0.2674    TextField     "undefined numb 22"  [maxLen: null]
+Page 8   x=0.1066   y=0.3419    CheckBox      "Third Party Financing Addendum"
+Page 8   x=0.5165   y=0.3448    CheckBox      "Environmental Assessment Threatened or"
+Page 8   x=0.1066   y=0.3606    CheckBox      "Seller Financing Addendum"
+Page 8   x=0.5165   y=0.3675    CheckBox      "Sellers Temporary Residential Lease"
+Page 8   x=0.1066   y=0.3796    CheckBox      "Addendum for Property Subject to"
+Page 8   x=0.5165   y=0.3902    CheckBox      "Short Sale Addendum"
+Page 8   x=0.1066   y=0.4212    CheckBox      "Buyers Temporary Residential Lease"
+Page 8   x=0.5165   y=0.4237    CheckBox      "Addendum for Property Located Seaward"
+Page 8   x=0.1057   y=0.4402    CheckBox      "Loan Assumption Addendum_2"
+Page 8   x=0.1066   y=0.4585    CheckBox      "Addendum for Sale of Other Property by"
+Page 8   x=0.5165   y=0.4786    CheckBox      "Sellers Disclos"
+Page 8   x=0.1066   y=0.4903    CheckBox      "Addendum for Reservation of Oil Gas"
+Page 8   x=0.5179   y=0.5081    CheckBox      "Addend. for Sellers Disclos"
+Page 8   x=0.1083   y=0.5192    CheckBox      "Addendum for BackUp Contract"
+Page 8   x=0.5165   y=0.5297    CheckBox      "Addendum for Property in a Propane Gas"
+Page 8   x=0.1083   y=0.5394    CheckBox      "Check Box8"
+Page 8   x=0.5174   y=0.5551    CheckBox      "PID"
+Page 8   x=0.1075   y=0.5613    CheckBox      "Check Box9"
+Page 8   x=0.1066   y=0.5946    CheckBox      "Check box 10"
+Page 8   x=0.5165   y=0.5907    CheckBox      "Other"
+Page 8   x=0.6522   y=0.5900    TextField     "System Service Area"  [maxLen: null]
+Page 8   x=0.5481   y=0.6039    TextField     "1"  [maxLen: null]
+Page 8   x=0.1077   y=0.6221    CheckBox      "Check box 11"
+Page 8   x=0.5481   y=0.6184    TextField     "2"  [maxLen: null]
+Page 8   x=0.5481   y=0.6319    TextField     "3"  [maxLen: null]
+Page 8   x=0.2129   y=0.7283    TextField     "Attorney is"  [maxLen: null]
+Page 8   x=0.6317   y=0.7284    TextField     "Attorney is_2"  [maxLen: null]
+Page 8   x=0.1090   y=0.7700    TextField     "undefined_24"  [maxLen: null]
+Page 8   x=0.5270   y=0.7692    TextField     "undefined_25"  [maxLen: null]
+Page 8   x=0.2220   y=0.8223    TextField     "Text2"  [maxLen: 3]
+Page 8   x=0.2660   y=0.8223    TextField     "Text1"  [maxLen: null]
+Page 8   x=0.6422   y=0.8223    TextField     "Text22"  [maxLen: 3]
+Page 8   x=0.6849   y=0.8220    TextField     "Phone11"  [maxLen: null]
+Page 8   x=0.2225   y=0.8740    TextField     "Text7"  [maxLen: 3]
+Page 8   x=0.2660   y=0.8748    TextField     "Text6"  [maxLen: null]
+Page 8   x=0.6421   y=0.8739    TextField     "Text23"  [maxLen: 3]
+Page 8   x=0.6849   y=0.8736    TextField     "Phone 2"  [maxLen: null]
+Page 8   x=0.2129   y=0.9252    TextField     "Email"  [maxLen: null]
+Page 8   x=0.6317   y=0.9256    TextField     "Email_2"  [maxLen: null]
+Page 8   x=0.3453   y=0.9610    TextField     "Initialed for identification by Buyer_5"  [maxLen: null]
+Page 8   x=0.4144   y=0.9610    TextField     "and Seller_7"  [maxLen: null]
+Page 8   x=0.5657   y=0.9622    TextField     "undefined_22"  [maxLen: null]
+Page 8   x=0.6465   y=0.9622    TextField     "undefined_23"  [maxLen: null]
+
+--- Page 9 ---
+Page 9   x=0.2103   y=0.0361    TextField     "Address of Property"  [maxLen: null]
+Page 9   x=0.2432   y=0.2811    TextField     "EXECUTED the"  [maxLen: null]
+Page 9   x=0.3667   y=0.2837    TextField     "day of"  [maxLen: null]
+Page 9   x=0.6250   y=0.2830    TextField     "20_2"  [maxLen: 2]
+Page 9   x=0.1170   y=0.4789    Signature     "Signature8"
+Page 9   x=0.5130   y=0.4789    Signature     "Signature9"
+Page 9   x=0.1170   y=0.6157    Signature     "Signature10"
+Page 9   x=0.5130   y=0.6163    Signature     "Signature11"
+
+--- Page 10 ---
+Page 10  x=0.2052   y=0.0347    TextField     "Addr of Prop"  [maxLen: null]
+Page 10  x=0.0814   y=0.1890    TextField     "Other Broker Firm"  [maxLen: null]
+Page 10  x=0.3719   y=0.1890    TextField     "License No"  [maxLen: null]
+Page 10  x=0.4991   y=0.1883    TextField     "Listing Broker Firm"  [maxLen: null]
+Page 10  x=0.8235   y=0.1883    TextField     "License No_4"  [maxLen: null]
+Page 10  x=0.1786   y=0.2327    CheckBox      "Buyer only"
+Page 10  x=0.5959   y=0.2326    CheckBox      "Seller and Buyer as an intermediary"
+Page 10  x=0.1778   y=0.2509    CheckBox      "Seller as List Brok Sub agent"
+Page 10  x=0.5963   y=0.2506    CheckBox      "Seller only as Sellers agent"
+Page 10  x=0.0814   y=0.2733    TextField     "Associates Name numb 1"  [maxLen: null]
+Page 10  x=0.3735   y=0.2733    TextField     "License No_2"  [maxLen: null]
+Page 10  x=0.4982   y=0.2726    TextField     "List Assoc Name"  [maxLen: null]
+Page 10  x=0.8131   y=0.2719    TextField     "License No_5"  [maxLen: null]
+Page 10  x=0.0808   y=0.3118    TextField     "Associates Name"  [maxLen: null]
+Page 10  x=0.4976   y=0.3122    TextField     "Listing Associates Name"  [maxLen: null]
+Page 10  x=0.0814   y=0.3496    TextField     "Associates Email Address"  [maxLen: null]
+Page 10  x=0.3522   y=0.3490    TextField     "Phone"  [maxLen: null]
+Page 10  x=0.4982   y=0.3470    TextField     "Listing Associates Email Address"  [maxLen: null]
+Page 10  x=0.8000   y=0.3470    TextField     "Phone_3"  [maxLen: null]
+Page 10  x=0.0814   y=0.3844    TextField     "Licensed Supervisor of Associate"  [maxLen: null]
+Page 10  x=0.3741   y=0.3844    TextField     "License No_3"  [maxLen: null]
+Page 10  x=0.4982   y=0.3863    TextField     "Licensed Supervisor of Listing Associate"  [maxLen: null]
+Page 10  x=0.8137   y=0.3863    TextField     "License No_6"  [maxLen: null]
+Page 10  x=0.0814   y=0.4249    TextField     "Other Brokers Address"  [maxLen: null]
+Page 10  x=0.3530   y=0.4248    TextField     "Phone_2"  [maxLen: null]
+Page 10  x=0.4982   y=0.4241    TextField     "Listing Brokers Office Address"  [maxLen: null]
+Page 10  x=0.7989   y=0.4241    TextField     "Phone_4"  [maxLen: null]
+Page 10  x=0.0814   y=0.4612    TextField     "City"  [maxLen: null]
+Page 10  x=0.2907   y=0.4612    TextField     "State"  [maxLen: 2]
+Page 10  x=0.3635   y=0.4612    TextField     "Zip"  [maxLen: null]
+Page 10  x=0.4982   y=0.4621    TextField     "City_2"  [maxLen: null]
+Page 10  x=0.7478   y=0.4621    TextField     "State_2"  [maxLen: 2]
+Page 10  x=0.8174   y=0.4621    TextField     "Zip_2"  [maxLen: null]
+Page 10  x=0.4982   y=0.4996    TextField     "Selling Associates Name"  [maxLen: null]
+Page 10  x=0.8150   y=0.4996    TextField     "License No_7"  [maxLen: null]
+Page 10  x=0.4978   y=0.5356    TextField     "Selling Associates Name-1"  [maxLen: null]
+Page 10  x=0.4982   y=0.5741    TextField     "Selling Associates Email Address"  [maxLen: null]
+Page 10  x=0.7973   y=0.5741    TextField     "Phone_5"  [maxLen: null]
+Page 10  x=0.4982   y=0.6119    TextField     "Licensed Supervisor of Selling Associate"  [maxLen: null]
+Page 10  x=0.8129   y=0.6119    TextField     "License No_8"  [maxLen: null]
+Page 10  x=0.4982   y=0.6496    TextField     "Selling Associates Office Address"  [maxLen: null]
+Page 10  x=0.4982   y=0.6895    TextField     "City_3"  [maxLen: null]
+Page 10  x=0.7283   y=0.6895    TextField     "State_3"  [maxLen: 2]
+Page 10  x=0.8075   y=0.6888    TextField     "Zip_3"  [maxLen: null]
+Page 10  x=0.7070   y=0.7973    TextField     "when mailed to"  [maxLen: null]
+Page 10  x=0.0844   y=0.8096    TextField     "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from"  [maxLen: null]
+
+--- Page 11 ---
+Page 11  x=0.2074   y=0.0347    TextField     "Address of Property_2"  [maxLen: null]
+Page 11  x=0.1747   y=0.1205    TextField     "is acknowledged"  [maxLen: null]
+Page 11  x=0.5622   y=0.1212    TextField     "Option Fee in the form of"  [maxLen: null]
+Page 11  x=0.0855   y=0.1668    TextField     "Seller or Listing Broker"  [maxLen: null]
+Page 11  x=0.5120   y=0.1668    TextField     "Date"  [maxLen: null]
+Page 11  x=0.1735   y=0.2290    TextField     "is acknowledged_2"  [maxLen: null]
+Page 11  x=0.5865   y=0.2299    TextField     "Earnest Money in the form of"  [maxLen: null]
+Page 11  x=0.0851   y=0.2617    TextField     "Escrow Agent"  [maxLen: null]
+Page 11  x=0.2993   y=0.2617    TextField     "Received by"  [maxLen: null]
+Page 11  x=0.5118   y=0.2617    TextField     "Email Address"  [maxLen: null]
+Page 11  x=0.7450   y=0.2617    TextField     "DateTime"  [maxLen: null]
+Page 11  x=0.0851   y=0.2941    TextField     "Address"  [maxLen: null]
+Page 11  x=0.6008   y=0.2941    TextField     "Phone_6"  [maxLen: null]
+Page 11  x=0.0847   y=0.3239    TextField     "City_4"  [maxLen: null]
+Page 11  x=0.3539   y=0.3239    TextField     "State_4"  [maxLen: 2]
+Page 11  x=0.4211   y=0.3239    TextField     "Zip_4"  [maxLen: null]
+Page 11  x=0.6008   y=0.3239    TextField     "Fax"  [maxLen: null]
+Page 11  x=0.0851   y=0.4172    TextField     "Escrow Agent_2"  [maxLen: null]
+Page 11  x=0.3082   y=0.4172    TextField     "Received by_2"  [maxLen: null]
+Page 11  x=0.5118   y=0.4172    TextField     "Email Address_2"  [maxLen: null]
+Page 11  x=0.7567   y=0.4172    TextField     "Date_2"  [maxLen: null]
+Page 11  x=0.0851   y=0.4483    TextField     "Address_2"  [maxLen: null]
+Page 11  x=0.6008   y=0.4483    TextField     "Phone_7"  [maxLen: null]
+Page 11  x=0.0847   y=0.4782    TextField     "City_5"  [maxLen: null]
+Page 11  x=0.3510   y=0.4782    TextField     "State_5"  [maxLen: 2]
+Page 11  x=0.4206   y=0.4782    TextField     "Zip_5"  [maxLen: null]
+Page 11  x=0.6008   y=0.4782    TextField     "Fax_2"  [maxLen: null]
+Page 11  x=0.1786   y=0.5488    TextField     "is acknowledged_3"  [maxLen: null]
+Page 11  x=0.6518   y=0.5494    TextField     "additional Earnest Money in the form of"  [maxLen: null]
+Page 11  x=0.0851   y=0.5794    TextField     "Escrow Agent_3"  [maxLen: null]
+Page 11  x=0.2942   y=0.5794    TextField     "Received by_3"  [maxLen: null]
+Page 11  x=0.5118   y=0.5794    TextField     "Email Address_3"  [maxLen: null]
+Page 11  x=0.7594   y=0.5794    TextField     "DateTime_2"  [maxLen: null]
+Page 11  x=0.0851   y=0.6131    TextField     "Address_3"  [maxLen: null]
+Page 11  x=0.6008   y=0.6131    TextField     "Phone_8"  [maxLen: null]
+Page 11  x=0.0847   y=0.6431    TextField     "City_6"  [maxLen: null]
+Page 11  x=0.3496   y=0.6431    TextField     "State_6"  [maxLen: 2]
+Page 11  x=0.4219   y=0.6431    TextField     "Zip_6"  [maxLen: null]
+Page 11  x=0.6008   y=0.6431    TextField     "Fax_3"  [maxLen: null]
+
+--- Summary ---
+Total fields: 256
+
+By type:
+  CheckBox      53
+  Signature     4
+  TextField     199
+
+By page:
+  Page 1   26 fields
+  Page 2   20 fields
+  Page 3   17 fields
+  Page 4   12 fields
+  Page 5   14 fields
+  Page 6   11 fields
+  Page 7   5 fields
+  Page 8   58 fields
+  Page 9   8 fields
+  Page 10  46 fields
+  Page 11  39 fields
