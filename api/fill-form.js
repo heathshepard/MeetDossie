@@ -145,6 +145,105 @@ const FORM_CONFIGS = {
     getBase64: function() { return require('./_assets/trec-farm-ranch-base64.js'); },
     documentType: 'farm_ranch_contract',
   },
+  // ---------------------------------------------------------------------------
+  // PARAGRAPH 22 ADDENDA — field names verified against AcroForm inspection.
+  // ---------------------------------------------------------------------------
+  'seller-financing': {
+    name: 'Seller Financing Addendum (TREC 26-8)',
+    shortName: 'TREC-26-Seller-Financing',
+    getBase64: function() { return require('./_assets/trec-seller-financing-base64.js'); },
+    documentType: 'seller_financing_addendum',
+  },
+  'buyers-temp-lease': {
+    name: "Buyer's Temporary Residential Lease (TREC 16-7)",
+    shortName: 'TREC-16-Buyers-Temp-Lease',
+    getBase64: function() { return require('./_assets/trec-buyers-temp-lease-base64.js'); },
+    documentType: 'buyers_temp_lease',
+  },
+  'sellers-temp-lease': {
+    name: "Seller's Temporary Residential Lease (TREC 15-7)",
+    shortName: 'TREC-15-Sellers-Temp-Lease',
+    getBase64: function() { return require('./_assets/trec-sellers-temp-lease-base64.js'); },
+    documentType: 'sellers_temp_lease',
+  },
+  'sale-other-property': {
+    name: 'Addendum for Sale of Other Property by Buyer (TREC 10-6)',
+    shortName: 'TREC-10-Sale-Other-Property',
+    getBase64: function() { return require('./_assets/trec-sale-other-property-base64.js'); },
+    documentType: 'sale_other_property_addendum',
+  },
+  'oil-gas-minerals': {
+    name: 'Addendum for Reservation of Oil, Gas and Other Minerals (TREC 44-3)',
+    shortName: 'TREC-44-Oil-Gas-Minerals',
+    getBase64: function() { return require('./_assets/trec-oil-gas-minerals-base64.js'); },
+    documentType: 'oil_gas_minerals_addendum',
+  },
+  'backup-contract': {
+    name: 'Addendum for Back-Up Contract (TREC 11-8)',
+    shortName: 'TREC-11-Backup-Contract',
+    getBase64: function() { return require('./_assets/trec-backup-contract-base64.js'); },
+    documentType: 'backup_contract_addendum',
+  },
+  'coastal-area': {
+    name: 'Addendum for Coastal Area Property (TREC 33-2)',
+    shortName: 'TREC-33-Coastal-Area',
+    getBase64: function() { return require('./_assets/trec-coastal-area-base64.js'); },
+    documentType: 'coastal_area_addendum',
+  },
+  'hydrostatic-testing': {
+    name: 'Addendum for Authorizing Hydrostatic Testing (TREC 48-1)',
+    shortName: 'TREC-48-Hydrostatic-Testing',
+    getBase64: function() { return require('./_assets/trec-hydrostatic-testing-base64.js'); },
+    documentType: 'hydrostatic_testing_addendum',
+  },
+  'environmental': {
+    name: 'Environmental Assessment, Threatened or Endangered Species and Wetlands Addendum (TREC 28-2)',
+    shortName: 'TREC-28-Environmental',
+    getBase64: function() { return require('./_assets/trec-environmental-base64.js'); },
+    documentType: 'environmental_addendum',
+  },
+  'short-sale': {
+    name: 'Short Sale Addendum (TREC 45-2)',
+    shortName: 'TREC-45-Short-Sale',
+    getBase64: function() { return require('./_assets/trec-short-sale-base64.js'); },
+    documentType: 'short_sale_addendum',
+  },
+  'gulf-waterway': {
+    name: 'Gulf Intracoastal Waterway Addendum (TREC 34-4)',
+    shortName: 'TREC-34-Gulf-Waterway',
+    getBase64: function() { return require('./_assets/trec-gulf-waterway-base64.js'); },
+    documentType: 'gulf_waterway_addendum',
+  },
+  'propane-gas': {
+    name: 'Addendum for Property in a Propane Gas System Service Area (TREC 47-0)',
+    shortName: 'TREC-47-Propane-Gas',
+    getBase64: function() { return require('./_assets/trec-propane-gas-base64.js'); },
+    documentType: 'propane_gas_addendum',
+  },
+  'residential-leases': {
+    name: 'Addendum Regarding Residential Leases (TREC 51-1)',
+    shortName: 'TREC-51-Residential-Leases',
+    getBase64: function() { return require('./_assets/trec-residential-leases-base64.js'); },
+    documentType: 'residential_leases_addendum',
+  },
+  'fixture-leases': {
+    name: 'Addendum Regarding Fixture Leases (TREC 52-1)',
+    shortName: 'TREC-52-Fixture-Leases',
+    getBase64: function() { return require('./_assets/trec-fixture-leases-base64.js'); },
+    documentType: 'fixture_leases_addendum',
+  },
+  'loan-assumption': {
+    name: 'Addendum for Loan Assumption (TREC 41-3)',
+    shortName: 'TREC-41-Loan-Assumption',
+    getBase64: function() { return require('./_assets/trec-loan-assumption-base64.js'); },
+    documentType: 'loan_assumption_addendum',
+  },
+  'improvement-district': {
+    name: 'Improvement District Assessment Notice',
+    shortName: 'TREC-IDN-Improvement-District',
+    getBase64: function() { return require('./_assets/trec-improvement-district-base64.js'); },
+    documentType: 'improvement_district_notice',
+  },
 };
 
 const ALLOWED_FORM_TYPES = new Set(Object.keys(FORM_CONFIGS));
@@ -283,41 +382,299 @@ function formatMoney(value) {
 }
 
 // ---------------------------------------------------------------------------
-// RESALE CONTRACT (TREC 20-16/20-17)
-// Ported from RESALE_FIELD_MAP + RESALE_BUTTON_MAP in document_field_maps.py
-// Verified against AcroForm inspection of One-to-Four-Family-Residential-Contract-Resale.pdf
+// RESALE CONTRACT (TREC 20-16/20-17) — 256 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js against embedded PDF.
+// Every field is wired. Agent can override any field via field_values.
+//
+// SECTION 1 — PARTIES
+//   [TextField] "1 PARTIES The parties to this contract are" -> buyer_name
+//   [TextField] "Seller and" -> seller_name
+// SECTION 2 — PROPERTY
+//   [TextField] "Texas known as" -> property_address (street address line)
+//   [TextField] "Address of Property" -> property_address (repeat)
+//   [TextField] "Address of Property_2" -> property_address (repeat)
+//   [TextField] "Addr of Prop" -> property_address (repeat, page 2)
+//   [TextField] "A LAND Lot" -> legal_description (lot portion)
+//   [TextField] "Block" -> legal_block
+//   [TextField] "undefined" -> legal_lot (lot number standalone, some versions)
+//   [TextField] "Addition City of" -> city_state_zip
+//   [TextField] "County of" -> county
+// SECTION 3 — SALES PRICE
+//   [CheckBox] "B Sum of all financing described in the attached" -> financing_addendum (auto if loan_amount > 0)
+//   [TextField] "undefined_2" -> down_payment_amt
+//   [TextField] "undefined_3" -> loan_amount
+//   [TextField] "undefined_4" -> sale_price
+//   [TextField] "undefined_5" -> additional_cash_closing (additional cash at closing)
+//   [CheckBox] "will" -> sale_price_credited (sale price credited checkbox)
+//   [CheckBox] "will not be credited to the Sales Price at closing Time is of the" -> default checked
+// SECTION 5 — EARNEST MONEY / OPTION FEE
+//   [TextField] "earnest money of" -> earnest_money
+//   [TextField] "Option Fee in the form of" -> option_fee
+//   [TextField] "Seller or Listing Broker" -> listing_agent_name (option fee recipient)
+//   [TextField] "is acknowledged" -> option_fee_acknowledged (date)
+//   [TextField] "Earnest Money in the form of" -> earnest_money_form
+//   [TextField] "as earnest money to" -> earnest_money_to (escrow agent name)
+//   [TextField] "is acknowledged_2" -> earnest_receipt_date
+//   [TextField] "is acknowledged_3" -> additional_earnest_receipt_date
+//   [TextField] "additional Earnest Money in the form of" -> additional_earnest_form
+// SECTION 6 — TITLE POLICY / SURVEY
+//   [TextField] "insurance Title Policy issued by" -> title_company
+//   [TextField] "Escrow Agent" -> title_company (repeat for escrow receipts)
+//   [TextField] "Escrow Agent_2" -> title_company
+//   [TextField] "Escrow Agent_3" -> title_company
+//   [TextField] "receipt or the date specified in this paragraph whichever is earlier" -> title_objection_days
+//   [TextField] "Commitment other than items 6A1 through 9 above or which prohibit the following use" -> permitted_use
+//   [TextField] "the Commitment Exception Documents and the survey Buyers failure to object within the" -> exception_objection_days
+//   [CheckBox] "A TITLE POLICY Seller shall furnish to Buyer at" -> title_seller_expense (Seller pays title)
+//   [CheckBox] "Sellers" -> survey_sellers_expense
+//   [CheckBox] "Buyer" -> survey_buyer_expense (default)
+//   [CheckBox] "1Within" -> survey_option_1within
+//   [CheckBox] "2 Within" -> survey_option_2within
+//   [CheckBox] "2Within" -> title_2within
+//   [CheckBox] "3Within" -> title_3within
+//   [CheckBox] "Sellers_2" -> sellers2_checkbox
+//   [CheckBox] "Buyers expense no later" -> buyers_expense_checkbox
+//   [CheckBox] "i will not be amended or deleted from the title policy or" -> title_exception_not_amended
+//   [CheckBox] "ii will be amended to read shortages in area at the expense of" -> title_exception_amended
+// SECTION 7 — PROPERTY CONDITION
+//   [CheckBox] "1 Buyer accepts the Property As Is" -> as_is (default true)
+//   [CheckBox] "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the" -> as_is_with_repairs
+//   [TextField] "following specific repairs and treatments" -> required_repairs
+//   [TextField] "undefined_13" -> repairs_additional
+//   [TextField] "service contract in an amount not exceeding" -> service_contract_amount
+// SECTION 9 — CLOSING
+//   [TextField] "A The closing of the sale will be on or before" -> closing_date (month + day)
+//   [TextField] "20" -> closing_date (2-digit year)
+// SECTION 11 — CASUALTY LOSS
+//   (no text fields; handled by general doc)
+// SECTION 15 — CLOSING COSTS / NOTICES
+//   [TextField] "to escrow agent within" -> funding_notice_days
+//   [TextField] "to escrow agent within 1" -> funding_notice_days_2
+//   [TextField] "than 3 days prior to Closing Date" -> closing_statement_days
+// SECTION 18 — MEDIATION / ATTORNEYS
+//   [TextField] "Attorney is" -> buyer_attorney
+//   [TextField] "Attorney is_2" -> seller_attorney
+// SECTION 22 — AGREEMENT OF PARTIES (addendum checkboxes)
+//   [CheckBox] "Third Party Financing Addendum" -> financing_addendum
+//   [CheckBox] "Seller Financing Addendum" -> seller_financing_addendum
+//   [CheckBox] "Environmental Assessment Threatened or" -> environmental_addendum
+//   [CheckBox] "Addendum for Property Subject to" -> hoa_addendum (auto if hoa_exists)
+//   [CheckBox] "Sellers Temporary Residential Lease" -> seller_leaseback_addendum
+//   [CheckBox] "Short Sale Addendum" -> short_sale_addendum
+//   [CheckBox] "Buyers Temporary Residential Lease" -> buyer_leaseback_addendum
+//   [CheckBox] "Loan Assumption Addendum" -> loan_assumption_addendum
+//   [CheckBox] "Loan Assumption Addendum_2" -> loan_assumption_addendum_2
+//   [CheckBox] "Addendum for Property Located Seaward" -> coastal_addendum
+//   [CheckBox] "Addendum for Sale of Other Property by" -> other_property_addendum
+//   [CheckBox] "Addendum for Reservation of Oil Gas" -> oil_gas_addendum
+//   [CheckBox] "Addendum for BackUp Contract" -> backup_contract_addendum
+//   [CheckBox] "Addendum for Property in a Propane Gas" -> propane_addendum
+//   [CheckBox] "Check Box8" -> check_box_8
+//   [CheckBox] "Check Box9" -> check_box_9
+//   [CheckBox] "Check Box2" -> check_box_2
+//   [CheckBox] "Sellers Disclos" -> sellers_disclosure_addendum
+//   [CheckBox] "Addend. for Sellers Disclos" -> sellers_disclosure_addendum_2
+//   [CheckBox] "Check box 10" -> check_box_10
+//   [CheckBox] "Check box 11" -> check_box_11
+//   [CheckBox] "As Is" -> as_is_check
+//   [CheckBox] "As Is except" -> as_is_except_check
+//   [CheckBox] "PID" -> pid_addendum
+//   [TextField] "System Service Area" -> propane_system_area
+//   [TextField] "The private transfer fee" -> private_transfer_fee
+//   [TextField] "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property" -> hoa_description
+// HOA
+//   [CheckBox] "is" -> hoa_exists (property IS subject to HOA)
+//   [CheckBox] "is not" -> hoa_not_exists (property is NOT subject — default)
+// EXECUTION
+//   [TextField] "EXECUTED the" -> execution_day
+//   [TextField] "day of" -> execution_month
+//   [TextField] "20_2" -> execution_year_2digit
+//   [TextField] "Date" -> contract_effective_date
+//   [TextField] "Email" -> buyer_email
+//   [TextField] "Email_2" -> seller_email
+// BROKER SECTION
+//   [TextField] "Other Broker Firm" -> other_broker_firm
+//   [TextField] "License No" -> other_broker_license
+//   [TextField] "License No_2" -> other_broker_assoc_license
+//   [TextField] "Associates Email Address" -> other_broker_assoc_email
+//   [TextField] "Phone" -> other_broker_phone
+//   [TextField] "Licensed Supervisor of Associate" -> other_broker_supervisor
+//   [TextField] "License No_3" -> other_broker_supervisor_license
+//   [TextField] "Other Brokers Address" -> other_broker_address
+//   [TextField] "Phone_2" -> other_broker_address_phone
+//   [TextField] "City" -> other_broker_city
+//   [TextField] "State" -> other_broker_state
+//   [TextField] "Zip" -> other_broker_zip
+//   [TextField] "Zip_3" -> other_broker_zip_3
+//   [TextField] "Listing Broker Firm" -> listing_broker_firm
+//   [TextField] "License No_4" -> listing_broker_license
+//   [TextField] "License No_5" -> listing_agent_license
+//   [TextField] "Listing Associates Email Address" -> listing_agent_email
+//   [TextField] "Phone_3" -> listing_agent_phone
+//   [TextField] "Licensed Supervisor of Listing Associate" -> listing_supervisor
+//   [TextField] "License No_6" -> listing_supervisor_license
+//   [TextField] "Listing Brokers Office Address" -> listing_broker_address
+//   [TextField] "Phone_4" -> listing_broker_phone
+//   [TextField] "City_2" -> listing_broker_city
+//   [TextField] "State_2" -> listing_broker_state
+//   [TextField] "Zip_2" -> listing_broker_zip
+//   [TextField] "License No_7" -> selling_agent_license
+//   [TextField] "Selling Associates Email Address" -> selling_agent_email
+//   [TextField] "Phone_5" -> selling_agent_phone
+//   [TextField] "Licensed Supervisor of Selling Associate" -> selling_supervisor
+//   [TextField] "License No_8" -> selling_supervisor_license
+//   [TextField] "Selling Associates Office Address" -> selling_broker_address
+//   [TextField] "City_3" -> selling_broker_city
+//   [TextField] "State_3" -> selling_broker_state
+//   [TextField] "Associates Name" -> other_broker_assoc_name
+//   [TextField] "Listing Associates Name" -> listing_agent_name
+//   [CheckBox] "Seller only as Sellers agent" -> listing_only_seller_agent
+//   [CheckBox] "Seller and Buyer as an intermediary" -> listing_intermediary
+//   [TextField] "Selling Associates Name" -> selling_agent_name
+//   [CheckBox] "Buyer only" -> buyer_only_agent
+//   [CheckBox] "Seller as List Brok Sub agent" -> seller_subagent
+//   [TextField] "List Assoc Name" -> listing_agent_name (page 2 repeat)
+//   [TextField] "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows" -> notice_address
+//   [TextField] "when mailed to" -> notice_address_2
+//   [TextField] "at" -> escrow_at
+//   [TextField] "at_2" -> escrow_at_2
+// RECEIPT SECTION
+//   [TextField] "Received by" -> earnest_received_by
+//   [TextField] "Address" -> escrow_address
+//   [TextField] "City_4" -> escrow_city
+//   [TextField] "State_4" -> escrow_state
+//   [TextField] "Zip_4" -> escrow_zip
+//   [TextField] "Email Address" -> escrow_email
+//   [TextField] "DateTime" -> earnest_receipt_datetime
+//   [TextField] "Phone_6" -> escrow_phone
+//   [TextField] "Fax" -> escrow_fax
+//   [TextField] "Received by_2" -> earnest_received_by_2
+//   [TextField] "Address_2" -> escrow_address_2
+//   [TextField] "City_5" -> escrow_city_2
+//   [TextField] "State_5" -> escrow_state_2
+//   [TextField] "Zip_5" -> escrow_zip_2
+//   [TextField] "Email Address_2" -> escrow_email_2
+//   [TextField] "Date_2" -> earnest_date_2
+//   [TextField] "Phone_7" -> escrow_phone_2
+//   [TextField] "Fax_2" -> escrow_fax_2
+//   [TextField] "Received by_3" -> add_earnest_received_by
+//   [TextField] "Address_3" -> add_escrow_address
+//   [TextField] "City_6" -> add_escrow_city
+//   [TextField] "State_6" -> add_escrow_state
+//   [TextField] "Zip_6" -> add_escrow_zip
+//   [TextField] "Email Address_3" -> add_escrow_email
+//   [TextField] "DateTime_2" -> add_earnest_datetime
+//   [TextField] "Phone_8" -> add_escrow_phone
+//   [TextField] "Fax_3" -> add_escrow_fax
+//   [CheckBox] "Within one" -> within_one_day
+//   [CheckBox] "Within two" -> within_two_days
+//   [CheckBox] "Within three" -> within_three_days
+//   [CheckBox] "Within four" -> within_four_days
+// INITIALS / PAGE HEADERS (auto-filled from buyer/seller names abbreviated)
+//   [TextField] "Initialed for identification by Buyer" -> buyer_initials
+//   [TextField] "Initialed for identification by Buyer_2" -> buyer_initials
+//   [TextField] "Initialed for identification by Buyer_3" -> buyer_initials
+//   [TextField] "Initialed for identification by Buyer_4" -> buyer_initials
+//   [TextField] "Initialed for identification by Buyer_5" -> buyer_initials
+//   [TextField] "and Seller" -> seller_initials
+//   [TextField] "and Seller_2" -> seller_initials
+//   [TextField] "and Seller_3" -> seller_initials
+//   [TextField] "and Seller_4" -> seller_initials
+//   [TextField] "and Seller_5" -> seller_initials
+//   [TextField] "and Seller_6" -> seller_initials
+//   [TextField] "and Seller_7" -> seller_initials
+//   [TextField] "Page 2 of 10" -> "Page 2 of 10" (static)
+//   [TextField] "Page 3 of 10" -> "Page 3 of 10" (static)
+//   [TextField] "Page 7 of 10" -> "Page 7 of 10" (static)
+//   [TextField] "Contract Concerning" -> property_address (contract header repeat)
+//   [TextField] "Contract Concerning_2" -> property_address
+//   [TextField] "Contract Concerning_3" -> property_address
+//   [TextField] "Contract Concerning_4" -> property_address
+//   [TextField] "the Title Company and Buyers lenders Check one box only" -> title_company
+// AC FIELDS (commission/other broker fields with maxLen=3)
+//   [TextField] "AC1","AC4","AC numb 1".."AC numb 4" -> commission percentages (left blank by default)
+//   [TextField] "Text6","Text7","Text1","Text2" -> buyer/seller signature date segments
 // ---------------------------------------------------------------------------
 async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  if (fv.buyer_name) safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'Seller and', fv.seller_name);
-
-  const addr = fv.property_address || '';
-  if (addr) {
-    safeSetText(form, 'Texas known as', addr);
-    safeSetText(form, 'Address of Property', addr);
-    safeSetText(form, 'Address of Property_2', addr);
-    safeSetText(form, 'Addr of Prop', addr);
+  // Derive initials from names (first letter of each word, max 3 chars)
+  function initials(name) {
+    if (!name) return '';
+    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
   }
-  if (fv.county) safeSetText(form, 'County of', fv.county);
-  if (fv.city_state_zip) safeSetText(form, 'Addition City of', fv.city_state_zip);
-  if (fv.legal_description) safeSetText(form, 'A LAND Lot', fv.legal_description);
+  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
+  const sellerInit = fv.seller_initials || initials(fv.seller_name);
 
+  // PARTIES
+  safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
+  safeSetText(form, 'Seller and', fv.seller_name || '');
+
+  // PROPERTY — address repeats across all pages
+  const addr = fv.property_address || '';
+  safeSetText(form, 'Texas known as', addr);
+  safeSetText(form, 'Address of Property', addr);
+  safeSetText(form, 'Address of Property_2', addr);
+  safeSetText(form, 'Addr of Prop', addr);
+  // "Contract Concerning" header lines repeat address on each page
+  safeSetText(form, 'Contract Concerning', addr);
+  safeSetText(form, 'Contract Concerning_2', addr);
+  safeSetText(form, 'Contract Concerning_3', addr);
+  safeSetText(form, 'Contract Concerning_4', addr);
+  safeSetText(form, 'the Title Company and Buyers lenders Check one box only', fv.title_company || '');
+
+  // Legal description: "A LAND Lot" = full legal or lot portion, "Block" = block, "undefined" = lot number
+  safeSetText(form, 'A LAND Lot', fv.legal_description || '');
+  safeSetText(form, 'Block', fv.legal_block || '');
+  safeSetText(form, 'undefined', fv.legal_lot || '');
+  safeSetText(form, 'Addition City of', fv.city_state_zip || '');
+  safeSetText(form, 'County of', fv.county || '');
+
+  // SALES PRICE (Section 3)
   const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
   if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
-  if (fv.sale_price != null && fv.sale_price !== '') safeSetText(form, 'undefined_4', formatMoney(fv.sale_price));
-  if (fv.down_payment_amt != null && fv.down_payment_amt !== '') safeSetText(form, 'undefined_2', formatMoney(fv.down_payment_amt));
-  if (fv.loan_amount != null && fv.loan_amount !== '') safeSetText(form, 'undefined_3', formatMoney(fv.loan_amount));
-
-  if (fv.earnest_money != null && fv.earnest_money !== '') safeSetText(form, 'earnest money of', formatMoney(fv.earnest_money));
-  if (fv.option_fee != null && fv.option_fee !== '') safeSetText(form, 'Option Fee in the form of', formatMoney(fv.option_fee));
-
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
+  safeSetText(form, 'undefined_2', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
+  safeSetText(form, 'undefined_3', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
+  safeSetText(form, 'undefined_4', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
+  safeSetText(form, 'undefined_5', fv.additional_cash_closing != null && fv.additional_cash_closing !== '' ? formatMoney(fv.additional_cash_closing) : '');
+  // Sale price credited: default "will not be credited" (standard resale)
+  if (fv.sale_price_credited === true) {
+    safeCheck(form, 'will');
+  } else {
+    safeCheck(form, 'will not be credited to the Sales Price at closing Time is of the');
   }
+  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
 
+  // EARNEST MONEY / OPTION FEE (Section 5)
+  safeSetText(form, 'earnest money of', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
+  safeSetText(form, 'Option Fee in the form of', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
+  safeSetText(form, 'Seller or Listing Broker', fv.listing_agent_name || '');
+  safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
+  safeSetText(form, 'as earnest money to', fv.earnest_money_to || fv.title_company || '');
+
+  // TITLE COMPANY / ESCROW (Section 6)
+  safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
+  safeSetText(form, 'Escrow Agent', fv.title_company || '');
+  safeSetText(form, 'Escrow Agent_2', fv.title_company || '');
+  safeSetText(form, 'Escrow Agent_3', fv.title_company || '');
+  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days || '');
+  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use || '');
+  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '');
+  // Survey option: default Buyer pays
+  safeCheck(form, 'Buyer');
+
+  // PROPERTY CONDITION (Section 7)
+  // Default: Buyer accepts As-Is (most common in Texas resale)
+  if (fv.as_is_with_repairs === true) {
+    safeCheck(form, '2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the');
+    safeSetText(form, 'following specific repairs and treatments', fv.required_repairs || '');
+    safeSetText(form, 'undefined_13', fv.repairs_additional || '');
+  } else {
+    safeCheck(form, '1 Buyer accepts the Property As Is');
+  }
+  safeSetText(form, 'service contract in an amount not exceeding', fv.service_contract_amount != null && fv.service_contract_amount !== '' ? formatMoney(fv.service_contract_amount) : '');
+
+  // CLOSING DATE (Section 9)
   if (fv.closing_date) {
     const cd = String(fv.closing_date);
     if (cd.includes('-')) {
@@ -328,96 +685,393 @@ async function fillResaleContract(pdfDoc, fv) {
     }
   }
 
-  if (fv.title_company) {
-    safeSetText(form, 'insurance Title Policy issued by', fv.title_company);
-    safeSetText(form, 'Escrow Agent', fv.title_company);
-  }
+  // POSSESSION / CLOSING NOTICES
+  safeSetText(form, 'to escrow agent within', fv.funding_notice_days || '');
+  safeSetText(form, 'to escrow agent within 1', fv.funding_notice_days || '');
+  safeSetText(form, 'than 3 days prior to Closing Date', fv.closing_statement_days || '');
+  safeSetText(form, 'be removed prior to delivery of possession', fv.items_removed || '');
 
-  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
+  // ATTORNEYS (Section 18)
+  safeSetText(form, 'Attorney is', fv.buyer_attorney || '');
+  safeSetText(form, 'Attorney is_2', fv.seller_attorney || '');
 
+  // HOA (Section 2 membership)
   if (fv.hoa_exists === true) {
     safeCheck(form, 'is');
     safeCheck(form, 'Addendum for Property Subject to');
   } else {
     safeCheck(form, 'is not');
   }
+  safeSetText(form, '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property', fv.hoa_description || '');
 
-  safeCheck(form, '1 Buyer accepts the Property As Is');
+  // ADDENDUM CHECKBOXES (Section 22)
+  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
+  if (fv.seller_financing_addendum === true) safeCheck(form, 'Seller Financing Addendum');
+  if (fv.environmental_addendum === true) safeCheck(form, 'Environmental Assessment Threatened or');
+  if (fv.seller_leaseback_addendum === true) safeCheck(form, 'Sellers Temporary Residential Lease');
+  if (fv.short_sale_addendum === true) safeCheck(form, 'Short Sale Addendum');
+  if (fv.buyer_leaseback_addendum === true) safeCheck(form, 'Buyers Temporary Residential Lease');
+  if (fv.loan_assumption_addendum === true) safeCheck(form, 'Loan Assumption Addendum');
+  if (fv.coastal_addendum === true) safeCheck(form, 'Addendum for Property Located Seaward');
+  if (fv.other_property_addendum === true) safeCheck(form, 'Addendum for Sale of Other Property by');
+  if (fv.oil_gas_addendum === true) safeCheck(form, 'Addendum for Reservation of Oil Gas');
+  if (fv.backup_contract_addendum === true) safeCheck(form, 'Addendum for BackUp Contract');
+  if (fv.propane_addendum === true) safeCheck(form, 'Addendum for Property in a Propane Gas');
+  if (fv.sellers_disclosure_addendum === true) safeCheck(form, 'Sellers Disclos');
+  if (fv.pid_addendum === true) safeCheck(form, 'PID');
+  safeSetText(form, 'System Service Area', fv.propane_system_area || '');
+  safeSetText(form, 'The private transfer fee', fv.private_transfer_fee || '');
 
-  if (fv.listing_agent_name) {
-    safeSetText(form, 'Listing Associates Name', fv.listing_agent_name);
-    safeSetText(form, 'List Assoc Name', fv.listing_agent_name);
-  }
-  if (fv.listing_broker_firm) safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm);
-  if (fv.listing_agent_phone) safeSetText(form, 'Phone_3', fv.listing_agent_phone);
-  if (fv.listing_agent_email) safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email);
-  if (fv.listing_agent_license) safeSetText(form, 'License No_5', fv.listing_agent_license);
-
-  return pdfDoc;
-}
-
-// ---------------------------------------------------------------------------
-// THIRD PARTY FINANCING ADDENDUM (TREC 40-9/40-11)
-// Ported from FINANCING_FIELD_MAP + FINANCING_BUTTON_MAP in document_field_maps.py
-// Verified against AcroForm inspection of Third-Party-Financing-Addendum-TREC-40.pdf
-// Key: 'a A first mortgage loan in the principal amount of' is /Btn (checkbox), not text.
-// ---------------------------------------------------------------------------
-async function fillFinancingAddendum(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
-
-  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
-  if (propertyFull) safeSetText(form, 'Street Address and City', propertyFull);
-
-  const ft = String(fv.financing_type || '').toLowerCase();
-
-  if (ft && ft !== 'cash') {
-    safeCheck(form, 'a A first mortgage loan in the principal amount of');
-    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
-  }
-
-  if (ft === 'conventional' || fv.financing_conventional === true) {
-    safeCheck(form, '1 Conventional Financing');
-    if (fv.loan_amount != null && fv.loan_amount !== '') {
-      safeSetText(form, 'any financed PMI premium due in full in 1', formatMoney(fv.loan_amount));
-    }
-  } else if (ft === 'fha' || fv.financing_fha === true) {
-    safeCheck(form, '3 FHA Insured Financing A Section');
-    if (fv.loan_amount != null && fv.loan_amount !== '') {
-      safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', formatMoney(fv.loan_amount));
-    }
-  } else if (ft === 'va' || fv.financing_va === true) {
-    safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
-    if (fv.loan_amount != null && fv.loan_amount !== '') {
-      safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', formatMoney(fv.loan_amount));
-    }
-  } else if (ft === 'usda') {
-    safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
-  }
-
-  return pdfDoc;
-}
-
-// ---------------------------------------------------------------------------
-// NOTICE OF SELLERS TERMINATION OF CONTRACT
-// Ported from TERMINATION_FIELD_MAP in document_field_maps.py
-// Verified against AcroForm inspection of Notice-of-Sellers-Termination-of-Contract.pdf
-// ---------------------------------------------------------------------------
-async function fillTerminationNotice(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
-
-  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
-  if (propertyFull) safeSetText(form, 'Street Address and City', propertyFull);
-
-  if (fv.seller_name) safeSetText(form, 'BETWEEN THE UNDERSIGNED SELLER AND', fv.seller_name);
-  if (fv.buyer_name) safeSetText(form, 'BUYER', fv.buyer_name);
-
+  // EXECUTION DATE
   if (fv.contract_effective_date) {
     const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
     safeSetText(form, 'Date', ds);
   }
+  if (fv.execution_date) {
+    const ed = String(fv.execution_date);
+    const edParsed = ed.includes('-') ? new Date(ed) : null;
+    if (edParsed) {
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      safeSetText(form, 'EXECUTED the', String(edParsed.getUTCDate()));
+      safeSetText(form, 'day of', months[edParsed.getUTCMonth()]);
+      safeSetText(form, '20_2', String(edParsed.getUTCFullYear()).slice(2));
+    }
+  }
 
+  // CONTACT EMAILS
+  safeSetText(form, 'Email', fv.buyer_email || '');
+  safeSetText(form, 'Email_2', fv.seller_email || '');
+
+  // BROKER / AGENT SECTION
+  // Listing broker (agent representing seller)
+  safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
+  safeSetText(form, 'License No_4', fv.listing_broker_license || '');
+  safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
+  safeSetText(form, 'List Assoc Name', fv.listing_agent_name || '');
+  safeSetText(form, 'License No_5', fv.listing_agent_license || '');
+  safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email || '');
+  safeSetText(form, 'Phone_3', fv.listing_agent_phone || '');
+  safeSetText(form, 'Licensed Supervisor of Listing Associate', fv.listing_supervisor || '');
+  safeSetText(form, 'License No_6', fv.listing_supervisor_license || '');
+  safeSetText(form, 'Listing Brokers Office Address', fv.listing_broker_address || '');
+  safeSetText(form, 'Phone_4', fv.listing_broker_phone || '');
+  safeSetText(form, 'City_2', fv.listing_broker_city || '');
+  safeSetText(form, 'State_2', fv.listing_broker_state || '');
+  safeSetText(form, 'Zip_2', fv.listing_broker_zip || '');
+  // Listing broker representation checkbox
+  if (fv.listing_intermediary === true) {
+    safeCheck(form, 'Seller and Buyer as an intermediary');
+  } else {
+    safeCheck(form, 'Seller only as Sellers agent');
+  }
+
+  // Other/selling broker (agent representing buyer)
+  safeSetText(form, 'Other Broker Firm', fv.other_broker_firm || '');
+  safeSetText(form, 'License No', fv.other_broker_license || '');
+  safeSetText(form, 'Associates Name', fv.other_broker_assoc_name || '');
+  safeSetText(form, 'Selling Associates Name', fv.selling_agent_name || '');
+  safeSetText(form, 'License No_2', fv.other_broker_assoc_license || '');
+  safeSetText(form, 'Associates Email Address', fv.other_broker_assoc_email || '');
+  safeSetText(form, 'Phone', fv.other_broker_phone || '');
+  safeSetText(form, 'Licensed Supervisor of Associate', fv.other_broker_supervisor || '');
+  safeSetText(form, 'License No_3', fv.other_broker_supervisor_license || '');
+  safeSetText(form, 'Other Brokers Address', fv.other_broker_address || '');
+  safeSetText(form, 'Phone_2', fv.other_broker_address_phone || '');
+  safeSetText(form, 'City', fv.other_broker_city || '');
+  safeSetText(form, 'State', fv.other_broker_state || '');
+  safeSetText(form, 'Zip', fv.other_broker_zip || '');
+  safeSetText(form, 'Zip_3', fv.other_broker_zip_3 || '');
+  safeSetText(form, 'License No_7', fv.selling_agent_license || '');
+  safeSetText(form, 'Selling Associates Email Address', fv.selling_agent_email || '');
+  safeSetText(form, 'Phone_5', fv.selling_agent_phone || '');
+  safeSetText(form, 'Licensed Supervisor of Selling Associate', fv.selling_supervisor || '');
+  safeSetText(form, 'License No_8', fv.selling_supervisor_license || '');
+  safeSetText(form, 'Selling Associates Office Address', fv.selling_broker_address || '');
+  safeSetText(form, 'City_3', fv.selling_broker_city || '');
+  safeSetText(form, 'State_3', fv.selling_broker_state || '');
+  if (fv.buyer_only_agent === true) safeCheck(form, 'Buyer only');
+
+  // ESCROW RECEIPT FIELDS (filled with title company info)
+  safeSetText(form, 'Received by', fv.earnest_received_by || '');
+  safeSetText(form, 'Address', fv.escrow_address || '');
+  safeSetText(form, 'City_4', fv.escrow_city || '');
+  safeSetText(form, 'State_4', fv.escrow_state || '');
+  safeSetText(form, 'Zip_4', fv.escrow_zip || '');
+  safeSetText(form, 'Email Address', fv.escrow_email || '');
+  safeSetText(form, 'DateTime', fv.earnest_receipt_datetime || '');
+  safeSetText(form, 'Phone_6', fv.escrow_phone || '');
+  safeSetText(form, 'Fax', fv.escrow_fax || '');
+  safeSetText(form, 'Received by_2', fv.earnest_received_by_2 || '');
+  safeSetText(form, 'Address_2', fv.escrow_address_2 || '');
+  safeSetText(form, 'City_5', fv.escrow_city_2 || '');
+  safeSetText(form, 'State_5', fv.escrow_state_2 || '');
+  safeSetText(form, 'Zip_5', fv.escrow_zip_2 || '');
+  safeSetText(form, 'Email Address_2', fv.escrow_email_2 || '');
+  safeSetText(form, 'Date_2', fv.earnest_date_2 || '');
+  safeSetText(form, 'Phone_7', fv.escrow_phone_2 || '');
+  safeSetText(form, 'Fax_2', fv.escrow_fax_2 || '');
+  safeSetText(form, 'Received by_3', fv.add_earnest_received_by || '');
+  safeSetText(form, 'Address_3', fv.add_escrow_address || '');
+  safeSetText(form, 'City_6', fv.add_escrow_city || '');
+  safeSetText(form, 'State_6', fv.add_escrow_state || '');
+  safeSetText(form, 'Zip_6', fv.add_escrow_zip || '');
+  safeSetText(form, 'Email Address_3', fv.add_escrow_email || '');
+  safeSetText(form, 'DateTime_2', fv.add_earnest_datetime || '');
+  safeSetText(form, 'Phone_8', fv.add_escrow_phone || '');
+  safeSetText(form, 'is acknowledged', fv.option_fee_acknowledged || '');
+  safeSetText(form, 'is acknowledged_2', fv.earnest_receipt_date || '');
+  safeSetText(form, 'is acknowledged_3', fv.additional_earnest_receipt_date || '');
+  safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
+
+  // NOTICE ADDRESSES
+  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
+  safeSetText(form, 'when mailed to', fv.notice_address_2 || '');
+
+  // INITIALS — all repeater initials fields on each page
+  var buyerInitFields = [
+    'Initialed for identification by Buyer',
+    'Initialed for identification by Buyer_2',
+    'Initialed for identification by Buyer_3',
+    'Initialed for identification by Buyer_4',
+    'Initialed for identification by Buyer_5',
+    'Buyers Expenses as allowed by the lender',
+  ];
+  var sellerInitFields = [
+    'and Seller',
+    'and Seller_2',
+    'and Seller_3',
+    'and Seller_4',
+    'and Seller_5',
+    'and Seller_6',
+    'and Seller_7',
+  ];
+  buyerInitFields.forEach(function(f) { safeSetText(form, f, buyerInit); });
+  sellerInitFields.forEach(function(f) { safeSetText(form, f, sellerInit); });
+
+  // UNDEFINED PLACEHOLDER FIELDS (page number + sequence fields auto-populated by TREC)
+  // Leave blank — PDF reader fills these from field calculation scripts
+  // "undefined_6","undefined_7","undefined_8","undefined_9" etc.
+
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// THIRD PARTY FINANCING ADDENDUM (TREC 40-9/40-11) — 64 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js.
+// Every field wired; agent can override via field_values.
+//
+// PROPERTY
+//   [TextField] "Street Address and City" -> property_full
+//   [TextField] "Address of Property" -> property_address (repeat)
+// LOAN TYPE CHECKBOXES
+//   [CheckBox] "1 Conventional Financing" -> financing_conventional
+//   [CheckBox] "2 Texas Veterans Loan..." -> financing_tx_veterans
+//   [CheckBox] "3 FHA Insured Financing..." -> financing_fha
+//   [CheckBox] "4 VA Guaranteed Financing..." -> financing_va
+//   [CheckBox] "5 USDA Guaranteed Financing..." -> financing_usda
+//   [CheckBox] "6 Reverse Mortgage Financing..." -> financing_reverse
+//   [CheckBox] "a A first mortgage loan in the principal amount of" -> first_mortgage (auto if financed)
+//   [CheckBox] "b A second mortgage loan in the principal amount of" -> second_mortgage
+// CONVENTIONAL LOAN FIELDS
+//   [TextField] "any financed PMI premium due in full in 1" -> loan_amount (first conventional loan amount)
+//   [TextField] "any financed PMI premium due in full in 2" -> loan_amount_2 (second conventional loan amount)
+//   [TextField] "per annum for the first" -> interest_rate_cap
+//   [TextField] "shown on Buyers Loan Estimate for the loan not to exceed" -> origination_charges_cap
+//   [TextField] "excluding" -> pmi_exclusion
+//   [TextField] "any financed PMI premium due in full in 1_2" -> second_loan_amount
+//   [TextField] "any financed PMI premium due in full in 2_2" -> second_loan_amount_2
+//   [TextField] "per annum for the first_2" -> second_interest_rate_cap
+//   [TextField] "shown on Buyers Loan Estimate for the loan not to exceed_2" -> second_origination_charges_cap
+// TEXAS VETERANS LOAN
+//   [TextField] "for a period in the total amount of" -> tx_vet_loan_amount
+//   [TextField] "years at the interest rate established by the" -> tx_vet_loan_years
+// FHA LOAN FIELDS
+//   [TextField] "undefined" -> fha_loan_section
+//   [TextField] "excluding any financed MIP amortizable monthly for not less" -> loan_amount (FHA)
+//   [TextField] "than" -> fha_amortization_years
+//   [TextField] "years with interest not to exceed_2" -> fha_interest_rate_cap
+//   [TextField] "Charges as shown on Buyers Loan Estimate for the loan not to exceed" -> fha_origination_cap
+//   [CheckBox] "will not be an FHA insured loan" -> fha_may_not_be_insured
+//   [CheckBox] "Check Box2" -> fha_check_box_2
+//   [TextField] "Conversion Mortgage loan in the original principal amount of" -> fha_conversion_amount
+//   [TextField] "not to exceed" -> fha_conversion_not_exceed
+// VA LOAN FIELDS
+//   [TextField] "excluding any financed Funding Fee amortizable monthly for not less than" -> loan_amount (VA)
+//   [TextField] "years" -> va_amortization_years
+//   [TextField] "with interest not to exceed" -> va_interest_rate_cap
+//   [TextField] "per annum for the first_4" -> va_per_annum_first
+//   [TextField] "Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed" -> va_origination_cap
+//   [TextField] "value of the Property established by the Department of Veterans Affairs" -> va_appraised_value
+// USDA FIELDS
+//   [TextField] "any financed PMI premium or other costs with interest not to exceed" -> usda_loan_amount
+// REVERSE MORTGAGE FIELDS
+//   [TextField] "excluding_2" -> reverse_exclusion
+//   [TextField] "not to exceed_2" -> reverse_not_exceed
+//   [TextField] "any financed Funding Fee amortizable monthly for not less than" -> reverse_funding_fee
+//   [TextField] "per annum for the first_3" -> reverse_per_annum
+//   [TextField] "Text2" -> reverse_text2
+// BUYER APPROVAL
+//   [CheckBox] "This contract is subject to Buyer obtaining Buyer Approval..." -> buyer_approval (auto if financed)
+// MISC LOAN FIELDS
+//   [TextField] "Initialed for identification by Buyer" -> buyer_initials
+//   [TextField] "undefined_2" -> buyer_initials_page2
+//   [TextField] "and Seller" -> seller_initials
+//   [TextField] "undefined_3" -> seller_initials_page2
+//   [TextField] "Text1" -> misc_text1
+//   [TextField] "for the first" -> per_annum_for_first_misc
+//   [TextField] "Estimate for the loan not to exceed" -> estimate_misc
+//   [CheckBox] "will" -> will_checkbox
+//   [CheckBox] "will-1","will-2" -> will_checkbox variants
+// ---------------------------------------------------------------------------
+async function fillFinancingAddendum(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+
+  function initials(name) {
+    if (!name) return '';
+    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
+  }
+  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
+  const sellerInit = fv.seller_initials || initials(fv.seller_name);
+
+  // PROPERTY
+  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  safeSetText(form, 'Street Address and City', propertyFull);
+  safeSetText(form, 'Address of Property', fv.property_address || '');
+
+  const ft = String(fv.financing_type || '').toLowerCase();
+  const loanAmt = fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '';
+
+  // FIRST MORTGAGE CHECKBOX (auto-checked if any financed loan)
+  if (ft && ft !== 'cash') {
+    safeCheck(form, 'a A first mortgage loan in the principal amount of');
+    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
+  }
+  if (fv.second_mortgage === true) {
+    safeCheck(form, 'b A second mortgage loan in the principal amount of');
+  }
+
+  // LOAN TYPE — wire each type's fields
+  if (ft === 'conventional' || fv.financing_conventional === true) {
+    safeCheck(form, '1 Conventional Financing');
+    safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
+    safeSetText(form, 'any financed PMI premium due in full in 2', fv.loan_amount_2 != null ? formatMoney(fv.loan_amount_2) : '');
+    safeSetText(form, 'per annum for the first', fv.interest_rate_cap || '');
+    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || '');
+    safeSetText(form, 'excluding', fv.pmi_exclusion || '');
+    safeSetText(form, 'any financed PMI premium due in full in 1_2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
+    safeSetText(form, 'any financed PMI premium due in full in 2_2', fv.second_loan_amount_2 != null && fv.second_loan_amount_2 !== '' ? formatMoney(fv.second_loan_amount_2) : '');
+    safeSetText(form, 'per annum for the first_2', fv.second_interest_rate_cap || '');
+    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed_2', fv.second_origination_charges_cap || '');
+  }
+
+  if (ft === 'tx_veterans' || fv.financing_tx_veterans === true) {
+    safeCheck(form, '2 Texas Veterans Loan A loans from the Texas Veterans Land Board of');
+    safeSetText(form, 'for a period in the total amount of', loanAmt);
+    safeSetText(form, 'years at the interest rate established by the', fv.tx_vet_loan_years || '');
+  }
+
+  if (ft === 'fha' || fv.financing_fha === true) {
+    safeCheck(form, '3 FHA Insured Financing A Section');
+    safeSetText(form, 'undefined', fv.fha_loan_section || '');
+    safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', loanAmt);
+    safeSetText(form, 'than', fv.fha_amortization_years || '');
+    safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || '');
+    safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '');
+    if (fv.fha_conversion_amount) {
+      safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
+      safeSetText(form, 'not to exceed', fv.fha_conversion_not_exceed || '');
+    }
+  }
+
+  if (ft === 'va' || fv.financing_va === true) {
+    safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
+    safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', loanAmt);
+    safeSetText(form, 'years', fv.va_amortization_years || '');
+    safeSetText(form, 'with interest not to exceed', fv.va_interest_rate_cap || '');
+    safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '');
+    safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '');
+    safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : '');
+  }
+
+  if (ft === 'usda' || fv.financing_usda === true) {
+    safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
+    safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', loanAmt);
+  }
+
+  if (ft === 'reverse' || fv.financing_reverse === true) {
+    safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
+    safeSetText(form, 'excluding_2', fv.reverse_exclusion || '');
+    safeSetText(form, 'not to exceed_2', fv.reverse_not_exceed || '');
+    safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
+    safeSetText(form, 'per annum for the first_3', fv.reverse_per_annum || '');
+  }
+
+  // INITIALS
+  safeSetText(form, 'Initialed for identification by Buyer', buyerInit);
+  safeSetText(form, 'undefined_2', buyerInit);
+  safeSetText(form, 'and Seller', sellerInit);
+  safeSetText(form, 'undefined_3', sellerInit);
+
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// NOTICE OF SELLERS TERMINATION OF CONTRACT — 14 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js.
+//
+// [TextField] "Street Address and City" -> property_full
+// [TextField] "BETWEEN THE UNDERSIGNED SELLER AND" -> seller_name
+// [TextField] "BUYER" -> buyer_name
+// [RadioGroup] "1 Buyer failed to deliver the earnest money within the time required under Paragraph 5 of"
+//   -> termination_reason: "undefined" = earnest money failure, "undefined_2" = other (paragraph)
+// [TextField] "2 Other identify the paragraph number of contract or the addendum 1..6"
+//   -> termination_other_1..6 (specify other termination reason paragraph references)
+// [TextField] "Date" -> contract_effective_date
+// [TextField] "Date_2" -> termination_notice_date (defaults to today)
+// ---------------------------------------------------------------------------
+async function fillTerminationNotice(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+
+  // PROPERTY + PARTIES
+  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  safeSetText(form, 'Street Address and City', propertyFull);
+  safeSetText(form, 'BETWEEN THE UNDERSIGNED SELLER AND', fv.seller_name || '');
+  safeSetText(form, 'BUYER', fv.buyer_name || '');
+
+  // TERMINATION REASON (radio group)
+  // termination_reason: 'earnest_money' selects option 1 (Paragraph 5 earnest money failure)
+  // termination_reason: 'other' selects option 2 (other paragraph)
+  if (fv.termination_reason === 'earnest_money') {
+    try {
+      const rg = form.getRadioGroup('1 Buyer failed to deliver the earnest money within the time required under Paragraph 5 of');
+      if (rg) rg.select('undefined');
+    } catch (e) {
+      console.warn('[fill-form] termination radio group:', e && e.message);
+    }
+  } else if (fv.termination_reason === 'other') {
+    try {
+      const rg = form.getRadioGroup('1 Buyer failed to deliver the earnest money within the time required under Paragraph 5 of');
+      if (rg) rg.select('undefined_2');
+    } catch (e) {
+      console.warn('[fill-form] termination radio group other:', e && e.message);
+    }
+  }
+
+  // OTHER TERMINATION REASON PARAGRAPH REFERENCES (up to 6 lines)
+  var otherReasons = fv.termination_other_reasons || [];
+  if (typeof otherReasons === 'string') otherReasons = [otherReasons];
+  for (var i = 1; i <= 6; i++) {
+    safeSetText(form, '2 Other identify the paragraph number of contract or the addendum ' + i,
+      (otherReasons[i - 1] != null ? String(otherReasons[i - 1]) : ''));
+  }
+
+  // DATES
+  if (fv.contract_effective_date) {
+    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
+    safeSetText(form, 'Date', ds);
+  }
   const today = new Date().toISOString().slice(0, 10);
-  safeSetText(form, 'Date_2', formatDate(today));
+  safeSetText(form, 'Date_2', fv.termination_notice_date ? formatDate(fv.termination_notice_date) : formatDate(today));
 
   return pdfDoc;
 }
@@ -447,93 +1101,492 @@ async function fillWireFraudWarning(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// HOA ADDENDUM (TREC 36-10)
-// Block 9B — verified field names from AcroForm inspection of TREC 36-10 PDF
+// HOA ADDENDUM (TREC 36-10) — 17 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js.
+//
+// [TextField] "Street Address and City" -> property_full
+// [TextField] "Name of Property Owners Association Association and Phone Number"
+//   -> hoa_name + hoa_phone concatenated
+// [TextField] "the Subdivision Information to the Buyer If Seller delivers the Subdivision
+//   Information Buyer may terminate" -> subdivision_info_days (# of days, default 10)
+// [CheckBox] "1 Within" -> subdivision_method_seller_obtains (default: Seller obtains)
+// [CheckBox] "undefined" -> subdivision_method_buyer_obtains (Buyer obtains info directly)
+// [CheckBox] "3Buyer has received and approved the Subdivision Information before signing
+//   the contract Buyer" -> subdivision_buyer_already_received
+// [CheckBox] "4Buyer does not require delivery of the Subdivision Information"
+//   -> subdivision_not_required
+// [TextField] "copy of the Subdivision Information to the Seller"
+//   -> subdivision_info_copy_days (days to deliver copy to Seller, default 3)
+// [CheckBox] "does" -> requires_updated_resale_cert
+// [CheckBox] "does not require an updated resale certificate If Buyer requires an updated
+//   resale certificate Seller at" -> no_updated_resale_cert (default)
+// [TextField] "D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required
+//   at closing by the Association" -> hoa_transfer_fee (reserve deposit amount)
+// [CheckBox] "Buyer" -> buyer_pays_title_info (default: Buyer pays)
+// [CheckBox] "Seller shall pay the Title Company the cost of obtaining the"
+//   -> seller_pays_title_info
 // ---------------------------------------------------------------------------
 async function fillHoaAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
+
+  // PROPERTY
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
-  if (addr) safeSetText(form, 'Street Address and City', addr);
+  safeSetText(form, 'Street Address and City', addr);
+
+  // HOA NAME + PHONE
   safeSetText(form, 'Name of Property Owners Association Association and Phone Number',
     [fv.hoa_name, fv.hoa_phone].filter(Boolean).join(' '));
-  if (fv.hoa_transfer_fee != null && fv.hoa_transfer_fee !== '') {
-    safeSetText(form, 'D DEPOSITS FOR RESERVES Buyer shall pay any deposits...', formatMoney(fv.hoa_transfer_fee));
+
+  // SUBDIVISION INFORMATION DELIVERY METHOD (Para A)
+  // Options: seller_obtains (default), buyer_obtains, already_received, not_required
+  var subMethod = fv.subdivision_method || 'seller_obtains';
+  if (subMethod === 'buyer_obtains') {
+    safeCheck(form, 'undefined');
+  } else if (subMethod === 'already_received') {
+    safeCheck(form, '3Buyer has received and approved the Subdivision Information before signing the contract Buyer');
+  } else if (subMethod === 'not_required') {
+    safeCheck(form, '4Buyer does not require delivery of the Subdivision Information');
+  } else {
+    safeCheck(form, '1 Within');
   }
-  // Default: Seller obtains subdivision info (Paragraph A1, most common)
-  safeCheck(form, '1 Within');
-  safeSetText(form, 'the Subdivision Information to the Buyer If Seller delivers...', fv.subdivision_info_days || '10');
-  // Default: Buyer does NOT require updated resale cert
-  safeCheck(form, 'does not require an updated resale certificate...');
-  // Default: Buyer pays title company for info (Paragraph D)
-  safeCheck(form, 'Buyer');
+
+  // Days to deliver subdivision info (Para A1)
+  safeSetText(form, 'the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate',
+    fv.subdivision_info_days != null ? String(fv.subdivision_info_days) : '10');
+
+  // Days for buyer to provide copy to seller (Para A — Buyer obtains option)
+  safeSetText(form, 'copy of the Subdivision Information to the Seller',
+    fv.subdivision_info_copy_days != null ? String(fv.subdivision_info_copy_days) : '3');
+
+  // UPDATED RESALE CERTIFICATE (Para B)
+  if (fv.requires_updated_resale_cert === true) {
+    safeCheck(form, 'does');
+  } else {
+    safeCheck(form, 'does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at');
+  }
+
+  // DEPOSITS FOR RESERVES (Para D)
+  safeSetText(form, 'D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association',
+    fv.hoa_transfer_fee != null && fv.hoa_transfer_fee !== '' ? formatMoney(fv.hoa_transfer_fee) : '');
+
+  // WHO PAYS FOR SUBDIVISION INFO (Para D — title company cost)
+  if (fv.seller_pays_title_info === true) {
+    safeCheck(form, 'Seller shall pay the Title Company the cost of obtaining the');
+  } else {
+    safeCheck(form, 'Buyer');
+  }
+
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
-// LEAD-BASED PAINT ADDENDUM (OP-L)
-// Block 9C — verified field names from AcroForm inspection of OP-L PDF
+// LEAD-BASED PAINT ADDENDUM (OP-L) — 25 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js.
+// Required for pre-1978 homes (year_built < 1978).
+//
+// [TextField] "Street Address and City" -> property_full
+// SECTION B — SELLER'S DISCLOSURE
+// B1 — Knowledge of lead-based paint/hazards:
+//   [CheckBox] "Check Box7" -> seller_aware_of_hazards (B1a: seller IS aware)
+//   [CheckBox] "Check Box8" -> seller_no_knowledge (B1b: seller has no knowledge — default)
+//   [TextField] "undefined" -> hazard_explanation (if seller aware, explain known hazards)
+//   [TextField] "b Seller has no actual knowledge of leadbased paint andor leadbased paint
+//     hazards in the Property" -> no_knowledge_statement (auto-filled if no knowledge)
+// B2 — Records/reports:
+//   [CheckBox] "Check Box9" -> seller_has_records (B2a: seller HAS records/reports)
+//   [CheckBox] "Check Box10" -> seller_no_records (B2b: seller has no records — default)
+//   [TextField] "undefined_2" -> documents_list (if seller has records, list them)
+//   [TextField] "b Seller has no reports or records pertaining to leadbased paint andor
+//     leadbased paint hazards in the" -> no_records_statement (auto-filled if no records)
+// SECTION C — BUYER'S RIGHTS
+//   [CheckBox] "Check Box11" -> buyer_waives_inspection (C1: buyer WAIVES 10-day right)
+//   [CheckBox] "Check Box12" -> buyer_retains_inspection (C2: buyer RETAINS — default)
+// SECTION D — AGENT ACKNOWLEDGMENTS
+//   [CheckBox] "Check Box13" -> agent_acknowledges_receipt (D1: agent acknowledges — default)
+//   [CheckBox] "Check Box14" -> agent_acknowledges_pamphlet (D2: EPA pamphlet — default)
+// SIGNATURE DATE FIELDS (all 6 filled with today or lead_paint_date)
+//   [TextField] "Date","Date_2","Date_3","Date_4","Date_5","Date_6" -> lead_paint_date
 // ---------------------------------------------------------------------------
 async function fillLeadPaintAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
+
+  // PROPERTY
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
-  if (addr) safeSetText(form, 'Street Address and City', addr);
-  // Date fields — fill today's date for all six signature date slots
-  const today = formatDate(new Date().toISOString().slice(0, 10));
-  ['Date', 'Date_2', 'Date_3', 'Date_4', 'Date_5', 'Date_6'].forEach(function(f) { safeSetText(form, f, today); });
-  // Default: Seller has no knowledge, no reports
-  safeCheck(form, 'Check Box8');   // B1(b): no knowledge
-  safeCheck(form, 'Check Box10');  // B2(b): no reports
-  // Default: Buyer retains 10-day inspection right
-  safeCheck(form, 'Check Box12'); // C2: retains right
-  safeCheck(form, 'Check Box13'); // D1: acknowledges receipt
-  safeCheck(form, 'Check Box14'); // D2: acknowledges EPA pamphlet
-  // Overrides from field_values
-  if (fv.seller_aware_of_hazards) {
-    safeCheck(form, 'Check Box7'); // B1(a): seller IS aware
-    if (fv.hazard_explanation) safeSetText(form, 'undefined', fv.hazard_explanation);
+  safeSetText(form, 'Street Address and City', addr);
+
+  // DATE FIELDS — all six signature date slots
+  const signDate = fv.lead_paint_date
+    ? formatDate(fv.lead_paint_date)
+    : formatDate(new Date().toISOString().slice(0, 10));
+  ['Date', 'Date_2', 'Date_3', 'Date_4', 'Date_5', 'Date_6'].forEach(function(f) {
+    safeSetText(form, f, signDate);
+  });
+
+  // SECTION B1 — SELLER KNOWLEDGE OF HAZARDS
+  if (fv.seller_aware_of_hazards === true) {
+    safeCheck(form, 'Check Box7');
+    safeSetText(form, 'undefined', fv.hazard_explanation || '');
+  } else {
+    safeCheck(form, 'Check Box8');
+    safeSetText(form, 'b Seller has no actual knowledge of leadbased paint andor leadbased paint hazards in the Property', '');
   }
-  if (fv.seller_has_records) {
-    safeCheck(form, 'Check Box9'); // B2(a): seller HAS records
-    if (fv.documents_list) safeSetText(form, 'undefined_2', fv.documents_list);
+
+  // SECTION B2 — SELLER RECORDS/REPORTS
+  if (fv.seller_has_records === true) {
+    safeCheck(form, 'Check Box9');
+    safeSetText(form, 'undefined_2', fv.documents_list || '');
+  } else {
+    safeCheck(form, 'Check Box10');
+    safeSetText(form, 'b Seller has no reports or records pertaining to leadbased paint andor leadbased paint hazards in the', '');
   }
-  if (fv.buyer_waives_inspection) safeCheck(form, 'Check Box11'); // C1: waives
+
+  // SECTION C — BUYER'S INSPECTION RIGHTS
+  if (fv.buyer_waives_inspection === true) {
+    safeCheck(form, 'Check Box11');
+  } else {
+    safeCheck(form, 'Check Box12');
+  }
+
+  // SECTION D — AGENT ACKNOWLEDGMENTS (default: both checked)
+  if (fv.agent_acknowledges_receipt !== false) safeCheck(form, 'Check Box13');
+  if (fv.agent_acknowledges_pamphlet !== false) safeCheck(form, 'Check Box14');
+
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
-// SELLER'S DISCLOSURE NOTICE (TREC 55-0)
-// XFA-based form — address fields use subform path notation
+// SELLER'S DISCLOSURE NOTICE (TREC 55-0) — 179 AcroForm fields (XFA stripped)
+// Field map verified via scripts/inspect_all_fields.js.
+//
+// This form is an Adobe XFA dynamic PDF. pdf-lib strips XFA and writes the AcroForm
+// compatibility layer only. The XFA dynamic binding is lost, but field values are
+// preserved in the AcroForm widget annotations.
+//
+// STRUCTURE:
+//   subform[0] = Page 1 (property info + question responses 0..59)
+//   subform[1] = Page 2 (question responses 60..94, explanation fields)
+//   subform[2] = Page 3 (question responses 95..110, seller certifications)
+//   subform[4] = Page 5 (signature page)
+//
+// KEY FIELDS (all auto-wired from transaction or field_values):
+//   TextField1[0..6] = property address (repeated on each page header)
+//   CheckBox1[0] = seller_occupied (Yes)
+//   CheckBox2[0] = seller_not_occupied (No)
+//   TextField2[0] = year_built (seller estimate)
+//   TextField3[0..110] = Y/N single-character question responses (maxLen=1)
+//     -> pass as sdn_responses: [{index: N, value: 'Y'|'N'}]
+//     -> or as individual sdn_response_N keys
+//   TextField3[31] = seller_notes (general notes, maxLen=255)
+//   TextField3[32] = seller_notes_2 (additional notes)
+//   TextField3[34] = year_built_field (5-char year in question section)
+//   TextField4[0] = seller_name_1 (first seller, page 1)
+//   TextField4[1] = seller_name_2 (second seller, page 1)
+//   TextField5[0..28] = explanation text boxes
+//     -> pass as sdn_explanations: ['text for box 0', 'text for box 1', ...]
+//     -> or as individual sdn_explain_N keys
+//   CheckBox3[n] = section Yes checkboxes
+//   CheckBox4[n] = section No checkboxes
+//   CheckBox5[n] = section Unknown checkboxes
+//   CheckBox6[n] = Section 15 Yes
+//   CheckBox7[n] = Section 15 No
+//   TextField1[3..7] = signature page fields (seller names, dates, agent notes)
 // ---------------------------------------------------------------------------
 async function fillSellersDisclosure(pdfDoc, fv) {
   const form = pdfDoc.getForm();
+
+  // PROPERTY ADDRESS — all page headers
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   if (addr) {
     safeSetText(form, 'form1[0].#subform[0].TextField1[0]', addr);
     safeSetText(form, 'form1[0].#subform[1].TextField1[1]', addr);
     safeSetText(form, 'form1[0].#subform[2].TextField1[2]', addr);
     safeSetText(form, 'form1[0].#subform[4].TextField1[3]', addr);
+    safeSetText(form, 'form1[0].#subform[4].TextField1[4]', addr);
+    safeSetText(form, 'form1[0].#subform[4].TextField1[5]', addr);
+    safeSetText(form, 'form1[0].#subform[4].TextField1[6]', addr);
   }
+
+  // SELLER OCCUPANCY
   if (fv.seller_occupied === true) safeCheck(form, 'form1[0].#subform[0].CheckBox1[0]');
-  else if (fv.seller_occupied === false) safeCheck(form, 'form1[0].#subform[0].CheckBox2[0]');
+  else safeCheck(form, 'form1[0].#subform[0].CheckBox2[0]');
+
+  // YEAR BUILT
+  if (fv.year_built) {
+    safeSetText(form, 'form1[0].#subform[0].TextField2[0]', String(fv.year_built));
+    safeSetText(form, 'form1[0].#subform[0].TextField3[34]', String(fv.year_built).slice(0, 5));
+  }
+
+  // SELLER NAMES
+  safeSetText(form, 'form1[0].#subform[0].TextField4[0]', fv.seller_name_1 || fv.seller_name || '');
+  safeSetText(form, 'form1[0].#subform[0].TextField4[1]', fv.seller_name_2 || '');
+
+  // SELLER NOTES
+  safeSetText(form, 'form1[0].#subform[0].TextField3[31]', fv.seller_notes || '');
+  safeSetText(form, 'form1[0].#subform[0].TextField3[32]', fv.seller_notes_2 || '');
+
+  // Y/N RESPONSES — TextField3[0..110]
+  // Index range -> subform mapping:
+  //   0-59   -> subform[0].TextField3[i]
+  //   60-94  -> subform[1].TextField3[i]
+  //   95-102 -> subform[2].TextField3[i]
+  //   103-110 -> subform[4].TextField3[i]
+  function sdnFieldName(i) {
+    if (i <= 59) return 'form1[0].#subform[0].TextField3[' + i + ']';
+    if (i <= 94) return 'form1[0].#subform[1].TextField3[' + i + ']';
+    if (i <= 102) return 'form1[0].#subform[2].TextField3[' + i + ']';
+    return 'form1[0].#subform[4].TextField3[' + i + ']';
+  }
+
+  var responses = fv.sdn_responses || [];
+  if (Array.isArray(responses)) {
+    responses.forEach(function(r) {
+      if (r && r.index != null && r.value != null) {
+        var idx = Number(r.index);
+        if (idx >= 0 && idx <= 110) {
+          safeSetText(form, sdnFieldName(idx), String(r.value).slice(0, 1));
+        }
+      }
+    });
+  }
+  // Individual sdn_response_N keys (override array)
+  for (var i = 0; i <= 110; i++) {
+    var key = 'sdn_response_' + i;
+    if (fv[key] != null && fv[key] !== '') {
+      safeSetText(form, sdnFieldName(i), String(fv[key]).slice(0, 1));
+    }
+  }
+
+  // EXPLANATION TEXT BOXES — TextField5[0..28]
+  // subform[0]: indices 0..3
+  // subform[1]: indices 4..16
+  // subform[2]: indices 17..25
+  // subform[4]: indices 26..28
+  function explainFieldName(j) {
+    if (j <= 3) return 'form1[0].#subform[0].TextField5[' + j + ']';
+    if (j <= 16) return 'form1[0].#subform[1].TextField5[' + j + ']';
+    if (j <= 25) return 'form1[0].#subform[2].TextField5[' + j + ']';
+    return 'form1[0].#subform[4].TextField5[' + j + ']';
+  }
+
+  var explanations = fv.sdn_explanations || [];
+  for (var j = 0; j <= 28; j++) {
+    var val = (Array.isArray(explanations) ? explanations[j] : null)
+           || fv['sdn_explain_' + j]
+           || '';
+    safeSetText(form, explainFieldName(j), String(val));
+  }
+
+  // SECTION-LEVEL YES/NO/UNKNOWN CHECKBOXES
+  if (fv.sdn_s0_yes === true) safeCheck(form, 'form1[0].#subform[0].CheckBox3[0]');
+  if (fv.sdn_s0_no === true) safeCheck(form, 'form1[0].#subform[0].CheckBox4[0]');
+  if (fv.sdn_s0_unknown === true) safeCheck(form, 'form1[0].#subform[0].CheckBox5[0]');
+  if (fv.sdn_s1_yes === true) safeCheck(form, 'form1[0].#subform[1].CheckBox3[1]');
+  if (fv.sdn_s1_no === true) safeCheck(form, 'form1[0].#subform[1].CheckBox4[1]');
+  if (fv.sdn_s1_unknown === true) safeCheck(form, 'form1[0].#subform[1].CheckBox5[1]');
+  if (fv.sdn_s2_check1 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[2]');
+  if (fv.sdn_s2_check2 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[3]');
+  if (fv.sdn_s2_yes === true) safeCheck(form, 'form1[0].#subform[2].CheckBox3[2]');
+  if (fv.sdn_s2_section15_yes_1 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox6[0]');
+  if (fv.sdn_s2_section15_no_1 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox7[0]');
+  if (fv.sdn_s2_section15_yes_2 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox6[1]');
+  if (fv.sdn_s2_section15_no_2 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox7[1]');
+  if (fv.sdn_s2_field150 === true) safeCheck(form, 'form1[0].#subform[2].#field[150]');
+  if (fv.sdn_s2_field151 === true) safeCheck(form, 'form1[0].#subform[2].#field[151]');
+  if (fv.sdn_s2_cb4_4 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[4]');
+  if (fv.sdn_s2_cb4_5 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[5]');
+  if (fv.sdn_s2_field154 === true) safeCheck(form, 'form1[0].#subform[2].#field[154]');
+  if (fv.sdn_s2_cb4_6 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[6]');
+  if (fv.sdn_s2_field156 === true) safeCheck(form, 'form1[0].#subform[2].#field[156]');
+  if (fv.sdn_s2_cb4_7 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[7]');
+  if (fv.sdn_s2_field158 === true) safeCheck(form, 'form1[0].#subform[2].#field[158]');
+
+  // SIGNATURE PAGE NOTES
+  safeSetText(form, 'form1[0].#subform[4].TextField5[26]', fv.sdn_sig_notes_1 || '');
+  safeSetText(form, 'form1[0].#subform[4].TextField5[27]', fv.sdn_sig_notes_2 || '');
+  safeSetText(form, 'form1[0].#subform[4].TextField5[28]', fv.sdn_sig_notes_3 || '');
+  safeSetText(form, 'form1[0].#subform[4].TextField1[7]', fv.sdn_agent_notes || '');
+
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
-// AMENDMENT TO CONTRACT (TREC 39-10)
-// Pre-fills party names, property address, and effective date from transaction.
-// Agent supplies the specific amendment change via field_values.
+// AMENDMENT TO CONTRACT (TREC 39-10) — 45 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js.
+// Every field wired. Agent selects amendment type(s) via boolean flags or
+// amendment_type shorthand, and passes specific values via field_values.
+//
+// HEADER FIELDS
+//   [TextField] "Street Address and City" -> property_full
+//   [TextField] "BROKER FILL IN THE" -> contract_effective_date (broker's effective date)
+//   [TextField] "Date" -> contract_effective_date (repeat)
+//   [TextField] "Date_2" -> amendment_date (defaults to today)
+//   [TextField] "DATE OF FINAL ACCEPTANCE" -> date_of_final_acceptance
+//   [TextField] "20_4" -> date_of_final_acceptance year (2-digit)
+// PARAGRAPH 1 — SALES PRICE CHANGE
+//   [CheckBox] "1 The Sales Price in Paragraph 3 of the contract is" -> amend_sales_price
+//   [CheckBox] "will" -> sales_price_will_be_credited
+//   [CheckBox] "will not" -> sales_price_will_not_be_credited (default if amend_sales_price)
+//   [TextField] "be credited to the Sales Price" -> new_sales_price (money)
+//   [TextField] "20_2" -> price_change_year_2digit
+// PARAGRAPH 2 — REPAIRS
+//   [CheckBox] "2 In addition to any repairs..." -> amend_repairs
+//   [TextField] "as follows" -> repairs_description
+// PARAGRAPH 3 — CLOSING DATE CHANGE
+//   [CheckBox] "3 The date in Paragraph 9 of the contract is changed to" -> amend_closing_date
+//   [TextField] "undefined" -> closing_day (day of month, numeric string)
+//   [TextField] "undefined_2" -> closing_month (month name)
+//   [TextField] "undefined_3" -> closing_year (4-digit year)
+//   [TextField] "20" -> closing_year_2digit
+// PARAGRAPH 4 — SELLER CONCESSIONS
+//   [CheckBox] "4 The amount in Paragraph 12A1b of the contract is changed to" -> amend_seller_concession
+//   [TextField] "undefined_5" -> new_seller_concession_amount (money)
+// PARAGRAPH 5 — LENDER REPAIRS
+//   [CheckBox] "5 The cost of lender required repairs..." -> amend_lender_repairs
+//   [TextField] "undefined_4" -> lender_repairs_amount (money)
+// PARAGRAPH 6 — ADDITIONAL OPTION FEE / OPTION EXTENSION
+//   [CheckBox] "6 Buyer has paid Seller an additional Option Fee of" -> amend_option_fee
+//   [TextField] "for an extension of the" -> additional_option_fee_amount (money)
+//   [TextField] "contract" -> option_period_days
+//   [CheckBox] "Fee" -> option_fee_form_check
+//   [CheckBox] "Fee 2" -> option_fee_form_check_2
+// PARAGRAPH 7 — WAIVE OPTION RIGHT
+//   [CheckBox] "7 Buyer waives the unrestricted right to terminate..." -> amend_waive_option
+// PARAGRAPH 8 — BUYER APPROVAL DATE CHANGE
+//   [CheckBox] "8 The date for Buyer to give written notice..." -> amend_buyer_approval_date
+//   [TextField] "Text6" -> new_buyer_approval_date_text
+//   [TextField] "20_3" -> new_buyer_approval_year_2digit (2-digit)
+// PARAGRAPH 9 — OTHER MODIFICATIONS (up to 8 text lines)
+//   [CheckBox] "9 Other Modifications..." -> amend_other
+//   [TextField] "Text3.1" -> other_mod_1
+//   [TextField] "Text4.1" -> other_mod_2
+//   [TextField] "Text5.1" -> other_mod_3
+//   [TextField] "Text7 1" -> other_mod_4
+//   [TextField] "Text1" -> other_mod_5
+//   [TextField] "Text 8" -> other_mod_6
+//   [TextField] "Text 9" -> other_mod_7
+//   [TextField] "Text 10" -> other_mod_8
+// PARAGRAPH 10 — ADDENDA
+//   [CheckBox] "10" -> amend_addenda
+// TERMINATION DEADLINE
+//   [TextField] "date 5" -> termination_deadline_date
+//   [TextField] "20_25" -> termination_deadline_year_2digit
 // ---------------------------------------------------------------------------
 async function fillAmendment(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
+
+  // PROPERTY + HEADER
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
-  if (addr) safeSetText(form, 'Street Address and City', addr);
+  safeSetText(form, 'Street Address and City', addr);
   if (fv.contract_effective_date) {
+    safeSetText(form, 'BROKER FILL IN THE', formatDate(fv.contract_effective_date));
     safeSetText(form, 'Date', formatDate(fv.contract_effective_date));
   }
   const today = new Date().toISOString().slice(0, 10);
-  safeSetText(form, 'Date_2', formatDate(today));
+  safeSetText(form, 'Date_2', fv.amendment_date ? formatDate(fv.amendment_date) : formatDate(today));
+  if (fv.date_of_final_acceptance) {
+    safeSetText(form, 'DATE OF FINAL ACCEPTANCE', formatDate(fv.date_of_final_acceptance));
+    safeSetText(form, '20_4', formatTwoDigitYear(fv.date_of_final_acceptance));
+  }
+
+  // PARAGRAPH 1 — SALES PRICE CHANGE
+  if (fv.amend_sales_price === true || fv.amendment_type === 'price_change') {
+    safeCheck(form, '1 The Sales Price in Paragraph 3 of the contract is');
+    if (fv.new_sales_price != null && fv.new_sales_price !== '') {
+      safeSetText(form, 'be credited to the Sales Price', formatMoney(fv.new_sales_price));
+    }
+    safeSetText(form, '20_2', fv.price_change_year_2digit || '');
+    if (fv.sales_price_will_be_credited === true) safeCheck(form, 'will');
+    else safeCheck(form, 'will not');
+  }
+
+  // PARAGRAPH 2 — REPAIRS
+  if (fv.amend_repairs === true) {
+    safeCheck(form, '2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers');
+    safeSetText(form, 'as follows', fv.repairs_description || '');
+  }
+
+  // PARAGRAPH 3 — CLOSING DATE CHANGE
+  if (fv.amend_closing_date === true || fv.amendment_type === 'closing_date') {
+    safeCheck(form, '3 The date in Paragraph 9 of the contract is changed to');
+    var ncd = fv.new_closing_date || '';
+    if (ncd && ncd.includes('-')) {
+      var m39 = /^(\d{4})-(\d{2})-(\d{2})/.exec(ncd);
+      if (m39) {
+        var months39 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        safeSetText(form, 'undefined', String(parseInt(m39[3], 10)));
+        safeSetText(form, 'undefined_2', months39[parseInt(m39[2], 10) - 1]);
+        safeSetText(form, 'undefined_3', m39[1]);
+        safeSetText(form, '20', m39[1].slice(2));
+      }
+    } else {
+      safeSetText(form, 'undefined', fv.closing_day || '');
+      safeSetText(form, 'undefined_2', fv.closing_month || '');
+      safeSetText(form, 'undefined_3', fv.closing_year || '');
+      safeSetText(form, '20', fv.closing_year_2digit || '');
+    }
+  }
+
+  // PARAGRAPH 4 — SELLER CONCESSIONS
+  if (fv.amend_seller_concession === true) {
+    safeCheck(form, '4 The amount in Paragraph 12A1b of the contract is changed to');
+    if (fv.new_seller_concession_amount != null && fv.new_seller_concession_amount !== '') {
+      safeSetText(form, 'undefined_5', formatMoney(fv.new_seller_concession_amount));
+    }
+  }
+
+  // PARAGRAPH 5 — LENDER REPAIRS
+  if (fv.amend_lender_repairs === true) {
+    safeCheck(form, '5 The cost of lender required repairs and treatment as itemized on the attached list will be paid');
+    if (fv.lender_repairs_amount != null && fv.lender_repairs_amount !== '') {
+      safeSetText(form, 'undefined_4', formatMoney(fv.lender_repairs_amount));
+    }
+  }
+
+  // PARAGRAPH 6 — ADDITIONAL OPTION FEE / OPTION EXTENSION
+  if (fv.amend_option_fee === true || fv.amendment_type === 'option_extension') {
+    safeCheck(form, '6 Buyer has paid Seller an additional Option Fee of');
+    if (fv.additional_option_fee_amount != null && fv.additional_option_fee_amount !== '') {
+      safeSetText(form, 'for an extension of the', formatMoney(fv.additional_option_fee_amount));
+    }
+    if (fv.option_period_days) safeSetText(form, 'contract', String(fv.option_period_days));
+    if (fv.option_fee_form_check === true) safeCheck(form, 'Fee');
+    if (fv.option_fee_form_check_2 === true) safeCheck(form, 'Fee 2');
+  }
+
+  // PARAGRAPH 7 — WAIVE OPTION
+  if (fv.amend_waive_option === true) {
+    safeCheck(form, '7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid');
+  }
+
+  // PARAGRAPH 8 — BUYER APPROVAL DATE
+  if (fv.amend_buyer_approval_date === true) {
+    safeCheck(form, '8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as');
+    safeSetText(form, 'Text6', fv.new_buyer_approval_date_text || '');
+    safeSetText(form, '20_3', fv.new_buyer_approval_year_2digit || '');
+  }
+
+  // PARAGRAPH 9 — OTHER MODIFICATIONS (up to 8 lines)
+  var hasOther = fv.amend_other === true || fv.other_mod_1 || (Array.isArray(fv.other_modifications) && fv.other_modifications.length);
+  if (hasOther) {
+    safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
+    var mods39 = fv.other_modifications || [];
+    if (typeof mods39 === 'string') mods39 = [mods39];
+    var modFields39 = ['Text3.1','Text4.1','Text5.1','Text7 1','Text1','Text 8','Text 9','Text 10'];
+    modFields39.forEach(function(fieldName, idx) {
+      var val = fv['other_mod_' + (idx + 1)] || (mods39[idx] != null ? String(mods39[idx]) : '');
+      safeSetText(form, fieldName, val);
+    });
+  }
+
+  // PARAGRAPH 10 — ADDENDA
+  if (fv.amend_addenda === true) safeCheck(form, '10');
+
+  // TERMINATION DEADLINE
+  if (fv.termination_deadline_date) {
+    safeSetText(form, 'date 5', formatDate(fv.termination_deadline_date));
+    safeSetText(form, '20_25', formatTwoDigitYear(fv.termination_deadline_date));
+  }
+
   return pdfDoc;
 }
 
@@ -562,26 +1615,57 @@ async function fillBuyerRepAgreement(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// TREC 49-1 — Right to Terminate Due to Lender's Appraisal
-// Block 10 — pre-fills appraisal_value from transaction
-// NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
+// TREC 49-1 — Right to Terminate Due to Lender's Appraisal — 11 AcroForm fields
+// Field map verified via scripts/inspect_all_fields.js against embedded PDF.
+//
+// [TextField] "Street Address and City" -> property_full
+// [CheckBox] "1 WAIVER Buyer waives Buyers right to terminate the contract under Paragraph 2B of the"
+//   -> appraisal_waiver (Buyer waives right entirely)
+// [CheckBox] "2 PARTIAL WAIVER Buyer waives Buyers right to terminate the contract under Paragraph 2B"
+//   -> appraisal_partial_waiver (Buyer waives if appraised value >= threshold)
+// [CheckBox] "3 ADDITIONAL" -> appraisal_additional (additional terms)
+// [TextField] "ii the opinion of value is" -> appraised_value (money — minimum acceptable value)
+// [TextField] "days after the Effective Date if" -> appraisal_days_after_effective
+// [TextField] "than" -> appraisal_price_threshold (sales price threshold for partial waiver)
 // ---------------------------------------------------------------------------
 async function fillAppraisalTermination(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  if (fv.buyer_name) safeSetText(form, 'Buyer', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'Seller', fv.seller_name);
-  if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
-  if (fv.contract_date) safeSetText(form, 'Contract Date', formatDate(fv.contract_date));
-  if (fv.appraisal_deadline) safeSetText(form, 'Appraisal Deadline', formatDate(fv.appraisal_deadline));
-  if (fv.appraised_value != null && fv.appraised_value !== '') {
-    safeSetText(form, 'Appraised Value', formatMoney(fv.appraised_value));
+
+  // PROPERTY
+  const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  safeSetText(form, 'Street Address and City', propertyFull);
+
+  // WAIVER TYPE (select one)
+  var waiverType = fv.appraisal_waiver_type || (fv.appraisal_waiver === true ? 'full' : fv.appraisal_partial_waiver === true ? 'partial' : '');
+  if (waiverType === 'full') {
+    safeCheck(form, '1 WAIVER Buyer w aives Buyers right to terminate the contract under Paragraph 2B of the');
+  } else if (waiverType === 'partial') {
+    safeCheck(form, '2 PARTIAL WAIVER Buyer w aives Buyers right to terminate the contract under Paragraph 2B');
+    // Partial waiver: "ii the opinion of value is" = minimum acceptable appraised value
+    if (fv.appraised_value != null && fv.appraised_value !== '') {
+      safeSetText(form, 'ii the opinion of value is', formatMoney(fv.appraised_value));
+    }
+    // "days after the Effective Date if" = number of days after effective date for appraisal
+    if (fv.appraisal_days_after_effective) {
+      safeSetText(form, 'days after the Effective Date if', String(fv.appraisal_days_after_effective));
+    }
+    // "than" = sales price threshold for partial waiver comparison
+    if (fv.sales_price != null && fv.sales_price !== '') {
+      safeSetText(form, 'than', formatMoney(fv.sales_price));
+    }
+  } else if (fv.appraisal_additional === true) {
+    safeCheck(form, '3 ADDITIONAL');
+    if (fv.appraised_value != null && fv.appraised_value !== '') {
+      safeSetText(form, 'ii the opinion of value is', formatMoney(fv.appraised_value));
+    }
+    if (fv.appraisal_days_after_effective) {
+      safeSetText(form, 'days after the Effective Date if', String(fv.appraisal_days_after_effective));
+    }
+    if (fv.sales_price != null && fv.sales_price !== '') {
+      safeSetText(form, 'than', formatMoney(fv.sales_price));
+    }
   }
-  if (fv.sales_price != null && fv.sales_price !== '') {
-    safeSetText(form, 'Sales Price', formatMoney(fv.sales_price));
-  }
-  if (fv.termination_date) safeSetText(form, 'Termination Date', formatDate(fv.termination_date));
-  const today = new Date().toISOString().slice(0, 10);
-  if (!fv.termination_date) safeSetText(form, 'Termination Date', formatDate(today));
+
   return pdfDoc;
 }
 
@@ -908,6 +1992,307 @@ async function fillFarmRanch(pdfDoc, fv) {
   return pdfDoc;
 }
 
+
+// ---------------------------------------------------------------------------
+// SELLER FINANCING ADDENDUM (TREC 26-8)
+// 49 fields. Auto-fills property address and note amount from transaction.
+// ---------------------------------------------------------------------------
+async function fillSellerFinancing(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) {
+    safeSetText(form, 'Address of Property', addr);
+    safeSetText(form, 'Address of Property_2', addr);
+  }
+  if (fv.loan_amount != null && fv.loan_amount !== '') {
+    safeSetText(form, 'C PROMISSORY NOTE The promissory note in the amount of', formatMoney(fv.loan_amount));
+  }
+  if (fv.seller_financing_interest_rate != null && fv.seller_financing_interest_rate !== '') {
+    safeSetText(form, 'of', String(fv.seller_financing_interest_rate));
+  }
+  if (fv.seller_financing_years != null && fv.seller_financing_years !== '') {
+    safeSetText(form, 'monthly thereafter for', String(fv.seller_financing_years));
+  }
+  safeCheck(form, '2 In monthly installments of');
+  safeCheck(form, 'including interest');
+  safeCheck(form, 'a Consent Not Required The Property may be sold conveyed or leased without the');
+  safeCheck(form, 'a Escrow Not Required Buyer shall furnish Seller before each years ad valorem taxes');
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// BUYER'S TEMPORARY RESIDENTIAL LEASE (TREC 16-7)
+// Buyer occupies before closing (max 90 days). Seller = Landlord, Buyer = Tenant.
+// ---------------------------------------------------------------------------
+async function fillBuyersTempLease(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  if (fv.seller_name) safeSetText(form, '1 PARTIES The parties to this Lease are', fv.seller_name);
+  if (fv.buyer_name) safeSetText(form, 'Landlord and', fv.buyer_name);
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'and Tenant as Buyer known as', addr);
+  if (fv.property_address) safeSetText(form, 'address', fv.property_address);
+  if (fv.closing_date) safeSetText(form, '3 TERM The term of this Lease commences', formatDate(fv.closing_date));
+  if (fv.buyers_temp_lease_daily_rate != null && fv.buyers_temp_lease_daily_rate !== '') {
+    safeSetText(form, '4 RENTAL Rental will be', String(fv.buyers_temp_lease_daily_rate));
+    safeSetText(form, 'pay to Landlord the full amount of rental of', String(fv.buyers_temp_lease_daily_rate));
+  }
+  if (fv.buyers_temp_lease_deposit != null && fv.buyers_temp_lease_deposit !== '') {
+    safeSetText(form, '5 DEPOSIT Tenant has paid to Landlord', formatMoney(fv.buyers_temp_lease_deposit));
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// SELLER'S TEMPORARY RESIDENTIAL LEASE (TREC 15-7)
+// Seller stays after closing (max 90 days). Buyer = Landlord, Seller = Tenant.
+// ---------------------------------------------------------------------------
+async function fillSellersTempLease(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  if (fv.buyer_name) safeSetText(form, '1 PARTIES The parties to this Lease are', fv.buyer_name);
+  if (fv.seller_name) safeSetText(form, 'Landlord and', fv.seller_name);
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'and Tenant as Seller known as', addr);
+  if (fv.property_address) safeSetText(form, 'address', fv.property_address);
+  if (fv.sellers_temp_lease_daily_rate != null && fv.sellers_temp_lease_daily_rate !== '') {
+    safeSetText(form, '4 RENTAL  Tenant shall pay to Landlord as rental', String(fv.sellers_temp_lease_daily_rate));
+  }
+  if (fv.sellers_temp_lease_deposit != null && fv.sellers_temp_lease_deposit !== '') {
+    safeSetText(form, '5 DEPOSIT Tenant shall pay to Landlord at the time of funding of the sale', formatMoney(fv.sellers_temp_lease_deposit));
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM FOR SALE OF OTHER PROPERTY BY BUYER (TREC 10-6)
+// Contingency addendum — buyer cannot close unless their existing property sells.
+// ---------------------------------------------------------------------------
+async function fillSaleOtherProperty(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Address of Property', addr);
+  if (fv.contingency_property_address) {
+    safeSetText(form, 'Address on or before', fv.contingency_property_address);
+  }
+  if (fv.contingency_date) {
+    safeSetText(form, 'Contingency is not satisfied or waived by Buyer by the above date the contract will terminate', formatDate(fv.contingency_date));
+    safeSetText(form, '20', formatTwoDigitYear(fv.contingency_date));
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM FOR RESERVATION OF OIL, GAS AND OTHER MINERALS (TREC 44-3)
+// 10 fields. Default: seller reserves all minerals (Check Box2).
+// ---------------------------------------------------------------------------
+async function fillOilGasMinerals(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  if (fv.mineral_percentage_reserved != null && fv.mineral_percentage_reserved !== '') {
+    safeSetText(form, 'Seller does not own all of the Mineral Estate Seller reserves only this percentage or fraction of', String(fv.mineral_percentage_reserved));
+  }
+  if (fv.minerals_reserve_all !== false) safeCheck(form, 'Check Box2');
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM FOR BACK-UP CONTRACT (TREC 11-8)
+// 17 fields. Auto-fills property address. Agent fills backup position details.
+// ---------------------------------------------------------------------------
+async function fillBackupContract(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Address of Property', addr);
+  if (fv.backup_amendment_deadline) {
+    safeSetText(form, 'Except as provided by this Addendum neither party is required to perform under the', formatDate(fv.backup_amendment_deadline));
+    safeSetText(form, '20', formatTwoDigitYear(fv.backup_amendment_deadline));
+  }
+  if (fv.backup_notice_date) {
+    safeSetText(form, '20_2', formatTwoDigitYear(fv.backup_notice_date));
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM FOR COASTAL AREA PROPERTY (TREC 33-2)
+// 8 fields. Auto-fills property address. Disclosure form.
+// ---------------------------------------------------------------------------
+async function fillCoastalArea(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Address of Property', addr);
+  if (fv.coastal_exception_1) safeSetText(form, 'described in and subject to this contract except 1', fv.coastal_exception_1);
+  if (fv.coastal_exception_2) safeSetText(form, 'described in and subject to this contract except 2', fv.coastal_exception_2);
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM FOR AUTHORIZING HYDROSTATIC TESTING (TREC 48-1)
+// 9 fields. Default: Seller liable for test damages.
+// ---------------------------------------------------------------------------
+async function fillHydrostaticTesting(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  const liability = String(fv.hydrostatic_liability || 'seller').toLowerCase();
+  if (liability === 'buyer') {
+    safeCheck(form, '2 Buyer shall be liable for damages caused by the hydrostatic plumbing test');
+  } else if (liability === 'buyer_capped') {
+    safeCheck(form, '3 Buyer shall be liable for damages caused by the hydrostatic plumbing test in an amount not to');
+    if (fv.hydrostatic_cap_amount != null && fv.hydrostatic_cap_amount !== '') {
+      safeSetText(form, 'exceed', formatMoney(fv.hydrostatic_cap_amount));
+    }
+  } else {
+    safeCheck(form, '1 Seller shall be liable for damages caused by the hydrostatic plumbing test');
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ENVIRONMENTAL ASSESSMENT ADDENDUM (TREC 28-2)
+// 9 fields. Default: all three environmental studies required.
+// ---------------------------------------------------------------------------
+async function fillEnvironmental(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Address of Property', addr);
+  if (fv.environmental_days != null && fv.environmental_days !== '') {
+    safeSetText(form, 'furnishing Seller a copy of any report noted above that adversely affects the use of the Property', String(fv.environmental_days));
+  }
+  if (fv.env_assessment !== false) safeCheck(form, 'Check Box1');
+  if (fv.env_species !== false) safeCheck(form, 'Check Box2');
+  if (fv.env_wetlands !== false) safeCheck(form, 'Check Box3');
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// SHORT SALE ADDENDUM (TREC 45-2)
+// 6 fields. Auto-fills property address and lienholder consent deadline.
+// ---------------------------------------------------------------------------
+async function fillShortSale(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  if (fv.short_sale_deadline) {
+    safeSetText(form, 'earnest money will be refunded to Buyer Seller must notify Buyer immediately if Lienholders Consent', formatDate(fv.short_sale_deadline));
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// GULF INTRACOASTAL WATERWAY ADDENDUM (TREC 34-4)
+// 5 fields. Auto-fills property address. Disclosure form only.
+// ---------------------------------------------------------------------------
+async function fillGulfWaterway(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Address of Property', addr);
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// PROPANE GAS ADDENDUM (TREC 47-0)
+// 9 fields. Auto-fills property address and today's date for four date slots.
+// ---------------------------------------------------------------------------
+async function fillPropaneGas(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  const today = formatDate(new Date().toISOString().slice(0, 10));
+  safeSetText(form, 'Date', today);
+  safeSetText(form, 'Date_2', today);
+  safeSetText(form, 'Date_3', today);
+  safeSetText(form, 'Date_4', today);
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM REGARDING RESIDENTIAL LEASES (TREC 51-1)
+// 16 fields. Default: Buyer has received copies of all leases.
+// ---------------------------------------------------------------------------
+async function fillResidentialLeases(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  const received = fv.buyer_received_leases !== false;
+  if (received) {
+    safeCheck(form, '1 a Buyer has received a copy of all Residential Leases');
+  } else {
+    safeCheck(form, 'b Buyer has not received a copy of all Residential Leases Seller shall provide a copy of the');
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM REGARDING FIXTURE LEASES (TREC 52-1)
+// 29 fields. Default: Seller will NOT remove leased fixtures (buyer assumes).
+// ---------------------------------------------------------------------------
+async function fillFixtureLeases(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) safeSetText(form, 'Street Address and City', addr);
+  if (fv.fixture_lease_description) {
+    safeSetText(form, 'collectively the Leased Fixtures All rights to the Leased Fixtures are governed by Fixture Leases', fv.fixture_lease_description);
+  }
+  if (fv.seller_removes_fixtures) {
+    safeCheck(form, 'will');
+  } else {
+    safeCheck(form, 'will not remove the Leased Fixtures covered by the Fixture');
+  }
+  if (fv.fixture_solar_panels) safeCheck(form, 'solar panels');
+  if (fv.fixture_propane_tanks) safeCheck(form, 'propane tanks');
+  if (fv.fixture_water_softener) safeCheck(form, 'water softener');
+  if (fv.fixture_security_system) safeCheck(form, 'security system');
+  const received = fv.buyer_received_fixture_leases !== false;
+  if (received) {
+    safeCheck(form, '1 Buyer has received a copy of all Fixture Leases Buyer has agreed to assume');
+  } else {
+    safeCheck(form, '2 Buyer has not received a copy of all Fixture Leases Buyer has agreed to assume Seller shall');
+  }
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// ADDENDUM FOR LOAN ASSUMPTION (TREC 41-3)
+// 35 fields. Default: first lien, cash adjustment at closing.
+// ---------------------------------------------------------------------------
+async function fillLoanAssumption(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) {
+    safeSetText(form, 'Address of Property', addr);
+    safeSetText(form, 'Address of Property_2', addr);
+  }
+  safeCheck(form, '1 The unpaid principal balance of a first lien promissory note payable to');
+  if (fv.assumption_lender_name) safeSetText(form, 'undefined', fv.assumption_lender_name);
+  if (fv.assumption_balance != null && fv.assumption_balance !== '') {
+    safeSetText(form, 'undefined_2', formatMoney(fv.assumption_balance));
+    safeSetText(form, 'which unpaid balance at closing will be', formatMoney(fv.assumption_balance));
+  }
+  if (fv.assumption_monthly_payment != null && fv.assumption_monthly_payment !== '') {
+    safeSetText(form, 'The total current monthly payment including principal interest and any reserve deposits is', formatMoney(fv.assumption_monthly_payment));
+  }
+  if (fv.assumption_interest_rate != null && fv.assumption_interest_rate !== '') {
+    safeSetText(form, '2 an increase in the interest rate to more than', String(fv.assumption_interest_rate));
+  }
+  safeCheck(form, 'cash payable at closing');
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// IMPROVEMENT DISTRICT ASSESSMENT NOTICE (stub)
+// Auto-fills property address. Agent completes assessment details manually.
+// ---------------------------------------------------------------------------
+async function fillImprovementDistrict(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) {
+    safeSetText(form, 'Address of Property', addr);
+    safeSetText(form, 'Street Address and City', addr);
+  }
+  return pdfDoc;
+}
+
 // ---------------------------------------------------------------------------
 // Load base64 PDF and return filled bytes
 // ---------------------------------------------------------------------------
@@ -943,6 +2328,22 @@ async function fillForm(formType, fieldValues) {
     case 'new-home-incomplete':   await fillNewHomeIncomplete(pdfDoc, fv); break;
     case 'new-home-complete':     await fillNewHomeComplete(pdfDoc, fv); break;
     case 'farm-ranch':            await fillFarmRanch(pdfDoc, fv); break;
+    case 'seller-financing':      await fillSellerFinancing(pdfDoc, fv); break;
+    case 'buyers-temp-lease':     await fillBuyersTempLease(pdfDoc, fv); break;
+    case 'sellers-temp-lease':    await fillSellersTempLease(pdfDoc, fv); break;
+    case 'sale-other-property':   await fillSaleOtherProperty(pdfDoc, fv); break;
+    case 'oil-gas-minerals':      await fillOilGasMinerals(pdfDoc, fv); break;
+    case 'backup-contract':       await fillBackupContract(pdfDoc, fv); break;
+    case 'coastal-area':          await fillCoastalArea(pdfDoc, fv); break;
+    case 'hydrostatic-testing':   await fillHydrostaticTesting(pdfDoc, fv); break;
+    case 'environmental':         await fillEnvironmental(pdfDoc, fv); break;
+    case 'short-sale':            await fillShortSale(pdfDoc, fv); break;
+    case 'gulf-waterway':         await fillGulfWaterway(pdfDoc, fv); break;
+    case 'propane-gas':           await fillPropaneGas(pdfDoc, fv); break;
+    case 'residential-leases':    await fillResidentialLeases(pdfDoc, fv); break;
+    case 'fixture-leases':        await fillFixtureLeases(pdfDoc, fv); break;
+    case 'loan-assumption':       await fillLoanAssumption(pdfDoc, fv); break;
+    case 'improvement-district':  await fillImprovementDistrict(pdfDoc, fv); break;
     default:
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
