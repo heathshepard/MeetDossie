@@ -677,7 +677,7 @@ async function fillResaleContract(pdfDoc, fv) {
   } else {
     safeCheck(form, 'will not be credited to the Sales Price at closing Time is of the');
   }
-  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
+  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.listing_commission_total != null && fv.listing_commission_total !== '' ? formatMoney(fv.listing_commission_total) : '');
 
   // EARNEST MONEY / OPTION FEE (Section 5)
   safeSetText(form, 'earnest money of', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
@@ -868,8 +868,10 @@ async function fillResaleContract(pdfDoc, fv) {
     'Initialed for identification by Buyer_3',
     'Initialed for identification by Buyer_4',
     'Initialed for identification by Buyer_5',
-    'Buyers Expenses as allowed by the lender',
   ];
+
+  // SECTION 12 — Buyer's expenses / closing cost credit (dollar amount, not initials)
+  safeSetText(form, 'Buyers Expenses as allowed by the lender', fv.buyer_closing_cost_credit != null && fv.buyer_closing_cost_credit !== '' ? formatMoney(fv.buyer_closing_cost_credit) : '');
   var sellerInitFields = [
     'and Seller',
     'and Seller_2',
