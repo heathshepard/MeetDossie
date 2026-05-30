@@ -491,31 +491,40 @@ async function fillResaleContract(pdfDoc, fv) {
   safeCheck(form, 'will 1.1');
 
   // SECTION 4 — LEASES
-  // Page 2 checkboxes at y=0.7625 and y=0.7764:
-  //   "2Within" (y=0.7625) = Section 4A: residential lease EXISTS, or 4C(1) seller has delivered NRL copies
-  //   "3Within" (y=0.7764) = Section 4A: no residential lease, or 4C(2) seller has NOT delivered NRL copies
-  // For a standard residential sale: no leases of any type — leave both unchecked.
-  // Only check "2Within" or "3Within" when the transaction actually has the relevant lease.
-  // Previously "3Within" was checked unconditionally, which caused Section 4B/4C checkboxes
-  // to appear filled on the rendered PDF for standard no-lease transactions.
+  // Coordinate-verified (2026-05-30) against actual AcroForm widget positions on Page 2:
+  //   "is"     x=0.7101 y≈0.78 = Section 4A: property IS subject to a residential lease
+  //   "is not" x=0.8160 y≈0.78 = Section 4A: property is NOT subject to a residential lease
+  //   "2Within" x=0.1242 y≈0.77 = Section 4C.1: seller has delivered NRL copies within ___ days
+  //   "3Within" x=0.1231 y≈0.78 = Section 4C.2: seller has NOT delivered NRL copies
+  //
+  // NOTE: "is" and "is not" were previously (incorrectly) checked based on hoa_exists. The HOA
+  // Section 2 disclosure in TREC 20-18 has no AcroForm checkbox — it uses only a text field.
+  // Checking "is" for HOA was checking Section 4A, making it appear that the property has a
+  // residential lease on every HOA transaction. Fixed 2026-05-30.
+  //
+  // Standard residential sale (no leases): check "is not" — property is NOT subject to any lease.
   if (fv.has_tenant_lease === true) {
-    safeCheck(form, '2Within');
+    safeCheck(form, 'is');
+  } else {
+    safeCheck(form, 'is not');
   }
-  // 4B: Fixture Leases — only check if explicitly present
-  // 4C: Natural Resource Leases — only check sub-options if NRL exists
-  if (fv.fixture_leases === true) {
-    safeCheck(form, '3Within');
+  // 4C Natural Resource Leases: only check sub-options when NRL explicitly exists
+  if (fv.has_natural_resource_lease === true) {
+    if (fv.nrl_delivered === true) {
+      safeCheck(form, '2Within');
+    } else {
+      safeCheck(form, '3Within');
+    }
   }
 
   // SECTION 5A — EARNEST MONEY
-  // Page 2 coordinate map:
-  //   "undefined_6"          x=0.2494 y=0.1046 — earnest delivery days (3 calendar days is TX standard)
-  //   "other party in..."    x=0.6593 y=0.1034 — Section 8A license holder disclosure name; leave blank
-  //   "undefined_7"          x=0.1234 y=0.1184 — earnest delivery days second field
-  //   "as earnest money to"  x=0.4780 y=0.1174 — earnest money DOLLAR amount
-  //   "as earnest money to 2" x=0.7981 y=0.1178 — option fee DOLLAR amount
-  //   "earnest money of"     x=0.5582 y=0.1574 — additional earnest money amount
-  //   "to escrow agent within" x=0.1539 y=0.1725 — earnest delivery days (3 days default)
+  // Page 2 coordinate map (verified 2026-05-30 against actual widget annotations):
+  //   "undefined_6"          nx=0.249 ny=0.111 — Section 5A earnest delivery days (3 calendar days TX standard)
+  //   "other party in..."    nx=0.659 ny=0.111 — Section 8A license holder disclosure name; leave blank
+  //   "as earnest money to"  nx=0.478 ny=0.124 — Section 5A earnest money DOLLAR amount
+  //   "as earnest money to 2" nx=0.798 ny=0.124 — Section 5B option fee DOLLAR amount
+  //   "earnest money of"     nx=0.558 ny=0.164 — additional earnest money amount
+  //   "to escrow agent within" nx=0.154 ny=0.179 — Section 5A earnest delivery days (alternate field)
   //
   // Page 1:
   //   "to escrow agent within 1" x=0.5505 y=0.9123 — earnest delivery days on page 1 footer
@@ -523,7 +532,6 @@ async function fillResaleContract(pdfDoc, fv) {
   // Per Hadley: earnest money goes to escrow agent (title company). 3 days is TX standard.
   const earnestDays = fv.earnest_delivery_days != null ? String(fv.earnest_delivery_days) : '3';
   safeSetText(form, 'undefined_6', earnestDays);
-  safeSetText(form, 'undefined_7', earnestDays);
   safeSetText(form, 'to escrow agent within', earnestDays);
   safeSetText(form, 'to escrow agent within 1', earnestDays);
   safeSetText(form, 'as earnest money to', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
@@ -532,10 +540,14 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
 
   // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
-  // "undefined_8" (Page 1 y=0.9616 x=0.4122) is the buyer initials footer field — do NOT write here.
-  // The option period days field has no confirmed standalone AcroForm name in this PDF version.
-  // Writing option_period_days to undefined_8 was placing "10" in the buyer initials slot.
-  // Leave blank — agent fills option period days manually or via Talk to Dossie amendment flow.
+  // "undefined_7" nx=0.123 ny=0.124 — Section 5B option period DAYS (not earnest delivery days).
+  // Coordinate-verified 2026-05-30: this field is on the same line as the option fee amount ("as
+  // earnest money to 2") and is the blank that reads "within ___ days after the effective date
+  // of this contract (Option Period)." It was previously written with earnestDays ("3") which set
+  // the option period to 3 days for every transaction — incorrect.
+  // Now correctly mapped: receives option_period_days (e.g., 10) from the transaction.
+  // "undefined_8" (Page 1 nx=0.412 ny=0.967) is the buyer initials footer field — do NOT write here.
+  safeSetText(form, 'undefined_7', fv.option_period_days != null ? String(fv.option_period_days) : '');
 
   // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
   // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
@@ -711,13 +723,9 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'at_2', fv.seller_email || '');
 
   // HOA MEMBERSHIP (Page 2, Section 2 membership disclosure)
-  // "is" (Page 2 y=0.7774) = property IS subject to HOA
-  // "is not" (Page 2 y=0.7774) = property is NOT subject to HOA (default when hoa_exists=false)
-  if (fv.hoa_exists === true) {
-    safeCheck(form, 'is');
-  } else {
-    safeCheck(form, 'is not');
-  }
+  // TREC 20-18 Section 2 does not have AcroForm checkboxes for HOA "is/is not" membership.
+  // The "is" and "is not" fields in this PDF are Section 4A lease checkboxes (already handled above).
+  // Section 2 only has a text field for HOA description — filled here.
   safeSetText(form, '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property', fv.hoa_description || '');
 
   // SECTION 20 — FEDERAL REQUIREMENTS (FIRPTA)
