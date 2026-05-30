@@ -631,7 +631,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'as earnest money to', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
   safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
-  safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
+  // NOTE: "Earnest Money in the form of" is a Page 11 receipts field filled by escrow agent — do not pre-fill.
 
   // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
   // "undefined_7" nx=0.123 ny=0.124 — Section 5B option period DAYS (not earnest delivery days).
@@ -695,24 +695,26 @@ async function fillResaleContract(pdfDoc, fv) {
   if (surveyOption === 'c2' || fv.survey_buyer_new === true) {
     safeCheck(form, '2 Within');
   } else if (surveyOption === 'c3' || fv.survey_seller_new === true) {
-    // C.3 not a distinct checkbox in this PDF — use Sellers sub-checkbox
+    // C.3 not a distinct checkbox — TREC 20-18 PDF has no separate "Sellers" checkbox in survey section.
+    // "Sellers" on Page 1 (y=0.8641) is in the title expense area, NOT the survey section.
+    // Use 1Within (C.1) as the closest match; the seller-provides sub-option has no AcroForm widget.
     safeCheck(form, '1Within');
-    safeCheck(form, 'Sellers');
   } else {
     // Default: C.1 seller provides existing survey
     safeCheck(form, '1Within');
     // Sub-checkbox: if existing survey is unacceptable, who pays for new one?
-    // Default: buyer pays (most common in TX when C.1 is used)
-    if (fv.survey_sellers_expense === true || fv.seller_provides_survey === true) {
-      safeCheck(form, 'Sellers');
-    } else {
+    // "Buyer" (Page 3 y=0.0957) is the only survey sub-checkbox in the PDF.
+    // "Sellers" checkbox exists only on Page 1 (title area) — do NOT check it for survey purposes.
+    // Default: buyer pays (most common in TX when C.1 is used).
+    if (fv.survey_sellers_expense !== true && fv.seller_provides_survey !== true) {
       safeCheck(form, 'Buyer');
     }
   }
 
-  // Section 6C survey delivery days (blank in "3 days prior" field — Page 3 y=0.1943)
-  // "3 days prior" = days before closing to deliver survey. Leave blank (not standard to fill).
-  safeSetText(form, '3 days prior', fv.survey_delivery_days != null ? String(fv.survey_delivery_days) : '');
+  // Section 6C survey delivery days (Page 3 y=0.0971)
+  // Actual field name verified against 20-18 map: "than 3 days prior to Closing Date"
+  // ("3 days prior" does not exist in the PDF — would silently fail).
+  safeSetText(form, 'than 3 days prior to Closing Date', fv.survey_delivery_days != null ? String(fv.survey_delivery_days) : '');
 
   // Section 6D — Permitted use and property use objection days
   // "Commitment other than items 6A1 through 9 above or which prohibit the following use"
@@ -788,9 +790,12 @@ async function fillResaleContract(pdfDoc, fv) {
   // "Brokers and Sales" (Page 5 y=0.6706) and "Brokers and Sales 2" (y=0.6843) = broker fee contribution fields
   safeSetText(form, 'Brokers and Sales', fv.seller_buyer_broker_contribution != null && fv.seller_buyer_broker_contribution !== '' ? formatMoney(fv.seller_buyer_broker_contribution) : '');
 
-  // Section 12A(1)(c): Seller closing cost credit to buyer
-  // "Buyers Expenses as allowed by the lender" (Page 5 y=0.9605) = closing cost credit amount
-  safeSetText(form, 'Buyers Expenses as allowed by the lender', fv.buyer_closing_cost_credit != null && fv.buyer_closing_cost_credit !== '' ? formatMoney(fv.buyer_closing_cost_credit) : '');
+  // Section 12A(1)(c): Seller closing cost credit to buyer.
+  // NOTE: "Buyers Expenses as allowed by the lender" (Page 5 x=0.4133 y=0.9605) is one of four footer
+  // initials fields at the bottom of Page 5, NOT a closing cost credit field.
+  // TREC 20-18 has no dedicated AcroForm field for Section 12 closing cost credit — agents enter it
+  // in Special Provisions (Text3/Text3 2/Text3 3 on Page 6) or leave it for manual entry.
+  // Do not write buyer_closing_cost_credit into the initials footer.
 
   // Page 6 seller concession / credited fields
   // "acknowledged by Seller and Buyers agreement to pay Seller 1" (y=0.6050) = seller contribution amount field
@@ -837,7 +842,8 @@ async function fillResaleContract(pdfDoc, fv) {
   if (fv.seller_leaseback_addendum === true)         safeCheck(form, 'Sellers Temporary Residential Lease');
   if (fv.short_sale_addendum === true)               safeCheck(form, 'Short Sale Addendum');
   if (fv.buyer_leaseback_addendum === true)          safeCheck(form, 'Buyers Temporary Residential Lease');
-  if (fv.loan_assumption_addendum === true)          safeCheck(form, 'Loan Assumption Addendum');
+  // "Loan Assumption Addendum" (Page 1 y=0.6483) is in the Section 3B financing area — do NOT check for Section 22.
+  // "Loan Assumption Addendum_2" (Page 8 y=0.4326) is the correct Section 22 addendum checkbox.
   if (fv.loan_assumption_addendum === true)          safeCheck(form, 'Loan Assumption Addendum_2');
   if (fv.coastal_addendum === true)                  safeCheck(form, 'Addendum for Property Located Seaward');
   if (fv.other_property_addendum === true)           safeCheck(form, 'Addendum for Sale of Other Property by');
@@ -935,6 +941,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Selling Associates Office Address', fv.selling_broker_address || '');
   safeSetText(form, 'City_3', fv.selling_broker_city || '');
   safeSetText(form, 'State_3', fv.selling_broker_state || '');
+  safeSetText(form, 'Zip_3', fv.selling_broker_zip || '');
 
   // Selling broker representation: "Buyer only" = default when other broker data present
   if (fv.buyer_only_agent === true || (fv.other_broker_firm && fv.buyer_only_agent !== false)) {
