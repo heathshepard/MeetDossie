@@ -106,7 +106,7 @@
                                                       "maxDuration":  30
                                                   },
                       "api/cron-generate-posts.js":  {
-                                                         "maxDuration":  90
+                                                         "maxDuration":  300
                                                      },
                       "api/cron-publish-approved.js":  {
                                                            "maxDuration":  120
