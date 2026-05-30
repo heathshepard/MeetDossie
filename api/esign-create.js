@@ -345,7 +345,7 @@ async function sendSigningEmail({ signerName, signerEmail, documentName, propert
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Dossie <heath@meetdossie.com>',
+      from: 'Dossie <sign@meetdossie.com>',
       to: [signerEmail],
       subject,
       html,
