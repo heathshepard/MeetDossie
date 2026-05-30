@@ -69,9 +69,21 @@ module.exports = async function handler(req, res) {
   const today = now.toISOString().split('T')[0];
   const summary = { checked: 0, markedOverdue: 0, followUpsSent: 0, escalated: 0 };
 
-  // Fetch all pending or overdue action items with a due date that has passed.
+  // Resolve demo user_ids so we can exclude their action items.
+  const { data: demoProfiles } = await supabaseFetch(
+    `/rest/v1/profiles?is_demo=eq.true&select=id`,
+  );
+  const demoUserIds = Array.isArray(demoProfiles) && demoProfiles.length > 0
+    ? demoProfiles.map((p) => p.id)
+    : [];
+  const demoExclusion = demoUserIds.length > 0
+    ? `&user_id=not.in.(${demoUserIds.join(',')})`
+    : '';
+
+  // Fetch all pending or overdue action items with a due date that has passed,
+  // excluding demo accounts.
   const { data: items } = await supabaseFetch(
-    `/rest/v1/action_items?status=in.(pending,overdue)&due_date=lte.${today}&order=due_date.asc`,
+    `/rest/v1/action_items?status=in.(pending,overdue)&due_date=lte.${today}&order=due_date.asc${demoExclusion}`,
   );
 
   if (Array.isArray(items) && items.length > 0) {
@@ -118,7 +130,28 @@ module.exports = async function handler(req, res) {
             ? `Hi ${escapeHtml(item.assigned_to_name)}`
             : 'Hi there';
           const dealTag = propertyAddress ? ` — ${propertyAddress}` : '';
-          const subject = `Following up${dealTag} — ${item.email_subject || item.description}`;
+          const subject = item.email_subject
+            ? `Re: ${item.email_subject}`
+            : `Following up${dealTag}`;
+
+          // Use the stored email body when available. It contains the full
+          // drafted email text Dossie wrote when the action item was created.
+          // Only fall back to a generic message if email_body is missing.
+          let bodyHtml;
+          if (item.email_body && item.email_body.trim()) {
+            const bodyText = item.email_body.trim();
+            const paragraphs = bodyText
+              .split(/\n\n+/)
+              .map((p) => `<p style="margin:0 0 16px;">${escapeHtml(p.replace(/\n/g, ' '))}</p>`)
+              .join('');
+            bodyHtml = paragraphs;
+          } else {
+            const dealRef = propertyAddress
+              ? ` regarding <strong>${escapeHtml(propertyAddress)}</strong>`
+              : '';
+            bodyHtml = `<p style="margin:0 0 16px;">I wanted to check in${dealRef}. Is there anything you need from me to keep things moving? Just let me know and I'll get right on it.</p>`;
+          }
+
           const dealLine = propertyAddress
             ? `<p style="font-size:14px;color:#7A7468;margin:0 0 18px;">Re: <strong>${escapeHtml(propertyAddress)}</strong></p>`
             : '';
@@ -126,8 +159,8 @@ module.exports = async function handler(req, res) {
             <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">
               <p>${greeting},</p>
               ${dealLine}
-              <p>I'm following up on my previous message regarding <strong>${escapeHtml(item.description)}</strong>. Could you please advise when you have a moment?</p>
-              <p>Thank you,<br>Dossie</p>
+              ${bodyHtml}
+              <p style="margin:0 0 16px;">- Dossie</p>
               <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E0D8; font-size: 12px; color: #9CA8B4; line-height: 1.6;">
                 If you don't see future emails from Dossie, please check your spam folder and mark dossie@meetdossie.com as a safe sender.
               </div>
