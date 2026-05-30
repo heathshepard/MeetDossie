@@ -141,7 +141,7 @@ function buildResaleContractFields(buyerRole, sellerRole) {
 }
 
 async function getTransactionRow(transactionId, userId) {
-  const res = await supa(`transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,property_address,buyer_name,seller_name,purchase_price,closing_date,city_state_zip`);
+  const res = await supa(`transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,property_address,buyer_name,seller_name,sale_price,closing_date,city_state_zip`);
   if (!res.ok) return null;
   const rows = await res.json().catch(() => []);
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
@@ -242,7 +242,7 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`DocuSeal API error (${res.status}): ${text.slice(0, 300)}`);
+    throw new ValidationError(`DocuSeal rejected the submission (${res.status}): ${text.slice(0, 200)}`, 422);
   }
 
   return res.json();
@@ -289,7 +289,7 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`DocuSeal template submission error (${res.status}): ${text.slice(0, 300)}`);
+    throw new ValidationError(`DocuSeal template submission failed (${res.status}): ${text.slice(0, 200)}`, 422);
   }
 
   return res.json();
@@ -470,7 +470,7 @@ module.exports = async function handler(req, res) {
           property_address: tx.property_address || '',
           buyer_name: tx.buyer_name || '',
           seller_name: tx.seller_name || '',
-          purchase_price: tx.purchase_price ? String(tx.purchase_price) : '',
+          purchase_price: tx.sale_price ? String(tx.sale_price) : '',
           closing_date: tx.closing_date || '',
           ...prefill,
         };
