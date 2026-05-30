@@ -416,8 +416,10 @@ function formatMoney(value) {
 }
 
 // ---------------------------------------------------------------------------
-// RESALE CONTRACT (TREC 20-16/20-17) — 256 AcroForm fields
-// Field map verified via scripts/inspect_all_fields.js against embedded PDF.
+// RESALE CONTRACT (TREC 20-18) — 263 AcroForm fields (mandatory since 01/03/2025)
+// Field map verified via scripts/inspect_trec20-17_coords.js against embedded PDF.
+// All 256 fields from 20-17 are present in 20-18. 7 new fields added (1031 exchange
+// checkbox, dollar/pct credit checkboxes on p10, and 4 seller-concession fields on p6).
 // Every field is wired. Agent can override any field via field_values.
 //
 // SECTION 1 — PARTIES
