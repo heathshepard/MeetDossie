@@ -233,7 +233,7 @@ async function downloadAndStoreSigned(sr, fileName) {
 }
 
 // Email the seller's agent the fully executed PDF as an attachment.
-async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress) {
+async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress, agentEmail) {
   if (!RESEND_API_KEY || !sellerAgentEmail) return;
   try {
     const base64Pdf = pdfBuffer.toString('base64');
@@ -247,14 +247,15 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Dossie <heath@meetdossie.com>',
+        from: 'Dossie <dossie@meetdossie.com>',
         to: [sellerAgentEmail],
+        ...(agentEmail ? { reply_to: agentEmail } : {}),
         subject,
         html: `
           <p>Hi ${sellerAgentName || 'there'},</p>
           <p>Please find the fully executed purchase contract attached. All parties have signed.</p>
-          <p>Sent via <strong>DossieSign</strong> &mdash; transaction management for Texas REALTORS.</p>
-          <p style="color:#888;font-size:12px;">Dossie &mdash; Your deals. Her job.</p>
+          <p>Sent via <strong>DossieSign</strong> - transaction management for Texas REALTORS.</p>
+          <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
         attachments: [
           {
@@ -280,14 +281,14 @@ async function sendCompletionEmail(agentEmail, agentName, fileName) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Dossie <heath@meetdossie.com>',
+        from: 'Dossie <dossie@meetdossie.com>',
         to: [agentEmail],
         subject: `All signatures complete: ${fileName}`,
         html: `
           <p>Hi ${agentName || 'there'},</p>
           <p>All parties have signed <strong>${fileName}</strong>. The signed copy has been saved to your Dossie document library.</p>
           <p>Log in to download or share the signed document: <a href="https://meetdossie.com/app">meetdossie.com/app</a></p>
-          <p style="color:#888;font-size:12px;">Dossie &mdash; Your deals. Her job.</p>
+          <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
       }),
     });
@@ -448,7 +449,8 @@ module.exports = async function handler(req, res) {
           sr.seller_agent_name || null,
           fileName,
           signedPdfBuffer,
-          propertyAddress
+          propertyAddress,
+          agentInfo?.email || null
         );
       } else if (sr.seller_agent_email && !signedPdfBuffer) {
         // DOCUSEAL_API_KEY not set or PDF fetch failed — log so we know to retry.
