@@ -24,6 +24,40 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'documents';
 
+// Module-scope requires — loaded at cold-start, not per-request.
+// Prevents 500 errors on first request to a cold Vercel instance.
+const TREC_RESALE_B64 = require('./_assets/trec-resale-base64.js');
+const TREC_FINANCING_B64 = require('./_assets/trec-financing-base64.js');
+const TREC_TERMINATION_B64 = require('./_assets/trec-termination-base64.js');
+const TAR_WIRE_FRAUD_B64 = require('./_assets/tar-wire-fraud-base64.js');
+const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-base64.js');
+const TREC_LEAD_PAINT_B64 = require('./_assets/trec-lead-paint-base64.js');
+const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-base64.js');
+const TREC_39_10_B64 = require('./_assets/trec-39-10-base64.js');
+const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
+const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
+const T47_AFFIDAVIT_B64 = require('./_assets/t47-affidavit-base64.js');
+const TREC_UNIMPROVED_PROPERTY_B64 = require('./_assets/trec-unimproved-property-base64.js');
+const TREC_NEW_HOME_INCOMPLETE_B64 = require('./_assets/trec-new-home-incomplete-base64.js');
+const TREC_NEW_HOME_COMPLETE_B64 = require('./_assets/trec-new-home-complete-base64.js');
+const TREC_FARM_RANCH_B64 = require('./_assets/trec-farm-ranch-base64.js');
+const TREC_SELLER_FINANCING_B64 = require('./_assets/trec-seller-financing-base64.js');
+const TREC_BUYERS_TEMP_LEASE_B64 = require('./_assets/trec-buyers-temp-lease-base64.js');
+const TREC_SELLERS_TEMP_LEASE_B64 = require('./_assets/trec-sellers-temp-lease-base64.js');
+const TREC_SALE_OTHER_PROPERTY_B64 = require('./_assets/trec-sale-other-property-base64.js');
+const TREC_OIL_GAS_MINERALS_B64 = require('./_assets/trec-oil-gas-minerals-base64.js');
+const TREC_BACKUP_CONTRACT_B64 = require('./_assets/trec-backup-contract-base64.js');
+const TREC_COASTAL_AREA_B64 = require('./_assets/trec-coastal-area-base64.js');
+const TREC_HYDROSTATIC_TESTING_B64 = require('./_assets/trec-hydrostatic-testing-base64.js');
+const TREC_ENVIRONMENTAL_B64 = require('./_assets/trec-environmental-base64.js');
+const TREC_SHORT_SALE_B64 = require('./_assets/trec-short-sale-base64.js');
+const TREC_GULF_WATERWAY_B64 = require('./_assets/trec-gulf-waterway-base64.js');
+const TREC_PROPANE_GAS_B64 = require('./_assets/trec-propane-gas-base64.js');
+const TREC_RESIDENTIAL_LEASES_B64 = require('./_assets/trec-residential-leases-base64.js');
+const TREC_FIXTURE_LEASES_B64 = require('./_assets/trec-fixture-leases-base64.js');
+const TREC_LOAN_ASSUMPTION_B64 = require('./_assets/trec-loan-assumption-base64.js');
+const TREC_IMPROVEMENT_DISTRICT_B64 = require('./_assets/trec-improvement-district-base64.js');
+
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
   'https://www.meetdossie.com',
@@ -37,53 +71,53 @@ const FORM_CONFIGS = {
   'resale-contract': {
     name: 'One to Four Family Residential Contract (Resale)',
     shortName: 'TREC-Resale-Contract',
-    getBase64: function() { return require('./_assets/trec-resale-base64.js'); },
+    getBase64: () => TREC_RESALE_B64,
     documentType: 'resale_contract',
   },
   'financing-addendum': {
     name: 'Third Party Financing Addendum (TREC 40)',
     shortName: 'TREC-Financing-Addendum',
-    getBase64: function() { return require('./_assets/trec-financing-base64.js'); },
+    getBase64: () => TREC_FINANCING_B64,
     documentType: 'financing_addendum',
   },
   'termination-notice': {
     name: 'Notice of Sellers Termination of Contract',
     shortName: 'TREC-Termination-Notice',
-    getBase64: function() { return require('./_assets/trec-termination-base64.js'); },
+    getBase64: () => TREC_TERMINATION_B64,
     documentType: 'termination_notice',
   },
   'wire-fraud-warning': {
     name: 'Wire Fraud Warning (TAR 2517)',
     shortName: 'TAR-Wire-Fraud-Warning',
-    getBase64: function() { return require('./_assets/tar-wire-fraud-base64.js'); },
+    getBase64: () => TAR_WIRE_FRAUD_B64,
     documentType: 'wire_fraud_warning',
   },
   // Block 9B — HOA Addendum (TREC 36-10)
   'hoa-addendum': {
     name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-10)',
     shortName: 'TREC-HOA-Addendum',
-    getBase64: function() { return require('./_assets/trec-hoa-addendum-base64.js'); },
+    getBase64: () => TREC_HOA_ADDENDUM_B64,
     documentType: 'hoa_addendum',
   },
   // Block 9C — Lead-Based Paint Addendum (OP-L)
   'lead-paint-addendum': {
     name: 'Addendum for Sellers Disclosure of Information on Lead-Based Paint',
     shortName: 'OP-L-Lead-Paint',
-    getBase64: function() { return require('./_assets/trec-lead-paint-base64.js'); },
+    getBase64: () => TREC_LEAD_PAINT_B64,
     documentType: 'lead_paint_addendum',
   },
   // Seller's Disclosure Notice (TREC 55-0)
   'sellers-disclosure': {
     name: "Seller's Disclosure Notice (TREC 55-0)",
     shortName: 'TREC-55-SDN',
-    getBase64: function() { return require('./_assets/trec-sellers-disclosure-base64.js'); },
+    getBase64: () => TREC_SELLERS_DISCLOSURE_B64,
     documentType: 'sellers_disclosure',
   },
   // Amendment to Contract (TREC 39-10)
   'amendment': {
     name: 'Amendment to Contract (TREC 39-10)',
     shortName: 'TREC-39-Amendment',
-    getBase64: function() { return require('./_assets/trec-39-10-base64.js'); },
+    getBase64: () => TREC_39_10_B64,
     documentType: 'amendment',
   },
   // Block 9E — Buyer Representation Agreement (TAR 1501)
@@ -91,7 +125,7 @@ const FORM_CONFIGS = {
   'buyer-rep-agreement': {
     name: 'Residential Buyer Representation Agreement (TAR 1501)',
     shortName: 'TAR-Buyer-Rep',
-    getBase64: function() { return require('./_assets/tar-buyer-rep-base64.js'); },
+    getBase64: () => TAR_BUYER_REP_B64,
     documentType: 'buyer_rep_agreement',
   },
   // Block 10 — TREC 49-1 Appraisal Termination
@@ -99,7 +133,7 @@ const FORM_CONFIGS = {
   'appraisal-termination': {
     name: 'Right to Terminate Due to Lenders Appraisal (TREC 49-1)',
     shortName: 'TREC-49-1',
-    getBase64: function() { return require('./_assets/trec-49-1-base64.js'); },
+    getBase64: () => TREC_49_1_B64,
     documentType: 'appraisal_termination',
   },
   // Block 12 — T-47 Affidavit
@@ -107,7 +141,7 @@ const FORM_CONFIGS = {
   't47-affidavit': {
     name: 'T-47 Residential Real Property Affidavit',
     shortName: 'T-47-Affidavit',
-    getBase64: function() { return require('./_assets/t47-affidavit-base64.js'); },
+    getBase64: () => T47_AFFIDAVIT_B64,
     documentType: 't47_affidavit',
   },
   // TREC 9-17 — Unimproved Property Contract (land purchase)
@@ -115,7 +149,7 @@ const FORM_CONFIGS = {
   'unimproved-property': {
     name: 'Unimproved Property Contract (TREC 9-17)',
     shortName: 'TREC-9-Unimproved-Property',
-    getBase64: function() { return require('./_assets/trec-unimproved-property-base64.js'); },
+    getBase64: () => TREC_UNIMPROVED_PROPERTY_B64,
     documentType: 'unimproved_property_contract',
   },
   // TREC 23-18 — New Home Contract (Incomplete Construction)
@@ -124,7 +158,7 @@ const FORM_CONFIGS = {
   'new-home-incomplete': {
     name: 'New Home Contract - Incomplete Construction (TREC 23-18)',
     shortName: 'TREC-23-New-Home-Incomplete',
-    getBase64: function() { return require('./_assets/trec-new-home-incomplete-base64.js'); },
+    getBase64: () => TREC_NEW_HOME_INCOMPLETE_B64,
     documentType: 'new_home_contract_incomplete',
   },
   // TREC 24-18 — New Home Contract (Completed Construction)
@@ -133,7 +167,7 @@ const FORM_CONFIGS = {
   'new-home-complete': {
     name: 'New Home Contract - Completed Construction (TREC 24-18)',
     shortName: 'TREC-24-New-Home-Complete',
-    getBase64: function() { return require('./_assets/trec-new-home-complete-base64.js'); },
+    getBase64: () => TREC_NEW_HOME_COMPLETE_B64,
     documentType: 'new_home_contract_complete',
   },
   // TREC 25-14 — Farm and Ranch Contract (land with improvements)
@@ -142,7 +176,7 @@ const FORM_CONFIGS = {
   'farm-ranch': {
     name: 'Farm and Ranch Contract (TREC 25-14)',
     shortName: 'TREC-25-Farm-Ranch',
-    getBase64: function() { return require('./_assets/trec-farm-ranch-base64.js'); },
+    getBase64: () => TREC_FARM_RANCH_B64,
     documentType: 'farm_ranch_contract',
   },
   // ---------------------------------------------------------------------------
@@ -151,97 +185,97 @@ const FORM_CONFIGS = {
   'seller-financing': {
     name: 'Seller Financing Addendum (TREC 26-8)',
     shortName: 'TREC-26-Seller-Financing',
-    getBase64: function() { return require('./_assets/trec-seller-financing-base64.js'); },
+    getBase64: () => TREC_SELLER_FINANCING_B64,
     documentType: 'seller_financing_addendum',
   },
   'buyers-temp-lease': {
     name: "Buyer's Temporary Residential Lease (TREC 16-7)",
     shortName: 'TREC-16-Buyers-Temp-Lease',
-    getBase64: function() { return require('./_assets/trec-buyers-temp-lease-base64.js'); },
+    getBase64: () => TREC_BUYERS_TEMP_LEASE_B64,
     documentType: 'buyers_temp_lease',
   },
   'sellers-temp-lease': {
     name: "Seller's Temporary Residential Lease (TREC 15-7)",
     shortName: 'TREC-15-Sellers-Temp-Lease',
-    getBase64: function() { return require('./_assets/trec-sellers-temp-lease-base64.js'); },
+    getBase64: () => TREC_SELLERS_TEMP_LEASE_B64,
     documentType: 'sellers_temp_lease',
   },
   'sale-other-property': {
     name: 'Addendum for Sale of Other Property by Buyer (TREC 10-6)',
     shortName: 'TREC-10-Sale-Other-Property',
-    getBase64: function() { return require('./_assets/trec-sale-other-property-base64.js'); },
+    getBase64: () => TREC_SALE_OTHER_PROPERTY_B64,
     documentType: 'sale_other_property_addendum',
   },
   'oil-gas-minerals': {
     name: 'Addendum for Reservation of Oil, Gas and Other Minerals (TREC 44-3)',
     shortName: 'TREC-44-Oil-Gas-Minerals',
-    getBase64: function() { return require('./_assets/trec-oil-gas-minerals-base64.js'); },
+    getBase64: () => TREC_OIL_GAS_MINERALS_B64,
     documentType: 'oil_gas_minerals_addendum',
   },
   'backup-contract': {
     name: 'Addendum for Back-Up Contract (TREC 11-8)',
     shortName: 'TREC-11-Backup-Contract',
-    getBase64: function() { return require('./_assets/trec-backup-contract-base64.js'); },
+    getBase64: () => TREC_BACKUP_CONTRACT_B64,
     documentType: 'backup_contract_addendum',
   },
   'coastal-area': {
     name: 'Addendum for Coastal Area Property (TREC 33-2)',
     shortName: 'TREC-33-Coastal-Area',
-    getBase64: function() { return require('./_assets/trec-coastal-area-base64.js'); },
+    getBase64: () => TREC_COASTAL_AREA_B64,
     documentType: 'coastal_area_addendum',
   },
   'hydrostatic-testing': {
     name: 'Addendum for Authorizing Hydrostatic Testing (TREC 48-1)',
     shortName: 'TREC-48-Hydrostatic-Testing',
-    getBase64: function() { return require('./_assets/trec-hydrostatic-testing-base64.js'); },
+    getBase64: () => TREC_HYDROSTATIC_TESTING_B64,
     documentType: 'hydrostatic_testing_addendum',
   },
   'environmental': {
     name: 'Environmental Assessment, Threatened or Endangered Species and Wetlands Addendum (TREC 28-2)',
     shortName: 'TREC-28-Environmental',
-    getBase64: function() { return require('./_assets/trec-environmental-base64.js'); },
+    getBase64: () => TREC_ENVIRONMENTAL_B64,
     documentType: 'environmental_addendum',
   },
   'short-sale': {
     name: 'Short Sale Addendum (TREC 45-2)',
     shortName: 'TREC-45-Short-Sale',
-    getBase64: function() { return require('./_assets/trec-short-sale-base64.js'); },
+    getBase64: () => TREC_SHORT_SALE_B64,
     documentType: 'short_sale_addendum',
   },
   'gulf-waterway': {
     name: 'Gulf Intracoastal Waterway Addendum (TREC 34-4)',
     shortName: 'TREC-34-Gulf-Waterway',
-    getBase64: function() { return require('./_assets/trec-gulf-waterway-base64.js'); },
+    getBase64: () => TREC_GULF_WATERWAY_B64,
     documentType: 'gulf_waterway_addendum',
   },
   'propane-gas': {
     name: 'Addendum for Property in a Propane Gas System Service Area (TREC 47-0)',
     shortName: 'TREC-47-Propane-Gas',
-    getBase64: function() { return require('./_assets/trec-propane-gas-base64.js'); },
+    getBase64: () => TREC_PROPANE_GAS_B64,
     documentType: 'propane_gas_addendum',
   },
   'residential-leases': {
     name: 'Addendum Regarding Residential Leases (TREC 51-1)',
     shortName: 'TREC-51-Residential-Leases',
-    getBase64: function() { return require('./_assets/trec-residential-leases-base64.js'); },
+    getBase64: () => TREC_RESIDENTIAL_LEASES_B64,
     documentType: 'residential_leases_addendum',
   },
   'fixture-leases': {
     name: 'Addendum Regarding Fixture Leases (TREC 52-1)',
     shortName: 'TREC-52-Fixture-Leases',
-    getBase64: function() { return require('./_assets/trec-fixture-leases-base64.js'); },
+    getBase64: () => TREC_FIXTURE_LEASES_B64,
     documentType: 'fixture_leases_addendum',
   },
   'loan-assumption': {
     name: 'Addendum for Loan Assumption (TREC 41-3)',
     shortName: 'TREC-41-Loan-Assumption',
-    getBase64: function() { return require('./_assets/trec-loan-assumption-base64.js'); },
+    getBase64: () => TREC_LOAN_ASSUMPTION_B64,
     documentType: 'loan_assumption_addendum',
   },
   'improvement-district': {
     name: 'Improvement District Assessment Notice',
     shortName: 'TREC-IDN-Improvement-District',
-    getBase64: function() { return require('./_assets/trec-improvement-district-base64.js'); },
+    getBase64: () => TREC_IMPROVEMENT_DISTRICT_B64,
     documentType: 'improvement_district_notice',
   },
 };
