@@ -24,6 +24,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'documents';
 
+const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
+const DOCUSEAL_BASE = 'https://api.docuseal.com';
+// Template created 2026-05-30 via scripts/create-trec-20-18-template.js
+// 45 fields: 30 pre-fill text/checkbox + buyer/seller signatures + initials pages 1-8
+const DOCUSEAL_TREC_20_18_TEMPLATE_ID = Number(process.env.DOCUSEAL_TREC_20_18_TEMPLATE_ID) || 4018208;
+
 // Module-scope requires — loaded at cold-start, not per-request.
 // Prevents 500 errors on first request to a cold Vercel instance.
 const TREC_RESALE_B64 = require('./_assets/trec-resale-base64.js');
@@ -413,6 +419,94 @@ function formatMoney(value) {
   const n = Number(String(value || '').replace(/[^0-9.]/g, ''));
   if (!Number.isFinite(n)) return String(value || '');
   return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+// ---------------------------------------------------------------------------
+// RESALE CONTRACT (TREC 20-18) — DocuSeal template path
+// Creates a DocuSeal submission from template 4018208 with pre-filled values.
+// Returns { submissionId, signers: [{role, name, email, signingUrl}] }.
+// Template fields use semantic names we control (buyer_name, seller_name, etc.)
+// rather than AcroForm machine names ("undefined_2").
+// ---------------------------------------------------------------------------
+async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName, sellerEmail) {
+  if (!DOCUSEAL_API_KEY) {
+    throw new Error('DOCUSEAL_API_KEY not configured — cannot create DocuSeal submission for resale contract.');
+  }
+
+  const isFinanced = fv.loan_amount && Number(String(fv.loan_amount).replace(/[^0-9.]/g, '')) > 0;
+
+  // Closing date: prefer "Month Day, Year" format for the text field
+  let closingDateDisplay = fv.closing_date || '';
+  if (closingDateDisplay && /^\d{4}-\d{2}-\d{2}/.test(closingDateDisplay)) {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(closingDateDisplay);
+    if (m) closingDateDisplay = months[parseInt(m[2], 10) - 1] + ' ' + parseInt(m[3], 10) + ', ' + m[1];
+  }
+
+  const buyerFields = [
+    { name: 'buyer_name',              default_value: fv.buyer_name || '',                                  readonly: true },
+    { name: 'property_address',        default_value: fv.property_address || '',                            readonly: true },
+    { name: 'legal_description',       default_value: fv.legal_description || '',                           readonly: true },
+    { name: 'county',                  default_value: fv.county || '',                                      readonly: true },
+    { name: 'down_payment',            default_value: fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : '', readonly: true },
+    { name: 'loan_amount',             default_value: fv.loan_amount ? formatMoney(fv.loan_amount) : '',    readonly: true },
+    { name: 'sales_price',             default_value: fv.sale_price ? formatMoney(fv.sale_price) : '',      readonly: true },
+    { name: 'earnest_money_amount',    default_value: fv.earnest_money ? formatMoney(fv.earnest_money) : '', readonly: true },
+    { name: 'earnest_money_holder',    default_value: fv.earnest_money_to || fv.title_company || '',        readonly: true },
+    { name: 'option_period_days',      default_value: fv.option_period_days != null ? String(fv.option_period_days) : '', readonly: true },
+    { name: 'option_fee',              default_value: fv.option_fee ? formatMoney(fv.option_fee) : '',      readonly: true },
+    { name: 'title_company_name',      default_value: fv.title_company || '',                               readonly: true },
+    { name: 'closing_date',            default_value: closingDateDisplay,                                   readonly: true },
+    { name: 'listing_broker_firm',     default_value: fv.listing_broker_firm || '',                        readonly: true },
+    { name: 'listing_agent_name',      default_value: fv.listing_agent_name || '',                         readonly: true },
+    { name: 'listing_agent_license',   default_value: fv.listing_agent_license || '',                      readonly: true },
+    { name: 'other_broker_firm',       default_value: fv.other_broker_firm || '',                          readonly: true },
+    { name: 'other_agent_name',        default_value: fv.selling_agent_name || fv.other_broker_assoc_name || '', readonly: true },
+    { name: 'other_agent_license',     default_value: fv.selling_agent_license || fv.other_broker_assoc_license || '', readonly: true },
+    { name: 'buyers_agent_commission', default_value: fv.buyer_agent_commission ? String(fv.buyer_agent_commission).replace('%','').trim() : '', readonly: true },
+    { name: 'third_party_financing',   default_value: isFinanced ? 'true' : 'false',                       readonly: true },
+    { name: 'financing_addendum_check',default_value: (isFinanced || fv.financing_addendum === true) ? 'true' : 'false', readonly: true },
+    { name: 'hoa_addendum_check',      default_value: (fv.hoa_exists === true || fv.hoa_addendum === true) ? 'true' : 'false', readonly: true },
+    { name: 'as_is',                   default_value: fv.as_is_with_repairs !== true ? 'true' : 'false',   readonly: true },
+    { name: 'survey_c1',               default_value: (fv.survey_option || 'c1') === 'c1' ? 'true' : 'false', readonly: true },
+    { name: 'title_seller_pays',       default_value: fv.title_buyer_expense !== true ? 'true' : 'false',  readonly: true },
+  ];
+
+  const sellerFields = [
+    { name: 'seller_name', default_value: fv.seller_name || '', readonly: true },
+  ];
+
+  const res = await fetch(DOCUSEAL_BASE + '/submissions', {
+    method: 'POST',
+    headers: { 'X-Auth-Token': DOCUSEAL_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      template_id: DOCUSEAL_TREC_20_18_TEMPLATE_ID,
+      send_email: false,
+      submitters: [
+        { role: 'Buyer',  name: buyerName  || fv.buyer_name  || 'Buyer',  email: buyerEmail  || '', fields: buyerFields },
+        { role: 'Seller', name: sellerName || fv.seller_name || 'Seller', email: sellerEmail || '', fields: sellerFields },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error('DocuSeal submission failed (' + res.status + '): ' + text.slice(0, 300));
+  }
+
+  const submitters = await res.json();
+  const submissionId = (Array.isArray(submitters) && submitters[0]) ? String(submitters[0].submission_id) : null;
+
+  const signers = (Array.isArray(submitters) ? submitters : []).map((s) => ({
+    role: s.role,
+    name: s.name,
+    email: s.email,
+    slug: s.slug,
+    signingUrl: s.slug ? 'https://docuseal.com/s/' + s.slug : (s.embed_src || null),
+    status: s.status,
+  }));
+
+  return { submissionId, signers };
 }
 
 // ---------------------------------------------------------------------------
@@ -2948,6 +3042,64 @@ module.exports = async function handler(req, res) {
     const mergedFields = Object.assign({}, txDefaults, fieldValues);
 
     console.log('[fill-form] filling', resolvedFormType, 'for tx', transactionId);
+
+    // Resale contract uses DocuSeal template (semantic field names, no AcroForm guessing).
+    // All other form types continue through the pdf-lib path.
+    if (resolvedFormType === 'resale-contract') {
+      const buyerEmail = mergedFields.buyer_email || '';
+      const sellerEmail = mergedFields.seller_email || '';
+      const buyerName = mergedFields.buyer_name || 'Buyer';
+      const sellerName = mergedFields.seller_name || 'Seller';
+
+      const { submissionId, signers } = await fillResaleContractDocuSeal(
+        mergedFields, buyerName, buyerEmail, sellerName, sellerEmail
+      );
+
+      const config = FORM_CONFIGS[resolvedFormType];
+      const ts = Date.now();
+      const safeName = config.shortName + '-' + ts + '.pdf';
+      // storage_path stores the DocuSeal submission reference (no actual upload)
+      const storagePath = 'docuseal/submission/' + submissionId;
+
+      const docResp = await supabaseRest('documents', {
+        method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          transaction_id: transactionId,
+          user_id: userId,
+          file_name: safeName,
+          file_type: 'application/pdf',
+          document_type: config.documentType,
+          storage_path: storagePath,
+          file_size: 0,
+          status: 'pending_signature',
+        }),
+      });
+      if (!docResp.ok) {
+        const text = await docResp.text().catch(function() { return ''; });
+        throw new Error('documents insert failed (' + docResp.status + '): ' + text.slice(0, 300));
+      }
+      const docRows = await docResp.json();
+      const docRow = Array.isArray(docRows) ? docRows[0] : docRows;
+
+      const buyerSigner = signers.find((s) => s.role === 'Buyer') || signers[0];
+      const signingUrl = buyerSigner ? buyerSigner.signingUrl : null;
+
+      return res.status(200).json({
+        ok: true,
+        documentId: docRow && docRow.id ? docRow.id : null,
+        storagePath,
+        signedUrl: signingUrl,
+        signingUrl,
+        signers,
+        submissionId,
+        fileName: safeName,
+        formName: config.name,
+        formType: resolvedFormType,
+        via: 'docuseal',
+      });
+    }
+
     const filledBytes = await fillForm(resolvedFormType, mergedFields);
     const buffer = Buffer.from(filledBytes);
 
