@@ -49,6 +49,7 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const BUCKET = 'documents';
 
@@ -225,11 +226,9 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   });
 
   const body = {
-    send_email: true,
+    send_email: false,
     document_url: documentUrl,
     submitters,
-    email_subject: `Signature required: ${fileName}`,
-    email_body: message || `Please review and sign the document "${fileName}". This request was sent via Dossie, your transaction management assistant.`,
   };
 
   const res = await fetch(`${DOCUSEAL_BASE}/submissions/pdf`, {
@@ -270,13 +269,12 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
 
   const body = {
     template_id: templateId,
-    send_email: true,
+    send_email: false,
     submitters: signers.map((s) => ({
       name: s.name,
       email: s.email,
       role: s.role || 'Signer',
     })),
-    ...(message ? { email_body: message } : {}),
     ...(prefillData ? { values: prefillData } : {}),
   };
 
@@ -295,6 +293,71 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
   }
 
   return res.json();
+}
+
+async function sendSigningEmail({ signerName, signerEmail, documentName, propertyAddress, signingUrl }) {
+  if (!RESEND_API_KEY) {
+    console.warn('[esign-create] RESEND_API_KEY not set - skipping signing email.');
+    return;
+  }
+  if (!signingUrl) {
+    console.warn(`[esign-create] No signing URL for ${signerEmail} - skipping email.`);
+    return;
+  }
+
+  const addressLine = propertyAddress ? ` for ${propertyAddress}` : '';
+  const subject = `Action Required: Please sign ${documentName}${addressLine}`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9f9f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f9;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#F5E6E0;padding:24px 32px;text-align:center;">
+          <span style="font-family:'Georgia',serif;font-size:22px;font-weight:bold;color:#1A1A2E;letter-spacing:0.5px;">Dossie</span>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Hi ${signerName},</p>
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Your agent has sent you a document to review and sign.</p>
+          <p style="margin:0 0 8px;font-size:15px;color:#555;"><strong>Document:</strong> ${documentName}</p>
+          ${propertyAddress ? `<p style="margin:0 0 24px;font-size:15px;color:#555;"><strong>Property:</strong> ${propertyAddress}</p>` : '<div style="margin-bottom:24px;"></div>'}
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+            <tr><td style="background:#E8836B;border-radius:6px;">
+              <a href="${signingUrl}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">Review &amp; Sign Document</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 24px;font-size:13px;color:#888;">If the button above doesn't work, copy and paste this link into your browser:<br><a href="${signingUrl}" style="color:#E8836B;word-break:break-all;">${signingUrl}</a></p>
+          <hr style="border:none;border-top:1px solid #eee;margin:0 0 20px;">
+          <p style="margin:0;font-size:13px;color:#aaa;">This document was prepared by Dossie, your agent's transaction management assistant.<br>Questions? Reply to <a href="mailto:heath@meetdossie.com" style="color:#E8836B;">heath@meetdossie.com</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Dossie <heath@meetdossie.com>',
+      to: [signerEmail],
+      subject,
+      html,
+    }),
+  });
+
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    console.error(`[esign-create] Resend error for ${signerEmail} (${r.status}): ${text.slice(0, 200)}`);
+  } else {
+    console.log(`[esign-create] Signing email sent to ${signerEmail}`);
+  }
 }
 
 async function insertSignatureRequest(row) {
@@ -381,6 +444,11 @@ module.exports = async function handler(req, res) {
     const fileName = doc.file_name || 'Document.pdf';
     const transactionId = doc.transaction_id || null;
 
+    // Fetch the transaction so we have property_address for both email subjects
+    // and template prefill. Non-fatal if missing.
+    const tx = transactionId ? await getTransactionRow(transactionId, userId) : null;
+    const propertyAddress = tx ? (tx.property_address || '') : '';
+
     // Build the full ordered signers list.
     // If agentSignerEmail is provided, append the agent as the last signer so
     // DocuSeal routes sequentially: buyers first, then agent.
@@ -396,19 +464,16 @@ module.exports = async function handler(req, res) {
     if (templateId) {
       // Phase 3 path — template-based submission with optional pre-fill.
       let prefill = prefillData || {};
-      if (transactionId) {
-        const tx = await getTransactionRow(transactionId, userId);
-        if (tx) {
-          // Merge known transaction fields as pre-fill defaults.
-          prefill = {
-            property_address: tx.property_address || '',
-            buyer_name: tx.buyer_name || '',
-            seller_name: tx.seller_name || '',
-            purchase_price: tx.purchase_price ? String(tx.purchase_price) : '',
-            closing_date: tx.closing_date || '',
-            ...prefill,
-          };
-        }
+      if (tx) {
+        // Merge known transaction fields as pre-fill defaults.
+        prefill = {
+          property_address: tx.property_address || '',
+          buyer_name: tx.buyer_name || '',
+          seller_name: tx.seller_name || '',
+          purchase_price: tx.purchase_price ? String(tx.purchase_price) : '',
+          closing_date: tx.closing_date || '',
+          ...prefill,
+        };
       }
       submissionResult = await docusealCreateFromTemplate({ templateId, signers: allSigners, message, prefillData: prefill });
     } else {
@@ -453,14 +518,40 @@ module.exports = async function handler(req, res) {
 
     // Normalise signer list from DocuSeal response.
     // allSigners is the source of truth for name/email/role if DocuSeal omits them.
-    const signerRows = (Array.isArray(submissionResult.submitters) ? submissionResult.submitters : []).map((sub, i) => ({
-      name: sub.name || allSigners[i]?.name || '',
-      email: sub.email || allSigners[i]?.email || '',
-      role: sub.role || allSigners[i]?.role || 'Signer',
-      status: sub.status || 'sent',
-      signingUrl: sub.embed_src || null,
-      uuid: sub.uuid || null,
-    }));
+    // Signing URL: prefer slug-based public link (https://docuseal.com/s/{slug}) over embed_src.
+    const signerRows = (Array.isArray(submissionResult.submitters) ? submissionResult.submitters : []).map((sub, i) => {
+      const slug = sub.slug || null;
+      const signingUrl = slug
+        ? `https://docuseal.com/s/${slug}`
+        : (sub.embed_src || null);
+      return {
+        name: sub.name || allSigners[i]?.name || '',
+        email: sub.email || allSigners[i]?.email || '',
+        role: sub.role || allSigners[i]?.role || 'Signer',
+        status: sub.status || 'sent',
+        signingUrl,
+        uuid: sub.uuid || null,
+      };
+    });
+
+    // Send Dossie-branded signing emails via Resend.
+    // Fire-and-forget per signer — a single email failure must not abort the submission.
+    // Skip the agent signer (agentSignerEmail) — only external signers get notified here.
+    await Promise.all(
+      signerRows
+        .filter((s) => s.email && s.email !== agentSignerEmail)
+        .map((s) =>
+          sendSigningEmail({
+            signerName: s.name,
+            signerEmail: s.email,
+            documentName: fileName,
+            propertyAddress,
+            signingUrl: s.signingUrl,
+          }).catch((err) => {
+            console.error(`[esign-create] sendSigningEmail failed for ${s.email}:`, err && err.message ? err.message : err);
+          })
+        )
+    );
 
     // Persist the signature request.
     // seller_agent_name / seller_agent_email are stored here so the webhook can
