@@ -227,7 +227,7 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
 
   const body = {
     send_email: false,
-    document_url: documentUrl,
+    documents: [{ name: fileName, file: documentUrl }],
     submitters,
   };
 
