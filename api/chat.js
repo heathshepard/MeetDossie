@@ -9,6 +9,7 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -722,12 +723,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    // JWT auth — must come before any AI call or DB query.
+    let jwtUserId;
+    try {
+      const authResult = await verifySupabaseToken(req);
+      jwtUserId = authResult.userId;
+    } catch (authErr) {
+      return res.status(authErr.status || 401).json({ ok: false, error: authErr.message });
+    }
+
     // IP-based rate limit (30/hour). Layered on top of the per-user/plan
     // limit below — this catches abusive callers regardless of userId.
     const ip = clientIpFromReq(req);
     await checkIpRateLimit(ip, 'chat', 30, 60 * 60 * 1000);
 
-    const { message, userId, transactionContext, userPlan, mode, deals, messages } = req.body;
+    const { message, transactionContext, userPlan, mode, deals, messages } = req.body;
+
+    // userId comes from the verified JWT, not the request body.
+    const userId = jwtUserId;
 
     const hasMessagesArray = Array.isArray(messages) && messages.length > 0;
     const lastInArray = hasMessagesArray ? messages[messages.length - 1] : null;
@@ -739,13 +752,6 @@ export default async function handler(req, res) {
       return res.status(400).json({
         ok: false,
         error: 'Message is required and must be a non-empty string.'
-      });
-    }
-
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({
-        ok: false,
-        error: 'userId is required for rate limiting.'
       });
     }
 
@@ -825,6 +831,10 @@ export default async function handler(req, res) {
   } catch (error) {
     // Internal logging keeps full detail.
     console.error('Chat API error:', error);
+
+    if (error instanceof AuthError) {
+      return res.status(error.status || 401).json({ ok: false, error: error.message });
+    }
 
     if (error instanceof RateLimitError) {
       if (error.retryAfterSeconds) {

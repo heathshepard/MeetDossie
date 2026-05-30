@@ -9,6 +9,7 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { logAnthropic } = require('./_lib/usage-logger.js');
 
 const anthropic = new Anthropic({
@@ -1127,6 +1128,15 @@ async function handler(req, res) {
   }
 
   try {
+    // JWT auth — must come before any AI call or PDF processing.
+    let jwtUserId;
+    try {
+      const authResult = await verifySupabaseToken(req);
+      jwtUserId = authResult.userId;
+    } catch (authErr) {
+      return res.status(authErr.status || 401).json({ ok: false, error: authErr.message });
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       console.error('ANTHROPIC_API_KEY not configured');
       return res.status(500).json({ ok: false, error: 'Server configuration error.' });
@@ -1137,7 +1147,9 @@ async function handler(req, res) {
     await checkRateLimit(ip, 'scan-contract', 10, 60 * 60 * 1000);
 
     const body = req.body || {};
-    const { pdfBase64, userId } = body;
+    const { pdfBase64 } = body;
+    // userId comes from the verified JWT, not the request body.
+    const userId = jwtUserId;
 
     if (!pdfBase64 || typeof pdfBase64 !== 'string') {
       return res.status(400).json({ ok: false, error: 'pdfBase64 (string) is required in JSON body.' });
@@ -1176,6 +1188,9 @@ async function handler(req, res) {
     // Internal logging keeps the full detail.
     console.error('scan-contract error:', error);
 
+    if (error instanceof AuthError) {
+      return res.status(error.status || 401).json({ ok: false, error: error.message });
+    }
     if (error instanceof ValidationError) {
       return res.status(error.status || 400).json({ ok: false, error: error.message });
     }

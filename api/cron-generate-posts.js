@@ -217,26 +217,56 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// Live count of active founding subscriptions. Used to substitute
-// __FOUNDING_COUNT__ and __FOUNDING_REMAINING__ in the verifier prompt and
-// the generator's factual-accuracy block. Falls back to the previous
-// hardcoded value (9) if the query fails, with a console.warn so the
-// failure is visible — better than serving content with a fabricated count.
+// Live count of real paying founding members. Mirrors the logic in founding-count.js:
+// excludes demo profiles, heath.shepard@* accounts, and the $1 founding-friend
+// (Suzanne Page — k.suzanne.page@gmail.com) so the count only reflects $29/mo spots.
+// Falls back to FALLBACK on any error so content still generates.
+const FOUNDING_FRIEND_EMAILS = new Set(['k.suzanne.page@gmail.com']);
+
+function isExcludedFoundingEmail(email) {
+  if (!email) return false;
+  const e = email.toLowerCase();
+  if (e.startsWith('heath.shepard@')) return true;
+  if (FOUNDING_FRIEND_EMAILS.has(e)) return true;
+  return false;
+}
+
 async function getFoundingMemberCount() {
   const FOUNDING_TOTAL = 50;
-  const FALLBACK = 9;
+  const FALLBACK = 11;
   try {
+    // Step 1: get all active founding subscription user_ids.
     const r = await supabaseFetch(
-      `/rest/v1/subscriptions?select=id&status=in.(active,trialing)&plan=eq.founding`,
-      { headers: { Prefer: 'count=exact' } },
+      `/rest/v1/subscriptions?select=user_id&status=in.(active,trialing)&plan=eq.founding`,
     );
-    // Supabase returns the count via Content-Range header when Prefer: count=exact
-    // is set; the body is the rows. We have only id selected, so count the array.
-    if (r.ok && Array.isArray(r.data)) {
-      return { taken: r.data.length, remaining: Math.max(0, FOUNDING_TOTAL - r.data.length) };
+    if (!r.ok || !Array.isArray(r.data)) {
+      console.warn('[cron-generate-posts] getFoundingMemberCount: unexpected response', r.status);
+      return { taken: FALLBACK, remaining: FOUNDING_TOTAL - FALLBACK };
     }
-    console.warn('[cron-generate-posts] getFoundingMemberCount: unexpected response', r.status);
-    return { taken: FALLBACK, remaining: FOUNDING_TOTAL - FALLBACK };
+    const userIds = r.data.map((s) => s.user_id).filter(Boolean);
+    if (userIds.length === 0) {
+      return { taken: 0, remaining: FOUNDING_TOTAL };
+    }
+
+    // Step 2: fetch profiles for those user_ids to apply exclusion filters.
+    const profFilter = userIds.map((id) => `"${id}"`).join(',');
+    const p = await supabaseFetch(
+      `/rest/v1/profiles?id=in.(${profFilter})&select=id,email,is_demo`,
+    );
+    if (!p.ok || !Array.isArray(p.data)) {
+      // Fall back to raw count without exclusions rather than blocking.
+      return { taken: userIds.length, remaining: Math.max(0, FOUNDING_TOTAL - userIds.length) };
+    }
+    const profilesById = new Map(p.data.map((prof) => [prof.id, prof]));
+    let taken = 0;
+    for (const uid of userIds) {
+      const prof = profilesById.get(uid);
+      if (!prof) continue;
+      if (prof.is_demo) continue;
+      if (isExcludedFoundingEmail(prof.email)) continue;
+      taken += 1;
+    }
+    return { taken, remaining: Math.max(0, FOUNDING_TOTAL - taken) };
   } catch (err) {
     console.warn('[cron-generate-posts] getFoundingMemberCount failed:', err && err.message);
     return { taken: FALLBACK, remaining: FOUNDING_TOTAL - FALLBACK };
