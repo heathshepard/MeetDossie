@@ -90,7 +90,7 @@ function supa(path, opts = {}) {
 }
 
 async function getDocumentRow(documentId, userId) {
-  const res = await supa(`documents?id=eq.${encodeURIComponent(documentId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,transaction_id,storage_path,file_name`);
+  const res = await supa(`documents?id=eq.${encodeURIComponent(documentId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,transaction_id,storage_path,file_name,document_type`);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`documents fetch failed (${res.status}): ${text.slice(0, 200)}`);
@@ -100,6 +100,43 @@ async function getDocumentRow(documentId, userId) {
     throw new ValidationError('Document not found or does not belong to you.', 404);
   }
   return rows[0];
+}
+
+// TREC 20-17 (One to Four Family Residential Contract — Resale) field placement.
+// Coordinates are fractions of page dimensions (0-1). Page numbers are 1-indexed.
+// Buyer initials: bottom-left of pages 1-8 (matching "Initialed for identification by Buyer" line).
+// Seller initials: bottom-right of pages 1-8 (matching "and Seller" line).
+// Signature block: page 9, execution section.
+function buildResaleContractFields(buyerRole, sellerRole) {
+  const buyerFields = [];
+  const sellerFields = [];
+
+  for (let page = 1; page <= 8; page++) {
+    buyerFields.push({
+      name: `Buyer Initials P${page}`,
+      type: 'initials',
+      areas: [{ page, x: 0.08, y: 0.94, w: 0.08, h: 0.025 }],
+    });
+    sellerFields.push({
+      name: `Seller Initials P${page}`,
+      type: 'initials',
+      areas: [{ page, x: 0.65, y: 0.94, w: 0.08, h: 0.025 }],
+    });
+  }
+
+  buyerFields.push(
+    { name: 'Buyer Signature', type: 'signature', areas: [{ page: 9, x: 0.05, y: 0.35, w: 0.35, h: 0.04 }] },
+    { name: 'Buyer Printed Name', type: 'text',      areas: [{ page: 9, x: 0.05, y: 0.42, w: 0.35, h: 0.03 }] },
+    { name: 'Buyer Date',        type: 'date',       areas: [{ page: 9, x: 0.45, y: 0.35, w: 0.15, h: 0.04 }] }
+  );
+
+  sellerFields.push(
+    { name: 'Seller Signature', type: 'signature', areas: [{ page: 9, x: 0.55, y: 0.35, w: 0.35, h: 0.04 }] },
+    { name: 'Seller Printed Name', type: 'text',   areas: [{ page: 9, x: 0.55, y: 0.42, w: 0.35, h: 0.03 }] },
+    { name: 'Seller Date',        type: 'date',    areas: [{ page: 9, x: 0.55, y: 0.50, w: 0.15, h: 0.04 }] }
+  );
+
+  return { buyerRole, sellerRole, buyerFields, sellerFields };
 }
 
 async function getTransactionRow(transactionId, userId) {
@@ -127,7 +164,7 @@ async function generateSignedUrl(storagePath, expiresIn = 300) {
   return `${SUPABASE_URL}/storage/v1${p}`;
 }
 
-async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, fields }) {
+async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, fields, fieldMap }) {
   // TODO: Replace stub with real call once DOCUSEAL_API_KEY is added to Vercel.
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub submission.');
@@ -146,23 +183,28 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   }
 
   // Build submitters array for DocuSeal /submissions/pdf endpoint.
-  // If phase-2 field placements are provided, attach them per signer.
+  // Priority: fieldMap[role] (pre-built per-role arrays, e.g. TREC 20-17 resale contract)
+  //           > fields filtered by signerRole (caller-supplied phase-2 placements)
+  //           > default auto-place (Signature + Date only).
   const submitters = signers.map((s) => {
-    const signerFields = Array.isArray(fields)
-      ? fields.filter((f) => f.signerRole === (s.role || 'Signer'))
-      : [];
+    const role = s.role || 'Signer';
+
+    const roleSpecificFields = fieldMap && fieldMap[role] ? fieldMap[role] : null;
+
+    const signerFields = roleSpecificFields !== null
+      ? roleSpecificFields
+      : (Array.isArray(fields) ? fields.filter((f) => f.signerRole === role) : []);
 
     const entry = {
       name: s.name,
       email: s.email,
-      role: s.role || 'Signer',
+      role,
     };
 
     if (signerFields.length > 0) {
-      // Convert canvas field positions to DocuSeal field format.
       entry.fields = signerFields.map((f) => ({
         name: f.name,
-        type: f.type,                    // 'signature' | 'initials' | 'date' | 'text'
+        type: f.type,
         areas: (f.areas || []).map((a) => ({
           x: a.x,
           y: a.y,
@@ -373,7 +415,38 @@ module.exports = async function handler(req, res) {
       // Phase 1 path — direct PDF submission.
       // Generate a 5-minute signed URL so DocuSeal can pull the PDF.
       const signedUrl = await generateSignedUrl(doc.storage_path, 300);
-      submissionResult = await docusealCreateFromPdf({ documentUrl: signedUrl, fileName, signers: allSigners, message, fields });
+
+      // Auto-apply TREC 20-17 field placements when the document is a resale contract
+      // and the caller has not provided their own explicit field placements.
+      // Determine buyer/seller roles from the signers list: first non-Agent signer with
+      // role 'Buyer' maps to buyerRole; first with role 'Seller' maps to sellerRole.
+      // Falls back to positional order if roles are not explicitly set.
+      let autoFieldMap = null;
+      if (!fields && doc.document_type === 'resale_contract') {
+        const buyerSigner = allSigners.find((s) => (s.role || '').toLowerCase() === 'buyer')
+          || allSigners.find((s) => (s.role || '').toLowerCase() !== 'seller' && (s.role || '').toLowerCase() !== 'agent');
+        const sellerSigner = allSigners.find((s) => (s.role || '').toLowerCase() === 'seller');
+
+        if (buyerSigner && sellerSigner) {
+          const { buyerRole, sellerRole, buyerFields, sellerFields } = buildResaleContractFields(
+            buyerSigner.role || 'Buyer',
+            sellerSigner.role || 'Seller'
+          );
+          autoFieldMap = {
+            [buyerRole]: buyerFields,
+            [sellerRole]: sellerFields,
+          };
+        }
+      }
+
+      submissionResult = await docusealCreateFromPdf({
+        documentUrl: signedUrl,
+        fileName,
+        signers: allSigners,
+        message,
+        fields,
+        fieldMap: autoFieldMap,
+      });
     }
 
     const submissionId = String(submissionResult.id || '');
