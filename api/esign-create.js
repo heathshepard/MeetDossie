@@ -330,7 +330,7 @@ async function sendSigningEmail({ signerName, signerEmail, documentName, propert
           </table>
           <p style="margin:0 0 24px;font-size:13px;color:#888;">If the button above doesn't work, copy and paste this link into your browser:<br><a href="${signingUrl}" style="color:#E8836B;word-break:break-all;">${signingUrl}</a></p>
           <hr style="border:none;border-top:1px solid #eee;margin:0 0 20px;">
-          <p style="margin:0;font-size:13px;color:#aaa;">This document was prepared by Dossie, your agent's transaction management assistant.<br>Questions? Reply to <a href="mailto:heath@meetdossie.com" style="color:#E8836B;">heath@meetdossie.com</a></p>
+          <p style="margin:0;font-size:13px;color:#aaa;">This document was prepared by Dossie, your agent's transaction management assistant.<br>Questions about this document? Contact your agent directly.</p>
         </td></tr>
       </table>
     </td></tr>
