@@ -445,15 +445,17 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Contract Concerning_4', addr);
 
   // Section 2A legal description fields (Page 1)
-  // "A LAND Lot" (y=0.2131) = lot number portion of legal description
-  // "Block" (y=0.2115) = block number
-  // "undefined" (y=0.2107) = lot number standalone (AcroForm quirk per Hadley)
-  // "Addition City of" (y=0.2250) = subdivision name + city/state/zip
+  // "A LAND Lot" (y=0.2131) = lot number (legal_lot column not in transactions — leave blank)
+  // "Block" (y=0.2115) = block number (legal_block column not in transactions — leave blank)
+  // "undefined" (y=0.2107) = lot number repeat field (AcroForm quirk — leave blank)
+  // "Addition City of" (y=0.2250) = subdivision/addition name (NOT city_state_zip)
   // "County of" (y=0.2258) = county name only (e.g. "Bexar")
-  safeSetText(form, 'A LAND Lot', fv.legal_lot || fv.legal_description || '');
-  safeSetText(form, 'Block', fv.legal_block || '');
-  safeSetText(form, 'undefined', fv.legal_lot || '');
-  safeSetText(form, 'Addition City of', fv.city_state_zip || '');
+  // Note: transactions table has legal_description for subdivision name but no lot/block columns.
+  // Leave lot/block blank — agent fills manually. Only write subdivision name when available.
+  safeSetText(form, 'A LAND Lot', '');
+  safeSetText(form, 'Block', '');
+  safeSetText(form, 'undefined', '');
+  safeSetText(form, 'Addition City of', fv.legal_description || '');
   safeSetText(form, 'County of', fv.county || '');
 
   // Section 2C accessories / 2D exclusions
@@ -489,13 +491,19 @@ async function fillResaleContract(pdfDoc, fv) {
   safeCheck(form, 'will 1.1');
 
   // SECTION 4 — LEASES
-  // Page 2: "is" (y=0.7774) = HOA exists; "is not" (y=0.7774) = HOA does not exist
-  // These are actually the HOA membership checkboxes (Section 2 membership, near top of page 2)
-  // The leases checkboxes ("2Within" y=0.7625, "3Within" y=0.7764) are survey/title related on page 2
-  // Default: no residential leases, no fixture leases, no natural resource leases
+  // Page 2 checkboxes at y=0.7625 and y=0.7764:
+  //   "2Within" (y=0.7625) = Section 4A: residential lease EXISTS, or 4C(1) seller has delivered NRL copies
+  //   "3Within" (y=0.7764) = Section 4A: no residential lease, or 4C(2) seller has NOT delivered NRL copies
+  // For a standard residential sale: no leases of any type — leave both unchecked.
+  // Only check "2Within" or "3Within" when the transaction actually has the relevant lease.
+  // Previously "3Within" was checked unconditionally, which caused Section 4B/4C checkboxes
+  // to appear filled on the rendered PDF for standard no-lease transactions.
   if (fv.has_tenant_lease === true) {
     safeCheck(form, '2Within');
-  } else {
+  }
+  // 4B: Fixture Leases — only check if explicitly present
+  // 4C: Natural Resource Leases — only check sub-options if NRL exists
+  if (fv.fixture_leases === true) {
     safeCheck(form, '3Within');
   }
 
@@ -524,16 +532,10 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
 
   // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
-  // "undefined_8" (Page 1 y=0.9616) — buyer initials field on page 1 footer (NOT option days)
-  // Per coordinate map: Page 1 y=0.9615-0.9616 are the initials/footer row fields.
-  // Option period days field: "undefined_8" appears in initials row — this maps to
-  // the buyer initials slot on page 1. The actual option period days blank is part of
-  // the "as earnest money to 2" / option fee section at Page 2 y=0.1178.
-  // Cross-referencing: field at Page 1 y=0.9616 x=0.4122 labeled "undefined_8" is
-  // the second buyer initials field. The option period days is a separate text field
-  // embedded in the option period paragraph text — it uses "undefined_8" per prior
-  // inspection but at a DIFFERENT position. Keep mapping as previously verified.
-  safeSetText(form, 'undefined_8', fv.option_period_days != null ? String(fv.option_period_days) : '');
+  // "undefined_8" (Page 1 y=0.9616 x=0.4122) is the buyer initials footer field — do NOT write here.
+  // The option period days field has no confirmed standalone AcroForm name in this PDF version.
+  // Writing option_period_days to undefined_8 was placing "10" in the buyer initials slot.
+  // Leave blank — agent fills option period days manually or via Talk to Dossie amendment flow.
 
   // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
   // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
