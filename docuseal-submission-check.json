@@ -1,0 +1,95 @@
+﻿{
+    "data":  [
+                 {
+                     "id":  8022520,
+                     "name":  null,
+                     "slug":  "3JFAjoi863JTSh",
+                     "source":  "api",
+                     "submitters_order":  "preserved",
+                     "expire_at":  null,
+                     "created_at":  "2026-05-30T18:04:02.828Z",
+                     "updated_at":  "2026-05-30T18:04:02.828Z",
+                     "archived_at":  null,
+                     "submitters":  [
+                                        {
+                                            "id":  10539135,
+                                            "slug":  "rvDejZf2K4u6K9",
+                                            "uuid":  "6b4f8316-80bd-46f5-ac26-268a2d28ebb1",
+                                            "name":  null,
+                                            "email":  "test-seller@meetdossie.com",
+                                            "phone":  null,
+                                            "completed_at":  null,
+                                            "declined_at":  null,
+                                            "external_id":  null,
+                                            "submission_id":  8022520,
+                                            "metadata":  {
+
+                                                         },
+                                            "opened_at":  null,
+                                            "sent_at":  null,
+                                            "created_at":  "2026-05-30T18:04:02.832Z",
+                                            "updated_at":  "2026-05-30T18:04:02.832Z",
+                                            "status":  "awaiting",
+                                            "application_key":  null,
+                                            "preferences":  {
+                                                                "send_email":  false,
+                                                                "send_sms":  false
+                                                            },
+                                            "role":  "Seller"
+                                        },
+                                        {
+                                            "id":  10539134,
+                                            "slug":  "2QuytnT3pNwE1N",
+                                            "uuid":  "00f4ba7d-7814-4426-8612-9ef9dab0c810",
+                                            "name":  null,
+                                            "email":  "heath.shepard@kw.com",
+                                            "phone":  null,
+                                            "completed_at":  null,
+                                            "declined_at":  null,
+                                            "external_id":  null,
+                                            "submission_id":  8022520,
+                                            "metadata":  {
+
+                                                         },
+                                            "opened_at":  "2026-05-30T18:06:21.345Z",
+                                            "sent_at":  null,
+                                            "created_at":  "2026-05-30T18:04:02.830Z",
+                                            "updated_at":  "2026-05-30T18:06:21.345Z",
+                                            "status":  "opened",
+                                            "application_key":  null,
+                                            "preferences":  {
+                                                                "send_email":  false,
+                                                                "send_sms":  false
+                                                            },
+                                            "role":  "Buyer"
+                                        }
+                                    ],
+                     "template":  {
+                                      "id":  4018208,
+                                      "name":  "TREC 20-18 Resale Contract (Dossie)",
+                                      "external_id":  "af803f82-d839-4e72-bec1-188ee82e5b82",
+                                      "created_at":  "2026-05-30T16:15:18.106Z",
+                                      "updated_at":  "2026-05-30T18:02:09.666Z",
+                                      "folder_name":  "Default"
+                                  },
+                     "created_by_user":  {
+                                             "id":  161398,
+                                             "email":  "heath.shepard@kw.com",
+                                             "first_name":  "Heath",
+                                             "last_name":  "Shepard"
+                                         },
+                     "variables":  {
+
+                                   },
+                     "audit_log_url":  null,
+                     "combined_document_url":  null,
+                     "status":  "pending",
+                     "completed_at":  null
+                 }
+             ],
+    "pagination":  {
+                       "count":  1,
+                       "next":  8022520,
+                       "prev":  8022520
+                   }
+}

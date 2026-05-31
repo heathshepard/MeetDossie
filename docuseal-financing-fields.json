@@ -1,0 +1,1118 @@
+[
+  {
+    "name": "property_address",
+    "type": "text",
+    "required": true,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.09,
+        "y": 0.179,
+        "w": 0.824,
+        "h": 0.018
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "conventional_financing",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.093,
+        "y": 0.284,
+        "w": 0.02,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "first_mortgage_loan",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.141,
+        "y": 0.3,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "first_loan_term_years",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.611,
+        "y": 0.301,
+        "w": 0.166,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "first_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.477,
+        "y": 0.316,
+        "w": 0.062,
+        "h": 0.015
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "first_loan_amount_due",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.841,
+        "y": 0.316,
+        "w": 0.048,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "first_interest_rate",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.358,
+        "y": 0.331,
+        "w": 0.074,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "first_origination_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.574,
+        "y": 0.343,
+        "w": 0.067,
+        "h": 0.015
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "second_mortgage_loan",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.142,
+        "y": 0.361,
+        "w": 0.018,
+        "h": 0.012
+      }
+    ]
+  },
+  {
+    "name": "second_loan_exclusion",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.637,
+        "y": 0.362,
+        "w": 0.142,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "right"
+    }
+  },
+  {
+    "name": "second_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.495,
+        "y": 0.374,
+        "w": 0.102,
+        "h": 0.015
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "second_loan_term",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.165,
+        "y": 0.389,
+        "w": 0.051,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "second_interest_rate",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.437,
+        "y": 0.388,
+        "w": 0.075,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "second_origination_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.658,
+        "y": 0.403,
+        "w": 0.086,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "tx_veterans_loan",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.092,
+        "y": 0.418,
+        "w": 0.02,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "tx_vet_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.155,
+        "y": 0.434,
+        "w": 0.155,
+        "h": 0.015
+      }
+    ],
+    "preferences": {
+      "align": "right"
+    }
+  },
+  {
+    "name": "tx_vet_loan_years",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.613,
+        "y": 0.433,
+        "w": 0.079,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "fha_financing",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.094,
+        "y": 0.463,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "fha_section",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.459,
+        "y": 0.465,
+        "w": 0.169,
+        "h": 0.013
+      }
+    ],
+    "preferences": {
+      "align": "left"
+    }
+  },
+  {
+    "name": "fha_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.155,
+        "y": 0.479,
+        "w": 0.155,
+        "h": 0.015
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "fha_amortization_years",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.186,
+        "y": 0.492,
+        "w": 0.06,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "fha_interest_rate",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.549,
+        "y": 0.493,
+        "w": 0.075,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "fha_origination_text",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.145,
+        "y": 0.505,
+        "w": 0.2,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "fha_origination_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.334,
+        "y": 0.519,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "reverse_mortgage",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.095,
+        "y": 0.537,
+        "w": 0.02,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "reverse_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.726,
+        "y": 0.536,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_funding_fee",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.787,
+        "y": 0.551,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_term_1",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.368,
+        "y": 0.564,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_rate_1",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.647,
+        "y": 0.565,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "credit_approval_days",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.14,
+        "y": 0.592,
+        "w": 0.2,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "va_financing",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.093,
+        "y": 0.607,
+        "w": 0.02,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "va_origination_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.791,
+        "y": 0.609,
+        "w": 0.1,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "va_amortization_years",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.784,
+        "y": 0.625,
+        "w": 0.08,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "va_interest_rate",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.372,
+        "y": 0.637,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "va_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.639,
+        "y": 0.637,
+        "w": 0.15,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "va_loan_estimate_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.839,
+        "y": 0.651,
+        "w": 0.06,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "usda_financing",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.092,
+        "y": 0.68,
+        "w": 0.02,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "usda_loan_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.672,
+        "y": 0.696,
+        "w": 0.15,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "usda_interest_rate",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.737,
+        "y": 0.711,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "usda_term_years",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.243,
+        "y": 0.724,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "usda_origination_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.449,
+        "y": 0.74,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "will_not_fha",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.86,
+        "y": 0.741,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "will_fha",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.145,
+        "y": 0.758,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "reverse_mortgage_2",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.096,
+        "y": 0.778,
+        "w": 0.02,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.697,
+        "y": 0.776,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_cap",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.541,
+        "y": 0.79,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_fee",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.724,
+        "y": 0.789,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_term",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.347,
+        "y": 0.804,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_rate",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.631,
+        "y": 0.805,
+        "w": 0.1,
+        "h": 0.014
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_will",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.662,
+        "y": 0.821,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "reverse_2_will_not",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.733,
+        "y": 0.82,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "buyer_initials_p1",
+    "type": "initials",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.336,
+        "y": 0.958,
+        "w": 0.045,
+        "h": 0.02
+      }
+    ]
+  },
+  {
+    "name": "buyer_initials_p1_2",
+    "type": "initials",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.388,
+        "y": 0.958,
+        "w": 0.045,
+        "h": 0.02
+      }
+    ]
+  },
+  {
+    "name": "seller_initials_p1",
+    "type": "initials",
+    "required": false,
+    "submitter_uuid": "1c0ad5a4-d0b3-40f8-b5bc-9c512a00d97c",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.532,
+        "y": 0.958,
+        "w": 0.045,
+        "h": 0.02
+      }
+    ]
+  },
+  {
+    "name": "seller_initials_p1_2",
+    "type": "initials",
+    "required": false,
+    "submitter_uuid": "1c0ad5a4-d0b3-40f8-b5bc-9c512a00d97c",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.594,
+        "y": 0.958,
+        "w": 0.045,
+        "h": 0.02
+      }
+    ]
+  },
+  {
+    "name": "property_address_p2",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.093,
+        "y": 0.061,
+        "w": 0.814,
+        "h": 0.02
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "fha_conversion_check",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.134,
+        "y": 0.111,
+        "w": 0.019,
+        "h": 0.015
+      }
+    ]
+  },
+  {
+    "name": "fha_conversion_amount",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.59,
+        "y": 0.127,
+        "w": 0.2,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "buyer_approval_required",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.137,
+        "y": 0.239,
+        "w": 0.018,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "va_appraised_value",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.124,
+        "y": 0.469,
+        "w": 0.208,
+        "h": 0.016
+      }
+    ]
+  },
+  {
+    "name": "buyer_signature_1",
+    "type": "signature",
+    "required": true,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.091,
+        "y": 0.749,
+        "w": 0.399,
+        "h": 0.04
+      }
+    ]
+  },
+  {
+    "name": "buyer_signature_2",
+    "type": "signature",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.09,
+        "y": 0.816,
+        "w": 0.398,
+        "h": 0.04
+      }
+    ]
+  },
+  {
+    "name": "seller_signature_1",
+    "type": "signature",
+    "required": true,
+    "submitter_uuid": "1c0ad5a4-d0b3-40f8-b5bc-9c512a00d97c",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.509,
+        "y": 0.749,
+        "w": 0.39,
+        "h": 0.04
+      }
+    ]
+  },
+  {
+    "name": "seller_signature_2",
+    "type": "signature",
+    "required": false,
+    "submitter_uuid": "1c0ad5a4-d0b3-40f8-b5bc-9c512a00d97c",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.51,
+        "y": 0.816,
+        "w": 0.391,
+        "h": 0.04
+      }
+    ]
+  },
+  {
+    "name": "buyer_date",
+    "type": "date",
+    "required": false,
+    "submitter_uuid": "771507d4-7ac8-4856-b10d-85a11d472baa",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.091,
+        "y": 0.793,
+        "w": 0.2,
+        "h": 0.016
+      }
+    ]
+  },
+  {
+    "name": "seller_date",
+    "type": "date",
+    "required": false,
+    "submitter_uuid": "1c0ad5a4-d0b3-40f8-b5bc-9c512a00d97c",
+    "areas": [
+      {
+        "page": 1,
+        "attachment_uuid": "00d33456-8557-4311-b0cc-884074261a26",
+        "x": 0.509,
+        "y": 0.793,
+        "w": 0.2,
+        "h": 0.016
+      }
+    ]
+  }
+]
