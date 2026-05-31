@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TREC 20-18 Page Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    body { margin: 0; background: #333; text-align: center; }
+    canvas { display: block; margin: 20px auto; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .page-label { color: white; font-size: 24px; font-family: Arial; margin: 10px 0; }
+    #controls { position: fixed; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; }
+    #controls button { font-size: 18px; padding: 5px 15px; margin: 0 5px; cursor: pointer; }
+    #controls span { color: white; font-size: 18px; }
+    .grid-overlay { position: absolute; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button onclick="showPage(currentPage-1)">Prev</button>
+    <span id="pageInfo">Page 1 / 11</span>
+    <button onclick="showPage(currentPage+1)">Next</button>
+  </div>
+  <div id="viewer"></div>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const pdfUrl = 'trec-20-18.pdf';
+
+    let pdfDoc = null;
+    let currentPage = 1;
+    const SCALE = 2.0;
+
+    async function loadPDF() {
+      pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+      document.getElementById('pageInfo').textContent = `Page 1 / ${pdfDoc.numPages}`;
+      showPage(1);
+    }
+
+    async function showPage(num) {
+      if (!pdfDoc || num < 1 || num > pdfDoc.numPages) return;
+      currentPage = num;
+      document.getElementById('pageInfo').textContent = `Page ${num} / ${pdfDoc.numPages} (DocuSeal page index: ${num-1})`;
+
+      const page = await pdfDoc.getPage(num);
+      const viewport = page.getViewport({ scale: SCALE });
+
+      const viewer = document.getElementById('viewer');
+      viewer.innerHTML = '';
+
+      const label = document.createElement('div');
+      label.className = 'page-label';
+      label.textContent = `Page ${num} (DocuSeal index: ${num-1})`;
+      viewer.appendChild(label);
+
+      const container = document.createElement('div');
+      container.style.position = 'relative';
+      container.style.display = 'inline-block';
+      viewer.appendChild(container);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      container.appendChild(canvas);
+
+      // Add coordinate grid overlay
+      const gridCanvas = document.createElement('canvas');
+      gridCanvas.width = viewport.width;
+      gridCanvas.height = viewport.height;
+      gridCanvas.style.position = 'absolute';
+      gridCanvas.style.top = '0';
+      gridCanvas.style.left = '0';
+      gridCanvas.style.pointerEvents = 'none';
+      container.appendChild(gridCanvas);
+
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+      // Draw coordinate grid
+      const gctx = gridCanvas.getContext('2d');
+      gctx.strokeStyle = 'rgba(255, 0, 0, 0.15)';
+      gctx.lineWidth = 1;
+      gctx.font = '14px Arial';
+      gctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+
+      // Vertical lines every 10%
+      for (let i = 0; i <= 10; i++) {
+        const x = (i / 10) * viewport.width;
+        gctx.beginPath();
+        gctx.moveTo(x, 0);
+        gctx.lineTo(x, viewport.height);
+        gctx.stroke();
+        gctx.fillText((i * 10) + '%', x + 2, 15);
+      }
+
+      // Horizontal lines every 10%
+      for (let i = 0; i <= 10; i++) {
+        const y = (i / 10) * viewport.height;
+        gctx.beginPath();
+        gctx.moveTo(0, y);
+        gctx.lineTo(viewport.width, y);
+        gctx.stroke();
+        gctx.fillText((i * 10) + '%', 2, y + 15);
+      }
+
+      // Add mouse coordinate tracker
+      container.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        document.title = `Page ${num} | x=${x.toFixed(4)} y=${y.toFixed(4)}`;
+      };
+    }
+
+    loadPDF();
+  </script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+[
+  {
+    "name": "property_address",
+    "type": "text",
+    "required": true,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.08,
+        "y": 0.144,
+        "w": 0.83,
+        "h": 0.018
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "seller_name",
+    "type": "text",
+    "required": true,
+    "submitter_uuid": "5ec03032-ece1-4153-92da-bbdd08eb54f8",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.08,
+        "y": 0.205,
+        "w": 0.83,
+        "h": 0.018
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "buyer_name",
+    "type": "text",
+    "required": true,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.08,
+        "y": 0.228,
+        "w": 0.83,
+        "h": 0.018
+      }
+    ],
+    "preferences": {
+      "align": "center"
+    }
+  },
+  {
+    "name": "reason_earnest_money",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.093,
+        "y": 0.298,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "reason_other",
+    "type": "checkbox",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.093,
+        "y": 0.34,
+        "w": 0.019,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "other_reason_1",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.124,
+        "y": 0.37,
+        "w": 0.78,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "other_reason_2",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.124,
+        "y": 0.383,
+        "w": 0.78,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "other_reason_3",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.124,
+        "y": 0.397,
+        "w": 0.78,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "other_reason_4",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.124,
+        "y": 0.411,
+        "w": 0.78,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "other_reason_5",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.124,
+        "y": 0.425,
+        "w": 0.78,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "other_reason_6",
+    "type": "text",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.124,
+        "y": 0.438,
+        "w": 0.78,
+        "h": 0.013
+      }
+    ]
+  },
+  {
+    "name": "contract_effective_date",
+    "type": "date",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.35,
+        "y": 0.5,
+        "w": 0.2,
+        "h": 0.016
+      }
+    ]
+  },
+  {
+    "name": "termination_date",
+    "type": "date",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.35,
+        "y": 0.54,
+        "w": 0.2,
+        "h": 0.016
+      }
+    ]
+  },
+  {
+    "name": "buyer_signature",
+    "type": "signature",
+    "required": true,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.091,
+        "y": 0.617,
+        "w": 0.39,
+        "h": 0.04
+      }
+    ]
+  },
+  {
+    "name": "buyer_sign_date",
+    "type": "date",
+    "required": false,
+    "submitter_uuid": "3ca39147-a5ce-4250-8a27-dd1a8857f0c7",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.091,
+        "y": 0.66,
+        "w": 0.2,
+        "h": 0.016
+      }
+    ]
+  },
+  {
+    "name": "seller_signature",
+    "type": "signature",
+    "required": true,
+    "submitter_uuid": "5ec03032-ece1-4153-92da-bbdd08eb54f8",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.509,
+        "y": 0.617,
+        "w": 0.39,
+        "h": 0.04
+      }
+    ]
+  },
+  {
+    "name": "seller_sign_date",
+    "type": "date",
+    "required": false,
+    "submitter_uuid": "5ec03032-ece1-4153-92da-bbdd08eb54f8",
+    "areas": [
+      {
+        "page": 0,
+        "attachment_uuid": "0ecf0874-9c0b-4dab-83c6-71b146928dc7",
+        "x": 0.509,
+        "y": 0.66,
+        "w": 0.2,
+        "h": 0.016
+      }
+    ]
+  }
+]

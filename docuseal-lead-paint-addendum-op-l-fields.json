@@ -1,0 +1,401 @@
+{
+  "templateId": 4023469,
+  "name": "Lead-Based Paint Addendum (OP-L)",
+  "slug": "qj36DxHHTFPQNC",
+  "submitters": [
+    {
+      "name": "Buyer",
+      "uuid": "buyer-lbp"
+    },
+    {
+      "name": "Seller",
+      "uuid": "seller-lbp"
+    }
+  ],
+  "fields": [
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "property_address",
+      "type": "text",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.37,
+          "y": 0.053,
+          "w": 0.55,
+          "h": 0.014,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "known_lead_paint",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.147,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "known_lead_paint_description",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.12,
+          "y": 0.155,
+          "w": 0.82,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "no_knowledge_lead_paint",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.168,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "records_available",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.192,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "records_description",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.12,
+          "y": 0.2,
+          "w": 0.82,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "no_records",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.213,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_waives_inspection",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.244,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_reserves_inspection",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.256,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "inspection_period_days",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.12,
+          "y": 0.264,
+          "w": 0.06,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_received_copies",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.305,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_received_pamphlet",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.315,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_signature_1",
+      "type": "signature",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.397,
+          "w": 0.35,
+          "h": 0.022,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_date_1",
+      "type": "date",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.46,
+          "y": 0.397,
+          "w": 0.1,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "seller_signature_1",
+      "type": "signature",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.397,
+          "w": 0.3,
+          "h": 0.022,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "seller_date_1",
+      "type": "date",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.88,
+          "y": 0.397,
+          "w": 0.06,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_signature_2",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.42,
+          "w": 0.35,
+          "h": 0.022,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyer_date_2",
+      "type": "date",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.46,
+          "y": 0.42,
+          "w": 0.1,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "seller_signature_2",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.42,
+          "w": 0.3,
+          "h": 0.022,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "seller_date_2",
+      "type": "date",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.88,
+          "y": 0.42,
+          "w": 0.06,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyers_broker_signature",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.448,
+          "w": 0.35,
+          "h": 0.022,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-lbp",
+      "name": "buyers_broker_date",
+      "type": "date",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.46,
+          "y": 0.448,
+          "w": 0.1,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "sellers_broker_signature",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.448,
+          "w": 0.3,
+          "h": 0.022,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-lbp",
+      "name": "sellers_broker_date",
+      "type": "date",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.88,
+          "y": 0.448,
+          "w": 0.06,
+          "h": 0.013,
+          "attachment_uuid": "e169fc1b-c1b9-4121-b79e-4f25b69f13e5",
+          "page": 0
+        }
+      ]
+    }
+  ]
+}
