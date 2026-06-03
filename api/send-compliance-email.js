@@ -74,7 +74,13 @@ export default async function handler(req, res) {
     const sent = [];
     const failed = [];
 
-    for (const { email, firstName } of recipients) {
+    // Optional: only send to specific emails (for retrying failed sends)
+    const onlyEmails = req.body && req.body.only_emails;
+    const targets = onlyEmails
+      ? recipients.filter(r => onlyEmails.includes(r.email))
+      : recipients;
+
+    for (const { email, firstName } of targets) {
       const body = `Hey ${firstName},
 
 Quick heads up on something that affects every deal you close after July 1.
@@ -113,6 +119,9 @@ Licensed Texas REALTOR | Founder, Dossie`;
         const errText = await sendRes.text();
         failed.push({ email, error: errText });
       }
+
+      // Stay under Resend's 5 req/sec rate limit
+      await new Promise(r => setTimeout(r, 300));
     }
 
     return res.status(200).json({
