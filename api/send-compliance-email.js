@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   try {
     // 1. Fetch active subscriptions
     const subsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/subscriptions?status=eq.active&select=user_id,email,plan`,
+      `${SUPABASE_URL}/rest/v1/subscriptions?status=eq.active&select=user_id,plan`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     for (const sub of subscriptions) {
       const profile = profileMap[sub.user_id];
       // Use profile email if present, fall back to subscription email
-      const email = (profile && profile.email) ? profile.email : sub.email;
+      const email = profile && profile.email ? profile.email : null;
       if (!email) continue;
 
       const fullName = profile && profile.full_name ? profile.full_name : '';
