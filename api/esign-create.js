@@ -360,6 +360,141 @@ async function sendSigningEmail({ signerName, signerEmail, documentName, propert
   }
 }
 
+// ---------------------------------------------------------------------------
+// sendForAcknowledgment — uploads scanned PDF to DocuSeal as a new template,
+// then creates a submission with buyer acknowledgment fields at OP-H page 3.
+// Supports 1 or 2 buyers.
+// ---------------------------------------------------------------------------
+async function sendForAcknowledgment({ doc, userId, transactionId, formType, buyerEmail, buyerName, buyerEmail2, buyerName2, message }) {
+  if (!DOCUSEAL_API_KEY) {
+    throw new ValidationError('DocuSeal not configured.', 500);
+  }
+
+  // Fetch file bytes from Supabase Storage
+  const storageUrl = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${doc.storage_path}`;
+  const fileRes = await fetch(storageUrl, {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  });
+  if (!fileRes.ok) {
+    throw new Error(`Storage fetch failed (${fileRes.status}) for: ${doc.storage_path}`);
+  }
+  const fileBuffer = await fileRes.arrayBuffer();
+  const base64Pdf = Buffer.from(fileBuffer).toString('base64');
+
+  // Upload PDF to DocuSeal to create a temporary template
+  // POST /templates/pdf with base64-encoded PDF
+  const tmplBody = {
+    name: doc.file_name || 'Seller Disclosure Notice',
+    documents: [
+      {
+        name: doc.file_name || 'Sellers_Disclosure_Notice.pdf',
+        file: `data:application/pdf;base64,${base64Pdf}`,
+      },
+    ],
+  };
+
+  const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
+    method: 'POST',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(tmplBody),
+  });
+
+  if (!tmplRes.ok) {
+    const text = await tmplRes.text().catch(() => '');
+    throw new Error(`DocuSeal template creation failed (${tmplRes.status}): ${text.slice(0, 300)}`);
+  }
+
+  const tmplData = await tmplRes.json();
+  const templateId = tmplData.id;
+  if (!templateId) {
+    throw new Error('DocuSeal template creation did not return an id.');
+  }
+
+  // Build buyer submitters.
+  // Acknowledgment fields at OP-H page 3 (0-indexed page = 2 in DocuSeal areas).
+  // Coordinates provided: signature at y~0.74, date at y~0.74 right side.
+  // Second buyer optional.
+  function buildBuyerFields(sigY, dateY) {
+    return [
+      {
+        name: 'Buyer Signature',
+        type: 'signature',
+        areas: [{ page: 3, x: 0.07, y: sigY, w: 0.25, h: 0.04 }],
+      },
+      {
+        name: 'Buyer Date',
+        type: 'date',
+        areas: [{ page: 3, x: 0.73, y: dateY, w: 0.18, h: 0.03 }],
+      },
+    ];
+  }
+
+  const submitters = [
+    {
+      name: buyerName,
+      email: buyerEmail,
+      role: 'Buyer 1',
+      fields: buildBuyerFields(0.74, 0.74),
+    },
+  ];
+
+  if (buyerEmail2 && buyerName2) {
+    submitters.push({
+      name: buyerName2,
+      email: buyerEmail2,
+      role: 'Buyer 2',
+      fields: buildBuyerFields(0.82, 0.82),
+    });
+  }
+
+  // Create submission from the uploaded template
+  const submBody = {
+    template_id: templateId,
+    send_email: false,
+    submitters,
+    ...(message ? { message } : {}),
+  };
+
+  const submRes = await fetch(`${DOCUSEAL_BASE}/submissions`, {
+    method: 'POST',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(submBody),
+  });
+
+  if (!submRes.ok) {
+    const text = await submRes.text().catch(() => '');
+    throw new Error(`DocuSeal submission creation failed (${submRes.status}): ${text.slice(0, 300)}`);
+  }
+
+  const submData = await submRes.json();
+  const submissionId = String(submData.id || '');
+
+  // Normalise submitters from DocuSeal response
+  const signerRows = (Array.isArray(submData.submitters) ? submData.submitters : []).map((sub, i) => {
+    const slug = sub.slug || null;
+    const signingUrl = slug ? `https://docuseal.com/s/${slug}` : (sub.embed_src || null);
+    return {
+      name: sub.name || submitters[i]?.name || '',
+      email: sub.email || submitters[i]?.email || '',
+      role: sub.role || submitters[i]?.role || 'Buyer',
+      status: sub.status || 'sent',
+      signingUrl,
+      uuid: sub.uuid || null,
+    };
+  });
+
+  return { submissionId, signerRows, templateId };
+}
+
 async function insertSignatureRequest(row) {
   const res = await supa('signature_requests', {
     method: 'POST',
@@ -402,6 +537,95 @@ module.exports = async function handler(req, res) {
     const { userId } = await verifySupabaseToken(req);
 
     const body = req.body || {};
+
+    // action: 'send_for_acknowledgment' — scanned Seller's Disclosure → buyer signs
+    const action = sanitizeString(body.action, { maxLength: 50 }) || null;
+    if (action === 'send_for_acknowledgment') {
+      const documentId = sanitizeString(body.document_id, { maxLength: 200 });
+      const formType = sanitizeString(body.form_type, { maxLength: 100 }) || 'sellers_disclosure';
+      const transactionId = sanitizeString(body.transaction_id, { maxLength: 200 }) || null;
+      const buyerEmail = sanitizeString(body.buyer_email, { maxLength: 200 });
+      const buyerName = sanitizeString(body.buyer_name, { maxLength: 200 });
+      const buyerEmail2 = sanitizeString(body.buyer_email_2, { maxLength: 200 }) || null;
+      const buyerName2 = sanitizeString(body.buyer_name_2, { maxLength: 200 }) || null;
+      const ackMessage = sanitizeString(body.message, { maxLength: 1000 }) || null;
+
+      if (!documentId) throw new ValidationError('document_id is required for send_for_acknowledgment.');
+      if (!buyerEmail || !buyerEmail.includes('@')) throw new ValidationError('buyer_email must be a valid email address.');
+      if (!buyerName) throw new ValidationError('buyer_name is required.');
+      if (buyerEmail2 && !buyerEmail2.includes('@')) throw new ValidationError('buyer_email_2 must be a valid email address.');
+      if (buyerEmail2 && !buyerName2) throw new ValidationError('buyer_name_2 is required when buyer_email_2 is provided.');
+
+      const doc = await getDocumentRow(documentId, userId);
+
+      if (!doc.storage_path) {
+        throw new ValidationError('Document has no storage path — cannot send for acknowledgment.', 422);
+      }
+
+      const { submissionId, signerRows, templateId: createdTemplateId } = await sendForAcknowledgment({
+        doc,
+        userId,
+        transactionId: transactionId || doc.transaction_id || null,
+        formType,
+        buyerEmail,
+        buyerName,
+        buyerEmail2,
+        buyerName2,
+        message: ackMessage,
+      });
+
+      const txId = transactionId || doc.transaction_id || null;
+      const tx = txId ? await getTransactionRow(txId, userId) : null;
+      const propertyAddress = tx ? (tx.property_address || '') : '';
+
+      // Send signing emails via Resend
+      await Promise.all(
+        signerRows.map((s) =>
+          sendSigningEmail({
+            signerName: s.name,
+            signerEmail: s.email,
+            documentName: doc.file_name || 'Seller\'s Disclosure Notice',
+            propertyAddress,
+            signingUrl: s.signingUrl,
+          }).catch((err) => {
+            console.error(`[esign-create] ack email failed for ${s.email}:`, err && err.message ? err.message : err);
+          })
+        )
+      );
+
+      const inserted = await insertSignatureRequest({
+        user_id: userId,
+        transaction_id: txId,
+        document_id: documentId,
+        docuseal_submission_id: submissionId,
+        status: 'sent',
+        signers: signerRows,
+        message: ackMessage || null,
+      });
+
+      // Update documents row with DocuSeal submission ID for tracking
+      if (submissionId) {
+        await supa(
+          `documents?id=eq.${encodeURIComponent(documentId)}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ docuseal_submission_id: submissionId }),
+            headers: { Prefer: 'return=minimal' },
+          }
+        ).catch((e) => {
+          console.warn('[esign-create] documents patch for submission_id failed:', e && e.message ? e.message : e);
+        });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        submissionId,
+        signatureRequestId: inserted?.id || null,
+        signers: signerRows,
+        docusealTemplateId: createdTemplateId,
+      });
+    }
+
     const documentId = sanitizeString(body.documentId, { maxLength: 200 });
     const templateId = sanitizeString(body.templateId, { maxLength: 200 }) || null;
     const message = sanitizeString(body.message, { maxLength: 1000 }) || null;
