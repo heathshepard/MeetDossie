@@ -10,7 +10,7 @@
 // Authorization: Bearer <supabase user JWT>
 
 const { PDFDocument } = require('pdf-lib');
-const TREC_39_10_BASE64 = require('./_assets/trec-39-10-base64.js');
+const TREC_39_10_BASE64 = require('./_assets/trec-amendment-39-11-base64.js');
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const {

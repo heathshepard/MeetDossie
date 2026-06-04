@@ -1,0 +1,2869 @@
+{
+  "templateId": 4023470,
+  "fields": [
+    {
+      "name": "property_address",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.294,
+          "y": 0.148,
+          "w": 0.647,
+          "h": 0.025
+        }
+      ]
+    },
+    {
+      "name": "seller_is_occupying",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.122,
+          "y": 0.242,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "seller_not_occupying",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.162,
+          "y": 0.242,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "years_since_occupied",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.838,
+          "y": 0.237,
+          "w": 0.103,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "range",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.283,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "oven",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.283,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "microwave",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.283,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "dishwasher",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.306,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "trash_compactor",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.306,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "disposal",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.306,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "washer_dryer_hookups",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.329,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "window_screens",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.329,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "rain_gutters",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.329,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "security_system",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.351,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "fire_detection",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.351,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "intercom_system",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.351,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "smoke_detector",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.374,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "smoke_detector_hearing",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.397,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "carbon_monoxide_alarm",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.419,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "emergency_escape_ladders",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.442,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "tv_antenna",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.465,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "cable_tv_wiring",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.465,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "satellite_dish",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.465,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "ceiling_fans",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.488,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "attic_fans",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.488,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "exhaust_fans",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.488,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "central_ac",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.51,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "central_heating",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.51,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "wall_window_ac",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.51,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "plumbing_system",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.533,
+          "w": 0.043,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "septic_system",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.533,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "public_sewer",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.533,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "patio_decking",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.556,
+          "w": 0.043,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "outdoor_grill",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.556,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "fences",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.556,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "pool",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.579,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "sauna",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.579,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "spa",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.579,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "hot_tub",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.779,
+          "y": 0.579,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "pool_equipment",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.601,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "pool_heater",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.352,
+          "y": 0.601,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "auto_lawn_sprinkler",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.601,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "fireplace_chimney",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.624,
+          "w": 0.044,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "gas_fixtures",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.624,
+          "w": 0.044,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "natural_gas_lines",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.653,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "lp_on_property",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.646,
+          "y": 0.653,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "liquid_propane_gas",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.102,
+          "y": 0.676,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "lp_community",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.288,
+          "y": 0.677,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "lp_property_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.509,
+          "y": 0.677,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "fuel_gas_piping",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.103,
+          "y": 0.699,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "black_iron_pipe",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.26,
+          "y": 0.699,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "corrugated_ss",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.414,
+          "y": 0.699,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "copper_piping",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.693,
+          "y": 0.7,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "garage_attached",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.161,
+          "y": 0.721,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "garage_not_attached",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.35,
+          "y": 0.723,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "carport",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.556,
+          "y": 0.723,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "garage_door_opener",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.278,
+          "y": 0.745,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "garage_remotes",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.471,
+          "y": 0.745,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_heater_gas",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.279,
+          "y": 0.769,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_heater_electric",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.471,
+          "y": 0.769,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_supply_city",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.279,
+          "y": 0.792,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_supply_well",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.471,
+          "y": 0.791,
+          "w": 0.048,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_supply_mud",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.659,
+          "y": 0.793,
+          "w": 0.042,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_supply_coop",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.831,
+          "y": 0.792,
+          "w": 0.048,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "roof_type",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.179,
+          "y": 0.827,
+          "w": 0.389,
+          "h": 0.021
+        }
+      ]
+    },
+    {
+      "name": "roof_age",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.61,
+          "y": 0.827,
+          "w": 0.193,
+          "h": 0.021
+        }
+      ]
+    },
+    {
+      "name": "aware_defects_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.211,
+          "y": 0.879,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "aware_defects_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.269,
+          "y": 0.879,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "aware_defects_unknown",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.328,
+          "y": 0.879,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "defect_detail",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.828,
+          "y": 0.879,
+          "w": 0.108,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "defect_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.108,
+          "y": 0.901,
+          "w": 0.829,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "defect_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.108,
+          "y": 0.924,
+          "w": 0.829,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "defect_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 0,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.108,
+          "y": 0.947,
+          "w": 0.829,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "property_address_p2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.441,
+          "y": 0.023,
+          "w": 0.397,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "section2_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.313,
+          "y": 0.073,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "section2_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.372,
+          "y": 0.073,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "section2_unknown",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.431,
+          "y": 0.073,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "section2_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.358,
+          "y": 0.083,
+          "w": 0.579,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section2_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.106,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section2_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.129,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section2_desc_4",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.151,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "foundation_slab",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.352,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "foundation_pier",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.382,
+          "y": 0.352,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "foundation_other",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.662,
+          "y": 0.352,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "basement_crawl",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.375,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "walls_interior",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.382,
+          "y": 0.375,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "walls_exterior",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.662,
+          "y": 0.375,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "doors",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.398,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "windows",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.382,
+          "y": 0.398,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "ceilings",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.662,
+          "y": 0.398,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "floors",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.42,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "roof_condition",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.382,
+          "y": 0.42,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "electrical",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.662,
+          "y": 0.42,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "plumbing_cond",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.443,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "hvac",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.382,
+          "y": 0.443,
+          "w": 0.047,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "insulation",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.662,
+          "y": 0.443,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "driveways",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.466,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "section3_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.416,
+          "y": 0.469,
+          "w": 0.52,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section3_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.137,
+          "y": 0.492,
+          "w": 0.8,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section3_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.137,
+          "y": 0.515,
+          "w": 0.8,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section4_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.681,
+          "y": 0.538,
+          "w": 0.255,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section4_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.56,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section4_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.583,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "prev_flooding",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.625,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "water_penetration",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.648,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "in_floodplain",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.67,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "flood_insurance",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.693,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "foundation_repair",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.716,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "soil_movement",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.739,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "landfill_settling",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.761,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "underground_tanks",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.784,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "lead_paint",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.625,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "asbestos",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.648,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "urea_formaldehyde",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.67,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "radon_gas",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.693,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "aluminum_wiring",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.716,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "defective_paint",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.739,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "termites",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.761,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "prev_termite_damage",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.784,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "prev_termite_treat",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.807,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "hazardous_materials",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.83,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "previous_repairs",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.515,
+          "y": 0.852,
+          "w": 0.046,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "section5_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.681,
+          "y": 0.89,
+          "w": 0.255,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section5_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.913,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section5_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 1,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.935,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "property_address_p3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.441,
+          "y": 0.023,
+          "w": 0.397,
+          "h": 0.022
+        }
+      ]
+    },
+    {
+      "name": "prev_meth_lab",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.073,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "unplatted_easement",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.787,
+          "y": 0.059,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "section6_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.652,
+          "y": 0.072,
+          "w": 0.285,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section6_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.094,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section6_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.117,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "subsurface",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.159,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "grading_drainage",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.182,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "well_condition",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.205,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "exterior_cond",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.25,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "room_additions",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.273,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "deed_restrictions",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.295,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "hoa_membership",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.318,
+          "w": 0.045,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "lawsuits",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.341,
+          "w": 0.046,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "item7_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.196,
+          "y": 0.255,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item7_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.269,
+          "y": 0.255,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item8_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.196,
+          "y": 0.278,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item8_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.269,
+          "y": 0.278,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item9_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.196,
+          "y": 0.301,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item9_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.269,
+          "y": 0.301,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item10_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.196,
+          "y": 0.323,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item10_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.269,
+          "y": 0.323,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item11_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.196,
+          "y": 0.346,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "item11_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.269,
+          "y": 0.346,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "section7_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.681,
+          "y": 0.367,
+          "w": 0.255,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "section7_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.39,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "condition_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.328,
+          "y": 0.789,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "condition_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.387,
+          "y": 0.789,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "condition_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.813,
+          "y": 0.788,
+          "w": 0.123,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "condition_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.092,
+          "y": 0.81,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "insurance_yes",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.166,
+          "y": 0.926,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "insurance_no",
+      "type": "checkbox",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.225,
+          "y": 0.926,
+          "w": 0.016,
+          "h": 0.013
+        }
+      ]
+    },
+    {
+      "name": "insurance_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.652,
+          "y": 0.924,
+          "w": 0.285,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "insurance_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 2,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.092,
+          "y": 0.947,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "property_address_p4",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.441,
+          "y": 0.023,
+          "w": 0.397,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "additional_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.08,
+          "w": 0.044,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "additional_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.114,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "additional_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.136,
+          "w": 0.044,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "additional_4",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.17,
+          "w": 0.044,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "additional_5",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.205,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "additional_6",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.227,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "additional_7",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.25,
+          "w": 0.044,
+          "h": 0.029
+        }
+      ]
+    },
+    {
+      "name": "additional_8",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.088,
+          "y": 0.284,
+          "w": 0.044,
+          "h": 0.023
+        }
+      ]
+    },
+    {
+      "name": "additional_desc_1",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.681,
+          "y": 0.322,
+          "w": 0.255,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "additional_desc_2",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.344,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "additional_desc_3",
+      "type": "text",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.093,
+          "y": 0.367,
+          "w": 0.844,
+          "h": 0.016
+        }
+      ]
+    },
+    {
+      "name": "seller_signature_1",
+      "type": "signature",
+      "required": true,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.059,
+          "y": 0.648,
+          "w": 0.368,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "seller_date_1",
+      "type": "date",
+      "required": true,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.427,
+          "y": 0.648,
+          "w": 0.088,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "seller_signature_2",
+      "type": "signature",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.529,
+          "y": 0.647,
+          "w": 0.353,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "seller_date_2",
+      "type": "date",
+      "required": false,
+      "submitter_uuid": "seller-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.882,
+          "y": 0.647,
+          "w": 0.088,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "buyer_signature_1",
+      "type": "signature",
+      "required": true,
+      "submitter_uuid": "buyer-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.059,
+          "y": 0.818,
+          "w": 0.368,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "buyer_date_1",
+      "type": "date",
+      "required": true,
+      "submitter_uuid": "buyer-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.427,
+          "y": 0.818,
+          "w": 0.088,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "buyer_signature_2",
+      "type": "signature",
+      "required": false,
+      "submitter_uuid": "buyer-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.529,
+          "y": 0.818,
+          "w": 0.353,
+          "h": 0.034
+        }
+      ]
+    },
+    {
+      "name": "buyer_date_2",
+      "type": "date",
+      "required": false,
+      "submitter_uuid": "buyer-sd",
+      "areas": [
+        {
+          "page": 3,
+          "attachment_uuid": "a7113836-4e94-46e1-aa90-72b35587fea0",
+          "x": 0.882,
+          "y": 0.818,
+          "w": 0.088,
+          "h": 0.034
+        }
+      ]
+    }
+  ]
+}

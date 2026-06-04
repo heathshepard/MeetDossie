@@ -151,3 +151,6 @@ welcome-preview.html
 northwest-*.png
 tx-form-*.png
 tx-sos-*.png
+
+# Raw PDF downloads — base64 JS files are the committed form; raw PDFs stay local only
+api/_assets/*-raw.pdf
