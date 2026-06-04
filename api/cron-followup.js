@@ -114,9 +114,10 @@ module.exports = async function handler(req, res) {
             }
           }
 
-          const greeting = item.assigned_to_name
-            ? `Hi ${escapeHtml(item.assigned_to_name)}`
-            : 'Hi there';
+          const firstName = item.assigned_to_name
+            ? item.assigned_to_name.trim().split(/\s+/)[0]
+            : (item.assigned_to_email ? item.assigned_to_email.split('@')[0] : null);
+          const greeting = firstName ? `Hi ${escapeHtml(firstName)}` : 'Hi';
           const dealTag = propertyAddress ? ` — ${propertyAddress}` : '';
           const subject = `Following up${dealTag} — ${item.email_subject || item.description}`;
           const dealLine = propertyAddress
