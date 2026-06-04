@@ -36,14 +36,14 @@ const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 // require inside the handler so cold-start cost is bounded.
 // ---------------------------------------------------------------------------
 const FORM_B64_MAP = {
-  'resale-contract':       () => require('./_assets/trec-resale-base64.js'),
+  'resale-contract':       () => require('./_assets/trec-resale-20-19-base64.js'),
   'financing-addendum':    () => require('./_assets/trec-financing-base64.js'),
   'termination-notice':    () => require('./_assets/trec-termination-base64.js'),
   'wire-fraud-warning':    () => require('./_assets/tar-wire-fraud-base64.js'),
-  'hoa-addendum':          () => require('./_assets/trec-hoa-addendum-base64.js'),
+  'hoa-addendum':          () => require('./_assets/trec-hoa-addendum-36-11-base64.js'),
   'lead-paint-addendum':   () => require('./_assets/trec-lead-paint-base64.js'),
-  'sellers-disclosure':    () => require('./_assets/trec-sellers-disclosure-base64.js'),
-  'amendment':             () => require('./_assets/trec-39-10-base64.js'),
+  'sellers-disclosure':    () => require('./_assets/trec-sellers-disclosure-55-1-base64.js'),
+  'amendment':             () => require('./_assets/trec-amendment-39-11-base64.js'),
   'buyer-rep-agreement':   () => require('./_assets/tar-buyer-rep-base64.js'),
   'appraisal-termination': () => require('./_assets/trec-49-1-base64.js'),
   't47-affidavit':         () => require('./_assets/t47-affidavit-base64.js'),
@@ -53,7 +53,7 @@ const FORM_B64_MAP = {
   'sellers-temp-lease':    () => require('./_assets/trec-sellers-temp-lease-base64.js'),
   'sale-other-property':   () => require('./_assets/trec-sale-other-property-base64.js'),
   'oil-gas-minerals':      () => require('./_assets/trec-oil-gas-minerals-base64.js'),
-  'backup-contract':       () => require('./_assets/trec-backup-contract-base64.js'),
+  'backup-contract':       () => require('./_assets/trec-backup-contract-11-9-base64.js'),
   'coastal-area':          () => require('./_assets/trec-coastal-area-base64.js'),
   'hydrostatic-testing':   () => require('./_assets/trec-hydrostatic-testing-base64.js'),
   'environmental':         () => require('./_assets/trec-environmental-base64.js'),

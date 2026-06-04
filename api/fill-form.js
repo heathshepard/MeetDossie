@@ -26,33 +26,33 @@ const BUCKET = 'documents';
 
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
-// Template created 2026-05-30 via scripts/create-trec-20-18-template.js
-// 45 fields: 30 pre-fill text/checkbox + buyer/seller signatures + initials pages 1-8
-const DOCUSEAL_TREC_20_18_TEMPLATE_ID = Number(process.env.DOCUSEAL_TREC_20_18_TEMPLATE_ID) || 4018208;
+// Template created 2026-06-03: TREC 20-19 (replaces 20-18, mandatory July 1 2026)
+// 22 fields: buyer/seller initials pages 1-8 + signatures page 9
+const DOCUSEAL_TREC_20_19_TEMPLATE_ID = Number(process.env.DOCUSEAL_TREC_20_19_TEMPLATE_ID) || 4111319;
 
 // Module-scope requires — loaded at cold-start, not per-request.
 // Prevents 500 errors on first request to a cold Vercel instance.
-const TREC_RESALE_B64 = require('./_assets/trec-resale-base64.js');
+const TREC_RESALE_B64 = require('./_assets/trec-resale-20-19-base64.js');
 const TREC_FINANCING_B64 = require('./_assets/trec-financing-base64.js');
 const TREC_TERMINATION_B64 = require('./_assets/trec-termination-base64.js');
 const TAR_WIRE_FRAUD_B64 = require('./_assets/tar-wire-fraud-base64.js');
-const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-base64.js');
+const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-36-11-base64.js');
 const TREC_LEAD_PAINT_B64 = require('./_assets/trec-lead-paint-base64.js');
-const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-base64.js');
-const TREC_39_10_B64 = require('./_assets/trec-39-10-base64.js');
+const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-55-1-base64.js');
+const TREC_39_10_B64 = require('./_assets/trec-amendment-39-11-base64.js');
 const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
 const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
 const T47_AFFIDAVIT_B64 = require('./_assets/t47-affidavit-base64.js');
 const TREC_UNIMPROVED_PROPERTY_B64 = require('./_assets/trec-unimproved-property-base64.js');
-const TREC_NEW_HOME_INCOMPLETE_B64 = require('./_assets/trec-new-home-incomplete-base64.js');
-const TREC_NEW_HOME_COMPLETE_B64 = require('./_assets/trec-new-home-complete-base64.js');
-const TREC_FARM_RANCH_B64 = require('./_assets/trec-farm-ranch-base64.js');
+const TREC_NEW_HOME_INCOMPLETE_B64 = require('./_assets/trec-new-home-incomplete-23-20-base64.js');
+const TREC_NEW_HOME_COMPLETE_B64 = require('./_assets/trec-new-home-complete-24-20-base64.js');
+const TREC_FARM_RANCH_B64 = require('./_assets/trec-farm-ranch-25-17-base64.js');
 const TREC_SELLER_FINANCING_B64 = require('./_assets/trec-seller-financing-base64.js');
 const TREC_BUYERS_TEMP_LEASE_B64 = require('./_assets/trec-buyers-temp-lease-base64.js');
 const TREC_SELLERS_TEMP_LEASE_B64 = require('./_assets/trec-sellers-temp-lease-base64.js');
 const TREC_SALE_OTHER_PROPERTY_B64 = require('./_assets/trec-sale-other-property-base64.js');
 const TREC_OIL_GAS_MINERALS_B64 = require('./_assets/trec-oil-gas-minerals-base64.js');
-const TREC_BACKUP_CONTRACT_B64 = require('./_assets/trec-backup-contract-base64.js');
+const TREC_BACKUP_CONTRACT_B64 = require('./_assets/trec-backup-contract-11-9-base64.js');
 const TREC_COASTAL_AREA_B64 = require('./_assets/trec-coastal-area-base64.js');
 const TREC_HYDROSTATIC_TESTING_B64 = require('./_assets/trec-hydrostatic-testing-base64.js');
 const TREC_ENVIRONMENTAL_B64 = require('./_assets/trec-environmental-base64.js');
@@ -480,7 +480,7 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
     method: 'POST',
     headers: { 'X-Auth-Token': DOCUSEAL_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      template_id: DOCUSEAL_TREC_20_18_TEMPLATE_ID,
+      template_id: DOCUSEAL_TREC_20_19_TEMPLATE_ID,
       send_email: false,
       submitters: [
         { role: 'Buyer',  name: buyerName  || fv.buyer_name  || 'Buyer',  email: buyerEmail  || '', fields: buyerFields },
