@@ -1,0 +1,337 @@
+{
+  "templateId": 4023466,
+  "name": "TREC 36-11 HOA Addendum",
+  "slug": "XwoaLLCUxsZWnW",
+  "submitters": [
+    {
+      "name": "Buyer",
+      "uuid": "buyer-hoa"
+    },
+    {
+      "name": "Seller",
+      "uuid": "seller-hoa"
+    }
+  ],
+  "fields": [
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "property_address",
+      "type": "text",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.06,
+          "y": 0.073,
+          "w": 0.88,
+          "h": 0.015,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "hoa_name_and_phone",
+      "type": "text",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.06,
+          "y": 0.09,
+          "w": 0.88,
+          "h": 0.015,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "option_1_within_days",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.142,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "option_1_days_count",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.135,
+          "y": 0.142,
+          "w": 0.06,
+          "h": 0.013,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "option_2_within_days",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.195,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "option_2_days_count",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.135,
+          "y": 0.195,
+          "w": 0.06,
+          "h": 0.013,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "option_3_received_approved",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.24,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "does_require_updated_cert",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.68,
+          "y": 0.252,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "does_not_require_updated_cert",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.74,
+          "y": 0.252,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "option_4_no_delivery_required",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.278,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "reserve_deposit_amount",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.06,
+          "y": 0.31,
+          "w": 0.88,
+          "h": 0.013,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "buyer_pays_resale_cert",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.25,
+          "y": 0.345,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "seller_pays_resale_cert",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.35,
+          "y": 0.345,
+          "w": 0.016,
+          "h": 0.01,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "material_changes_assessment",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.55,
+          "y": 0.385,
+          "w": 0.12,
+          "h": 0.013,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "buyer_signature_1",
+      "type": "signature",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.455,
+          "w": 0.4,
+          "h": 0.025,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "buyer_signature_2",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.488,
+          "w": 0.4,
+          "h": 0.025,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "seller_signature_1",
+      "type": "signature",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.455,
+          "w": 0.4,
+          "h": 0.025,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "seller_signature_2",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.488,
+          "w": 0.4,
+          "h": 0.025,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-hoa",
+      "name": "buyer_date",
+      "type": "date",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.48,
+          "w": 0.15,
+          "h": 0.013,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-hoa",
+      "name": "seller_date",
+      "type": "date",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.48,
+          "w": 0.15,
+          "h": 0.013,
+          "attachment_uuid": "59e63b8b-f406-4543-ad52-be7c73c961e7",
+          "page": 0
+        }
+      ]
+    }
+  ]
+}

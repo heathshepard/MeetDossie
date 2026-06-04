@@ -233,7 +233,9 @@ async function downloadAndStoreSigned(sr, fileName) {
 }
 
 // Email the seller's agent the fully executed PDF as an attachment.
-async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress) {
+// dossieUserEmail is the transaction owner's email (from profiles) — used as reply_to
+// so the seller's agent can reply directly to the Dossie user who initiated the signing.
+async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress, dossieUserEmail) {
   if (!RESEND_API_KEY || !sellerAgentEmail) return;
   try {
     const base64Pdf = pdfBuffer.toString('base64');
@@ -247,14 +249,15 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Dossie <heath@meetdossie.com>',
+        from: 'Dossie <dossie@meetdossie.com>',
         to: [sellerAgentEmail],
+        ...(dossieUserEmail ? { reply_to: dossieUserEmail } : {}),
         subject,
         html: `
           <p>Hi ${sellerAgentName || 'there'},</p>
           <p>Please find the fully executed purchase contract attached. All parties have signed.</p>
-          <p>Sent via <strong>DossieSign</strong> &mdash; transaction management for Texas REALTORS.</p>
-          <p style="color:#888;font-size:12px;">Dossie &mdash; Your deals. Her job.</p>
+          <p>Sent via <strong>DossieSign</strong> - transaction management for Texas REALTORS.</p>
+          <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
         attachments: [
           {
@@ -280,14 +283,14 @@ async function sendCompletionEmail(agentEmail, agentName, fileName) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Dossie <heath@meetdossie.com>',
+        from: 'Dossie <dossie@meetdossie.com>',
         to: [agentEmail],
         subject: `All signatures complete: ${fileName}`,
         html: `
           <p>Hi ${agentName || 'there'},</p>
           <p>All parties have signed <strong>${fileName}</strong>. The signed copy has been saved to your Dossie document library.</p>
           <p>Log in to download or share the signed document: <a href="https://meetdossie.com/app">meetdossie.com/app</a></p>
-          <p style="color:#888;font-size:12px;">Dossie &mdash; Your deals. Her job.</p>
+          <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
       }),
     });
@@ -437,21 +440,22 @@ module.exports = async function handler(req, res) {
       // Mark the request completed.
       await markRequestCompleted(sr.id, signedDocId);
 
-      // Send agent email notification.
-      const agentInfo = await fetchAgentEmailForUser(sr.user_id);
-      await sendCompletionEmail(agentInfo?.email, agentInfo?.full_name, fileName);
+      // Fetch the Dossie user's profile (transaction owner) for notifications + reply_to.
+      const dossieUser = await fetchAgentEmailForUser(sr.user_id);
+      await sendCompletionEmail(dossieUser?.email, dossieUser?.full_name, fileName);
 
       // If a seller's agent email is on the signature request, send them the executed PDF.
+      // reply_to is set to the Dossie user's own email so the seller's agent can reply directly to them.
       if (sr.seller_agent_email && signedPdfBuffer) {
         await sendSellerAgentEmail(
           sr.seller_agent_email,
           sr.seller_agent_name || null,
           fileName,
           signedPdfBuffer,
-          propertyAddress
+          propertyAddress,
+          dossieUser?.email || null
         );
       } else if (sr.seller_agent_email && !signedPdfBuffer) {
-        // DOCUSEAL_API_KEY not set or PDF fetch failed — log so we know to retry.
         console.warn(`[esign-webhook] seller_agent_email set (${sr.seller_agent_email}) but could not fetch signed PDF buffer — skipping seller email.`);
       }
 

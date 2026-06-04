@@ -1,0 +1,225 @@
+{
+  "templateId": 4023472,
+  "name": "TREC 49-1 Right to Terminate Due to Lenders Appraisal",
+  "slug": "A62LAofgEzCkph",
+  "submitters": [
+    {
+      "name": "Buyer",
+      "uuid": "buyer-1780174372213"
+    },
+    {
+      "name": "Seller",
+      "uuid": "seller-1780174372213"
+    }
+  ],
+  "fields": [
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "property_address",
+      "type": "text",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.37,
+          "y": 0.047,
+          "w": 0.52,
+          "h": 0.016,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "waiver_checkbox",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.105,
+          "w": 0.018,
+          "h": 0.012,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "partial_waiver_checkbox",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.18,
+          "w": 0.018,
+          "h": 0.012,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "opinion_of_value_amount",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.36,
+          "y": 0.21,
+          "w": 0.15,
+          "h": 0.014,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "additional_right_checkbox",
+      "type": "checkbox",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.25,
+          "w": 0.018,
+          "h": 0.012,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "additional_days",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.095,
+          "y": 0.28,
+          "w": 0.08,
+          "h": 0.014,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "less_than_amount",
+      "type": "text",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.26,
+          "y": 0.295,
+          "w": 0.15,
+          "h": 0.014,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "buyer_signature_1",
+      "type": "signature",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.365,
+          "w": 0.35,
+          "h": 0.025,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "buyer_signature_2",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.4,
+          "w": 0.35,
+          "h": 0.025,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-1780174372213",
+      "name": "seller_signature_1",
+      "type": "signature",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.365,
+          "w": 0.35,
+          "h": 0.025,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-1780174372213",
+      "name": "seller_signature_2",
+      "type": "signature",
+      "required": false,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.4,
+          "w": 0.35,
+          "h": 0.025,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "buyer-1780174372213",
+      "name": "buyer_date_1",
+      "type": "date",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.063,
+          "y": 0.39,
+          "w": 0.15,
+          "h": 0.014,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    },
+    {
+      "submitter_uuid": "seller-1780174372213",
+      "name": "seller_date_1",
+      "type": "date",
+      "required": true,
+      "areas": [
+        {
+          "x": 0.52,
+          "y": 0.39,
+          "w": 0.15,
+          "h": 0.014,
+          "attachment_uuid": "005509b6-e3c4-45bd-9610-3e0eb3c5d488",
+          "page": 0
+        }
+      ]
+    }
+  ]
+}

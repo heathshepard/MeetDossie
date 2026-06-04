@@ -69,9 +69,9 @@ export default async function handler(req, res) {
     // We join this with subscriptions to get paying customers only
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get all non-demo profiles
+    // Get all non-demo profiles — last_seen_at is updated on every authenticated API call
     const profilesRes = await supa(
-      'profiles?select=id,email,full_name,is_demo,created_at&is_demo=eq.false&limit=200'
+      'profiles?select=id,email,full_name,is_demo,created_at,last_seen_at&is_demo=eq.false&limit=200'
     );
     if (!profilesRes.ok) {
       const err = await profilesRes.text();
@@ -117,12 +117,15 @@ export default async function handler(req, res) {
     const customers = [];
 
     for (const p of payingProfiles) {
+      // last_seen_at is the primary active signal — updated on every authenticated API call.
+      // last_sign_in_at from auth.users is secondary — only updates on explicit re-auth.
+      const lastSeen = p.last_seen_at || lastSignInMap[p.id] || null;
       const lastSignIn = lastSignInMap[p.id] || null;
-      const loggedInRecently = lastSignIn && new Date(lastSignIn) >= new Date(sevenDaysAgo);
+      const activeRecently = lastSeen && new Date(lastSeen) >= new Date(sevenDaysAgo);
 
-      if (!lastSignIn) {
+      if (!lastSeen) {
         neverLoggedIn++;
-      } else if (loggedInRecently) {
+      } else if (activeRecently) {
         loggedInThisWeek++;
       }
 
@@ -131,9 +134,10 @@ export default async function handler(req, res) {
         name: p.full_name || p.email || 'Unknown',
         email: p.email,
         createdAt: p.created_at,
-        lastSignIn,
-        activatedThisWeek: Boolean(loggedInRecently),
-        neverLoggedIn: !lastSignIn,
+        lastSignIn: lastSeen,
+        lastExplicitSignIn: lastSignIn,
+        activatedThisWeek: Boolean(activeRecently),
+        neverLoggedIn: !lastSeen,
       });
     }
 

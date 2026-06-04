@@ -11,6 +11,21 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Writes last_seen_at to profiles on every authenticated request.
+// Fire-and-forget — never blocks or fails the caller.
+function touchLastSeen(userId) {
+  fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ last_seen_at: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
 class AuthError extends Error {
   constructor(message, status = 401) {
     super(message);
@@ -70,6 +85,8 @@ async function verifySupabaseToken(req) {
   if (!user || !user.id) {
     throw new AuthError('Token did not resolve to a user.');
   }
+
+  touchLastSeen(user.id);
 
   return {
     userId: user.id,
