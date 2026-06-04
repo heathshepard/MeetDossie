@@ -94,51 +94,27 @@ export default async function handler(req, res) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Query auth.users directly for performance (replaces slow listUsers() call)
-    let active7d = 0;
-    let active30d = 0;
-    let neverLoggedIn = 0;
+    // Active user counts from profiles.last_seen_at — updated on every authenticated API call.
+    // auth.users is not exposed via PostgREST so this is the correct approach.
+    const { count: active7d } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_demo', false)
+      .not('last_seen_at', 'is', null)
+      .gte('last_seen_at', sevenDaysAgo.toISOString());
 
-    try {
-      // Count users active in last 7 days (exclude demo accounts)
-      const { count: count7d, error: error7d } = await supabase
-        .from('auth.users')
-        .select('id', { count: 'exact', head: true })
-        .not('email', 'like', '%demo%')
-        .not('last_sign_in_at', 'is', null)
-        .gte('last_sign_in_at', sevenDaysAgo.toISOString());
+    const { count: active30d } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_demo', false)
+      .not('last_seen_at', 'is', null)
+      .gte('last_seen_at', thirtyDaysAgo.toISOString());
 
-      if (error7d) throw error7d;
-      active7d = count7d || 0;
-
-      // Count users active in last 30 days (exclude demo accounts)
-      const { count: count30d, error: error30d } = await supabase
-        .from('auth.users')
-        .select('id', { count: 'exact', head: true })
-        .not('email', 'like', '%demo%')
-        .not('last_sign_in_at', 'is', null)
-        .gte('last_sign_in_at', thirtyDaysAgo.toISOString());
-
-      if (error30d) throw error30d;
-      active30d = count30d || 0;
-
-      // Count users who never logged in (exclude demo accounts)
-      const { count: countNever, error: errorNever } = await supabase
-        .from('auth.users')
-        .select('id', { count: 'exact', head: true })
-        .not('email', 'like', '%demo%')
-        .is('last_sign_in_at', null);
-
-      if (errorNever) throw errorNever;
-      neverLoggedIn = countNever || 0;
-
-    } catch (authQueryError) {
-      console.error('Auth query error:', authQueryError);
-      // Return zeros on error - dashboard will still load with other metrics
-      active7d = 0;
-      active30d = 0;
-      neverLoggedIn = 0;
-    }
+    const { count: neverLoggedIn } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_demo', false)
+      .is('last_seen_at', null);
 
     metrics.users = {
       total: totalUsers || 0,
@@ -328,7 +304,7 @@ export default async function handler(req, res) {
     // Get all non-demo customers with their activity
     const { data: customerProfiles } = await supabase
       .from('profiles')
-      .select('id, name, email')
+      .select('id, name, email, last_seen_at')
       .eq('is_demo', false)
       .order('name');
 
@@ -380,12 +356,9 @@ export default async function handler(req, res) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id);
 
-      // Get last login and email from auth.users via admin API
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
-
       customerUsage.push({
-        name: profile.name || authUser?.user?.email?.split('@')[0] || 'Unknown',
-        email: profile.email || authUser?.user?.email || 'Unknown',
+        name: profile.name || profile.email?.split('@')[0] || 'Unknown',
+        email: profile.email || 'Unknown',
         plan: sub?.plan || 'none',
         documents: docsCount || 0,
         actionsCompleted: actionsCount || 0,
@@ -393,7 +366,7 @@ export default async function handler(req, res) {
         transactions: transactionsCount || 0,
         milestones: milestonesCount || 0,
         shares: sharesCount || 0,
-        lastLogin: authUser?.user?.last_sign_in_at || null,
+        lastLogin: profile.last_seen_at || null,
         totalActivity: (docsCount || 0) + (actionsCount || 0) + (emailsCount || 0) + (transactionsCount || 0),
       });
     }
@@ -518,26 +491,24 @@ export default async function handler(req, res) {
     for (const sub of allSubscriptions || []) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('name, email, last_seen_at')
         .eq('id', sub.user_id)
         .single();
-
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(sub.user_id);
 
       const { count: userTransactions } = await supabase
         .from('transactions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', sub.user_id);
 
-      const lastLogin = authUser?.user?.last_sign_in_at ? new Date(authUser.user.last_sign_in_at) : null;
+      const lastSeen = profile?.last_seen_at ? new Date(profile.last_seen_at) : null;
       const now = new Date();
       let activityLevel = 'inactive';
 
-      if (lastLogin) {
-        const daysSinceLogin = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
-        if (daysSinceLogin === 0) activityLevel = 'daily';
-        else if (daysSinceLogin <= 7) activityLevel = 'weekly';
-        else if (daysSinceLogin <= 30) activityLevel = 'monthly';
+      if (lastSeen) {
+        const daysSince = Math.floor((now - lastSeen) / (1000 * 60 * 60 * 24));
+        if (daysSince === 0) activityLevel = 'daily';
+        else if (daysSince <= 7) activityLevel = 'weekly';
+        else if (daysSince <= 30) activityLevel = 'monthly';
         else activityLevel = 'inactive';
       }
 
@@ -545,10 +516,10 @@ export default async function handler(req, res) {
       const daysSinceSignup = Math.floor((now - signupDate) / (1000 * 60 * 60 * 24));
 
       customerDetails.push({
-        name: profile?.name || authUser?.user?.email?.split('@')[0] || 'Unknown',
-        email: profile?.email || authUser?.user?.email || 'Unknown',
+        name: profile?.name || profile?.email?.split('@')[0] || 'Unknown',
+        email: profile?.email || 'Unknown',
         plan: sub.plan,
-        lastLogin: lastLogin ? lastLogin.toISOString() : null,
+        lastLogin: lastSeen ? lastSeen.toISOString() : null,
         activityLevel,
         daysSinceSignup,
         transactions: userTransactions || 0,
