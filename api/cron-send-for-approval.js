@@ -166,7 +166,6 @@ function formatFullContent(post) {
 function inlineKeyboard(postId) {
   return {
     inline_keyboard: [[
-      { text: '✅ Approve', callback_data: `approve_${postId}` },
       { text: '❌ Reject', callback_data: `reject_${postId}` },
       { text: '✏️ Edit', callback_data: `edit_${postId}` },
     ]],
@@ -315,7 +314,8 @@ module.exports = async function handler(req, res) {
     const isDraft = post.status === 'draft';
     const buttons = isDraft ? inlineKeyboard(post.id) : null;
     const warningPrefix = (scoreData && scoreData.composite >= 5.5 && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '';
-    const prefix = isDraft ? `${warningPrefix}${scoreLine}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
+    const autoPostHeader = isDraft ? '⏱ Auto-posting in 30 min — tap Reject to cancel\n\n' : '';
+    const prefix = isDraft ? `${autoPostHeader}${warningPrefix}${scoreLine}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
     const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
     if (!textResult.ok) {
       console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
