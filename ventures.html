@@ -2504,7 +2504,7 @@
           <div class="drop-zone-text">
             <strong>Drop files here</strong> or click to browse
           </div>
-          <div class="drop-zone-sub">Max 50MB per file — stored in Supabase Storage</div>
+          <div class="drop-zone-sub">Max 200MB per file — stored in Supabase Storage</div>
         </div>
         <div class="file-list" id="file-list">
           <!-- Populated by JS -->
@@ -3723,10 +3723,10 @@
     FILE_INPUT.addEventListener('change', () => handleFiles(FILE_INPUT.files));
 
     async function handleFiles(fileList) {
-      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+      const MAX_SIZE = 200 * 1024 * 1024; // 200MB
       for (const file of Array.from(fileList)) {
         if (file.size > MAX_SIZE) {
-          alert(`${file.name} is too large (max 50MB).`);
+          alert(`${file.name} is too large (max 200MB).`);
           continue;
         }
         await uploadFile(file);
