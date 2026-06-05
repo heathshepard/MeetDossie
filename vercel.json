@@ -285,6 +285,10 @@
                   {
                       "path":  "/api/cron-activation-drip",
                       "schedule":  "0 15 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-testimonial-request",
+                      "schedule":  "0 14 * * *"
                   }
               ]
 }
