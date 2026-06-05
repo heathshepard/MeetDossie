@@ -13,6 +13,11 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ## Week of June 5, 2026
 
+**Auto-post system — social media runs itself now**
+- Social media posts now go out every day automatically without requiring manual approval. DossieMarketingBot sends a preview 30 minutes before each post. Tap Reject only if you want to stop a specific post. Nothing required on a normal day.
+
+
+
 **Activation emails are now actually running**
 - The onboarding check-in emails Dossie sends at days 4, 7, and 14 after signup were never actually going out - they were built but not scheduled. They are now running daily and will send to every active member at the right intervals going forward.
 
