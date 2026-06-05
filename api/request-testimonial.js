@@ -64,38 +64,54 @@ function buildEmailHtml({ firstName, propertyAddress, googleReviewUrl, zillowRev
   const name = (firstName || '').trim() || 'there';
   const property = propertyAddress || 'your recently closed property';
 
-  const googleBlock = googleReviewUrl
-    ? `<a href="${googleReviewUrl}" style="display: inline-block; margin: 6px 8px 6px 0; padding: 10px 20px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 14px;">Leave a Google Review</a>`
-    : `<span style="font-size: 13px; color: ${BRAND_MUTED};">Google review link not set - add it in <a href="https://meetdossie.com/app" style="color: ${BRAND_CORAL};">Settings</a>.</span>`;
+  const hasGoogle = Boolean(googleReviewUrl);
+  const hasZillow = Boolean(zillowReviewUrl);
+  const hasAnyLinks = hasGoogle || hasZillow;
 
-  const zillowBlock = zillowReviewUrl
+  const googleBlock = hasGoogle
+    ? `<a href="${googleReviewUrl}" style="display: inline-block; margin: 6px 8px 6px 0; padding: 10px 20px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 14px;">Leave a Google Review</a>`
+    : '';
+
+  const zillowBlock = hasZillow
     ? `<a href="${zillowReviewUrl}" style="display: inline-block; margin: 6px 8px 6px 0; padding: 10px 20px; background: ${BRAND_NAVY}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 14px;">Leave a Zillow Review</a>`
-    : `<span style="font-size: 13px; color: ${BRAND_MUTED};">Zillow review link not set - add it in <a href="https://meetdossie.com/app" style="color: ${BRAND_CORAL};">Settings</a>.</span>`;
+    : '';
+
+  const reviewLinksSection = hasAnyLinks
+    ? `<div style="margin: 0 0 28px;">
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; color: ${BRAND_MUTED}; text-transform: uppercase; margin-bottom: 12px;">Your review links</div>
+    ${hasGoogle ? `<div>${googleBlock}</div>` : ''}
+    ${hasZillow ? `<div style="margin-top: 8px;">${zillowBlock}</div>` : ''}
+  </div>`
+    : `<div style="margin: 0 0 28px; padding: 14px 18px; background: #F5F0EA; border-radius: 8px;">
+    <p style="font-size: 14px; color: ${BRAND_TEXT_SOFT}; margin: 0;">Add your Google and Zillow review links in <a href="https://meetdossie.com/app" style="color: ${BRAND_CORAL};">Settings</a> so Dossie can include them automatically next time.</p>
+  </div>`;
+
+  const reviewLinksInCopy = [
+    hasGoogle ? `Google: ${googleReviewUrl}` : '',
+    hasZillow ? `Zillow: ${zillowReviewUrl}` : '',
+  ].filter(Boolean).join('\n');
 
   const suggestedCopy = `Hi [Client name],
 
 It was such a pleasure working with you on ${property}. I hope you're settling in and loving the new place.
 
 If you have a moment, I'd be grateful if you could leave a quick review - it means everything to small businesses like mine and helps other buyers/sellers find someone they can trust.
-
-${googleReviewUrl ? `Google: ${googleReviewUrl}` : ''}
-${zillowReviewUrl ? `Zillow: ${zillowReviewUrl}` : ''}
-
+${reviewLinksInCopy ? '\n' + reviewLinksInCopy + '\n' : ''}
 Thank you so much - it was truly a joy to work with you.
 
 [Your name]`;
+
+  const reviewSubheading = hasAnyLinks
+    ? `Your review links are pre-populated below.`
+    : `Once you add your review links in Settings, Dossie will include them automatically.`;
 
   return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-size: 12px; letter-spacing: 2px; color: ${BRAND_CORAL}; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE &middot; REVIEW REQUEST</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 32px; line-height: 1.2; margin: 0 0 22px; color: ${BRAND_NAVY};">Hi ${name},</h1>
   <p style="font-size: 17px; color: ${BRAND_NAVY}; line-height: 1.6; margin: 0 0 10px;">Here is your review request for <strong>${property}</strong>. Forward the message below to your client while the experience is still fresh.</p>
-  <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">Your review links are pre-populated below.</p>
+  <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">${reviewSubheading}</p>
 
-  <div style="margin: 0 0 28px;">
-    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; color: ${BRAND_MUTED}; text-transform: uppercase; margin-bottom: 12px;">Your review links</div>
-    <div>${googleBlock}</div>
-    <div style="margin-top: 8px;">${zillowBlock}</div>
-  </div>
+  ${reviewLinksSection}
 
   <div style="background: #F5F0EA; border-radius: 12px; padding: 20px 22px; margin: 0 0 28px;">
     <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; color: ${BRAND_MUTED}; text-transform: uppercase; margin-bottom: 12px;">Suggested message to forward</div>
@@ -171,7 +187,14 @@ module.exports = async function handler(req, res) {
   );
   const profile = profResp.ok && profResp.data && profResp.data.length > 0 ? profResp.data[0] : null;
 
-  const toEmail = (profile && profile.email) || userEmail;
+  // Resolve email: profile.email → JWT email → auth.users fallback.
+  let toEmail = (profile && profile.email) || userEmail || null;
+  if (!toEmail) {
+    const authUserResp = await supabaseFetch(
+      `/auth/v1/admin/users/${encodeURIComponent(userId)}`,
+    );
+    toEmail = (authUserResp.ok && authUserResp.data && authUserResp.data.email) || null;
+  }
   if (!toEmail) {
     return res.status(400).json({ ok: false, error: 'No email address on file for this agent.' });
   }
