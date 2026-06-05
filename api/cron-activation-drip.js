@@ -252,17 +252,36 @@ module.exports = async function handler(req, res) {
 
   // -------------------------------------------------------------------------
   // System 1: Activation Drip
-  // Members with no document uploaded, signed up 3+ days ago, plan=founding
+  // Members with no document uploaded, signed up 3+ days ago, active subscription
   // -------------------------------------------------------------------------
 
-  const { ok: aOk, data: inactiveProfiles } = await supaJson(
-    'profiles' +
-    '?select=id,email,full_name,created_at,activation_email_1_sent_at,activation_email_2_sent_at,activation_email_3_sent_at' +
-    '&is_demo=eq.false' +
-    '&plan=eq.founding' +
-    '&created_at=lt.' + new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() +
-    '&limit=200'
+  // Fetch active founding subscriptions first — profiles.plan is not updated on
+  // cancellation and cannot be trusted to filter paying customers.
+  const { ok: subOk, data: activeSubs } = await supaJson(
+    'subscriptions?select=user_id&status=eq.active&plan=eq.founding'
   );
+  const activeUserIds = (subOk && Array.isArray(activeSubs))
+    ? activeSubs.map((s) => s.user_id).filter(Boolean)
+    : [];
+
+  let inactiveProfiles = [];
+  let aOk = false;
+
+  if (activeUserIds.length > 0) {
+    const idFilter = activeUserIds.map((id) => `"${id}"`).join(',');
+    const res = await supaJson(
+      'profiles' +
+      '?select=id,email,full_name,created_at,activation_email_1_sent_at,activation_email_2_sent_at,activation_email_3_sent_at' +
+      '&is_demo=eq.false' +
+      '&id=in.(' + idFilter + ')' +
+      '&created_at=lt.' + new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() +
+      '&limit=200'
+    );
+    aOk = res.ok;
+    inactiveProfiles = res.data || [];
+  } else {
+    aOk = true;
+  }
 
   if (!aOk || !Array.isArray(inactiveProfiles)) {
     console.error('[cron-activation-drip] Failed to fetch activation profiles');
@@ -367,16 +386,27 @@ module.exports = async function handler(req, res) {
   const windowStart = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
   const windowEnd = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
-  const { ok: rOk, data: referralCandidates } = await supaJson(
-    'profiles' +
-    '?select=id,email,full_name,created_at,referral_ask_sent_at' +
-    '&is_demo=eq.false' +
-    '&plan=eq.founding' +
-    '&referral_ask_sent_at=is.null' +
-    '&created_at=gte.' + windowStart +
-    '&created_at=lte.' + windowEnd +
-    '&limit=200'
-  );
+  // Use the same activeUserIds fetched above for the referral candidates query.
+  let referralCandidates = [];
+  let rOk = false;
+
+  if (activeUserIds.length > 0) {
+    const idFilter = activeUserIds.map((id) => `"${id}"`).join(',');
+    const res = await supaJson(
+      'profiles' +
+      '?select=id,email,full_name,created_at,referral_ask_sent_at' +
+      '&is_demo=eq.false' +
+      '&id=in.(' + idFilter + ')' +
+      '&referral_ask_sent_at=is.null' +
+      '&created_at=gte.' + windowStart +
+      '&created_at=lte.' + windowEnd +
+      '&limit=200'
+    );
+    rOk = res.ok;
+    referralCandidates = res.data || [];
+  } else {
+    rOk = true;
+  }
 
   if (!rOk || !Array.isArray(referralCandidates)) {
     console.error('[cron-activation-drip] Failed to fetch referral candidates');
