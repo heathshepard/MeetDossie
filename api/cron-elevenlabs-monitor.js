@@ -12,7 +12,7 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = '7874782923';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth || auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });

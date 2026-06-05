@@ -281,6 +281,14 @@
                   {
                       "path":  "/api/cron-elevenlabs-monitor",
                       "schedule":  "0 14 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-activation-drip",
+                      "schedule":  "0 15 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-testimonial-request",
+                      "schedule":  "0 14 * * *"
                   }
               ]
 }
