@@ -11,6 +11,24 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of June 5, 2026
+
+**Activation emails are now actually running**
+- The onboarding check-in emails Dossie sends at days 4, 7, and 14 after signup were never actually going out - they were built but not scheduled. They are now running daily and will send to every active member at the right intervals going forward.
+
+**Credit monitor fixed**
+- Dossie's internal alert system watches our ElevenLabs voice credit balance and texts an alert when it gets low. A code issue was causing it to crash silently on every run. Fixed - it is now checking balances correctly and will fire alerts when credits drop below the threshold.
+
+**Activation emails only go to active members**
+- The activation drip now checks that a member's subscription is active before sending. Cancelled accounts no longer receive onboarding emails.
+
+**Testimonial requests - new feature**
+- A "Request Testimonial" button now appears on any closed deal. Click it and Dossie sends an email to the agent with Google and Zillow review links and a copy-paste message they can forward to their client. No more hunting for links or drafting the ask yourself.
+- The request also fires automatically 3 days after a deal closes so you never have to remember to ask.
+- You can add your Google and Zillow review profile links in Settings so Dossie always uses the right URLs.
+
+---
+
 ## Week of May 29, 2026 (fill-and-sign expansion)
 
 **Fill-and-sign now works for land and new construction contracts**
