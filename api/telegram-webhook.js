@@ -859,6 +859,101 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Veto mode: STOP cancels auto-post, PREVIEW sends full caption as follow-up
+  if (data.startsWith('stop_')) {
+    const postId = data.replace('stop_', '');
+    await patchPost(postId, { status: 'rejected' });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nStopped. Post cancelled.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Post cancelled');
+    return;
+  }
+
+  if (data.startsWith('preview_')) {
+    const postId = data.replace('preview_', '');
+    const post = await loadPost(postId);
+    if (!post) {
+      if (callbackId) await answerCallback(callbackId, 'Post not found');
+      return;
+    }
+    const content = String(post.content || '');
+    const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
+      ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
+      : '';
+    const previewText = `Full caption preview:\n\n${content}\n\n${hashtags}`.slice(0, 4096);
+    await tgCall('sendMessage', { chat_id: chatId, text: previewText, disable_web_page_preview: true });
+    if (callbackId) await answerCallback(callbackId, 'Full caption sent');
+    return;
+  }
+
+  // Veto mode: STOP for fb_comment_replies
+  if (data.startsWith('reply_stop_')) {
+    const replyId = data.replace('reply_stop_', '');
+    await supabaseFetch(`/rest/v1/fb_comment_replies?id=eq.${encodeURIComponent(replyId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'rejected' }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nReply cancelled.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Reply cancelled');
+    return;
+  }
+
+  // Veto mode: PREVIEW for fb_comment_replies
+  if (data.startsWith('reply_preview_')) {
+    const replyId = data.replace('reply_preview_', '');
+    const { data: replyRows } = await supabaseFetch(
+      `/rest/v1/fb_comment_replies?id=eq.${encodeURIComponent(replyId)}&limit=1`,
+    );
+    const reply = Array.isArray(replyRows) && replyRows.length > 0 ? replyRows[0] : null;
+    if (!reply) {
+      if (callbackId) await answerCallback(callbackId, 'Reply not found');
+      return;
+    }
+    const previewText = `Group: ${reply.group_post_id || 'unknown'}\nIn response to: ${reply.reply_author}: "${reply.reply_text}"\n\nDraft: ${reply.our_response_draft}`;
+    await tgCall('sendMessage', { chat_id: chatId, text: previewText.slice(0, 4096), disable_web_page_preview: true });
+    if (callbackId) await answerCallback(callbackId, 'Preview sent');
+    return;
+  }
+
+  // Veto mode: STOP for twitter_engagements
+  if (data.startsWith('tw_stop_')) {
+    const engId = data.replace('tw_stop_', '');
+    await supabaseFetch(`/rest/v1/twitter_engagements?id=eq.${encodeURIComponent(engId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'rejected' }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nReply cancelled.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Reply cancelled');
+    return;
+  }
+
+  // Veto mode: PREVIEW for twitter_engagements
+  if (data.startsWith('tw_preview_')) {
+    const engId = data.replace('tw_preview_', '');
+    const { data: engRows } = await supabaseFetch(
+      `/rest/v1/twitter_engagements?id=eq.${encodeURIComponent(engId)}&limit=1`,
+    );
+    const eng = Array.isArray(engRows) && engRows.length > 0 ? engRows[0] : null;
+    if (!eng) {
+      if (callbackId) await answerCallback(callbackId, 'Engagement not found');
+      return;
+    }
+    const previewText = `Tweet by @${eng.tweet_author}:\n"${eng.tweet_text}"\n\nURL: ${eng.tweet_url}\n\nDraft reply:\n${eng.our_response_draft}`;
+    await tgCall('sendMessage', { chat_id: chatId, text: previewText.slice(0, 4096), disable_web_page_preview: true });
+    if (callbackId) await answerCallback(callbackId, 'Preview sent');
+    return;
+  }
+
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
     if (callbackId) await answerCallback(callbackId, 'Unknown action');
