@@ -47,7 +47,15 @@ Posts come in four formats. The format is declared in the verification request. 
 These are fictional Texas agent personas — NOT real customers. Any persona-branded content is intentional. Do NOT flag persona names, persona usage of Dossie, or persona pain stories.
 
 ### CAPABILITY_ONELINER posts (Dossie brand voice)
-Dossie brand voice, no persona. Verifier must check: (a) is the claimed feature in the shipped features list? (b) is only ONE feature claimed? Flag any unshipped feature or stacked capability claims as red.
+Dossie brand voice, no persona. Verifier must check: (a) is the claimed feature in the shipped features list? (b) is only ONE feature the central subject of the post?
+
+STACKED CAPABILITIES definition — ONLY flag as red when the post claims MULTIPLE DISTINCT FEATURES as if they are all part of the product (e.g. "Dossie scans your contract AND drafts your emails AND sends morning briefs AND tracks your pipeline"). This is stacking.
+
+NOT stacking — one feature described with multiple use-case examples IS allowed. "Dossie's email draft queue handles lender check-ins, title confirmations, and repair reminders" is ONE FEATURE (email draft queue) with three examples. Do NOT flag this as stacked capabilities.
+
+The test: are the things listed NAME OF DIFFERENT FEATURES (pipeline view, email draft queue, morning brief, Talk to Dossie) — stacked? Or are they EXAMPLES OF ONE FEATURE IN ACTION — allowed?
+
+Flag any unshipped feature as red. Flag actual multi-feature stacking (4+ named distinct product features in one post) as red.
 
 ### TREC_EDUCATION posts (Dossie brand voice)
 Dossie brand voice, no persona. Verifier must check: is the TREC fact accurate and in the pre-verified list? Pre-verified facts: option period from execution date, earnest money due within 3 days to title, survey period, title commitment review period (~20 days), closing date extension via amendment, third-party financing contingency. Flag any invented TREC rule or deadline not in this list as red.
@@ -159,6 +167,7 @@ If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm de
 
 🔴 RED (highest severity — verdict MUST be needs_revision):
 - Founding member numbers past __FOUNDING_COUNT__
+- Hardcoded founding SPOT COUNT in post body text — any phrasing like "12 of 50 spots taken", "Twelve of fifty founding spots", "only 38 spots left", or any variant with a specific number of spots taken/remaining. The count changes daily; hardcoding any number makes it stale the moment a new member signs up. The ONLY acceptable founding pricing language is: "Founding pricing is $29/month" or "Founding member pricing at meetdossie.com/founding" with no spot count.
 - Invented timestamps with the air of specificity ("Tuesday at 9:43pm", "10pm debug session", "ship in 48 hours") not documented above
 - Customer names + events not in the verified list above
 - Features claimed as live from the NOT-yet-built list
@@ -842,7 +851,10 @@ ${buildPlatformNativeBlock(platform)}
    STRUCTURE: feature name -> what it does -> one concrete outcome -> CTA
    EXAMPLE CAPTION: "Dossie scans a TREC contract in about 8 seconds. Deadlines auto-calculated, paragraph cited. No math. No spreadsheet. $29/month founding pricing at meetdossie.com/founding"
    ALLOWED FEATURES (shipped, safe to claim): TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only - agent reviews and sends), morning brief with Luna voice, closing milestone cards, dossier pipeline view with deadline badges, Talk-to-Dossie chat, natural-language deadlines.
+   EMAIL DRAFT QUEUE ACCURACY: The email draft queue does NOT auto-write emails when deadlines hit. Agents build draft templates in the queue, review them, and send manually. NEVER write "Dossie writes your emails", "Dossie drafts follow-ups automatically when a deadline approaches", or "Dossie sends follow-ups" — any automation claim on email drafting is false and triggers verifier rejection. Correct framing: "Dossie's email draft queue keeps follow-ups ready to review and send" or "Follow-up drafts queued — you review, you send."
    DO NOT claim any unshipped feature. Keep it to ONE feature per post — do not stack multiple capabilities into one claim.
+   SINGLE FEATURE HARD RULE: The length target for LinkedIn (1300-2000 chars) is achieved by telling a DEEPER STORY about ONE feature — more context, a concrete agent scenario, the before/after, the why it matters. It is NEVER achieved by listing or describing additional features. If you run out of depth on one feature, pick a different feature. Stacking features ("Dossie does X and Y and Z") always triggers a verifier rejection. Write ONE feature. Go deep.
+   FOUNDING COUNT HARD RULE: Never write a specific founding member number (e.g. "12 of 50", "eleven of fifty", "only 38 spots left"). The count changes daily and any hardcoded number becomes a stale fabrication. Instead, write: "Founding pricing is $29/month, locked while your subscription stays active" or "Founding member pricing is available now at meetdossie.com/founding" — no count, no specific spot number.
    Set "persona" in the output JSON to "dossie" for this slot.
 ${buildPlatformRulesBlock(platform)}
 ${buildPlatformNativeBlock(platform)}
@@ -985,6 +997,7 @@ NUMBERS & CLAIMS
 - Do NOT present specific numbers as if they're real stats about the agent or about Dossie's user base. Never write "54 deals" as if reporting fact — write "50+ deals a year" or "an agent doing 50 a year" instead.
 - No claims about user counts, subscriber counts, or comparative metrics ("X% faster", "$Y saved last year") — Dossie is brand new and those numbers don't exist yet.
 - The $29/month founding price IS real — that one specific number is fine to state directly.
+- FOUNDING MEMBER COUNT — NEVER write a specific founding spot count or taken count in any post. Never write "12 of 50 spots taken", "eleven of fifty", "38 spots left", or any variant with a specific number. The count changes daily — any hardcoded number becomes stale the moment someone new signs up and triggers a verifier rejection. Write "Founding pricing is $29/month, locked while your subscription stays active" or "Founding member pricing at meetdossie.com/founding" — no count ever.
 
 TIMEFRAMES & DOSSIE-USAGE DURATION
 - Dossie launched recently. When a persona references how long they've been using Dossie, use "recently" or "over the last few weeks" — NEVER "a few months ago", "for the past year", "since last summer", or any phrasing that implies they've used Dossie for longer than a few weeks.
