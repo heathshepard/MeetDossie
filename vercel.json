@@ -298,7 +298,7 @@
                   },
                   {
                       "path":  "/api/cron-auto-approve",
-                      "schedule":  "0 12 * * *"
+                      "schedule":  "*/10 * * * *"
                   },
                   {
                       "path":  "/api/cron-growth-alerts",
