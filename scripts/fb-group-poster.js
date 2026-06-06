@@ -92,13 +92,13 @@ async function fetchPost(postId) {
   return data[0];
 }
 
-async function markPosted(postId, groupRegistryId) {
+async function markPosted(postId, groupRegistryId, postUrl) {
   const now = new Date().toISOString();
 
   await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ status: 'posted', posted_at: now }),
+    body: JSON.stringify({ status: 'posted', posted_at: now, post_url: postUrl || null }),
   });
 
   if (groupRegistryId) {
@@ -340,7 +340,38 @@ async function postToGroup(post) {
       posted = true;
     }
 
-    return true;
+    // Try to capture the post permalink from the feed.
+    // Facebook renders a timestamp <a href="/groups/.../posts/..."> once the
+    // post appears. Give the feed a moment to render before querying.
+    let postUrl = null;
+    try {
+      await page.waitForTimeout(3000);
+      // Look for the most recent post permalink in the feed — links containing
+      // /posts/ that are not navigation links (skip if they contain /permalink/).
+      const links = await page.$$('a[href*="/posts/"]');
+      for (const link of links) {
+        const href = await link.getAttribute('href').catch(() => null);
+        if (!href) continue;
+        // Normalize to absolute URL
+        const absolute = href.startsWith('http') ? href : `https://www.facebook.com${href}`;
+        // Must look like a group post URL: /groups/[id]/posts/[id]
+        if (/\/groups\/[^/]+\/posts\/\d+/.test(absolute)) {
+          postUrl = absolute.split('?')[0]; // strip query params
+          console.log(`[fb-group-poster] Captured post permalink: ${postUrl}`);
+          break;
+        }
+      }
+    } catch (err) {
+      console.warn('[fb-group-poster] Could not capture post permalink:', err.message);
+    }
+
+    // Fallback: use group URL so the comment monitor can at least navigate there
+    if (!postUrl) {
+      postUrl = post.group_url;
+      console.log('[fb-group-poster] Permalink not found — falling back to group URL');
+    }
+
+    return postUrl;
   } finally {
     await context.close();
   }
@@ -376,19 +407,19 @@ async function main() {
   console.log(`[fb-group-poster] Posting to "${post.group_name}" (${post.group_url})`);
   console.log(`[fb-group-poster] Template: ${post.template_id} | Pillar: ${post.pillar}`);
 
-  let success = false;
+  let postUrl = null;
   let errorMsg = null;
 
   try {
-    success = await postToGroup(post);
+    postUrl = await postToGroup(post);
   } catch (err) {
     errorMsg = err.message;
     console.error('[fb-group-poster] Playwright error:', err.message);
   }
 
-  if (success) {
-    await markPosted(POST_ID, post.group_registry_id);
-    console.log(`[fb-group-poster] Success - updated status to "posted"`);
+  if (postUrl) {
+    await markPosted(POST_ID, post.group_registry_id, postUrl);
+    console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${postUrl}`);
     await sendTelegramConfirmation(post.group_name, post.post_body, true, null);
   } else {
     await markFailed(POST_ID, errorMsg || 'unknown error');
