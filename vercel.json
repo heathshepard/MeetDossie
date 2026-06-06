@@ -198,7 +198,10 @@
                                                    },
                "api/cron-auto-approve.js":  {
                                                 "maxDuration":  30
-                                            }
+                                            },
+               "api/cron-growth-alerts.js":  {
+                                                  "maxDuration":  30
+                                              }
                   },
     "crons":  [
                   {
@@ -296,6 +299,10 @@
                   {
                       "path":  "/api/cron-auto-approve",
                       "schedule":  "0 12 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-growth-alerts",
+                      "schedule":  "0 14 * * 1"
                   }
               ]
 }
