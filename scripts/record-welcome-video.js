@@ -3,23 +3,25 @@
 // scripts/record-welcome-video.js
 //
 // Records a Playwright screen session of the Dossie Settings page,
-// generates a Luna ElevenLabs voiceover, combines them with ffmpeg,
-// and uploads the finished MP4 to Supabase Storage (videos bucket).
+// optionally generates a Luna ElevenLabs voiceover, combines with ffmpeg,
+// and sends the finished MP4 to Heath via Telegram.
 //
 // Usage:
 //   node scripts/record-welcome-video.js
 //
-// Env vars required:
-//   ELEVENLABS_API_KEY
+// Env vars required (from .env.local):
 //   SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
-//
-// If ElevenLabs is unavailable (quota), saves raw .webm and exits gracefully.
+//   TELEGRAM_BOT_TOKEN
+//   TELEGRAM_CHAT_ID
+//   ELEVENLABS_API_KEY  (optional — skipped gracefully if unavailable)
 
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const { spawnSync } = require('child_process');
+
+const { generateSpeech } = require('../api/_utils/tts');
 
 // Load .env.local when running locally
 try {
@@ -43,6 +45,8 @@ try {
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 // Luna voice ID
 const LUNA_VOICE_ID = 'lxYfHSkYm1EzQzGhdbfc';
@@ -66,7 +70,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
 const RAW_DIR = path.join(__dirname, '..', 'Media', 'instructional-videos', 'raw');
 const OUT_DIR = path.join(__dirname, '..', 'Media', 'instructional-videos');
 const VOICEOVER_PATH = path.join(RAW_DIR, 'welcome-voiceover.mp3');
-const FINAL_MP4 = path.join(OUT_DIR, `welcome-settings-${TODAY}.mp4`);
+const FINAL_MP4 = path.join(OUT_DIR, `welcome-settings-demo-${TODAY}.mp4`);
 
 // ─── ffmpeg helpers ───────────────────────────────────────────────────────────
 
@@ -94,60 +98,17 @@ function runFfmpeg(ffmpeg, args) {
   return result;
 }
 
-// ─── ElevenLabs voiceover ─────────────────────────────────────────────────────
+// ─── Voiceover (ElevenLabs with OpenAI fallback) ─────────────────────────────
 
 async function generateVoiceover(text, outputPath) {
-  console.log('[record-welcome-video] Generating Luna voiceover via ElevenLabs...');
-
-  const body = JSON.stringify({
-    text,
-    model_id: 'eleven_turbo_v2',
-    voice_settings: {
-      stability: 0.5,
-      similarity_boost: 0.75,
-      style: 0.0,
-      use_speaker_boost: true,
-    },
+  console.log('[record-welcome-video] Generating Luna voiceover...');
+  const { buffer, provider } = await generateSpeech(text, {
+    elevenLabsVoiceId: LUNA_VOICE_ID,
+    persona: 'luna',
+    voiceSettings: { stability: 0.5, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
   });
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.elevenlabs.io',
-      path: `/v1/text-to-speech/${LUNA_VOICE_ID}/stream`,
-      method: 'POST',
-      headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
-        'Content-Type': 'application/json',
-        Accept: 'audio/mpeg',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      if (res.statusCode === 429 || res.statusCode === 402) {
-        let errBody = '';
-        res.on('data', c => (errBody += c));
-        res.on('end', () => reject(new Error(`QUOTA: ElevenLabs ${res.statusCode}: ${errBody}`)));
-        return;
-      }
-      if (res.statusCode !== 200) {
-        let errBody = '';
-        res.on('data', c => (errBody += c));
-        res.on('end', () => reject(new Error(`ElevenLabs ${res.statusCode}: ${errBody}`)));
-        return;
-      }
-      const out = fs.createWriteStream(outputPath);
-      res.pipe(out);
-      out.on('finish', () => {
-        console.log(`[record-welcome-video] Voiceover saved: ${outputPath}`);
-        resolve();
-      });
-      out.on('error', reject);
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
+  fs.writeFileSync(outputPath, buffer);
+  console.log(`[record-welcome-video] Voiceover saved (provider: ${provider}): ${outputPath}`);
 }
 
 // ─── Supabase Storage upload ──────────────────────────────────────────────────
@@ -174,10 +135,49 @@ async function uploadToSupabase(filePath, storagePath) {
     throw new Error(`Supabase upload failed ${res.status}: ${text}`);
   }
 
-  // Public URL for the videos bucket
   const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${storagePath}`;
   console.log(`[record-welcome-video] Public URL: ${publicUrl}`);
   return publicUrl;
+}
+
+// ─── Telegram send ────────────────────────────────────────────────────────────
+
+function sendToTelegram(filePath, caption) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('[record-welcome-video] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram send');
+    return;
+  }
+
+  console.log('[record-welcome-video] Sending video to Telegram...');
+
+  const result = spawnSync('curl', [
+    '-F', `chat_id=${TELEGRAM_CHAT_ID}`,
+    '-F', `video=@${filePath}`,
+    '-F', `caption=${caption}`,
+    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`,
+  ], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+
+  if (result.status !== 0) {
+    console.warn('[record-welcome-video] Telegram send failed:', result.stderr || result.stdout);
+  } else {
+    const parsed = JSON.parse(result.stdout || '{}');
+    if (parsed.ok) {
+      console.log('[record-welcome-video] Telegram send OK');
+    } else {
+      console.warn('[record-welcome-video] Telegram API error:', parsed.description);
+    }
+  }
+}
+
+// ─── Natural mouse move helper ────────────────────────────────────────────────
+
+async function moveToElement(page, element) {
+  const box = await element.boundingBox();
+  if (!box) return;
+  const targetX = box.x + box.width / 2;
+  const targetY = box.y + box.height / 2;
+  await page.mouse.move(targetX, targetY, { steps: 15 });
+  await page.waitForTimeout(200);
 }
 
 // ─── Playwright recording ─────────────────────────────────────────────────────
@@ -187,10 +187,10 @@ async function recordSettingsSession() {
 
   console.log('[record-welcome-video] Starting Playwright browser recording...');
 
-  // Ensure raw dir exists
   fs.mkdirSync(RAW_DIR, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true });
+  // slowMo: 600 makes every action 600ms apart — looks human
+  const browser = await chromium.launch({ headless: false, slowMo: 600 });
   const context = await browser.newContext({
     recordVideo: {
       dir: RAW_DIR,
@@ -202,82 +202,101 @@ async function recordSettingsSession() {
   const page = await context.newPage();
 
   try {
-    // Navigate to app
+    // 1. Navigate to app
     console.log('[record-welcome-video] Navigating to https://meetdossie.com/app');
     await page.goto('https://meetdossie.com/app', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    // Handle login if needed — check for email input
+    // 2. Login if required
     const emailInput = await page.locator('input[type="email"]').first();
-    const emailVisible = await emailInput.isVisible({ timeout: 3000 }).catch(() => false);
+    const emailVisible = await emailInput.isVisible({ timeout: 5000 }).catch(() => false);
     if (emailVisible) {
       console.log('[record-welcome-video] Login required — signing in with demo account...');
+
+      // Move to email field, click, type
+      await moveToElement(page, emailInput);
+      await emailInput.click();
       await emailInput.fill(DEMO_EMAIL);
+
+      // Move to password field, click, type
       const passInput = page.locator('input[type="password"]').first();
       await passInput.waitFor({ state: 'visible' });
+      await moveToElement(page, passInput);
+      await passInput.click();
       await passInput.fill(DEMO_PASSWORD);
-      await page.keyboard.press('Enter');
+
+      // Move to Sign In button, click
+      const signInBtn = page.locator('button[type="submit"]').first();
+      await signInBtn.waitFor({ state: 'visible' });
+      await moveToElement(page, signInBtn);
+      await signInBtn.click();
     }
 
-    // Wait for the pipeline view to load — the sidebar will have a "Pipeline" link visible
+    // 3. Wait for Pipeline to load
     await page.waitForSelector('text=Pipeline', { timeout: 20000 });
     console.log('[record-welcome-video] App loaded — pipeline visible');
 
-    // 2-second pause: give viewer time to see the starting state
-    await new Promise(r => setTimeout(r, 2000));
+    // 4. Pause 1.5s — let viewer see the dashboard
+    await page.waitForTimeout(1500);
 
-    // Click Settings in the sidebar
+    // 5. Move to Settings in sidebar, click
     console.log('[record-welcome-video] Clicking Settings...');
-    await page.getByText('Settings', { exact: true }).first().click();
+    const settingsLink = page.getByText('Settings', { exact: true }).first();
+    await settingsLink.waitFor({ state: 'visible' });
+    await moveToElement(page, settingsLink);
+    await settingsLink.click();
 
-    // Wait for Settings page to render — the "Agent profile" section heading appears
+    // 6. Wait for Settings to render
     await page.waitForSelector('text=Agent profile', { timeout: 10000 });
     console.log('[record-welcome-video] Settings page loaded');
 
-    // 1.5-second pause: let viewer read the page
-    await new Promise(r => setTimeout(r, 1500));
+    // 7. Pause 1.5s — let viewer read the page
+    await page.waitForTimeout(1500);
 
-    // Click the Agent name field
-    console.log('[record-welcome-video] Clicking Agent name field...');
+    // 8. Move to Full Name field, click, pause
+    console.log('[record-welcome-video] Clicking Full Name field...');
     const nameInput = page.locator('input[placeholder="Your name"]').first();
     await nameInput.waitFor({ state: 'visible' });
+    await moveToElement(page, nameInput);
     await nameInput.click();
-    await new Promise(r => setTimeout(r, 1000));
+    await page.waitForTimeout(1000);
 
-    // Click Brokerage field
+    // 9. Move to Brokerage Name field, click, pause
     console.log('[record-welcome-video] Clicking Brokerage field...');
     const brokerageInput = page.locator('input[placeholder="Your brokerage"]').first();
     await brokerageInput.waitFor({ state: 'visible' });
+    await moveToElement(page, brokerageInput);
     await brokerageInput.click();
-    await new Promise(r => setTimeout(r, 1000));
+    await page.waitForTimeout(1000);
 
-    // Click Phone field
+    // 10. Move to Phone field, click, pause
     console.log('[record-welcome-video] Clicking Phone field...');
     const phoneInput = page.locator('input[placeholder="Your phone"]').first();
     await phoneInput.waitFor({ state: 'visible' });
+    await moveToElement(page, phoneInput);
     await phoneInput.click();
-    await new Promise(r => setTimeout(r, 1000));
+    await page.waitForTimeout(1000);
 
-    // Scroll down to reveal review links
+    // 11. Smooth scroll down to review links section
     console.log('[record-welcome-video] Scrolling to review links...');
-    await page.evaluate(() => window.scrollBy(0, 300));
-    await new Promise(r => setTimeout(r, 1500));
+    await page.evaluate(() => window.scrollBy({ top: 300, behavior: 'smooth' }));
+    await page.waitForTimeout(800);
 
-    // Click Google Review URL field
+    // 12. Move to Google Review URL field, click, pause
     console.log('[record-welcome-video] Clicking Google Review URL field...');
     const googleInput = page.locator('input[placeholder="https://g.page/r/yourlink/review"]').first();
     await googleInput.waitFor({ state: 'visible' });
+    await moveToElement(page, googleInput);
     await googleInput.click();
-    await new Promise(r => setTimeout(r, 1000));
+    await page.waitForTimeout(1500);
 
     console.log('[record-welcome-video] Navigation script complete');
   } finally {
-    // Close the page — this finalizes the video file
     await page.close();
     await context.close();
     await browser.close();
   }
 
-  // Playwright names the file with a random hash — find the most recent .webm in RAW_DIR
+  // Find the most recent .webm Playwright wrote
   const webmFiles = fs.readdirSync(RAW_DIR)
     .filter(f => f.endsWith('.webm'))
     .map(f => ({ f, mtime: fs.statSync(path.join(RAW_DIR, f)).mtimeMs }))
@@ -293,63 +312,71 @@ async function recordSettingsSession() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('[record-welcome-video] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
-    process.exit(1);
-  }
-
   fs.mkdirSync(RAW_DIR, { recursive: true });
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   // Step 1: Record the Playwright session
   const webmPath = await recordSettingsSession();
 
-  // Step 2: Generate voiceover — graceful fallback if quota is exhausted
+  // Step 2: Generate voiceover (ElevenLabs with OpenAI fallback)
   let voiceoverAvailable = false;
-  if (!ELEVENLABS_API_KEY) {
-    console.warn('[record-welcome-video] ELEVENLABS_API_KEY not set — skipping voiceover');
+  if (!process.env.ELEVENLABS_API_KEY && !process.env.OPENAI_API_KEY) {
+    console.warn('[record-welcome-video] No TTS keys set — skipping voiceover');
   } else {
     try {
       await generateVoiceover(VOICEOVER_SCRIPT, VOICEOVER_PATH);
       voiceoverAvailable = true;
     } catch (err) {
-      if (err.message.startsWith('QUOTA:')) {
-        console.warn('[record-welcome-video] ElevenLabs unavailable (quota/billing) — raw recording saved at:', webmPath);
-        console.warn('[record-welcome-video] Run voiceover step manually when credits restore.');
-      } else {
-        throw err;
-      }
+      console.warn('[record-welcome-video] TTS failed — proceeding with video only:', err.message);
     }
   }
 
-  if (!voiceoverAvailable) {
-    console.log('[record-welcome-video] Done (raw only). Raw webm:', webmPath);
-    return;
-  }
-
-  // Step 3: Combine with ffmpeg
+  // Step 3: Convert to MP4 via ffmpeg (video-only or with audio)
   const ffmpeg = findFfmpeg();
-  console.log('[record-welcome-video] Combining video + audio with ffmpeg...');
+  console.log('[record-welcome-video] Converting to MP4 with ffmpeg...');
 
-  runFfmpeg(ffmpeg, [
-    '-i', webmPath,
-    '-i', VOICEOVER_PATH,
-    '-c:v', 'libx264',
-    '-c:a', 'aac',
-    '-shortest',
-    '-y',
-    FINAL_MP4,
-  ]);
+  if (voiceoverAvailable) {
+    runFfmpeg(ffmpeg, [
+      '-i', webmPath,
+      '-i', VOICEOVER_PATH,
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-c:a', 'aac',
+      '-shortest',
+      '-y',
+      FINAL_MP4,
+    ]);
+  } else {
+    // No voiceover — convert raw webm to mp4, video only
+    runFfmpeg(ffmpeg, [
+      '-i', webmPath,
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-y',
+      FINAL_MP4,
+    ]);
+  }
 
   console.log(`[record-welcome-video] MP4 rendered: ${FINAL_MP4}`);
 
-  // Step 4: Upload to Supabase Storage
-  const storagePath = `instructional-videos/welcome-settings-${TODAY}.mp4`;
-  const publicUrl = await uploadToSupabase(FINAL_MP4, storagePath);
+  // Step 4: Upload to Supabase Storage (optional — skip if env vars missing)
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    const storagePath = `instructional-videos/welcome-settings-demo-${TODAY}.mp4`;
+    await uploadToSupabase(FINAL_MP4, storagePath);
+  } else {
+    console.warn('[record-welcome-video] Supabase env vars not set — skipping upload');
+  }
 
-  console.log('\n[record-welcome-video] ─── Complete ────────────────────────────────');
-  console.log(`  Local MP4:  ${FINAL_MP4}`);
-  console.log(`  Public URL: ${publicUrl}`);
+  // Step 5: Send to Telegram
+  const caption = voiceoverAvailable
+    ? `Welcome video - Settings walkthrough. Navigation looks like a real person.`
+    : `Welcome video - Settings walkthrough. No voiceover (ElevenLabs down). Navigation looks like a real person.`;
+  sendToTelegram(FINAL_MP4, caption);
+
+  console.log('\n[record-welcome-video] Done.');
+  console.log(`  Local MP4: ${FINAL_MP4}`);
 }
 
 main().catch((err) => {
