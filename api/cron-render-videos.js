@@ -28,13 +28,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const CREATOMATE_API_KEY = process.env.CREATOMATE_API_KEY;
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
 
 const CREATOMATE_TEMPLATE_ID = '791117d0-665c-4cd0-ba5f-a767f8921f9b';
 const CREATOMATE_API_URL = 'https://api.creatomate.com/v1/renders';
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+
+const { generateSpeech } = require('./_utils/tts');
 
 // ElevenLabs voice IDs (from CLAUDE.md)
 const VOICE_MAP = {
@@ -165,24 +165,15 @@ async function resolveFrameUrl(filename) {
 }
 
 async function generateElevenLabsAudio(text, voiceId) {
-  const payload = {
-    text,
-    model_id: 'eleven_multilingual_v2',
-    voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-  };
-  const res = await fetch(`${ELEVENLABS_API_URL}/${voiceId}`, {
-    method: 'POST',
-    headers: {
-      'xi-api-key': ELEVENLABS_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+  // Determine persona from voice ID for OpenAI fallback voice selection.
+  const persona = voiceId === 'lxYfHSkYm1EzQzGhdbfc' ? 'luna' : 'bill';
+  const { buffer } = await generateSpeech(text, {
+    elevenLabsVoiceId: voiceId,
+    persona,
+    elevenLabsModelId: 'eleven_multilingual_v2',
+    voiceSettings: { stability: 0.5, similarity_boost: 0.75 },
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`ElevenLabs TTS failed: ${res.status} ${err.slice(0, 200)}`);
-  }
-  return res.arrayBuffer(); // MP3 bytes
+  return buffer; // Node Buffer — compatible with new Uint8Array(buffer) downstream
 }
 
 async function uploadToSupabase(bucket, path, dataBuffer, contentType) {
