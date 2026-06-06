@@ -203,7 +203,8 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ ok: false, error: 'Email service not configured.' });
   }
 
-  const firstName = (profile && profile.full_name ? profile.full_name : toEmail).split(/[\s.@]/)[0] || 'there';
+  const firstNameRaw = (profile && profile.full_name ? profile.full_name : toEmail).split(/[\s.@]/)[0] || 'there';
+  const firstName = firstNameRaw.charAt(0).toUpperCase() + firstNameRaw.slice(1);
   const subject = `Review request ready for ${tx.property_address || 'your closed deal'}`;
   const html = buildEmailHtml({
     firstName,
