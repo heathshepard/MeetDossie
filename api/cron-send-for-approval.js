@@ -172,6 +172,15 @@ function inlineKeyboard(postId) {
   };
 }
 
+function vetoKeyboard(postId) {
+  return {
+    inline_keyboard: [[
+      { text: 'STOP ❌', callback_data: `stop_${postId}` },
+      { text: 'PREVIEW 👁', callback_data: `preview_${postId}` },
+    ]],
+  };
+}
+
 // Detect if a media URL is a video (MP4) or image (PNG/JPG).
 // Used to route to sendVideo vs sendPhoto in Telegram.
 function isVideoUrl(url) {
@@ -308,14 +317,49 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Message 2: Full content + hashtags + approve/reject buttons.
-    // Score line is prepended so Heath sees it before tapping Approve.
+    // Message 2: Full content + hashtags + buttons.
+    // Veto mode (requires_approval=false): STOP/PREVIEW buttons, 10-min auto-post header.
+    // Approval mode (requires_approval=true): full Approve/Reject/Edit buttons.
     const fullContent = formatFullContent(post);
     const isDraft = post.status === 'draft';
-    const buttons = isDraft ? inlineKeyboard(post.id) : null;
+    const needsApproval = post.requires_approval === true;
     const warningPrefix = (scoreData && scoreData.composite >= 5.5 && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '';
-    const autoPostHeader = isDraft ? '⏱ Auto-posting in 30 min — tap Reject to cancel\n\n' : '';
-    const prefix = isDraft ? `${autoPostHeader}${warningPrefix}${scoreLine}` : `✅ AUTO-APPROVED\n\n${scoreLine}`;
+
+    let buttons, prefix;
+    if (!isDraft) {
+      buttons = null;
+      prefix = `✅ AUTO-APPROVED\n\n${scoreLine}`;
+    } else if (needsApproval) {
+      buttons = inlineKeyboard(post.id);
+      const autoPostHeader = '⏱ Auto-posting in 30 min — tap Reject to cancel\n\n';
+      prefix = `${autoPostHeader}${warningPrefix}${scoreLine}`;
+    } else {
+      // Veto mode: show compact preview, auto-posts in 10 min
+      buttons = vetoKeyboard(post.id);
+      const platform = String(post.platform || '').toUpperCase();
+      const persona = String(post.persona || '');
+      const scoreStr = scoreData ? `Score: ${scoreData.composite}/10` : '';
+      const hook = String(post.hook || post.content || '').slice(0, 80);
+      const captionPreview = String(post.content || '').slice(0, 300);
+      const vetoText = `⏱ Auto-posting in 10 min — tap STOP to cancel\n\n${platform} · ${persona}${scoreStr ? ' · ' + scoreStr : ''}\n\n${hook}\n\n${captionPreview}${post.content && post.content.length > 300 ? '...' : ''}`;
+      const textResult = await telegramSend(TELEGRAM_CHAT_ID, vetoText, buttons, null);
+      if (!textResult.ok) {
+        console.error('[cron-send-for-approval] veto send failed for', post.id, textResult.status, textResult.raw?.slice(0, 200));
+        sendErrors.push({ id: post.id, step: 'veto', status: textResult.status });
+        continue;
+      }
+      const messageId = textResult.data?.result?.message_id || null;
+      const now = new Date().toISOString();
+      const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ telegram_sent_at: now, telegram_message_id: messageId }),
+      });
+      if (patch.ok) sent++;
+      else sendErrors.push({ id: post.id, error: 'patch failed', status: patch.status });
+      continue;
+    }
+
     const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
     if (!textResult.ok) {
       console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
