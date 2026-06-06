@@ -201,7 +201,10 @@
                                             },
                "api/cron-growth-alerts.js":  {
                                                   "maxDuration":  30
-                                              }
+                                              },
+               "api/cron-weekly-scorecard.js":  {
+                                                    "maxDuration":  30
+                                                }
                   },
     "crons":  [
                   {
@@ -302,6 +305,10 @@
                   },
                   {
                       "path":  "/api/cron-growth-alerts",
+                      "schedule":  "0 14 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-weekly-scorecard",
                       "schedule":  "0 14 * * 1"
                   }
               ]
