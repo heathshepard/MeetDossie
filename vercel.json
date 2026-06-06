@@ -201,7 +201,13 @@
                                             },
                "api/cron-growth-alerts.js":  {
                                                   "maxDuration":  30
-                                              }
+                                              },
+               "api/cron-weekly-scorecard.js":  {
+                                                    "maxDuration":  30
+                                                },
+               "api/cron-send-referral-blast.js":  {
+                                                       "maxDuration":  60
+                                                   }
                   },
     "crons":  [
                   {
@@ -303,6 +309,14 @@
                   {
                       "path":  "/api/cron-growth-alerts",
                       "schedule":  "0 14 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-weekly-scorecard",
+                      "schedule":  "0 14 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-send-referral-blast",
+                      "schedule":  "30 13 9 6 *"
                   }
               ]
 }
