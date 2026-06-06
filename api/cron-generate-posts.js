@@ -1451,6 +1451,13 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // requires_approval: true when the verifier flagged issues OR when this post
+    // targets a named group (group_name field present). Standard clean posts
+    // use veto mode (requires_approval=false) — auto-post after 10 min.
+    const hasVerifierFlags = verifierResult && Array.isArray(verifierResult.flags) &&
+      verifierResult.flags.some((f) => ['red', 'yellow'].includes(String(f?.severity || '').toLowerCase()));
+    const requiresApproval = hasVerifierFlags || !!(p.group_name);
+
     const row = {
       post_id: postId,
       platform,
@@ -1472,6 +1479,7 @@ module.exports = async function handler(req, res) {
       // Store format in verifier_result metadata — no new column needed
       verifier_result: { ...verifierResult, content_format: format },
       error_message: errorMessage,
+      requires_approval: requiresApproval,
     };
 
     const ins = await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
