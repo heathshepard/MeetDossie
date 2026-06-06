@@ -51,10 +51,11 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const CHROME_PROFILE_PATH = path.join(
+const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
   os.homedir(),
   'AppData', 'Local', 'Google', 'Chrome', 'User Data'
 );
+const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'DossieBot';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
@@ -66,6 +67,12 @@ const KEYWORDS = [
   'TC quit',
   'what do you use for transactions',
   'real estate paperwork',
+  'zipforms',
+  'dotloop',
+  'skyslope',
+  'too many apps real estate',
+  'real estate software',
+  'transaction coordinator software',
 ];
 
 // Max tweets to inspect per keyword search page
@@ -286,7 +293,11 @@ async function main() {
 
   const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
     headless: false,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+    args: [
+      '--no-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
+    ],
     viewport: { width: 1280, height: 900 },
     channel: 'chrome',
   });
