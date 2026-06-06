@@ -1,10 +1,13 @@
-// /api/voice/tts — ElevenLabs TTS proxy for Shepard Ventures agents.
+// /api/voice/tts — TTS proxy for Shepard Ventures agents.
+// ElevenLabs primary, OpenAI TTS fallback when billing-blocked.
 //
 // Auth: Bearer <VOICE_INGEST_SECRET> shared with the local Claude Code hook.
 // Body: { text: string, voice_id?: string, agent?: string }
 // Response: audio/mpeg stream
 //
 // Owner: Atlas (SV-VOICE-001)
+
+const { generateSpeech } = require('../_utils/tts');
 
 const AGENT_VOICE_MAP = {
   // Canonical ElevenLabs default-library voice IDs.
@@ -41,10 +44,6 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
-  if (!process.env.ELEVENLABS_API_KEY) {
-    return res.status(500).json({ ok: false, error: 'ELEVENLABS_API_KEY not configured' });
-  }
-
   let body = req.body;
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch (_) { body = {}; }
@@ -73,54 +72,29 @@ module.exports = async (req, res) => {
     : cleaned;
   if (!finalText) return res.status(400).json({ ok: false, error: 'empty after clean' });
 
-  try {
-    const elevenUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
-    const upstream = await fetch(elevenUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': process.env.ELEVENLABS_API_KEY,
-      },
-      body: JSON.stringify({
-        text: finalText,
-        model_id: 'eleven_turbo_v2_5',
-        voice_settings: {
-          stability: 0.65,
-          similarity_boost: 0.75,
-          style: 0.0,
-          use_speaker_boost: true,
-          speed: 1.15,
-        },
-      }),
-    });
+  // Determine persona name from agent string for OpenAI voice mapping fallback.
+  const personaKey = (body && typeof body.agent === 'string') ? body.agent.toLowerCase() : 'cole';
 
-    if (!upstream.ok) {
-      const detail = await upstream.text().catch(() => '<no body>');
-      console.error('[voice/tts] ElevenLabs upstream error', upstream.status, detail.slice(0, 200));
-      return res.status(upstream.status >= 500 ? 502 : upstream.status).json({
-        ok: false, error: 'TTS upstream failed', status: upstream.status,
-      });
-    }
+  try {
+    const { buffer, provider } = await generateSpeech(finalText, {
+      elevenLabsVoiceId: voiceId,
+      persona: personaKey,
+      elevenLabsModelId: 'eleven_turbo_v2_5',
+      voiceSettings: {
+        stability: 0.65,
+        similarity_boost: 0.75,
+        style: 0.0,
+        use_speaker_boost: true,
+        speed: 1.15,
+      },
+    });
 
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Voice-Id', voiceId);
+    res.setHeader('X-TTS-Provider', provider);
     res.status(200);
-
-    // Stream upstream → client
-    if (upstream.body && typeof upstream.body.getReader === 'function') {
-      const reader = upstream.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(Buffer.from(value));
-      }
-      return res.end();
-    }
-    // Fallback: buffered
-    const buf = await upstream.arrayBuffer();
-    res.write(Buffer.from(buf));
+    res.write(buffer);
     return res.end();
   } catch (err) {
     console.error('[voice/tts] fatal', err);

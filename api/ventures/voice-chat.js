@@ -31,7 +31,8 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const ELEVENLABS_KEY = process.env.ELEVENLABS_API_KEY;
+
+const { generateSpeech } = require('../_utils/tts');
 
 const AUTHORIZED_EMAILS = new Set([
   'heath.shepard@kw.com',
@@ -283,36 +284,19 @@ export default async function handler(req, res) {
       console.warn('[voice-chat POST] DB persist failed:', e.message);
     }
 
-    // ── Call ElevenLabs TTS ──
+    // ── TTS (ElevenLabs with OpenAI fallback) ──
     let audioBase64 = null;
     try {
-      const ttsRes = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${cfg.voice_id}`,
-        {
-          method: 'POST',
-          headers: {
-            'xi-api-key': ELEVENLABS_KEY,
-            'Content-Type': 'application/json',
-            Accept: 'audio/mpeg',
-          },
-          body: JSON.stringify({
-            text: replyText,
-            model_id: 'eleven_turbo_v2',
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-          }),
-        }
-      );
-
-      if (ttsRes.ok) {
-        const buffer = await ttsRes.arrayBuffer();
-        audioBase64 = Buffer.from(buffer).toString('base64');
-      } else {
-        const errText = await ttsRes.text();
-        console.warn('[voice-chat POST] ElevenLabs TTS error:', ttsRes.status, errText);
-        // Non-fatal: return text reply without audio
-      }
+      const { buffer, provider } = await generateSpeech(replyText, {
+        elevenLabsVoiceId: cfg.voice_id,
+        persona: agent_name,
+        voiceSettings: { stability: 0.5, similarity_boost: 0.75 },
+      });
+      audioBase64 = buffer.toString('base64');
+      console.log(`[voice-chat POST] TTS provider: ${provider}`);
     } catch (e) {
-      console.warn('[voice-chat POST] ElevenLabs call failed:', e.message);
+      console.warn('[voice-chat POST] TTS failed (no audio):', e.message);
+      // Non-fatal: return text reply without audio
     }
 
     return res.status(200).json({
