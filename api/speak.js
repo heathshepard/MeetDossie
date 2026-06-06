@@ -1,5 +1,5 @@
 // Vercel Serverless Function: /api/speak
-// ElevenLabs TTS for Dossie's voice (Luna)
+// Dossie voice (Luna) — ElevenLabs with OpenAI TTS fallback
 
 import {
   checkRateLimit,
@@ -7,7 +7,7 @@ import {
   clientIpFromReq,
 } from './_middleware/rateLimit.js';
 
-const { retryFetch } = require('./_lib/retry.js');
+const { generateSpeech } = require('./_utils/tts');
 
 // CORS allowlist — production domains plus any localhost port for dev.
 const ALLOWED_ORIGINS = new Set([
@@ -60,11 +60,6 @@ export default async function handler(req, res) {
     // Speed: 0.25-4.0, default 1.0. Can be overridden via request.
     const voiceSpeed = typeof speed === 'number' && speed >= 0.25 && speed <= 4.0 ? speed : 1.0;
 
-    if (!process.env.ELEVENLABS_API_KEY) {
-      console.error('ELEVENLABS_API_KEY not configured');
-      return res.status(500).json({ ok: false, error: 'Server configuration error' });
-    }
-
     const formatSpokenDate = (s) => {
       const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       const ordinals = ['','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th','16th','17th','18th','19th','20th','21st','22nd','23rd','24th','25th','26th','27th','28th','29th','30th','31st'];
@@ -98,90 +93,34 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'No text after cleaning' });
     }
 
-    const elevenLabsUrl = 'https://api.elevenlabs.io/v1/text-to-speech/lxYfHSkYm1EzQzGhdbfc/stream';
-    const voiceSettings = {
-      stability: 0.75,
-      similarity_boost: 0.75,
-      style: 0.0,
-      use_speaker_boost: true,
-      speed: voiceSpeed,
-    };
-
-    // Generate unique request ID for tracking
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[speak.js] [${requestId}] Generating audio, text length: ${cleanText.length}`);
 
-    // Log for diagnostics
-    console.log(`[speak.js] [${requestId}] ElevenLabs URL:`, elevenLabsUrl);
-    console.log(`[speak.js] [${requestId}] Voice ID: lxYfHSkYm1EzQzGhdbfc (Luna)`);
-    console.log(`[speak.js] [${requestId}] Model: eleven_turbo_v2_5`);
-    console.log(`[speak.js] [${requestId}] Voice settings:`, JSON.stringify(voiceSettings));
-    console.log(`[speak.js] [${requestId}] Speed:`, voiceSpeed);
-    console.log(`[speak.js] [${requestId}] Text length:`, cleanText.length);
-
-    const response = await retryFetch(
-      elevenLabsUrl,
-      {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': process.env.ELEVENLABS_API_KEY,
-        },
-        body: JSON.stringify({
-          text: cleanText,
-          model_id: 'eleven_turbo_v2_5',
-          voice_settings: voiceSettings,
-        }),
+    const { buffer: audioBuffer, provider } = await generateSpeech(cleanText, {
+      elevenLabsVoiceId: 'lxYfHSkYm1EzQzGhdbfc',
+      persona: 'luna',
+      elevenLabsModelId: 'eleven_turbo_v2_5',
+      voiceSettings: {
+        stability: 0.75,
+        similarity_boost: 0.75,
+        style: 0.0,
+        use_speaker_boost: true,
+        speed: voiceSpeed,
       },
-      { name: 'ElevenLabs', maxAttempts: 3, baseDelay: 1000 }
-    );
+    });
 
-    if (!response.ok) {
-      // Log full upstream detail server-side; return a generic message.
-      const errorBody = await response.text().catch(() => '<no body>');
-      console.error('ElevenLabs error:', response.status, errorBody);
-      const status = response.status >= 500 ? 502 : response.status;
-      return res.status(status).json({ ok: false, error: 'TTS failed' });
-    }
+    console.log(`[speak.js] [${requestId}] Audio ready (provider: ${provider}), bytes: ${audioBuffer.length}`);
 
-    // Stream the audio response directly to the client
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Transfer-Encoding', 'chunked');
-    // Prevent browser caching of audio to avoid stale male voice playback
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.setHeader('X-Request-ID', requestId);
-    console.log(`[speak.js] [${requestId}] Streaming audio to client...`);
+    res.setHeader('X-TTS-Provider', provider);
     res.status(200);
-
-    // Pipe the response body stream to the client
-    if (response.body) {
-      const reader = response.body.getReader();
-      try {
-        let bytesStreamed = 0;
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          bytesStreamed += value.length;
-          res.write(Buffer.from(value));
-        }
-        console.log(`[speak.js] [${requestId}] Stream complete. Bytes sent:`, bytesStreamed);
-        res.end();
-      } catch (streamError) {
-        console.error(`[speak.js] [${requestId}] Stream error:`, streamError);
-        if (!res.headersSent) {
-          return res.status(500).json({ ok: false, error: 'Stream failed' });
-        }
-        res.end();
-      }
-    } else {
-      // Fallback if streaming not supported
-      const audioBuffer = await response.arrayBuffer();
-      console.log(`[speak.js] [${requestId}] Buffer sent. Bytes:`, audioBuffer.byteLength);
-      res.write(Buffer.from(audioBuffer));
-      res.end();
-    }
+    res.write(audioBuffer);
+    res.end();
 
   } catch (error) {
     console.error('Speak API error:', error);
