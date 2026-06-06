@@ -49,11 +49,15 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-// Chrome profile path — Heath's existing session
-const CHROME_PROFILE_PATH = path.join(
+// Chrome profile path and profile name — use DossieBot profile to avoid
+// locking conflicts with Heath's personal Chrome session.
+// Set PLAYWRIGHT_PROFILE_DIR and PLAYWRIGHT_PROFILE_NAME in .env.local.
+// See scripts/PLAYWRIGHT-SETUP.md for one-time setup instructions.
+const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
   os.homedir(),
   'AppData', 'Local', 'Google', 'Chrome', 'User Data'
 );
+const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'DossieBot';
 
 // ─── Args ─────────────────────────────────────────────────────────────────────
 
@@ -153,9 +157,12 @@ async function postToGroup(post) {
 
   const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
     headless: false,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+    args: [
+      '--no-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
+    ],
     viewport: { width: 1280, height: 900 },
-    // Use Chrome channel for better Facebook compatibility
     channel: 'chrome',
   });
 
