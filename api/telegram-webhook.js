@@ -18,6 +18,8 @@ const {
   rejectFoundingApplication,
 } = require('./_lib/founding-approval');
 
+const { handleGroupPostCallback } = require('./group-post-callback');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -722,6 +724,13 @@ async function handleCallbackQuery(cb) {
   const founding = data.match(/^(approve|reject)_founding:(.+)$/);
   if (founding) {
     return handleFoundingCallback(founding[1], founding[2], cb, chatId, messageId, callbackId);
+  }
+
+  // Group post approval flow: group_approve_<id> / group_reject_<id> / group_skip_<id>
+  const groupPost = data.match(/^(group_approve|group_reject|group_skip)_(.+)$/);
+  if (groupPost) {
+    const originalBody = String(message?.text || '');
+    return handleGroupPostCallback(groupPost[1], groupPost[2], callbackId, chatId, messageId, originalBody);
   }
 
   // Check for retry button
