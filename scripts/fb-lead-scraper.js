@@ -251,7 +251,7 @@ async function main() {
       }
 
       saveSeen(seenIds);
-      await page.waitForTimeout(2000);
+      await new Promise(r => setTimeout(r, 2000));
     }
   } finally {
     await context.close();

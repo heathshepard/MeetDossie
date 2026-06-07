@@ -182,7 +182,14 @@ async function runSearch(page, query, seenIds, maxPosts) {
         const label = await likeBtn.getAttribute('aria-label').catch(() => '');
         if (!label.toLowerCase().includes('unlike') && !label.toLowerCase().includes('remove')) {
           await likeBtn.click();
-          await page.waitForTimeout(1000);
+          await page.waitForFunction(
+            (urn) => {
+              const btn = document.querySelector(`[data-urn="${urn}"] button[aria-label*="Unlike"], [data-urn="${urn}"] button[aria-label*="Remove"]`);
+              return !!btn;
+            },
+            post.urn,
+            { timeout: 5000 }
+          ).catch(() => {});
           liked++;
           console.log(`[linkedin-engager] Liked post ${post.urn}`);
         } else {
@@ -202,19 +209,25 @@ async function runSearch(page, query, seenIds, maxPosts) {
           const commentBtnVisible = await commentBtn.isVisible({ timeout: 3000 }).catch(() => false);
           if (commentBtnVisible) {
             await commentBtn.click();
-            await page.waitForTimeout(800);
 
             // LinkedIn comment box
             const commentInput = page.locator(`[data-urn="${post.urn}"] div[contenteditable="true"]`).first();
             const inputVisible = await commentInput.isVisible({ timeout: 5000 }).catch(() => false);
             if (inputVisible) {
               await commentInput.click();
+              await page.waitForFunction(() => document.activeElement && document.activeElement.getAttribute('contenteditable') === 'true').catch(() => {});
               await page.keyboard.type(comment, { delay: 40 });
-              await page.waitForTimeout(800);
 
-              // Submit with Ctrl+Enter
+              // Submit with Ctrl+Enter, then wait for comment box to close/reset
               await page.keyboard.press('Control+Enter');
-              await page.waitForTimeout(1500);
+              await page.waitForFunction(
+                (urn) => {
+                  const box = document.querySelector(`[data-urn="${urn}"] div[contenteditable="true"]`);
+                  return !box || box.innerText.trim() === '';
+                },
+                post.urn,
+                { timeout: 5000 }
+              ).catch(() => {});
               commented++;
               console.log(`[linkedin-engager] Commented on ${post.urn}: "${comment}"`);
             }
@@ -227,7 +240,7 @@ async function runSearch(page, query, seenIds, maxPosts) {
 
     seenIds.add(post.urn);
     postIndex++;
-    await page.waitForTimeout(2000);
+    await new Promise(r => setTimeout(r, 2000));
   }
 
   return { liked, commented };
@@ -269,7 +282,7 @@ async function main() {
       totalLiked += liked;
       totalCommented += commented;
       saveSeen(seenIds);
-      await page.waitForTimeout(3000);
+      await new Promise(r => setTimeout(r, 3000));
     }
   } finally {
     await context.close();
