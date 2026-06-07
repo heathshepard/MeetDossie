@@ -2,32 +2,21 @@
 
 // scripts/twitter-keyword-scanner.js
 //
-// Playwright script: searches Twitter/X for relevant keywords, finds posts
-// to engage with, drafts a reply in Heath's voice via Claude Haiku, and
+// Scans Twitter/X for keyword matches, drafts replies via Claude Haiku,
 // sends to DossieMarketingBot in veto mode (auto-posts after 10 min).
+//
+// Uses saved session cookies (scripts/sessions/twitter.json) — Chrome does NOT
+// need to be closed. Run save-session.js once to capture the cookies.
 //
 // Usage:
 //   node scripts/twitter-keyword-scanner.js
 //
-// Runs through a keyword list, scans top 20 live results each, skips already-seen
-// tweet URLs, drafts replies, saves to twitter_engagements, and sends to Telegram.
-//
-// Run 2x per day manually: morning + afternoon.
-//   node scripts/twitter-keyword-scanner.js
-//
-// Env vars required:
-//   SUPABASE_URL
-//   SUPABASE_SERVICE_ROLE_KEY
-//   ANTHROPIC_API_KEY
-//   TELEGRAM_MARKETING_BOT_TOKEN (or TELEGRAM_BOT_TOKEN)
-//   TELEGRAM_CHAT_ID
+// Schedule: runs 2x daily via Windows Task Scheduler (8AM + 2PM).
 
 const path = require('path');
-const os = require('os');
+const fs = require('fs');
 
-// Load .env.local when running locally
 try {
-  const fs = require('fs');
   const envPath = path.join(__dirname, '..', '.env.local');
   if (fs.existsSync(envPath)) {
     const lines = fs.readFileSync(envPath, 'utf8').split('\n');
@@ -41,9 +30,7 @@ try {
       if (!process.env[key]) process.env[key] = val;
     }
   }
-} catch (e) {
-  // Non-fatal
-}
+} catch (e) {}
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -51,15 +38,9 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
-  os.homedir(),
-  'AppData', 'Local', 'Google', 'Chrome', 'User Data'
-);
-const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'DossieBot';
-
+const SESSION_FILE = path.join(__dirname, 'sessions', 'twitter.json');
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
-// Keywords to scan — rotate through all each run
 const KEYWORDS = [
   'transaction coordinator Texas',
   'TREC deadline',
@@ -75,10 +56,9 @@ const KEYWORDS = [
   'transaction coordinator software',
 ];
 
-// Max tweets to inspect per keyword search page
 const MAX_PER_KEYWORD = 20;
 
-// ─── Supabase ─────────────────────────────────────────────────────────────────
+// ─── Supabase ──────────────────────────────────────────────────────────────────
 
 async function supabaseFetch(urlPath, init = {}) {
   const headers = {
@@ -90,9 +70,7 @@ async function supabaseFetch(urlPath, init = {}) {
   const res = await fetch(`${SUPABASE_URL}${urlPath}`, { ...init, headers });
   const text = await res.text();
   let data = null;
-  if (text) {
-    try { data = JSON.parse(text); } catch { data = null; }
-  }
+  try { data = JSON.parse(text); } catch {}
   return { ok: res.ok, status: res.status, data };
 }
 
@@ -104,57 +82,50 @@ async function isTweetAlreadySeen(tweetUrl) {
 }
 
 async function saveEngagement(tweetUrl, author, tweetText, keyword, draft) {
-  const row = {
-    tweet_url: tweetUrl,
-    tweet_author: author,
-    tweet_text: tweetText,
-    keyword_matched: keyword,
-    our_response_draft: draft,
-    status: 'pending',
-  };
   const { ok, data } = await supabaseFetch('/rest/v1/twitter_engagements', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify(row),
+    body: JSON.stringify({
+      tweet_url: tweetUrl,
+      tweet_author: author,
+      tweet_text: tweetText,
+      keyword_matched: keyword,
+      our_response_draft: draft,
+      status: 'pending',
+    }),
   });
   if (!ok) {
-    console.error('[twitter-keyword-scanner] saveEngagement failed:', JSON.stringify(data).slice(0, 200));
+    console.error('[twitter-scanner] saveEngagement failed:', JSON.stringify(data).slice(0, 200));
     return null;
   }
   return Array.isArray(data) && data.length > 0 ? data[0] : null;
 }
 
 async function markTelegramSent(engId) {
-  await supabaseFetch(`/rest/v1/twitter_engagements?id=eq.${encodeURIComponent(engId)}`, {
+  await supabaseFetch(`/rest/v1/twitter_engagements?id=eq.${engId}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ telegram_sent_at: new Date().toISOString() }),
   });
 }
 
-// ─── Claude Haiku reply draft ──────────────────────────────────────────────────
+// ─── Claude Haiku ──────────────────────────────────────────────────────────────
 
 const REPLY_SYSTEM_PROMPT = `You are drafting a Twitter/X reply for Heath Shepard, a licensed Texas REALTOR who built Dossie (an AI transaction coordinator for Texas agents).
 
 Heath's voice: warm, casual, genuine, first-person, self-deprecating. Sounds like a real working agent, not a marketer. Short sentences. No corporate language. Never use "excited," "thrilled," "game-changer," "leverage," "solution."
 
 Rules:
-- Reply as if Heath is typing it on his phone between showings
+- Reply as if Heath is typing on his phone between showings
 - Be genuinely helpful - answer their question or acknowledge their pain
-- If they asked "what do you use?" or about TC software - one sentence about Dossie, then meetdossie.com/founding
-- If they expressed a pain point - empathize briefly then offer Dossie as something worth checking out
-- If it's a general real estate post with no clear pain point - skip (return SKIP)
-- Max 2 sentences, must fit in a tweet (under 280 chars including spaces)
+- If they asked about TC software - one sentence about Dossie, then meetdossie.com/founding
+- If they expressed a pain point - empathize briefly then offer Dossie as worth checking out
+- If it's a general post with no clear pain point - return SKIP
+- Max 2 sentences, must fit in 280 chars
 - No em dashes, no curly quotes, plain ASCII only`;
 
 async function draftReply(tweetText, tweetAuthor, keyword) {
   if (!ANTHROPIC_API_KEY) return null;
-
-  const userMsg = `Keyword that matched: "${keyword}"
-Tweet by @${tweetAuthor}: "${tweetText}"
-
-Draft a reply for Heath. If this tweet doesn't have a genuine pain point or question worth engaging, reply with just the word SKIP.`;
-
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -167,18 +138,15 @@ Draft a reply for Heath. If this tweet doesn't have a genuine pain point or ques
         model: HAIKU_MODEL,
         max_tokens: 150,
         system: REPLY_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMsg }],
+        messages: [{ role: 'user', content: `Keyword: "${keyword}"\nTweet by @${tweetAuthor}: "${tweetText}"\n\nDraft reply or return SKIP.` }],
       }),
     });
     if (!res.ok) return null;
     const data = await res.json();
     const text = String(data?.content?.[0]?.text || '').trim();
-    if (text.toUpperCase() === 'SKIP' || text.startsWith('SKIP')) return null;
+    if (text.toUpperCase().startsWith('SKIP')) return null;
     return text || null;
-  } catch (err) {
-    console.error('[twitter-keyword-scanner] draftReply failed:', err && err.message);
-    return null;
-  }
+  } catch { return null; }
 }
 
 // ─── Telegram ─────────────────────────────────────────────────────────────────
@@ -201,40 +169,35 @@ async function sendVetoMessages(author, tweetText, tweetUrl, draft, engId) {
     return data?.result?.message_id || null;
   };
 
-  // Message 1: show the tweet, no buttons
   await send(`Twitter match: @${author}\n\n"${tweetText.slice(0, 280)}"\n\n${tweetUrl}`, null);
-
-  // Message 2: draft + STOP/PREVIEW buttons
-  const keyboard = {
-    inline_keyboard: [[
+  await send(
+    `Draft reply:\n\n${draft}\n\nAuto-posts in 10 min - tap STOP to cancel`,
+    { inline_keyboard: [[
       { text: 'STOP', callback_data: `tw_stop_${engId}` },
       { text: 'PREVIEW', callback_data: `tw_preview_${engId}` },
-    ]],
-  };
-  await send(`Draft reply:\n\n${draft}\n\nAuto-posts in 10 min - tap STOP to cancel`, keyboard);
+    ]] },
+  );
 }
 
 // ─── Playwright scraping ───────────────────────────────────────────────────────
 
 async function scanKeyword(page, keyword) {
-  const encodedKeyword = encodeURIComponent(keyword);
-  const searchUrl = `https://twitter.com/search?q=${encodedKeyword}&f=live`;
-  console.log(`[twitter-keyword-scanner] scanning: ${keyword}`);
+  const searchUrl = `https://x.com/search?q=${encodeURIComponent(keyword)}&f=live`;
+  console.log(`[twitter-scanner] scanning: ${keyword}`);
 
   try {
     await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(3000);
-  } catch (err) {
-    console.error(`[twitter-keyword-scanner] navigation failed for keyword "${keyword}":`, err && err.message);
+  } catch {
+    console.error(`[twitter-scanner] navigation timeout for "${keyword}"`);
     return [];
   }
 
   const currentUrl = page.url();
-  if (currentUrl.includes('login')) {
-    throw new Error('Twitter redirected to login. Make sure Chrome is logged in as Heath.');
+  if (currentUrl.includes('login') || currentUrl.includes('flow/login')) {
+    throw new Error('Session expired — re-run: node scripts/save-session.js twitter');
   }
 
-  // Scroll to load more results
   for (let i = 0; i < 3; i++) {
     await page.keyboard.press('End');
     await page.waitForTimeout(1500);
@@ -247,16 +210,13 @@ async function scanKeyword(page, keyword) {
     for (const el of tweetEls) {
       if (count >= MAX_PER_KEYWORD) break;
       try {
-        // Get tweet text
         const textEl = await el.$('[data-testid="tweetText"]');
         const tweetText = textEl ? (await textEl.textContent()).trim() : null;
-        if (!tweetText) continue;
+        if (!tweetText || tweetText.startsWith('RT @')) continue;
 
-        // Get author
         const authorEl = await el.$('[data-testid="User-Name"] span');
         const author = authorEl ? (await authorEl.textContent()).trim().replace('@', '') : 'unknown';
 
-        // Get tweet URL — find the timestamp link
         const timeEl = await el.$('time');
         let tweetUrl = null;
         if (timeEl) {
@@ -264,24 +224,21 @@ async function scanKeyword(page, keyword) {
           if (timeParent) {
             const href = await timeParent.getAttribute('href');
             if (href && href.includes('/status/')) {
-              tweetUrl = href.startsWith('http') ? href : `https://twitter.com${href}`;
+              tweetUrl = href.startsWith('http') ? href : `https://x.com${href}`;
             }
           }
         }
         if (!tweetUrl) continue;
-
-        // Skip retweets (RT @)
-        if (tweetText.startsWith('RT @')) continue;
 
         tweets.push({ tweetText, author, tweetUrl });
         count++;
       } catch { continue; }
     }
   } catch (err) {
-    console.error(`[twitter-keyword-scanner] scrape failed for "${keyword}":`, err && err.message);
+    console.error(`[twitter-scanner] scrape failed for "${keyword}":`, err && err.message);
   }
 
-  console.log(`[twitter-keyword-scanner] "${keyword}": found ${tweets.length} tweets`);
+  console.log(`[twitter-scanner] "${keyword}": found ${tweets.length} tweets`);
   return tweets;
 }
 
@@ -289,17 +246,25 @@ async function scanKeyword(page, keyword) {
 
 async function main() {
   const { chromium } = require('playwright');
-  console.log('[twitter-keyword-scanner] NOTE: Close all Chrome windows before running this script.');
 
-  const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
-    headless: false,
-    args: [
-      '--no-sandbox',
-      '--disable-blink-features=AutomationControlled',
-      `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
-    ],
+  if (!fs.existsSync(SESSION_FILE)) {
+    console.error('[twitter-scanner] No session file found.');
+    console.error('Run once with Chrome closed: node scripts/save-session.js twitter');
+    process.exit(1);
+  }
+
+  console.log('[twitter-scanner] Using saved session (Chrome can stay open).');
+  const storageState = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+  });
+
+  const context = await browser.newContext({
+    storageState,
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 900 },
-    channel: 'chrome',
   });
 
   const page = await context.newPage();
@@ -311,8 +276,8 @@ async function main() {
       try {
         tweets = await scanKeyword(page, keyword);
       } catch (err) {
-        console.error(`[twitter-keyword-scanner] scanKeyword threw for "${keyword}":`, err && err.message);
-        if (err.message && err.message.includes('login')) break; // auth error — stop all scanning
+        console.error(`[twitter-scanner] scanKeyword error for "${keyword}":`, err.message);
+        if (err.message.includes('Session expired')) break;
         continue;
       }
 
@@ -322,7 +287,6 @@ async function main() {
 
         const draft = await draftReply(tweetText, author, keyword);
         if (!draft) {
-          // Haiku said SKIP or returned null — save as 'skipped' to prevent re-scanning
           await supabaseFetch('/rest/v1/twitter_engagements', {
             method: 'POST',
             headers: { Prefer: 'return=minimal' },
@@ -344,22 +308,19 @@ async function main() {
         await sendVetoMessages(author, tweetText, tweetUrl, draft, saved.id);
         await markTelegramSent(saved.id);
         newEngagements++;
-
-        // Brief pause between Telegram sends
-        await page.waitForTimeout(1000);
+        await new Promise(r => setTimeout(r, 1000));
       }
 
-      // Brief pause between keyword searches to be a polite crawler
-      await page.waitForTimeout(2000);
+      await new Promise(r => setTimeout(r, 2000));
     }
   } finally {
-    await context.close();
+    await browser.close();
   }
 
-  console.log(`[twitter-keyword-scanner] done. New engagements queued: ${newEngagements}`);
+  console.log(`[twitter-scanner] done. New engagements queued: ${newEngagements}`);
 }
 
-main().catch((err) => {
-  console.error('[twitter-keyword-scanner] fatal error:', err && err.message);
+main().catch(err => {
+  console.error('[twitter-scanner] fatal:', err.message);
   process.exit(1);
 });
