@@ -67,6 +67,12 @@ const COMPETITORS = [
     instagram: 'donedealthq',
     searchFallback: true,
   },
+  {
+    brand: 'Click Contracts',
+    facebook: 'https://www.facebook.com/search/pages/?q=clickcontracts',
+    instagram: 'clickcontracts',
+    searchFallback: true,
+  },
 ];
 
 // ─── Seen dedup ───────────────────────────────────────────────────────────────
@@ -285,7 +291,7 @@ async function main() {
 
   if (!allFound.length) {
     console.log('[competitor-monitor] No new competitor posts found');
-    await sendTelegram('Competitor monitor ran - no new posts from DealDock, ListedKit, or Done Deal TC.');
+    await sendTelegram('Competitor monitor ran - no new posts from DealDock, ListedKit, Done Deal TC, or Click Contracts.');
     return;
   }
 
