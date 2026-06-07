@@ -171,12 +171,6 @@ async function pullZernioAnalytics() {
         engagement_rate: safeFloat(raw.engagementRate),
       };
 
-      // Engagement score: comments(3x) + shares(2x) + saves(2x) + clicks + likes + views(0.1x)
-      const engagementScore = Math.round(
-        metrics.likes * 1 + metrics.comments * 3 + metrics.shares * 2 +
-        metrics.saves * 2 + metrics.clicks * 1 + metrics.views * 0.1,
-      );
-
       // Match to a social_posts row
       let matchedRow = zId ? byZernioId.get(zId) : null;
       if (!matchedRow && zPublishedAt) {
@@ -191,6 +185,8 @@ async function pullZernioAnalytics() {
 
       if (!matchedRow) continue;
 
+      // engagement_score is a generated column — Postgres computes it from the metric fields.
+      // Do not include it in the insert payload.
       const analyticsRow = {
         social_post_id:  matchedRow.id,
         zernio_post_id:  zId || matchedRow.zernio_post_id || null,
@@ -201,7 +197,6 @@ async function pullZernioAnalytics() {
         synced_at:       new Date().toISOString(),
         sync_date:       syncDate,
         fetched_at:      new Date().toISOString(),
-        engagement_score: engagementScore,
         ...metrics,
       };
 
