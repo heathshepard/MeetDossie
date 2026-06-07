@@ -1254,9 +1254,22 @@ module.exports = async function handler(req, res) {
   const now = new Date();
   const topic = pickTopic();
   const forceDay = parseForceDay(req);
-  const plan = getPostPlan(now, { forceDay });
+  let plan = getPostPlan(now, { forceDay });
   const founding = await getFoundingMemberCount();
   const dayOfYear = getDayOfYear();
+
+  // If an Instagram Reel is already queued for today (status draft/approved/pending_video),
+  // skip generating a static Instagram post — Reels get 3,173% more reach than static posts.
+  const todayUtc = now.toISOString().slice(0, 10);
+  const reelCheck = await supabaseFetch(
+    `/rest/v1/social_posts?platform=eq.instagram&status=in.(draft,approved,pending_video)&created_at=gte.${todayUtc}T00:00:00Z&created_at=lt.${todayUtc}T23:59:59Z&select=id&limit=1`,
+  );
+  const reelAlreadyQueued = reelCheck.ok && Array.isArray(reelCheck.data) && reelCheck.data.length > 0;
+  if (reelAlreadyQueued) {
+    console.log('[cron-generate-posts] Instagram Reel already queued for today — skipping static post');
+    plan = plan.filter((p) => p.platform !== 'instagram');
+  }
+
   // Log which hook formulas are assigned to today's batch for diagnostics.
   const hookAssignments = plan.map((p, i) => {
     const f = pickHookFormula(dayOfYear, i);
