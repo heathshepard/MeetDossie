@@ -876,13 +876,24 @@ async function handleCallbackQuery(cb) {
     const post = await loadPost(postId);
     if (!post) {
       if (callbackId) await answerCallback(callbackId, 'Post not found');
+      await tgCall('sendMessage', { chat_id: chatId, text: `Post not found (id: ${postId}). It may have already been posted or deleted.`, disable_web_page_preview: true });
       return;
     }
+    const platform = String(post.platform || 'unknown').toUpperCase();
+    const persona = String(post.persona || '');
     const content = String(post.content || '');
     const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
       ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
       : '';
-    const previewText = `Full caption preview:\n\n${content}\n\n${hashtags}`.slice(0, 4096);
+    const scheduledLine = post.scheduled_for ? `Scheduled: ${post.scheduled_for}` : '';
+    const statusLine = `Status: ${post.status || 'unknown'}`;
+    const headerLines = [
+      `Platform: ${platform}${persona ? ' (' + persona + ')' : ''}`,
+      `Post ID: ${post.post_id || postId}`,
+      statusLine,
+      scheduledLine,
+    ].filter(Boolean).join('\n');
+    const previewText = `${headerLines}\n\n${content}${hashtags ? '\n\n' + hashtags : ''}`.slice(0, 4096);
     await tgCall('sendMessage', { chat_id: chatId, text: previewText, disable_web_page_preview: true });
     if (callbackId) await answerCallback(callbackId, 'Full caption sent');
     return;
