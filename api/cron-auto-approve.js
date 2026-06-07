@@ -85,7 +85,7 @@ module.exports = async function handler(req, res) {
       {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'approved' }),
+        body: JSON.stringify({ status: 'approved', approved_at: new Date().toISOString() }),
       },
     );
     if (!patchOk) {

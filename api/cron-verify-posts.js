@@ -231,15 +231,23 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Platform missed its window — alert and retry.
+    // Check for an approved post before deciding whether to alert.
+    // An empty queue (all rejected or nothing generated) is expected — not a crisis.
+    const post = await fetchApprovedPost(platform);
+    if (!post) {
+      console.log(`[cron-verify-posts] ${platform}: no approved posts in queue — nothing to retry (queue empty after rejections or single-post day)`);
+      report.push({ platform, status: 'queue_empty' });
+      continue;
+    }
+
+    // An approved post exists but didn't fire — that is a genuine missed window. Alert and retry.
     const cdtHour = WINDOWS_CDT[platform].find((h) => {
-      const diffMin = ((h + CDT_TO_UTC_OFFSET) % 24 - currentUtcHour + 24) % 24 * 60;
-      return diffMin <= 90 || ((currentUtcHour * 60 + now.getUTCMinutes()) >= (h + CDT_TO_UTC_OFFSET) % 24 * 60 &&
-             (currentUtcHour * 60 + now.getUTCMinutes()) <= (h + CDT_TO_UTC_OFFSET) % 24 * 60 + 90);
+      const utcH = (h + CDT_TO_UTC_OFFSET) % 24;
+      const elapsedMin = ((currentUtcHour - utcH + 24) % 24) * 60 + now.getUTCMinutes();
+      return elapsedMin >= 0 && elapsedMin <= 90;
     }) || WINDOWS_CDT[platform][0];
 
-    const alertMsg = `WARNING: ${platform} missed its ${cdtHour}AM CDT post window - retrying now`;
-    console.warn(`[cron-verify-posts] ${alertMsg}`);
+    console.warn(`[cron-verify-posts] ${platform}: approved post ${post.id} not published — missed ${cdtHour}:00 CDT window`);
     await sendTelegram(`<b>WARNING ${platform.toUpperCase()} MISSED POST WINDOW</b>\n\n${platform} had no posts in the last 90 minutes (expected window: ${cdtHour}:00 CDT). Retrying now...`);
     missed.push(platform);
 
@@ -247,15 +255,6 @@ module.exports = async function handler(req, res) {
       console.error('[cron-verify-posts] ZERNIO_API_KEY not configured — cannot retry');
       await sendTelegram(`<b>CRITICAL: ${platform.toUpperCase()} RETRY FAILED</b>\n\nZernio API key not configured. Manual intervention required.`);
       report.push({ platform, status: 'retry_skipped', reason: 'no ZERNIO_API_KEY' });
-      continue;
-    }
-
-    // Fetch the oldest approved post for this platform.
-    const post = await fetchApprovedPost(platform);
-    if (!post) {
-      console.warn(`[cron-verify-posts] ${platform}: no approved posts available to retry`);
-      await sendTelegram(`<b>INFO: ${platform.toUpperCase()} retry skipped</b>\n\nNo approved posts in queue for ${platform}. Generate and approve content first.`);
-      report.push({ platform, status: 'no_approved_post' });
       continue;
     }
 
