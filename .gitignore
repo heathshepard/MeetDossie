@@ -154,3 +154,16 @@ tx-sos-*.png
 
 # Raw PDF downloads — base64 JS files are the committed form; raw PDFs stay local only
 api/_assets/*-raw.pdf
+
+# LinkedIn / browser automation session files — contain auth cookies, never commit
+.playwright-linkedin-session.json
+.playwright-fb-session.json
+scripts/linkedin-outreach-log.json
+scripts/linkedin-cron.log
+
+# Playwright engagement script dedup state files — local only, never commit
+scripts/.fb-commenter-seen.json
+scripts/.instagram-seen.json
+scripts/.linkedin-seen.json
+scripts/.lead-scraper-seen.json
+scripts/.competitor-monitor-seen.json
