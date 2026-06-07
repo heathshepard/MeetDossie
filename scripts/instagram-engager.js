@@ -194,10 +194,10 @@ async function engageAccount(page, handle, seenUrls) {
           const inputVisible = await commentInput.isVisible({ timeout: 5000 }).catch(() => false);
           if (inputVisible) {
             await commentInput.click();
-            await page.waitForTimeout(500);
+            await page.waitForFunction(() => document.activeElement !== document.body).catch(() => {});
             await page.keyboard.type(comment, { delay: 40 });
             await page.keyboard.press('Enter');
-            await page.waitForTimeout(1500);
+            await page.waitForSelector('[aria-label="Add a comment..."]', { timeout: 5000 }).catch(() => {});
             commented++;
             console.log(`[instagram-engager] Commented on post from @${handle}: "${comment}"`);
           }
@@ -211,7 +211,7 @@ async function engageAccount(page, handle, seenUrls) {
     postIndex++;
 
     // Brief pause between posts to avoid rate limiting
-    await page.waitForTimeout(2000);
+    await new Promise(r => setTimeout(r, 2000));
   }
 
   return { handle, liked, commented, skipped };
@@ -255,7 +255,7 @@ async function main() {
       console.log(`[instagram-engager] ${line}`);
 
       saveSeen(seenUrls);
-      await page.waitForTimeout(3000);
+      await new Promise(r => setTimeout(r, 3000));
     }
   } finally {
     await context.close();

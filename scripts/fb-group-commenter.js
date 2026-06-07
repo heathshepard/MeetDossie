@@ -312,9 +312,8 @@ async function postComment(page, postUrl, commentText) {
   }
 
   await commentBox.click();
-  await page.waitForTimeout(800);
+  await page.waitForFunction(() => document.activeElement && document.activeElement.getAttribute('contenteditable') === 'true').catch(() => {});
   await page.keyboard.type(commentText, { delay: 30 });
-  await page.waitForTimeout(1000);
 
   // Find and click the submit button
   const submitSelectors = [
