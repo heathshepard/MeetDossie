@@ -286,9 +286,11 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, skipped: true, reason: 'ELEVENLABS_API_KEY not set' });
   }
 
-  // Query posts that need a video render
+  // Query posts that need a video render.
+  // Include pending_video: the publish cron parks instagram/tiktok posts there
+  // when media_url is null. Without this, backed-up posts are never retried.
   const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved)&order=created_at.asc&limit=${MAX_PER_RUN}`,
+    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render' });
@@ -344,11 +346,17 @@ module.exports = async function handler(req, res) {
       if (!videoUrl) throw new Error('Creatomate returned no video URL after succeeded status');
       console.log(`[cron-render-videos] render complete: ${videoUrl}`);
 
-      // 6. Write video URL back to social_posts
+      // 6. Write video URL back to social_posts.
+      // Restore status based on whether Heath already approved this post:
+      //   - approved_at set → restore to 'approved' so publish cron picks it up immediately
+      //   - approved_at null → restore to 'draft' so it routes through the normal Telegram approval flow
+      // Posts land here as pending_video (parked by publish cron when media_url was null)
+      // or as draft (never approved). Clear error_message so stale failure text is gone.
+      const restoredStatus = post.approved_at ? 'approved' : 'draft';
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(postId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ media_url: videoUrl }),
+        body: JSON.stringify({ media_url: videoUrl, status: restoredStatus, error_message: null }),
       });
       if (!patch.ok) throw new Error(`Failed to patch media_url on post ${postId}: ${patch.status}`);
 
