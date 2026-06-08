@@ -216,7 +216,10 @@
                                             },
                "api/cron-weekly-digest.js":  {
                                                  "maxDuration":  30
-                                             }
+                                             },
+               "api/cron-daily-platform-health.js":  {
+                                                          "maxDuration":  30
+                                                      }
                   },
     "crons":  [
                   {
@@ -289,7 +292,7 @@
                   },
                   {
                       "path":  "/api/cron-post-videos",
-                      "schedule":  "0 13 * * *"
+                      "schedule":  "30 13 * * *"
                   },
                   {
                       "path":  "/api/cron-verify-posts",
@@ -334,6 +337,10 @@
                   {
                       "path":  "/api/cron-render-skits",
                       "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-daily-platform-health",
+                      "schedule":  "0 3 * * *"
                   }
               ]
 }

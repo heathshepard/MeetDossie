@@ -1418,6 +1418,17 @@ module.exports = async function handler(req, res) {
     const VIDEO_REQUIRED_PLATFORMS = new Set(["tiktok", "youtube"]);
     const platformVideoRequired = VIDEO_REQUIRED_PLATFORMS.has(platform);
 
+    // Safety guard: VIDEO_REQUIRED_PLATFORMS must only contain tiktok and youtube.
+    // Any other platform in that set causes posts to park as pending_video forever
+    // (the Instagram-goes-dark bug). Fail loudly at generation time rather than
+    // silently parking posts.
+    const ALLOWED_VIDEO_REQUIRED = new Set(["tiktok", "youtube"]);
+    for (const vp of VIDEO_REQUIRED_PLATFORMS) {
+      if (!ALLOWED_VIDEO_REQUIRED.has(vp)) {
+        throw new Error(`[cron-generate-posts] BUG: VIDEO_REQUIRED_PLATFORMS contains "${vp}" which is not tiktok or youtube. This causes ${vp} posts to go dark (pending_video forever). Remove it from VIDEO_REQUIRED_PLATFORMS.`);
+      }
+    }
+
     const cardBody = String(p.card_body || '').trim();
     let mediaUrl = null;
     if (CARD_PLATFORMS.has(platform)) {
