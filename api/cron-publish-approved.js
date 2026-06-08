@@ -665,8 +665,17 @@ module.exports = async function handler(req, res) {
           error_message: 'TikTok requires a video attachment; awaiting DONE-pipeline render.',
         }),
       });
-      if (patch.ok) parkedTiktok++;
-      else errors.push({ id: post.id, error: 'patch to pending_video failed', status: patch.status });
+      if (patch.ok) {
+        parkedTiktok++;
+        // Notify Heath to record and send DONE
+        const topic = post.topic || 'unknown';
+        const persona = post.persona || 'unknown';
+        await sendTelegramNotification(
+          `TikTok post queued - send DONE after recording to publish.\nTopic: ${topic}\nPersona: ${persona}`,
+        );
+      } else {
+        errors.push({ id: post.id, error: 'patch to pending_video failed', status: patch.status });
+      }
       continue;
     }
 

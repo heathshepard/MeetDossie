@@ -271,6 +271,22 @@ module.exports = async function handler(req, res) {
   const items = Array.isArray(posts) ? posts : [];
   console.log('[cron-send-for-approval] posts to send:', items.length, '— draft:', items.filter(p => p.status === 'draft').length, 'approved:', items.filter(p => p.status === 'approved').length);
 
+  if (items.length === 0) {
+    console.warn('[cron-send-for-approval] 0 draft posts ready — sending pipeline gap alert');
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: 'PIPELINE GAP: approval cron found 0 draft posts ready to send.\nCheck: did generate cron run today? Were all posts auto-rejected?',
+          disable_web_page_preview: true,
+        }),
+      }).catch((err) => console.error('[cron-send-for-approval] gap alert send failed:', err && err.message));
+    }
+    return res.status(200).json({ ok: true, sent: 0, total: 0, errors: [] });
+  }
+
   let sent = 0;
   const sendErrors = [];
   for (const post of items) {
