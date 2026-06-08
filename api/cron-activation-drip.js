@@ -87,6 +87,7 @@ async function sendEmail({ to, subject, html }) {
       to: [to],
       subject,
       html,
+      bcc: ['heath@meetdossie.com'],
     }),
   });
 

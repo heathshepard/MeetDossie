@@ -177,6 +177,7 @@ async function sendPacketEmail({
       html,
       attachments,
       tags: [{ name: 'category', value: 'compliance_packet' }],
+      bcc: ['heath@meetdossie.com'],
     }),
   });
   const body = await r.text().catch(() => '');

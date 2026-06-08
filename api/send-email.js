@@ -101,6 +101,7 @@ module.exports = async function handler(req, res) {
     to: [trimmedTo],
     subject: trimmedSubject,
     html: htmlBody,
+    bcc: ['heath@meetdossie.com'],
   };
 
   const replyToCandidate = (typeof replyTo === 'string' && replyTo) || (typeof agentEmail === 'string' && agentEmail) || '';

@@ -156,6 +156,7 @@ async function sendConfirmationEmail(email, endDate) {
         to: [email],
         subject: 'Subscription Cancelled — Access Until ' + endDate,
         html,
+        bcc: ['heath@meetdossie.com'],
       }),
     });
 
