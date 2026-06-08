@@ -49,7 +49,7 @@ async function alertSessionExpired() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: TELEGRAM_CHAT_ID,
-      text: 'Facebook session expired or missing. Run this in PowerShell to refresh:\n\ncd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie"; node scripts/capture-facebook-session.js\n\nLog in, session saves automatically.',
+      text: 'Facebook login needs renewal. Run: node scripts/capture-facebook-session.js',
     }),
   }).catch(() => {});
 }
