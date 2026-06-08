@@ -2,8 +2,8 @@
 
 // scripts/fb-group-poster.js
 //
-// Playwright script: logs into Facebook via Heath's existing Chrome profile,
-// navigates to a group, and posts approved group_posts content.
+// Playwright script: posts approved group_posts content to Facebook groups
+// using saved session cookies. Chrome does NOT need to be closed.
 //
 // Usage:
 //   node scripts/fb-group-poster.js --post-id [uuid]
@@ -11,9 +11,8 @@
 // Requires an approved group_posts row. Fetches it from Supabase, posts,
 // then updates group_posts status='posted' and group_registry last_posted_at.
 //
-// Uses Heath's existing Chrome profile so no login step is needed.
-// Chrome must NOT be running when this script starts (Playwright needs
-// exclusive access to the profile).
+// Session must be captured first:
+//   node scripts/capture-facebook-session.js
 //
 // Env vars required:
 //   SUPABASE_URL
@@ -22,11 +21,12 @@
 //   TELEGRAM_CHAT_ID
 
 const path = require('path');
-const os = require('os');
+const fs = require('fs');
+
+const SESSION_FILE = path.join(__dirname, 'sessions', 'facebook.json');
 
 // Load .env.local when running locally
 try {
-  const fs = require('fs');
   const envPath = path.join(__dirname, '..', '.env.local');
   if (fs.existsSync(envPath)) {
     const lines = fs.readFileSync(envPath, 'utf8').split('\n');
@@ -48,16 +48,6 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-// Chrome profile path and profile name — use DossieBot profile to avoid
-// locking conflicts with Heath's personal Chrome session.
-// Set PLAYWRIGHT_PROFILE_DIR and PLAYWRIGHT_PROFILE_NAME in .env.local.
-// See scripts/PLAYWRIGHT-SETUP.md for one-time setup instructions.
-const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
-  os.homedir(),
-  'AppData', 'Local', 'Google', 'Chrome', 'User Data'
-);
-const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'DossieBot';
 
 // ─── Args ─────────────────────────────────────────────────────────────────────
 
@@ -152,18 +142,23 @@ async function sendTelegramConfirmation(groupName, postBody, success, errorMsg) 
 async function postToGroup(post) {
   const { chromium } = require('playwright');
 
-  console.log(`[fb-group-poster] Launching Chrome with profile: ${CHROME_PROFILE_PATH}`);
-  console.log('[fb-group-poster] NOTE: Close all Chrome windows before running this script.');
+  if (!fs.existsSync(SESSION_FILE)) {
+    throw new Error('Session file not found. Run: node scripts/capture-facebook-session.js first to capture your Facebook session.');
+  }
 
-  const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
+  const storageState = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+
+  console.log('[fb-group-poster] Launching browser with saved session cookies...');
+
+  const browser = await chromium.launch({
     headless: false,
-    args: [
-      '--no-sandbox',
-      '--disable-blink-features=AutomationControlled',
-      `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
-    ],
+    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+  });
+
+  const context = await browser.newContext({
+    storageState,
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 900 },
-    channel: 'chrome',
   });
 
   const page = await context.newPage();
@@ -175,10 +170,10 @@ async function postToGroup(post) {
     // Wait for the page to settle
     await page.waitForTimeout(3000);
 
-    // Check if we landed on a login page instead of the group
+    // Check if the session has expired
     const currentUrl = page.url();
     if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
-      throw new Error('Facebook redirected to login page. Make sure Chrome is logged in as Heath before running this script.');
+      throw new Error('Session expired — run: node scripts/capture-facebook-session.js');
     }
 
     // Find the "Write something" / "What's on your mind?" post box
@@ -380,7 +375,7 @@ async function postToGroup(post) {
 
     return postUrl;
   } finally {
-    await context.close();
+    await browser.close();
   }
 }
 
