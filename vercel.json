@@ -207,7 +207,10 @@
                                                 },
                "api/cron-send-referral-blast.js":  {
                                                        "maxDuration":  60
-                                                   }
+                                                   },
+               "api/cron-reddit-scanner.js":  {
+                                                  "maxDuration":  60
+                                              }
                   },
     "crons":  [
                   {
@@ -317,6 +320,10 @@
                   {
                       "path":  "/api/cron-send-referral-blast",
                       "schedule":  "30 13 9 6 *"
+                  },
+                  {
+                      "path":  "/api/cron-reddit-scanner",
+                      "schedule":  "0 13,17,21,1 * * *"
                   }
               ]
 }
