@@ -219,7 +219,10 @@
                                              },
                "api/cron-thursday-blast.js":  {
                                                   "maxDuration":  30
-                                              }
+                                              },
+               "api/cron-daily-platform-health.js":  {
+                                                          "maxDuration":  30
+                                                      }
                   },
     "crons":  [
                   {
@@ -292,7 +295,7 @@
                   },
                   {
                       "path":  "/api/cron-post-videos",
-                      "schedule":  "0 13 * * *"
+                      "schedule":  "30 13 * * *"
                   },
                   {
                       "path":  "/api/cron-verify-posts",
@@ -341,6 +344,10 @@
                   {
                       "path":  "/api/cron-thursday-blast",
                       "schedule":  "30 13 10 6 *"
+                  },
+                  {
+                      "path":  "/api/cron-daily-platform-health",
+                      "schedule":  "0 3 * * *"
                   }
               ]
 }
