@@ -35,6 +35,15 @@ const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const SCORER_MODEL = 'claude-haiku-4-5-20251001';
 const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
 
+// ─── Platform-aware composite (mirrors cron-send-for-approval.js) ────────
+// Twitter reduces CTA weight to 0.5 — punchy statements don't need explicit CTAs.
+function computeComposite(hook, platform_fit, cta, platform) {
+  if (platform === 'twitter') {
+    return Math.round(((hook + platform_fit + cta * 0.5) / 2.5) * 10) / 10;
+  }
+  return Math.round(((hook + platform_fit + cta) / 3) * 10) / 10;
+}
+
 // ─── Quality Scorer (mirrors cron-send-for-approval.js scorePost) ──────────
 // Scores a replacement post on Hook, Platform Fit, and CTA (1-10 each).
 // Returns { hook, platform_fit, cta, composite } or null on any failure.
@@ -75,7 +84,7 @@ Return JSON only: {"hook": N, "platform_fit": N, "cta": N}`;
     const platform_fit = Math.min(10, Math.max(1, parseInt(parsed.platform_fit, 10) || 0));
     const cta = Math.min(10, Math.max(1, parseInt(parsed.cta, 10) || 0));
     if (!hook || !platform_fit || !cta) return null;
-    const composite = Math.round(((hook + platform_fit + cta) / 3) * 10) / 10;
+    const composite = computeComposite(hook, platform_fit, cta, platform);
     return { hook, platform_fit, cta, composite };
   } catch (err) {
     console.warn('[telegram-webhook] scorePost failed:', err && err.message);
