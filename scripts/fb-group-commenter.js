@@ -10,11 +10,12 @@
 //   node scripts/fb-group-commenter.js
 //
 // Env vars required:
-//   SUPABASE_URL
-//   SUPABASE_SERVICE_ROLE_KEY
 //   TELEGRAM_BOT_TOKEN
 //   TELEGRAM_CHAT_ID
 //   ANTHROPIC_API_KEY
+//
+// Groups are loaded from scripts/fb-commenter-groups.json (local file).
+// Add or edit group entries there — no database needed.
 
 const path = require('path');
 const os = require('os');
@@ -39,8 +40,6 @@ try {
   // Non-fatal
 }
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -50,6 +49,7 @@ const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
 );
 const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Profile 4';
 
+const GROUPS_FILE = path.join(__dirname, 'fb-commenter-groups.json');
 const SEEN_FILE = path.join(__dirname, '.fb-commenter-seen.json');
 const APPROVAL_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -64,6 +64,23 @@ const TC_KEYWORDS = [
   'hire a tc',
   'transaction coordinating',
 ];
+
+// ─── Local groups loader ──────────────────────────────────────────────────────
+
+function loadGroups() {
+  if (!fs.existsSync(GROUPS_FILE)) {
+    console.error(`[fb-group-commenter] Groups file not found: ${GROUPS_FILE}`);
+    console.error('[fb-group-commenter] Create it with entries: [{"group_name":"...", "group_url":"https://www.facebook.com/groups/..."}]');
+    return [];
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(GROUPS_FILE, 'utf8'));
+    return raw.filter(g => g.group_url && !g.group_url.includes('PLACEHOLDER'));
+  } catch (e) {
+    console.error('[fb-group-commenter] Failed to parse groups file:', e.message);
+    return [];
+  }
+}
 
 // ─── Seen-posts dedup ─────────────────────────────────────────────────────────
 
@@ -82,32 +99,6 @@ function saveSeen(set) {
   } catch (e) {
     console.warn('[fb-group-commenter] Could not save seen file:', e.message);
   }
-}
-
-// ─── Supabase helpers ─────────────────────────────────────────────────────────
-
-async function supabaseFetch(urlPath, init = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    apikey: SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    ...(init.headers || {}),
-  };
-  const res = await fetch(`${SUPABASE_URL}${urlPath}`, { ...init, headers });
-  const text = await res.text();
-  let data = null;
-  if (text) {
-    try { data = JSON.parse(text); } catch { data = null; }
-  }
-  return { ok: res.ok, status: res.status, data };
-}
-
-async function loadGroups() {
-  const { ok, data } = await supabaseFetch(
-    '/rest/v1/group_registry?select=id,group_name,group_url&order=last_posted_at.asc.nullsfirst&limit=50'
-  );
-  if (!ok || !Array.isArray(data)) return [];
-  return data.filter(g => g.group_url && !g.group_url.includes('PLACEHOLDER'));
 }
 
 // ─── Claude Haiku comment drafting ───────────────────────────────────────────
@@ -349,10 +340,6 @@ async function postComment(page, postUrl, commentText) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('[fb-group-commenter] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required');
-    process.exit(1);
-  }
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.error('[fb-group-commenter] TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID required');
     process.exit(1);
@@ -363,10 +350,10 @@ async function main() {
   }
 
   const seenIds = loadSeen();
-  const groups = await loadGroups();
+  const groups = loadGroups();
 
   if (!groups.length) {
-    console.log('[fb-group-commenter] No groups found in group_registry');
+    console.log('[fb-group-commenter] No groups in fb-commenter-groups.json - populate the file and retry');
     return;
   }
 
