@@ -152,7 +152,14 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'RESEND_API_KEY not configured' });
   }
 
-  console.log('[cron-thursday-blast] starting at', new Date().toISOString());
+  const now = new Date();
+  const isJune10 = now.getUTCFullYear() === 2026 && now.getUTCMonth() === 5 && now.getUTCDate() === 10;
+  if (!isJune10) {
+    console.log('[cron-thursday-blast] skipped — not June 10 2026, got', now.toISOString());
+    return res.status(200).json({ ok: true, skipped: true, reason: 'not-june-10-2026' });
+  }
+
+  console.log('[cron-thursday-blast] starting at', now.toISOString());
 
   const recipients = await fetchRecipients();
   console.log(`[cron-thursday-blast] recipients: ${recipients.length}`);

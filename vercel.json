@@ -337,6 +337,10 @@
                   {
                       "path":  "/api/cron-render-skits",
                       "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-thursday-blast",
+                      "schedule":  "30 13 10 6 *"
                   }
               ]
 }
