@@ -143,7 +143,7 @@ async function postToGroup(post) {
   const { chromium } = require('playwright');
 
   if (!fs.existsSync(SESSION_FILE)) {
-    throw new Error('Session file not found. Run: node scripts/capture-facebook-session.js first to capture your Facebook session.');
+    throw new Error('Facebook not connected — run: node scripts/capture-facebook-session.js');
   }
 
   const storageState = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
@@ -180,11 +180,11 @@ async function postToGroup(post) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: TELEGRAM_CHAT_ID,
-            text: 'Facebook session expired. Run this to refresh:\n\ncd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie"; node scripts/capture-facebook-session.js\n\nLog in, session saves automatically.',
+            text: 'Facebook login expired — run: node scripts/capture-facebook-session.js to reconnect',
           }),
         }).catch(() => {});
       }
-      throw new Error('Session expired — run: node scripts/capture-facebook-session.js');
+      throw new Error('Facebook login expired — run: node scripts/capture-facebook-session.js to reconnect');
     }
 
     // Find the "Write something" / "What's on your mind?" post box
