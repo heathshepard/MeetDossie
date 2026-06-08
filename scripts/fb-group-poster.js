@@ -190,6 +190,8 @@ async function postToGroup(post) {
     // Find the "Write something" / "What's on your mind?" post box
     // Facebook uses multiple possible selectors depending on group type and layout
     const postBoxSelectors = [
+      '[aria-label*="Write something"]',
+      '[aria-label*="What\'s on your mind"]',
       '[aria-label="Write something..."]',
       '[aria-label="What\'s on your mind?"]',
       '[data-testid="status-attachment-mentions-input"]',
@@ -237,16 +239,20 @@ async function postToGroup(post) {
 
     // Click the post box to expand the composer
     await postBox.click();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(4000);
 
     // Look for the expanded text input area
     // After clicking, Facebook expands a modal or inline editor
     const editorSelectors = [
+      '[role="dialog"] div[contenteditable="true"]',
+      '[role="dialog"] [contenteditable="true"]',
+      '[role="dialog"] [contenteditable]',
       'div[contenteditable="true"][role="textbox"]',
       '[data-lexical-editor="true"]',
       '[aria-label="Write something..."][contenteditable="true"]',
       '[aria-label="What\'s on your mind?"][contenteditable="true"]',
       'div[contenteditable="true"]',
+      '[contenteditable]',
     ];
 
     let editor = null;
@@ -267,9 +273,9 @@ async function postToGroup(post) {
       throw new Error('Could not find the text editor after clicking post box. Facebook layout may have changed.');
     }
 
-    // Click the editor to focus it
+    // Click the editor to focus it and wait for cursor to settle
     await editor.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Type the post body character by character (natural typing)
     console.log(`[fb-group-poster] Typing post body (${post.post_body.length} chars)...`);
@@ -284,6 +290,8 @@ async function postToGroup(post) {
 
     // Find and click the Post button
     const postButtonSelectors = [
+      '[role="dialog"] div[aria-label="Post"][role="button"]',
+      '[role="dialog"] button[type="submit"]',
       'div[aria-label="Post"][role="button"]',
       'button[type="submit"]',
       '[data-testid="react-composer-post-button"]',
