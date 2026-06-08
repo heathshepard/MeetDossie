@@ -173,6 +173,17 @@ async function postToGroup(post) {
     // Check if the session has expired
     const currentUrl = page.url();
     if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
+      // Notify Heath via Telegram before throwing
+      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: 'Facebook session expired. Run this to refresh:\n\ncd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie"; node scripts/capture-facebook-session.js\n\nLog in, session saves automatically.',
+          }),
+        }).catch(() => {});
+      }
       throw new Error('Session expired — run: node scripts/capture-facebook-session.js');
     }
 
