@@ -17,9 +17,12 @@
 //   ANTHROPIC_API_KEY
 //   TELEGRAM_MARKETING_BOT_TOKEN  (or TELEGRAM_BOT_TOKEN)
 //   TELEGRAM_CHAT_ID
+//   SUPABASE_URL
+//   SUPABASE_SERVICE_ROLE_KEY
 //
 // No Reddit auth required — uses public .json endpoints.
-// No Supabase writes — local seen-file is sufficient for dedup.
+// Persists engagements to reddit_engagements table in Supabase so
+// reddit-poster.js can pick them up after the 10-min veto window.
 
 const path = require('path');
 const fs = require('fs');
@@ -46,6 +49,8 @@ try {
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SEEN_FILE = path.join(__dirname, '.reddit-scanner-seen.json');
@@ -93,6 +98,54 @@ function saveSeen(seen) {
     fs.writeFileSync(SEEN_FILE, JSON.stringify(arr), 'utf8');
   } catch (err) {
     console.warn('[reddit-scanner] Could not save seen file:', err && err.message);
+  }
+}
+
+// ─── Supabase persistence ─────────────────────────────────────────────────────
+
+async function saveEngagement(post, keyword, draft, telegramMessageId) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+
+  const postId = `${post.subreddit || 'unknown'}_${post.id}`;
+  const row = {
+    post_id: postId,
+    reddit_id: post.id || '',
+    subreddit: post.subreddit || '',
+    post_title: (post.title || '').slice(0, 500),
+    post_body: (post.selftext || '').slice(0, 2000),
+    post_url: `https://www.reddit.com${post.permalink || ''}`,
+    permalink: post.permalink || '',
+    keyword_matched: keyword,
+    our_response_draft: draft,
+    status: 'pending',
+    score: post.score || 0,
+    telegram_sent_at: new Date().toISOString(),
+    telegram_message_id: telegramMessageId || null,
+  };
+
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    };
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/reddit_engagements?on_conflict=post_id`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(row),
+      },
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      console.warn('[reddit-scanner] saveEngagement failed:', res.status, text.slice(0, 200));
+    } else {
+      console.log(`[reddit-scanner] Saved engagement to Supabase: ${postId}`);
+    }
+  } catch (err) {
+    console.warn('[reddit-scanner] saveEngagement error:', err && err.message);
   }
 }
 
@@ -215,8 +268,10 @@ Draft a Reddit reply for Heath. If this post doesn't have a genuine opening, rep
 
 // ─── Telegram veto-mode ───────────────────────────────────────────────────────
 
+// Returns the message_id of the draft message (Message 2) so it can be stored
+// in reddit_engagements for STOP callback lookups.
 async function sendVetoMessages(post, keyword, draft) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return null;
 
   const redditUrl = `https://www.reddit.com${post.permalink || ''}`;
   const isTexas = TEXAS_SIGNALS.some((s) =>
@@ -254,13 +309,17 @@ async function sendVetoMessages(post, keyword, draft) {
   await new Promise((r) => setTimeout(r, 800));
 
   // Message 2: draft reply + STOP button + auto-post label
+  // post_id uses the composite key format "subreddit_redditid" so the callback
+  // handler can find the row by post_id column.
+  const compositePostId = `${post.subreddit || 'unknown'}_${post.id}`;
   const keyboard = {
     inline_keyboard: [[
-      { text: 'STOP', callback_data: `reddit_stop_${post.id}` },
+      { text: 'STOP', callback_data: `reddit_stop_${compositePostId}` },
     ]],
   };
   const draftText = `Draft reply:\n\n${draft}\n\nAuto-posts in 10 min - tap STOP to cancel`;
-  await send(draftText, keyboard);
+  const draftMessageId = await send(draftText, keyboard);
+  return draftMessageId;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -301,7 +360,8 @@ async function main() {
         }
 
         console.log(`[reddit-scanner] queueing: r/${post.subreddit} — ${(post.title || '').slice(0, 60)}`);
-        await sendVetoMessages(post, keyword, draft);
+        const telegramMessageId = await sendVetoMessages(post, keyword, draft);
+        await saveEngagement(post, keyword, draft, telegramMessageId);
         queued++;
 
         // Pause between Telegram sends to avoid flood limits

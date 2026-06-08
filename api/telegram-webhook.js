@@ -965,6 +965,24 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Veto mode: STOP for reddit_engagements
+  // callback_data format: reddit_stop_<post_id>
+  // where post_id is the composite key "subreddit_redditid" stored in reddit_engagements.post_id
+  if (data.startsWith('reddit_stop_')) {
+    const postId = data.replace('reddit_stop_', '');
+    await supabaseFetch(`/rest/v1/reddit_engagements?post_id=eq.${encodeURIComponent(postId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'stopped', stopped_at: new Date().toISOString() }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nStopped. Reddit reply cancelled.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Reddit reply cancelled');
+    return;
+  }
+
   const m = data.match(/^(approve|reject|edit)_(.+)$/);
   if (!m) {
     if (callbackId) await answerCallback(callbackId, 'Unknown action');
