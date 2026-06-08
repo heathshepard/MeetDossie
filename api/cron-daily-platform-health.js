@@ -67,7 +67,6 @@ function todayCdtLabel() {
 }
 
 async function countPostsByStatus(platform, statuses, start, end) {
-  const statusList = statuses.map(s => `"${s}"`).join(',');
   const filter = `platform=eq.${encodeURIComponent(platform)}` +
     `&status=in.(${statuses.join(',')})` +
     `&created_at=gte.${encodeURIComponent(start)}` +
