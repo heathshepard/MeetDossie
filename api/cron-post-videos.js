@@ -244,112 +244,183 @@ module.exports = async function handler(req, res) {
     ? heathApprovedRows[0]
     : null;
 
+  let libraryOk = true;
+  let videoResults = [];
+  let videoId = null;
+  let platformsAttempted = [];
+
   if (!video) {
     console.log('[cron-post-videos] No heath_approved videos — nothing to post');
-    return res.status(200).json({ ok: true, summary });
+  } else {
+    videoId = video.id;
+    console.log(`[cron-post-videos] Posting heath_approved video: ${video.id}`);
+
+    if (!video.supabase_url) {
+      const warn = `Video ${video.id} is heath_approved but supabase_url is null`;
+      console.warn(`[cron-post-videos] ${warn}`);
+      await sendTelegramMessage(`Video pipeline: ${warn}`);
+      summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
+    } else {
+      const captionCheck = (video.caption || '').trim().toLowerCase();
+      if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
+        const warn = `Video ${video.id} has an invalid caption ("${(video.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
+        console.warn(`[cron-post-videos] ${warn}`);
+        await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
+        await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+        );
+        summary.skipped.push({ id: video.id, reason: 'invalid caption' });
+      } else {
+        const { ok: lockOk } = await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({ status: 'posting' }),
+          },
+        );
+
+        if (!lockOk) {
+          console.error('[cron-post-videos] Failed to acquire posting lock');
+          libraryOk = false;
+        } else {
+          platformsAttempted = (Array.isArray(video.platforms) && video.platforms.length > 0)
+            ? video.platforms
+            : DEFAULT_PLATFORMS;
+          const caption = video.caption || '';
+
+          for (const platform of platformsAttempted) {
+            const result = await postToZernio(platform, video.supabase_url, caption, video.topic);
+            videoResults.push({ platform, ...result });
+            if (!result.ok) {
+              libraryOk = false;
+              console.error(`[cron-post-videos] Failed on ${platform}:`, result.error);
+            } else {
+              console.log(`[cron-post-videos] Posted to ${platform} OK`);
+            }
+          }
+
+          if (libraryOk) {
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+              {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString() }),
+              },
+            );
+            await sendTelegramMessage(
+              `Video posted: ${video.id}\nPlatforms: ${platformsAttempted.join(', ')}\n${caption.slice(0, 100)}`,
+            );
+            console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
+            summary.posted.push(video.id);
+          } else {
+            const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+              {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ status: 'failed', posted_date: null }),
+              },
+            );
+            await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
+            console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
+          }
+        }
+      }
+    }
   }
 
-  console.log(`[cron-post-videos] Posting heath_approved video: ${video.id}`);
+  // --- STEP 3: Post any video_approved skits to Zernio ---
+  const skitPostResult = await postApprovedSkits();
+  summary.skit_posted = skitPostResult.posted;
 
-  if (!video.supabase_url) {
-    const warn = `Video ${video.id} is heath_approved but supabase_url is null`;
-    console.warn(`[cron-post-videos] ${warn}`);
-    await sendTelegramMessage(`Video pipeline: ${warn}`);
-    summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
-    return res.status(200).json({ ok: true, summary });
-  }
+  return res.status(200).json({
+    ok: libraryOk,
+    video_id: videoId,
+    platforms_attempted: platformsAttempted,
+    results: videoResults,
+    summary,
+  });
+};
 
-  // Guard: never post if caption looks like an internal note
-  const captionCheck = (video.caption || '').trim().toLowerCase();
-  if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
-    const warn = `Video ${video.id} has an invalid caption ("${(video.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
-    console.warn(`[cron-post-videos] ${warn}`);
-    await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
-    await supabaseFetch(
-      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-      { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
-    );
-    summary.skipped.push({ id: video.id, reason: 'invalid caption' });
-    return res.status(200).json({ ok: true, summary });
-  }
+// --- Skit video posting handler ---
+// Called from this same cron run to post video_approved skits to Zernio.
+// Skits post to Instagram + TikTok only (vertical 9:16 format).
+const SKIT_PLATFORMS = ['instagram', 'tiktok'];
 
-  // Mark as posting (soft lock)
-  const { ok: lockOk } = await supabaseFetch(
-    `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
-    {
-      method: 'PATCH',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ status: 'posting' }),
-    },
+async function postApprovedSkits() {
+  const { data: skitRows, ok: skitOk } = await supabaseFetch(
+    '/rest/v1/skit_queue?status=eq.video_approved&order=created_at.asc&limit=1',
   );
-
-  if (!lockOk) {
-    return res.status(502).json({ ok: false, error: 'Failed to acquire posting lock' });
+  if (!skitOk || !Array.isArray(skitRows) || skitRows.length === 0) {
+    return { posted: [], skipped: [] };
   }
 
-  const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
-    ? video.platforms
-    : DEFAULT_PLATFORMS;
-  const caption = video.caption || '';
+  const skit = skitRows[0];
+  const skitId = skit.id;
+  const videoUrl = skit.video_url;
+  const caption = skit.caption || '';
+  const topic = skit.topic || skitId;
+
+  if (!videoUrl) {
+    console.warn(`[cron-post-videos] Skit ${skitId} is video_approved but has no video_url`);
+    await sendTelegramMessage(`Skit pipeline: ${skitId} is video_approved but video_url is null`);
+    return { posted: [], skipped: [skitId] };
+  }
+
+  if (!caption.trim()) {
+    console.warn(`[cron-post-videos] Skit ${skitId} has empty caption — skipping`);
+    await sendTelegramMessage(`Skit pipeline safety check: ${skitId} has empty caption`);
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'failed' }),
+    });
+    return { posted: [], skipped: [skitId] };
+  }
+
+  if (!ZERNIO_API_KEY) {
+    return { posted: [], skipped: [skitId] };
+  }
+
+  // Soft lock
+  await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}&status=eq.video_approved`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'posting' }),
+  });
+
   const results = [];
   let allOk = true;
-
-  for (const platform of platforms) {
-    const result = await postToZernio(platform, video.supabase_url, caption, video.topic);
+  for (const platform of SKIT_PLATFORMS) {
+    const result = await postToZernio(platform, videoUrl, caption, topic);
     results.push({ platform, ...result });
     if (!result.ok) {
       allOk = false;
-      console.error(`[cron-post-videos] Failed on ${platform}:`, result.error);
-    } else {
-      console.log(`[cron-post-videos] Posted to ${platform} OK`);
+      console.error(`[cron-post-videos] Skit ${skitId} failed on ${platform}:`, result.error);
     }
   }
 
   if (allOk) {
-    await supabaseFetch(
-      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-      {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          status: 'posted',
-          posted_date: new Date().toISOString(),
-        }),
-      },
-    );
-    await sendTelegramMessage(
-      `Video posted: ${video.id}\nPlatforms: ${platforms.join(', ')}\n${caption.slice(0, 100)}`,
-    );
-    console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
-    summary.posted.push(video.id);
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'posted' }),
+    });
+    await sendTelegramMessage(`Reel posted: ${topic}\nPlatforms: ${SKIT_PLATFORMS.join(', ')}`);
+    console.log(`[cron-post-videos] Skit ${skitId} posted`);
+    return { posted: [skitId], skipped: [] };
   } else {
-    const errorSummary = results
-      .filter((r) => !r.ok)
-      .map((r) => `${r.platform}: ${r.error}`)
-      .join('; ');
-
-    await supabaseFetch(
-      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-      {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          status: 'failed',
-          posted_date: null,
-        }),
-      },
-    );
-    await sendTelegramMessage(
-      `Video post FAILED: ${video.id}\nErrors: ${errorSummary}`,
-    );
-    console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
+    const errorSummary = results.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'failed' }),
+    });
+    await sendTelegramMessage(`Reel post FAILED: ${topic}\nErrors: ${errorSummary}`);
+    return { posted: [], skipped: [skitId] };
   }
-
-  return res.status(200).json({
-    ok: allOk,
-    video_id: video.id,
-    platforms_attempted: platforms,
-    results,
-    summary,
-  });
-};
+}
