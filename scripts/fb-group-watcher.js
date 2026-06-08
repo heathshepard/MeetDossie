@@ -37,6 +37,32 @@ try {
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+const SESSION_FILE = path.join(__dirname, 'sessions', 'facebook.json');
+
+async function alertSessionExpired() {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text: 'Facebook session expired or missing. Run this in PowerShell to refresh:\n\ncd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie"; node scripts/capture-facebook-session.js\n\nLog in, session saves automatically.',
+    }),
+  }).catch(() => {});
+}
+
+function sessionIsValid() {
+  try {
+    if (!fs.existsSync(SESSION_FILE)) return false;
+    const data = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+    return Array.isArray(data.cookies) && data.cookies.some(c => c.name === 'c_user' && c.value);
+  } catch {
+    return false;
+  }
+}
 
 function ts() {
   return new Date().toISOString();
@@ -80,6 +106,12 @@ function runPoster(postId) {
 async function main() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error(`[${ts()}] [fb-group-watcher] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required`);
+    process.exit(1);
+  }
+
+  if (!sessionIsValid()) {
+    console.error(`[${ts()}] [fb-group-watcher] Session file missing or invalid. Sending Telegram alert.`);
+    await alertSessionExpired();
     process.exit(1);
   }
 
