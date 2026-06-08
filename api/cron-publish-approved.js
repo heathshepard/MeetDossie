@@ -708,14 +708,12 @@ module.exports = async function handler(req, res) {
     }
 
     // Media gate: block publish if the post requires a video/image that hasn't been attached yet.
-    // video_required is set per-platform in cron-generate-posts: true for instagram+tiktok only.
-    // Twitter, LinkedIn, and Facebook have video_required=false and publish text-only.
-    // Legacy instagram guard retained for older rows that pre-date the video_required column.
-    const needsVideo = post.video_required === true || post.platform === 'instagram';
+    // video_required is set per-platform in cron-generate-posts: true for tiktok/youtube only.
+    // Instagram now uses HCTI image cards (media_url set at generation time) — video_required=false.
+    // Twitter, LinkedIn, Facebook, and Instagram all publish without this gate.
+    const needsVideo = post.video_required === true;
     if (needsVideo && !post.media_url) {
-      const blockReason = post.video_required
-        ? 'video_required=true but media_url is null — Creatomate pipeline must render and attach video before publish'
-        : 'Instagram requires media_url — no video attached yet';
+      const blockReason = 'video_required=true but media_url is null — Creatomate pipeline must render and attach video before publish';
       console.error(`[cron-publish-approved] BLOCKING ${post.platform} post ${post.id} — ${blockReason}`);
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
