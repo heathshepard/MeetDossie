@@ -133,6 +133,7 @@ async function sendEmail(to, firstName) {
       subject: 'Can I ask you a small favor?',
       html: buildEmailHtml(firstName),
       text: buildEmailText(firstName),
+      bcc: ['heath@meetdossie.com'],
     }),
   });
 

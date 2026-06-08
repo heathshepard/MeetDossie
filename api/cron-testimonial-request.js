@@ -117,7 +117,7 @@ async function sendResend(to, subject, html) {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
+    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html, bcc: ['heath@meetdossie.com'] }),
   });
   const text = await r.text();
   let data = null; try { data = text ? JSON.parse(text) : null; } catch {}

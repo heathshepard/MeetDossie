@@ -103,6 +103,7 @@ async function sendApprovalEmail({ resendKey, email, name, checkoutUrl, heardFro
       reply_to: 'heath@meetdossie.com',
       subject: "You're in — claim your Dossie founding spot",
       html,
+      bcc: ['heath@meetdossie.com'],
       // Tags surface in the Resend dashboard so Heath can slice approval-email
       // sends by acquisition channel without joining back to the DB.
       tags: [

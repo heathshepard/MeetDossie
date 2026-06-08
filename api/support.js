@@ -128,6 +128,7 @@ async function notifyHeath({ ticketType, message, agentEmail, ticketId }) {
         reply_to: agentEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail) ? agentEmail : undefined,
         subject: `[Dossie ${subjectType}] from ${agentEmail || 'unknown'}`,
         html,
+        bcc: ['heath@meetdossie.com'],
       }),
     });
     if (!res.ok) {

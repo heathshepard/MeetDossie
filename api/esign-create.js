@@ -349,6 +349,7 @@ async function sendSigningEmail({ signerName, signerEmail, documentName, propert
       to: [signerEmail],
       subject,
       html,
+      bcc: ['heath@meetdossie.com'],
     }),
   });
 

@@ -265,6 +265,7 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
             content: base64Pdf,
           },
         ],
+        bcc: ['heath@meetdossie.com'],
       }),
     });
     console.log(`[esign-webhook] Seller agent email sent to ${sellerAgentEmail}`);
@@ -292,6 +293,7 @@ async function sendCompletionEmail(agentEmail, agentName, fileName) {
           <p>Log in to download or share the signed document: <a href="https://meetdossie.com/app">meetdossie.com/app</a></p>
           <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
+        bcc: ['heath@meetdossie.com'],
       }),
     });
   } catch (err) {

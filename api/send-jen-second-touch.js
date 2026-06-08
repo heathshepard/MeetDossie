@@ -91,6 +91,7 @@ export default async function handler(req, res) {
         subject: SUBJECT,
         html: renderHtml(bodyText),
         reply_to: 'heath@meetdossie.com',
+        bcc: ['heath@meetdossie.com'],
       }),
     });
     const data = await r.json().catch(() => ({}));

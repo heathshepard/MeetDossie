@@ -110,6 +110,7 @@ Licensed Texas REALTOR | Founder, Dossie`;
           to: email,
           subject: 'Heads up - TREC forms are changing July 1',
           text: body,
+          bcc: ['heath@meetdossie.com'],
         }),
       });
 

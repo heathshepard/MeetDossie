@@ -87,6 +87,7 @@ export default async function handler(req, res) {
     subject: String(subject).trim(),
     html: renderHtml(substituted),
     reply_to: isValidEmail(replyTo) ? String(replyTo).trim() : 'heath@meetdossie.com',
+    bcc: ['heath@meetdossie.com'],
   };
 
   try {

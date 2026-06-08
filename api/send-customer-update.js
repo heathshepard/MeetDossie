@@ -62,6 +62,7 @@ async function sendEmail(toEmail, firstName) {
       to: [toEmail],
       subject: EMAIL_SUBJECT,
       text: buildEmailText(firstName),
+      bcc: ['heath@meetdossie.com'],
     }),
   });
   const raw = await r.text();
