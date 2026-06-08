@@ -35,6 +35,26 @@ const PLATFORM_RULES_SUMMARY = {
   twitter:   'Punchy/contrarian hook <280 chars, single tweet OR 5-8 thread, RT/quote CTA, 1-2 hashtags',
 };
 
+// ─── Platform-aware composite scoring ────────────────────────────────────
+// Twitter's native format (punchy statements, threads) doesn't require an
+// explicit CTA in every post. Equal-weight composite penalises good Twitter
+// hooks that score 2-3 on CTA. Fix: reduce CTA weight to 0.5 for Twitter.
+//
+// Weights: Twitter  — hook×1 + platform_fit×1 + cta×0.5  (divisor 2.5)
+//          All else — hook×1 + platform_fit×1 + cta×1     (divisor 3.0)
+//
+// Rejection thresholds: Twitter 4.5 / all other platforms 5.5
+function computeComposite(hook, platform_fit, cta, platform) {
+  if (platform === 'twitter') {
+    return Math.round(((hook + platform_fit + cta * 0.5) / 2.5) * 10) / 10;
+  }
+  return Math.round(((hook + platform_fit + cta) / 3) * 10) / 10;
+}
+
+function getThreshold(platform) {
+  return platform === 'twitter' ? 4.5 : 5.5;
+}
+
 // ─── Quality Scorer ───────────────────────────────────────────────────────
 // Calls Claude Haiku to score a post on Hook, Platform Fit, and CTA (1-10 each).
 // Returns { hook, platform_fit, cta, composite } or null on any failure.
@@ -76,7 +96,7 @@ Return JSON only: {"hook": N, "platform_fit": N, "cta": N}`;
     const platform_fit = Math.min(10, Math.max(1, parseInt(parsed.platform_fit, 10) || 0));
     const cta = Math.min(10, Math.max(1, parseInt(parsed.cta, 10) || 0));
     if (!hook || !platform_fit || !cta) return null;
-    const composite = Math.round(((hook + platform_fit + cta) / 3) * 10) / 10;
+    const composite = computeComposite(hook, platform_fit, cta, platform);
     return { hook, platform_fit, cta, composite };
   } catch (err) {
     console.warn('[cron-send-for-approval] scorePost failed:', err && err.message);
@@ -288,7 +308,7 @@ module.exports = async function handler(req, res) {
           hook: h,
           platform_fit: f,
           cta: c,
-          composite: Math.round(((h + f + c) / 3) * 10) / 10,
+          composite: computeComposite(h, f, c, platform),
         };
       }
     }
@@ -304,10 +324,12 @@ module.exports = async function handler(req, res) {
     }
 
     // Auto-reject low-quality drafts before sending to Telegram.
-    // Threshold: composite < 5.5/10 (below 55%) gets silently rejected.
-    // Composite 5.5-7.3 gets a warning prepended; 7.4+ goes through normally.
-    if (post.status === 'draft' && scoreData && scoreData.composite < 5.5) {
-      const rejectReason = `Auto-rejected by quality scorer: composite ${scoreData.composite}/10 (Hook:${scoreData.hook} Fit:${scoreData.platform_fit} CTA:${scoreData.cta}) — below 5.5 threshold`;
+    // Thresholds: Twitter 4.5 (punchy statements don't need a CTA);
+    //             all other platforms 5.5.
+    // Composite 5.5-7.3 (non-Twitter) gets a warning prepended; 7.4+ goes through normally.
+    const qualityThreshold = getThreshold(platform);
+    if (post.status === 'draft' && scoreData && scoreData.composite < qualityThreshold) {
+      const rejectReason = `Auto-rejected by quality scorer: composite ${scoreData.composite}/10 (Hook:${scoreData.hook} Fit:${scoreData.platform_fit} CTA:${scoreData.cta}) — below ${qualityThreshold} threshold`;
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
@@ -323,7 +345,7 @@ module.exports = async function handler(req, res) {
     const fullContent = formatFullContent(post);
     const isDraft = post.status === 'draft';
     const needsApproval = post.requires_approval === true;
-    const warningPrefix = (scoreData && scoreData.composite >= 5.5 && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '';
+    const warningPrefix = (scoreData && scoreData.composite >= qualityThreshold && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '';
 
     let buttons, prefix;
     if (!isDraft) {
