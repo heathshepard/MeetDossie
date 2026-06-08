@@ -182,7 +182,7 @@ async function sendVetoMessages(post, keyword, draft, engId) {
 
 // ─── Handler ───────────────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const auth = req.headers.authorization || '';
   if (auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
