@@ -213,7 +213,10 @@
                                               },
                "api/cron-render-skits.js":  {
                                                 "maxDuration":  300
-                                            }
+                                            },
+               "api/cron-weekly-digest.js":  {
+                                                 "maxDuration":  30
+                                             }
                   },
     "crons":  [
                   {
