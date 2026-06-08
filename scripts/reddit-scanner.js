@@ -19,8 +19,11 @@
 //   TELEGRAM_CHAT_ID
 //   SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
+//   REDDIT_CLIENT_ID      (from Reddit app at reddit.com/prefs/apps)
+//   REDDIT_CLIENT_SECRET  (from Reddit app at reddit.com/prefs/apps)
 //
-// No Reddit auth required — uses public .json endpoints.
+// Reddit OAuth is required — public .json endpoints return 403 since June 2023.
+// Uses client credentials grant (app-only, no user login needed).
 // Persists engagements to reddit_engagements table in Supabase so
 // reddit-poster.js can pick them up after the 10-min veto window.
 
@@ -51,6 +54,8 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID;
+const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET;
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SEEN_FILE = path.join(__dirname, '.reddit-scanner-seen.json');
@@ -149,17 +154,47 @@ async function saveEngagement(post, keyword, draft, telegramMessageId) {
   }
 }
 
+// ─── Reddit OAuth ─────────────────────────────────────────────────────────────
+
+// Fetches a short-lived app-only OAuth bearer token via client credentials grant.
+// Token lasts ~1 hour; we fetch once per run and reuse across all searches.
+async function fetchRedditToken() {
+  const credentials = Buffer.from(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`).toString('base64');
+  const res = await fetch('https://www.reddit.com/api/v1/access_token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${credentials}`,
+      'User-Agent': 'DossieBot/1.0 by MeetDossie',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Reddit token fetch failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  if (!data.access_token) {
+    throw new Error(`Reddit token response missing access_token: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+
+  console.log('[reddit-scanner] Reddit OAuth token obtained');
+  return data.access_token;
+}
+
 // ─── Reddit fetch ─────────────────────────────────────────────────────────────
 
-async function fetchRedditSearch(subreddit, keyword) {
+async function fetchRedditSearch(subreddit, keyword, token) {
   const q = encodeURIComponent(keyword);
-  const url = `https://www.reddit.com/r/${subreddit}/search.json?q=${q}&sort=new&t=week&limit=25`;
+  const url = `https://oauth.reddit.com/r/${subreddit}/search?q=${q}&sort=new&t=week&limit=25`;
 
   try {
     const res = await fetch(url, {
       headers: {
-        // Reddit requires a real User-Agent string — bots that omit it get 429s
-        'User-Agent': 'DossieBot/1.0 (+https://meetdossie.com)',
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'DossieBot/1.0 by MeetDossie',
       },
     });
 
@@ -325,6 +360,12 @@ async function sendVetoMessages(post, keyword, draft) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) {
+    console.error('[reddit-scanner] Missing REDDIT_CLIENT_ID or REDDIT_CLIENT_SECRET — add credentials from reddit.com/prefs/apps and set them in .env.local / Vercel env vars.');
+    process.exit(1);
+  }
+
+  const token = await fetchRedditToken();
   const seen = loadSeen();
   let queued = 0;
 
@@ -332,7 +373,7 @@ async function main() {
     for (const keyword of KEYWORDS) {
       console.log(`[reddit-scanner] scanning r/${subreddit} for "${keyword}"`);
 
-      const posts = await fetchRedditSearch(subreddit, keyword);
+      const posts = await fetchRedditSearch(subreddit, keyword, token);
 
       // Score and sort — highest first
       const scored = posts
