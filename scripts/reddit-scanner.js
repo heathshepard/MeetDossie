@@ -2,8 +2,8 @@
 
 // scripts/reddit-scanner.js
 //
-// Scans r/realtors and r/realestate via Reddit's public JSON API for posts
-// and comments matching target keywords. Drafts a reply in Heath's voice via
+// Scans r/realtors and r/realestate via Reddit's public RSS feeds (new + hot)
+// for posts matching target keywords. Drafts a reply in Heath's voice via
 // Claude Haiku and sends to DossieMarketingBot as a veto-mode message.
 //
 // Usage:
@@ -19,13 +19,9 @@
 //   TELEGRAM_CHAT_ID
 //   SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
-//   REDDIT_CLIENT_ID      (from Reddit app at reddit.com/prefs/apps)
-//   REDDIT_CLIENT_SECRET  (from Reddit app at reddit.com/prefs/apps)
 //
-// Reddit OAuth is required — public .json endpoints return 403 since June 2023.
-// Uses client credentials grant (app-only, no user login needed).
-// Persists engagements to reddit_engagements table in Supabase so
-// reddit-poster.js can pick them up after the 10-min veto window.
+// No Reddit credentials needed — public RSS feeds work without auth.
+// Reddit's .json feeds return 403 from datacenter IPs; RSS does not.
 
 const path = require('path');
 const fs = require('fs');
@@ -54,17 +50,20 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID;
-const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET;
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SEEN_FILE = path.join(__dirname, '.reddit-scanner-seen.json');
 
-// Subreddits to scan
-const SUBREDDITS = ['realtors', 'realestate'];
+// RSS feeds to fetch — new + hot per subreddit
+const FEEDS = [
+  { subreddit: 'realtors', sort: 'new', limit: 50 },
+  { subreddit: 'realestate', sort: 'new', limit: 50 },
+  { subreddit: 'realtors', sort: 'hot', limit: 25 },
+  { subreddit: 'realestate', sort: 'hot', limit: 25 },
+];
 
-// Keywords to search within each subreddit
-const KEYWORDS = [
+// Keywords to match locally (case-insensitive)
+const TC_KEYWORDS = [
   'transaction coordinator',
   'zipforms',
   'dotloop',
@@ -78,9 +77,8 @@ const KEYWORDS = [
 // Texas signal phrases — posts with these score higher
 const TEXAS_SIGNALS = ['texas', 'tx', 'san antonio', 'houston', 'austin', 'dallas', 'fort worth', 'dfw'];
 
-// Minimum upvotes and max age (7 days)
-const MIN_SCORE = 5;
-const MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+// Max post age: 7 days
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ─── Seen-file helpers ────────────────────────────────────────────────────────
 
@@ -106,6 +104,147 @@ function saveSeen(seen) {
   }
 }
 
+// ─── RSS parse helpers ────────────────────────────────────────────────────────
+
+// Decode HTML entities used in RSS content fields.
+function decodeHtml(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#32;/g, ' ')
+    .replace(/&#x27;/g, "'");
+}
+
+// Strip HTML tags and collapse whitespace to get plain text.
+function stripHtml(str) {
+  return str
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Extract the short Reddit post ID from a t3_xxxxx atom id or a permalink URL.
+// Examples:
+//   <id>t3_1u0msl7</id>  ->  "1u0msl7"
+//   https://www.reddit.com/r/realtors/comments/1u0msl7/...  ->  "1u0msl7"
+function extractRedditId(atomId, permalink) {
+  const t3Match = atomId && atomId.match(/t3_([a-z0-9]+)/i);
+  if (t3Match) return t3Match[1];
+  const urlMatch = permalink && permalink.match(/\/comments\/([a-z0-9]+)\//i);
+  if (urlMatch) return urlMatch[1];
+  return atomId || '';
+}
+
+// Parse Reddit's Atom RSS feed XML into an array of post objects.
+// Reddit RSS entries look like:
+//   <entry>
+//     <title>Post title here</title>
+//     <id>t3_1u0msl7</id>
+//     <link href="https://www.reddit.com/r/realtors/comments/1u0msl7/..." />
+//     <published>2026-06-08T22:22:14+00:00</published>
+//     <content type="html">...HTML body...</content>
+//   </entry>
+function parseRss(xml, subreddit) {
+  const posts = [];
+  // Split on <entry> tags — each block is one post
+  const entries = xml.split(/<entry>/i).slice(1);
+
+  for (const entry of entries) {
+    const titleMatch = entry.match(/<title>([^<]*)<\/title>/i);
+    const idMatch = entry.match(/<id>([^<]*)<\/id>/i);
+    const linkMatch = entry.match(/<link[^>]*href="([^"]*)"[^>]*\/?>/i);
+    const publishedMatch = entry.match(/<published>([^<]*)<\/published>/i);
+    const contentMatch = entry.match(/<content[^>]*>([\s\S]*?)<\/content>/i);
+
+    const rawTitle = titleMatch ? decodeHtml(titleMatch[1]) : '';
+    const atomId = idMatch ? idMatch[1].trim() : '';
+    const permalink = linkMatch ? linkMatch[1] : '';
+    const publishedStr = publishedMatch ? publishedMatch[1] : '';
+    const rawContent = contentMatch ? contentMatch[1] : '';
+
+    const redditId = extractRedditId(atomId, permalink);
+    const title = rawTitle.trim();
+    // Body text: decode entities then strip HTML tags
+    const selftext = stripHtml(decodeHtml(rawContent));
+    const publishedAt = publishedStr ? new Date(publishedStr).getTime() : 0;
+
+    if (!redditId || !title) continue;
+
+    posts.push({
+      id: redditId,
+      subreddit,
+      title,
+      selftext,
+      permalink,
+      score: 0, // RSS does not expose score
+      created_utc: publishedAt ? Math.floor(publishedAt / 1000) : 0,
+      published_at: publishedAt,
+    });
+  }
+
+  return posts;
+}
+
+// ─── RSS feed fetch ───────────────────────────────────────────────────────────
+
+async function fetchFeed(subreddit, sort, limit) {
+  const url = `https://www.reddit.com/r/${subreddit}/${sort}.rss?limit=${limit}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'DossieBot/1.0 by MeetDossie',
+        'Accept': 'application/rss+xml, application/xml, text/xml',
+      },
+    });
+
+    if (res.status === 429) {
+      console.warn(`[reddit-scanner] Rate limited on r/${subreddit}/${sort} -- skipping`);
+      return [];
+    }
+
+    if (!res.ok) {
+      console.warn(`[reddit-scanner] r/${subreddit}/${sort}: HTTP ${res.status}`);
+      return [];
+    }
+
+    const xml = await res.text();
+    const posts = parseRss(xml, subreddit);
+    return posts;
+  } catch (err) {
+    console.error(`[reddit-scanner] fetch failed for r/${subreddit}/${sort}:`, err && err.message);
+    return [];
+  }
+}
+
+// ─── Local keyword filter ─────────────────────────────────────────────────────
+
+// Returns the first matching keyword, or null if no match.
+function matchesKeyword(post) {
+  const fullText = `${post.title || ''} ${post.selftext || ''}`.toLowerCase();
+  for (const kw of TC_KEYWORDS) {
+    if (fullText.includes(kw.toLowerCase())) return kw;
+  }
+  return null;
+}
+
+// ─── Post age filter ──────────────────────────────────────────────────────────
+
+function isTooOld(post) {
+  if (!post.published_at) return false;
+  return Date.now() - post.published_at > MAX_AGE_MS;
+}
+
+// ─── Texas signal check ───────────────────────────────────────────────────────
+
+function isTexasPost(post) {
+  const fullText = `${post.title || ''} ${post.selftext || ''}`.toLowerCase();
+  return TEXAS_SIGNALS.some((s) => fullText.includes(s));
+}
+
 // ─── Supabase persistence ─────────────────────────────────────────────────────
 
 async function saveEngagement(post, keyword, draft, telegramMessageId) {
@@ -118,7 +257,7 @@ async function saveEngagement(post, keyword, draft, telegramMessageId) {
     subreddit: post.subreddit || '',
     post_title: (post.title || '').slice(0, 500),
     post_body: (post.selftext || '').slice(0, 2000),
-    post_url: `https://www.reddit.com${post.permalink || ''}`,
+    post_url: post.permalink || `https://www.reddit.com/r/${post.subreddit}/`,
     permalink: post.permalink || '',
     keyword_matched: keyword,
     our_response_draft: draft,
@@ -154,93 +293,6 @@ async function saveEngagement(post, keyword, draft, telegramMessageId) {
   }
 }
 
-// ─── Reddit OAuth ─────────────────────────────────────────────────────────────
-
-// Fetches a short-lived app-only OAuth bearer token via client credentials grant.
-// Token lasts ~1 hour; we fetch once per run and reuse across all searches.
-async function fetchRedditToken() {
-  const credentials = Buffer.from(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`).toString('base64');
-  const res = await fetch('https://www.reddit.com/api/v1/access_token', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${credentials}`,
-      'User-Agent': 'DossieBot/1.0 by MeetDossie',
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Reddit token fetch failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  if (!data.access_token) {
-    throw new Error(`Reddit token response missing access_token: ${JSON.stringify(data).slice(0, 200)}`);
-  }
-
-  console.log('[reddit-scanner] Reddit OAuth token obtained');
-  return data.access_token;
-}
-
-// ─── Reddit fetch ─────────────────────────────────────────────────────────────
-
-async function fetchRedditSearch(subreddit, keyword, token) {
-  const q = encodeURIComponent(keyword);
-  const url = `https://oauth.reddit.com/r/${subreddit}/search?q=${q}&sort=new&t=week&limit=25`;
-
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'User-Agent': 'DossieBot/1.0 by MeetDossie',
-      },
-    });
-
-    if (res.status === 429) {
-      console.warn(`[reddit-scanner] Rate limited on r/${subreddit} "${keyword}" — skipping`);
-      return [];
-    }
-
-    if (!res.ok) {
-      console.warn(`[reddit-scanner] r/${subreddit} "${keyword}": HTTP ${res.status}`);
-      return [];
-    }
-
-    const data = await res.json();
-    const posts = data?.data?.children || [];
-    return posts.map((c) => c.data).filter(Boolean);
-  } catch (err) {
-    console.error(`[reddit-scanner] fetch failed for r/${subreddit} "${keyword}":`, err && err.message);
-    return [];
-  }
-}
-
-// ─── Scoring ──────────────────────────────────────────────────────────────────
-
-function scorePost(post) {
-  const now = Math.floor(Date.now() / 1000);
-  const age = now - (post.created_utc || 0);
-
-  // Reject if too old or not enough engagement
-  if (age > MAX_AGE_SECONDS) return -1;
-  if ((post.score || 0) < MIN_SCORE) return -1;
-
-  let score = post.score || 0;
-
-  // Texas bonus — +50 points if the post mentions Texas geography
-  const fullText = `${post.title || ''} ${post.selftext || ''}`.toLowerCase();
-  for (const signal of TEXAS_SIGNALS) {
-    if (fullText.includes(signal)) {
-      score += 50;
-      break;
-    }
-  }
-
-  return score;
-}
-
 // ─── Claude Haiku reply draft ─────────────────────────────────────────────────
 
 const REPLY_SYSTEM_PROMPT = `You are drafting a Reddit reply for Heath Shepard, a licensed Texas REALTOR who built Dossie (an AI transaction coordinator for Texas agents).
@@ -249,12 +301,12 @@ Heath's voice: warm, casual, genuine, first-person, self-deprecating. Sounds lik
 
 Rules:
 - Reply as if Heath is typing on his phone between showings
-- Be genuinely helpful first — answer their question or acknowledge their pain
+- Be genuinely helpful first -- answer their question or acknowledge their pain
 - One sentence about Dossie max, then meetdossie.com/founding if relevant
 - If it's a pain point about too many apps / TC frustration / software overload: empathize, mention Dossie naturally
 - If it's a question about what TC tools people use: answer with genuine experience, mention Dossie as what he built
 - If the post has no genuine opening for Dossie (e.g., unrelated topic, already solved, location outside US): reply with just the word SKIP
-- Max 3 sentences total. Plain ASCII only — no em dashes, no curly quotes.`;
+- Max 3 sentences total. Plain ASCII only -- no em dashes, no curly quotes.`;
 
 async function draftReply(post, keyword) {
   if (!ANTHROPIC_API_KEY) return null;
@@ -262,13 +314,11 @@ async function draftReply(post, keyword) {
   const title = (post.title || '').slice(0, 200);
   const body = (post.selftext || '').slice(0, 400);
   const subreddit = post.subreddit || '';
-  const isTexas = TEXAS_SIGNALS.some((s) =>
-    `${title} ${body}`.toLowerCase().includes(s)
-  );
+  const texasContext = isTexasPost(post) ? 'yes' : 'no';
 
   const userMsg = `Subreddit: r/${subreddit}
 Keyword that matched: "${keyword}"
-Texas context: ${isTexas ? 'yes' : 'no'}
+Texas context: ${texasContext}
 Post title: "${title}"
 Post body: "${body}"
 
@@ -308,11 +358,8 @@ Draft a Reddit reply for Heath. If this post doesn't have a genuine opening, rep
 async function sendVetoMessages(post, keyword, draft) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return null;
 
-  const redditUrl = `https://www.reddit.com${post.permalink || ''}`;
-  const isTexas = TEXAS_SIGNALS.some((s) =>
-    `${(post.title || '')} ${(post.selftext || '')}`.toLowerCase().includes(s)
-  );
-  const texasTag = isTexas ? ' [Texas]' : '';
+  const redditUrl = post.permalink || `https://www.reddit.com/r/${post.subreddit}/`;
+  const texasTag = isTexasPost(post) ? ' [Texas]' : '';
 
   const send = async (text, replyMarkup) => {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -329,9 +376,9 @@ async function sendVetoMessages(post, keyword, draft) {
     return data?.result?.message_id || null;
   };
 
-  // Message 1: context — no buttons
+  // Message 1: context -- no buttons
   const contextText = [
-    `Reddit match${texasTag}: r/${post.subreddit || ''} (${post.score || 0} upvotes)`,
+    `Reddit match${texasTag}: r/${post.subreddit || ''}`,
     `Keyword: "${keyword}"`,
     '',
     `"${(post.title || '').slice(0, 200)}"`,
@@ -343,7 +390,7 @@ async function sendVetoMessages(post, keyword, draft) {
   // Small delay to avoid Telegram flood limits
   await new Promise((r) => setTimeout(r, 800));
 
-  // Message 2: draft reply + STOP button + auto-post label
+  // Message 2: draft reply + STOP button
   // post_id uses the composite key format "subreddit_redditid" so the callback
   // handler can find the row by post_id column.
   const compositePostId = `${post.subreddit || 'unknown'}_${post.id}`;
@@ -360,58 +407,63 @@ async function sendVetoMessages(post, keyword, draft) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) {
-    console.error('[reddit-scanner] Missing REDDIT_CLIENT_ID or REDDIT_CLIENT_SECRET — add credentials from reddit.com/prefs/apps and set them in .env.local / Vercel env vars.');
-    process.exit(1);
-  }
-
-  const token = await fetchRedditToken();
   const seen = loadSeen();
+  let totalFetched = 0;
+  let totalMatched = 0;
   let queued = 0;
 
-  for (const subreddit of SUBREDDITS) {
-    for (const keyword of KEYWORDS) {
-      console.log(`[reddit-scanner] scanning r/${subreddit} for "${keyword}"`);
+  // Collect posts per composite key to deduplicate across feeds
+  // (same post may appear in both new and hot)
+  const candidateMap = new Map();
 
-      const posts = await fetchRedditSearch(subreddit, keyword, token);
+  for (const { subreddit, sort, limit } of FEEDS) {
+    console.log(`[reddit-scanner] fetching r/${subreddit}/${sort}.rss (limit=${limit})`);
+    const posts = await fetchFeed(subreddit, sort, limit);
+    totalFetched += posts.length;
+    console.log(`[reddit-scanner] got ${posts.length} posts from r/${subreddit}/${sort}`);
 
-      // Score and sort — highest first
-      const scored = posts
-        .map((p) => ({ post: p, score: scorePost(p) }))
-        .filter((x) => x.score >= 0)
-        .sort((a, b) => b.score - a.score);
+    for (const post of posts) {
+      const compositeId = `${subreddit}_${post.id}`;
+      if (candidateMap.has(compositeId)) continue;
+      if (isTooOld(post)) continue;
 
-      for (const { post } of scored) {
-        const postId = `${subreddit}_${post.id}`;
+      const keyword = matchesKeyword(post);
+      if (!keyword) continue;
 
-        if (seen.has(postId)) {
-          console.log(`[reddit-scanner] already seen: ${postId}`);
-          continue;
-        }
-
-        // Mark seen immediately so a crash doesn't cause double-sends
-        seen.add(postId);
-        saveSeen(seen);
-
-        const draft = await draftReply(post, keyword);
-
-        if (!draft) {
-          console.log(`[reddit-scanner] SKIP: ${post.title || post.id}`);
-          continue;
-        }
-
-        console.log(`[reddit-scanner] queueing: r/${post.subreddit} — ${(post.title || '').slice(0, 60)}`);
-        const telegramMessageId = await sendVetoMessages(post, keyword, draft);
-        await saveEngagement(post, keyword, draft, telegramMessageId);
-        queued++;
-
-        // Pause between Telegram sends to avoid flood limits
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-
-      // Pause between Reddit API calls — be a polite crawler
-      await new Promise((r) => setTimeout(r, 1500));
+      candidateMap.set(compositeId, { post, keyword });
     }
+
+    // Polite pause between feed requests
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  totalMatched = candidateMap.size;
+  console.log(`[reddit-scanner] ${totalFetched} posts fetched, ${totalMatched} matched keywords`);
+
+  for (const [compositeId, { post, keyword }] of candidateMap) {
+    if (seen.has(compositeId)) {
+      console.log(`[reddit-scanner] already seen: ${compositeId}`);
+      continue;
+    }
+
+    // Mark seen immediately so a crash doesn't cause double-sends
+    seen.add(compositeId);
+    saveSeen(seen);
+
+    const draft = await draftReply(post, keyword);
+
+    if (!draft) {
+      console.log(`[reddit-scanner] SKIP: ${post.title || post.id}`);
+      continue;
+    }
+
+    console.log(`[reddit-scanner] queueing: r/${post.subreddit} -- ${(post.title || '').slice(0, 60)}`);
+    const telegramMessageId = await sendVetoMessages(post, keyword, draft);
+    await saveEngagement(post, keyword, draft, telegramMessageId);
+    queued++;
+
+    // Pause between Telegram sends to avoid flood limits
+    await new Promise((r) => setTimeout(r, 2000));
   }
 
   console.log(`[reddit-scanner] done. Posts queued for veto review: ${queued}`);
