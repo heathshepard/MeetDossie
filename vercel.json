@@ -216,7 +216,10 @@
                                             },
                "api/cron-weekly-digest.js":  {
                                                  "maxDuration":  30
-                                             }
+                                             },
+               "api/cron-thursday-blast.js":  {
+                                                  "maxDuration":  30
+                                              }
                   },
     "crons":  [
                   {
