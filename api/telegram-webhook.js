@@ -859,6 +859,37 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Rendered reel final approval: skit_video_approve_{id} / skit_video_reject_{id}
+  if (data.startsWith('skit_video_approve_')) {
+    const skitId = data.replace('skit_video_approve_', '');
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'video_approved' }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nReel approved - will post to Instagram + TikTok at next cron run.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Reel approved');
+    return;
+  }
+
+  if (data.startsWith('skit_video_reject_')) {
+    const skitId = data.replace('skit_video_reject_', '');
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'video_rejected' }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\nReel rejected.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Reel rejected');
+    return;
+  }
+
   // Veto mode: STOP cancels auto-post, PREVIEW sends full caption as follow-up
   if (data.startsWith('stop_')) {
     const postId = data.replace('stop_', '');

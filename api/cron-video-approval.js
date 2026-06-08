@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'TELEGRAM_BOT_TOKEN not configured' });
   }
 
-  // Query for the oldest ready video
+  // --- PART 1: video_library ready videos (existing flow) ---
   const { data: rows, ok: loadOk } = await supabaseFetch(
     '/rest/v1/video_library?status=eq.ready&order=created_at.asc&limit=1',
   );
@@ -70,89 +70,152 @@ module.exports = async function handler(req, res) {
   }
 
   const video = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  let libraryResult = null;
 
   if (!video) {
-    console.log('[cron-video-approval] No ready videos — nothing to do');
-    return res.status(200).json({ ok: true, message: 'no videos ready' });
+    console.log('[cron-video-approval] No ready videos in video_library');
+  } else {
+    console.log(`[cron-video-approval] Found ready video: ${video.id}`);
+
+    // Mark pending_approval
+    const { ok: patchOk } = await supabaseFetch(
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'pending_approval' }),
+      },
+    );
+
+    if (!patchOk) {
+      console.error('[cron-video-approval] Failed to patch status to pending_approval');
+    } else {
+      const platformList = Array.isArray(video.platforms) ? video.platforms.join(', ') : 'unknown';
+      const messageText = [
+        'New video ready for review',
+        '',
+        `Type: ${video.type || 'unknown'}`,
+        `Topic: ${video.topic || 'unknown'}`,
+        `Platforms: ${platformList}`,
+        `Caption: ${video.caption || '(none)'}`,
+        '',
+        `ID: ${video.id}`,
+        video.supabase_url ? `URL: ${video.supabase_url}` : '(not yet uploaded to Supabase — run upload-video.py first)',
+      ].join('\n');
+
+      const tgBody = {
+        chat_id: TELEGRAM_CHAT_ID,
+        text: messageText,
+        reply_markup: {
+          inline_keyboard: [[
+            { text: 'Approve', callback_data: `video_approve_${video.id}` },
+            { text: 'Reject', callback_data: `video_reject_${video.id}` },
+          ]],
+        },
+        disable_web_page_preview: true,
+      };
+
+      const { ok: tgOk, data: tgData } = await tgSend(tgBody);
+
+      if (!tgOk) {
+        console.error('[cron-video-approval] Telegram send failed:', JSON.stringify(tgData).slice(0, 200));
+        await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ status: 'ready' }),
+          },
+        );
+      } else {
+        const messageId = tgData?.result?.message_id || null;
+        console.log(`[cron-video-approval] Telegram message_id=${messageId}`);
+        if (messageId) {
+          await supabaseFetch(
+            `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+            {
+              method: 'PATCH',
+              headers: { Prefer: 'return=minimal' },
+              body: JSON.stringify({ telegram_message_id: messageId }),
+            },
+          );
+        }
+        libraryResult = { video_id: video.id, telegram_message_id: messageId };
+      }
+    }
   }
 
-  console.log(`[cron-video-approval] Found ready video: ${video.id}`);
-
-  // Mark pending_approval
-  const { ok: patchOk } = await supabaseFetch(
-    `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-    {
-      method: 'PATCH',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ status: 'pending_approval' }),
-    },
+  // --- PART 2: skit_queue video_rendered skits ---
+  const { data: skitRows, ok: skitOk } = await supabaseFetch(
+    '/rest/v1/skit_queue?status=eq.video_rendered&order=created_at.asc&limit=2',
   );
 
-  if (!patchOk) {
-    console.error('[cron-video-approval] Failed to patch status to pending_approval');
-    return res.status(502).json({ ok: false, error: 'Failed to update status' });
+  if (!skitOk) {
+    console.error('[cron-video-approval] Failed to query skit_queue for video_rendered rows');
   }
 
-  // Build Telegram message
-  const platformList = Array.isArray(video.platforms) ? video.platforms.join(', ') : 'unknown';
-  const messageText = [
-    'New video ready for review',
-    '',
-    `Type: ${video.type || 'unknown'}`,
-    `Topic: ${video.topic || 'unknown'}`,
-    `Platforms: ${platformList}`,
-    `Caption: ${video.caption || '(none)'}`,
-    '',
-    `ID: ${video.id}`,
-    video.supabase_url ? `URL: ${video.supabase_url}` : '(not yet uploaded to Supabase — run upload-video.py first)',
-  ].join('\n');
+  const renderedSkits = Array.isArray(skitRows) ? skitRows : [];
+  console.log(`[cron-video-approval] ${renderedSkits.length} rendered skits to send for approval`);
 
-  const tgBody = {
-    chat_id: TELEGRAM_CHAT_ID,
-    text: messageText,
-    reply_markup: {
-      inline_keyboard: [[
-        { text: 'Approve', callback_data: `video_approve_${video.id}` },
-        { text: 'Reject', callback_data: `video_reject_${video.id}` },
-      ]],
-    },
-    disable_web_page_preview: true,
-  };
+  const skitResults = [];
 
-  const { ok: tgOk, data: tgData } = await tgSend(tgBody);
+  for (const skit of renderedSkits) {
+    const skitId = skit.id;
+    const topic = skit.topic || skitId;
+    const videoUrl = skit.video_url;
+    const caption = skit.caption || `Reel: ${topic} - meetdossie.com/founding`;
 
-  if (!tgOk) {
-    console.error('[cron-video-approval] Telegram send failed:', JSON.stringify(tgData).slice(0, 200));
-    // Revert status so next run can retry
-    await supabaseFetch(
-      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-      {
+    if (!videoUrl) {
+      console.warn(`[cron-video-approval] Skit ${skitId} has no video_url — skipping`);
+      continue;
+    }
+
+    // Mark as pending so next run doesn't re-send
+    await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'video_pending_approval' }),
+    });
+
+    const messageText = [
+      `Reel ready for final approval`,
+      `Topic: ${topic}`,
+      ``,
+      `Caption: ${caption.slice(0, 150)}`,
+      ``,
+      `Watch it: ${videoUrl}`,
+    ].join('\n');
+
+    const { ok: tgOk, data: tgData } = await tgSend({
+      chat_id: TELEGRAM_CHAT_ID,
+      text: messageText,
+      reply_markup: {
+        inline_keyboard: [[
+          { text: 'Approve - Post It', callback_data: `skit_video_approve_${skitId}` },
+          { text: 'Reject', callback_data: `skit_video_reject_${skitId}` },
+        ]],
+      },
+      disable_web_page_preview: false,
+    });
+
+    if (!tgOk) {
+      console.error(`[cron-video-approval] Telegram send failed for skit ${skitId}:`, JSON.stringify(tgData).slice(0, 200));
+      // Revert so next run retries
+      await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'ready' }),
-      },
-    );
-    return res.status(502).json({ ok: false, error: 'Telegram send failed' });
-  }
-
-  const messageId = tgData?.result?.message_id || null;
-  console.log(`[cron-video-approval] Telegram message_id=${messageId}`);
-
-  // Save telegram_message_id
-  if (messageId) {
-    await supabaseFetch(
-      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-      {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ telegram_message_id: messageId }),
-      },
-    );
+        body: JSON.stringify({ status: 'video_rendered' }),
+      });
+    } else {
+      const messageId = tgData?.result?.message_id || null;
+      console.log(`[cron-video-approval] Skit ${skitId} sent to Telegram, message_id=${messageId}`);
+      skitResults.push({ skit_id: skitId, telegram_message_id: messageId });
+    }
   }
 
   return res.status(200).json({
     ok: true,
-    video_id: video.id,
-    telegram_message_id: messageId,
+    library: libraryResult,
+    skits_sent_for_approval: skitResults,
   });
 };
