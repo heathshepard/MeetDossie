@@ -4,9 +4,12 @@
 //
 // Captures a Facebook session for Playwright automation.
 //
+// IMPORTANT: You must switch to the MeetDossie Page before this saves.
+// The script will check automatically and wait until you have switched.
+//
 // If FACEBOOK_EMAIL + FACEBOOK_PASSWORD are set in .env.local, logs in
 // automatically. Otherwise falls back to manual login (browser stays open,
-// detects c_user cookie automatically — no ENTER needed).
+// detects c_user cookie automatically -- no ENTER needed).
 //
 // Usage: node scripts/capture-facebook-session.js
 
@@ -16,6 +19,14 @@ const readline = require('readline');
 
 const SESSION_FILE = path.join(__dirname, 'sessions', 'facebook.json');
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
+const FOUNDING_FILES_URL = 'https://www.facebook.com/groups/860956437036808/';
+
+// Selectors that indicate the post composer is visible (member of group, posting as Page)
+const COMPOSER_SELECTORS = [
+  '[aria-label*="Write something"]',
+  '[aria-label*="What\'s on your mind"]',
+  'div[role="main"] div[contenteditable="true"]',
+];
 
 // Load .env.local
 try {
@@ -55,26 +66,18 @@ async function main() {
   await page.waitForTimeout(2000);
 
   if (FB_EMAIL && FB_PASSWORD) {
-    console.log('[capture-facebook-session] Credentials found — attempting auto-login...');
+    console.log('[capture-facebook-session] Credentials found -- attempting auto-login...');
     try {
-      // If already on the feed, skip login
       const cookies = await context.cookies(['https://www.facebook.com']);
       const alreadyLoggedIn = cookies.some(c => c.name === 'c_user' && c.value);
 
       if (!alreadyLoggedIn) {
-        // Navigate to login page
         await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 15000 });
         await page.waitForTimeout(1500);
-
-        // Fill email
         await page.fill('#email', FB_EMAIL);
         await page.waitForTimeout(500);
-
-        // Fill password
         await page.fill('#pass', FB_PASSWORD);
         await page.waitForTimeout(500);
-
-        // Submit
         await page.click('[name="login"]');
         console.log('[capture-facebook-session] Login submitted. Waiting for session...');
         await page.waitForTimeout(4000);
@@ -90,42 +93,85 @@ async function main() {
     console.log('');
   }
 
-  // Poll for c_user cookie (handles auto-login, 2FA, and manual login alike)
+  // Step 1: Wait for c_user cookie (confirms login)
   console.log('[capture-facebook-session] Waiting for login (watching for c_user cookie)...');
 
-  const autoSavePromise = new Promise(async (resolve) => {
+  const loginDetected = new Promise(async (resolve) => {
     for (let i = 0; i < 180; i++) {
       await page.waitForTimeout(2000);
       try {
         const cookies = await context.cookies(['https://www.facebook.com']);
-        const cUser = cookies.find(c => c.name === 'c_user' && c.value);
-        if (cUser) {
-          resolve('auto');
+        if (cookies.some(c => c.name === 'c_user' && c.value)) {
+          resolve(true);
           return;
         }
       } catch {}
     }
-    resolve('timeout');
+    resolve(false);
   });
 
-  // ENTER as manual override
-  const enterPromise = new Promise(resolve => {
+  const enterOverride = new Promise(resolve => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question('(Press ENTER to save manually if auto-detect stalls) > ', () => {
+    rl.question('(Press ENTER to advance manually if auto-detect stalls) > ', () => {
       rl.close();
-      resolve('manual');
+      resolve(true);
     });
   });
 
-  const reason = await Promise.race([autoSavePromise, enterPromise]);
+  const loggedIn = await Promise.race([loginDetected, enterOverride]);
 
-  if (reason === 'timeout') {
+  if (!loggedIn) {
     console.error('[capture-facebook-session] Timed out without detecting login. Check browser.');
     await browser.close();
     process.exit(1);
   }
 
-  console.log(`[capture-facebook-session] Saving session (${reason})...`);
+  // Step 2: Validate MeetDossie Page is active -- refuse to save until post composer appears
+  console.log('');
+  console.log('[capture-facebook-session] Login detected. Validating MeetDossie Page...');
+  console.log('[capture-facebook-session] Navigating to Founding Files group...');
+  console.log('');
+  console.log('  IMPORTANT: You must switch to the MeetDossie Page before this saves.');
+  console.log('  The script will check automatically and wait until you have switched.');
+  console.log('');
+  console.log('  If the post composer is not visible:');
+  console.log('  1. Click your avatar (top-right of Facebook)');
+  console.log('  2. Choose "Switch to Page" -> "MeetDossie"');
+  console.log('  3. The script will detect the switch automatically.');
+  console.log('');
+
+  let composerFound = false;
+
+  while (!composerFound) {
+    try {
+      await page.goto(FOUNDING_FILES_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(3000);
+
+      for (const sel of COMPOSER_SELECTORS) {
+        const el = await page.$(sel);
+        if (el) {
+          composerFound = true;
+          break;
+        }
+      }
+    } catch {
+      // Navigation error -- keep looping
+    }
+
+    if (composerFound) {
+      console.log('[capture-facebook-session] MeetDossie Page confirmed. Post composer visible. Saving session...');
+    } else {
+      console.log('[capture-facebook-session] WRONG ACCOUNT -- post composer not visible.');
+      console.log('You are logged in as your personal account, not the MeetDossie Page.');
+      console.log('Steps: Click your avatar (top-right) -> "Switch to Page" -> "MeetDossie"');
+      console.log(`Then navigate back to: ${FOUNDING_FILES_URL}`);
+      console.log('Waiting for you to switch accounts... (checking every 10 seconds)');
+      console.log('');
+      await page.waitForTimeout(10000);
+    }
+  }
+
+  // Save only after validation passes
   await context.storageState({ path: SESSION_FILE });
 
   const stat = fs.statSync(SESSION_FILE);
@@ -133,12 +179,13 @@ async function main() {
   const hasCUser = data.cookies.some(c => c.name === 'c_user' && c.value);
 
   if (!hasCUser) {
-    console.error('[capture-facebook-session] WARNING: c_user cookie missing — not fully logged in.');
+    console.error('[capture-facebook-session] WARNING: c_user cookie missing -- not fully logged in.');
     await browser.close();
     process.exit(1);
   }
 
   console.log(`Session saved: ${stat.size} bytes, ${data.cookies.length} cookies. c_user present.`);
+  console.log('MeetDossie Page session captured. The group poster will use this session.');
   console.log('You can close the browser window now (or it will auto-close in 3s).');
 
   await page.waitForTimeout(3000);
