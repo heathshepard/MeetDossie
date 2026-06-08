@@ -4,6 +4,27 @@ This file is read at the start of every Claude Code session. It completely repla
 
 ---
 
+## 0. COLE'S HARD RULES — READ BEFORE ANYTHING ELSE
+
+These are non-negotiable. They exist because Cole made the same mistakes repeatedly. Every rule has a reason.
+
+**RULE 1 — SCAN BEFORE BUILD**
+Before writing any new script or tool, run `dir scripts/` and search for existing ones. If a script for that task exists, USE IT — never rebuild. The DossieBot Chrome profile system (`fb-group-poster.js`, `fb-group-commenter.js`, `fb-lead-scraper.js`, `instagram-engager.js`, `linkedin-engager.js`) is the foundation for all local browser automation. Read `scripts/PLAYWRIGHT-SETUP.md` before touching any Facebook/Instagram/LinkedIn automation task.
+
+**RULE 2 — "I DID IT ALREADY" MEANS IT WORKED**
+When Heath says he completed a setup step, assume success. Never assume silent failure without concrete evidence (an actual error message, a missing file with a confirmed explanation). Session auto-summaries describing something as "UNRESOLVED" refer to the blocker — not to whether the infrastructure was built. The infrastructure may be fully built even when the blocker is real.
+
+**RULE 3 — SUMMARIES LIE ABOUT WHAT'S BUILT**
+Session auto-summaries optimize for capturing blockers, not inventory. Always verify what files actually exist on disk before concluding something isn't built. `dir scripts/` takes 2 seconds.
+
+**RULE 4 — FOUNDING FILES AUTO-POSTING FLOW**
+The Founding Files Facebook group (facebook.com/share/g/1P2QL9T42t/) is posted to autonomously via `fb-group-poster.js`. Heath already set up the DossieBot Chrome profile with Facebook logged in. To post: insert a row into `group_posts` table (fields: group_name, group_url, post_body, status='approved', template_id='direct'), then run: `node scripts/fb-group-poster.js --post-id [uuid]`. Close the DossieBot Chrome window first (regular Chrome can stay open).
+
+**RULE 5 — MEMORY FOR SETUP STEPS**
+Every time Heath completes a one-time setup (Chrome profile, session capture, API key, account connection), immediately write a memory entry naming the EXACT file, profile, or system it created. "Setup complete" is not enough — name what was built so the next session doesn't rebuild it.
+
+---
+
 ## 1. WHAT DOSSIE IS
 
 **Tagline:** Your deals. Her job.
