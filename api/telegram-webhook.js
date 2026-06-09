@@ -1248,12 +1248,57 @@ Cron schedule:
     return;
   }
 
+  // /score <1-5> [optional note] — rate this session
+  // Examples: /score 4   /score 5 great session today
+  if (command.startsWith('/score') || command.startsWith('score')) {
+    try {
+      // Parse: /score 4 optional note here
+      const raw = messageText.trim();
+      const parts = raw.replace(/^\/score\s*/i, '').replace(/^score\s*/i, '').trim().split(/\s+/);
+      const scoreNum = parseInt(parts[0], 10);
+      const note = parts.slice(1).join(' ') || null;
+
+      if (!scoreNum || scoreNum < 1 || scoreNum > 5) {
+        await sendMessage(chatId, 'Usage: /score 1-5 [optional note]\nExample: /score 4 good session', null, null, logStep);
+        return;
+      }
+
+      // Call feedback-score endpoint internally
+      const scoreRes = await fetch(
+        `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://meetdossie.com'}/api/feedback-score`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+          },
+          body: JSON.stringify({ score: scoreNum, note }),
+        }
+      );
+      const scoreData = await scoreRes.json().catch(() => null);
+      const avg = scoreData?.running_average;
+
+      const stars = '★'.repeat(scoreNum) + '☆'.repeat(5 - scoreNum);
+      const avgLine = avg !== null && avg !== undefined ? `\nRunning avg: ${avg}/5` : '';
+      const noteLine = note ? `\nNote: ${note}` : '';
+      const reply = `Session scored: ${stars} (${scoreNum}/5)${noteLine}${avgLine}`;
+
+      await sendMessage(chatId, reply, null, null, logStep);
+      if (logStep) logStep({ step: 'score_recorded', score: scoreNum, avg });
+    } catch (err) {
+      console.error('[telegram-webhook] /score handler failed:', err?.message);
+      await sendMessage(chatId, `Error recording score: ${err?.message || 'unknown'}`, null, null, logStep);
+    }
+    return;
+  }
+
   // Help / default response
   const helpText = `DossieMarketingBot commands:
 
 /status — today's post counts
 /members — founding member count
 /health — cron job status
+/score 1-5 [note] — rate this session
 
 Also:
 • Approve/Reject buttons on posts
