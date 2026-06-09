@@ -291,10 +291,42 @@ CREATE POLICY sage_trend_briefs_service ON sage_trend_briefs
 
   console.log(`[cron-sage-trends] Brief written for ${today}:`, trendBrief.slice(0, 120));
 
+  // Deliver to Sage's chat (DossieSageBot). Per spec #9, frequency is Tue+Fri
+  // 7AM CDT (12 UTC) but we always deliver when the cron fires — the schedule
+  // gate lives in vercel.json / cron-job.org, not in this handler.
+  const TELEGRAM_SAGE_BOT_TOKEN = process.env.TELEGRAM_SAGE_BOT_TOKEN;
+  const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+  let sageDelivered = false;
+  if (TELEGRAM_SAGE_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+    try {
+      const msg = `[TREND BRIEF ${today}]\n\n${trendBrief}`;
+      const sageRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_SAGE_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, disable_web_page_preview: true }),
+      });
+      sageDelivered = sageRes.ok;
+      if (sageRes.ok) {
+        await supaFetch('sage_conversations', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            chat_id: String(TELEGRAM_CHAT_ID),
+            role: 'user',
+            text: msg,
+          }),
+        });
+      }
+    } catch (err) {
+      console.warn('[cron-sage-trends] sage delivery failed:', err && err.message);
+    }
+  }
+
   return res.status(200).json({
     ok: true,
     date: today,
     brief: trendBrief,
+    sage_delivered: sageDelivered,
     googleTopics: googleData?.topics?.length || 0,
     redditPosts: Object.values(redditData || {}).reduce((sum, p) => sum + (p ? p.length : 0), 0),
   });
