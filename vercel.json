@@ -232,6 +232,12 @@
                "api/cron-competitor-intel.js":  {
                                                      "maxDuration":  60
                                                  },
+               "api/cron-daily-fb-posts.js":  {
+                                                   "maxDuration":  60
+                                               },
+               "api/sage-webhook.js":  {
+                                            "maxDuration":  60
+                                        },
                "api/feedback-score.js":  {
                                              "maxDuration":  15
                                          }
@@ -368,6 +374,10 @@
                   {
                       "path":  "/api/cron-competitor-intel",
                       "schedule":  "0 14 * * 0"
+                  },
+                  {
+                      "path":  "/api/cron-daily-fb-posts",
+                      "schedule":  "0 14 * * *"
                   }
               ]
 }
