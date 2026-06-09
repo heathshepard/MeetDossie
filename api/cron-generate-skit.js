@@ -18,6 +18,27 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
 
+// CAPABILITY BEAT RULE (Sage's diagnosis, Heath approved 2026-06-09 "Paradise Lost"):
+// Every skit MUST have a Bill narrator line BEFORE the CTA that contains:
+//   1. The literal word "Dossie"
+//   2. A specific capability verb (from CAPABILITY_VERBS)
+//   3. The specific thing Dossie does
+// Vague closers ("Meet Dossie", "She's got it", etc.) are banned.
+const CAPABILITY_VERBS = [
+  'remembers', 'tracks', 'drafts', 'fills', 'sends', 'calculates',
+  'reminds', 'organizes', 'files', 'books', 'attaches', 'signs',
+  'scans', 'alerts', 'watches', 'surfaces', 'queues', 'completes',
+];
+
+const CAPABILITY_BANNED_PHRASES = [
+  'meet dossie', 'try dossie', 'this is dossie', "she's got it",
+  "dossie's got it", 'dossie helps', 'dossie can help',
+  'dossie makes it easier', "dossie's there", 'get dossie',
+  'download dossie',
+];
+
+const CTA_REQUIRED_SUBSTRING = 'meetdossie.com slash founding';
+
 // Topic rotation — 7 topics, pick by week_of_year % 7
 const SKIT_TOPICS = [
   { id: 'tc_quit_italy',           desc: 'TC quit while agent was traveling in Italy' },
@@ -31,22 +52,61 @@ const SKIT_TOPICS = [
 
 const SKIT_SYSTEM_PROMPT = `You are generating a Dossie AI skit video script. Dossie is a real estate transaction management app for Texas agents. Brand voice: warm, feminine, capable.
 
-RULES (enforced - do not violate):
-- 4 scenes + 1 CTA (CTA is auto-generated, do not include it)
-- Scene 0: character clip - one character (agent or TC), shown ONCE, must have an action/emotion word (stressed, rushing, sighing, exasperated, defeated, panicked, frustrated, overwhelmed)
-- Scenes 1-3: environment/object only - NO people. Phone, laptop, calendar, inbox, text thread, desk items
-- Each character role appears AT MOST ONCE per skit
-- Style lock required on EVERY Kling prompt: "warm cinematic lighting, shallow depth of field, golden hour tones, 9:16 vertical aspect ratio, photorealistic"
-- Environment clips (1-3): if prompt might imply people, prepend "Close-up shot, NO people in frame - "
-- Voices available: charlie (agent male), luna (TC female), bill (narrator/deadpan)
-- Audio duration target: 28-44 seconds (~130 words/minute)
-- Never say "same person" in Kling prompts
-- Always end with bill saying: "meetdossie.com slash founding"
+NARRATIVE STRUCTURE - NON-NEGOTIABLE
+Every skit must hit these four beats in order:
+  Beat 1 (PAIN): Show the specific moment of agent pain. A real, vivid scenario.
+  Beat 2 (COST): Make the cost of that pain feel concrete (lost deal, wrecked vacation, angry client).
+  Beat 3 (CAPABILITY): One declarative narrator line that NAMES what Dossie does. THIS BEAT IS THE WHOLE POINT.
+  Beat 4 (CTA): Bill closes with "Texas agents - meetdossie.com slash founding."
 
-PERSONA VOICE - CRITICAL:
-- Write in THIRD PERSON, never first person
-- No em-dashes (use plain hyphens -), no curly quotes, plain ASCII only
-- No invented stats - frame as hypotheticals only
+THE CAPABILITY BEAT (Beat 3) - HARD RULES
+This is the line that turns the skit from "funny meme" into "ad that sells software." It is the single line a viewer must remember. It is also the line every previous skit got wrong.
+
+The capability beat line MUST:
+  - Be spoken by bill (the narrator). Never by charlie or luna.
+  - Contain the literal word "Dossie" (capitalized).
+  - Contain at least ONE capability verb from this list:
+    remembers, tracks, drafts, fills, sends, calculates, reminds, organizes,
+    files, books, attaches, signs, scans, alerts, watches, surfaces, queues, completes
+  - Name the SPECIFIC thing Dossie does (the title company, the option deadline, the addendum, the inbox, etc.).
+  - Be a flat declarative sentence. No questions. No vague "she's got it."
+
+The capability beat line MUST NEVER be one of these banned phrases:
+  "Meet Dossie", "Try Dossie", "This is Dossie", "She's got it",
+  "Dossie's got it", "Dossie helps", "Dossie can help",
+  "Dossie makes it easier", "Dossie's there", "Get Dossie", "Download Dossie"
+
+WRONG examples (do not generate anything like these):
+  bill: "Meet Dossie."
+  bill: "She's got it."
+  bill: "Dossie can help."
+  bill: "Try Dossie."
+
+RIGHT examples (this is what we want):
+  bill: "Dossie remembers every title company on every deal."
+  bill: "Dossie drafts the amendment, attaches it to the right client, and sends."
+  bill: "Dossie tracks every TREC deadline so you don't have to."
+  bill: "Dossie watches the inbox and surfaces the one email that matters."
+  bill: "Dossie texts your inspector the morning of."
+
+VISUAL RULES (Kling scene prompts)
+  - Exactly 4 Kling scenes. Scene 4 is the CTA card, auto-generated downstream - DO NOT include it.
+  - Scene 0: ONE character clip (agent OR TC). Must contain an action/emotion word (stressed, rushing, sighing, exasperated, defeated, panicked, frustrated, overwhelmed).
+  - Scenes 1-3: environment/object only. NO people. Phones, laptops, calendars, inboxes, text threads, desks.
+  - Each character role appears AT MOST ONCE per skit.
+  - Style lock REQUIRED on EVERY Kling prompt (exact string):
+    "warm cinematic lighting, shallow depth of field, golden hour tones, 9:16 vertical aspect ratio, photorealistic"
+  - Environment prompts that risk implying people MUST start with: "Close-up shot, NO people in frame - "
+  - NEVER say "same person" in any prompt.
+
+DIALOGUE RULES
+  - Voices available: charlie (agent male), luna (TC female), bill (narrator/deadpan).
+  - Bill speaks the capability beat AND the CTA.
+  - CTA must be exactly: "Texas agents - meetdossie.com slash founding."
+  - Audio target: 28-44 seconds (~130 words/min, so ~60-95 words total across all lines).
+  - Third person only. Personas illustrate pain - they are not speaking AS Dossie.
+  - Plain ASCII only. No em-dashes (use plain "-"), no curly quotes.
+  - No invented stats. Hypotheticals only.
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -59,9 +119,10 @@ Return ONLY valid JSON with this exact structure:
     {"type": "environment", "role": null, "NO_PERSON": true, "prompt": "Close-up shot, NO people in frame - ...warm cinematic lighting, shallow depth of field, golden hour tones, 9:16 vertical aspect ratio, photorealistic"}
   ],
   "lines": [
-    ["bill", "Narrator line..."],
-    ["charlie", "Agent line..."],
-    ["bill", "meetdossie.com slash founding"]
+    ["charlie", "Pain line..."],
+    ["bill", "Cost line..."],
+    ["bill", "Dossie [capability verb] [specific thing]."],
+    ["bill", "Texas agents - meetdossie.com slash founding."]
   ]
 }`;
 
@@ -94,17 +155,93 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-async function generateSkitScript(topic) {
-  const userMessage = `Generate a skit video script for this scenario: ${topic.desc}
+// Validate the capability beat: there MUST be a bill line BEFORE the CTA
+// that contains "dossie" + a capability verb. Banned closer phrases auto-fail.
+// Returns { ok: true, verb, matchedIdx, matchedText } on success,
+// or { ok: false, reason } on failure.
+function validateCapabilityBeat(script) {
+  if (!script || !Array.isArray(script.lines)) {
+    return { ok: false, reason: 'script.lines is missing or not an array' };
+  }
+
+  const lines = script.lines.map((entry) => {
+    if (Array.isArray(entry)) return { voice: String(entry[0] || ''), text: String(entry[1] || '') };
+    if (entry && typeof entry === 'object') return { voice: String(entry.voice || entry[0] || ''), text: String(entry.text || entry[1] || '') };
+    return { voice: '', text: '' };
+  });
+
+  // Find CTA line: LAST bill line containing CTA_REQUIRED_SUBSTRING (case-insensitive)
+  let ctaIdx = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i];
+    if (l.voice.toLowerCase() === 'bill' && l.text.toLowerCase().includes(CTA_REQUIRED_SUBSTRING)) {
+      ctaIdx = i;
+      break;
+    }
+  }
+  if (ctaIdx === -1) {
+    return { ok: false, reason: `No bill line ending with "${CTA_REQUIRED_SUBSTRING}" found` };
+  }
+
+  // Pre-CTA bill lines
+  const preCtaBillLines = [];
+  for (let i = 0; i < ctaIdx; i++) {
+    if (lines[i].voice.toLowerCase() === 'bill') {
+      preCtaBillLines.push({ idx: i, text: lines[i].text });
+    }
+  }
+  if (preCtaBillLines.length === 0) {
+    return { ok: false, reason: 'No bill line before the CTA. Beat 3 (capability) must be spoken by bill.' };
+  }
+
+  // Reject any banned phrase appearing in pre-CTA bill lines
+  for (const { idx, text } of preCtaBillLines) {
+    const lower = text.toLowerCase();
+    for (const banned of CAPABILITY_BANNED_PHRASES) {
+      if (lower.includes(banned)) {
+        return {
+          ok: false,
+          reason: `Bill line ${idx} contains banned vague phrase "${banned}": "${text}". Replace with a specific capability beat (e.g. "Dossie tracks every TREC deadline.").`,
+        };
+      }
+    }
+  }
+
+  // Look for a pre-CTA bill line containing "dossie" + a capability verb (word-boundary)
+  for (const { idx, text } of preCtaBillLines) {
+    const lower = text.toLowerCase();
+    if (!/\bdossie\b/i.test(text)) continue;
+    for (const verb of CAPABILITY_VERBS) {
+      const re = new RegExp(`\\b${verb}\\b`, 'i');
+      if (re.test(text)) {
+        return { ok: true, verb, matchedIdx: idx, matchedText: text };
+      }
+    }
+  }
+
+  return {
+    ok: false,
+    reason: `No bill line before the CTA contains BOTH "Dossie" AND a capability verb (${CAPABILITY_VERBS.join(', ')}). Add a line like "Dossie tracks every TREC deadline" or "Dossie drafts the amendment and sends it."`,
+  };
+}
+
+async function _generateSkitScriptOnce(topic, extraGuidance) {
+  let userMessage = `Generate a skit video script for this scenario: ${topic.desc}
 
 Topic slug: ${topic.id}
 
 Pick a character voice appropriate for the scenario:
 - For TC quitting scenarios: luna (TC female) + charlie (agent male)
 - For agent-alone scenarios: charlie (agent male) + bill (narrator)
-- Bill always closes with the CTA line
+- Bill always speaks Beat 3 (capability) AND Beat 4 (CTA)
 
-Make the dialogue feel like a real overheard conversation - specific, a little painful, and ultimately funny. Keep it tight (under 120 words for all lines combined).`;
+Make the dialogue feel like a real overheard conversation - specific, a little painful, and ultimately funny. Keep it tight (under 120 words for all lines combined).
+
+REMEMBER: Beat 3 must name a specific Dossie capability. Beat 3 is the line a viewer remembers.`;
+
+  if (extraGuidance) {
+    userMessage += `\n\nPREVIOUS ATTEMPT FAILED VALIDATION:\n${extraGuidance}\n\nFix that issue in this attempt.`;
+  }
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -146,6 +283,41 @@ Make the dialogue feel like a real overheard conversation - specific, a little p
   return JSON.parse(s);
 }
 
+async function generateSkitScript(topic) {
+  const MAX_ATTEMPTS = 3;
+  let lastReason = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    console.log(`[cron-generate-skit] Generation attempt ${attempt}/${MAX_ATTEMPTS}${lastReason ? ' (retry)' : ''}`);
+    let script;
+    try {
+      script = await _generateSkitScriptOnce(topic, lastReason);
+    } catch (err) {
+      lastReason = `Generation error: ${err && err.message}`;
+      console.warn(`[cron-generate-skit] Attempt ${attempt} threw: ${lastReason}`);
+      if (attempt === MAX_ATTEMPTS) throw err;
+      continue;
+    }
+
+    const check = validateCapabilityBeat(script);
+    if (check.ok) {
+      console.log(`[cron-generate-skit] Capability beat OK on attempt ${attempt}: verb="${check.verb}" line="${check.matchedText}"`);
+      script._capability_beat = {
+        verb: check.verb,
+        line_index: check.matchedIdx,
+        text: check.matchedText,
+      };
+      return script;
+    }
+
+    lastReason = check.reason;
+    console.warn(`[cron-generate-skit] Attempt ${attempt} failed capability-beat validation: ${lastReason}`);
+  }
+
+  throw new Error(
+    `Skit script failed capability-beat validation after ${MAX_ATTEMPTS} attempts. Last reason: ${lastReason}`
+  );
+}
+
 async function sendSkitForApproval(skitId, script) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[cron-generate-skit] No Telegram token — skipping approval send');
@@ -168,9 +340,24 @@ async function sendSkitForApproval(skitId, script) {
   const allWords = (script.lines || []).map(([, t]) => t).join(' ').split(/\s+/).filter(Boolean);
   const estSecs = Math.round(allWords.length / 2.17);
 
+  // Re-validate to surface the capability beat for Heath's quick scan
+  const beatCheck = validateCapabilityBeat(script);
+  const beatBlock = beatCheck.ok
+    ? [
+        `CAPABILITY BEAT (the line that explains what Dossie does):`,
+        `[bill] "${beatCheck.matchedText}"`,
+        `(verb: ${beatCheck.verb})`,
+      ]
+    : [
+        `CAPABILITY BEAT: MISSING`,
+        `Reason: ${beatCheck.reason}`,
+      ];
+
   const msgText = [
     `SKIT SCRIPT READY FOR APPROVAL`,
     `Topic: ${script.topic || skitId}`,
+    ``,
+    ...beatBlock,
     ``,
     `SCENES:`,
     scenesPreview,

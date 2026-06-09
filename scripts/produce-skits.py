@@ -20,6 +20,17 @@ Voices:
   Luna    (TC female):  lxYfHSkYm1EzQzGhdbfc
   Bill    (narrator):   pqHfZKP75CvOlQylNhV4
 
+CAPABILITY BEAT RULE (Heath flagged 2026-06-09 after "Paradise Lost"):
+  Every skit MUST include a Bill narrator line BEFORE the CTA that contains:
+    1. The literal word "Dossie"
+    2. A specific capability verb (remembers, tracks, drafts, fills, sends,
+       calculates, reminds, organizes, files, books, attaches, signs, scans,
+       alerts, watches, surfaces, queues, completes)
+    3. The specific thing Dossie does (the title company, the option deadline, etc.)
+  Vague closers ("Meet Dossie", "She's got it", "Dossie can help", "Try Dossie",
+  etc.) are BANNED. Beat 3 is the line a viewer remembers — it sells the software.
+  Pre-flight validator aborts the render before any API call if Beat 3 is missing.
+
 Reads env from .env.production.local + .env.local in repo root.
 Telegram bot token from .env.production.local or .env.local (TELEGRAM_BOT_TOKEN).
 """
@@ -89,6 +100,24 @@ HOOK_ACTION_WORDS = [
     "urgent", "panicked", "anxious", "frustrated", "overwhelmed",
     "looking", "holding", "running",
 ]
+
+# CAPABILITY BEAT (Sage's diagnosis, Heath approved 2026-06-09 "Paradise Lost"):
+# every skit must have a Bill narrator line BEFORE the CTA that contains
+# "Dossie" + a specific capability verb + the specific thing she does.
+CAPABILITY_VERBS = [
+    "remembers", "tracks", "drafts", "fills", "sends", "calculates",
+    "reminds", "organizes", "files", "books", "attaches", "signs",
+    "scans", "alerts", "watches", "surfaces", "queues", "completes",
+]
+
+CAPABILITY_BANNED_PHRASES = [
+    "meet dossie", "try dossie", "this is dossie", "she's got it",
+    "dossie's got it", "dossie helps", "dossie can help",
+    "dossie makes it easier", "dossie's there", "get dossie",
+    "download dossie",
+]
+
+CTA_REQUIRED_SUBSTRING = "meetdossie.com slash founding"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -204,9 +233,9 @@ SKIT_BREAKUP = {
         ("luna",    "I think you need someone more... organized."),
         ("charlie", "Are you breaking up with me mid-transaction?"),
         ("luna",    "It's not you. It's the 47 emails."),
-        ("bill",    "Dossie doesn't quit. She doesn't lose the addendum. "
-                    "And she definitely doesn't break up with you over email. "
-                    "meetdossie.com slash founding."),
+        ("bill",    "Dossie tracks every addendum and attaches it to the right client. "
+                    "She doesn't quit. She doesn't break up with you over email."),
+        ("bill",    "Texas agents - meetdossie.com slash founding."),
     ],
 }
 
@@ -265,9 +294,10 @@ SKIT_PARADISE = {
         ("charlie", "...the option period expires tomorrow."),
         ("bill",    "And this is the same agent. Still on vacation. Still working."),
         ("charlie", "Which title company did we use? No - the OTHER one. No -"),
-        ("bill",    "Meet Dossie."),
-        ("charlie", "She's got it."),
-        ("bill",    "Your deals run. You don't. meetdossie.com slash founding."),
+        ("bill",    "Dossie remembers every title company on every deal."),
+        ("charlie", "...oh."),
+        ("bill",    "Dossie tracks every deadline. Dossie sends the follow-up. "
+                    "You stay on the beach. Texas agents - meetdossie.com slash founding."),
     ],
 }
 
@@ -430,6 +460,92 @@ def validate_script_duration(lines: list[tuple], min_s: float, max_s: float):
             f"is far below min duration {min_s}s. Expand the script."
         )
     return est_sec
+
+
+def validate_capability_beat(lines: list[tuple]) -> dict:
+    """
+    Enforce the capability-beat rule: every skit must have a Bill line BEFORE
+    the CTA that contains "Dossie" + a verb from CAPABILITY_VERBS.
+    Vague closer phrases (CAPABILITY_BANNED_PHRASES) in pre-CTA Bill lines
+    auto-fail.
+
+    Args:
+      lines: list of (voice, text) tuples.
+
+    Returns:
+      {"verb": <str>, "line_index": <int>, "text": <str>} on success.
+
+    Raises:
+      ValueError with a descriptive message on failure.
+    """
+    if not lines:
+        raise ValueError("Script lines list is empty — cannot validate capability beat.")
+
+    normalized = []
+    for entry in lines:
+        if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+            voice = str(entry[0] or "")
+            text = str(entry[1] or "")
+        else:
+            voice, text = "", ""
+        normalized.append((voice, text))
+
+    # Find CTA line: LAST Bill line containing CTA_REQUIRED_SUBSTRING (case-insensitive)
+    cta_idx = -1
+    for i in range(len(normalized) - 1, -1, -1):
+        voice, text = normalized[i]
+        if voice.lower() == "bill" and CTA_REQUIRED_SUBSTRING in text.lower():
+            cta_idx = i
+            break
+    if cta_idx == -1:
+        raise ValueError(
+            f'Capability-beat check failed: no Bill line ending with '
+            f'"{CTA_REQUIRED_SUBSTRING}". Beat 4 (CTA) is missing.'
+        )
+
+    pre_cta_bill = []
+    for i in range(cta_idx):
+        voice, text = normalized[i]
+        if voice.lower() == "bill":
+            pre_cta_bill.append((i, text))
+
+    if not pre_cta_bill:
+        raise ValueError(
+            "Capability-beat check failed: no Bill narrator line BEFORE the CTA. "
+            "Beat 3 must be spoken by bill (the narrator), not charlie or luna."
+        )
+
+    # Reject any banned vague phrase in pre-CTA Bill lines
+    for idx, text in pre_cta_bill:
+        lower = text.lower()
+        for banned in CAPABILITY_BANNED_PHRASES:
+            if banned in lower:
+                raise ValueError(
+                    f'Capability-beat check failed: Bill line {idx} contains '
+                    f'banned vague phrase "{banned}": "{text}". '
+                    f'Replace with a specific capability beat '
+                    f'(e.g. "Dossie tracks every TREC deadline.").'
+                )
+
+    # Look for "dossie" + a capability verb (word-boundary) in a pre-CTA Bill line
+    for idx, text in pre_cta_bill:
+        if not re.search(r"\bdossie\b", text, re.IGNORECASE):
+            continue
+        for verb in CAPABILITY_VERBS:
+            if re.search(r"\b" + re.escape(verb) + r"\b", text, re.IGNORECASE):
+                print(
+                    f'  CAPABILITY BEAT OK: line {idx} verb="{verb}" '
+                    f'text="{text[:80]}"'
+                )
+                return {"verb": verb, "line_index": idx, "text": text}
+
+    raise ValueError(
+        f'Capability-beat check failed: no Bill line before the CTA contains '
+        f'BOTH "Dossie" AND a capability verb '
+        f'({", ".join(CAPABILITY_VERBS)}). '
+        f'Add a line like "Dossie tracks every TREC deadline" or '
+        f'"Dossie drafts the amendment and sends it."'
+    )
 
 
 # ── POST-PRODUCTION QA ────────────────────────────────────────────────────────
@@ -1009,6 +1125,7 @@ def produce_skit(skit: dict, spots_left: int) -> Path | None:
     step("Phase A: Pre-flight validation")
     try:
         validate_script_duration(skit["lines"], RULES["min_duration_s"], RULES["max_duration_s"])
+        validate_capability_beat(skit["lines"])
         validated_scenes = validate_script(skit["scenes"])
     except ValueError as e:
         print(f"\n  ABORT: {e}")
