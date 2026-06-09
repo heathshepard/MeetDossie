@@ -107,6 +107,15 @@
     },
     "api/agent-dispatch.js": {
       "maxDuration": 10
+    },
+    "api/cron-sage-draft-engagements.js": {
+      "maxDuration": 60
+    },
+    "api/cron-send-engagement-approvals.js": {
+      "maxDuration": 30
+    },
+    "api/cron-engagement-summary.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

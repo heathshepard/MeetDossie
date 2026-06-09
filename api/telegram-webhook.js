@@ -1041,6 +1041,35 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Unified engagement_candidates approval flow.
+  // callback_data: eng_approve:<id> / eng_reject:<id>
+  // The numeric id is the bigserial primary key on engagement_candidates.
+  // Approve flips status to 'approved' -- the PyAutoGUI poster
+  // (scripts/unified-scanner/post_via_chrome.py) picks it up on its next run.
+  const engMatch = data.match(/^eng_(approve|reject):(\d+)$/);
+  if (engMatch) {
+    const engAction = engMatch[1];
+    const engId = engMatch[2];
+    const nowIso = new Date().toISOString();
+    const patch = engAction === 'approve'
+      ? { status: 'approved', approved_at: nowIso, approved_by: 'telegram' }
+      : { status: 'rejected', rejection_reason: 'manual_veto' };
+    await supabaseFetch(`/rest/v1/engagement_candidates?id=eq.${encodeURIComponent(engId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    });
+    const originalBody = String(message?.text || '');
+    const tail = engAction === 'approve'
+      ? 'Approved -- will post via real Chrome on next poster run.'
+      : 'Rejected.';
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+    }
+    if (callbackId) await answerCallback(callbackId, tail);
+    return;
+  }
+
   // Veto mode: STOP for reddit_engagements
   // callback_data format: reddit_stop_<post_id>
   // where post_id is the composite key "subreddit_redditid" stored in reddit_engagements.post_id
