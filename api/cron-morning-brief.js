@@ -331,7 +331,11 @@ function getStagingDiff() {
 function isExcludedEmail(email) {
   if (!email) return true;
   const e = email.toLowerCase();
-  if (e.startsWith('heath.shepard@')) return true;
+  // Catch every Heath variant — gmail, kw.com, meetdossie.com, plus-aliases, and
+  // unprefixed test accounts (heathtestaccount@...). The profiles.is_founder
+  // flag is the authoritative check; this is belt-and-suspenders for callers
+  // that don't have the flag yet.
+  if (e.startsWith('heath')) return true;
   if (e.includes('demo')) return true;
   return false;
 }
@@ -384,7 +388,7 @@ async function buildBrief() {
     // Fetch matching profiles.
     const profFilter = userIds.map((id) => `"${id}"`).join(',');
     const profResp = await supabaseFetch(
-      `/rest/v1/profiles?id=in.(${profFilter})&select=id,email,full_name,is_demo`,
+      `/rest/v1/profiles?id=in.(${profFilter})&select=id,email,full_name,is_demo,is_founder`,
     );
     if (!profResp.ok) throw new Error(`profiles fetch ${profResp.status}`);
     const profilesById = new Map((profResp.data || []).map((p) => [p.id, p]));
@@ -415,6 +419,7 @@ async function buildBrief() {
       const p = profilesById.get(s.user_id);
       if (!p) continue;
       if (p.is_demo) continue;
+      if (p.is_founder) continue; // Shepard Ventures internal — never in customer aggregates
       if (isExcludedEmail(p.email)) continue;
       joined.push({
         user_id: s.user_id,

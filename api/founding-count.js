@@ -6,9 +6,14 @@
 // "Taken" is read from the subscriptions table (source of truth for billing
 // state) where plan='founding' AND status='active', then filtered to EXCLUDE:
 //   - demo profiles (profiles.is_demo = true)
+//   - Shepard Ventures internal accounts (profiles.is_founder = true) — Heath's
+//     own logins / test accounts. Same exclusion pattern as is_demo.
 //   - the $1 founding-friend (Suzanne — k.suzanne.page@gmail.com)
-//   - any test/heath account (email starts with heath.shepard@)
 // This keeps the homepage "X of 50 taken" honest — only real paying $29 founders.
+//
+// Heath's internal subscriptions are ALSO flipped to status='internal' on the
+// subscriptions row, so the raw status=eq.active query won't return them even
+// before this profile join — belt-and-suspenders.
 //
 // Subscriptions cascade from auth.users on delete and Stripe webhook updates
 // the row directly, so this auto-reflects cancellations without a separate
@@ -30,7 +35,6 @@ const FOUNDING_FRIEND_EMAILS = new Set(['k.suzanne.page@gmail.com']);
 function isExcludedEmail(email) {
   if (!email) return false;
   const e = email.toLowerCase();
-  if (e.startsWith('heath.shepard@')) return true;
   if (FOUNDING_FRIEND_EMAILS.has(e)) return true;
   return false;
 }
@@ -72,10 +76,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, total: FOUNDING_TOTAL, taken: 0, remaining: FOUNDING_TOTAL });
     }
 
-    // 2. Fetch matching profiles to apply is_demo + email filters.
+    // 2. Fetch matching profiles to apply is_demo + is_founder + email filters.
     const profFilter = userIds.map((id) => `"${id}"`).join(',');
     const profResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=in.(${profFilter})&select=id,email,is_demo`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=in.(${profFilter})&select=id,email,is_demo,is_founder`,
       {
         method: 'GET',
         headers: {
@@ -103,6 +107,7 @@ module.exports = async function handler(req, res) {
       const p = profilesById.get(uid);
       if (!p) continue; // orphan subscription without profile — skip rather than inflate
       if (p.is_demo) continue;
+      if (p.is_founder) continue; // Shepard Ventures internal — never counts toward founding spots
       if (isExcludedEmail(p.email)) continue;
       taken += 1;
     }
