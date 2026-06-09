@@ -1,383 +1,242 @@
 {
-    "buildCommand": "",
-    "outputDirectory": ".",
-    "rewrites":  [
-                     {
-                         "destination":  "/index.html",
-                         "source":  "/"
-                     },
-                     {
-                         "source":  "/founding",
-                         "destination":  "/founding.html"
-                     },
-                     {
-                         "source":  "/welcome",
-                         "destination":  "/welcome.html"
-                     },
-                     {
-                         "source":  "/set-password",
-                         "destination":  "/set-password.html"
-                     },
-                     {
-                         "source":  "/forgot-password",
-                         "destination":  "/forgot-password.html"
-                     },
-                     {
-                         "source":  "/signin",
-                         "destination":  "/app.html"
-                     },
-                     {
-                         "source":  "/workspace",
-                         "destination":  "/workspace.html"
-                     },
-                     {
-                         "source":  "/app",
-                         "destination":  "/app.html"
-                     },
-                     {
-                         "source":  "/calculator",
-                         "destination":  "/calculator.html"
-                     },
-                     {
-                         "source":  "/privacy",
-                         "destination":  "/privacy.html"
-                     },
-                     {
-                         "source":  "/terms",
-                         "destination":  "/terms.html"
-                     },
-                     {
-                         "source":  "/ventures",
-                         "destination":  "/ventures.html"
-                     },
-                     {
-                         "source":  "/studio",
-                         "destination":  "/ventures.html"
-                     },
-                     {
-                         "source":  "/media-studio",
-                         "destination":  "/media-studio.html"
-                     }
-                 ],
-    "headers":  [
-                    {
-                        "source":  "/(.*).html",
-                        "headers":  [
-                                        {
-                                            "key":  "Cache-Control",
-                                            "value":  "no-cache, no-store, must-revalidate"
-                                        }
-                                    ]
-                    },
-                    {
-                        "source":  "/assets/(.*)",
-                        "headers":  [
-                                        {
-                                            "key":  "Cache-Control",
-                                            "value":  "public, max-age=3600, must-revalidate"
-                                        }
-                                    ]
-                    },
-                    {
-                        "source":  "/manifest.webmanifest",
-                        "headers":  [
-                                        {
-                                            "key":  "Content-Type",
-                                            "value":  "application/manifest+json"
-                                        },
-                                        {
-                                            "key":  "Cache-Control",
-                                            "value":  "public, max-age=3600, must-revalidate"
-                                        }
-                                    ]
-                    },
-                    {
-                        "source":  "/icons/(.*)",
-                        "headers":  [
-                                        {
-                                            "key":  "Cache-Control",
-                                            "value":  "public, max-age=86400, must-revalidate"
-                                        }
-                                    ]
-                    }
-                ],
-    "functions":  {
-                      "api/telegram-webhook.js":  {
-                                                      "maxDuration":  30
-                                                  },
-                      "api/cron-generate-posts.js":  {
-                                                         "maxDuration":  300
-                                                     },
-                      "api/cron-publish-approved.js":  {
-                                                           "maxDuration":  120
-                                                       },
-                      "api/cron-weekly-newsletter.js":  {
-                                                            "maxDuration":  60,
-                                                            "includeFiles":  "WEEKLY-IMPROVEMENTS.md"
-                                                        },
-                      "api/generate-broll.js":  {
-                                                    "maxDuration":  120
-                                                },
-               "api/cron-coverage-check.js":  {
-                                                    "maxDuration":  60
-                                               },
-               "api/cron-analytics-sync.js":  {
-                                                    "maxDuration":  60
-                                               },
-               "api/cron-video-approval.js":  {
-                                                    "maxDuration":  30
-                                               },
-               "api/cron-post-videos.js":  {
-                                                "maxDuration":  120
-                                            },
-               "api/send-customer-update.js":  {
-                                                   "maxDuration":  60
-                                               },
-               "api/cron-social-digest.js":  {
-                                                   "maxDuration":  30
-                                               },
-               "api/cron-verify-posts.js":  {
-                                                 "maxDuration":  45
-                                             },
-               "api/cron-generate-skit.js":  {
-                                                  "maxDuration":  30
-                                              },
-               "api/get-upload-url.js":  {
-                                             "maxDuration":  15
-                                         },
-               "api/register-video.js":  {
-                                             "maxDuration":  30
-                                         },
-               "api/cron-pierce-activation.js":  {
-                                                     "maxDuration":  60
-                                                 },
-               "api/cron-sage-trends.js":  {
-                                                "maxDuration":  60
-                                            },
-               "api/cron-cole-orchestration.js":  {
-                                                       "maxDuration":  60
-                                                   },
-               "api/transactions/download-zip.js":  {
-                                                        "maxDuration":  60
-                                                    },
-               "api/cron-stripe-reconcile.js":  {
-                                                    "maxDuration":  60
-                                                },
-               "api/transcribe-video.js":  {
-                                               "maxDuration":  60
-                                           },
-               "api/claudy-webhook.js":  {
-                                             "maxDuration":  60
-                                         },
-               "api/ventures/cron-health.js":  {
-                                                   "maxDuration":  30
-                                               },
-               "api/ventures/social-posts.js":  {
-                                                    "maxDuration":  30
-                                                },
-               "api/ventures/agent-status.js":  {
-                                                    "maxDuration":  15
-                                                },
-               "api/ventures/stripe-events.js":  {
-                                                      "maxDuration":  15
-                                                  },
-               "api/ventures/attention-brief.js":  {
-                                                       "maxDuration":  30
-                                                   },
-               "api/cron-render-videos.js":  {
-                                                 "maxDuration":  270
-                                             },
-               "api/cron-sage-intelligence.js":  {
-                                                      "maxDuration":  60
-                                                  },
-               "api/cron-activation-drip.js":  {
-                                                    "maxDuration":  60
-                                                },
-               "api/cron-elevenlabs-monitor.js":  {
-                                                       "maxDuration":  15
-                                                   },
-               "api/cron-auto-approve.js":  {
-                                                "maxDuration":  30
-                                            },
-               "api/cron-growth-alerts.js":  {
-                                                  "maxDuration":  30
-                                              },
-               "api/cron-weekly-scorecard.js":  {
-                                                    "maxDuration":  30
-                                                },
-               "api/cron-send-referral-blast.js":  {
-                                                       "maxDuration":  60
-                                                   },
-               "api/cron-reddit-scanner.js":  {
-                                                  "maxDuration":  60
-                                              },
-               "api/cron-render-skits.js":  {
-                                                "maxDuration":  30
-                                            },
-               "api/skit-render-callback.js":  {
-                                                    "maxDuration":  300
-                                                },
-               "api/cron-assemble-skits.js":  {
-                                                   "maxDuration":  300
-                                               },
-               "api/cron-weekly-digest.js":  {
-                                                 "maxDuration":  30
-                                             },
-               "api/cron-thursday-blast.js":  {
-                                                  "maxDuration":  30
-                                              },
-               "api/cron-daily-platform-health.js":  {
-                                                          "maxDuration":  30
-                                                      },
-               "api/cron-competitor-intel.js":  {
-                                                     "maxDuration":  60
-                                                 },
-               "api/cron-daily-fb-posts.js":  {
-                                                   "maxDuration":  60
-                                               },
-               "api/sage-webhook.js":  {
-                                            "maxDuration":  60
-                                        },
-               "api/feedback-score.js":  {
-                                             "maxDuration":  15
-                                         }
-                  },
-    "crons":  [
-                  {
-                      "path":  "/api/alert-health",
-                      "schedule":  "*/5 * * * *"
-                  },
-                  {
-                      "path":  "/api/cron-followup",
-                      "schedule":  "0 12 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-pipeline-check",
-                      "schedule":  "0 11 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-generate-posts",
-                      "schedule":  "0 11 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-render-videos",
-                      "schedule":  "10 11 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-send-for-approval",
-                      "schedule":  "30 11 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-publish-approved",
-                      "schedule":  "*/30 * * * *"
-                  },
-                  {
-                      "path":  "/api/cron-content-brief",
-                      "schedule":  "0 14 * * 1-5"
-                  },
-                  {
-                      "path":  "/api/cron-calculator-deadline-reminders",
-                      "schedule":  "0 13 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-email-digest",
-                      "schedule":  "0 13 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-deadline-reminders",
-                      "schedule":  "5 13 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-pipeline-health",
-                      "schedule":  "0 13 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-morning-brief",
-                      "schedule":  "0 12 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-weekly-newsletter",
-                      "schedule":  "0 15 * * 5"
-                  },
-                  {
-                      "path":  "/api/cron-coverage-check",
-                      "schedule":  "0 1 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-analytics-sync",
-                      "schedule":  "0 2 * * 0"
-                  },
-                  {
-                      "path":  "/api/cron-video-approval",
-                      "schedule":  "0 10 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-post-videos",
-                      "schedule":  "30 13 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-verify-posts",
-                      "schedule":  "45 * * * *"
-                  },
-                  {
-                      "path":  "/api/cron-generate-skit",
-                      "schedule":  "0 11 * * 1,2,5"
-                  },
-                  {
-                      "path":  "/api/cron-elevenlabs-monitor",
-                      "schedule":  "0 14 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-activation-drip",
-                      "schedule":  "0 15 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-testimonial-request",
-                      "schedule":  "0 14 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-auto-approve",
-                      "schedule":  "*/10 * * * *"
-                  },
-                  {
-                      "path":  "/api/cron-growth-alerts",
-                      "schedule":  "0 14 * * 1"
-                  },
-                  {
-                      "path":  "/api/cron-weekly-scorecard",
-                      "schedule":  "0 14 * * 1"
-                  },
-                  {
-                      "path":  "/api/cron-send-referral-blast",
-                      "schedule":  "30 13 9 6 *"
-                  },
-                  {
-                      "path":  "/api/cron-reddit-scanner",
-                      "schedule":  "0 13,17,21,1 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-render-skits",
-                      "schedule":  "0 13 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-assemble-skits",
-                      "schedule":  "*/10 * * * *"
-                  },
-                  {
-                      "path":  "/api/cron-thursday-blast",
-                      "schedule":  "30 13 10 6 *"
-                  },
-                  {
-                      "path":  "/api/cron-daily-platform-health",
-                      "schedule":  "0 3 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-competitor-intel",
-                      "schedule":  "0 14 * * 0"
-                  },
-                  {
-                      "path":  "/api/cron-daily-fb-posts",
-                      "schedule":  "0 14 * * *"
-                  }
-              ]
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "destination": "/index.html",
+      "source": "/"
+    },
+    {
+      "source": "/founding",
+      "destination": "/founding.html"
+    },
+    {
+      "source": "/welcome",
+      "destination": "/welcome.html"
+    },
+    {
+      "source": "/set-password",
+      "destination": "/set-password.html"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/forgot-password.html"
+    },
+    {
+      "source": "/signin",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/workspace",
+      "destination": "/workspace.html"
+    },
+    {
+      "source": "/app",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/calculator",
+      "destination": "/calculator.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/ventures",
+      "destination": "/ventures.html"
+    },
+    {
+      "source": "/studio",
+      "destination": "/ventures.html"
+    },
+    {
+      "source": "/media-studio",
+      "destination": "/media-studio.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*).html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/alert-health",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron-followup",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron-pipeline-check",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron-generate-posts",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron-render-videos",
+      "schedule": "10 11 * * *"
+    },
+    {
+      "path": "/api/cron-send-for-approval",
+      "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron-publish-approved",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-content-brief",
+      "schedule": "0 14 * * 1-5"
+    },
+    {
+      "path": "/api/cron-calculator-deadline-reminders",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron-email-digest",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron-deadline-reminders",
+      "schedule": "5 13 * * *"
+    },
+    {
+      "path": "/api/cron-pipeline-health",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron-morning-brief",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-newsletter",
+      "schedule": "0 15 * * 5"
+    },
+    {
+      "path": "/api/cron-coverage-check",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron-analytics-sync",
+      "schedule": "0 2 * * 0"
+    },
+    {
+      "path": "/api/cron-video-approval",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron-post-videos",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron-verify-posts",
+      "schedule": "45 * * * *"
+    },
+    {
+      "path": "/api/cron-generate-skit",
+      "schedule": "0 11 * * 1,2,5"
+    },
+    {
+      "path": "/api/cron-elevenlabs-monitor",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron-activation-drip",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron-testimonial-request",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron-auto-approve",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron-growth-alerts",
+      "schedule": "0 14 * * 1"
+    },
+    {
+      "path": "/api/cron-weekly-scorecard",
+      "schedule": "0 14 * * 1"
+    },
+    {
+      "path": "/api/cron-send-referral-blast",
+      "schedule": "30 13 9 6 *"
+    },
+    {
+      "path": "/api/cron-reddit-scanner",
+      "schedule": "0 13,17,21,1 * * *"
+    },
+    {
+      "path": "/api/cron-render-skits",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron-assemble-skits",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron-thursday-blast",
+      "schedule": "30 13 10 6 *"
+    },
+    {
+      "path": "/api/cron-daily-platform-health",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron-competitor-intel",
+      "schedule": "0 14 * * 0"
+    },
+    {
+      "path": "/api/cron-daily-fb-posts",
+      "schedule": "0 14 * * *"
+    }
+  ]
 }
