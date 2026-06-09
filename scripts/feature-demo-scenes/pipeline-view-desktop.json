@@ -1,0 +1,32 @@
+{
+  "name": "pipeline-view",
+  "form_factor": "desktop",
+  "viewport": { "width": 1920, "height": 1080 },
+  "demo_account": "demo@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "feature-demo-pipeline-view-desktop-2026-06-09.mp4",
+  "topic": "pipeline_view",
+  "type": "feature_demo",
+  "platforms": ["facebook", "twitter", "linkedin"],
+  "voiceover": "Most agents track their deals on a sticky note and a prayer. Then it's 3PM Friday and you can't remember which file needs an amendment, which needs a survey, which is closing Monday. Dossie's pipeline shows you every deal at once. Option period expiring in two days. Three docs ready to sign. Closing milestone earned on the Hernandez file. Every deadline. Every document. Every action item. In one view. You see the whole portfolio in five seconds — and tap any deal to drill into the full dossier. This is what control looks like. Texas agents — meetdossie dot com slash founding.",
+  "caption": "Every deal, every deadline, every document in one view. The pipeline that holds the work together. meetdossie.com/founding",
+  "slowmo_ms": 500,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1500 },
+    { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 3000 },
+    { "action": "wait_for_text", "text": "Pipeline", "timeout": 20000, "pause": 1500 },
+    { "action": "click_text", "text": "Pipeline", "exact": true, "pause": 2500 },
+    { "action": "hover_pipeline_first_card", "pause": 2500 },
+    { "action": "hover_pipeline_nth_card", "index": 1, "pause": 2200 },
+    { "action": "hover_pipeline_nth_card", "index": 2, "pause": 2200 },
+    { "action": "hover_pipeline_nth_card", "index": 3, "pause": 2200 },
+    { "action": "click_pipeline_first_card", "pause": 3000 },
+    { "action": "scroll_by", "y": 200, "pause": 2200 },
+    { "action": "scroll_by", "y": 250, "pause": 2200 },
+    { "action": "scroll_by", "y": 300, "pause": 2200 },
+    { "action": "scroll_by", "y": 250, "pause": 2200 },
+    { "action": "scroll_to_top", "pause": 1500 },
+    { "action": "final_pause", "pause": 2000 }
+  ]
+}
