@@ -255,7 +255,9 @@ async function main() {
   }
 
   const seenIds = loadSeen();
-  const { chromium } = require('playwright');
+  const { chromium } = require('playwright-extra');
+  const stealth = require('puppeteer-extra-plugin-stealth')();
+  chromium.use(stealth);
 
   console.log('[linkedin-engager] Launching Chrome with DossieBot profile');
   const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
