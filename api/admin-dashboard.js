@@ -83,10 +83,12 @@ export default async function handler(req, res) {
     metrics.revenue.cancellationsThisMonth = cancellationsThisMonth || 0;
 
     // ===== USER ACTIVITY =====
+    // Exclude demo accounts AND Shepard Ventures internal accounts (Heath's own logins).
     const { count: totalUsers } = await supabase
       .from('profiles')
       .select('id', { count: 'exact', head: true })
-      .eq('is_demo', false);
+      .eq('is_demo', false)
+      .eq('is_founder', false);
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -100,6 +102,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('is_demo', false)
+      .eq('is_founder', false)
       .not('last_seen_at', 'is', null)
       .gte('last_seen_at', sevenDaysAgo.toISOString());
 
@@ -107,6 +110,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('is_demo', false)
+      .eq('is_founder', false)
       .not('last_seen_at', 'is', null)
       .gte('last_seen_at', thirtyDaysAgo.toISOString());
 
@@ -114,6 +118,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('is_demo', false)
+      .eq('is_founder', false)
       .is('last_seen_at', null);
 
     metrics.users = {
