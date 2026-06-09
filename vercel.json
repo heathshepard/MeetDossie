@@ -222,7 +222,13 @@
                                               },
                "api/cron-daily-platform-health.js":  {
                                                           "maxDuration":  30
-                                                      }
+                                                      },
+               "api/cron-competitor-intel.js":  {
+                                                     "maxDuration":  60
+                                                 },
+               "api/feedback-score.js":  {
+                                             "maxDuration":  15
+                                         }
                   },
     "crons":  [
                   {
