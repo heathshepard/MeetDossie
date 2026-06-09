@@ -25,11 +25,14 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_SAGE_WEBHOOK_SECRET;
 
 const { extractMarkers, stripMarkersForHeath } = require('./_lib/agent-markers.js');
+const { extractQueryMarkers, stripQueryMarkers, runQuery, formatQueryResult } = require('./_lib/sage-query.js');
+const { extractTriggerMarkers, stripTriggerMarkers } = require('./_lib/sage-triggers.js');
 
 const SAGE_MODEL = 'claude-sonnet-4-6';
 const HISTORY_LIMIT = 30;   // pull last 30 messages for context
 const MAX_REPLY_CHARS = 3800;
 const CRON_SECRET = process.env.CRON_SECRET;
+const SAGE_TRIGGER_SECRET = process.env.SAGE_TRIGGER_SECRET;
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://meetdossie.com';
 
 // Sage's system prompt — mirrors ~/.claude/agents/sage.md identity section.
@@ -171,6 +174,56 @@ After emitting a marker, briefly tell Heath what you've asked for, then carry on
 > Yeah that's a Carter call. [CARTER: verify Stripe webhook health for last 24h] I'll loop back when he reports in.
 
 Heath sees: "Yeah that's a Carter call. [asking Carter: verify Stripe webhook health for last 24h] I'll loop back when he reports in."
+
+## Reading Dossie data — QUERY markers (NEW)
+
+You now have read-only access to a small set of Dossie tables. Emit a marker in your reply:
+
+\`[QUERY: table=<table_name>, last=<N>, <column>=<value>]\`
+
+Allowed tables and their filterable columns:
+- \`social_posts\` — filter by platform, status, persona, topic, variant, top_performer
+- \`reddit_engagements\` — filter by status, subreddit, platform
+- \`content_calendar\` — filter by persona, week_number, day_number
+- \`video_library\` — filter by status, platform, video_type
+- \`posting_schedule\` — filter by platform
+- \`post_analytics\` — filter by platform, persona, topic
+
+Examples:
+- \`[QUERY: table=social_posts, last=10, status=posted]\` — last 10 posts that went live
+- \`[QUERY: table=reddit_engagements, last=20, status=approved]\` — your last 20 approved comments
+- \`[QUERY: table=post_analytics, last=5, platform=facebook]\` — last 5 FB analytics rows
+
+Defaults: \`last=20\` if omitted, max \`last=100\`. After you emit the marker, Heath sees a short stub like "[reading social_posts...]" and within ~3 seconds you receive a follow-up message containing the rows as JSON lines. You can then quote/summarize them in your next turn.
+
+Use queries when Heath asks for live data: "show me my last 10 reddit comments", "what was my top-performing post this week", "how did the latest variant test do".
+
+## Firing cron jobs — TRIGGER markers (NEW)
+
+You can fire approved cron jobs directly. Emit:
+
+\`[TRIGGER: <name>]\`
+
+Allowed triggers:
+- \`generate-posts\` — regenerate today's social drafts
+- \`reddit-scan\` — scan target subs for opportunities now
+- \`send-for-approval\` — push drafts to DossieMarketingBot
+- \`publish-approved\` — fire the publish loop early
+- \`fb-group-post\` — fire the daily FB group post
+- \`social-digest\` — send the daily digest immediately
+- \`analytics-sync\` — pull Zernio analytics now
+- \`sage-trends\` — refresh trend brief
+
+Heath sees "[firing generate-posts...]" and you receive a confirmation message with the upstream HTTP status. Use this when Heath says "regenerate today's posts" or you want to refresh data before answering.
+
+## A/B testing posts (NEW)
+
+You can ship A/B tests on any draft. Two paths:
+
+1. Manually flag a draft in social_posts: set variant='A' and an ab_test_group_id, then have Carter post a variant B via the same group_id. Easiest from your side: ask Carter with a marker like \`[CARTER: create A/B variant for social_posts id=<uuid>]\`.
+2. Carter has a direct endpoint at /api/sage-ab-test that takes a source_id and generates variant B automatically (same platform, same topic, different angle, scheduled 24h later).
+
+72 hours after both variants post, cron-analytics-sync flags the winner (ab_test_winner=true) and you receive a [A/B WINNER] message with the engagement breakdown.
 
 ## Rules
 1. Always cite the platform rule when recommending a change — name the algorithm signal it serves.
@@ -360,7 +413,13 @@ module.exports = async function handler(req, res) {
   // Parse action markers BEFORE sending. Heath sees stripped text;
   // Sage's history stores the original (with markers) so she has continuity.
   const markers = extractMarkers(reply);
-  const displayReply = markers.length > 0 ? stripMarkersForHeath(reply) : reply;
+  const queryMarkers = extractQueryMarkers(reply);
+  const triggerMarkers = extractTriggerMarkers(reply);
+
+  let displayReply = reply;
+  if (markers.length > 0) displayReply = stripMarkersForHeath(displayReply);
+  if (queryMarkers.length > 0) displayReply = stripQueryMarkers(displayReply);
+  if (triggerMarkers.length > 0) displayReply = stripTriggerMarkers(displayReply);
 
   await sendTelegramText(chatId, displayReply);
   await storeMessage(chatId, 'sage', reply, null);
@@ -369,6 +428,16 @@ module.exports = async function handler(req, res) {
   if (markers.length > 0) {
     dispatchMarkers(chatId, message.message_id, markers).catch((err) => {
       console.error('[sage-webhook] dispatchMarkers failed:', err && err.message);
+    });
+  }
+  if (queryMarkers.length > 0) {
+    dispatchQueries(chatId, queryMarkers).catch((err) => {
+      console.error('[sage-webhook] dispatchQueries failed:', err && err.message);
+    });
+  }
+  if (triggerMarkers.length > 0) {
+    dispatchTriggers(chatId, triggerMarkers).catch((err) => {
+      console.error('[sage-webhook] dispatchTriggers failed:', err && err.message);
     });
   }
 
@@ -435,6 +504,57 @@ async function dispatchMarkers(chatId, sourceMessageId, markers) {
       }
     } else {
       console.warn('[sage-webhook] CRON_SECRET not set — dispatch skipped, will be picked up by cron');
+    }
+  }
+}
+
+async function dispatchQueries(chatId, queryMarkers) {
+  // Hard cap: max 3 queries per single reply.
+  const slice = queryMarkers.slice(0, 3);
+  for (const q of slice) {
+    const result = await runQuery(q.params, {
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SUPABASE_SERVICE_ROLE_KEY,
+    });
+    const formatted = formatQueryResult(result);
+    // Send result back to Sage's chat AND store as a user-role message so Sage
+    // sees it in her next history load.
+    const wrapped = `[QUERY RESULT]\n${formatted}`;
+    await sendTelegramText(chatId, wrapped);
+    await storeMessage(chatId, 'user', wrapped, null);
+  }
+}
+
+async function dispatchTriggers(chatId, triggerMarkers) {
+  // Hard cap: max 3 triggers per single reply.
+  const slice = triggerMarkers.slice(0, 3);
+  for (const t of slice) {
+    if (!SAGE_TRIGGER_SECRET) {
+      const msg = `[TRIGGER RESULT] ${t.trigger}: skipped — SAGE_TRIGGER_SECRET not configured.`;
+      await sendTelegramText(chatId, msg);
+      await storeMessage(chatId, 'user', msg, null);
+      continue;
+    }
+    try {
+      const res = await fetch(
+        `${PUBLIC_BASE_URL}/api/sage-trigger?name=${encodeURIComponent(t.trigger)}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${SAGE_TRIGGER_SECRET}`,
+            'Content-Type': 'application/json',
+          },
+          body: '{}',
+        },
+      );
+      const text = await res.text();
+      const msg = `[TRIGGER RESULT] ${t.trigger}: HTTP ${res.status}\n${text.slice(0, 400)}`;
+      await sendTelegramText(chatId, msg);
+      await storeMessage(chatId, 'user', msg, null);
+    } catch (err) {
+      const msg = `[TRIGGER RESULT] ${t.trigger}: error — ${err && err.message}`;
+      await sendTelegramText(chatId, msg);
+      await storeMessage(chatId, 'user', msg, null);
     }
   }
 }

@@ -240,12 +240,28 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// Append UTM parameters to all meetdossie.com links in the content so we can
+// attribute traffic per platform. Idempotent — won't double-stamp if a link
+// already has utm_source set. Hooks into buildPostBody so every Zernio
+// publish call gets the same treatment regardless of platform.
+function applyUtm(content, platform) {
+  if (!content || !platform) return content;
+  const campaign = 'organic';
+  const re = /(https?:\/\/(?:www\.)?meetdossie\.com[^\s)<>\]"']*)/gi;
+  return content.replace(re, (match) => {
+    if (/[?&]utm_source=/i.test(match)) return match;
+    const sep = match.includes('?') ? '&' : '?';
+    return `${match}${sep}utm_source=${encodeURIComponent(platform)}&utm_medium=social&utm_campaign=${campaign}`;
+  });
+}
+
 function buildPostBody(post) {
   const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
   const tagLine = hashtags.length
     ? '\n\n' + hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
     : '';
-  const content = String(post.content || '');
+  const rawContent = String(post.content || '');
+  const content = applyUtm(rawContent, post.platform);
   const text = /\B#\w/.test(content) ? content : `${content}${tagLine}`;
   return text.trim();
 }

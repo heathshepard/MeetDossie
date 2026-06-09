@@ -1005,6 +1005,42 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Comment approval flow: comment_approve:<platform>:<id> / comment_reject:<platform>:<id>
+  // Routes to facebook_comment_drafts / instagram_comment_drafts / linkedin_comment_drafts.
+  // Reddit comments still use the reddit_stop_ veto pattern below.
+  const commentMatch = data.match(/^comment_(approve|reject):([a-z]+):([\w-]+)$/);
+  if (commentMatch) {
+    const action = commentMatch[1];
+    const platform = commentMatch[2];
+    const draftId = commentMatch[3];
+    const COMMENT_TABLES = {
+      facebook:  'facebook_comment_drafts',
+      instagram: 'instagram_comment_drafts',
+      linkedin:  'linkedin_comment_drafts',
+    };
+    const table = COMMENT_TABLES[platform];
+    if (!table) {
+      if (callbackId) await answerCallback(callbackId, 'Unknown comment platform');
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const patch = action === 'approve'
+      ? { status: 'approved', approved_at: nowIso, approved_by: 'telegram' }
+      : { status: 'rejected', rejection_reason: 'manual veto' };
+    await supabaseFetch(`/rest/v1/${table}?id=eq.${encodeURIComponent(draftId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    });
+    const originalBody = String(message?.text || '');
+    const tail = action === 'approve' ? 'Approved.' : 'Rejected.';
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+    }
+    if (callbackId) await answerCallback(callbackId, tail);
+    return;
+  }
+
   // Veto mode: STOP for reddit_engagements
   // callback_data format: reddit_stop_<post_id>
   // where post_id is the composite key "subreddit_redditid" stored in reddit_engagements.post_id

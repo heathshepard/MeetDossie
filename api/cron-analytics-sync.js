@@ -194,6 +194,35 @@ async function sendTelegramSummary(text) {
   } catch (err) {
     console.error('[analytics-sync] telegram notify failed:', err && err.message);
   }
+
+  // Also deliver to Sage's chat (DossieSageBot) so she has analytics context.
+  const TELEGRAM_SAGE_BOT_TOKEN = process.env.TELEGRAM_SAGE_BOT_TOKEN;
+  if (TELEGRAM_SAGE_BOT_TOKEN) {
+    try {
+      const stripped = String(text).replace(/<[^>]+>/g, '');
+      const sageRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_SAGE_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: `[WEEKLY ANALYTICS]\n${stripped}`,
+        }),
+      });
+      if (sageRes.ok) {
+        await supabaseFetch('/rest/v1/sage_conversations', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            chat_id: String(TELEGRAM_CHAT_ID),
+            role: 'user',
+            text: `[WEEKLY ANALYTICS]\n${stripped}`,
+          }),
+        });
+      }
+    } catch (err) {
+      console.warn('[analytics-sync] sage delivery failed:', err && err.message);
+    }
+  }
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────
@@ -385,6 +414,60 @@ module.exports = async function handler(req, res) {
       if (r.ok) flagged++;
     }
     console.log(`[analytics-sync] flagged ${flagged} top performers (threshold=${threshold})`);
+  }
+
+  // ─── A/B test winner flagging ─────────────────────────────────────────────
+  // For any ab_test_group_id where both variants are posted >=72h ago and
+  // ab_test_winner is still NULL, set ab_test_winner=true on the higher-engagement
+  // variant. This runs inside the analytics-sync so we use the freshest engagement_score.
+  let abWinnersFlagged = 0;
+  try {
+    const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+    const { ok: abLoadOk, data: abRows } = await supabaseFetch(
+      `/rest/v1/social_posts?ab_test_group_id=not.is.null&status=eq.posted&posted_at=lte.${encodeURIComponent(cutoff)}&ab_test_winner=eq.false&select=id,ab_test_group_id,variant,likes,comments,shares,clicks,views`,
+    );
+    if (abLoadOk && Array.isArray(abRows)) {
+      const byGroup = new Map();
+      for (const r of abRows) {
+        if (!byGroup.has(r.ab_test_group_id)) byGroup.set(r.ab_test_group_id, []);
+        byGroup.get(r.ab_test_group_id).push(r);
+      }
+      for (const [groupId, members] of byGroup.entries()) {
+        if (members.length < 2) continue;
+        const score = (r) => (r.likes || 0) * 1 + (r.comments || 0) * 3 + (r.shares || 0) * 5 + (r.clicks || 0) * 2;
+        const winner = members.slice().sort((a, b) => score(b) - score(a))[0];
+        if (!winner) continue;
+        const { ok: winPatchOk } = await supabaseFetch(
+          `/rest/v1/social_posts?id=eq.${encodeURIComponent(winner.id)}`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ ab_test_winner: true }),
+          },
+        );
+        if (winPatchOk) {
+          abWinnersFlagged++;
+          // Notify Sage via her bot
+          const TELEGRAM_SAGE_BOT_TOKEN = process.env.TELEGRAM_SAGE_BOT_TOKEN;
+          const sageChatId = TELEGRAM_CHAT_ID;
+          if (TELEGRAM_SAGE_BOT_TOKEN && sageChatId) {
+            const msg = `[A/B WINNER] Group ${groupId.slice(0, 8)}: variant ${winner.variant} won (score ${score(winner)}). All variants: ${members.map((m) => `${m.variant}=${score(m)}`).join(', ')}.`;
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_SAGE_BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: sageChatId, text: msg }),
+            }).catch(() => {});
+            await supabaseFetch('/rest/v1/sage_conversations', {
+              method: 'POST',
+              headers: { Prefer: 'return=minimal' },
+              body: JSON.stringify({ chat_id: String(sageChatId), role: 'user', text: msg }),
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[analytics-sync] AB winner flagging failed:', err && err.message);
   }
 
   // ─── Telegram summary ─────────────────────────────────────────────────────

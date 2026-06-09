@@ -10,6 +10,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
+const TELEGRAM_SAGE_BOT_TOKEN = process.env.TELEGRAM_SAGE_BOT_TOKEN;
 
 const PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'];
 
@@ -111,6 +112,7 @@ module.exports = async function handler(req, res) {
   const text = lines.join('\n');
   console.log('[cron-social-digest] sending digest:', text);
 
+  let sageDelivered = false;
   try {
     const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -127,11 +129,40 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: false, error: err && err.message });
   }
 
+  // Also send to Sage's chat (DossieSageBot) so Sage sees daily digest context
+  // in her conversation. Wrap as a user message so it lands in sage_conversations
+  // via her next webhook turn — Sage reads from sage_conversations automatically.
+  if (TELEGRAM_SAGE_BOT_TOKEN) {
+    try {
+      const sageRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_SAGE_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: `[DAILY DIGEST]\n${text}` }),
+      });
+      sageDelivered = sageRes.ok;
+      if (sageRes.ok) {
+        // Persist into sage_conversations as a user-role entry so Sage has context.
+        await supabaseFetch('/rest/v1/sage_conversations', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            chat_id: String(TELEGRAM_CHAT_ID),
+            role: 'user',
+            text: `[DAILY DIGEST]\n${text}`,
+          }),
+        });
+      }
+    } catch (err) {
+      console.warn('[cron-social-digest] Sage delivery failed:', err && err.message);
+    }
+  }
+
   return res.status(200).json({
     ok: true,
     date: today,
     tally,
     alerts,
+    sage_delivered: sageDelivered,
     rows_found: data.length,
   });
 };

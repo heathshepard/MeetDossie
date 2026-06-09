@@ -134,5 +134,27 @@ module.exports = async function handler(req, res) {
     console.log('[cron-auto-approve] auto-approved', approvedReplies, 'fb_comment_replies');
   }
 
-  return res.status(200).json({ ok: true, autoApproved, approvedReplies });
+  // ── Auto-approve pending platform comment drafts (FB / IG / LI) after 10 min ──
+  const COMMENT_TABLES = ['facebook_comment_drafts', 'instagram_comment_drafts', 'linkedin_comment_drafts'];
+  let autoApprovedComments = 0;
+  for (const table of COMMENT_TABLES) {
+    const { ok: loadOk, data: rows } = await supabaseFetch(
+      `/rest/v1/${table}?status=eq.pending&telegram_sent_at=not.is.null&telegram_sent_at=lte.${encodeURIComponent(tenMinutesAgo)}&select=id`,
+    );
+    if (!loadOk || !Array.isArray(rows) || rows.length === 0) continue;
+    const ids = rows.map((r) => r.id).filter(Boolean);
+    if (!ids.length) continue;
+    const filter = ids.map((id) => encodeURIComponent(id)).join(',');
+    const { ok: patchOk } = await supabaseFetch(`/rest/v1/${table}?id=in.(${filter})`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'approved', approved_at: new Date().toISOString(), approved_by: 'auto-veto' }),
+    });
+    if (patchOk) {
+      autoApprovedComments += ids.length;
+      console.log(`[cron-auto-approve] auto-approved ${ids.length} ${table} via veto window`);
+    }
+  }
+
+  return res.status(200).json({ ok: true, autoApproved, approvedReplies, autoApprovedComments });
 };
