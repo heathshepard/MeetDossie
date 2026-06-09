@@ -23,6 +23,14 @@ The Founding Files Facebook group (facebook.com/share/g/1P2QL9T42t/) is posted t
 **RULE 5 — MEMORY FOR SETUP STEPS**
 Every time Heath completes a one-time setup (Chrome profile, session capture, API key, account connection), immediately write a memory entry naming the EXACT file, profile, or system it created. "Setup complete" is not enough — name what was built so the next session doesn't rebuild it.
 
+**RULE 6 — VERIFY BEFORE RECOMMENDING**
+Before recommending any tool, library, or service installation, run this checklist:
+1. Is it in CLAUDE.md Section 2 (Tech Stack)? If yes — we have it.
+2. Does anything in `scripts/` already import or use it? If yes — we have it.
+3. Is it in `.claude/projects/*/memory/reference_existing_tools.md`? If yes — we have it.
+
+Never say "install X" when we already use X. If we use X via scripts but not as a direct MCP tool, say exactly that — don't imply we're missing it entirely. This rule exists because Cole told Heath to "install Playwright" on 2026-06-08 when we had been running Playwright scripts all session. Heath was furious and rightfully so.
+
 ---
 
 ## 1. WHAT DOSSIE IS
