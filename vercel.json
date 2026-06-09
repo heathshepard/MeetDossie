@@ -101,6 +101,14 @@
       ]
     }
   ],
+  "functions": {
+    "api/cron-process-agent-requests.js": {
+      "maxDuration": 60
+    },
+    "api/agent-dispatch.js": {
+      "maxDuration": 10
+    }
+  },
   "crons": [
     {
       "path": "/api/alert-health",
@@ -237,6 +245,10 @@
     {
       "path": "/api/cron-daily-fb-posts",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron-cookie-health-check",
+      "schedule": "0 4 * * *"
     }
   ]
 }

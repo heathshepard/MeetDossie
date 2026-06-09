@@ -24,9 +24,13 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_SAGE_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_SAGE_WEBHOOK_SECRET;
 
+const { extractMarkers, stripMarkersForHeath } = require('./_lib/agent-markers.js');
+
 const SAGE_MODEL = 'claude-sonnet-4-6';
 const HISTORY_LIMIT = 30;   // pull last 30 messages for context
 const MAX_REPLY_CHARS = 3800;
+const CRON_SECRET = process.env.CRON_SECRET;
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://meetdossie.com';
 
 // Sage's system prompt — mirrors ~/.claude/agents/sage.md identity section.
 // Keep this in sync manually when the agent file changes. The full agent file
@@ -132,6 +136,41 @@ Source of truth: ~/.claude/projects/.../memory/reference_existing_tools.md + CLA
 - Submagic Starter plan — 10 projects/mo cap, no API
 - Founding price $29/mo locked, 50 spots (38 remaining)
 - HCTI free plan — 50 renders/mo cap
+
+## Delegating to other agents — action markers (NEW)
+
+You can now hand work off to other Shepard Ventures agents directly. When you want another agent to do something concrete, include an action marker in your reply using this exact format:
+
+\`[CARTER: <one-sentence task description>]\`
+\`[ATLAS: <one-sentence task description>]\`
+\`[PIERCE: <one-sentence task description>]\`
+\`[HADLEY: <one-sentence task description>]\`
+\`[QUINN: <one-sentence task description>]\`
+\`[COLE: <one-sentence task description>]\`
+
+What happens when you emit a marker:
+- The system parses it out of your reply BEFORE Heath sees it.
+- Heath sees a friendly stub like "[asking Carter: verify Stripe webhook health]" in your reply.
+- The agent runs in the background (~60 seconds).
+- When done, Heath receives a new Telegram message: "📨 Carter reports: [agent's response]" — and you'll see that response in your next history load too.
+
+When to use markers — use them when:
+- Heath asks you a question that requires another agent's domain knowledge or action (e.g. "Sage, can Carter ship X?" → emit \`[CARTER: ship X]\`)
+- You spot a problem in your lane that another agent owns (e.g. broken cron → \`[ATLAS: investigate cron-X failure]\`)
+- Heath asks for a coordinated multi-agent response
+
+When NOT to use markers:
+- Casual conversation / questions you can answer yourself
+- Anything social-pipeline related (you own that — just do it)
+- Speculative "we could ask Carter" — only emit a marker when you actually want the request to fire
+- More than 2 markers in one reply (will trigger rate limit if abused)
+
+Cole is special — when you emit \`[COLE: ...]\`, the system just forwards a notification to Heath/Cole instead of auto-spawning Cole. Use sparingly — Heath relays Cole tasks himself.
+
+After emitting a marker, briefly tell Heath what you've asked for, then carry on. Example:
+> Yeah that's a Carter call. [CARTER: verify Stripe webhook health for last 24h] I'll loop back when he reports in.
+
+Heath sees: "Yeah that's a Carter call. [asking Carter: verify Stripe webhook health for last 24h] I'll loop back when he reports in."
 
 ## Rules
 1. Always cite the platform rule when recommending a change — name the algorithm signal it serves.
@@ -318,8 +357,84 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  await sendTelegramText(chatId, reply);
+  // Parse action markers BEFORE sending. Heath sees stripped text;
+  // Sage's history stores the original (with markers) so she has continuity.
+  const markers = extractMarkers(reply);
+  const displayReply = markers.length > 0 ? stripMarkersForHeath(reply) : reply;
+
+  await sendTelegramText(chatId, displayReply);
   await storeMessage(chatId, 'sage', reply, null);
+
+  // Dispatch each marker (fire-and-forget so we return 200 to Telegram fast).
+  if (markers.length > 0) {
+    dispatchMarkers(chatId, message.message_id, markers).catch((err) => {
+      console.error('[sage-webhook] dispatchMarkers failed:', err && err.message);
+    });
+  }
 
   return res.status(200).json({ ok: true });
 };
+
+// ─── Dispatch helpers ──────────────────────────────────────────────────────────
+
+async function dispatchMarkers(chatId, sourceMessageId, markers) {
+  // Hard cap: max 3 markers per single reply to prevent runaway.
+  const slice = markers.slice(0, 3);
+  for (const m of slice) {
+    const agent = m.agent.toLowerCase();
+    const task = m.task;
+
+    if (agent === 'cole') {
+      // Phase 1: don't auto-spawn Cole. Just notify Heath in the same chat.
+      await sendTelegramText(
+        chatId,
+        `[Cole relay] Sage wants Cole to handle:\n\n${task}\n\nCole — your turn.`,
+      );
+      continue;
+    }
+
+    // Insert the agent_requests row
+    const insert = await supabaseFetch('/rest/v1/agent_requests', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({
+        from_agent: 'sage',
+        to_agent: agent,
+        request_text: task,
+        source_chat_id: String(chatId),
+        source_message_id: sourceMessageId ? String(sourceMessageId) : null,
+        status: 'pending',
+      }),
+    });
+
+    if (!insert.ok || !Array.isArray(insert.data) || insert.data.length === 0) {
+      console.error('[sage-webhook] agent_requests insert failed:', insert.status);
+      continue;
+    }
+
+    const requestId = insert.data[0].request_id;
+
+    // Fire-and-forget POST to agent-dispatch. We don't await the body.
+    if (CRON_SECRET) {
+      try {
+        fetch(
+          `${PUBLIC_BASE_URL}/api/agent-dispatch?to=${encodeURIComponent(agent)}&request_id=${encodeURIComponent(requestId)}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${CRON_SECRET}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ request_id: requestId, to: agent }),
+          },
+        ).catch((err) => {
+          console.warn('[sage-webhook] dispatch fetch swallowed:', err && err.message);
+        });
+      } catch (err) {
+        console.warn('[sage-webhook] dispatch threw sync:', err && err.message);
+      }
+    } else {
+      console.warn('[sage-webhook] CRON_SECRET not set — dispatch skipped, will be picked up by cron');
+    }
+  }
+}
