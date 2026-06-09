@@ -357,7 +357,9 @@ async function main() {
     return;
   }
 
-  const { chromium } = require('playwright');
+  const { chromium } = require('playwright-extra');
+  const stealth = require('puppeteer-extra-plugin-stealth')();
+  chromium.use(stealth);
   const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
     headless: false,
     args: [

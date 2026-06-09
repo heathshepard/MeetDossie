@@ -140,7 +140,9 @@ async function sendTelegramConfirmation(groupName, postBody, success, errorMsg) 
 // ─── Playwright posting ───────────────────────────────────────────────────────
 
 async function postToGroup(post) {
-  const { chromium } = require('playwright');
+  const { chromium } = require('playwright-extra');
+  const stealth = require('puppeteer-extra-plugin-stealth')();
+  chromium.use(stealth);
 
   if (!fs.existsSync(SESSION_FILE)) {
     throw new Error('Facebook not connected — run: node scripts/capture-facebook-session.js');
