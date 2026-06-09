@@ -1,5 +1,5 @@
 // Vercel Serverless Function: /api/cron-daily-platform-health
-// Daily platform health check — runs at 3:00 AM UTC (10 PM CST).
+// Daily platform health check — runs at 3:00 AM UTC (10 PM CDT (checks previous day's posting cycle)).
 // Queries social_posts for each platform to detect missed posting days,
 // diagnose root causes, and report queue depth for the next day.
 //
@@ -48,10 +48,12 @@ async function sendTelegram(text) {
   }
 }
 
-// Returns today's UTC date range as ISO strings — start and end of UTC day.
+// Returns yesterday's UTC date range as ISO strings — start and end of UTC day.
 function todayUtcRange() {
   const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  // Health check runs at 3 AM UTC — check the previous UTC day's posting cycle.
+  const checkDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const start = new Date(Date.UTC(checkDay.getUTCFullYear(), checkDay.getUTCMonth(), checkDay.getUTCDate()));
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
   return { start: start.toISOString(), end: end.toISOString() };
 }
