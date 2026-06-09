@@ -7,13 +7,19 @@
 // Run: node scripts/resend-video-approval.js
 // Requires: .env.local in the MeetDossie root (loaded via dotenv).
 
+const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
+const envFile = fs.readFileSync(path.join(__dirname, '..', '.env.local'), 'utf-8');
+function envVar(name) {
+  const m = envFile.match(new RegExp(`^${name}="?(.+?)"?\\s*$`, 'm'));
+  return m ? m[1].trim() : undefined;
+}
+
+const SUPABASE_URL = envVar('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = envVar('SUPABASE_SERVICE_ROLE_KEY');
+const TELEGRAM_BOT_TOKEN = envVar('TELEGRAM_BOT_TOKEN');
+const TELEGRAM_CHAT_ID = envVar('TELEGRAM_CHAT_ID') || '7874782923';
 
 const VIDEO_ID = 'amendment-demo-desktop-2026-05-27';
 
