@@ -1,0 +1,29 @@
+{
+  "ts": "2026-06-10T15:45:06.585269",
+  "group_url": "https://www.facebook.com/groups/ClubWealth/",
+  "needle": "Today I learned",
+  "author": "Michael Hellickson",
+  "label": "club-wealth-hellickson",
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-comment-1781124306-club-wealth-hellickson",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-comment-1781124306-club-wealth-hellickson\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-comment-1781124306-club-wealth-hellickson\\02-loaded.png"
+  ],
+  "steps": [
+    "opened new tab + navigated",
+    "waited 12s for FB load",
+    "Ctrl+F search performed"
+  ],
+  "outcome": "needle_not_found",
+  "reason": "could not locate post containing 'Today I learned' or author 'Michael Hellickson'",
+  "comment_preview": "Love this \u2014 the \"today I learned\" reps are what separate the agents who plateau from the ones who scale. The piece that ",
+  "window": {
+    "title": "(1) The Texas Real Estate Network: Classifieds & Support | Facebook - Google Chrome",
+    "rect": [
+      205,
+      30,
+      945,
+      1012
+    ]
+  }
+}

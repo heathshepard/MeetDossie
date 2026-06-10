@@ -1,0 +1,32 @@
+{
+  "ts": "2026-06-10T15:02:47.146361",
+  "post_id": "d68ce2f6-f3e9-4dbb-99d5-5f053cf4f315",
+  "group_url": "https://www.facebook.com/groups/485027358820462/",
+  "idx": 6,
+  "total": 6,
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121767-d68ce2f6",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121767-d68ce2f6\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121767-d68ce2f6\\02-loaded.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121767-d68ce2f6\\06-final.png"
+  ],
+  "steps": [
+    "opened new tab + navigated",
+    "waited 10s for FB load",
+    "composer focused at {'x': 695, 'y': 769, 'method': 'uia', 'label': 'Write something...'}",
+    "body pasted + verified",
+    "submitted via: dialog_rect_offset_95",
+    "closed tab"
+  ],
+  "outcome": "posted",
+  "reason": null,
+  "window": {
+    "title": "(1) The Texas Real Estate Network: Classifieds & Support | Facebook - Google Chrome",
+    "rect": [
+      205,
+      30,
+      945,
+      1012
+    ]
+  }
+}

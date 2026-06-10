@@ -1,0 +1,27 @@
+{
+  "ts": "2026-06-10T14:50:45.008436",
+  "post_id": "b9add267-e9b1-4f4d-8421-debe19dec9db",
+  "group_url": "https://www.facebook.com/groups/1649764785300053/",
+  "idx": 4,
+  "total": 6,
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121045-b9add267",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121045-b9add267\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121045-b9add267\\02-loaded.png"
+  ],
+  "steps": [
+    "opened new tab + navigated",
+    "waited 10s for FB load"
+  ],
+  "outcome": "no_composer",
+  "reason": "composer click did not produce focused input",
+  "window": {
+    "title": "about:blank - Google Chrome",
+    "rect": [
+      10,
+      10,
+      945,
+      1012
+    ]
+  }
+}

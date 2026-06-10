@@ -1,0 +1,32 @@
+{
+  "ts": "2026-06-10T14:58:49.462558",
+  "post_id": "b9add267-e9b1-4f4d-8421-debe19dec9db",
+  "group_url": "https://www.facebook.com/groups/1649764785300053/",
+  "idx": 4,
+  "total": 6,
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121529-b9add267",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121529-b9add267\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121529-b9add267\\02-loaded.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121529-b9add267\\06-final.png"
+  ],
+  "steps": [
+    "opened new tab + navigated",
+    "waited 10s for FB load",
+    "composer focused at {'x': 723, 'y': 658, 'method': 'uia', 'label': 'Write something...'}",
+    "body pasted + verified",
+    "submitted via: dialog_rect_click",
+    "closed tab"
+  ],
+  "outcome": "posted",
+  "reason": null,
+  "window": {
+    "title": "(1) All about Real Estate Houston | Facebook - Google Chrome",
+    "rect": [
+      -8,
+      -8,
+      1936,
+      1048
+    ]
+  }
+}
