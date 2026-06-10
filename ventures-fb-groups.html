@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FB Groups Tracker — Shepard Ventures</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --navy-mid: #20203a;
+      --coral: #E8836B;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
+      --border: rgba(245, 230, 224, 0.10);
+      --border-hover: rgba(245, 230, 224, 0.22);
+      --text-dim: rgba(245, 230, 224, 0.55);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100vh;
+      background: var(--navy);
+      background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--blush);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    a { color: var(--blush); text-decoration: none; }
+    a:hover { color: var(--coral); }
+
+    #auth-gate, #app { display: none; }
+    #auth-gate.visible, #app.visible { display: block; }
+
+    #auth-gate {
+      min-height: 100vh;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+    }
+    #auth-gate.visible { display: flex; }
+    #auth-gate p { color: var(--text-dim); }
+    #auth-gate input {
+      width: 100%;
+      max-width: 320px;
+      padding: 11px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--blush);
+      font-size: 15px;
+    }
+    .btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--blush);
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+    .btn-primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+    .btn-primary:hover { background: #d9724f; border-color: #d9724f; }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 22px 80px;
+    }
+
+    .hero { margin-bottom: 24px; }
+    .crumbs {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .crumbs a { color: var(--gold); }
+    .hero-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: clamp(2rem, 5vw, 2.6rem);
+      letter-spacing: -0.01em;
+      line-height: 1.05;
+    }
+    .hero-sub { color: var(--text-dim); margin-top: 4px; font-size: 0.92rem; }
+
+    .rollups {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin: 22px 0 26px;
+    }
+    .chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .chip-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .chip-value {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.6rem;
+      color: var(--gold);
+      line-height: 1;
+      margin-top: 4px;
+    }
+    .chip.highlight { border-color: rgba(232,131,107,0.4); }
+    .chip.highlight .chip-value { color: var(--coral); }
+    .chip.success { border-color: rgba(139,168,136,0.4); }
+    .chip.success .chip-value { color: var(--sage); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .filter-btn {
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--blush);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      font-weight: 600;
+    }
+    .filter-btn:hover { background: var(--surface-hover); }
+    .filter-btn.active { background: var(--coral); border-color: var(--coral); color: #fff; }
+    .toolbar input.search {
+      flex: 1 1 240px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--blush);
+      font-size: 0.85rem;
+    }
+
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+    th, td {
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    th {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      background: var(--navy-mid);
+      position: sticky;
+      top: 0;
+    }
+    th:hover { color: var(--blush); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.025); }
+
+    .group-link {
+      font-weight: 600;
+      color: var(--blush);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .group-link:hover { color: var(--coral); }
+    .ext-icon {
+      font-size: 0.7rem;
+      opacity: 0.5;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .b-instant_approve     { background: rgba(139,168,136,0.18); color: var(--sage); border: 1px solid rgba(139,168,136,0.4); }
+    .b-admin_moderated     { background: rgba(201,169,110,0.16); color: var(--gold); border: 1px solid rgba(201,169,110,0.4); }
+    .b-no_composer         { background: rgba(212,160,160,0.16); color: var(--blush-deep); border: 1px solid rgba(212,160,160,0.4); }
+    .b-posts_never_approved{ background: rgba(232,131,107,0.16); color: var(--coral); border: 1px solid rgba(232,131,107,0.4); }
+    .b-comment_only        { background: rgba(232,131,107,0.18); color: var(--coral); border: 1px solid rgba(232,131,107,0.5); }
+    .b-unknown             { background: rgba(255,255,255,0.04); color: var(--text-dim); border: 1px solid var(--border); }
+    .b-member       { background: rgba(139,168,136,0.18); color: var(--sage); }
+    .b-follower     { background: rgba(201,169,110,0.16); color: var(--gold); }
+    .b-not_joined   { background: rgba(255,255,255,0.04); color: var(--text-dim); }
+    .b-pending      { background: rgba(232,131,107,0.18); color: var(--coral); }
+    .b-granted      { background: rgba(139,168,136,0.18); color: var(--sage); }
+    .b-denied       { background: rgba(212,160,160,0.18); color: var(--blush-deep); }
+    .b-not_needed   { background: rgba(255,255,255,0.04); color: var(--text-dim); }
+    .b-agent        { background: rgba(232,131,107,0.18); color: var(--coral); }
+    .b-buyer_seller { background: rgba(201,169,110,0.16); color: var(--gold); }
+    .b-mixed        { background: rgba(139,168,136,0.16); color: var(--sage); }
+    .b-community    { background: rgba(212,160,160,0.16); color: var(--blush-deep); }
+
+    .ready-row td { background: rgba(232,131,107,0.07); }
+    .num-cell { font-variant-numeric: tabular-nums; color: var(--blush-deep); }
+    .yield { font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+    .dim { color: var(--text-dim); font-size: 0.8rem; }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 720px) {
+      .page { padding: 16px 12px 60px; }
+      .table-wrap { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="auth-gate">
+  <div style="font-family: 'Cormorant Garamond',serif; font-size:1.8rem; color: var(--gold);">FB Groups Tracker</div>
+  <p>Sign in with your Shepard Ventures email to continue.</p>
+  <input id="email" type="email" placeholder="email" autocomplete="email"/>
+  <input id="password" type="password" placeholder="password" autocomplete="current-password"/>
+  <button id="login-btn" class="btn btn-primary">Sign in</button>
+  <p id="login-error" style="color: var(--coral);"></p>
+</div>
+
+<div id="app">
+  <div class="page">
+    <div class="hero">
+      <div class="crumbs">
+        <a href="/ventures">Ventures</a> &nbsp;/&nbsp; Social &nbsp;/&nbsp; FB Groups
+      </div>
+      <div class="hero-title">Facebook Groups Tracker</div>
+      <div class="hero-sub" id="hero-sub">Loading…</div>
+    </div>
+
+    <div class="rollups" id="rollups"></div>
+
+    <div class="toolbar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="instant_approve">Instant Approve</button>
+      <button class="filter-btn" data-filter="admin_moderated">Admin Moderated</button>
+      <button class="filter-btn" data-filter="comment_only">Comment Only</button>
+      <button class="filter-btn" data-filter="ready_unlock">Ready to Unlock</button>
+      <button class="filter-btn" data-filter="pending_unlock">Pending Unlock</button>
+      <button class="filter-btn" data-filter="unknown">Unknown</button>
+      <input type="text" class="search" id="search" placeholder="Search group name…"/>
+    </div>
+
+    <div class="table-wrap">
+      <table id="groups-table">
+        <thead>
+          <tr>
+            <th data-sort="group_name">Group</th>
+            <th data-sort="posting_status">Posting</th>
+            <th data-sort="member_status">Member</th>
+            <th data-sort="audience_class">Audience</th>
+            <th data-sort="comment_count">Comments</th>
+            <th data-sort="pending_posts_count">Pending</th>
+            <th data-sort="last_posted_at">Last posted</th>
+            <th data-sort="last_commented_at">Last commented</th>
+            <th data-sort="admin_unlock_status">Unlock</th>
+            <th data-sort="live_yield_score">Yield</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 18px; color: var(--text-dim); font-size: 0.78rem;">
+      Generated <span id="generated_at">…</span> · Refreshes every 60s · Read-only · Schema in <code>fb_groups</code> + <code>fb_admin_dms</code>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  let supabase = null;
+  let _token = null;
+  let _groups = [];
+  let _filter = 'all';
+  let _sort = { field: 'live_yield_score', dir: 'desc' };
+  let _search = '';
+
+  // ---------- bootstrap ----------
+  async function bootstrap() {
+    let cfg;
+    try { cfg = await fetch('/api/config').then(r => r.json()); }
+    catch (e) {
+      showAuth('Failed to load config. Refresh.');
+      return;
+    }
+    supabase = createClient(cfg.supabaseUrl, cfg.supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+        storageKey: 'ventures.auth.token',
+        flowType: 'pkce',
+      },
+    });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { showAuth(); return; }
+    revealApp(session.access_token);
+  }
+
+  function showAuth(err) {
+    document.getElementById('auth-gate').classList.add('visible');
+    if (err) document.getElementById('login-error').textContent = err;
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      document.getElementById('login-error').textContent = error.message;
+      return;
+    }
+    document.getElementById('auth-gate').classList.remove('visible');
+    revealApp(data.session.access_token);
+  }
+
+  function revealApp(token) {
+    _token = token;
+    document.getElementById('app').classList.add('visible');
+    loadGroups();
+    setInterval(loadGroups, 60_000);
+  }
+
+  // ---------- data ----------
+  async function loadGroups() {
+    try {
+      const res = await fetch('/api/ventures/fb-groups', {
+        headers: { Authorization: `Bearer ${_token}` },
+      });
+      if (res.status === 401 || res.status === 403) {
+        showAuth(`Dashboard error: HTTP ${res.status}`);
+        return;
+      }
+      const data = await res.json();
+      _groups = data.groups || [];
+      renderRollups(data.rollups || {});
+      renderTable();
+      document.getElementById('generated_at').textContent = new Date(data.generated_at).toLocaleTimeString();
+      document.getElementById('hero-sub').textContent =
+        `${_groups.length} groups tracked · ${data.rollups.total_comments} substantive comments logged · ${data.rollups.ready_to_unlock_count} ready to ask for unlock`;
+    } catch (e) {
+      console.error('loadGroups failed', e);
+    }
+  }
+
+  function renderRollups(r) {
+    const chip = (label, value, cls = '') =>
+      `<div class="chip ${cls}"><div class="chip-label">${label}</div><div class="chip-value">${value}</div></div>`;
+    document.getElementById('rollups').innerHTML =
+      chip('Total', r.total ?? 0) +
+      chip('Instant approve', r.instant_approve ?? 0, 'success') +
+      chip('Admin moderated', r.admin_moderated ?? 0) +
+      chip('Comment only', r.comment_only ?? 0, 'highlight') +
+      chip('Ready to unlock', r.ready_to_unlock_count ?? 0, 'highlight') +
+      chip('Pending unlock', r.pending_unlock_count ?? 0) +
+      chip('Comments logged', r.total_comments ?? 0, 'success') +
+      chip('Unknown', r.unknown ?? 0);
+  }
+
+  // ---------- render table ----------
+  function filterGroups(rows) {
+    let out = rows.slice();
+    if (_filter === 'ready_unlock') {
+      out = out.filter(g =>
+        g.posting_status === 'comment_only' &&
+        (g.comment_count || 0) >= 5 &&
+        (g.admin_unlock_status === 'not_needed' || g.admin_unlock_status === null)
+      );
+    } else if (_filter === 'pending_unlock') {
+      out = out.filter(g => g.admin_unlock_status === 'pending');
+    } else if (_filter !== 'all') {
+      out = out.filter(g => g.posting_status === _filter);
+    }
+    if (_search) {
+      const s = _search.toLowerCase();
+      out = out.filter(g => (g.group_name || '').toLowerCase().includes(s));
+    }
+    return out;
+  }
+
+  function sortGroups(rows) {
+    const { field, dir } = _sort;
+    const factor = dir === 'asc' ? 1 : -1;
+    return rows.slice().sort((a, b) => {
+      const av = a[field], bv = b[field];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * factor;
+      return String(av).localeCompare(String(bv)) * factor;
+    });
+  }
+
+  function fmtTs(ts) {
+    if (!ts) return '<span class="dim">—</span>';
+    const d = new Date(ts);
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days}d ago`;
+    return d.toLocaleDateString();
+  }
+
+  function daysSinceUnlockDm(ts) {
+    if (!ts) return '';
+    const days = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+    return ` <span class="dim">(${days}d)</span>`;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('rows');
+    const rows = sortGroups(filterGroups(_groups));
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="10"><div class="empty">No groups match this filter.</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(g => {
+      const isReady =
+        g.posting_status === 'comment_only' &&
+        (g.comment_count || 0) >= 5 &&
+        (g.admin_unlock_status === 'not_needed' || g.admin_unlock_status === null);
+      const cls = isReady ? 'ready-row' : '';
+      return `<tr class="${cls}">
+        <td><a class="group-link" href="${g.group_url}" target="_blank" rel="noopener">${escapeHtml(g.group_name)} <span class="ext-icon">↗</span></a></td>
+        <td><span class="badge b-${g.posting_status}">${labelify(g.posting_status)}</span></td>
+        <td><span class="badge b-${g.member_status}">${g.member_status.replace('_', ' ')}</span></td>
+        <td><span class="badge b-${g.audience_class}">${g.audience_class.replace('_', '/')}</span></td>
+        <td class="num-cell">${g.comment_count || 0}</td>
+        <td class="num-cell">${g.pending_posts_count || 0}</td>
+        <td>${fmtTs(g.last_posted_at)}</td>
+        <td>${fmtTs(g.last_commented_at)}</td>
+        <td><span class="badge b-${g.admin_unlock_status}">${labelify(g.admin_unlock_status)}</span>${daysSinceUnlockDm(g.last_unlock_dm_at)}</td>
+        <td class="yield">${g.live_yield_score}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function labelify(s) {
+    return (s || '').replace(/_/g, ' ');
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'
+    }[c]));
+  }
+
+  // ---------- listeners ----------
+  document.addEventListener('click', e => {
+    if (e.target.matches('.filter-btn')) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      _filter = e.target.dataset.filter;
+      renderTable();
+    }
+    if (e.target.matches('th[data-sort]')) {
+      const f = e.target.dataset.sort;
+      _sort.dir = (_sort.field === f && _sort.dir === 'desc') ? 'asc' : 'desc';
+      _sort.field = f;
+      renderTable();
+    }
+  });
+  document.getElementById('search').addEventListener('input', e => {
+    _search = e.target.value;
+    renderTable();
+  });
+  document.getElementById('login-btn').addEventListener('click', doLogin);
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  bootstrap();
+</script>
+
+</body>
+</html>

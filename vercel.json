@@ -57,6 +57,10 @@
     {
       "source": "/media-studio",
       "destination": "/media-studio.html"
+    },
+    {
+      "source": "/ventures/social/fb-groups",
+      "destination": "/ventures-fb-groups.html"
     }
   ],
   "headers": [
@@ -274,6 +278,10 @@
     {
       "path": "/api/cron-sage-trends",
       "schedule": "0 12 * * 2,5"
+    },
+    {
+      "path": "/api/cron-fb-unlock-alerts",
+      "schedule": "0 14 * * 1"
     }
   ]
 }
