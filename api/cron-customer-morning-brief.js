@@ -376,12 +376,12 @@ async function sendResend(to, subject, html) {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
+    // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
     body: JSON.stringify({
       from: FROM_ADDRESS,
       to: [to],
       subject,
       html,
-      bcc: ['heath@meetdossie.com'],
     }),
   });
   const text = await r.text();

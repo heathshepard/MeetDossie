@@ -349,7 +349,7 @@ async function sendSigningEmail({ signerName, signerEmail, documentName, propert
       to: [signerEmail],
       subject,
       html,
-      bcc: ['heath@meetdossie.com'],
+      // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
     }),
   });
 

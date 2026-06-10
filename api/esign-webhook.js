@@ -265,7 +265,7 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
             content: base64Pdf,
           },
         ],
-        bcc: ['heath@meetdossie.com'],
+        // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
       }),
     });
     console.log(`[esign-webhook] Seller agent email sent to ${sellerAgentEmail}`);
@@ -293,7 +293,7 @@ async function sendCompletionEmail(agentEmail, agentName, fileName) {
           <p>Log in to download or share the signed document: <a href="https://meetdossie.com/app">meetdossie.com/app</a></p>
           <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
-        bcc: ['heath@meetdossie.com'],
+        // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
       }),
     });
   } catch (err) {
