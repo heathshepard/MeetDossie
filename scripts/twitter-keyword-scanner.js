@@ -41,6 +41,14 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SESSION_FILE = path.join(__dirname, 'sessions', 'twitter.json');
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
+// Persistent profile config (preferred path; cookie file is legacy fallback)
+const os = require('os');
+const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
+  os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data'
+);
+const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Profile 4';
+const TWITTER_USE_COOKIE_FILE = (process.env.TWITTER_FETCH_MODE || '').toLowerCase() === 'cookie';
+
 const KEYWORDS = [
   'transaction coordinator Texas',
   'TREC deadline',
@@ -195,7 +203,11 @@ async function scanKeyword(page, keyword) {
 
   const currentUrl = page.url();
   if (currentUrl.includes('login') || currentUrl.includes('flow/login')) {
-    throw new Error('Session expired — re-run: node scripts/save-session.js twitter');
+    // Don't ping Heath here — the keep-alive cron
+    // (scripts/twitter-session-keepalive.js) is responsible for that, and
+    // only after 3 consecutive logged-out detections. Bail out silently so
+    // the next scheduled run can retry.
+    throw new Error('Twitter session not logged in — twitter-session-keepalive will recover.');
   }
 
   for (let i = 0; i < 3; i++) {
@@ -247,25 +259,39 @@ async function scanKeyword(page, keyword) {
 async function main() {
   const { chromium } = require('playwright');
 
-  if (!fs.existsSync(SESSION_FILE)) {
-    console.error('[twitter-scanner] No session file found.');
-    console.error('Run once with Chrome closed: node scripts/save-session.js twitter');
-    process.exit(1);
+  let context;
+  let browser = null;
+  if (TWITTER_USE_COOKIE_FILE && fs.existsSync(SESSION_FILE)) {
+    // Legacy path — kept for emergency fallback.
+    console.log('[twitter-scanner] Using saved cookie session (legacy mode).');
+    const storageState = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+    });
+    context = await browser.newContext({
+      storageState,
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      viewport: { width: 1280, height: 900 },
+    });
+  } else {
+    // Default path — DossieBot persistent profile, same one every other
+    // engagement script uses. No cookie file required.
+    console.log(`[twitter-scanner] Using DossieBot Chrome profile (${PLAYWRIGHT_PROFILE_NAME}).`);
+    context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
+        '--remote-debugging-address=127.0.0.1',
+        '--remote-debugging-port=0',
+      ],
+      viewport: { width: 1280, height: 900 },
+      channel: 'chrome',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    });
   }
-
-  console.log('[twitter-scanner] Using saved session (Chrome can stay open).');
-  const storageState = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
-  });
-
-  const context = await browser.newContext({
-    storageState,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    viewport: { width: 1280, height: 900 },
-  });
 
   const page = await context.newPage();
   let newEngagements = 0;
@@ -277,7 +303,10 @@ async function main() {
         tweets = await scanKeyword(page, keyword);
       } catch (err) {
         console.error(`[twitter-scanner] scanKeyword error for "${keyword}":`, err.message);
-        if (err.message.includes('Session expired')) break;
+        // Both legacy ("Session expired") and new ("session not logged in")
+        // messages signal a logged-out state — bail the loop, let the
+        // keep-alive cron pick it up on its next run.
+        if (err.message.includes('Session expired') || err.message.includes('not logged in')) break;
         continue;
       }
 
@@ -314,7 +343,13 @@ async function main() {
       await new Promise(r => setTimeout(r, 2000));
     }
   } finally {
-    await browser.close();
+    // context.close() is safe for both launchPersistentContext (no separate
+    // browser handle) and the legacy newContext path (closes the context
+    // beneath; the browser handle below covers that case).
+    try { await context.close(); } catch {}
+    if (browser) {
+      try { await browser.close(); } catch {}
+    }
   }
 
   console.log(`[twitter-scanner] done. New engagements queued: ${newEngagements}`);
