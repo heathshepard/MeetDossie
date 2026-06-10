@@ -113,8 +113,8 @@ async function handleGroupPostCallback(action, postId, callbackQueryId, chatId, 
   const originalBody = originalMessageText || '';
 
   if (action === 'group_approve') {
-    // Validator: first_comment_body must contain "Dossie" if it exists
-    if (post.first_comment_body && !post.first_comment_body.includes('Dossie')) {
+    // Validator: first_comment_body must mention Dossie or meetdossie if it exists
+    if (post.first_comment_body && !post.first_comment_body.includes('Dossie') && !post.first_comment_body.includes('meetdossie')) {
       const errorMsg = `Post ${postId} approval BLOCKED: first_comment_body does not mention Dossie.\n\nComment:\n"${post.first_comment_body}"`;
 
       if (chatId && messageId) {
