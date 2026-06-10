@@ -1,0 +1,419 @@
+Skip to content
+Hootsuite Logo
+Search
+Search...
+Log In
+Start your free trial
+Blog
+Topics
+Networks
+Resources
+Industries
+About Hootsuite
+English
+Strategy
+How the LinkedIn algorithm works in 2025
+If you want to connect with your audience on LinkedIn, start by understanding how the LinkedIn algorithm works.
+
+Christina Newberry, Colleen Christison
+July 16, 2025
+12 min read
+Also available in
+Español
+Deutsch
+cover image
+Table of Contents
+What is the LinkedIn algorithm?
+How does the LinkedIn algorithm work?
+Which types of content perform best on LinkedIn?
+How to optimize your content for the LinkedIn algorithm
+
+No time to read? Check out the audio version of this post.
+The LinkedIn algorithm operates a bit differently than most other social platforms’ — it’s specifically designed to prevent content from going viral.
+
+Yes, you read that right. The LinkedIn algorithm is designed to fill user’s feeds with only the most relevant professional advice and expertise, which means a completely different approach than the one you’d use for, say, TikTok.
+
+New LinkedIn algorithm updates prove that focusing on your own expert knowledge and engaging with your community is more important than ever. Here’s what you need to know to make the algorithm work for you in 2025.
+
+
+Bonus!!!
+Download a free guide that shows the 11 tactics Hootsuite’s social media team used to grow their LinkedIn audience from 0 to 511,000 followers.
+
+Download now
+What is the LinkedIn algorithm?
+The LinkedIn algorithm is a recommendation system that selects the posts that each user sees in their feed.
+
+The topics, people, and types of posts an individual is most likely to engage with determine what their LinkedIn feed will look like.
+
+LinkedIn has over one billion members (and counting). Its algorithm processes billions of posts per day, all to make the newsfeed as interesting and informative as possible for every user.
+
+The more time you spend getting to know what works on the platform, the better the algorithm will work for you.
+
+That said, LinkedIn is not a platform where you should expect your content to go viral. LinkedIn specifically says it “is not designed for virality.” It’s about sharing knowledge and updates with people who care about that information and can use it to advance their careers.
+
+LinkedIn’s focus on business makes it a unique platform where users are already primed to hear from your brand, about your business, and about your industry.
+
+How does the LinkedIn algorithm work?
+LinkedIn’s algorithm in 2025 is actually pretty transparent when you take the time to dive into the platform’s resources, like the Engineering Blog and LinkedIn Helper. (Or outside resources like the Hootsuite Blog!)
+
+At a high level, the LinkedIn algorithm follows a three-step process to determine what appears in users’ feeds.
+
+Quality filtering. Posts are immediately classified as spam, low quality, or high quality.
+Engagement testing. The algorithm shows your post to a small sample of your audience to gauge initial interaction levels. If a post gets strong engagement within the first hour, LinkedIn pushes it to second and third-degree connections.
+Network and relevance ranking. LinkedIn prioritizes posts from people and topics you engage with the most.
+Let’s get into those in more detail.
+
+1. LinkedIn decides if your post is spam or high-quality content
+The LinkedIn algorithm begins by classifying your post to determine whether it violates any of the platform’s spam guidelines or other community policies.
+
+If the AI detects clear violations, the content is filtered. Violations can include:
+
+Spammy behavior. This can include tagging unrelated individuals.
+Low-quality content. The more errors, the higher the likelihood of the content being flagged.
+Excessive use of tags. 3-5 tags per post is best.
+Too frequent posting. Try to maintain a minimum of 12 hours between posts.
+If the content type is not clear enough to filter automatically, it’s sent for human review. If it passes the human review, the content continues to be displayed on the platform with monitoring.
+
+LinkedIn algorithm flowchart
+Source: LinkedIn Engineering Blog
+2. LinkedIn puts your post to the test
+Once the LinkedIn algorithm has established that you haven’t posted something too spammy, the network distributes your post to a small group of your followers and watches for engagement signals.
+
+In this first hour (sometimes called “the golden hour”), LinkedIn is trying to determine how valuable your post is to people in your immediate and extended professional networks. If your content passes the test, it’ll earn wider distribution.
+
+And thanks to LinkedIn’s recent updates, distribution isn’t limited to the first few days. Posts that prove highly relevant — based on your audience’s interests and relationships — can keep surfacing in feeds for weeks after posting.
+
+Engagement is a good signal that your post has value, but not all engagement is created equal. The algorithm specifically values meaningful engagement. That means thoughtful comments from people in relevant fields.
+
+(This is why joining a LinkedIn pod is not likely to cause a great boost in your distribution unless it’s a highly targeted pod of people who are genuinely interested in your content anyway).
+
+Engaging with others' content by leaving thoughtful comments builds relationships and improves your own visibility. The more you interact, the more the LinkedIn algorithm will push your content to a wider audience.
+
+Ilija Sekulov headshot
+Ilija Sekulov
+Marketing & SEO, Mailbutler
+3. LinkedIn delivers your most valuable content to relevant users
+Who gets to see your post from here depends on three ranking signals:
+
+Identity
+LinkedIn uses a member’s personal profile to understand what their preferences for content are. Members’ location, career, and skills can all factor into whether or not your content is shown to them.
+
+Content
+The platform analyzes how relevant your content is to other LinkedIn users’ interests based on performance, the content topic and type, and how old it is. It does so using signals like:
+
+How long users spend reading or engaging with a post (also known as “dwell time”)
+How often the content has been viewed and engaged with
+How relevant the topic is to a user
+Whether the content shares knowledge or professional advice
+The language of the content
+How professional and constructive the conversation in the comments section is
+Which companies, people, and topics are mentioned
+LinkedIn also prioritizes the poster’s own topic authority. If you’ve posted consistently about one niche or topic, LinkedIn will identify you as an expert and share your content more widely.
+
+Member activity
+The LinkedIn algorithm determines a user’s interests based on their past actions on the platform.
+
+Users will see more content similar to topics they have engaged with in the past and from the people they engage with most frequently. Hashtags they follow, first-degree connections, and other members who follow them are also factors.
+
+Recent LinkedIn algorithm changes (2025 update)
+Like all social platforms, LinkedIn is constantly tweaking its algorithm. While the core ranking factors remain the same, a few new updates in 2025 might impact how your content performs.
+
+1. Improved visibility for experts
+LinkedIn now emphasizes expertise more than ever. Posts with original insights, industry trends, or actionable advice are now more likely to reach larger audiences.
+
+In 2025, the platform also rewards its most active creators and subject-matter experts. If you consistently post about a particular topic, LinkedIn is more likely to recognize your authority and boost your content.
+
+2. A move away from clickbait
+LinkedIn’s algorithm is getting better at detecting engagement bait (like “Comment YES if you agree!”) and prioritizing meaningful conversations instead.
+
+Posts that generate discussions, especially those with thoughtful comments, are more likely to reach a wider audience.
+
+3. Rewarding high-engagement posts
+LinkedIn continues to refine its “golden hour” system. Posts that get strong interaction in the first hour will now be shown to second- and third-degree connections more frequently.
+
+The platform is also placing more weight on dwell time, meaning posts that keep users engaged for longer will see better distribution.
+
+4. Native content gets a boost
+If you’ve noticed fewer external links in your feed, there’s a reason. LinkedIn is pushing more native content, like text posts, carousels, and videos, over posts with outbound links.
+
+If you need to share a link, consider placing it in the comments instead of the main post.
+
+5. Prioritizing relevance over recency
+In mid-2025, LinkedIn confirmed a major tweak: it’s now more likely to show you older posts (even 2–3 weeks old) if they’re more relevant to your professional interests. Instead of surfacing only the newest content, the algorithm considers:
+
+Your past engagement history (what you typically interact with)
+The importance of your relationship with the poster (e.g., your manager vs a random influencer)
+The poster’s domain expertise on the topic
+This change means your high-value, evergreen posts can continue reaching people well after they are posted, allowing you to focus on making useful content rather than just chasing immediate engagement.
+
+
+Which types of content perform best on LinkedIn?
+Conversational content
+LinkedIn’s best practices in 2025 (as in years past) include community building.
+
+Posts that engage people will please the algorithm, so try to get your audience involved.
+
+Posts that ask questions or share personal stories can get more comments and likes, which helps boost your reach. Native content like text updates, videos, or polls tends to perform better since LinkedIn prefers users to stay on the platform rather than clicking on external links.
+
+Ilija Sekulov headshot
+Ilija Sekulov
+Marketing & SEO, Mailbutler
+Imagery and video content
+Many platforms have seen a push toward video content as it garners views and typically has higher engagement.
+
+LinkedIn is actually favoring video content extremely highly now, as a shift to catch up with other platforms. I've seen some really good success and reach with authentic, camera-facing video content sharing insights, advice, and ideas.
+
+George Panayides headshot
+George Panayides
+Digital Marketing Specialist, The Digital xx
+In fact, LinkedIn videos get five times the engagement, and Live video gets 24x! (See Mailchimp’s video post below for proof of that high engagement.)
+
+
+Posts with imagery tend to do better, too, gaining twice as many comments as purely text posts.
+
+Value-driven posts
+When you give your audience something they can actually use, you’ll see more people saving your posts.
+
+I've been testing various types of content formats for my LinkedIn profile. Documents, or carousels, turned out to be the most valuable assets in terms of reach. Most of my viral posts on LinkedIn were documents. The trick lies in creating value for the target audience. 'Creating value' is misunderstood a lot. Value is almost always any relatable tip that your audience can implement immediately. This comes after a lot of audience research and practice.
+
+shubham davey headshot
+Shubham Davey
+SEO Copywriter, Prachar Max
+Offering something substantial for your readers without asking for anything in return can offer big dividends in terms of higher engagement and reach.
+
+
+Evergreen content
+As LinkedIn starts to prioritize relevance over recency, posts that provide timeless professional insights are especially valuable. Think industry trends, how-to guides, or advice that remains useful over time.
+
+This approach helps ensure your content can continue gaining visibility for weeks, not just days.
+
+How to optimize your content for the LinkedIn algorithm
+If you’re struggling with what to post on LinkedIn, we’ve got you covered. Here are some content ideas you can totally steal.
+
+We go into way more detail below, but if you’re looking for the tl;dr, here are five quick wins to boost your reach on LinkedIn:
+
+Grab ’em with a strong hook. The first three lines (also known as your hook) are critical to keep audiences engaged. Try starting with a bold statement or a question.
+Use 3-5 hashtags for discoverability. Choose these hashtags carefully! LinkedIn may flag your post as spam if you use more than five or irrelevant hashtags.
+Post when your audience is active. Use tools like Hootsuite’s Best Time to Publish feature to find your ideal time.
+Encourage engagement in the comments. A clear CTA can make a big difference here. Try ending with something like “What do you think? Share your thoughts below!”
+Take advantage of employee advocacy. Encourage your internal team to reshare and comment on your posts.
+Ready for more detail? Keep reading!
+
+1. Be relevant and informative
+Remember, the LinkedIn algorithm now surfaces knowledge members are likely to be interested in based on their skills and interests.
+
+That means you need to know the skills and interests of the target audience you’re trying to reach. Ideally, those skills and interests should have significant overlap with your own so that you can speak as a credible expert on relevant topics.
+
+For example, this Hootsuite post on LinkedIn shares relevant December calendar dates for social media managers. Social media managers are Hootsuite’s main target audience, so it received a lot of reposts.
+
+
+Start by looking at metrics and intel from your other social networks. Graph interests and get a better understanding of what your audience cares about. You can even use a competitor’s audience to build personas. Then, map those interests back to your own skill sets and areas of specialist knowledge.
+
+Use these findings as starting points for your LinkedIn social media marketing strategy.
+
+2. Schedule your posts for the best times
+Even though posts that LinkedIn deems highly valuable can resurface in feeds for weeks, good engagement in the first hour is still important for initial distribution.
+
+For maximum exposure, schedule your posts for when the majority of followers are usually online and most active on the platform.
+
+Generally speaking, the best time to post on LinkedIn is either Tuesday morning before 10 am or Thursday evening after 6 pm. But every audience is unique. The Best Time to Publish function in the Hootsuite dashboard generates a personalized recommendation to maximize engagement with your own network.
+
+Hootsuite's Best Time to Post feature
+Be sure to share content regularly. LinkedIn data shows that posting weekly leads to a two-times lift in engagement.
+
+A tip for improving performance is timing and consistency. We've found that posting during peak hours (think mornings and early afternoons) gets the best traction. Combine that with a steady posting schedule, whether it's once or twice a week, and you'll start building momentum.
+
+somila tshangela headshot
+Somila Tshangela
+PR Strategist, Pearl Lemon Group
+3. Promote your posts (on LinkedIn and off)
+One of the best ways to increase engagement on your posts is to increase the number of people who will see them.
+
+There are several tactics to gain extra traction on LinkedIn:
+
+tag people and relevant company pages
+use keywords strategically
+include relevant hashtags
+And B2B marketers, heads up: branded hashtags also have potential here. If you create a hashtag worth following, the algorithm will surface posts that use it to the hashtag’s followers, like Nike’s #SwooshLife below.
+
+Nike LinkedIn post using branded hashtag
+Source: Nike on LinkedIn
+For more tagging tips, read our LinkedIn hashtag guide.
+
+Tip: Not all promotion needs to happen on LinkedIn.
+
+If you think a recent post might be of interest to employees or customers, share it in Slack or in your e-newsletter.
+
+This can be a great way to engage inactive LinkedIn members with your content. In turn, the engagement will improve your ranking with the algorithm. It’s a win-win.
+
+4. Encourage meaningful engagement
+LinkedIn’s algorithm rewards relevant and meaningful engagement. Generic comments from random people won’t extend your reach. You want comments that show people in a relevant field have understood and thought about your post.
+
+Try asking a question that encourages your audience to share their opinions or insights. Posing the right questions builds your personal brand as a thought leader and encourages those meaningful conversations.
+
+It also provides an opportunity to learn more about your audience’s interests so you can develop even more relevant content.
+
+LinkedIn is also focusing on posts that lead to real professional outcomes: think partnerships, leads, or job offers. When planning your content, aim to spark the kind of conversations that lead to meaningful opportunities.
+
+Finally, be sure to join the conversation yourself. Rather than a one-way stream of comments, LinkedIn wants to see an active conversation with you as a primary participant.
+
+Hootsuite reply to a comment on LinkedIn
+Source: Hootsuite on LinkedIn
+A tool like Hootsuite Inbox ensures you never miss a comment or mention, so you can show your followers (and the algorithm) that you’re active, informed, relevant, and engaged.
+
+
+Reduce response time (and your workload)
+Manage all your messages stress-free with easy routing, saved replies, and friendly chatbots. Try Hootsuite’s Inbox today.
+
+Book a Demo
+5. Craft original content with a unique perspective
+Your social media strategy can’t rely on other people’s content. Original posts go a lot further and spark more engagement than a shared post.
+
+If you’re going to repurpose content or have a user-generated content strategy, try to find a way to reframe it, adding your own perspective and insights.
+
+Remember, LinkedIn wants to surface content that shares knowledge and builds connections. Adding your own perspective is critical to both. Contributing to collaborative articles can be a great way to flex your perspective.
+
+LinkedIn curates opportunities for experts to add their perspectives
+Source: Content Strategy on LinkedIn
+Don’t forget that adding a conversation-provoking question can really get people talking. (Psst! Our AI-powered LinkedIn post generator can help with that.)
+
+
+Craft perfect posts in seconds
+OwlyWriter AI instantly generates captions and content ideas for every social media network. It’s seriously easy.
+
+Start your free trial
+6. Optimize with analytics
+If something performs well, do it again.
+
+Use Hootsuite Analytics to understand what posts perform best and why. This is an important way to interpret the algorithm based on your own past performance.
+
+Hootsuite ,ixed overview in Analytics shows metrics from multiple social platforms, including LinkedIn
+Maybe it’s because you posted them all at a specific time? Or, maybe each post posed a question?
+
+Whatever it is, find out and use these insights to refine your LinkedIn content strategy.
+
+Regular posting, responding to comments, and personalizing replies help to build loyalty [on LinkedIn]. Changes in content strategy should be informed by analytics, including audience demographics and engagement rate.
+
+matthew woodward headshot
+Matthew Woodward
+Founder & SEO, Digital Marketing Expert, Search Logistics
+7. Post LinkedIn-appropriate content
+Users are on LinkedIn to be a part of the professional world. You need to consider that when you’re crafting your posts.
+
+Some self-promotion is okay, but this isn’t a place to post a video of your dog’s birthday party. Rather, keep the focus on business.
+
+Salesforce LinkedIn post that mixes professional content with a lighter tone
+Source: Salesforce on LinkedIn
+Know the niche and live in it. Your vibe on LinkedIn doesn’t need to be totally heartless, roboto-corporation. Authenticity, humanity, and humor are more than welcome and are, in fact, rewarded.
+
+Assume a brand voice that’s friendly and approachable. Accounts that tow the company line or use too much corporate jargon may deter the real human beings on LinkedIn from interacting.
+
+For those looking to improve their LinkedIn performance, my top advice would be to find your unique voice and perspective. Share authentic stories and experiences that resonate with your audience, rather than simply repeating generic advice.
+
+swapnil kumar headshot
+Swapnil Kumar
+Growth & Marketing Manager, Smartlead
+8. Use native platform features
+LinkedIn doesn’t want you to leave the platform. So, it’s no surprise that the algorithm doesn’t prioritize posts with outbound links as much as other types of content.
+
+Microsoft LinkedIn post using a platform-specific poll feature
+Source: Microsoft on LinkedIn
+Make sure your LinkedIn strategy takes advantage of all of the platform-specific tools at your disposal. Use native features like polls to engage your audience without leading them elsewhere.
+
+Easily manage your LinkedIn Page and all your other social channels using Hootsuite. Schedule and share content (including video), reply to comments and engage your network — all from one streamlined dashboard. Try it free today.
+
+Get Started
+With files from Liz Stanton.
+
+Easily create, analyze, promote and schedule LinkedIn posts alongside your other social networks with Hootsuite. Get more followers and save time.
+
+Start your free trial
+Social media algorithm
+Social media strategy
+Laptop with Hootsuite Dashboard
+Hootsuite Logo
+The #1 social media tool
+Create. Schedule. Publish. Engage. Measure. Win.
+
+Start your free trial
+By Christina Newberry
+Christina Newberry
+Christina Newberry has been writing about digital marketing since the prehistoric days of 2002, when email opt-ins were every marketer's biggest goal. With a deep understanding of how to connect to online audiences, she shifted her focus to social media and has been contributing to the Hootsuite blog since 2016.
+
+Read more by Christina Newberry
+By Colleen Christison
+Colleen Christison
+Colleen Christison is a freelance copywriter, copy editor, and brand communications specialist. She spent the first six years of her career in award-winning agencies like Major Tom, writing for social media and websites and developing branding campaigns. Following her agency career, Colleen built her own writing practice, working with brands like Mission Hill Winery, The Prevail Project, and AntiSocial Media.
+
+Read more by Colleen Christison
+Related Articles
+cover image
+Social media algorithm
+Social media strategy
+Social media algorithms in 2026: How they rank content
+cover image
+Content creation
+Social media strategy
+Social SEO: Guide to more reach on social media + free tool
+cover image
+Social media strategy
+Social SEO
+LinkedIn SEO in 2024: Secrets to Boost Your Reach
+cover image
+Social media strategy
+LinkedIn for business: How to grow your brand in 2025
+Laptop with Hootsuite Dashboard
+Hootsuite Logo
+The #1 social media tool
+Create. Schedule. Publish. Engage. Measure. Win.
+
+Start your free trial
+3,000+ 5-star reviews ★ ★ ★ ★ ★
+
+Top rated on G2
+Hootsuite Logo
+About
+Why Hootsuite
+About us
+Careers
+Leadership
+Customers
+Newsroom
+Social impact and DEI
+Product features
+Publish
+Engage
+Monitor
+Advertise
+Analyze
+Pricing
+Standard
+Advanced
+Enterprise
+Guides
+Social Media Marketing Strategy
+Social Media Analytics
+Social Listening
+Best Times to Post
+Social Media Calendar
+Social Media Engagement
+Employee Advocacy
+Social Media Monitoring
+Social Media Advertising
+Resources
+Academy
+Resource Library
+Case studies
+Webinars
+App directory
+Help center
+Product updates
+Integrations
+Partners
+English
+© 2026 Hootsuite Inc. All Rights Reserved.
+Legal Center Trust Center Privacy Cookie Preferences Accessibility
+Download on the App Store
+Get it on Google Play
+We use cookies to provide you with our website and services, monitor site usage and analyze web traffic, provide enhanced functionality and services, and personalize our marketing and advertising content based on your interests. We use our own and third-party cookies for social media, analytics and advertising purposes. You may opt-out of optional cookies by clicking on Cookie Preferences. For more information see ourCookie Notice
+Cookie Preferences

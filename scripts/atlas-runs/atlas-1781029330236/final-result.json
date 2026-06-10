@@ -1,0 +1,18 @@
+{
+  "outcome": "post_failed",
+  "reason": "no enabled submit button",
+  "candidates": [
+    {
+      "tag": "button",
+      "txt": "Post",
+      "disabled": true,
+      "rect": {
+        "x": 960.828125,
+        "y": 212,
+        "w": 51.171875,
+        "h": 40
+      }
+    }
+  ],
+  "ts": "2026-06-09T19:32:21.232Z"
+}

@@ -154,7 +154,12 @@ async function postToGroup(post) {
 
   const browser = await chromium.launch({
     headless: false,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+    args: [
+      '--no-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
+    ],
   });
 
   const context = await browser.newContext({

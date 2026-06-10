@@ -138,7 +138,12 @@ async function postReply(postUrl, replyAuthor, replyText, draft) {
 
   const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
     headless: false,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+    args: [
+      '--no-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
+    ],
     viewport: { width: 1280, height: 900 },
     channel: 'chrome',
   });

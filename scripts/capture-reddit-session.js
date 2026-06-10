@@ -55,6 +55,8 @@ async function main() {
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-blink-features=AutomationControlled',
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
     ],
     viewport: { width: 1280, height: 900 },
   });

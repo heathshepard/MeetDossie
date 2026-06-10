@@ -255,6 +255,8 @@ async function main() {
       '--no-sandbox',
       '--disable-blink-features=AutomationControlled',
       `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
     ],
     viewport: { width: 1280, height: 900 },
     channel: 'chrome',

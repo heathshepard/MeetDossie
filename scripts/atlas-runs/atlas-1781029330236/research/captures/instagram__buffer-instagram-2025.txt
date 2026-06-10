@@ -1,0 +1,600 @@
+Privacy Notice
+
+We use cookies to enhance your experience and analyze our traffic. By continuing to use our site, you agree to our use of cookies.
+
+Do not sell my personal information
+
+Top navigation
+Buffer
+
+Features
+
+Integrations
+
+Made for
+
+Resources
+Pricing
+Log in
+Get started for free
+Blog navigation
+Blog
+All posts
+Social Media Marketing
+Social Media Insights
+Creator Marketing
+AI
+Tools
+
+SearchBuffer’s blog
+Breadcrumbs
+Blog
+Instagram
+How the Instagram Algorithm Works: Your 2026 Guide
+Instagram
+PublishedMar 24, 2026
+
+An inside look at how the Instagram algorithm works for the feed, explore page, stories, and reels — and how to make it work for you in 2026.
+
+Reading time
+21 minute read
+Author
+
+Shivani Shah
+
+Photo Credit: Deeksha Pahariya on Unsplash
+Create a post in Buffer
+Share on Threads
+Share on Facebook
+Share on LinkedIn
+Share on X (Twitter)
+Share on Reddit
+Ask ChatGPT about this content
+Ask Claude about this content
+If you’re trying to grow your audience on Instagram, here’s some good news: Instagram has shared a lot about how its algorithms work.
+
+Really, between Head of Instagram Adam Mosseri’s reels and Instagram’s own @creators account, there’s an almost overwhelming amount of information out there. Which comes with its own challenges, of course. But too much information is better than too little — and at Buffer, we appreciate the transparency.
+
+Once you know what they’re looking for, it’s much easier to create content that reaches the right people. I'll break it all down in a way that actually makes sense.
+
+Try Buffer for free
+200,000+ creators, small businesses, and marketers use Buffer to grow their audiences every month.
+
+Get started for free
+So: The first thing to know is that there isn’t just one single algorithm running the show. Instagram describes them as several ‘AI systems’ that work together.
+
+According to a 2023 blog post from Instagram, “a variety of algorithms, classifiers, and processes, each with its own purpose,” ensure that Instagram users see the content that most interests them.
+
+It's more straightforward than it sounds, I promise.
+
+More recently, Mosseri did a deep dive into the Instagram algorithm in a series of videos that explain how ranking works on the platform and why some posts take off while others don’t get the same reach.
+
+In this article, I'll break down exactly how the platform ranks content and share tips for increasing your chances of getting your Instagram content in front of more people.
+
+In short: Everything you need to know about the Instagram algorithm/s.
+
+Key takeaways
+Multiple algorithms: Instagram uses distinct AI systems for the feed, stories, reels, and explore page, each prioritizing different user behaviors.
+DM shares are king: For reels, sends via DM are the most heavily weighted signal for distribution.
+Engagement signals: Feed ranking prioritizes content based on your interaction history, post popularity, and relationship with the creator.
+SEO over hashtags: Keywords in captions and profiles are now more effective for discovery than hashtags, which no longer support follows.
+Content strategy: Carousels and original content with trending audio consistently outperform single images and reshared posts.
+⚡
+Need to plan your Instagram content? Buffer helps you grow your following and boost engagement with planning, scheduling, and analytics tools. Get started for free →
+Jump to a section:
+Instagram is now a recommendation-first platform
+Different parts of Instagram are ranked by different algorithms
+How the Instagram Feed algorithm is ranked
+How the Instagram Stories algorithm works
+How the Instagram Reels algorithm works
+How the Instagram Explore page algorithm works
+When Instagram stops recommending content
+Why the Instagram algorithms are a good thing
+8 evergreen best practices for your Instagram strategy
+Instagram's algorithms prioritize a better user experience
+FAQs about the Instagram algorithm
+More Instagram resources
+Instagram is now a recommendation-first platform
+One of the biggest shifts on Instagram is that it’s no longer primarily showing content from people you follow.
+
+Instagram used to be driven mostly by your social graph — the accounts you follow and interact with. Now, it’s increasingly driven by an interest graph — what you watch, engage with, and spend time on. Now, Instagram increasingly recommends content from accounts you don’t follow — especially in reels, explore, and even in the main feed.
+
+That’s why you’re seeing more content from people you’ve never followed — and why clear topics, niches, and signals matter more than ever.
+
+In other words: your content is now competing based on interest, not just relationships.
+
+Different parts of Instagram are ranked by different algorithms
+You’ll find a lot of opinions and rumors about how Instagram appears to favor certain content types.
+
+A popular one: “Instagram Reels perform better than photos.” That may be true in some cases (I’ll unpack why down below), but it’s not quite that straightforward.
+
+This common (mis)belief makes it sound like there’s one giant algorithm weighing all your content types against each other and giving reels a leg up. That’s not actually how it works.
+
+Your content can show up in four different places on Instagram: 
+
+The home feed
+Reels feed
+Instagram Stories tray
+Explore page
+Each of these has a separate algorithm because people use each area differently. “People tend to look for their closest friends in stories, use explore to discover new content and creators, and be entertained in reels,” Mosseri explains.
+
+How the Instagram Feed algorithm is ranked 
+When people talk about how the Instagram algorithm works, it's usually this area of the app they're referring to. The home or main feed is the first feed most people will see when they open the app.
+
+This feed shows videos, photos, and carousels (posts with multiple photos or videos) from accounts you follow. You'll also see posts from accounts Instagram thinks you might like, plus sponsored content tailored to you.
+
+Instagram uses thousands of ranking factors (called 'signals') to organize your feed. Instagram prioritizes content that’s most relevant to users based on their interests and past interactions.
+
+Here are the most important signals, ranked by importance:
+
+What a user engages with: Posts a specific user likes, shares, saves, or comments on tell Instagram what content resonates with that person.
+How content performs: This includes how many people like a post, how quickly people engage with it, plus more information about the post itself, like when it was posted and any location tags.
+Information about the person who posted: Instagram looks at how many people have interacted with the creator in the past few weeks. “This helps us get a sense for how interesting the person might be to [a user],” says Mosseri.
+Relationship history: This is pretty straightforward, and ties in with some of the above points. Consistent interactions between accounts — like commenting on each other’s posts — tell Instagram who might want to see more of your content.
+With all that information, Instagram makes a series of 'educated guesses' about how likely a user is to interact with a post, Mosseri explains in the blog:
+
+“In feed, the five interactions we look at most closely are how likely you are to spend a few seconds on a post, comment on it, like it, share it, and tap on the profile photo. The more likely you are to take an action, and the more heavily we weigh that action, the higher up in feed you'll see the post.”
+
+How to improve reach in the Instagram Feed
+These ranking factors all point to one thing: genuine engagement. With that in mind, here are some practical ways to create content that gets seen more in users’ feeds.
+
+1. Share carousel posts
+If you have multiple photos (or videos) that work well together, try sharing them as one carousel or even a few mini carousels.
+
+You can include up to 20 photos or videos in a single carousel. When a follower doesn’t swipe through to the end, Instagram treats those unseen slides as “new content.”
+
+The platform will show your carousel to that same person again later, picking up with the first slide that they didn’t swipe to. This gives your carousel multiple chances to get engagement.
+
+This matches what we found in a recent study — our analysis of more than 4 million Instagram posts showed that carousels get higher engagement than single-image photos or videos.
+
+Infographic showing Instagram engagement by post type with carousel posts highest, illustrating Instagram algorithm impact on reels, carousels, and single image performance
+2. Add audio to posts
+Audio isn’t limited to videos — you can add a soundtrack to single photo posts and carousels as well.
+
+It's not a requirement, but as Mosseri points out, it can grab the attention of people who browse with sound on — and that can mean more engagement.
+
+Plus, adding audio to a post or carousel means it can also show up for users in the Instagram Reels feed, too.
+
+🎵
+Keep your audio fresh with the latest trending Instagram sounds, updated monthly.
+3. Use recommended post dimensions
+The image size and dimensions of your posts can make a big difference in how they perform.
+
+When you follow Instagram’s ideal image sizes, your feed posts will appear exactly as intended with no awkward cropping or pixelation issues. This keeps your content looking polished and gives it a better chance of getting engagement.
+
+💡
+You probably know Instagram removes content that violates its Community Guidelines. But it also downranks content that seems likely to violate them — even before that's been confirmed. You'll find more info on that here.
+How the Instagram Stories algorithm works
+Instagram Stories — photos and videos that disappear 24 hours after posting — offer creators and businesses a way to appear on top of followers' feeds as soon as they open the app.
+
+Keep in mind that it can be tougher for brands or creators to show up here — Instagram sees stories as a place where people look for their closest friends.
+
+Here's what Instagram's Stories algorithm looks at to show you the most relevant content:
+
+Viewing history: Instagram tracks how often someone views an account’s stories to determine how high to place them in the stories tray. The more often someone watches your stories, the more likely they are to appear first.
+Engagement history: A user’s interactions — such as sending a DM or liking stories — signal to Instagram that they’re interested in seeing an account’s stories.
+Relationship connections: Instagram considers how close someone is offline to a creator — such as friends or family — when considering where to place a story.
+Again, these signals will be used to “make a series of predictions about stories you'll find more relevant and valuable,” Mosseri says, “including how likely you are to tap into a story, reply to a story in DMs or move on to the next story — to determine which stories will be shown higher in your stories tray.”
+
+Instagram Stories aren't typically the best way to reach new people — Mosseri has confirmed this too. Instead, think of stories as a way to build deeper connections with people who already follow you.
+
+They're perfect for building a community that keeps coming back. You can show up when followers open Instagram, learn more about them, and point them to your other platforms.
+
+Here's how to make the most of stories:
+
+1. Post interactive stories
+Add polls, questions, and other interactive elements to get people tapping, liking, and sharing. The more someone engages with your stories, the more likely Instagram is to bump your stories up to the front of their tray.
+
+A question sticker can turn into an entire AMA event, where you create a series of follow-up stories with your responses. It's a popular approach — even Mosseri uses it.
+
+These interactive features also work as research tools. Polls, questions, and ‘add yours’ stickers can help you learn more about who’s in your audience and what they actually want to see from you. Win-win.
+
+💡
+Wondering if you can schedule Instagram Stories to help you stay consistent? You sure can — here's how.
+2. Share fresh, yet related, content
+If you’re only sharing your posts to stories with a quick tap, you’re not giving people much of a reason to view your stories. Instead, mix in content that’s relatively easy to create but adds something new.
+
+For example, if you’re sharing a cooking reel, snap a behind-the-scenes photo of your ingredients or share a text-based ingredient list in stories. If you’re a beauty creator, try an ‘add yours’ sticker with prompts like “Show me your go-to everyday lipstick” to keep it low lift for both you and your followers to interact.
+
+3. Share user-generated content
+When someone tags you in their post or story — maybe they love those shoes they bought from you, or your productivity tips helped them — reshare it to your Stories with a quick thank you.
+
+This kind of user-generated content shows potential customers that real people love what you offer. It shows followers who aren't customers yet that real people enjoy what you offer. Plus, it builds stronger connections with your existing community.
+
+Plus, it encourages others to tag you when they know you might feature them.
+
+💡
+Need more story ideas? Buffer’s complete Instagram Stories guide walks you through everything from stickers to analytics. Read it here.
+How the Instagram Reels algorithm works
+The Instagram Reels feed — you'll find it by tapping the video icon at the bottom of the app — is designed to help you discover new brands and creators.
+
+New: Some users can now shape their Reels algorithm
+Instagram has also introduced more control over what people see in their Reels feed. “Instagram has been testing features that allow users to select topics they’re interested in, choose to see less of certain content, or remove topics entirely.
+
+For creators, it reinforces a key idea: The clearer your content is about what it’s about (topics, niches, keywords), the easier it is for Instagram to match it with the right audience.
+
+As ever, the reels feed is a particularly important area if you're looking to grow your audience, since it's all recommended content rather than exclusively people you follow.
+
+Instagram looks at:
+
+A user's activity: Instagram looks at what reels people have liked, saved, reshared, commented on, and engaged with recently. When someone engages with content similar to yours, they’re more likely to see your reels.
+A user's interaction history with the poster: When someone engages with an account — whether through likes, shares, or comments — Instagram takes that as a sign that they want to see more content from that account, even if they aren’t a follower.
+Information about the reel: Everything from the visuals to the use of trending or original audio, overall watch time (short, punchy clips tend to win), and early engagement signals influence how widely a reel is distributed across Instagram.
+Information about the person who posted the reel: Instagram looks at signals like a creator’s follower count and engagement levels to share content from a mix of creators.
+That first ranking factor is worth digging into. Here's what Adam Mosseri shared in his conversation with YouTube podcasters Colin and Samir:
+
+
+weight. The more your post is shared in this way, the better it will perform.
+
+“Short-form video is so symbiotic with connecting people with their friends,” Adam told Colin and Samir. “Part of our [Instagram's] reason to be is to connect people with friends.”
+
+In other words: optimize your Instagram content to start conversations. Think about what makes your followers want to share your reel with someone they care about. Maybe it's relatable, helpful, funny, or thought-provoking.
+
+Every audience is different, so you'll need to experiment to find what works for yours.
+
+Here's what Mosseri recommends for your Instagram Reels:
+
+1. Build on momentum
+If a reel takes off, you don't need to post immediately — but following up within a day or two is a smart move.
+
+Remember, the Instagram Reels algorithm looks at how recently people have engaged with your videos, so timing your follow-up while interest is high can help you stay in their feeds. A viral reel shows Instagram that people are interested in your content, which increases the chances your next post gets seen too.
+
+2. Think about different user types
+Mosseri told Colin and Samir that about half of Instagram videos are watched without sound, so your reels need a strong visual hook to grab the attention of people who watch on mute (like me).
+
+Add text to the first frame so it's clear what your reel's about right from the start. Creator @thepotatosauraus does this well in his music reaction videos — they work even when you're watching on mute. Each reel has the title or theme written at the top throughout, so you can see from the very first frame what he — and we — will be listening to.
+
+Man sitting in car recording reel with overlay text about Irish folk bar song cover, illustrating Instagram algorithm hooks for engaging video content
+3. Avoid logos or large watermarks
+Instagram has said it repeatedly: Reels with logos from other apps will get pushed down in the algorithm. This doesn’t apply to your own branding — only to TikTok logos or watermarks from other video editing apps.
+
+If you're sharing videos across multiple platforms, save a version before adding any platform-specific elements. That way, when you’re ready to share it on Instagram, you can upload a version that doesn’t have any third-party app logos that will limit your reach.
+
+⚡
+Creating content for both Instagram and TikTok? Buffer makes it easy to cross-post your videos across both platforms. Get started →
+How the Instagram Explore page algorithm works
+This is where things get interesting for creators and brands looking to reach new audiences. The explore page (accessed by tapping the explore tab magnifying glass at the bottom of the Instagram app) was designed to help users find new accounts.
+
+In other words, it helps new audiences find you.
+
+This grid-style feed shows photos and videos you're likely to be interested in based on your past activity: posts you've liked, saved, shared, and commented on.
+
+Here are the signals that influence the Instagram Explore page algorithm.
+
+Information about the post: Like with feed, Instagram looks at how popular a post seems to be. How many people like, comment on, share, or save a post? And how quickly are they doing so? Post popularity signals matter more in the explore page than in feed or stories.
+A user's activity in explore: Instagram pays attention to what content a user has engaged with before, and how they've interacted with posts in the explore page in the past. The more someone engages with a certain type of post, the more likely they are to see similar content show up.
+A user's interaction history with the poster: Most content in the explore page comes from accounts people don’t follow or haven’t seen before. But if someone has interacted with an account before, Instagram sees that as a sign that they might be interested in more content from this account.
+Information about the person who posted: Here, Instagram looks at how often users have interacted with posts from an account in the past few weeks, to help users find “compelling content from a wide array of people,” says Mosseri.
+Here’s an example from Instagram that I found really helpful in making sense of the explore page algorithm.
+
+“Let’s say you’ve recently liked a number of photos from San Francisco’s dumpling chef Cathay Bi (@dumplingclubsf). We then look at who else likes Cathay’s photos, and then what other accounts those people are interested in.
+
+Maybe people who like Cathay are also into the SF dim sum spot @dragonbeaux. In that case, the next time you open explore, we might show you a photo or video from @dragonbeaux.”
+
+Here are some tips for getting your posts in front of more people through the Instagram Explore page.
+
+1. Use trending audio tracks
+Instagram pays attention to which audio tracks are taking off. When you add these popular sounds to your reels, photo posts, or carousels, your content has a better chance of reaching new people.
+
+You don’t need to awkwardly force trending audio into everything you post, but it’s worth picking a trending track when it naturally complements what you’re creating.
+
+2. Limit reels to 90 seconds or less
+Instagram will show reels that are up to three minutes long to users who don’t follow the creator, but shorter videos tend to perform better.
+
+The ideal reels length for engagement is between 30 and 90 seconds — long enough to cover what matters and short enough to keep people watching.
+
+3. Track post shares
+Shares — especially through DMs from people who don’t follow you — carry a lot of weight for ranking on the explore page. When someone likes your content enough to send it to a friend, Instagram sees that as a strong signal of quality.
+
+Click on View insights below a post to see which posts are being shared the most. When you spot patterns in your most-shared content, you can focus on creating more of what people want to pass along to their friends.
+
+💡
+The explore page is also where you’ll find Instagram’s search function — which can be an important tool in your Instagram marketing kit. Here’s our comprehensive guide to Instagram SEO.
+When Instagram stops recommending content
+Instagram wants to keep potentially offensive content from appearing in users’ feeds. To that end, they've published detailed recommendation guidelines for creators.
+
+Posts that go against these guidelines might not violate Instagram's Community Guidelines and are still allowed on Instagram, but they won't appear on the explore page or reels tab.
+
+Some examples of things that go against the recommendation guidelines are:
+
+Category	Description
+Sensitive topics	Self-harm, suicide, eating disorders, or depicted violence.
+Adult content	Sexually explicit or suggestive imagery/themes.
+Regulated goods	Promotion of tobacco or other restricted products.
+Integrity	Content flagged as misinformation or false claims.
+Why the Instagram algorithms are a good thing
+Algorithms change over time because of factors outside a creator’s control, like how people use a social media platform and its new features.
+
+These updates sometimes lead to big changes — and when social media platforms move away from a chronological feed, for example, there's always a public outcry. But showing recent posts in chronological order wasn't a great experience, and posts would quickly disappear down users’ feeds regardless of quality.
+
+With the help of machine learning, the Instagram algorithm ensures that users see content they're most likely to be interested in, and that means business accounts are more likely to find their target audience (with the right social media marketing strategy).
+
+As long as you're creating engaging, relevant, and timely content, the Instagram algorithm actually works in your favor.
+
+8 evergreen best practices for your Instagram strategy
+Instagram uses a different algorithm for each part of the app, but they do have something in common — content that people find engaging and relevant.
+
+Here are some practical ways to work with Instagram’s algorithms to get your content in front of more people.
+
+1. Stay consistent
+Posting regularly on Instagram might seem like obvious advice, but it’s often repeated for a reason — it works.
+
+Buffer’s analysis of more than 100,000 users across social media platforms shows that people who post consistently receive nearly five times more engagement per post than those who post only occasionally. And Instagram sees this recent and regular engagement as a sign that your content should be shown to more people.
+
+Find a posting schedule you can stick with long-term, whether that's daily content or three high-quality posts a week, to avoid burning out.
+
+2. Create original content
+Instagram wants to reward original content, not posts downloaded from another account and reshared from your own.
+
+Creating original content could be as simple as snapshots from your morning walk, or as in-depth as a Canva design tutorial. The key is that it's yours, and not aggregated from others’ accounts.
+
+⚡
+Need a creative boost? Buffer AI can help you generate fresh ideas for your next posts. Try it now →
+3. Embrace the latest features
+Driving the adoption of new features is important for Instagram, so it makes newer features more prominent in the app. It's important to note that this doesn’t mean that the Instagram algorithms automatically favor any specific post type.
+
+It does, however, give new features a prime location, such as putting Instagram Stories at the very top of the screen or moving the Instagram Reels icon to the center of your menu bar.
+
+4. Vary your post types
+Sharing your content in different formats — single images, carousel posts, reels, stories, and lives — helps you reach a wider range of people.
+
+It’s the key to successfully navigating the different Instagram algorithms, and it's a great way to repurpose your content. Not everyone watches a video, so you can turn your reels into a carousel post. Or you can appeal to Instagram Story lovers by re-sharing feed posts in your stories (along with the fresh content we talked about earlier).
+
+Below you can see how we've been making an effort to diversify the post types we use on Buffer's Instagram account:
+
+Instagram profile grid showing diverse content formats like reels, carousels, and graphics, illustrating Instagram algorithm strategy for varied post types and engagement
+At Buffer, we're really leaning into content repurposing not just within Instagram, but across social platforms as well.
+
+For example, most of our reels can be used on TikTok and YouTube Shorts, too. Here is how we do it. Without using the other app’s logos and watermarks, of course.
+
+5. Post at the best times for you
+Our analysis of more than 2 million Instagram posts showed that content shared at certain times tends to perform better than what’s shared at other times (Thursday at 9 a.m., Wednesday at 12 p.m., and Wednesday at 6 p.m.), based on engagement data. Test out these best times to post on Instagram if you're new to the platform.
+
+Heatmap showing best time to post on Instagram by hour and day, illustrating Instagram algorithm engagement patterns and optimal weekday evening posting times
+If you've been posting regularly to Instagram for some time, Instagram Insights will have some data on the best times for you. Check out your Instagram Insights (found by navigating to your profile, tapping the hamburger menu on the top right, then Insights, then New Followers) to see your followers' most active times.
+
+⚡
+Buffer's analytics tools take the guesswork out of figuring this out by crunching the numbers and recommending specific dates, times, and frequency for your posts. Learn more →
+6. Develop a keyword and hashtag strategy
+It’s official: hashtags don’t help reach.
+
+Instagram has made changes to the weight it gives hashtags to cut down on spam and removed the ability to follow hashtags in December 2024. Users can no longer follow new hashtags, and hashtags they were already following no longer appear in feeds.
+
+So what works instead? Focus on adding relevant keywords to your post captions and your profile. These help people find you through Instagram’s search feature and tell the algorithm what your content is about.
+
+That said, hashtags aren’t completely dead — people can still find your posts through hashtag searches. Stick to three to five relevant hashtags per post rather than loading up with dozens.
+
+If you use hashtags, Buffer Hashtag Manager can be a really helpful time-saver. With it, you can save groups of hashtags to easily add to posts later with the Instagram first comment feature. With the Hashtag Manager, you can create unique groups of hashtags for themes you use often.
+
+7. Focus on authentic engagement
+Instagram's algorithms reward engagement, so focus on the connections you build with your audience.
+
+Interactive stickers on your Instagram Stories — polls, questions, sliding scale rankings — are a simple way to get your followers to engage with you.
+
+Also make sure you reply to direct messages and comments on your posts. The more you interact with your fans, the better. Don't be afraid to use emojis, either.
+
+But it's really easy to miss new comments among the likes, follows, and mention notifications on Instagram. To help, Buffer has engagement features that surface any unanswered comments on your Instagram posts and help you to reply to as many comments as quickly as possible.
+
+8. Use analytics to see what's working
+One of the best ways to understand what your audience enjoys seeing and is interested in is to dig into your Instagram analytics data.
+
+Using Instagram Insights you can check out which of your posts have had the most interactions. You can also sort posts by most comments, likes and saves too if you'd like to dig into more specific engagement metrics.
+
+Buffer's analytics will also help you uncover your best posts (those with the highest engagement) in just a few clicks:
+
+Buffer analytics dashboard showing post insights sorted by engagement rate to identify top content, demonstrating Instagram algorithm optimization for best performing posts
+Once you have a list of your most engaging Instagram posts you can start to identify what commonalities they might have. For example:
+
+What types of posts are they?
+What's the style of the creative?
+How is the caption structured?
+With this data, you can begin to reverse engineer what your audience is most likely to engage with and build a strategy to help get the most out of Instagram's algorithm.
+
+🛠️
+When you're trying to grow on Instagram, there's no need to go it alone. Check out these 20+ free Instagram tools.
+Instagram's algorithms prioritize a better user experience
+If you focus on building connections with your audience and producing compelling content, you don't need to worry about Instagram updates and Instagram algorithm changes.
+
+“Authenticity and transparency are key to building sustainable engagement on Instagram,” says the Instagram Creators account. Trying to game the system may provide a short-term benefit, but it is not a recipe for success long-term.
+
+Make sure that you're sharing content that keeps your followers and community engaged and constantly coming back for more.
+
+Got any questions about the Instagram algorithm? We’d love to help. Pop them in the comments below, or find us @buffer on Instagram, Threads, and other major platforms.
+
+FAQs about the Instagram algorithm
+What is the Instagram algorithm?
+The Instagram algorithm is a series of AI systems that work together to bring your content to users’ feeds. There are four different algorithms for each part of Instagram — home feed, explore page, reels feed, stories — that use thousands of signals to learn what content a specific Instagram user is interested in and show them more of it.
+
+How can I improve my reach with the Instagram algorithm?
+You can improve your reach with the Instagram algorithm by following best practices like posting consistently using reels, stories, and carousels; engaging with users in comments and direct messages; using trending audio or hashtags thoughtfully; and tracking performance and experimenting to find what resonates.
+
+Do the Instagram algorithms prefer videos?
+No. Instagram ranks every post by how each user usually engages — not by format. If someone often watches and shares videos, they’ll see more videos. If they tap on photos, they’ll see more photos. Videos sometimes reach farther overall because people tend to watch and share them, not because Instagram gives them extra weight. In our analysis of more than 4 million Instagram posts, video came out tops, followed by carousels, then images.
+
+Does posting too frequently impact ranking?
+It might. Dumping several posts in a row can cause Instagram to hide some of them to keep feeds balanced. Give each post room to breathe — schedule them a few hours apart or on different days — so every update can earn its own likes, comments, and shares. You can schedule Instagram posts to appear at different times and days throughout the week to avoid spamming users’ feeds. Instagram suggests spreading out your posts rather than publishing several back-to-back.
+
+Here's everything we know about how often to post on Instagram.
+
+Are business, creator, and personal accounts ranked differently by the algorithm?
+Your content’s reach depends on engagement and relevance, not account type. As reported by TechCrunch: “Instagram doesn't give extra feed presence to personal accounts or business accounts, so switching won't help your reach.”
+
+Will posting Instagram Stories or live videos affect ranking?
+Creating Instagram Stories or live broadcasting on Instagram won't affect how your content ranks within the feed, but experimenting with a wide variety of content means it's far more likely that your content will appear in more places on the app.
+
+What is the 5-3-1 rule on Instagram?
+The 5-3-1 rule on Instagram is a way to make your Instagram activity feel more human and more connected. For every post you share, you interact with others by doing liking 5 posts, commenting on 3 posts, and following 1 new account.
+
+It’s a small routine that encourages thoughtful engagement and helps more people discover your brand.
+
+What is the 3-second rule on Instagram?
+The 3-second rule on Instagram is about keeping users ‘hooked’ to your reel. Those first three seconds decide whether someone keeps watching or scrolls away. A clear hook helps people understand what they’re about to get. This could be a quick headline, a striking visual, or a question or statement that sets the tone. When that opening lands, your video has a better chance of holding someone’s attention.
+
+More Instagram resources
+8 Best Free Hashtag Generators
+6 Must-Try Instagram Story Ideas for Your Next Post
+6 Instagram Analytics Tools That Will Help You Grow Your Audience
+Instagram Image Size Guide: Post, Story, and Reels Dimensions
+How to Boost Your Engagement on Instagram: 11 Tried-and-Tested Tips
+13 Ways to Get More Followers on Instagram
+
+Shivani Shah
+Shivani is a SaaS content writer and editor who likes to make complex ideas easy to understand. She believes in “show, not tell” and loves tinkering with new tools to make work — and life — easier.
+
+Read more posts by Shivani Shah
+Try Buffer for free
+200,000+ creators, small businesses, and marketers use Buffer to grow their audiences every month.
+
+Get started for free
+Related Articles
+
+13 Trending Sounds on Instagram in June 2026 (+ How to Use Them)
+Topic
+Instagram
+Published
+Jun 5, 2026
+Stop chasing the tail-end of Instagram audio trends — here are the latest trending songs on Instagram in June 2026.
+
+Reading time6 minute read
+
+
+Shea Karssing
+
+How to Get More Followers on Instagram in 2026 (13 Tried & Tested Tactics)
+Topic
+Instagram
+Published
+May 29, 2026
+I have over 15,000 followers on Instagram, and I've helped grow Buffer's Instagram account to over 100K. Here are tried-and-tested tactics that genuinely work.
+
+Reading time24 minute read
+
+
+Sabreen Haziq
+
+8 Best Free Hashtag Generators in 2026
+Topic
+Social Media Marketing
+Published
+May 20, 2026
+In this article, we explore the 8 best free hashtag generators to help your posts get discovered.
+
+Reading time11 minute read
+
+
+Tamilore Oladipo
+Try Buffer for free
+200,000+ people like you use Buffer to build their brand on social media every month
+
+Get started for free
+Browse by topic
+
+All posts
+AI
+Analytics
+Bluesky
+Content Marketing
+Creator Marketing
+Social Media Insights
+Email Marketing
+Facebook
+Influencer Marketing
+Instagram
+LinkedIn
+Mastodon
+News
+Open
+Pinterest
+Productivity
+Self-Improvement
+Small Business
+Social Media Marketing
+Threads
+TikTok
+Tips / How-To
+Tools
+Twitter
+Video
+Youtube
+Buffer
+Features
+Create
+Publish
+Community
+Analyze
+Collaborate
+Tools
+AI Assistant
+Start Page
+Integrations
+iOS App
+Android App
+Browser Extension
+Channels
+Bluesky
+Facebook
+Google Business Profile
+Instagram
+LinkedIn
+Mastodon
+Pinterest
+Threads
+TikTok
+X
+YouTube
+Made for
+Creators
+Small Business
+Agencies
+Nonprofits
+Higher Education
+Developers
+Resources
+Blog
+Template Library
+Social Media Insights
+Resource Library
+Social Media Terms Glossary
+Free Marketing Tools
+AI Social Media Post Generator
+Compare Buffer
+Our Community
+Buffer API
+Developer Docs
+Support
+Help Center
+Status
+Changelog
+Request a Feature
+Transparency
+Open Hub
+Transparent Metrics
+Transparent Pricing
+Transparent Salaries
+Product Roadmap
+Company
+About
+Careers
+Press
+Partner Program
+Legal
+Sitemap
+Buffer
+Social media
+Instagram
+Facebook
+Bluesky
+X
+LinkedIn
+Threads
+Policies
+Copyright ©2026 Buffer
+
+|
+Privacy
+
+|
+Terms
+
+|
+Security
