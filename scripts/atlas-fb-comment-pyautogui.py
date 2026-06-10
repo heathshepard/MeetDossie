@@ -567,23 +567,44 @@ def main():
     result["screenshots"].append(loaded_path)
     result["steps"].append("waited 12s for FB load")
 
-    # Find the post in the feed
-    find_in_page(args.needle, run_dir)
-    result["steps"].append("Ctrl+F search performed")
+    # Click into the page first so PageDown scrolls the feed (not browser chrome)
+    cx_click = win.left + win.width // 2
+    cy_click = win.top + int(win.height * 0.5)
+    pyautogui.click(cx_click, cy_click)
+    time.sleep(0.5)
 
-    post_rect = find_target_post_via_uia(win, run_dir, args.author, args.needle)
-    if not post_rect:
-        # Try shorter needle / scroll further
-        log("post rect not found via UIA — attempting to scroll and retry")
-        pyautogui.press("end")
-        time.sleep(1.5)
-        find_in_page(args.needle, run_dir)
-        post_rect = find_target_post_via_uia(win, run_dir, args.author, args.needle)
+    # Aggressively scroll first — FB lazy-loads posts. The Hellickson post is
+    # 21+ hours old so it's well below the fold. Scroll up to 25 times to
+    # accumulate posts in the DOM, then find-in-page.
+    post_rect = None
+    for scroll_attempt in range(1, 26):
+        # Try Page Down for chunky scroll
+        pyautogui.press("pagedown")
+        time.sleep(0.6)
+
+        # Every 5 scrolls, try Ctrl+F + Author name (more selective than 'Today I learned' which appears in the comment too)
+        if scroll_attempt % 3 == 0:
+            log(f"scroll iter {scroll_attempt}: searching for '{args.author}'")
+            find_in_page(args.author, run_dir)
+            post_rect = find_target_post_via_uia(win, run_dir, args.author, args.needle)
+            if post_rect:
+                log(f"FOUND target post at scroll iter {scroll_attempt}")
+                screenshot(run_dir / f"03c-scroll-{scroll_attempt}-found.png")
+                break
+            # Also try the needle
+            find_in_page(args.needle, run_dir)
+            post_rect = find_target_post_via_uia(win, run_dir, args.author, args.needle)
+            if post_rect:
+                log(f"FOUND target post via needle at scroll iter {scroll_attempt}")
+                screenshot(run_dir / f"03c-scroll-{scroll_attempt}-found-needle.png")
+                break
+
+    result["steps"].append(f"scroll+search loop completed (post_rect={post_rect})")
 
     if not post_rect:
-        log("post needle not found in viewport — closing tab")
+        log("post needle not found after aggressive scroll — closing tab")
         close_tab()
-        finish("needle_not_found", f"could not locate post containing '{args.needle}' or author '{args.author}'")
+        finish("needle_not_found", f"could not locate post containing '{args.needle}' or author '{args.author}' after 25 scrolls")
 
     result["steps"].append(f"post rect found {post_rect}")
 
