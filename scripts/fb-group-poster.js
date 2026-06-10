@@ -3,7 +3,8 @@
 // scripts/fb-group-poster.js
 //
 // Playwright script: posts approved group_posts content to Facebook groups
-// using saved session cookies. Chrome does NOT need to be closed.
+// using Heath's persistent Chrome profile. No session-cookie capture needed —
+// the profile stays logged in indefinitely as long as Heath uses Chrome.
 //
 // Usage:
 //   node scripts/fb-group-poster.js --post-id [uuid]
@@ -11,8 +12,8 @@
 // Requires an approved group_posts row. Fetches it from Supabase, posts,
 // then updates group_posts status='posted' and group_registry last_posted_at.
 //
-// Session must be captured first:
-//   node scripts/capture-facebook-session.js
+// Migrated 2026-06-10 from sessions/facebook.json to launchPersistentContext
+// to eliminate the recurring "renew Facebook session" pings.
 //
 // Env vars required:
 //   SUPABASE_URL
@@ -21,9 +22,13 @@
 //   TELEGRAM_CHAT_ID
 
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
 
-const SESSION_FILE = path.join(__dirname, 'sessions', 'facebook.json');
+const CHROME_PROFILE_PATH = path.join(
+  os.homedir(),
+  'AppData', 'Local', 'Google', 'Chrome', 'User Data'
+);
 
 // Load .env.local when running locally
 try {
@@ -140,19 +145,11 @@ async function sendTelegramConfirmation(groupName, postBody, success, errorMsg) 
 // ─── Playwright posting ───────────────────────────────────────────────────────
 
 async function postToGroup(post) {
-  const { chromium } = require('playwright-extra');
-  const stealth = require('puppeteer-extra-plugin-stealth')();
-  chromium.use(stealth);
+  const { chromium } = require('playwright');
 
-  if (!fs.existsSync(SESSION_FILE)) {
-    throw new Error('Facebook not connected — run: node scripts/capture-facebook-session.js');
-  }
+  console.log('[fb-group-poster] Launching Heath\'s persistent Chrome profile...');
 
-  const storageState = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-
-  console.log('[fb-group-poster] Launching browser with saved session cookies...');
-
-  const browser = await chromium.launch({
+  const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
     headless: false,
     args: [
       '--no-sandbox',
@@ -160,12 +157,8 @@ async function postToGroup(post) {
       '--remote-debugging-address=127.0.0.1',
       '--remote-debugging-port=0',
     ],
-  });
-
-  const context = await browser.newContext({
-    storageState,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 900 },
+    channel: 'chrome',
   });
 
   const page = await context.newPage();
@@ -177,21 +170,13 @@ async function postToGroup(post) {
     // Wait for the page to settle
     await page.waitForTimeout(3000);
 
-    // Check if the session has expired
+    // Check if the session has expired — the Chrome profile should always
+    // be logged in, but if it isn't, fail loudly without pinging Heath. The
+    // keep-alive cron (scripts/fb-session-keepalive.js) and the comment
+    // monitor reuse the same profile, so this should not regress in practice.
     const currentUrl = page.url();
     if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
-      // Notify Heath via Telegram before throwing
-      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: 'Facebook login expired — run: node scripts/capture-facebook-session.js to reconnect',
-          }),
-        }).catch(() => {});
-      }
-      throw new Error('Facebook login expired — run: node scripts/capture-facebook-session.js to reconnect');
+      throw new Error('Facebook redirected to login from persistent Chrome profile — open Chrome manually and re-login. Keep-alive cron should prevent this.');
     }
 
     // Find the "Write something" / "What's on your mind?" post box
@@ -401,7 +386,7 @@ async function postToGroup(post) {
 
     return postUrl;
   } finally {
-    await browser.close();
+    await context.close();
   }
 }
 

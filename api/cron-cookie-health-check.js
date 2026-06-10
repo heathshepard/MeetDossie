@@ -28,7 +28,12 @@ const SESSIONS_DIR = path.join(process.cwd(), 'scripts', 'sessions');
 const RENEW_THRESHOLD_DAYS = 14;
 
 // Sites we care about. We always upsert these; if file missing, status=missing.
-const MONITORED = ['facebook', 'reddit', 'instagram', 'linkedin'];
+// 2026-06-10: Facebook removed — fb-group-poster + fb-group-watcher now use
+// Heath's persistent Chrome profile (launchPersistentContext), which has no
+// cookie-expiry to track. Other FB scripts (fb-group-commenter,
+// fb-reply-poster, fb-comment-monitor) already use the persistent profile.
+// Heath should never get pinged to renew the Facebook session again.
+const MONITORED = ['reddit', 'instagram', 'linkedin'];
 
 async function sbFetch(urlPath, init = {}) {
   const res = await fetch(`${SUPABASE_URL}${urlPath}`, {
