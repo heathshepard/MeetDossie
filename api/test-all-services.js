@@ -12,6 +12,7 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_MARKETING_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN;
 const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
 const CREATOMATE_API_KEY = process.env.CREATOMATE_API_KEY;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 async function testSupabase() {
   try {
@@ -110,6 +111,13 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  // Auth added 2026-06-10 (Atlas) — diagnostic exposes per-service health
+  // and consumes free-tier credit on every paid API.
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   console.log('[test-all-services] Running diagnostics...');

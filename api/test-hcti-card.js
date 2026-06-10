@@ -1,4 +1,5 @@
 // Test HCTI API with current card template
+// Auth: Authorization: Bearer ${CRON_SECRET} (verified 2026-06-10 Atlas)
 const fetch = require('node-fetch');
 
 const COLORS = {

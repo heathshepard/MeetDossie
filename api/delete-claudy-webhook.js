@@ -5,11 +5,18 @@
 // Returns: { ok: true, result: {...} }
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  // Auth added 2026-06-10 (Atlas) — endpoint deletes Telegram webhook.
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   if (!TELEGRAM_BOT_TOKEN) {

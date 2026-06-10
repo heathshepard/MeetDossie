@@ -1,11 +1,18 @@
 // Test endpoint to generate Morning Brief audio with specific text
 // Usage: GET /api/test-brief-audio
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
+// Previously public — anyone could burn ElevenLabs credits on demand.
 
 const { generateSpeech } = require('./_utils/tts');
+const CRON_SECRET = process.env.CRON_SECRET;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   const testText = "Good morning Heath. You've got two things that need your eyes today. The Chen file option period expires tomorrow - make sure that decision is in. Everything else is moving cleanly. I've got the details when you need them.";

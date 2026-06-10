@@ -5,8 +5,14 @@
 // Returns: { ok: true, render: {...} }
 
 const CREATOMATE_API_KEY = process.env.CREATOMATE_API_KEY;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 module.exports = async function handler(req, res) {
+  // Auth added 2026-06-10 (Atlas).
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
   if (!CREATOMATE_API_KEY) {
     return res.status(500).json({
       ok: false,
