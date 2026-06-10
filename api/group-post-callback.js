@@ -113,6 +113,23 @@ async function handleGroupPostCallback(action, postId, callbackQueryId, chatId, 
   const originalBody = originalMessageText || '';
 
   if (action === 'group_approve') {
+    // Validator: first_comment_body must contain "Dossie" if it exists
+    if (post.first_comment_body && !post.first_comment_body.includes('Dossie')) {
+      const errorMsg = `Post ${postId} approval BLOCKED: first_comment_body does not mention Dossie.\n\nComment:\n"${post.first_comment_body}"`;
+
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\nREJECTED: first_comment_body must mention "Dossie".`);
+      }
+
+      if (callbackQueryId) {
+        await answerCallback(callbackQueryId, 'Error: first comment must mention Dossie');
+      }
+
+      await sendPersonalNotification(errorMsg);
+      console.log(`[group-post-callback] ${errorMsg}`);
+      return;
+    }
+
     await patchGroupPost(postId, {
       status: 'approved',
       approved_at: now,

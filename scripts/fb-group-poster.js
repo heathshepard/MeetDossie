@@ -145,6 +145,99 @@ async function sendTelegramConfirmation(groupName, postBody, success, errorMsg) 
   });
 }
 
+// ─── Post first comment (on the same page instance after main post) ────────────
+
+async function postFirstComment(page, firstCommentBody) {
+  if (!firstCommentBody) {
+    console.log('[fb-group-poster] No first_comment_body — skipping first comment');
+    return true;
+  }
+
+  console.log('[fb-group-poster] Posting first comment...');
+
+  try {
+    await page.waitForTimeout(2000);
+
+    // Find the most recent article (the post we just posted)
+    const articles = await page.locator('[role="article"]').all();
+    if (!articles.length) {
+      console.warn('[fb-group-poster] No articles found on page - first comment skipped');
+      return false;
+    }
+
+    const firstArticle = articles[0];
+
+    // Look for the comment button within the article
+    const commentBtn = firstArticle.locator('button').filter({ hasText: /Comment/ }).first();
+    if (await commentBtn.isVisible({ timeout: 3000 })) {
+      await commentBtn.click();
+      console.log('[fb-group-poster] Clicked Comment button');
+      await page.waitForTimeout(1000);
+    } else {
+      console.warn('[fb-group-poster] Comment button not found');
+      return false;
+    }
+
+    // Find the comment input box
+    const commentInputSelectors = [
+      '[contenteditable="true"][role="textbox"]',
+      '[contenteditable="true"]',
+      'textarea',
+    ];
+
+    let commentInput = null;
+    for (const selector of commentInputSelectors) {
+      const el = page.locator(selector).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        commentInput = el;
+        console.log(`[fb-group-poster] Found comment input via: ${selector}`);
+        break;
+      }
+    }
+
+    if (!commentInput) {
+      console.warn('[fb-group-poster] Comment input not found');
+      return false;
+    }
+
+    // Click and type the comment
+    await commentInput.click();
+    await page.keyboard.type(firstCommentBody, { delay: 20 });
+    await page.waitForTimeout(500);
+
+    // Find and click the Post button for the comment
+    const commentPostBtnSelectors = [
+      'button:has-text("Post")',
+      'button[aria-label*="Post"]',
+      'button[type="submit"]',
+    ];
+
+    let commentPostBtn = null;
+    for (const selector of commentPostBtnSelectors) {
+      try {
+        const btn = page.locator(selector).last();
+        if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          commentPostBtn = btn;
+          break;
+        }
+      } catch {}
+    }
+
+    if (!commentPostBtn) {
+      console.warn('[fb-group-poster] Comment Post button not found');
+      return false;
+    }
+
+    await commentPostBtn.click();
+    console.log('[fb-group-poster] Comment posted successfully');
+    await page.waitForTimeout(1000);
+    return true;
+  } catch (err) {
+    console.warn('[fb-group-poster] Error posting first comment:', err.message);
+    return false;
+  }
+}
+
 // ─── Playwright posting ───────────────────────────────────────────────────────
 
 async function postToGroup(post) {
@@ -412,6 +505,23 @@ async function postToGroup(post) {
     if (!postUrl) {
       postUrl = post.group_url;
       console.log('[fb-group-poster] Permalink not found — falling back to group URL');
+    }
+
+    // Post first comment if needed (keeps page open)
+    if (post.first_comment_body) {
+      console.log('[fb-group-poster] Posting first comment...');
+      const firstCommentSuccess = await postFirstComment(page, post.first_comment_body);
+      if (firstCommentSuccess) {
+        // Update DB to mark first comment as posted
+        await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(post.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ first_comment_posted_at: new Date().toISOString() }),
+        });
+        console.log('[fb-group-poster] First comment posted and DB updated');
+      } else {
+        console.warn('[fb-group-poster] First comment posting failed - continuing anyway');
+      }
     }
 
     return postUrl;
