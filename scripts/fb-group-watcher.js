@@ -5,7 +5,7 @@
 // Finds approved group_posts rows with posted_at IS NULL and fires
 // fb-group-poster.js for each one, sequentially.
 //
-// Intended to run on a schedule (Windows Task Scheduler, every 30 min).
+// Intended to run on a schedule (Windows Task Scheduler, every 60 min).
 // Exits silently when no posts are pending.
 //
 // Env vars required:
@@ -14,7 +14,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 
 // Load .env.local
 try {
@@ -68,6 +68,16 @@ function ts() {
   return new Date().toISOString();
 }
 
+// Guard: Kill any leftover Chrome processes from prior runs (automation-only)
+function cleanupZombieChrome() {
+  try {
+    const cmd = `Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match '(--headless|--remote-debugging|Playwright|\.cache\\\\ms-playwright|\.cache\\\\puppeteer)' -or (Get-Process -Id $_.ParentProcessId -ErrorAction SilentlyContinue).Name -in @('powershell','node','python') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+    execSync(`powershell -NoProfile -Command "${cmd}"`, { stdio: 'pipe' });
+  } catch (e) {
+    // Non-fatal; don't block watcher
+  }
+}
+
 async function fetchApprovedPosts() {
   const url = `${SUPABASE_URL}/rest/v1/group_posts?status=eq.approved&posted_at=is.null&select=id,group_name`;
   const res = await fetch(url, {
@@ -115,6 +125,8 @@ async function main() {
     process.exit(1);
   }
 
+  cleanupZombieChrome();
+
   const posts = await fetchApprovedPosts();
 
   console.log(`[${ts()}] [fb-group-watcher] Found ${posts.length} approved post(s)`);
@@ -146,3 +158,6 @@ main().catch((err) => {
   console.error(`[${ts()}] [fb-group-watcher] Fatal error: ${err.message}`);
   process.exit(1);
 });
+
+// Ensure cleanup on exit
+process.on('exit', cleanupZombieChrome);
