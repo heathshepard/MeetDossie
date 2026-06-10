@@ -101,6 +101,12 @@ async function tryOpenAI(text, options) {
   if (!process.env.OPENAI_API_KEY) return null;
   const persona = (options.persona || 'luna').toLowerCase();
   const openaiVoice = OPENAI_VOICE_MAP[persona] || 'nova';
+  
+  // OpenAI tts-1-hd doesn't support SSML. Strip all break tags and replace with ellipsis pauses.
+  const cleanedText = text
+    .replace(/<break\s+time=["']?\d+ms["']?\s*\/?>/g, '... ')
+    .replace(/<[^>]+>/g, ''); // Remove any other XML-like tags as fallback
+  
   try {
     const res = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -110,7 +116,7 @@ async function tryOpenAI(text, options) {
       },
       body: JSON.stringify({
         model: 'tts-1-hd',
-        input: text,
+        input: cleanedText,
         voice: openaiVoice,
         response_format: 'mp3',
       }),
