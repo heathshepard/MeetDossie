@@ -1,0 +1,4 @@
+Your connection is not private
+Attackers might be trying to steal your information from www.justconnecting.nl (for example, passwords, messages, or credit cards). Learn more about this warning
+net::ERR_CERT_COMMON_NAME_INVALID
+Turn on enhanced protection to get Chrome's highest level of security

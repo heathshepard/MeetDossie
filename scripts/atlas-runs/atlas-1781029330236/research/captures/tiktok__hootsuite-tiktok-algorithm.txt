@@ -1,0 +1,366 @@
+Skip to content
+Hootsuite Logo
+Search
+Search...
+Log In
+Start your free trial
+Blog
+Topics
+Networks
+Resources
+Industries
+About Hootsuite
+English
+Strategy
+How the TikTok algorithm works in 2026
+Understanding how the TikTok algorithm ranks content can help you work with it and improve your visibility on the platform.
+
+Hannah Macready
+June 1, 2026
+14 min read
+Also available in
+Español
+Deutsch
+Français
+cover image
+Table of Contents
+What is the TikTok algorithm in 2026?
+How does the TikTok algorithm work in 2026?
+What’s changed with the TikTok algorithm in 2026?
+Content TikTok won’t recommend in 2026 (and why)
+12 tips for getting picked up by the TikTok algorithm in 2026
+FAQ: TikTok algorithm
+Key takeaways
+The TikTok algorithm in 2026 prioritizes community-aligned content over random viral hits. Niche relevance matters more than broad reach, so focus on resonating deeply within specific groups like #BookTok or #SportsOnTikTok rather than chasing unpredictable virality.
+Watch time in the first few seconds is the strongest ranking signal. Starting videos with a compelling hook keeps people watching and tells the algorithm your content is worth recommending.
+Video information like captions, hashtags, and sounds help TikTok categorize and recommend your content. Optimizing for search with relevant keywords and using trending sounds can increase your chances of getting discovered.
+Tracking performance with analytics and adjusting your strategy based on data is what separates consistent growth from one-off wins. Use TikTok’s native analytics and tools like Hootsuite to identify what the algorithm favors and refine your approach over time.
+What is the TikTok algorithm in 2026?
+The TikTok algorithm is the technology that decides what TikTok videos to recommend to each user. It studies what you watch and how you interact, and then suggests videos you’re most likely to enjoy.
+
+No two TikTok users will see the same combination of TikTok videos on their For You Page. This feed is unique and highly personalized. The type of content you see on your FYP will evolve over time, as the algorithm catches on to changes in your interests and viewing preferences.
+
+According to TikTok’s own documentation, here’s how the algorithm works:
+
+“We use recommender systems to offer you a personalized experience. These systems suggest content based on your preferences as expressed through interactions on TikTok, such as following an account or liking a post.”
+
+Bonus: Get a free TikTok Growth Checklist from famous TikTok creator Tiffy Chen that shows you how to gain 1.6 million followers with only 3 studio lights and iMovie.
+
+How does the TikTok algorithm work in 2026?
+The TikTok algorithm looks at three main signals when ranking content. Of these, engagement signals like watch time and completion rate carry the most weight.
+
+User interactions: What you watch, like, share, comment on, or skip.
+Video information: Captions, hashtags, sounds, effects, and views.
+User information: Language, country, device type, and settings.
+Signal type
+
+Examples
+
+Weight in algorithm
+
+User interactions
+
+Likes, shares, comments, watch time, completion rate, “Not Interested” clicks
+
+High – most important
+
+Video information
+
+Captions, hashtags, sounds, effects, trending topics
+
+Medium
+
+User information
+
+Device type, language, country, account settings, time zone
+
+Low – less impact
+
+1. User interactions
+Every action you take on TikTok provides the app with information about what kind of content you’re most interested in. Within this category, watch time and completion rate are the single strongest signals. If someone watches your video all the way through, or replays it, that tells the algorithm your content is highly engaging.
+
+Here are some of the user interactions that will impact what shows up on your For You feed:
+
+Videos you’ve liked or shared on the app
+Videos you’ve added to your favorites
+Videos you’ve marked as “Not Interested”
+Videos you’ve reported as inappropriate
+Interests you’ve expressed by interacting with organic content and ads
+Which accounts you follow
+Comments you’ve posted
+Creators or sounds you’ve chosen to hide
+How long you spend watching a video (and whether you replay it)
+Content you create on your own account
+Positive signals tell the algorithm to show you more of the same kind of content, while the negative ones will prevent similar content from showing up in your feed.
+
+2. Video information
+The TikTok algorithm also collects information about the videos you look for in search and the types of videos you watch in general.
+
+Video information signals include:
+
+Captions
+Sounds
+Hashtags
+Effects
+Trending topics
+Video length
+It’s worth noting that TikTok doesn’t just read your metadata. The algorithm can also analyze on-screen text and spoken words to understand what your video is about. This means your voiceover and text overlays are categorization signals too, not just your caption and hashtags.
+
+3. User information
+User information doesn’t have as much influence as user actions or video details, but they still play a role. Some of the user information triggers included in the TikTok algorithm are:
+
+Language preference
+Country setting (you may be more likely to see content from people in your own country, or videos that are particularly popular in your country)
+Device type
+Categories of interest you selected in your new user preferences
+Time zone and day
+These are the settings that help TikTok run smoothly. But, because they’re based on one-time settings, rather than ongoing activity, they aren’t as important to the algorithm.
+
+Does TikTok use a point system?
+You may have seen claims that TikTok assigns specific point values to each type of interaction, like 1 point for a like and 5 points for a share. TikTok has not publicly confirmed any such point system.
+
+What we do know is that TikTok uses weighted signals, meaning some interactions matter more than others. Based on TikTok’s documentation and observed behavior, here’s how those signals generally stack up:
+
+Strongest signals: Watch time, completion rate, replays, shares
+Strong signals: Comments, follows from the video, saves/favorites
+Moderate signals: Likes, hashtag engagement
+Weaker signals: Device type, language, location
+The exact weighting is proprietary and likely changes over time, so focus on creating content that earns the strongest signals rather than trying to game a specific formula.
+
+TikTok algorithm signal strength hierarchy showing four tiers from strongest signals like watch time and shares to weaker signals like device type and location
+
+#1 for TikTok marketing
+Schedule TikToks, answer comments, and show off your results in beautiful reports. It’s so easy.
+
+Start your free trial
+What’s changed with the TikTok algorithm in 2026?
+The TikTok algorithm isn’t static. It evolves as the platform grows and user behavior shifts. Here are the most notable changes enterprise marketers should be aware of heading into 2026:
+
+Search is a bigger discovery channel. TikTok has continued expanding its search functionality — with 84% of TikTok searches happening in the exploration phase — making keyword-optimized captions and on-screen text more important for discoverability beyond the For You feed.
+Longer videos are getting more distribution. While short clips still perform well, TikTok has been pushing longer content (1 to 3 minutes and beyond), rewarding videos that maintain high completion rates at greater lengths.
+TikTok Shop signals are part of the mix. Commerce-tagged content can appear in dedicated shopping feeds and may receive additional distribution — with TikTok Shop sales forecast to reach $23.41 billion in 2026, product tagging is a relevant lever for brands with e-commerce goals.
+Content diversity is a priority. TikTok has stated it actively works to avoid showing too much repetitive content in a row, which means variety in your content formats and topics can help sustain algorithmic reach.
+The STEM feed expanded to all users. TikTok’s dedicated STEM feed, which became available to all users by default in late 2024, continues to grow as a discovery surface for educational and science-related content.
+The core algorithm mechanics (user interactions, video information, user settings) remain the same. What’s shifting is how TikTok weighs certain content types and discovery surfaces.
+
+Key TikTok algorithm changes in 2026 showing five updates including search growth, longer video rewards, TikTok Shop signals, content diversity, and STEM feed expansion
+Content TikTok won’t recommend in 2026 (and why)
+Before diving into what works, it’s worth understanding what the algorithm actively avoids. When planning your content strategy, knowing what types of content TikTok will not recommend is just as important as knowing what it favors.
+
+The following types of content are ineligible for recommendation in the For You feed. They may also be harder to find in search.
+
+Content created by anyone under 16 years old
+Hate speech and hateful behavior
+Disordered eating and body image
+Dangerous activity/dangerous challenges
+Nudity and body exposure
+Sexually suggestive content
+Shocking and graphic content
+Misinformation
+False or unverified claims about civic and election integrity
+Fake engagement (such as “like-for-like”)
+Unoriginal content (such as content uploaded with a watermark or a simple GIF)
+Gambling
+Promoting tobacco or drugs, or showing excessive alcohol consumption
+Live content with the main goal of driving people off-platform.
+Content not suitable for young people may be restricted to audiences over 18. And content that violates the Community Guidelines will be removed altogether (and could result in a strike against your account). If you post content that falls into any of these categories, you’ll see that information in TikTok Analytics, where you can also file an appeal.
+
+For enterprise teams, this list is especially important for brand safety. Make sure your content guidelines account for these restrictions so you don’t inadvertently limit your reach.
+
+12 tips for getting picked up by the TikTok algorithm in 2026
+Looking to get your content seen by more people, more often? Here are our top tips for winning the TikTok algorithm in 2026.
+
+Find your community
+Hook viewers in the first 3 seconds
+Use TikTok SEO strategies
+Create high-quality, TikTok-first content
+Post consistently and at the right time
+Boost reach with duets, stitches, and LIVE
+Use trending and relevant hashtags
+Add trending sounds and music
+Track your performance with TikTok analytics
+Work with TikTok creators and influencers
+Integrate TikTok Shop strategically
+Be authentic and have fun
+1. Find your community
+Connecting with existing communities is more important on TikTok than other social networks. Unlike Facebook, where people mostly engage with friends or accounts they already follow, TikTok’s For You feed is built around fresh content from strangers.
+
+But those strangers can quickly turn into a community. In fact, 72% of women on TikTok say it’s easy for new communities to connect and bond over shared life experiences on the platform.
+
+Tap into an existing community and you’ll likely find your content amplified to that audience. Fortunately, TikTok subcultures tend to congregate around hashtags.
+
+Some of the fastest-growing communities on TikTok include:
+
+#BookTok: This community of book lovers saw more than 1.2 million posts in the first ten months of 2024. Note that the more niche #Romantasy community saw a 300% increase in posts in 2024.
+#SportsOnTikTok: This hashtag saw a 350% increase in posts in 2024. Meanwhile, #WomenInSports saw a more than 2400% increase!
+#Science and #STEMTok: TikTok’s dedicated STEM feed partly explains the nearly 45% increase in posts with the #Science hashtag in 2024.
+Understanding your most valuable subcultures can also help you plan your content creation that connects authentically with TikTokers, creating greater credibility, brand loyalty, and even more exposure. TikTok users want brands to take this approach: 76% say they like it when brands are a part of special interest groups on the platform.
+
+TikTok’s Audience Insights can help you find your subculture by identifying the interests and hashtags most relevant to your target audience. You can even find the “Bottom 10” interests for your audience so you can avoid creating content in those categories.
+
+To access Audience Insights, open TikTok Ads Manager and hover over Analytics, then click Audience Insights. Note that you don’t have to be a TikTok advertiser to use this tool.
+
+To go more in-depth, check out our full guide to audience research.
+
+2. Hook viewers in the first 3 seconds
+TikTok moves fast. This is not the platform to add a wordy intro before you dive into the meat of your video. The hook needs to inspire viewers to stop scrolling.
+
+Watch time tells the TikTok algorithm that this is content worth sharing with other viewers. And the first three seconds are where viewers decide to stay or scroll past.
+
+According to TikTok itself, the first three seconds are critical. To grab attention, TikTok suggests:
+
+Starting off with a question that your video will answer
+Using a timer or countdown in your title overlay
+Flashing ahead to a quick preview of the end result
+The 3-second hook framework showing three strategies for TikTok videos: ask a question, show a countdown, and preview the payoff
+3. Use TikTok SEO strategies
+As important as hashtags are for your TikTok strategy, don’t forget about the importance of keywords. TikTok SEO is critical to teach the algorithm just what your content is about. And to allow interested TikTokers to find it, of course.
+
+Destination Madison created a TikTok series called Madison’s Iconic Eats, playing off pop-culture themes like set-jetting:
+
+“Social search and TikTok SEO is a huge focus for us,” says Sarah Warner, PR & Communications Manager at Destination Madison. “We want to anticipate what people are looking for and make sure that when they’re looking, they find us first. Doing so gives our content longevity and helps new people find us every day, even when we aren’t posting.”
+
+You could search for trending keywords that match with your content. Or, like Warner, you could use trending topics and keywords to inspire your content.
+
+TikTok captions give you plenty of room to work with. Start looking for trending keywords by region and industry in the TikTok Creative Center. (And if you’re stumped about what to write, try Hootsuite’s free social media caption generator.)
+
+Keep in mind that your caption is not the only place to include keywords. TikTok can also pick them up from your voiceover or text overlay.
+
+You can optimize for TikTok search by using clear keywords in captions, voiceovers, and text overlays. The algorithm relies on these signals to understand your content and match it with people looking for it.
+
+4. Create high-quality, TikTok-first content
+This should be an obvious one, right? Low-quality content is not going to find its way to the For You feed. But just in case you need proof, TikTok’s internal data shows that high-quality content creators get 72% more watch time per video view, and more than 40 times greater follower growth.
+
+And since TikTok is unlike other social platforms, high-quality content is TikTok-first content. In fact, 79% of TikTok users prefer brands that understand content creation specifically for TikTok.
+
+You don’t need any fancy equipment. In fact, TikTok research shows audiences prefer a “less-polished, authentic aesthetic.”
+
+What you do need is decent lighting, a good microphone if you’re going to record audio, and some quick edits and transitions to keep the visuals moving. Here are ways to embrace the TikTok-first aesthetic:
+
+Try different video lengths. Videos recorded in TikTok can be up to 10 minutes long, while uploaded videos can be up to 60 minutes long. TikTok has been increasingly distributing longer content (1 to 3 minutes and beyond), especially when completion rates stay high. If your content holds attention, don’t be afraid to go longer.
+Experiment with aspect ratio. Yes, you can now upload horizontal videos to TikTok, and they’ll play in full screen mode on phones. These will also work well with TikTok’s improved desktop interface. We’re not suggesting you abandon vertical videos, but it’s worth testing both formats, especially for different lengths.
+Dive into editing. Play around with TikTok’s built-in features like effects and text treatments. According to TikTok: “These native features help keep your content feeling native to the platform which can also help get it on more For You pages!”
+Try different formats. 76% of TikTok users say they enjoy a mix of images and video on the platform. Carousels are great too, like this example from @chipotle:
+Showcase expertise. Specialized content that highlights unique knowledge and expertise elevates the quality of your TikTok offering and connects to your niche. A couple of suggestions straight from TikTok are to solve a problem, share a hack, or teach something step by step.
+Add text to your video. Captions are in general a best practice for accessibility. Text like headlines and intro cards can also help draw viewers in and keep them engaged. And heads-up: More than 30% of TikTokers watch videos on mute and need captions for content. Leave them out and you’re missing out on a third of potential viewers.
+High-quality TikTok content is authentic, easy to watch, and made for the platform. Use clear sound, good lighting, captions, and quick edits, and test different lengths and formats to keep people watching.
+
+5. Post consistently and at the right time
+Posting at the right time is important for all social media platforms, and that includes TikTok. (That’s why we made this handy cheat sheet of the best times to post on every social platform.)
+
+Engagement is a key signal to the TikTok algorithm, and with roughly half of 18- to 29-year-olds using TikTok at least once a day, posting when your audience is most active is essential.
+
+Hootsuite’s research with Critical Truth shows that overall, the best time to post on TikTok for engagement is either Thursday morning or Saturday midday.
+
+best time to post on tiktok hootsuite graph
+But for best results, you need to know the best time to post for your specific audience. And for best results with the TikTok algorithm, you need to post at the best time to extend reach, which is not always the same as the best time to maximize engagement.
+
+The average engagement rate for brands on TikTok is 2.1%.
+
+Fortunately, reach is a key goal available in Hootsuite’s Best Time to Publish feature. This handy tool provides custom recommendations based on your past performance and tailored to your unique audience and their activity patterns on TikTok.
+
+A tiktok business analytics screen showing a weekly heatmap of when followers are online, with recommended best days and times to publish.
+Consistency matters just as much as timing. Posting regularly signals to the algorithm that your account is active and worth distributing, so maintaining a regular cadence is important for algorithmic momentum.
+
+FAQ: TikTok algorithm
+How often does the TikTok algorithm change?
+The TikTok algorithm changes incrementally and continuously, though TikTok doesn’t announce every update. The core ranking signals (watch time, completion rate, user interactions) remain consistent, but how TikTok weighs certain content types and discovery surfaces evolves as user behavior shifts. Enterprise teams should monitor performance metrics regularly and stay informed through TikTok’s official documentation and Creator Academy to adapt their strategy as the algorithm changes.
+Does posting frequency affect the TikTok algorithm?
+Posting frequency does impact your performance on TikTok, but consistency matters more than volume. The algorithm favors active accounts that post regularly, as this signals your content is current and your account is worth distributing. However, posting low-quality content just to hit a quota can hurt performance. Focus on maintaining a sustainable cadence that allows you to create high-quality, engaging content rather than posting daily if it compromises quality.
+Can you reset the TikTok algorithm?
+You cannot completely reset the TikTok algorithm for your account, but you can influence what content the algorithm shows you by changing your viewing behavior. To refresh your For You feed, start watching and engaging with the types of content you want to see more of, and use the “Not Interested” button on content you want to avoid. For brands, if your content isn’t performing, focus on improving quality and relevance rather than trying to game the system. The algorithm responds to genuine engagement signals.
+How important are hashtags for the TikTok algorithm in 2026?
+Hashtags remain important for the TikTok algorithm in 2026, but their role has evolved alongside TikTok’s expanded search functionality. Hashtags help categorize your content and connect it to specific communities, but keyword-optimized captions, voiceovers, and on-screen text now carry equal or greater weight for discoverability. Use a mix of broad community hashtags (like #BookTok) and specific niche tags, but don’t rely on hashtags alone. Focus on creating content that serves a clear audience and uses natural language that people actually search for.
+What metrics should enterprise teams track to measure TikTok algorithm performance?
+Enterprise teams should track watch time, completion rate, shares, and saves as primary indicators of algorithmic performance, since these are the strongest ranking signals. Also monitor reach (how many unique users saw your content), profile views, and follower growth rate. Use TikTok’s native analytics to identify which content the algorithm favors, and track performance by content type, community, and keyword to refine your strategy. Tools like Hootsuite can help centralize this data and identify patterns across your content portfolio.
+Save time managing your social media marketing strategy with Hootsuite. Publish and schedule posts, find relevant conversions, measure results, and more — all from one dashboard. Try it free today.
+
+Get started
+Grow on TikTok faster with Hootsuite
+
+Schedule posts, learn from analytics, and respond to comments all in one place.
+
+Start your free trial
+Content creation
+Social media algorithm
+Laptop with Hootsuite Dashboard
+Hootsuite Logo
+The #1 social media tool
+Create. Schedule. Publish. Engage. Measure. Win.
+
+Start your free trial
+By Hannah Macready
+Hannah Macready
+Hannah Macready is a freelance writer with 12 years of experience in social media and digital marketing. Her work has appeared in publications such as Fast Company and The Globe & Mail, and has been used in global social media campaigns for brands like Grosvenor Americas and Intuit Mailchimp. In her spare time, Hannah likes exploring the outdoors with her two dogs, Soup and Salad.
+
+Read more by Hannah Macready
+Related Articles
+cover image
+Social media strategy
+Social video
+The complete guide to TikTok marketing: Tips, examples & tools
+cover image
+Social media analytics
+Social media strategy
+TikTok analytics 2026: The ultimate guide for marketers
+cover image
+Social media advertising
+The only TikTok advertising guide you’ll ever need
+cover image
+Social media stats
+38 TikTok stats every marketer needs to know in 2026
+Laptop with Hootsuite Dashboard
+Hootsuite Logo
+The #1 social media tool
+Create. Schedule. Publish. Engage. Measure. Win.
+
+Start your free trial
+3,000+ 5-star reviews ★ ★ ★ ★ ★
+
+Top rated on G2
+Hootsuite Logo
+About
+Why Hootsuite
+About us
+Careers
+Leadership
+Customers
+Newsroom
+Social impact and DEI
+Product features
+Publish
+Engage
+Monitor
+Advertise
+Analyze
+Pricing
+Standard
+Advanced
+Enterprise
+Guides
+Social Media Marketing Strategy
+Social Media Analytics
+Social Listening
+Best Times to Post
+Social Media Calendar
+Social Media Engagement
+Employee Advocacy
+Social Media Monitoring
+Social Media Advertising
+Resources
+Academy
+Resource Library
+Case studies
+Webinars
+App directory
+Help center
+Product updates
+Integrations
+Partners
+English
+© 2026 Hootsuite Inc. All Rights Reserved.
+Legal Center Trust Center Privacy Cookie Preferences Accessibility
+Download on the App Store
+Get it on Google Play
+We use cookies to provide you with our website and services, monitor site usage and analyze web traffic, provide enhanced functionality and services, and personalize our marketing and advertising content based on your interests. We use our own and third-party cookies for social media, analytics and advertising purposes. You may opt-out of optional cookies by clicking on Cookie Preferences. For more information see ourCookie Notice
+Cookie Preferences

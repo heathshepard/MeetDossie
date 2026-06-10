@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "reason": "sage_skipped_all_top_candidates",
+  "candidates_tried": 1,
+  "queries_attempted": [
+    "texas option period stress",
+    "texas closing nightmare"
+  ],
+  "winning_query": "texas closing nightmare"
+}

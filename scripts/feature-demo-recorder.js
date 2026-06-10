@@ -230,7 +230,14 @@ async function record(scriptPath) {
   const slowmo = scriptCfg.slowmo_ms || 400;
 
   const { chromium } = require('playwright');
-  const browser = await chromium.launch({ headless: false, slowMo: slowmo });
+  const browser = await chromium.launch({
+    headless: false,
+    slowMo: slowmo,
+    args: [
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
+    ],
+  });
   const context = await browser.newContext({
     viewport,
     recordVideo: { dir: RAW_DIR, size: viewport },

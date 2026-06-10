@@ -1,0 +1,11 @@
+Five years in and getting fired twice in a week is the kind of week that makes everyone question whether they should be in this business. You shouldn't. Two things stood out to me reading this.
+
+One — the family that hired their previous agent's friend wasn't a referral problem, it was a relationship-decay problem. You were on and off with them for 9 months. The other agent had one closing's worth of equity built up and that beat your 9 months of follow-up. That's not on you. That's just how the math works on past clients with prior relationships. Don't read it as a signal about your work.
+
+Two — the panic-attack couple is a different story. Their lender said they showed no signs of pausing the search the same day they fired you. That means it almost certainly was the mom's realtor friend whispering in their ear, not anything you did wrong. Sometimes you lose a client to a relative's friend at the dinner table and there's nothing to learn from it.
+
+The thing that actually concerned me in your post is the line about being reactive instead of proactive because of the lead volume from your team. At 1.5M/month and 4-5 closings, the time you're losing to logistics on the active deals is probably the bigger leak than the leads. Every hour you spend chasing title for the CD on a closing this week is an hour you didn't spend nurturing the lead who's about to ghost you for another agent.
+
+For full disclosure — I built a tool called Dossie (Texas-only, transaction coordination SaaS) specifically for the closing-side time leak. It calculates TREC deadlines, drafts amendments from voice, watches the title company inbox for the replies that matter, and files the closed deal into a brokerage-compliant package. Not relevant to the lead-nurture problem, but if you're in Texas and the post-contract chaos is eating your follow-up time, it might be worth looking at. Not pitching — just being upfront since I'm naming it.
+
+You're not a bad agent. You had a brutal week.

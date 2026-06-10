@@ -1,0 +1,284 @@
+Skip to content
+Hootsuite Logo
+Search
+Search...
+Log In
+Start your free trial
+Blog
+Topics
+Networks
+Resources
+Industries
+About Hootsuite
+English
+Strategy
+The X (Twitter) algorithm explained: 2024 guide
+If you want to boost engagement, drive traffic to your site and build brand awareness, you need to know how the Twitter algorithm works.
+
+Stacey McLachlan
+October 7, 2024
+8 min read
+Download your free X marketing guide now
+Also available in
+Español
+cover image
+Table of Contents
+What is the Twitter algorithm?
+How the Twitter algorithm works in 2024
+Twitter algorithm ranking signals
+12 tips for working with the Twitter algorithm
+Whether you’re still insistent on calling it Twitter or are 100% on board with the X rebrand, there’s one thing all users of the social media platform can agree on: the Twitter algorithm (or X algorithm, whatever!) is a mighty powerful thing.
+
+That’s because the X algorithm—a set of rules that controls who sees what content on the social platform—impacts what shows up in each user’s feed.
+
+If you’re ready to get this all-mighty recommendation engine working for you, you’ve come to the right place. Read on for everything you need to know about the Twitter algorithm in 2024.
+
+
+Bonus: Grow your X (Twitter) following fast with a free 30-day workbook that will help you establish a marketing routine and track your growth, so you can show your boss real results after one month.
+
+What is the Twitter algorithm?
+The Twitter feed algorithm—also known as the X algorithm—is a proprietary formula that determines what appears in your For You feed.
+
+When you log in to Twitter, there are two feeds to choose from: the Following tab and the For You tab.
+
+Following displays posts from all of your followed accounts in reverse-chronological order—whoever posted most recently will be featured at the top of the feed.
+
+the x (twitter) algorithm controls the for you and following feeds on the social network
+The For You tab, on the other hand, compiles posts that X/Twitter thinks you’ll be interested in.
+
+Everyone’s For You tab is totally different: some posts might be from folks you already follow, but others might be from new accounts. It can include tweets posted that day alongside older tweets that have gotten a lot of attention.
+
+the x (twitter) algorithm curates the for you tab based on your predicted interests
+As X itself posted: “Twitter aims to deliver you the best of what’s happening in the world right now. This requires a recommendation algorithm to distill the roughly 500 million Tweets posted daily down to a handful of top Tweets.”
+
+The algorithm curates each user’s feed, taking into account your behavior on the site—your likes, your mutes and everything in between—as well as the behavior of people like you.
+
+
+
+#1 tool for X marketing
+Schedule tweets, answer comments, and manage ads from one spot. Then, show off your results in beautiful reports. It’s so easy.
+
+Start your free trial
+How the Twitter algorithm works in 2024
+The Twitter algorithm is a recommendation system that uses machine learning to curate content for users’ feeds. It crunches a constant stream of data in an attempt to surface posts that each user will enjoy most.
+
+According to a blog post from X in April 2023, here’s how the Twitter algorithm works. (Though things may have changed since then—and will continue to change in the future—this is the most up-to-date info we’ve got to work with.)
+
+Part 1: Candidate Sourcing The algorithm picks 1,500 tweets from people you follow and people whose tweets you might be interested in, based on your previous engagement and the engagement of people like you.
+
+Part 2: Ranking Tweets Twitter takes those 1,500 tweets and ranks them using a machine learning model, giving different actions different weights. If you’re likely to reply to a tweet, based on your previous actions, that tweet gets ranked a little higher. If you’re likely to report a tweet, that post will lose points. Basically, the tweets you’re most likely to interact with will wind up at the top.
+
+Part 3: Heuristics, Filters and Product Features Next, the Twitter algorithm removes people you’ve muted or blocked from that list of 1,500 tweets and balances the number of tweets coming from your followed accounts with those from recommended accounts, so you have a nice mix. Twitter will also make sure there aren’t too many tweets from one author.
+
+Part 4: Mixing and Serving Tweets Last but not least, the Twitter algorithm will sprinkle in some sponsored content with the organic tweets in the feed.
+
+Sound like a lot? Well, that’s because it is—and it’s all happening in the blink of an eye. According to X, the process above runs approximately 5 billion times per day and, on average, takes just 1.5 seconds to complete.
+
+That’s the broad strokes of how the algorithm works on X/Twitter, but the engineers have put the whole recommendation engine code on Github if you really want to get into the nitty-gritty.
+
+But poring over code isn’t necessary to achieve some reach. You really just need to understand how those posts are ranked… so let’s dig into that now, shall we?
+
+Twitter algorithm ranking signals
+The Twitter algorithm (or X algorithm, if you must) looks at people you follow (in-network sources) and people who you might be interested in (out-of-network sources), and then ranks posts based on how likely you are to enjoy them.
+
+Twitter uses the following factors to give each post something called a “RealGraph” score:
+
+For in-network sources, it looks at:
+
+How frequently you interact with an account
+Whether you’ve liked similar content in the past
+Whether you’ve retweeted this author’s content
+Whether you’ve replied to this author’s content
+Whether you’ve visited the author’s profile
+How long you stay on tweets by the author
+How long you typically watch videos posted by this author
+For out-of-network sources, it looks at:
+
+Activity from people with similar interests
+Activity from people you follow
+Which topics you typically engage with
+In other words: Twitter pays attention to user behavior and tries to give them more content that they’ll probably like.
+
+What does that mean for someone trying to use the Twitter algorithm to achieve reach? We’re so glad you asked.
+
+12 tips for working with the Twitter algorithm
+1. Maintain an active Twitter/X presence
+Twitter is a lot of things, but one thing it isn’t is precious. You should obviously think before you tweet but don’t overthink it. If you’ve got an idea for a post, just do it. Either it’ll work, or it will flop, and the timeline will keep moving.
+
+According to our research, most X users post 2-3 times per day, which aligns with our recommendations. Posting at least that often (with multiple Tweets in a thread counting as one post) is the best way to keep your followers engaged.
+
+Post frequency chart as of September 2024 showing most users posting 18 or 19 times per week
+If that sounds like a lot, a scheduling tool like Hootsuite is here to help. Draft up your bon mots while you’re in the creative zone and schedule them to go live when the time is right.
+
+2. Get verified
+In theory, it’s never been easier to get verified. That’s because the service now allows anyone who pays for an X Premium subscription service to get all the benefits of a blue check. (In the past, users were verified because they were notable in their field, such as celebrities or journalists.)
+
+This means, of course, that you’ll do better with the algorithm. In the Twitter recommendation engine code, Premium users get a boost for both people who follow them and users who don’t. If your business has $8 USD a month to invest in this increased reach, it might not be a bad idea.
+
+3. Post when your audience is online
+Sure, the Twitter/X algorithm will push out relevant content long after it was first posted, but it’s still best to post strategically so you have a better chance of reaching your target audience.
+
+According to our research, weekdays between 8 AM and 2 PM are generally the best times to post on X.
+
+Chart showing best time to post on Twitter/X for engagement
+Note: Time of day was localized across 118 countries where sample data came from, i.e. the graphs are accurate across time zones.
+If you want to discover your best time to post, try retweeting your best content at different times throughout the day to see when you gain the most traction, and use Hootsuite Analytics to review just when your hottest times of day are.
+
+4. Keep your following count low
+The algorithm is suspicious of accounts that follow too many people: an imbalance in your follower-to-following ratio can result in a penalty.
+
+Ideally, you should have more people on your followers list than on your following list. (But definitely don’t buy Twitter followers to make that happen—we beg you.)
+
+5. Repackage top content
+Even if you tweet at peak times, chances are many followers may have missed your Tweet. And if it performed well the first time, it likely will again.
+
+There are plenty of ways you could keep the ball rolling for the algorithm. Over the years, self-retweets have grown more common — you could do this if your initial tweet gained some traction and you want to keep the ball rolling.
+
+You can also re-share the same content but word it differently or approach it from a totally different angle. Find creative ways to repackage and re-share what works.
+
+For example, if you’re sharing a blog post, you could highlight different elements of the same content at different times. You can consider it another way to A/B test and discover which approach your audience finds most compelling.
+
+6. Join relevant trends and topics
+Look for trends and topics that your brand can contribute to — or lead. According to Twitter’s open-source code, tweets about trending topics get a little boost.
+
+the trending tab in x (twitter)
+Keep an eye on the Trending tab on the Explore page for the latest trends in real-time.
+
+Plus, our research shows that quote tweets are generally the top content type for engagement on X/Twitter — they earn almost twice the engagement that standard posts do.
+
+Chart showing top content types on X for engagement, with quote posts receiving 3.7% engagement on average
+Just don’t try to hop on every conversation on Twitter. Find the topics and themes that make sense for your brand. A little social listening will make it clear what’s relevant to your audience and what’s not.
+
+7. Play by the rules
+If you’re getting reported for bad behavior, or being so annoying that other users are blocking or muting you, the Twitter algorithm is not going to be too impressed.
+
+Your reputation on this site matters! If you’re not bringing value to users, Twitter’s not going to recommend you to other people. Get familiar with the X Rules and try to be a decent citizen of the web.
+
+8. Drum up some engagement
+When it comes to soliciting engagement on Twitter, it’s simple. Ask, and you shall receive.
+
+Ask an open-ended question or invite your followers to share photos or videos with you. Start a light-hearted debate. Maybe try engaging in a risky reply or two.
+
+
+Another thing you can ask for? Votes. Polls are a quick and easy way to ask for input on something. It could be anything from an on-brand survey to a request for concrete feedback.
+
+9. Use photos, videos, GIFs
+A boost in engagement can help your Tweet’s ranking with the Twitter algorithm.
+
+Not only does the code boost photo and video posts, but tweets with photos, videos, and GIFs tend to get more attention from followers than just text.
+
+
+And don’t worry if you’re not great with visuals—resources like stock video and graphic design software can help.
+
+10. Limit your links
+Twitter wants to keep everybody hanging out on the platform, so it’s not super-duper keen on shared links and URLs. (Especially if they’re spammy or non-stop.)
+
+In general, we’ve found that posts without links do much better on Twitter—and other social platforms, for that matter.
+
+Posting links on Twitter isn’t going to destroy your recommendation reputation, but consider using links as an occasional feature of your feed instead of the meat of your content. Focus on creating content that requires zero clicks to enjoy.
+
+11. Stick to your specialty
+The Twitter algorithm recommends content users based on their interests and areas of expertise, so finding your niche and sticking to it is a good way to earn an audience (and build a consistent brand in the process).
+
+12. Apply insights from analytics
+When it comes to algorithms, there are no one-size-fits-all solutions. Use X Analytics to track what works and what doesn’t for your specific account, and keep testing.
+
+And for a bird’s eye view of how your content is performing across different social media platforms, choose a social media management tool like Hootsuite.
+
+Hootsuite allows you to pretty much do it all:
+
+Build and schedule custom analytics reports so you’re always on top of your performance
+Track and benchmark your posts against your competitors and industry averages
+Keep an eye on trending topics and hashtags so you can plan your next campaign
+…oh, and you can also compose, schedule, and publish posts for every social platform, including X, TikTok, Instagram, Facebook, Messenger, LinkedIn, Pinterest and YouTube
+Manage your Twitter presence alongside your other social channels and save time using Hootsuite. Schedule and publish posts, engage your audience, and measure performance — all from one simple dashboard. Try it free today.
+
+Get Started
+Do it better with Hootsuite, the all-in-one social media tool. Stay on top of things, grow, and beat the competition.
+
+Start your free trial
+Social media algorithm
+Social media strategy
+Laptop with Hootsuite Dashboard
+Hootsuite Logo
+The #1 social media tool
+Create. Schedule. Publish. Engage. Measure. Win.
+
+Start your free trial
+By Stacey McLachlan
+Stacey McLachlan
+Stacey McLachlan is an award-winning writer and editor from Vancouver with more than a decade of experience working for print and digital publications.
+She is editor-at-large for Western Living and Vancouver Magazine, author of the National Magazine Award-nominated 'City Informer' column, and a regular contributor to Dwell. Her previous work covers a wide range of topics, from SEO-focused thought-leadership to profiles of mushroom foragers, but her specialties include design, people, social media strategy, and humor.
+You can usually find her at the beach, or cleaning sand out of her bag.
+
+Read more by Stacey McLachlan
+Related Articles
+cover image
+Social media stats
+Social media trends
+X (Twitter) stats that marketers need to know in 2025
+cover image
+Social media strategy
+How to get verified on X (Twitter) in 2024
+cover image
+Social media strategy
+X (Twitter) marketing in 2024: A SUPER complete guide
+cover image
+Experiments
+Social media strategy
+Experiment: Do Long-Form X Posts Give You More Reach?
+Laptop with Hootsuite Dashboard
+Hootsuite Logo
+The #1 social media tool
+Create. Schedule. Publish. Engage. Measure. Win.
+
+Start your free trial
+3,000+ 5-star reviews ★ ★ ★ ★ ★
+
+Top rated on G2
+Hootsuite Logo
+About
+Why Hootsuite
+About us
+Careers
+Leadership
+Customers
+Newsroom
+Social impact and DEI
+Product features
+Publish
+Engage
+Monitor
+Advertise
+Analyze
+Pricing
+Standard
+Advanced
+Enterprise
+Guides
+Social Media Marketing Strategy
+Social Media Analytics
+Social Listening
+Best Times to Post
+Social Media Calendar
+Social Media Engagement
+Employee Advocacy
+Social Media Monitoring
+Social Media Advertising
+Resources
+Academy
+Resource Library
+Case studies
+Webinars
+App directory
+Help center
+Product updates
+Integrations
+Partners
+English
+© 2026 Hootsuite Inc. All Rights Reserved.
+Legal Center Trust Center Privacy Cookie Preferences Accessibility
+Download on the App Store
+Get it on Google Play
+We use cookies to provide you with our website and services, monitor site usage and analyze web traffic, provide enhanced functionality and services, and personalize our marketing and advertising content based on your interests. We use our own and third-party cookies for social media, analytics and advertising purposes. You may opt-out of optional cookies by clicking on Cookie Preferences. For more information see ourCookie Notice
+Cookie Preferences

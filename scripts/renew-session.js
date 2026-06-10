@@ -115,7 +115,13 @@ async function main() {
   const sessionFile = path.join(SESSIONS_DIR, `${site}.json`);
 
   const { chromium } = require('playwright');
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({
+    headless: false,
+    args: [
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
+    ],
+  });
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 900 },

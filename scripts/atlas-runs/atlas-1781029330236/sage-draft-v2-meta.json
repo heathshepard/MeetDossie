@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "drafted_at": "2026-06-08T00:00:00.000Z",
+  "drafted_by": "sage",
+  "supersedes": "sage-draft.txt",
+  "reason_for_revision": "Original draft fabricated a lead-nurture capability ('watches for buying signals before close') Dossie does not have. Dossie is post-contract transaction coordination only. Honest re-draft addresses the OP's real emotional content first, names the operational truth about her two specific losses, then mentions Dossie with accurate capability scope and explicit disclosure.",
+  "word_count": 347,
+  "platform": "reddit",
+  "subreddit": "realtors",
+  "op_post_title": "Why am I losing leads/ clients?",
+  "op_author": "mentallyilllizard777",
+  "rules_compliance": {
+    "no_url_in_comment": true,
+    "founder_disclosure_present": true,
+    "value_first_structure": true,
+    "single_capability_mention": true,
+    "honest_scope_no_fabrication": true,
+    "matches_thread_emotional_register": true
+  },
+  "capability_beats_used": [
+    "calculates TREC deadlines",
+    "drafts amendments from voice",
+    "watches the title company inbox",
+    "files closed deal into brokerage-compliant package"
+  ],
+  "conversion_path": "comment → Google 'Dossie Texas' → meetdossie.com → /founding",
+  "seven_day_success_criteria": "Did this comment drive a Dossie search OR signup within 7 days? Atlas to flag if OP or any commenter on this thread signs up."
+}

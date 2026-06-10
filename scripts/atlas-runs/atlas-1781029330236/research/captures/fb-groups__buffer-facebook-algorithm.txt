@@ -1,0 +1,468 @@
+Privacy Notice
+
+We use cookies to enhance your experience and analyze our traffic. By continuing to use our site, you agree to our use of cookies.
+
+Do not sell my personal information
+
+Top navigation
+Buffer
+
+Features
+
+Integrations
+
+Made for
+
+Resources
+Pricing
+Log in
+Get started for free
+Blog navigation
+Blog
+All posts
+Social Media Marketing
+Social Media Insights
+Creator Marketing
+AI
+Tools
+
+SearchBuffer’s blog
+Breadcrumbs
+Blog
+Facebook
+Inside the Facebook Algorithm in 2026: All the Updates You Need to Know
+Facebook
+PublishedJan 6, 2026
+
+Is there a secret to getting your content seen by as many people as possible? Here’s everything we know about how the Facebook algorithm works and how you can get your content the reach it deserves.
+
+Reading time
+15 minute read
+Author
+
+Shivani Shah
+
+Photo Credit: Kenny Eliason on Unsplash
+Create a post in Buffer
+Share on Threads
+Share on Facebook
+Share on LinkedIn
+Share on X (Twitter)
+Share on Reddit
+Ask ChatGPT about this content
+Ask Claude about this content
+Remember the early days of Facebook, around 2006, when posts appeared in (mostly) chronological order when you opened the platform?
+
+Well, things look a bit different 20 years later.
+
+Facebook began as a place to share updates and photos with friends and family, putting the ‘social’ in social media. Today, it has evolved into a full-fledged platform for community building and business growth.
+
+Try Buffer for free
+200,000+ creators, small businesses, and marketers use Buffer to grow their audiences every month.
+
+Get started for free
+People can follow creators and brands, join communities and groups, and promote events on the platform. Instead of just text and photo posts, there are now disappearing stories, reels, live streams, and much more.
+
+With so many new features available, it makes sense that the Facebook algorithm — the ranking system that uses machine learning to arrange content in users’ feeds — has changed too.
+
+What used to be one chronological feed is now a set of different feeds — and multiple feeds means multiple algorithms. These algorithms work together to decide what content users see when they open the app.
+
+Understanding how the Facebook algorithms work is a solid start to getting your content seen by as many people as possible. When you know what Facebook looks for when showing posts to users, you can make more thoughtful decisions about what, when, and why you post.
+
+In this article, I’ll unpack everything we know about how the Facebook algorithms work, and I’ll share some tips you can use to get your content the reach it deserves.
+
+⚡
+Want to save time on Facebook? Buffer's Facebook scheduling and analytics tools help you plan and schedule posts for pages and groups all in one place.
+How the Facebook algorithm works
+The Facebook algorithm was created so that the Meta-owned platform shows users more interesting, relevant content that’s tailored to them and keeps them scrolling longer. 
+
+“Facebook’s goal is to make sure that you see posts from the people, interests, and ideas that you find valuable, whether that content comes from people you’re already connected to or from those you may not yet know,” the company says.
+
+To that end, there are three different types of content that will make it into users’ feeds:
+
+Connected content — content from the people they're friends with or are following, groups they've joined, and pages they've liked.
+Recommended content — content Facebook thinks they’ll be interested in from pages and people they don't already follow.
+Ads — content people see because of targeting, rather than the algorithm.
+Since this post is about the Facebook algorithm and not Facebook ads, I'll unpack the first two here.
+
+How the Facebook algorithm ranks connected content
+If a user is your friend (for personal profiles) or likes your Facebook Page or profile (for businesses and creators), your content may show up in their home feed when they open the app as part of the connected content system.
+
+Here’s how Facebook evaluates and ranks your content:
+
+1. Checks what posts are available
+The algorithm looks at all the content that could show up in a user’s feed. This includes content shared by their friends, the pages they follow, and the groups they’ve joined.
+
+Right from the get-go, content that violates Facebook’s Community Standards is excluded (more on this below).
+
+2. Examines key signals
+The second thing the Facebook algorithm does is look at ranking factors called ‘signals’ to decide how relevant a piece of content will be to that particular user. There are thousands of possible signals Facebook considers that are based on both user behavior and the post itself.
+
+Here are some examples:
+
+The Facebook feed algorithm might look at how often someone’s seen similar types of content recently (like photos or videos) and how much time they’re spending on their feed. It also takes into account factors related to the post, like how many comments or reactions it has and how long the comments are, on average.
+
+Importantly, it also looks at how likely someone is to interact with the person who shared the post, especially if they’re friends or in a group. That prediction is based on things like past interactions between them, both in public (like comments or reactions) and in DMs.
+
+The Facebook Stories algorithm might look at how often someone views stories in general and how many stories (or sets of stories) they’ve watched from different people or pages. It also pays attention to whether they’ve missed any stories from a person or page they follow, how many photos or videos are in a story set, and if they’ve ever replied to that person or page’s stories with a message.
+
+3. Makes predictions
+Each of those thousands of signals is then used to make “personalized predictions about which content [users will] find most relevant and valuable.”
+
+In other words, the algorithm looks at users’ past behavior to make predictions about whether they’ll be interested in your post and likely to interact with it.
+
+For example, if you run a brand Facebook Page that they follow and visit often, and they regularly share your posts, Facebook knows they’re a fan. They probably want to see more of your content in their feed.
+
+A less obvious example: If a user likes shopping in the afternoons and reacts to more branded posts during that time, Facebook will use that as an indicator to surface more branded posts during that time.
+
+💡
+Facebook ranking isn’t a one-and-done situation. The ranking system is constantly evolving based on the behavior of users.
+4. Scores each post
+After all that, the algorithm gives each piece of content a ‘relevance score’. The higher the relevance score, the higher in the feed it will surface. 
+
+At this point, the algorithm also mixes up the content to keep things feeling fresh — for example, it spaces out posts from the same creator or page so that users’ feeds aren’t filled with back-to-back content from one account (no matter how big a fan they may be).
+
+Once all the connected content has been logged, analyzed, and ranked, the algorithm then starts to throw recommended content into the mix.
+
+How the algorithm ranks recommended content
+Facebook's recommended content system gives brands and creators a chance to draw in new fans and followers without any ad spend. It helps people in your target audience — even those who don’t follow you yet — discover the public content you share to your creator profile, brand page, group, or event.
+
+Just like the connected content in the feed, recommendations are personalized — no two Facebook users will see exactly the same thing.
+
+Facebook uses the same four-step ranking process for recommended content as it does for connected content, but with a different, equally large set of signals.
+
+The feed recommendations algorithm might look at the type of post (like photo or video), how long someone watched it on their phone, and whether they’ve tapped ‘Show more’ on similar posts in the past six months. It also considers how often they’ve liked posts about a certain topic in the past 30 days, and whether they’ve shared posts from that person or page before.
+
+The Facebook reels algorithm might look at how many reels someone has watched from a specific creator or page, which ones they’ve clicked to view in full screen, and which ones they’ve watched all the way through. It also considers factors like the video’s length, what topic the reel is tagged with, and whether the user has liked reels on a similar topic before.
+
+Facebook has also shared detailed guidance on where it draws the line when it comes to recommendations, and certain types of content may be excluded. Since recommended posts are shown to people who may not already follow you, it makes sense that Facebook applies some pretty strict filters to keep that experience safe, relevant, and respectful.
+
+To increase your chances of getting your content recommended to new users, it’s worth familiarizing yourself with — and sticking to — their rules.
+
+Facebook applies two sets of standards here.
+
+The first is its Community Standards, which are baseline rules for what’s allowed on the platform. Content that violates these rules is removed entirely.
+
+You’ll find the full list in Facebook’s Transparency Centre (which is a must-read for all marketers and creators), but here are a few common examples of content that violates these standards (and will be removed):
+
+Violence and incitement
+Crime
+Suicide or self-injury
+Child exploitation, abuse, or nudity
+Bullying or harassment
+Spam
+Inauthentic behavior
+Misinformation
+Still, if your content doesn’t overtly violate one of these rules, that doesn’t mean it’s eligible for recommendation.
+
+Facebook has a second layer of standards: the Recommendations Guidelines. These apply to content that is allowed on the platform but doesn’t meet the higher bar for being recommended to Facebook users who don’t already follow you. In other words, the post might stay up, but it won’t get shown to a wider audience through feeds or suggestions.
+
+Five categories of content are technically allowed on Facebook but may not be eligible for recommendations:
+
+Content that makes it harder for Facebook to maintain a safe community — for example, posts that talk about self-harm, suicide, or eating disorders; are sexually explicit; or promote regulated products.
+Sensitive or low-quality content about health or finance — like exaggerated health claims (such as “miracle cures”), cosmetic procedure promotions, or business models that may be misleading or deceptive, such as payday loans or “risk-free” investments.
+Content that users generally dislike — including things like clickbait, engagement bait (such as “like this if you agree”), or overly promotional contests or giveaways.
+Content from sources that lack transparency — such as news content without clear authorship or publishing information.
+False or misleading content — including fake news or claims that have been debunked by independent fact-checkers, such as widely disproved health or vaccine-related misinformation.
+9 best practices for creating successful Facebook content
+There's no surefire way to ‘beat’ the Facebook algorithm, but there are plenty of things you can do to increase your chances of success on the platform. Here's our list of best practices for generating reach and engagement on Facebook.
+
+1. Stick to a consistent posting schedule
+There’s a reason this advice has stuck around: posting regularly to your social media platforms continues to be one of the best ways to grow your audience. Even Tom Alison, Head of Facebook, has called this out as a tip for creators looking for success on the platform: “Posting more can help you break through,” he said in a video.
+
+Consistency helps people stay familiar with your content, gives them more chances to engage with it, and makes it easier for Facebook to understand what kind of posts you’re sharing.
+
+The numbers back this up too. Buffer’s analysis of data from more than 100,000 social media users found that people who posted consistently received five times more engagement per post compared to inconsistent posters. Even a moderately consistent rhythm saw four times more engagement than inconsistency.
+
+You don’t have to post multiple times (or even once) a day to be consistent. What matters is finding a rhythm that works for you — and sticking to it — so that your audience knows when to expect something from you.
+
+2. Share content that invites engagement
+As with all social platforms, producing high-quality content that resonates with your audience should always be your first social media marketing goal. Posts that feel thoughtful, genuine, and relevant are far more likely to get people to pause, react, or share — and every interaction sends a signal to the algorithm that users want to see more of it.
+
+Facebook puts it simply: before you hit publish, ask yourself, “Would people share my story with their friends or recommend it to others?” That one question can help you stay focused on creating content that feels meaningful to your target audience.
+
+There's no cheat sheet for what that looks like — every audience is different, after all — but let the metrics guide you here. When posts don’t perform as well as you hoped, try to get to the root of why by analyzing the info available in Facebook Insights.
+
+Facebook Page Insights are now housed in your Page Dashboard, which you can find by clicking on your profile photo in the top right.
+
+Screenshot showing how to navigate to Facebook Insights
+From your dashboard, you’ll find a high-level overview of your content views, engagement performance, and follower growth. Click on Insights in the left sidebar for more detailed data.
+
+Screenshot showing a high-level overview of data from Facebook Insights
+To go deeper still, click All Tools and scroll down to Meta Business Suite.
+
+Screenshot showing how to navigate to Meta Business Suite in Facebook
+This will take you to a page like the one below, where you’ll also get a look at your Instagram content analytics if you have a connected profile.
+
+Screenshot showing where to see Instagram content analytics from Facebook Page Insights
+You can also go directly to Meta Business Suite Insights at https://business.facebook.com/.
+
+When it comes to content that resonates, users value accurate, authentic content, Facebook says. “We work hard to understand what type of posts people consider genuine so we can rank them higher in the feed. We work to understand what kinds of content people find misleading or sensational, and work to make sure that people see those less.”
+
+Between text-based posts, photos, GIFs, carousels, reels, and live videos, there are plenty of content types you can choose from. Mix them up to find what strikes a chord with your audience so you can learn what they want to see more of.
+
+3. Treat engagement like a two-way conversation
+Have I mentioned how much the Facebook algorithm loves engagement? While posting great content is important, what happens after that matters just as much for generating engagement.
+
+This can be as simple as replying to messages and leaving thoughtful responses or reacting to comments. Whether you’re an influencer, creator, or brand, these small actions show you’re present — and that’s something the algorithm notices.
+
+Engaging with your target audience should be baked into your marketing strategy, and Facebook suggests replying to comments and messages within 24 hours. That sends a signal that you’re actively engaged with your audience, and not just posting and ghosting.
+
+This approach will create a ripple effect: the more deeply connected your followers feel to your brand (business or personal), the more likely they are to like, comment on, or share your new content.
+
+💡
+Stay on top of comments on your Facebook Page with Buffer's new Community feature.
+4. Share formats that perform on Facebook
+According to a 2025 report from Meta, nearly 98% of the posts that US-based users viewed — whether from accounts they followed or not — didn’t include a link. In other words, most of what appears in people’s feeds is content they can view without leaving the platform.
+
+That includes reels, photos, carousels, and text-based posts that share key information in the post itself — like the vast majority of content that people are seeing when they open the app.
+
+Links aren’t off-limits, but they’re better used selectively. If you do include one in a post, avoid linking to what Facebook considers “low-quality web experiences,” such as pages with a poor mobile experience and a high ratio of ads to content or sites that ask for unnecessary personal data.
+
+Facebook deprioritizes posts with these kinds of links, which can make them less likely to appear on people’s feeds.
+
+5. Embrace video
+Short-form video content — especially reels — continues to be one of the fastest ways to grow on Facebook, according to Tom Alison. And in October 2025, Facebook shared that the algorithm is “now surfacing 50% more reels from creators published that day.”
+
+Reels that are under 90 seconds long can show up in more places across the app, including the Reels tab and section on the home feed. Plus, Facebook Reels have a bit of an edge on the platform as they have a separate feed for users (right next to ‘Home’ in the app) consisting almost entirely of recommended content.
+
+Here’s our everything-and-the-kitchen-sink guide to Facebook Reels to get you started.
+
+Screengrab showing where to find Facebook Reels
+Facebook’s ‘Reels’ Feed — formerly ‘Video’ — gets special attention in the app.
+Another bonus point in short-form video content’s favor: it can be cross-posted to Instagram Reels or even repurposed for YouTube Shorts and TikTok.
+
+You can also go live on Facebook to connect with people in real-time. Live video is a chance to answer questions, share updates, host interviews, or take your audience behind the scenes of business or creator journey.
+
+You’ll need to meet a couple of requirements first: your account must be at least 60 days old and have 100 followers before you can start a live session.
+
+Once the live video ends, you have 30 days to download a copy before Facebook deletes it. From there, you can repurpose the best moments into shorter clips for reels (or video on other social media platforms) to keep reaching people after the live broadcast is over.
+
+📈
+Although Facebook is pushing video, our data found that photos on Facebook are the winner when it comes to median engagement.
+6. Share user-generated content
+When people tag you in posts, take notice: this is a perfect opportunity to share that post as UGC (or user-generated content) — with their permission, of course. UGC helps show followers real experiences with your brand, while also giving the original poster a little recognition in return.
+
+Reviews are another great source of content. If someone’s left a thoughtful review of your business on sites like Trustpilot or Yelp, you can turn it into a short Facebook post and tag the person in a caption. It’s a simple way to show social proof — and it might even bring in a new follower (if the reviewer wasn't following you to begin with).
+
+7. Create meaningful conversations
+Posts that spark meaningful interactions are more likely to get noticed, not just by your audience but by the Facebook algorithm too. Facebook likes authentic accounts that contribute to their community and help start or sustain thoughtful conversations.
+
+That doesn’t mean every post needs to be deep or discussion-heavy. It simply means thinking beyond one-way updates or promotions. Facebook’s goal is to “bring people closer together and build relationships,” so posting overly promotional content that doesn't get comments or shares won't help your ranking. Instead of talking at your audience, aim to talk with them — ask questions, share ideas people can respond to, or invite your followers to weigh in on something.
+
+Interacting with other people’s posts helps too. Joining relevant conversations shows you’re there to engage and be part of the community instead of simply broadcasting.
+
+8. Avoid clickbait and engagement bait
+A graphic showing examples on different types of bait posts, something the Facebook algorithm deprioritizes
+Facebook regularly updates its algorithm to pinpoint posts that fall into the clickbait and spammy links category. 
+
+Clickbait is content that is exaggerated, over-sensationalized, and borderline spam. It promises a result but doesn't deliver — think headlines like “The one fruit you need to stay young”, which is an obvious tactic because this magical fruit doesn’t exist.
+
+Some clickbait links can cross the line into fake news, especially when they make claims that are both exaggerated and untrue. Fake news has been rampant on Facebook, so they've been doubling down on looking for signals that indicate misinformation or misdirection since 2018. 
+
+Posting fake news for whatever purpose — creating false urgency, fostering fear — is against Facebook’s Community Standards, and repeated offenses can get you banned from the platform.
+
+Not all clickbait is false. A post might use a sensationalist headline to grab attention without spreading misinformation — like “You’ll never guess what happened to this man out walking his dog,” even if the story ends up being true but underwhelming. Still, it goes against Facebook’s recommendations guidelines, and the Facebook algorithm will demote these in the feed.
+
+Engagement bait, on the other hand, uses captions or photos that contain phrases like, “Like this if you like dogs better, share this if you like cats better.” It’s mostly harmless, but it doesn’t create any meaningful interactions — and it often feels spammy. This also goes against the recommendations guidelines, and the Facebook algorithm will demote these posts too.
+
+9. Follow Facebook’s Community Standards
+We've talked about this, but it bears repeating. Facebook takes its Community Standards very seriously. The algorithm is pretty good at weeding out posts that violate these rules, but even if a post manages to skirt under the radar, Facebook users can report it and have it taken down anyway. 
+
+If your posts get removed or reported repeatedly, the overall “score” of your profile will also go down, which will lessen the visibility of your posts. In some cases, Facebook can also remove you from the platform entirely.
+
+Don't try to game the Facebook algorithm — work with it
+There you have it: there’s no shortcut to Facebook success. Yes, it’s a long game. But high-quality, engagement-driving content that doesn’t violate any guidelines is the best way to play it.
+
+With Buffer, you can plan, publish, and analyze Facebook content that works with the algorithm — all from one place.
+
+You’ll be watching those follower numbers climb in no time.
+
+→ Get started for free.
+
+FAQ about the Facebook algorithm
+How does the Facebook algorithm work?
+The Facebook algorithm uses machine learning to decide which posts appear in each user’s feed. It looks at thousands of signals — like past interactions, post type, and engagement — to predict what content someone is most likely to find relevant and valuable.
+
+What types of content does Facebook prioritize?
+Facebook prioritizes content that sparks meaningful engagement, such as comments, shares, and longer viewing time. Native formats like photos, text posts, reels, and videos generally perform better than posts that send people off the platform.
+
+Do Facebook Reels get more reach?
+Often, yes. Reels have their own dedicated feed and are heavily recommended to users who don’t already follow you. Short-form video — especially under 90 seconds — is one of the fastest ways to reach new audiences on Facebook.
+
+How important is engagement for the Facebook algorithm?
+Very. Engagement is one of the strongest signals Facebook uses when ranking content. Posts that encourage genuine interaction — thoughtful comments, replies, and shares — are more likely to be shown to more people.
+
+What content is not eligible for Facebook recommendations?
+Even if a post follows Facebook’s Community Standards, it may still be excluded from recommendations if it’s clickbait, engagement bait, misleading, overly promotional, or covers sensitive topics like health or finance without credible context.
+
+Can you “beat” the Facebook algorithm?
+There’s no shortcut or hack. The best way to work with the algorithm is to post consistently, create content your audience genuinely cares about, engage in conversations, and follow Facebook’s guidelines.
+
+More Facebook resources
+How to Get More Followers on Facebook for Free in 2026: 10 Tried-and-True Tactics
+What Is a Good Facebook Engagement Rate? Data From 52 Million+ Posts
+16 Facebook Statistics to Know for 2025
+Facebook Marketing for Small Businesses and Creators: Tips, Tools, and Tactics That Work
+How to Schedule Facebook Posts in 3 Easy Ways (+ Save Hours Every Week)
+
+Shivani Shah
+Shivani is a SaaS content writer and editor who likes to make complex ideas easy to understand. She believes in “show, not tell” and loves tinkering with new tools to make work — and life — easier.
+
+Read more posts by Shivani Shah
+Try Buffer for free
+200,000+ creators, small businesses, and marketers use Buffer to grow their audiences every month.
+
+Get started for free
+Related Articles
+
+How to Get More Followers on Facebook for Free in 2026: 10 Tried-and-True Tactics
+Topic
+Facebook
+Published
+Jun 4, 2026
+Growing your Facebook following doesn't require a massive ad budget. These strategies can help you build an audience organically — it takes consistency and creativity, but it's totally doable.
+
+Reading time15 minute read
+
+
+Shea Karssing
+
+Facebook Marketing Strategy: Your Ultimate 2026 Guide
+Topic
+Facebook
+Published
+Jun 2, 2026
+Build a Facebook marketing strategy that actually works in 2026, with step-by-step setup, content ideas, ads basics, and tips from working creators.
+
+Reading time29 minute read
+
+
+Shea Karssing
+
+How to Make Money on Facebook in 2026
+Topic
+Facebook
+Published
+Apr 10, 2026
+Facebook paid creators nearly $3 billion in 2025, and new programs like Creator Fast Track are opening more doors. Here's how to make money on Facebook — from content monetization to brand deals.
+
+Reading time13 minute read
+
+
+Kirsti Lang
+Try Buffer for free
+200,000+ people like you use Buffer to build their brand on social media every month
+
+Get started for free
+Browse by topic
+
+All posts
+AI
+Analytics
+Bluesky
+Content Marketing
+Creator Marketing
+Social Media Insights
+Email Marketing
+Facebook
+Influencer Marketing
+Instagram
+LinkedIn
+Mastodon
+News
+Open
+Pinterest
+Productivity
+Self-Improvement
+Small Business
+Social Media Marketing
+Threads
+TikTok
+Tips / How-To
+Tools
+Twitter
+Video
+Youtube
+Buffer
+Features
+Create
+Publish
+Community
+Analyze
+Collaborate
+Tools
+AI Assistant
+Start Page
+Integrations
+iOS App
+Android App
+Browser Extension
+Channels
+Bluesky
+Facebook
+Google Business Profile
+Instagram
+LinkedIn
+Mastodon
+Pinterest
+Threads
+TikTok
+X
+YouTube
+Made for
+Creators
+Small Business
+Agencies
+Nonprofits
+Higher Education
+Developers
+Resources
+Blog
+Template Library
+Social Media Insights
+Resource Library
+Social Media Terms Glossary
+Free Marketing Tools
+AI Social Media Post Generator
+Compare Buffer
+Our Community
+Buffer API
+Developer Docs
+Support
+Help Center
+Status
+Changelog
+Request a Feature
+Transparency
+Open Hub
+Transparent Metrics
+Transparent Pricing
+Transparent Salaries
+Product Roadmap
+Company
+About
+Careers
+Press
+Partner Program
+Legal
+Sitemap
+Buffer
+Social media
+Instagram
+Facebook
+Bluesky
+X
+LinkedIn
+Threads
+Policies
+Copyright ©2026 Buffer
+
+|
+Privacy
+
+|
+Terms
+
+|
+Security

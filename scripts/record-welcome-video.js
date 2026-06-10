@@ -190,7 +190,14 @@ async function recordSettingsSession() {
   fs.mkdirSync(RAW_DIR, { recursive: true });
 
   // slowMo: 600 makes every action 600ms apart — looks human
-  const browser = await chromium.launch({ headless: false, slowMo: 600 });
+  const browser = await chromium.launch({
+    headless: false,
+    slowMo: 600,
+    args: [
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=0',
+    ],
+  });
   const context = await browser.newContext({
     recordVideo: {
       dir: RAW_DIR,
