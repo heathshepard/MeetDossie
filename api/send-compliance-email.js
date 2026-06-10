@@ -99,6 +99,7 @@ Heath
 heath@meetdossie.com
 Licensed Texas REALTOR | Founder, Dossie`;
 
+      // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
       const sendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -110,7 +111,6 @@ Licensed Texas REALTOR | Founder, Dossie`;
           to: email,
           subject: 'Heads up - TREC forms are changing July 1',
           text: body,
-          bcc: ['heath@meetdossie.com'],
         }),
       });
 
