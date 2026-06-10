@@ -40,7 +40,8 @@ async function sendResendEmail({ from, to, subject, html }) {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from, to: [to], subject, html, bcc: ['heath@meetdossie.com'] }),
+      // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
+      body: JSON.stringify({ from, to: [to], subject, html }),
     });
     return { ok: res.ok, status: res.status };
   } catch (err) {
