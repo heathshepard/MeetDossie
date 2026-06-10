@@ -538,6 +538,16 @@ async function main() {
     process.exit(1);
   }
 
+  // Preflight: close any facebook.com tabs in Heath's main Chrome so they
+  // don't race with the DossieBot-Sage automation profile.
+  try {
+    const { preflight } = require('./_lib/fb-tab-preflight');
+    const pre = await preflight({ reason: 'fb-group-poster' });
+    console.log(`[fb-group-poster] preflight: closed=${pre.closed} skipped_dossiebot=${pre.skipped_dossiebot}`);
+  } catch (e) {
+    console.warn(`[fb-group-poster] preflight non-fatal error: ${e.message}`);
+  }
+
   console.log(`[fb-group-poster] Fetching post ${POST_ID}`);
   const post = await fetchPost(POST_ID);
 
