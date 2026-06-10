@@ -16,17 +16,45 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const SESSION_FILE = path.join(__dirname, 'sessions', 'reddit.json');
+
+// ─── Env load (for PLAYWRIGHT_PROFILE_NAME) ───────────────────────────────────
+
+(function loadEnv() {
+  try {
+    const envPath = path.join(__dirname, '..', '.env.local');
+    if (!fs.existsSync(envPath)) return;
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq < 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const val = trimmed.slice(eq + 1).trim().replace(/^"(.*)"$/, '$1');
+      if (!process.env[key]) process.env[key] = val;
+    }
+  } catch {}
+})();
+
+const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
+  os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data'
+);
+const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Profile 4';
 
 async function main() {
   const args = process.argv.slice(2);
   let postUrl = null, text = null, textFile = null, headless = true;
+  let mode = (process.env.REDDIT_FETCH_MODE || 'profile').toLowerCase();
   for (const a of args) {
     if (a.startsWith('--url=')) postUrl = a.slice('--url='.length);
     else if (a.startsWith('--text=')) text = a.slice('--text='.length);
     else if (a.startsWith('--text-file=')) textFile = a.slice('--text-file='.length);
     else if (a === '--headed') headless = false;
+    else if (a === '--use-cookie-file') mode = 'cookie';
+    else if (a === '--use-profile') mode = 'profile';
   }
   if (textFile) text = fs.readFileSync(textFile, 'utf8').trim();
   if (!postUrl || !text) {
@@ -35,21 +63,45 @@ async function main() {
   }
 
   const { chromium } = require('playwright');
-  const browser = await chromium.launch({
-    headless,
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--no-first-run',
-      '--remote-debugging-address=127.0.0.1',
-      '--remote-debugging-port=0',
-    ],
-  });
-  const context = await browser.newContext({
-    storageState: SESSION_FILE,
-    viewport: { width: 1280, height: 900 },
-    userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-  });
+
+  // Default: DossieBot persistent profile (matches all other engagement scripts).
+  // Fallback: legacy cookie file at scripts/sessions/reddit.json.
+  let browser = null;
+  let context;
+  if (mode === 'cookie' && fs.existsSync(SESSION_FILE)) {
+    console.error('[reddit-playwright] using cookie-file mode (legacy)');
+    browser = await chromium.launch({
+      headless,
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--no-first-run',
+        '--remote-debugging-address=127.0.0.1',
+        '--remote-debugging-port=0',
+      ],
+    });
+    context = await browser.newContext({
+      storageState: SESSION_FILE,
+      viewport: { width: 1280, height: 900 },
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    });
+  } else {
+    console.error(`[reddit-playwright] using DossieBot persistent profile (${PLAYWRIGHT_PROFILE_NAME})`);
+    context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
+      headless,
+      args: [
+        '--no-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
+        '--remote-debugging-address=127.0.0.1',
+        '--remote-debugging-port=0',
+      ],
+      viewport: { width: 1280, height: 900 },
+      channel: 'chrome',
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    });
+  }
 
   const page = await context.newPage();
 
@@ -118,7 +170,8 @@ async function main() {
     await page.screenshot({ path: 'scripts/atlas-runs/reddit-no-composer.png', fullPage: true });
     const html = await page.content();
     fs.writeFileSync('scripts/atlas-runs/reddit-page-after-nav.html', html);
-    await browser.close();
+    try { await context.close(); } catch {}
+    if (browser) { try { await browser.close(); } catch {} }
     process.stdout.write(JSON.stringify({ ok: false, error: 'composer_not_found' }));
     process.exit(1);
   }
@@ -191,7 +244,8 @@ async function main() {
   await page.waitForTimeout(2000);
   await page.screenshot({ path: 'scripts/atlas-runs/reddit-final.png', fullPage: false });
 
-  await browser.close();
+  try { await context.close(); } catch {}
+  if (browser) { try { await browser.close(); } catch {} }
 
   const result = {
     ok: true,
