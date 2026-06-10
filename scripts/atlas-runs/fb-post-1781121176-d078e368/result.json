@@ -1,0 +1,32 @@
+{
+  "ts": "2026-06-10T14:52:56.789496",
+  "post_id": "d078e368-1738-4bdc-a2f5-fc1f0fe8399c",
+  "group_url": "https://www.facebook.com/groups/dallasrealtors/",
+  "idx": 3,
+  "total": 6,
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121176-d078e368",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121176-d078e368\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121176-d078e368\\02-loaded.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121176-d078e368\\06-final.png"
+  ],
+  "steps": [
+    "opened new tab + navigated",
+    "waited 10s for FB load",
+    "composer focused at {'x': 723, 'y': 624, 'method': 'uia', 'label': 'Write something...'}",
+    "body pasted + verified",
+    "submitted via: tab_walk_9",
+    "closed tab"
+  ],
+  "outcome": "posted",
+  "reason": null,
+  "window": {
+    "title": "(1) The Texas Real Estate Network: Classifieds & Support | Facebook - Google Chrome",
+    "rect": [
+      -8,
+      -8,
+      1936,
+      1048
+    ]
+  }
+}

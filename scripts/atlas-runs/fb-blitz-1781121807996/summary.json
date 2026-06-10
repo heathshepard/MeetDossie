@@ -1,0 +1,51 @@
+{
+  "results": [
+    {
+      "idx": 1,
+      "id": "fc1762df-60eb-463f-98c6-5e10eed13e6d",
+      "groupName": "Texas Real Estate Agents",
+      "outcome": "already_posted",
+      "postUrl": null
+    },
+    {
+      "idx": 2,
+      "id": "37faa0aa-dce2-4dfe-bced-48e507eb2d2f",
+      "groupName": "Texas Real Estate Network",
+      "outcome": "already_posted",
+      "postUrl": null
+    },
+    {
+      "idx": 3,
+      "id": "d078e368-1738-4bdc-a2f5-fc1f0fe8399c",
+      "groupName": "Dallas Texas Realtors",
+      "outcome": "already_posted",
+      "postUrl": null
+    },
+    {
+      "idx": 4,
+      "id": "b9add267-e9b1-4f4d-8421-debe19dec9db",
+      "groupName": "All about Real Estate Houston",
+      "outcome": "already_posted",
+      "postUrl": null
+    },
+    {
+      "idx": 5,
+      "id": "b4aa1c2f-924b-4aa6-9330-373d897c1b36",
+      "groupName": "Realtors San Antonio Boerne Bulverde New Braunfels",
+      "pillar": "control",
+      "outcome": "posted",
+      "runDir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121704-b4aa1c2f"
+    },
+    {
+      "idx": 6,
+      "id": "d68ce2f6-f3e9-4dbb-99d5-5f053cf4f315",
+      "groupName": "Texas Hill Country Real Estate",
+      "pillar": "cost",
+      "outcome": "posted",
+      "runDir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-post-1781121767-d68ce2f6"
+    }
+  ],
+  "posted": 6,
+  "skipped": 0,
+  "failed": 0
+}

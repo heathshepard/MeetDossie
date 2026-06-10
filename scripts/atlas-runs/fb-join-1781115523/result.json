@@ -1,0 +1,24 @@
+{
+  "ts": "2026-06-10T13:18:43.605693",
+  "group_url": "https://www.facebook.com/groups/236047010341691/",
+  "steps": [
+    "captured before screenshot",
+    "opened new tab (ctrl+t)",
+    "navigated to https://www.facebook.com/groups/236047010341691/",
+    "captured loaded screenshot"
+  ],
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-join-1781115523\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-join-1781115523\\02-loaded.png"
+  ],
+  "outcome": "navigated_screenshot_saved",
+  "window": {
+    "title": "about:blank - Google Chrome",
+    "rect": [
+      -8,
+      -8,
+      1936,
+      1048
+    ]
+  }
+}

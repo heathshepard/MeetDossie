@@ -25,10 +25,13 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const CHROME_PROFILE_PATH = path.join(
-  os.homedir(),
-  'AppData', 'Local', 'Google', 'Chrome', 'User Data'
+// Use isolated DossieBot-Sage profile so we don't collide with Heath's
+// running Chrome (which locks the main User Data dir). Matches the pattern
+// used by sage-fb-scan-mission.js, fb-lead-scraper.js, etc.
+const CHROME_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
+  os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
 );
+const PLAYWRIGHT_PROFILE_NAME = process.env.SAGE_PROFILE_NAME || 'Default';
 
 // Load .env.local when running locally
 try {
@@ -154,6 +157,7 @@ async function postToGroup(post) {
     args: [
       '--no-sandbox',
       '--disable-blink-features=AutomationControlled',
+      `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
       '--remote-debugging-address=127.0.0.1',
       '--remote-debugging-port=0',
     ],
@@ -179,15 +183,25 @@ async function postToGroup(post) {
       throw new Error('Facebook redirected to login from persistent Chrome profile — open Chrome manually and re-login. Keep-alive cron should prevent this.');
     }
 
-    // Find the "Write something" / "What's on your mind?" post box
-    // Facebook uses multiple possible selectors depending on group type and layout
+    // Dismiss any auto-opened dialog/overlay (Facebook sometimes opens a
+    // Story composer or notification popup on group landing).
+    try {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(800);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(800);
+    } catch {}
+
+    // Find the "Write something" / "What's on your mind?" post box.
+    // Facebook uses multiple selectors; we prefer specific aria-labels and
+    // ignore the generic tabindex=0 div fallback because it's nearly always
+    // an unrelated wrapper.
     const postBoxSelectors = [
       '[aria-label*="Write something"]',
       '[aria-label*="What\'s on your mind"]',
       '[aria-label="Write something..."]',
       '[aria-label="What\'s on your mind?"]',
       '[data-testid="status-attachment-mentions-input"]',
-      'div[role="button"][tabindex="0"]',
     ];
 
     let postBox = null;
@@ -212,14 +226,13 @@ async function postToGroup(post) {
       ];
       for (const text of textMatches) {
         try {
-          postBox = await page.getByText(text, { exact: false }).first();
-          if (await postBox.isVisible({ timeout: 3000 })) {
+          const cand = page.getByText(text, { exact: false }).first();
+          if (await cand.isVisible({ timeout: 3000 })) {
+            postBox = await cand.elementHandle();
             console.log(`[fb-group-poster] Found post box via text: "${text}"`);
             break;
           }
-          postBox = null;
         } catch {
-          postBox = null;
           continue;
         }
       }
@@ -229,8 +242,25 @@ async function postToGroup(post) {
       throw new Error('Could not find the post input box on the group page. The group layout may have changed or you may not be a member.');
     }
 
-    // Click the post box to expand the composer
-    await postBox.click();
+    // Scroll the post box into view and click. If a transparent overlay
+    // intercepts pointer events (Facebook quirk where the inline composer
+    // sits behind a backdrop div on Public groups), fall back to a direct
+    // dispatchEvent which bypasses pointer-event interception.
+    try {
+      await postBox.scrollIntoViewIfNeeded();
+    } catch {}
+    try {
+      await postBox.click({ timeout: 10000 });
+    } catch (clickErr) {
+      console.warn('[fb-group-poster] Normal click intercepted, falling back to force click + dispatchEvent');
+      try {
+        await postBox.click({ force: true, timeout: 10000 });
+      } catch {
+        await postBox.evaluate((el) => {
+          el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        });
+      }
+    }
     await page.waitForTimeout(4000);
 
     // Look for the expanded text input area
