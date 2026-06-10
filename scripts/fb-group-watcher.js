@@ -146,6 +146,17 @@ async function main() {
     process.exit(1);
   }
 
+  // Preflight: close FB tabs in Heath's main Chrome before firing any
+  // automation. The poster runs preflight too, but watcher pre-closing
+  // tabs avoids a thrash when there are multiple queued posts.
+  try {
+    const { preflight } = require('./_lib/fb-tab-preflight');
+    const pre = await preflight({ reason: 'fb-group-watcher' });
+    console.log(`[${ts()}] [fb-group-watcher] preflight: closed=${pre.closed} skipped_dossiebot=${pre.skipped_dossiebot}`);
+  } catch (e) {
+    console.warn(`[${ts()}] [fb-group-watcher] preflight non-fatal error: ${e.message}`);
+  }
+
   // No more session-file validity check — the poster uses Heath's persistent
   // Chrome profile, which has no expiry. If the profile ever becomes
   // logged-out, the poster throws and we increment the watchdog below.
