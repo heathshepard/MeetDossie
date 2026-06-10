@@ -96,12 +96,12 @@ module.exports = async function handler(req, res) {
 </div>`;
   const htmlBody = `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">${escapedBody}${footer}</div>`;
 
+  // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
   const emailPayload = {
     from: `${fromName} <dossie@meetdossie.com>`,
     to: [trimmedTo],
     subject: trimmedSubject,
     html: htmlBody,
-    bcc: ['heath@meetdossie.com'],
   };
 
   const replyToCandidate = (typeof replyTo === 'string' && replyTo) || (typeof agentEmail === 'string' && agentEmail) || '';
