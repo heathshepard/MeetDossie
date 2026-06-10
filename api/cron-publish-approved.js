@@ -587,10 +587,14 @@ async function selfHealMissedBatch() {
   console.log(`[self-heal] no batch for today (${todayStartUtc}) AND in 11:30–20:00 UTC window — triggering generate + send`);
 
   try {
-    const genResp = await fetch('https://meetdossie.com/api/cron-generate-posts', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${CRON_SECRET}` },
-    });
+    const genResp = await retryFetch(
+      'https://meetdossie.com/api/cron-generate-posts',
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${CRON_SECRET}` },
+      },
+      { name: 'self-heal-generate', maxAttempts: 3, baseDelay: 2000 }
+    );
     const genText = await genResp.text();
     console.log(`[self-heal] generate status=${genResp.status} body=${genText.slice(0, 200)}`);
     if (!genResp.ok) {
@@ -603,10 +607,14 @@ async function selfHealMissedBatch() {
   }
 
   try {
-    const sendResp = await fetch('https://meetdossie.com/api/cron-send-for-approval', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${CRON_SECRET}` },
-    });
+    const sendResp = await retryFetch(
+      'https://meetdossie.com/api/cron-send-for-approval',
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${CRON_SECRET}` },
+      },
+      { name: 'self-heal-send', maxAttempts: 3, baseDelay: 2000 }
+    );
     const sendText = await sendResp.text();
     console.log(`[self-heal] send status=${sendResp.status} body=${sendText.slice(0, 200)}`);
   } catch (err) {
