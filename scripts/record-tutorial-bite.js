@@ -68,12 +68,48 @@ const { generateSpeech } = require('../api/_utils/tts');
 const LUNA_VOICE_ID = 'lxYfHSkYm1EzQzGhdbfc';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
 const DEMO_PASSWORD_2 = process.env.DEMO2_PASSWORD || 'DossieDemo2-John2026';
+
+// ─── Pre-auth (skip the login UI entirely) ─────────────────────────────────────
+// Exchanges email+password for a Supabase session via the auth REST API, then
+// injects the session into localStorage under the exact key the React app reads
+// (`supabase.auth.token`). When the browser navigates to /app, the app sees an
+// authenticated session immediately and skips the login screen.
+
+async function preAuthSession(email, password) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Pre-auth requires SUPABASE_URL + SUPABASE_ANON_KEY.');
+  }
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`Pre-auth failed ${res.status}: ${t.slice(0, 300)}`);
+  }
+  const session = await res.json();
+  // Shape matches what the app stores in localStorage under "supabase.auth.token".
+  return {
+    access_token: session.access_token,
+    token_type: session.token_type || 'bearer',
+    expires_in: session.expires_in || 3600,
+    expires_at: session.expires_at || Math.floor(Date.now() / 1000) + (session.expires_in || 3600),
+    refresh_token: session.refresh_token,
+    user: session.user,
+    weak_password: null,
+  };
+}
 
 const ROOT = path.join(__dirname, '..');
 const BRIEFS_DIR = path.join(__dirname, 'tutorial-briefs');
@@ -171,6 +207,45 @@ async function recordFlow(brief) {
     slowMo: 500,
     args: ['--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0'],
   });
+
+  // ─── Pre-auth path: skips the login screen entirely ────────────────────────
+  // When brief.pre_auth === true, we run a SEPARATE non-recording context first
+  // to inject the Supabase session into localStorage, save the storageState to
+  // disk, then start the recording context with that storageState. This ensures
+  // the recording's very first frame is already on a logged-in /app page —
+  // no blank intro, no login screen, no UI flash.
+  let storageStateFile = null;
+  if (brief.pre_auth === true) {
+    try {
+      console.log(`[tutorial] Pre-authenticating ${demoEmail} via Supabase auth REST...`);
+      const session = await preAuthSession(demoEmail, demoPassword);
+      const setupCtx = await browser.newContext({
+        viewport,
+        deviceScaleFactor: isMobileViewport ? 3 : 2,
+        isMobile: isMobileViewport,
+        hasTouch: isMobileViewport,
+        userAgent: isMobileViewport
+          ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+          : undefined,
+      });
+      const setupPage = await setupCtx.newPage();
+      await setupPage.goto('https://meetdossie.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await setupPage.evaluate((sess) => {
+        localStorage.setItem('supabase.auth.token', JSON.stringify(sess));
+      }, session);
+      // Visit /app once in the setup context so the SPA finishes bootstrapping
+      // and any session-derived cookies get set.
+      await setupPage.goto('https://meetdossie.com/app', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await setupPage.waitForTimeout(2500);
+      storageStateFile = path.join(RAW_DIR, `auth-${brief.slug}-${Date.now()}.json`);
+      await setupCtx.storageState({ path: storageStateFile });
+      await setupCtx.close();
+      console.log(`[tutorial] Pre-auth session saved: ${path.basename(storageStateFile)}`);
+    } catch (e) {
+      console.warn('[tutorial] Pre-auth failed — falling back to UI login:', e.message);
+    }
+  }
+
   const context = await browser.newContext({
     recordVideo: { dir: RAW_DIR, size: viewport },
     viewport,
@@ -180,9 +255,29 @@ async function recordFlow(brief) {
     userAgent: isMobileViewport
       ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
       : undefined,
+    storageState: storageStateFile || undefined,
   });
 
   const page = await context.newPage();
+
+  // ─── Record-start trim (Sage v4 fix) ─────────────────────────────────────────
+  // Playwright begins recording the moment recordVideo is set on the context, so
+  // the first frame is unavoidably "Loading your files..." (the SPA hydration
+  // skeleton). We can't pause/start recording mid-context — Playwright doesn't
+  // expose that API.
+  //
+  // Instead we capture two timestamps:
+  //   recordStartMs  — set NOW, when the first page is created (≈ when recording starts)
+  //   dashboardReadyMs — set when the brief's `record_start_after_text` first appears
+  // The delta is later passed to ffmpeg as `-ss <delta> -i <webm>`, trimming the
+  // pre-render frames from the final MP4. First visible frame is then the
+  // fully-rendered dashboard skeleton — NOT a spinner, NOT a blank frame.
+  const recordStartMs = Date.now();
+  let dashboardReadyMs = null;
+  const startGateText = brief.record_start_after_text || null;
+  if (startGateText) {
+    console.log(`[tutorial] Will trim recording until text appears: "${startGateText}"`);
+  }
 
   async function moveToElement(element) {
     const box = await element.boundingBox();
@@ -289,6 +384,53 @@ async function recordFlow(brief) {
           await page.waitForTimeout(pause);
           break;
         }
+        case 'fill_placeholder': {
+          // Find an <input> or <textarea> by its placeholder attribute. The Dossie
+          // app's Settings + dossier forms expose placeholders like "Your name",
+          // "Your brokerage", "compliance@yourbrokerage.com", so this is the most
+          // reliable way to target the right field on a multi-input page.
+          const sel = `input[placeholder*="${step.placeholder.replace(/"/g, '\\"')}"], textarea[placeholder*="${step.placeholder.replace(/"/g, '\\"')}"]`;
+          const el = page.locator(sel).first();
+          await el.waitFor({ state: 'visible', timeout: 10000 });
+          await el.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+          await moveToElement(el);
+          await el.click();
+          if (step.clear !== false) await el.fill('');
+          if (step.typed === true) {
+            // Visible per-character typing — feels more "human" on camera.
+            await el.pressSequentially(step.value || '', { delay: step.delay_ms || 40 });
+          } else {
+            await el.fill(step.value || '');
+          }
+          await page.waitForTimeout(pause);
+          break;
+        }
+        case 'type': {
+          // Type into the currently focused element with visible per-char delay.
+          await page.keyboard.type(step.value || '', { delay: step.delay_ms || 50 });
+          await page.waitForTimeout(pause);
+          break;
+        }
+        case 'press': {
+          await page.keyboard.press(step.key);
+          await page.waitForTimeout(pause);
+          break;
+        }
+        case 'click_button_text': {
+          // Many edit-mode buttons in the dossier carry the value as visible text
+          // (e.g. "Buyer's full name ✎"). getByRole('button') with a name filter
+          // is more reliable for those than getByText alone.
+          const btn = page.getByRole('button', { name: new RegExp(step.text, 'i') }).first();
+          // Scroll-into-view BEFORE waitFor so off-screen buttons (below fold on
+          // mobile viewport) become hit-testable. waitFor(visible) requires the
+          // element to be in the viewport.
+          await btn.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
+          await btn.waitFor({ state: 'visible', timeout: 8000 });
+          await moveToElement(btn);
+          await btn.click();
+          await page.waitForTimeout(pause);
+          break;
+        }
         case 'scroll':
           await page.evaluate((y) => window.scrollBy({ top: y, behavior: 'smooth' }), step.y || 300);
           await page.waitForTimeout(pause);
@@ -298,10 +440,21 @@ async function recordFlow(brief) {
           break;
         case 'wait_for_selector':
           await page.waitForSelector(step.selector, { timeout: step.timeout_ms || 10000 });
+          // If the brief's record-start gate is a selector (passed as `record_start_after_text`
+          // matching a selector string), this captures the timing too.
+          if (startGateText && dashboardReadyMs === null && step.selector === startGateText) {
+            dashboardReadyMs = Date.now();
+            console.log(`[tutorial] Record-start gate hit (selector): dashboard ready at +${((dashboardReadyMs - recordStartMs) / 1000).toFixed(2)}s`);
+          }
           await page.waitForTimeout(pause);
           break;
         case 'wait_for_text':
           await page.waitForSelector(`text=${step.text}`, { timeout: step.timeout_ms || 10000 });
+          // Capture record-start trim point the first time the gate text appears.
+          if (startGateText && dashboardReadyMs === null && step.text === startGateText) {
+            dashboardReadyMs = Date.now();
+            console.log(`[tutorial] Record-start gate hit: dashboard ready at +${((dashboardReadyMs - recordStartMs) / 1000).toFixed(2)}s`);
+          }
           await page.waitForTimeout(pause);
           break;
         case 'hover': {
@@ -325,7 +478,22 @@ async function recordFlow(brief) {
     .map(f => ({ f, mtime: fs.statSync(path.join(RAW_DIR, f)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime);
   if (!webms.length) throw new Error('No .webm recorded.');
-  return path.join(RAW_DIR, webms[0].f);
+
+  // Compute trim seconds for the loading-frame fix. If the gate was never hit
+  // (no `record_start_after_text` in the brief, or text never appeared) the trim
+  // is 0 and we keep the full recording.
+  let recordTrimSec = 0;
+  if (dashboardReadyMs !== null) {
+    recordTrimSec = Math.max(0, (dashboardReadyMs - recordStartMs) / 1000);
+    // Cap trim at 10s — Settings + Pipeline routes hydrate around 6-8s in
+    // headless Chromium. Anything longer suggests the recording is broken
+    // and we shouldn't blindly delete most of it.
+    if (recordTrimSec > 10) {
+      console.warn(`[tutorial] Computed trim ${recordTrimSec.toFixed(2)}s exceeds 10s safety cap — using 10s.`);
+      recordTrimSec = 10;
+    }
+  }
+  return { webmPath: path.join(RAW_DIR, webms[0].f), recordTrimSec };
 }
 
 // ─── ffmpeg merge to 1080x1920 H.264/AAC ─────────────────────────────────────
@@ -340,12 +508,22 @@ async function getMediaDuration(ffmpeg, file) {
   return Number.isFinite(dur) ? dur : 0;
 }
 
-async function mergeToMP4(ffmpeg, webmPath, voiceoverPath, outPath) {
+async function mergeToMP4(ffmpeg, webmPath, voiceoverPath, outPath, recordTrimSec = 0) {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
-  // Pad video to match voiceover length so audio never truncates (extends last frame).
   const audioDur = voiceoverPath ? await getMediaDuration(ffmpeg, voiceoverPath) : 0;
-  const tpadSec = Math.max(0, Math.ceil(audioDur + 0.5));
+  const fullWebmDur = await getMediaDuration(ffmpeg, webmPath);
+  const visibleVideoDur = Math.max(0, fullWebmDur - recordTrimSec);
+
+  // Final mp4 = max(visible action, audio + 1.5s outro hold). Whichever is
+  // shorter gets padded:
+  //   - video shorter → tpad freezes last frame
+  //   - audio shorter → apad adds silence
+  // This guarantees the Save click + completion state are always visible AND
+  // the voiceover never cuts mid-word.
+  const targetDur = Math.max(visibleVideoDur, audioDur + 1.5);
+  const tpadSec = Math.max(0, targetDur - visibleVideoDur);
+  const apadMs = Math.max(0, (targetDur - audioDur) * 1000);
 
   // Scale-to-fit + pad with blush brand background. Preserves the full mobile frame
   // (no horizontal crop). Source is recorded at the brief's viewport; we fit it
@@ -353,26 +531,34 @@ async function mergeToMP4(ffmpeg, webmPath, voiceoverPath, outPath) {
   // Blush hex #F5E6E0 — matches Dossie brand letterbox color.
   const padFilter = 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:0xF5E6E0,fps=30,setsar=1';
 
+  // `-ss` before `-i` is fast-seek (keyframe-aligned). For our short bites that's
+  // fine and avoids re-encoding the trimmed segment.
+  const trimArgs = recordTrimSec > 0.1 ? ['-ss', recordTrimSec.toFixed(2)] : [];
+  if (recordTrimSec > 0.1) {
+    console.log(`[tutorial] Trimming first ${recordTrimSec.toFixed(2)}s of recording (loading-frame fix).`);
+  }
+  console.log(`[tutorial] Lengths: webm=${fullWebmDur.toFixed(2)}s visible=${visibleVideoDur.toFixed(2)}s audio=${audioDur.toFixed(2)}s target=${targetDur.toFixed(2)}s vPad=${tpadSec.toFixed(2)}s aPad=${apadMs.toFixed(0)}ms`);
+
   if (voiceoverPath) {
     runFfmpeg(ffmpeg, [
-      '-i', webmPath,
+      ...trimArgs, '-i', webmPath,
       '-i', voiceoverPath,
       '-filter_complex',
-      `[0:v]tpad=stop_mode=clone:stop_duration=${tpadSec},${padFilter}[v]`,
+      `[0:v]tpad=stop_mode=clone:stop_duration=${tpadSec.toFixed(2)},${padFilter}[v];[1:a]apad=pad_dur=${(apadMs / 1000).toFixed(2)}[a]`,
       '-map', '[v]',
-      '-map', '1:a',
+      '-map', '[a]',
       '-c:v', 'libx264',
       '-preset', 'fast',
       '-crf', '23',
       '-c:a', 'aac',
       '-b:a', '128k',
-      '-shortest',
+      '-t', targetDur.toFixed(2),
       '-movflags', '+faststart',
       '-y', outPath,
     ]);
   } else {
     runFfmpeg(ffmpeg, [
-      '-i', webmPath,
+      ...trimArgs, '-i', webmPath,
       '-vf', padFilter,
       '-c:v', 'libx264',
       '-preset', 'fast',
@@ -475,7 +661,7 @@ async function main() {
   const voiceoverMP3 = path.join(VOICEOVER_DIR, `${brief.slug}-v${version}.mp3`);
 
   // 1. Record
-  const webmPath = await recordFlow(brief);
+  const { webmPath, recordTrimSec } = await recordFlow(brief);
   console.log(`[tutorial] Raw recording: ${webmPath}`);
 
   // 2. Voiceover
@@ -487,9 +673,9 @@ async function main() {
     console.warn('[tutorial] Voiceover failed — video-only:', e.message);
   }
 
-  // 3. Merge → MP4
+  // 3. Merge → MP4 (trim loading frames per brief.record_start_after_text)
   const ffmpeg = findFfmpeg();
-  await mergeToMP4(ffmpeg, webmPath, voiceoverAvailable ? voiceoverMP3 : null, finalMP4);
+  await mergeToMP4(ffmpeg, webmPath, voiceoverAvailable ? voiceoverMP3 : null, finalMP4, recordTrimSec);
   const durationSeconds = Math.round(await getMediaDuration(ffmpeg, finalMP4));
   console.log(`[tutorial] Final MP4 (${durationSeconds}s): ${finalMP4}`);
 
