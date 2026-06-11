@@ -114,7 +114,7 @@ module.exports = async function handler(req, res) {
 
   // Load posts marked for regeneration
   const { data: regeneratingRows, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/sage_inbox?status=eq.regenerating&regeneration_attempts=lt.3&order=created_at.asc&limit=${MAX_PER_RUN}`,
+    `/rest/v1/sage_inbox?status=eq.regenerating&regeneration_attempts=lte.3&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
 
   if (!loadOk) {
