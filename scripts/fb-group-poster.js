@@ -548,6 +548,21 @@ async function main() {
     console.warn(`[fb-group-poster] preflight non-fatal error: ${e.message}`);
   }
 
+  // Profile unlock: kill any stale chrome.exe still holding a lock on the
+  // DossieBot-Sage user-data-dir. Addresses Sage's "Chrome-lock failures"
+  // (2 of 7 group posts 2026-06-11) where a prior launchPersistentContext
+  // didn't exit cleanly and left Singleton* lockfiles in place. Waits 2s
+  // after kill so the kernel releases handles before we launch.
+  try {
+    const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+    const unlocked = await unlockProfile({ profileDir: CHROME_PROFILE_PATH, reason: 'fb-group-poster' });
+    if (unlocked.killed > 0) {
+      console.log(`[fb-group-poster] profile-unlock: killed ${unlocked.killed} stale chrome process(es) for ${CHROME_PROFILE_PATH}`);
+    }
+  } catch (e) {
+    console.warn(`[fb-group-poster] profile-unlock non-fatal error: ${e.message}`);
+  }
+
   console.log(`[fb-group-poster] Fetching post ${POST_ID}`);
   const post = await fetchPost(POST_ID);
 
