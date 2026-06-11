@@ -80,7 +80,7 @@ Apply the rules above. Return JSON only.`;
       },
       body: JSON.stringify({
         model: REVIEWER_MODEL,
-        max_tokens: 200,
+        max_tokens: 400,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -93,10 +93,36 @@ Apply the rules above. Return JSON only.`;
 
     const data = await res.json();
     const text = data?.content?.[0]?.text || '';
-    const match = text.match(/\{[^}]+\}/s);
-    if (!match) return null;
-
-    const parsed = JSON.parse(match[0]);
+    // Balanced-brace JSON extraction. The prior regex `/\{[^}]+\}/s` failed on
+    // any response containing nested braces or newlines inside string values,
+    // which Haiku returns for longer reviews — every long-form Facebook post
+    // came back as "review call failed" because of this single line.
+    const start = text.indexOf('{');
+    if (start === -1) {
+      console.warn('[cron-sage-autonomous-review] no JSON object in response:', text.slice(0, 200));
+      return null;
+    }
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
+    }
+    if (end === -1) {
+      console.warn('[cron-sage-autonomous-review] unbalanced JSON in response:', text.slice(0, 200));
+      return null;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch (e) {
+      console.warn('[cron-sage-autonomous-review] JSON parse failed:', e.message);
+      return null;
+    }
     return {
       verdict: String(parsed.verdict || '').toLowerCase(),
       score: parseInt(parsed.score, 10) || 5,
