@@ -1,0 +1,20 @@
+{
+  "slug": "open-your-first-dossier",
+  "title": "Open Your First Dossier",
+  "description": "Watch how to start a brand new transaction in Dossie — under 30 seconds.",
+  "voiceover_script": "Hi, I'm Dossie. Let's open your first dossier. From your pipeline, tap New Dossier. Pick whether you're representing the buyer or the seller, drop in the property address, and add the other side's information. That's it. I'll spin up the file, calculate every TREC deadline, and start tracking the deal. From here on, I do the follow-ups so you don't have to.",
+  "tags": ["onboarding", "dossier", "getting-started"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 2,
+  "viewport": { "width": 1280, "height": 720 },
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2000 },
+    { "action": "wait", "pause_ms": 4000 },
+    { "action": "click_text", "text": "Pipeline", "pause_ms": 1500 },
+    { "action": "click_text", "text": "New Dossier", "exact": false, "pause_ms": 2500 },
+    { "action": "wait", "pause_ms": 2500 }
+  ]
+}

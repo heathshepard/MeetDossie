@@ -1,0 +1,25 @@
+{
+  "slug": "sign-up-and-complete-profile",
+  "title": "Sign Up and Complete Your Profile",
+  "description": "How to get into Dossie and finish your profile in under a minute so every document looks like yours.",
+  "voiceover_script": "Hi, I'm Dossie. The first thing to do after you join is finish your profile. Open the app, head to Settings, and fill in your name, your brokerage, and the phone number you want clients to see. Add your Google and Zillow review links too. Every closing card I send out will include them automatically. Once that's saved, you're ready to add your first deal.",
+  "tags": ["onboarding", "getting-started", "settings", "profile"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "youtube-short"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 1,
+  "viewport": { "width": 1280, "height": 720 },
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2000 },
+    { "action": "wait", "pause_ms": 4000 },
+    { "action": "click_text", "text": "Settings", "pause_ms": 2000 },
+    { "action": "wait_for_text", "text": "Agent profile", "timeout_ms": 10000, "pause_ms": 1500 },
+    { "action": "click", "selector": "input[placeholder='Your name']", "pause_ms": 1500 },
+    { "action": "click", "selector": "input[placeholder='Your brokerage']", "pause_ms": 1500 },
+    { "action": "click", "selector": "input[placeholder='Your phone']", "pause_ms": 1500 },
+    { "action": "scroll", "y": 320, "pause_ms": 1200 },
+    { "action": "click", "selector": "input[placeholder='https://g.page/r/yourlink/review']", "pause_ms": 2500 },
+    { "action": "wait", "pause_ms": 1500 }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "invite-a-buyer",
+  "title": "Invite a Buyer to Your Dossier",
+  "description": "Get your buyer into the loop without endless texts. Here's how to invite them in one tap.",
+  "voiceover_script": "Hi, I'm Dossie. Once you've opened a dossier, invite your buyer so they can see exactly where the deal stands. Open the file, tap the buyer's name, and send the invite. They get a private client view with milestones, deadlines, and signed documents. No more calls asking where things are. They check the dossier. You stay focused on the next deal.",
+  "tags": ["onboarding", "dossier", "buyer", "client-view"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "youtube-short"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 3,
+  "viewport": { "width": 1280, "height": 720 },
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2000 },
+    { "action": "wait", "pause_ms": 4000 },
+    { "action": "click_text", "text": "Pipeline", "pause_ms": 1500 },
+    { "action": "wait", "pause_ms": 1500 },
+    { "action": "scroll", "y": 200, "pause_ms": 1500 },
+    { "action": "wait", "pause_ms": 2000 }
+  ]
+}
