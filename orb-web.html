@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a1f" />
+<title>Cole — Prototype v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --coral: #E8836B;
+    --peach: #F5C5A8;
+    --gold:  #C9A96E;
+    --teal:  #6FB4B0;
+    --blush: #F5E6E0;
+    --indigo:#1A1A2E;
+    --deep:  #0a0a1f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+    background: #0a0a1f;
+    color: #f5e6e0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    /* Ambient breathing background layer (CSS fallback under the canvas) */
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(232,131,107,0.10), transparent 55%),
+      radial-gradient(ellipse at 70% 80%, rgba(111,180,176,0.10), transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(201,169,110,0.06), transparent 65%),
+      #0a0a1f;
+  }
+
+  /* Full-screen background canvas behind everything */
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .section {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    padding: 6vh 5vw;
+    overflow: hidden;
+  }
+
+  .hero-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(2.2rem, 6.5vw, 4.5rem);
+    letter-spacing: 0.01em;
+    margin: 0 0 2vh 0;
+    text-align: center;
+    background: linear-gradient(135deg, #F5E6E0 0%, #F5C5A8 35%, #C9A96E 65%, #6FB4B0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% 200%;
+    animation: shimmer 8s ease-in-out infinite;
+    text-shadow: 0 0 60px rgba(232,131,107,0.15);
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+
+  .hint {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(245, 230, 224, 0.45);
+    margin-top: 3vh;
+    text-align: center;
+    animation: hintBreath 4s ease-in-out infinite;
+  }
+
+  @keyframes hintBreath {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.7; }
+  }
+
+  /* === Orb section === */
+  #orb-section {
+    padding-top: 8vh;
+  }
+  #orb-stage {
+    position: relative;
+    width: min(85vw, 60vh);
+    height: min(85vw, 60vh);
+    max-width: 720px;
+    max-height: 720px;
+    margin: 1vh auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #orb-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* === Web section === */
+  #web-section {
+    border-top: 1px solid rgba(245,230,224,0.04);
+  }
+  #web-stage {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    height: min(65vh, 600px);
+    margin: 2vh auto 0;
+    border-radius: 22px;
+    overflow: hidden;
+    background: rgba(10, 10, 31, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 230, 224, 0.06);
+    box-shadow:
+      0 30px 100px rgba(232, 131, 107, 0.07),
+      0 10px 40px rgba(111, 180, 176, 0.06),
+      inset 0 0 60px rgba(201, 169, 110, 0.04);
+  }
+  #web-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+    touch-action: none;
+  }
+  #web-canvas:active { cursor: grabbing; }
+
+  #node-tooltip {
+    position: absolute;
+    pointer-events: none;
+    padding: 10px 16px;
+    background: rgba(10,10,31,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245,230,224,0.12);
+    border-radius: 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #f5e6e0;
+    opacity: 0;
+    transform: translate(-50%, -120%);
+    transition: opacity 0.25s ease;
+    white-space: nowrap;
+    box-shadow:
+      0 8px 30px rgba(0,0,0,0.4),
+      0 0 30px rgba(232,131,107,0.15);
+    z-index: 10;
+    letter-spacing: 0.02em;
+  }
+  #node-tooltip.visible { opacity: 1; }
+  #node-tooltip .label-kind {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(232,131,107,0.85);
+    margin-bottom: 2px;
+  }
+
+  /* Performance: hide overscroll bg flash on iOS */
+  @supports (-webkit-touch-callout: none) {
+    body { background-attachment: scroll; }
+  }
+
+  /* Footer subtle credit */
+  .meta-footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 4vh 5vw 6vh;
+    font-size: 0.7rem;
+    color: rgba(245,230,224,0.25);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- SECTION 1: ORB -->
+<section class="section" id="orb-section">
+  <h1 class="hero-title">Meet your agent.</h1>
+  <div id="orb-stage" role="button" aria-label="Tap to listen">
+    <canvas id="orb-canvas"></canvas>
+  </div>
+  <div class="hint">Tap to listen</div>
+</section>
+
+<!-- SECTION 2: WEB -->
+<section class="section" id="web-section">
+  <h1 class="hero-title">Your life, remembered.</h1>
+  <div id="web-stage">
+    <canvas id="web-canvas"></canvas>
+    <div id="node-tooltip"><span class="label-kind"></span><span class="label-text"></span></div>
+  </div>
+  <div class="hint">Tap any node</div>
+</section>
+
+<div class="meta-footer">Cole · Prototype v1</div>
+
+<!-- Three.js for the constellation web -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+/* =====================================================================
+   COLE PROTOTYPE v1
+   - Background: animated breathing color field (2D canvas, cheap, GPU-friendly)
+   - Orb: WebGL fragment shader with simplex noise + radial mask, breath cycle
+   - Web: Three.js 3D constellation with Points + LineSegments, auto-rotate + hover
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. BACKGROUND: breathing smoke (2D canvas, ultra-cheap)
+   --------------------------------------------------------------------- */
+(function bgLayer() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let w = 0, h = 0, dpr = 1;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth;
+    h = window.innerHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // 5 floating color blobs that drift forever
+  const blobs = [
+    { x: 0.2, y: 0.3, r: 0.55, color: 'rgba(232,131,107,', a: 0.18, vx: 0.00012, vy: 0.00008 },
+    { x: 0.8, y: 0.7, r: 0.6,  color: 'rgba(111,180,176,', a: 0.16, vx: -0.0001, vy: -0.00009 },
+    { x: 0.5, y: 0.5, r: 0.7,  color: 'rgba(201,169,110,', a: 0.10, vx: 0.00007, vy: -0.00011 },
+    { x: 0.15,y: 0.85,r: 0.45, color: 'rgba(245,197,168,', a: 0.10, vx: 0.00013, vy: -0.00007 },
+    { x: 0.85,y: 0.15,r: 0.5,  color: 'rgba(26,26,46,',    a: 0.20, vx: -0.00009,vy: 0.00010 }
+  ];
+
+  let t0 = performance.now();
+  function frame(now) {
+    const t = (now - t0) * 0.001;
+    // ambient breath modulates overall opacity
+    const breath = 0.85 + 0.15 * Math.sin(t * 0.6);
+
+    // base wash
+    ctx.fillStyle = '#0a0a1f';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < blobs.length; i++) {
+      const b = blobs[i];
+      b.x += b.vx;
+      b.y += b.vy;
+      // gentle wander — bounce softly off edges
+      if (b.x < 0.05 || b.x > 0.95) b.vx *= -1;
+      if (b.y < 0.05 || b.y > 0.95) b.vy *= -1;
+
+      // breathing radius
+      const rPx = (Math.min(w, h) * b.r) * (1 + 0.06 * Math.sin(t * 0.5 + i));
+      const cx = b.x * w;
+      const cy = b.y * h;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rPx);
+      grad.addColorStop(0, b.color + (b.a * breath).toFixed(3) + ')');
+      grad.addColorStop(1, b.color + '0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+
+/* ---------------------------------------------------------------------
+   2. ORB: WebGL fragment shader, simplex noise + radial mask
+   --------------------------------------------------------------------- */
+(function orb() {
+  const canvas = document.getElementById('orb-canvas');
+  const gl = canvas.getContext('webgl', { antialias: true, premultipliedAlpha: false, alpha: true });
+  if (!gl) {
+    canvas.style.background = 'radial-gradient(circle at 40% 35%, #E8836B, #C9A96E 40%, #6FB4B0 75%, transparent 80%)';
+    return;
+  }
+
+  const stage = document.getElementById('orb-stage');
+  let w = 0, h = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = stage.getBoundingClientRect();
+    w = rect.width;
+    h = rect.height;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Vertex shader: full-screen quad
+  const vsrc = `
+    attribute vec2 a_pos;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = a_pos * 0.5 + 0.5;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `;
+
+  // Fragment shader: simplex-noise color field + glassy radial mask + halo
+  const fsrc = `
+    precision highp float;
+    varying vec2 v_uv;
+    uniform float u_time;
+    uniform float u_pulse;       // 0..1, ramps up on click
+    uniform vec2  u_res;
+
+    // -- GLSL simplex 2D noise (Ashima Arts / Stefan Gustavson) --
+    vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+    vec2 mod289(vec2 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+    vec3 permute(vec3 x){ return mod289(((x*34.0)+1.0)*x); }
+    float snoise(vec2 v){
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                         -0.577350269189626, 0.024390243902439);
+      vec2 i  = floor(v + dot(v, C.yy));
+      vec2 x0 = v -   i + dot(i, C.xx);
+      vec2 i1 = (x0.x > x0.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod289(i);
+      vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                + i.x + vec3(0.0, i1.x, 1.0));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+      m = m*m; m = m*m;
+      vec3 x  = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h  = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+      vec3 g;
+      g.x  = a0.x  * x0.x  + h.x  * x0.y;
+      g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+      return 130.0 * dot(m, g);
+    }
+
+    // fractal Brownian motion
+    float fbm(vec2 p) {
+      float v = 0.0;
+      float a = 0.5;
+      for (int i = 0; i < 5; i++) {
+        v += a * snoise(p);
+        p = p * 2.02 + vec2(0.13, 0.41);
+        a *= 0.5;
+      }
+      return v;
+    }
+
+    // palette: coral -> peach -> gold -> teal -> deep indigo
+    vec3 palette(float t) {
+      t = clamp(t, 0.0, 1.0);
+      vec3 coral = vec3(0.910, 0.514, 0.420);  // #E8836B
+      vec3 peach = vec3(0.961, 0.773, 0.659);  // #F5C5A8
+      vec3 gold  = vec3(0.788, 0.663, 0.431);  // #C9A96E
+      vec3 teal  = vec3(0.435, 0.706, 0.690);  // #6FB4B0
+      vec3 deep  = vec3(0.102, 0.102, 0.180);  // #1A1A2E
+      if (t < 0.25) return mix(deep, teal,  t / 0.25);
+      if (t < 0.5)  return mix(teal,  gold,  (t - 0.25) / 0.25);
+      if (t < 0.75) return mix(gold,  peach, (t - 0.5)  / 0.25);
+      return            mix(peach,    coral, (t - 0.75) / 0.25);
+    }
+
+    void main() {
+      // center at (0,0), aspect-corrected
+      vec2 uv = v_uv;
+      vec2 p  = (uv - 0.5) * 2.0;
+      p.x *= u_res.x / u_res.y;
+      float r = length(p);
+
+      // breath cycle: 4-second ambient + click-pulse boost
+      float breath = 0.5 + 0.5 * sin(u_time * (2.0 * 3.14159 / 4.0));
+      float breathAmp = mix(0.02, 0.045, breath);  // subtle outward push
+      float pulseAmp  = u_pulse * 0.06;
+
+      // flow noise inside the orb
+      vec2 q = p * 1.4;
+      float n1 = fbm(q + vec2(u_time * 0.08, u_time * 0.05));
+      float n2 = fbm(q * 1.6 - vec2(u_time * 0.06, u_time * 0.10) + n1);
+      float n  = 0.5 + 0.5 * n2;
+
+      // color cycles gently over time, biased toward warm
+      float colorT = fract(n * 0.9 + u_time * 0.012);
+      vec3 col = palette(colorT);
+
+      // add internal glow highlight (upper-left) for "liquid" feel
+      vec2 hlPos = vec2(-0.32, 0.36);
+      float hl = smoothstep(0.55, 0.0, distance(p, hlPos));
+      col += hl * vec3(0.45, 0.35, 0.25) * (0.4 + 0.2 * breath);
+
+      // refractive rim — brighter at the edge
+      float rim = smoothstep(0.55, 0.95, r) * (1.0 - smoothstep(0.95, 1.0, r));
+      col += rim * vec3(0.95, 0.78, 0.62) * 0.5;
+
+      // glass sphere mask
+      float orbR = 0.85 + breathAmp + pulseAmp;
+      float orbMask = smoothstep(orbR, orbR - 0.08, r);
+
+      // outer halo
+      float haloInner = orbR;
+      float haloOuter = orbR + 0.55 + u_pulse * 0.25;
+      float halo = smoothstep(haloOuter, haloInner, r) * (1.0 - orbMask);
+      vec3 haloColor = mix(vec3(0.91, 0.51, 0.42), vec3(0.78, 0.66, 0.43), 0.4 + 0.3 * breath);
+      float haloStrength = (0.32 + 0.25 * breath + 0.5 * u_pulse);
+
+      // background within the orb stage is transparent (so bg-canvas shows through)
+      vec3 finalCol = col * orbMask + haloColor * halo * haloStrength;
+      float alpha = orbMask + halo * haloStrength * 0.65;
+
+      // small darken at very bottom of orb for sphere shading
+      float shade = smoothstep(0.4, 1.0, length(p - vec2(0.0, -0.35))) * orbMask;
+      finalCol -= shade * 0.18;
+
+      gl_FragColor = vec4(finalCol, clamp(alpha, 0.0, 1.0));
+    }
+  `;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+  const vs = compile(gl.VERTEX_SHADER, vsrc);
+  const fs = compile(gl.FRAGMENT_SHADER, fsrc);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  // full-screen quad
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1,-1,  1,-1, -1, 1,
+    -1, 1,  1,-1,  1, 1
+  ]), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  const uTime  = gl.getUniformLocation(prog, 'u_time');
+  const uPulse = gl.getUniformLocation(prog, 'u_pulse');
+  const uRes   = gl.getUniformLocation(prog, 'u_res');
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
+
+  let pulse = 0;
+  stage.addEventListener('click', () => { pulse = 1.0; });
+  stage.addEventListener('touchstart', (e) => { pulse = 1.0; }, { passive: true });
+
+  let t0 = performance.now();
+  function render(now) {
+    const t = (now - t0) * 0.001;
+    // pulse decays with a quick spike + fade over ~1s
+    pulse = Math.max(0, pulse - 0.018);
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform1f(uTime, t);
+    gl.uniform1f(uPulse, pulse);
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+})();
+
+
+/* ---------------------------------------------------------------------
+   3. WEB: Three.js 3D constellation
+   --------------------------------------------------------------------- */
+(function web() {
+  if (typeof THREE === 'undefined') {
+    console.warn('Three.js failed to load; web disabled.');
+    return;
+  }
+  const stage = document.getElementById('web-stage');
+  const canvas = document.getElementById('web-canvas');
+  const tooltip = document.getElementById('node-tooltip');
+  const tooltipKind = tooltip.querySelector('.label-kind');
+  const tooltipText = tooltip.querySelector('.label-text');
+
+  // Sample memory data — Heath-flavored
+  const memories = [
+    { kind: 'family',  label: 'Lily — granddaughter, 8 yrs' },
+    { kind: 'family',  label: 'Heath Jr. — son' },
+    { kind: 'travel',  label: 'Italy trip 2026' },
+    { kind: 'travel',  label: 'Hawaii — long-term goal' },
+    { kind: 'today',   label: "Doctor's appt Tuesday" },
+    { kind: 'today',   label: 'Coffee w/ Joshua Sisam' },
+    { kind: 'work',    label: 'Dossie — founding member #12' },
+    { kind: 'work',    label: 'Shepard Ventures portfolio' },
+    { kind: 'work',    label: 'Plane & Ember — cigar woodwork' },
+    { kind: 'work',    label: 'Paralegal SaaS — early concept' },
+    { kind: 'people',  label: 'Brittney YBarbo — broker, 80 tx/yr' },
+    { kind: 'people',  label: 'Ginger Unger — TX RE educator' },
+    { kind: 'people',  label: 'Natalie Megerson — REAL Broker team' },
+    { kind: 'people',  label: 'Lisa Nilsson — Boerne, Hill Country' },
+    { kind: 'milestone', label: 'Dossie LLC filed' },
+    { kind: 'milestone', label: 'First $349 MRR' },
+    { kind: 'milestone', label: '100% SC veteran' },
+    { kind: 'health',  label: 'Morning walk routine' },
+    { kind: 'health',  label: '7-hour sleep target' },
+    { kind: 'idea',    label: 'Two-door positioning — agents + TCs' },
+    { kind: 'idea',    label: 'Control as a value pillar' },
+    { kind: 'idea',    label: 'TX-specific config layer' },
+    { kind: 'home',    label: 'San Antonio — KW City View' },
+    { kind: 'home',    label: 'KW Boerne office' },
+    { kind: 'today',   label: 'Founding Files post queued' },
+    { kind: 'family',  label: 'Birthday — call sister Sunday' },
+    { kind: 'work',    label: 'Sage — autonomous social' },
+    { kind: 'work',    label: 'Atlas — platform engineering' },
+    { kind: 'idea',    label: 'Cole — Jarvis-style voice agent' },
+    { kind: 'milestone', label: 'EIN 42-2807262 received' }
+  ];
+
+  // Three.js boilerplate
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  let width = stage.clientWidth;
+  let height = stage.clientHeight;
+  renderer.setSize(width, height, false);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 100);
+  camera.position.set(0, 0, 14);
+
+  // Distribute nodes inside a sphere (fibonacci-ish, plus jitter)
+  const N = memories.length;
+  const positions = new Float32Array(N * 3);
+  const colors    = new Float32Array(N * 3);
+  const sizes     = new Float32Array(N);
+  const kindColors = {
+    family:    new THREE.Color(0xE8836B), // coral
+    travel:    new THREE.Color(0x6FB4B0), // teal
+    today:     new THREE.Color(0xF5C5A8), // peach
+    work:      new THREE.Color(0xC9A96E), // gold
+    people:    new THREE.Color(0xF5E6E0), // blush
+    milestone: new THREE.Color(0xFFD8A8), // warm gold-cream
+    health:    new THREE.Color(0x8BA888), // sage
+    idea:      new THREE.Color(0xFFB088), // warm coral
+    home:      new THREE.Color(0xD4A0A0)  // blush-deep
+  };
+
+  const radius = 5.5;
+  const nodes = [];
+  for (let i = 0; i < N; i++) {
+    // fibonacci sphere
+    const k = i + 0.5;
+    const phi = Math.acos(1 - 2 * k / N);
+    const theta = Math.PI * (1 + Math.sqrt(5)) * k;
+    let x = Math.cos(theta) * Math.sin(phi) * radius;
+    let y = Math.sin(theta) * Math.sin(phi) * radius;
+    let z = Math.cos(phi) * radius;
+    // small jitter to avoid a too-perfect look
+    x += (Math.random() - 0.5) * 0.6;
+    y += (Math.random() - 0.5) * 0.6;
+    z += (Math.random() - 0.5) * 0.6;
+
+    positions[i*3]     = x;
+    positions[i*3 + 1] = y;
+    positions[i*3 + 2] = z;
+
+    const c = kindColors[memories[i].kind] || kindColors.work;
+    colors[i*3]     = c.r;
+    colors[i*3 + 1] = c.g;
+    colors[i*3 + 2] = c.b;
+    sizes[i] = 1.0;
+
+    nodes.push({
+      pos: new THREE.Vector3(x, y, z),
+      baseColor: c.clone(),
+      currentColor: c.clone(),
+      baseSize: 1.0,
+      currentSize: 1.0,
+      brightness: 0.0,      // ripple amount
+      ripplePhase: 0.0,
+      memory: memories[i]
+    });
+  }
+
+  // Custom shader points — round, glowing, size-attenuating
+  const pointGeo = new THREE.BufferGeometry();
+  pointGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  pointGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+  pointGeo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+
+  const pointMat = new THREE.ShaderMaterial({
+    uniforms: { u_pixelRatio: { value: renderer.getPixelRatio() } },
+    vertexShader: `
+      attribute float size;
+      varying vec3 vColor;
+      uniform float u_pixelRatio;
+      void main() {
+        vColor = color;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float dist = -mv.z;
+        gl_PointSize = size * 24.0 * u_pixelRatio * (10.0 / dist);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      void main() {
+        vec2 c = gl_PointCoord - vec2(0.5);
+        float d = length(c);
+        if (d > 0.5) discard;
+        float core = smoothstep(0.5, 0.0, d);
+        float glow = smoothstep(0.5, 0.15, d);
+        vec3 col = vColor * (0.4 + 1.4 * core);
+        gl_FragColor = vec4(col, glow);
+      }
+    `,
+    vertexColors: true,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const points = new THREE.Points(pointGeo, pointMat);
+  scene.add(points);
+
+  // Connection lines — connect each node to its K nearest neighbors
+  const K = 3;
+  const linePairs = []; // { a, b, baseAlpha }
+  for (let i = 0; i < N; i++) {
+    const dists = [];
+    for (let j = 0; j < N; j++) {
+      if (i === j) continue;
+      dists.push({ j, d: nodes[i].pos.distanceTo(nodes[j].pos) });
+    }
+    dists.sort((a, b) => a.d - b.d);
+    for (let k = 0; k < K; k++) {
+      const j = dists[k].j;
+      // dedupe undirected pairs
+      if (j > i) linePairs.push({ a: i, b: j, baseAlpha: 0.18 });
+    }
+  }
+  const lineCount = linePairs.length;
+  const lineVerts  = new Float32Array(lineCount * 6);
+  const lineCols   = new Float32Array(lineCount * 6);
+  for (let i = 0; i < lineCount; i++) {
+    const { a, b } = linePairs[i];
+    lineVerts[i*6]     = nodes[a].pos.x;
+    lineVerts[i*6 + 1] = nodes[a].pos.y;
+    lineVerts[i*6 + 2] = nodes[a].pos.z;
+    lineVerts[i*6 + 3] = nodes[b].pos.x;
+    lineVerts[i*6 + 4] = nodes[b].pos.y;
+    lineVerts[i*6 + 5] = nodes[b].pos.z;
+    const c = new THREE.Color(0xF5E6E0);
+    for (let k = 0; k < 2; k++) {
+      lineCols[i*6 + k*3]     = c.r;
+      lineCols[i*6 + k*3 + 1] = c.g;
+      lineCols[i*6 + k*3 + 2] = c.b;
+    }
+  }
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(lineVerts, 3));
+  lineGeo.setAttribute('color',    new THREE.BufferAttribute(lineCols, 3));
+  const lineMat = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const lines = new THREE.LineSegments(lineGeo, lineMat);
+  scene.add(lines);
+
+  // Neighbor map for ripple
+  const neighborMap = new Map();
+  for (let i = 0; i < N; i++) neighborMap.set(i, []);
+  linePairs.forEach(({ a, b }) => {
+    neighborMap.get(a).push(b);
+    neighborMap.get(b).push(a);
+  });
+
+  // Interaction
+  const raycaster = new THREE.Raycaster();
+  // forgiving threshold so phones can tap
+  raycaster.params.Points.threshold = 0.45;
+  const mouse = new THREE.Vector2(-10, -10);
+  let hoverIndex = -1;
+  let activeIndex = -1;
+  let activeAt = 0;
+
+  function setHover(index, clientX, clientY) {
+    hoverIndex = index;
+    if (index >= 0) {
+      const mem = nodes[index].memory;
+      tooltipKind.textContent = mem.kind;
+      tooltipText.textContent = mem.label;
+      const rect = stage.getBoundingClientRect();
+      tooltip.style.left = (clientX - rect.left) + 'px';
+      tooltip.style.top  = (clientY - rect.top) + 'px';
+      tooltip.classList.add('visible');
+    } else {
+      tooltip.classList.remove('visible');
+    }
+  }
+
+  function pickAt(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObject(points);
+    return hits.length ? hits[0].index : -1;
+  }
+
+  function triggerRipple(index) {
+    if (index < 0) return;
+    activeIndex = index;
+    activeAt = performance.now();
+    nodes[index].brightness = 1.0;
+    nodes[index].ripplePhase = 1.0;
+    // neighbors ripple after a small delay (handled in animate)
+  }
+
+  canvas.addEventListener('mousemove', (e) => {
+    const idx = pickAt(e.clientX, e.clientY);
+    setHover(idx, e.clientX, e.clientY);
+  });
+  canvas.addEventListener('mouseleave', () => setHover(-1, 0, 0));
+  canvas.addEventListener('click', (e) => {
+    const idx = pickAt(e.clientX, e.clientY);
+    if (idx >= 0) triggerRipple(idx);
+  });
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 0) return;
+    const t = e.touches[0];
+    const idx = pickAt(t.clientX, t.clientY);
+    if (idx >= 0) {
+      setHover(idx, t.clientX, t.clientY);
+      triggerRipple(idx);
+    }
+  }, { passive: true });
+
+  // Auto-rotate the whole web (camera orbit)
+  let camAngle = 0;
+  const camRadius = 14;
+
+  // Resize handling
+  function onResize() {
+    width = stage.clientWidth;
+    height = stage.clientHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
+    pointMat.uniforms.u_pixelRatio.value = renderer.getPixelRatio();
+  }
+  window.addEventListener('resize', onResize);
+
+  // IntersectionObserver — pause when off-screen to save battery
+  let visible = true;
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      visible = entries[0].isIntersecting;
+    }, { threshold: 0.01 });
+    io.observe(stage);
+  }
+
+  // Ripple propagation queue: when active node fires, after 200ms its
+  // neighbors brighten; after 400ms, neighbors-of-neighbors brighten.
+  const rippleQueue = [];
+  function scheduleRipple(index, depth, delayMs) {
+    if (depth > 2) return;
+    setTimeout(() => {
+      const neighbors = neighborMap.get(index) || [];
+      neighbors.forEach(n => {
+        nodes[n].brightness = Math.max(nodes[n].brightness, 0.7 - depth * 0.25);
+        scheduleRipple(n, depth + 1, 180);
+      });
+    }, delayMs);
+  }
+
+  let lastRippleTrigger = -1;
+  let t0 = performance.now();
+  function animate(now) {
+    requestAnimationFrame(animate);
+    if (!visible) return;
+
+    const t = (now - t0) * 0.001;
+
+    // gentle camera orbit — 60s for full revolution
+    camAngle = t * (Math.PI * 2 / 60);
+    camera.position.x = Math.sin(camAngle) * camRadius;
+    camera.position.z = Math.cos(camAngle) * camRadius;
+    camera.position.y = Math.sin(t * 0.15) * 1.2;
+    camera.lookAt(0, 0, 0);
+
+    // fire neighbor ripples on a fresh trigger
+    if (activeIndex !== lastRippleTrigger && activeIndex >= 0) {
+      lastRippleTrigger = activeIndex;
+      scheduleRipple(activeIndex, 0, 200);
+    }
+
+    // update per-node visual state
+    const posAttr  = pointGeo.attributes.position;
+    const colAttr  = pointGeo.attributes.color;
+    const sizeAttr = pointGeo.attributes.size;
+    for (let i = 0; i < N; i++) {
+      const node = nodes[i];
+      // brightness decays
+      node.brightness *= 0.965;
+
+      // distance-dim: nodes farther from camera fade slightly
+      const dz = camera.position.distanceTo(node.pos);
+      const dim = THREE.MathUtils.clamp(1.4 - (dz - 8) * 0.07, 0.45, 1.4);
+
+      const base = node.baseColor;
+      // brighten by mixing toward white-warm
+      const boost = node.brightness;
+      const r = base.r * dim + boost * (1.0 - base.r) * 0.8;
+      const g = base.g * dim + boost * (1.0 - base.g) * 0.6;
+      const b = base.b * dim + boost * (1.0 - base.b) * 0.4;
+      colAttr.array[i*3]     = r;
+      colAttr.array[i*3 + 1] = g;
+      colAttr.array[i*3 + 2] = b;
+      sizeAttr.array[i] = node.baseSize * (1.0 + boost * 1.2);
+    }
+    colAttr.needsUpdate  = true;
+    sizeAttr.needsUpdate = true;
+
+    // update line colors — brighten lines whose endpoints are active
+    const lcol = lineGeo.attributes.color;
+    for (let i = 0; i < lineCount; i++) {
+      const { a, b } = linePairs[i];
+      const bright = Math.max(nodes[a].brightness, nodes[b].brightness);
+      const base = 0.55;       // base off-white
+      const r = base + bright * 0.45;
+      const g = base * 0.95 + bright * 0.35;
+      const bl = base * 0.92 + bright * 0.2;
+      for (let k = 0; k < 2; k++) {
+        lcol.array[i*6 + k*3]     = r;
+        lcol.array[i*6 + k*3 + 1] = g;
+        lcol.array[i*6 + k*3 + 2] = bl;
+      }
+    }
+    lcol.needsUpdate = true;
+    lineMat.opacity = 0.30 + 0.05 * Math.sin(t * 0.7);
+
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
