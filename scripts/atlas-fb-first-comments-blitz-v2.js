@@ -131,6 +131,15 @@ async function markCommentPosted(postId) {
   return res.ok;
 }
 
+// Same DossieBot-Sage profile dir the poster + watcher target. The first-
+// comment blitz drives Heath's main Chrome via PyAutoGUI rather than
+// launchPersistentContext, but a stale DossieBot Chrome from a prior
+// poster run can still hold a Singleton lock that breaks the next
+// fb-group-poster invocation. Pre-clearing here is cheap insurance.
+const CHROME_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
+  os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
+);
+
 (async () => {
   // Preflight: close FB tabs in Heath's main Chrome so they don't race with
   // the DossieBot automation profile / PyAutoGUI window targeting.
@@ -140,6 +149,19 @@ async function markCommentPosted(postId) {
     console.log(`[atlas-comments-v2] preflight: closed=${pre.closed} skipped_dossiebot=${pre.skipped_dossiebot}`);
   } catch (e) {
     console.warn(`[atlas-comments-v2] preflight non-fatal error: ${e.message}`);
+  }
+
+  // Profile unlock: kill stale chrome.exe holding a lock on the DossieBot
+  // user-data-dir. Same fix Sage applied to the group poster after 2 of 7
+  // posts failed today (2026-06-11) with Singleton-lock errors.
+  try {
+    const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+    const unlocked = await unlockProfile({ profileDir: CHROME_PROFILE_PATH, reason: 'first-comments-blitz-v2' });
+    if (unlocked.killed > 0) {
+      console.log(`[atlas-comments-v2] profile-unlock: killed ${unlocked.killed} stale chrome process(es) for ${CHROME_PROFILE_PATH}`);
+    }
+  } catch (e) {
+    console.warn(`[atlas-comments-v2] profile-unlock non-fatal error: ${e.message}`);
   }
 
   let targets = POSTS;

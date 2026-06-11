@@ -13,8 +13,15 @@
 //   SUPABASE_SERVICE_ROLE_KEY
 
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
 const { spawn, execSync } = require('child_process');
+
+// Resolve the same DossieBot-Sage profile dir the poster uses, so the
+// chrome-profile-unlock pre-flight has a target.
+const CHROME_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
+  os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
+);
 
 // Load .env.local
 try {
@@ -155,6 +162,20 @@ async function main() {
     console.log(`[${ts()}] [fb-group-watcher] preflight: closed=${pre.closed} skipped_dossiebot=${pre.skipped_dossiebot}`);
   } catch (e) {
     console.warn(`[${ts()}] [fb-group-watcher] preflight non-fatal error: ${e.message}`);
+  }
+
+  // Profile unlock: kill stale chrome.exe holding a lock on the DossieBot
+  // user-data-dir before we spawn the poster. The poster also runs unlock
+  // internally; doing it here too is cheap and prevents the first post in
+  // a batch from racing a leftover Chrome from a prior watcher cycle.
+  try {
+    const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+    const unlocked = await unlockProfile({ profileDir: CHROME_PROFILE_PATH, reason: 'fb-group-watcher' });
+    if (unlocked.killed > 0) {
+      console.log(`[${ts()}] [fb-group-watcher] profile-unlock: killed ${unlocked.killed} stale chrome process(es) for ${CHROME_PROFILE_PATH}`);
+    }
+  } catch (e) {
+    console.warn(`[${ts()}] [fb-group-watcher] profile-unlock non-fatal error: ${e.message}`);
   }
 
   // No more session-file validity check — the poster uses Heath's persistent
