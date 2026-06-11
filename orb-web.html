@@ -104,44 +104,64 @@
   }
 
   /* "Hear me speak" CTA — sits below the Tap-to-listen hint.
-     Warm coral border, plain background. On press, fades and the orb's
-     inner-glow takes over the visual lead via Web Audio amplitude. */
+     More prominent now: bigger, warmer fill, soft outer glow, gentle
+     attention-pulse so it's the next obvious thing after the orb. */
   #speak-btn {
-    margin-top: 2.5vh;
-    padding: 0.85rem 1.6rem;
+    margin-top: 2.8vh;
+    padding: 1.05rem 2.2rem;
     font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 400;
-    font-size: 0.85rem;
-    letter-spacing: 0.18em;
+    font-weight: 500;
+    font-size: clamp(0.85rem, 1.5vw, 1rem);
+    letter-spacing: 0.20em;
     text-transform: uppercase;
-    color: rgba(245, 230, 224, 0.95);
-    background: rgba(232, 131, 107, 0.08);
-    border: 1px solid rgba(232, 131, 107, 0.45);
+    color: #fff;
+    background: linear-gradient(135deg, rgba(232,131,107,0.55) 0%, rgba(201,169,110,0.45) 100%);
+    border: 1px solid rgba(245, 197, 168, 0.7);
     border-radius: 999px;
     cursor: pointer;
-    transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
     display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.7rem;
     -webkit-tap-highlight-color: transparent;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      0 0 24px rgba(232, 131, 107, 0.35),
+      0 6px 24px rgba(0, 0, 0, 0.25);
+    animation: speakBtnBreath 3.2s ease-in-out infinite;
+    position: relative;
+  }
+  @keyframes speakBtnBreath {
+    0%, 100% {
+      box-shadow: 0 0 24px rgba(232, 131, 107, 0.30), 0 6px 24px rgba(0, 0, 0, 0.25);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 36px rgba(232, 131, 107, 0.55), 0 6px 28px rgba(0, 0, 0, 0.25);
+      transform: scale(1.03);
+    }
   }
   #speak-btn:hover {
-    background: rgba(232, 131, 107, 0.18);
-    border-color: rgba(232, 131, 107, 0.7);
+    background: linear-gradient(135deg, rgba(232,131,107,0.70) 0%, rgba(201,169,110,0.55) 100%);
+    border-color: rgba(245, 197, 168, 0.95);
   }
   #speak-btn:active { transform: scale(0.97); }
   #speak-btn[disabled] {
     opacity: 0.6;
     cursor: default;
+    animation: none;
+  }
+  #speak-btn.playing {
+    animation: none;
+    background: linear-gradient(135deg, rgba(232,131,107,0.75) 0%, rgba(201,169,110,0.6) 100%);
   }
   #speak-btn .speak-btn-dot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--coral);
-    box-shadow: 0 0 12px rgba(232, 131, 107, 0.8);
+    background: #fff;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.95);
     transition: transform 0.2s ease;
   }
   #speak-btn.playing .speak-btn-dot {
@@ -150,6 +170,22 @@
   @keyframes dotPulse {
     0%, 100% { transform: scale(1);   opacity: 1; }
     50%      { transform: scale(1.6); opacity: 0.6; }
+  }
+  /* Subline below the button explaining what tapping does. */
+  .speak-subline {
+    margin-top: 1.4vh;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 0.78rem;
+    letter-spacing: 0.10em;
+    color: rgba(245, 230, 224, 0.55);
+    text-align: center;
+    max-width: 28ch;
+    line-height: 1.5;
+  }
+  .speak-subline em {
+    font-style: italic;
+    color: rgba(255, 200, 130, 0.85);
   }
   #cole-audio { display: none; }
 
@@ -395,7 +431,7 @@
       <div id="orb-inner-glow"></div>
       <video
         id="orb-video"
-        src="/orb-smoke-v2-palindrome.mp4"
+        src="/orb-smoke-v3.mp4"
         autoplay
         muted
         loop
@@ -411,6 +447,7 @@
     <span class="speak-btn-dot"></span>
     Hear me speak
   </button>
+  <div class="speak-subline">Tap to hear Cole &mdash; <em>watch the glow pulse with each syllable.</em></div>
   <audio id="cole-audio" src="/cole-sample.mp3" preload="auto" crossorigin="anonymous"></audio>
 </section>
 
@@ -656,6 +693,74 @@
   });
 
   btn.addEventListener('click', play);
+
+  /* PREVIEW PULSE — fires once ~1.2s after page load so visitors who never
+     tap the button still SEE that the orb is meant to pulse with speech.
+     Synthesizes a short envelope that mimics 3 spoken syllables, writes it
+     to --pulse-intensity, decays out. Pure visual demo — no audio plays.
+     If Heath taps the speak button first, this is canceled so we don't
+     compete with real amplitude. */
+  let previewRaf = 0;
+  let previewCanceled = false;
+  function runPreviewPulse() {
+    if (previewCanceled) return;
+    stage.classList.add('speaking'); // suspend ambient keyframe so demo dominates
+    const start = performance.now();
+    const DURATION = 2400; // ms
+    // 3 syllable envelopes, attack+release shape
+    const syllables = [
+      { t: 0,    peak: 0.65 },
+      { t: 0.42, peak: 0.85 },
+      { t: 0.78, peak: 0.55 }
+    ];
+    function envelope(progress) {
+      // sum of attack-decay bumps
+      let v = 0;
+      for (const s of syllables) {
+        const local = progress - s.t;
+        if (local < 0) continue;
+        // 0.18-wide bump, fast attack ~30ms, slower release
+        const a = Math.max(0, 1 - Math.abs(local - 0.04) / 0.14);
+        v = Math.max(v, s.peak * a * a);
+      }
+      return Math.min(1, v);
+    }
+    function step(now) {
+      if (previewCanceled) {
+        stage.classList.remove('speaking');
+        stage.style.setProperty('--pulse-intensity', 0);
+        return;
+      }
+      const progress = (now - start) / DURATION;
+      if (progress >= 1) {
+        // decay to zero
+        let v = parseFloat(getComputedStyle(stage).getPropertyValue('--pulse-intensity')) || 0;
+        const decay = () => {
+          if (previewCanceled) return;
+          v *= 0.85;
+          stage.style.setProperty('--pulse-intensity', v.toFixed(3));
+          if (v > 0.005) requestAnimationFrame(decay);
+          else {
+            stage.style.setProperty('--pulse-intensity', 0);
+            stage.classList.remove('speaking');
+          }
+        };
+        decay();
+        return;
+      }
+      const val = envelope(progress);
+      stage.style.setProperty('--pulse-intensity', val.toFixed(3));
+      previewRaf = requestAnimationFrame(step);
+    }
+    previewRaf = requestAnimationFrame(step);
+  }
+  function cancelPreview() {
+    previewCanceled = true;
+    cancelAnimationFrame(previewRaf);
+  }
+  btn.addEventListener('click', cancelPreview, { once: true });
+  // Fire preview after ~1.2s so the page settles first
+  setTimeout(runPreviewPulse, 1200);
 })();
 
 
