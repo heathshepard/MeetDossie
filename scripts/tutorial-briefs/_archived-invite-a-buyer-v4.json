@@ -1,0 +1,30 @@
+{
+  "slug": "invite-a-buyer",
+  "title": "Add Your Buyer to a Dossier",
+  "description": "Drop your buyer's name into the file so every email, contract, and milestone flows to the right person.",
+  "voiceover_script": "Hi, I'm Dossie. When you represent a buyer, drop their name into the dossier so every email and contract flows to the right person. Open the file, tap the buyer's name field, and type it in. From now on, every contract I draft and every milestone card I send goes to them automatically.",
+  "tags": ["onboarding", "dossier", "buyer", "client-info"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "youtube-short"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 3,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 4,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2200 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 400 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1500 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 8000, "pause_ms": 1200 },
+    { "action": "click_text", "text": "123 main street", "exact": false, "pause_ms": 2500 },
+    { "action": "wait_for_text", "text": "Deal details", "timeout_ms": 8000, "pause_ms": 800 },
+    { "action": "scroll", "y": 600, "pause_ms": 900 },
+    { "action": "scroll", "y": 400, "pause_ms": 900 },
+    { "action": "click_button_text", "text": "Buyer's full name", "pause_ms": 900 },
+    { "action": "type", "value": "Jordan Reyes", "delay_ms": 65, "pause_ms": 900 },
+    { "action": "press", "key": "Tab", "pause_ms": 1500 },
+    { "action": "wait", "pause_ms": 1500 }
+  ]
+}

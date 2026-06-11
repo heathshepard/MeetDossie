@@ -1,0 +1,28 @@
+{
+  "slug": "sign-up-and-complete-profile",
+  "title": "Sign Up and Complete Your Profile",
+  "description": "How to finish your Dossie profile in under a minute so every document looks like yours.",
+  "voiceover_script": "Hi, I'm Dossie. After you join, finish your profile so every email, contract, and milestone card goes out under your real brand. In Settings, fill in your name, your brokerage, your phone, and your Google review link. Hit save. From here on, I include them automatically.",
+  "tags": ["onboarding", "getting-started", "settings", "profile"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "youtube-short"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 1,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 4,
+  "pre_auth": true,
+  "record_start_after_text": "AGENT PROFILE",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Settings\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Settings", "pause_ms": 1500 },
+    { "action": "wait_for_text", "text": "AGENT PROFILE", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "fill_placeholder", "placeholder": "Your name", "value": "Sarah Whitley", "typed": true, "delay_ms": 35, "pause_ms": 600 },
+    { "action": "fill_placeholder", "placeholder": "Your brokerage", "value": "Sarah Whitley Real Estate", "typed": true, "delay_ms": 30, "pause_ms": 600 },
+    { "action": "fill_placeholder", "placeholder": "Your phone", "value": "(210) 555-0100", "typed": true, "delay_ms": 35, "pause_ms": 600 },
+    { "action": "scroll", "y": 200, "pause_ms": 600 },
+    { "action": "fill_placeholder", "placeholder": "https://g.page/r", "value": "https://g.page/r/sarah-reviews", "typed": true, "delay_ms": 25, "pause_ms": 700 },
+    { "action": "click_text", "text": "Save changes", "exact": false, "pause_ms": 2500 }
+  ]
+}

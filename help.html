@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dossie Help — Tutorial Library</title>
+  <meta name="description" content="Quick 30-60 second tutorials for every Dossie feature. From opening your first dossier to sending a contract via DossieSign." />
+  <link rel="icon" type="image/png" href="/Media/dossie-logo-d.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --coral: #E8836B;
+      --ink: #2A2A3E;
+      --muted: #6B6B7A;
+      --card: #ffffff;
+      --border: rgba(26, 26, 46, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--blush) 0%, #ffffff 320px);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+    header.hero { text-align: center; margin-bottom: 32px; }
+    .logo { width: 56px; height: 56px; border-radius: 50%; background: var(--blush); display: inline-flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 32px; color: var(--coral); margin-bottom: 16px; }
+    h1 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 44px; margin: 0 0 8px; color: var(--navy); }
+    .subtitle { color: var(--muted); font-size: 18px; max-width: 620px; margin: 0 auto; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 28px 0 8px; }
+    .filter-btn {
+      padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--card); cursor: pointer; font-size: 14px; color: var(--ink);
+      transition: all 0.15s; font-weight: 500;
+    }
+    .filter-btn:hover { border-color: var(--coral); color: var(--coral); }
+    .filter-btn.active { background: var(--coral); color: #fff; border-color: var(--coral); }
+    .search {
+      width: 100%; max-width: 520px; margin: 16px auto 0; display: block;
+      padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
+      font-size: 15px; background: var(--card);
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 32px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      transition: transform 0.15s, box-shadow 0.15s; cursor: pointer;
+      display: flex; flex-direction: column;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.08); }
+    .card-video { width: 100%; aspect-ratio: 9 / 16; background: var(--blush); object-fit: cover; display: block; }
+    .card-body { padding: 16px 18px 20px; flex: 1; display: flex; flex-direction: column; }
+    .card-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--navy); margin: 0 0 6px; line-height: 1.2; }
+    .card-desc { font-size: 14px; color: var(--muted); margin: 0 0 12px; flex: 1; }
+    .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
+    .duration-badge { background: var(--blush); color: var(--navy); padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+    .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(139, 168, 136, 0.15); color: var(--sage); font-weight: 500; }
+    .empty { text-align: center; padding: 48px 16px; color: var(--muted); }
+    .loading { text-align: center; padding: 48px; color: var(--muted); }
+    .modal {
+      position: fixed; inset: 0; background: rgba(26,26,46,0.85); display: none;
+      align-items: center; justify-content: center; padding: 24px; z-index: 100;
+    }
+    .modal.open { display: flex; }
+    .modal-content { background: #000; border-radius: 16px; overflow: hidden; max-width: 420px; width: 100%; position: relative; }
+    .modal-close {
+      position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.95);
+      border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+      font-size: 18px; z-index: 2;
+    }
+    .modal video { width: 100%; display: block; }
+    .modal-info { padding: 16px 20px; background: #fff; }
+    .modal-info h2 { font-family: 'Cormorant Garamond', serif; margin: 0 0 4px; color: var(--navy); }
+    .modal-info p { margin: 0; color: var(--muted); font-size: 14px; }
+    @media (max-width: 600px) {
+      h1 { font-size: 32px; }
+      .container { padding: 24px 16px 64px; }
+      .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card-body { padding: 12px 14px 14px; }
+      .card-title { font-size: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <div class="logo">D</div>
+      <h1>How to use Dossie</h1>
+      <p class="subtitle">30-60 second tutorials for every feature. Tap a card to watch.</p>
+    </header>
+
+    <div class="controls" id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="onboarding">Getting started</button>
+      <button class="filter-btn" data-filter="daily-workflow">Daily workflow</button>
+      <button class="filter-btn" data-filter="dossiesign">DossieSign &amp; forms</button>
+      <button class="filter-btn" data-filter="communication">Communication</button>
+      <button class="filter-btn" data-filter="advanced">Advanced</button>
+    </div>
+    <input class="search" id="search" type="search" placeholder="Search tutorials..." />
+
+    <div id="library" class="loading">Loading tutorials...</div>
+  </div>
+
+  <div class="modal" id="modal" onclick="if(event.target===this) closeModal()">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <video id="modal-video" controls playsinline></video>
+      <div class="modal-info">
+        <h2 id="modal-title"></h2>
+        <p id="modal-desc"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let SUPABASE_URL = '';
+    let SUPABASE_ANON = '';
+
+    let allBites = [];
+    let activeFilter = 'all';
+    let searchQuery = '';
+
+    async function loadBites() {
+      try {
+        if (!SUPABASE_ANON) {
+          const cfg = await (await fetch('/api/public-config')).json();
+          SUPABASE_URL = cfg.supabaseUrl;
+          SUPABASE_ANON = cfg.supabaseAnonKey || cfg.supabaseKey;
+        }
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/tutorial_videos?status=in.(ready,published)&order=workflow_order.asc,title.asc&select=slug,title,description,video_url,thumbnail_url,duration_seconds,tags,workflow_group`, {
+          headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
+        });
+        if (!res.ok) throw new Error('load failed');
+        allBites = await res.json();
+        render();
+      } catch (e) {
+        document.getElementById('library').innerHTML = '<div class="empty">No tutorials yet — first ones land today.</div>';
+      }
+    }
+
+    function render() {
+      const filtered = allBites.filter(b => {
+        if (activeFilter !== 'all') {
+          const tags = b.tags || [];
+          const group = b.workflow_group || '';
+          const match = tags.includes(activeFilter) || group.includes(activeFilter);
+          if (!match) return false;
+        }
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          if (!b.title.toLowerCase().includes(q) && !(b.description || '').toLowerCase().includes(q)) return false;
+        }
+        return true;
+      });
+
+      const lib = document.getElementById('library');
+      if (!filtered.length) {
+        lib.className = '';
+        lib.innerHTML = '<div class="empty">No tutorials match — try a different filter.</div>';
+        return;
+      }
+      lib.className = 'grid';
+      lib.innerHTML = filtered.map(b => `
+        <div class="card" onclick='openModal(${JSON.stringify(b).replace(/'/g, "&apos;")})'>
+          <video class="card-video" muted preload="metadata" src="${b.video_url}#t=0.1"></video>
+          <div class="card-body">
+            <h3 class="card-title">${escapeHtml(b.title)}</h3>
+            <p class="card-desc">${escapeHtml(b.description || '')}</p>
+            <div class="card-meta">
+              <span class="duration-badge">${b.duration_seconds || '–'}s</span>
+              <span>${(b.workflow_group || '').replace(/-/g,' ')}</span>
+            </div>
+            <div class="tags">${(b.tags || []).slice(0,3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    function openModal(bite) {
+      const m = document.getElementById('modal');
+      document.getElementById('modal-video').src = bite.video_url;
+      document.getElementById('modal-title').textContent = bite.title;
+      document.getElementById('modal-desc').textContent = bite.description || '';
+      m.classList.add('open');
+      document.getElementById('modal-video').play().catch(() => {});
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+      const v = document.getElementById('modal-video');
+      v.pause();
+      v.src = '';
+    }
+
+    document.getElementById('filters').addEventListener('click', e => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      render();
+    });
+
+    document.getElementById('search').addEventListener('input', e => {
+      searchQuery = e.target.value;
+      render();
+    });
+
+    loadBites();
+  </script>
+</body>
+</html>
