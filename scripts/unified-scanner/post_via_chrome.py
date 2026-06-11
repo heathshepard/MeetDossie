@@ -197,17 +197,46 @@ def _post_one(row: dict) -> bool:
                               result="no permalink")
         return False
 
+    from datetime import datetime, timezone
+    posted_at_iso = datetime.now(timezone.utc).isoformat()
     sb.update_candidate(row["id"], {
         "status": "posted",
         "posted_comment_url": permalink,
+        "posted_at": posted_at_iso,
     })
     sb.log_desktop_action("comment_post_ok",
                           target=f"{platform}:{post_url}",
                           text_typed=draft,
                           result=f"permalink={permalink}",
                           approved_by="heath")
+
+    # SV-FB-VETO-001: notify Heath when veto-mode auto-post lands.
+    # Always fires (the cron daily cap upstream guarantees max 5/day).
+    try:
+        group_label = (
+            row.get("group_name")
+            or _group_from_post_url(post_url)
+            or platform
+        )
+        sb.telegram_alert(
+            f"POSTED in {group_label}\n{permalink}"
+        )
+    except Exception as e:
+        log.debug("telegram POSTED notify failed: %s", e)
+
     log.info("posted %s comment -> %s", platform, permalink)
     return True
+
+
+def _group_from_post_url(post_url: str) -> Optional[str]:
+    """Best-effort: pull the slug after /groups/ from a FB URL."""
+    if not post_url:
+        return None
+    import re
+    m = re.search(r"/groups/([^/?#]+)", post_url)
+    if m:
+        return f"groups/{m.group(1)}"
+    return None
 
 
 def run(max_posts: int = MAX_POSTS_PER_RUN) -> int:

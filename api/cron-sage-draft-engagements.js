@@ -21,6 +21,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
+// Caps locked by Heath 2026-06-10. SHARED SOURCE OF TRUTH.
+const {
+  canComment,
+  getTodayCounts,
+  meetsSubstanceFloor,
+  SUBSTANCE_MIN_CHARS,
+} = require('../scripts/_lib/comment-caps');
+
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const MAX_DRAFTS_PER_RUN = 8;
 
@@ -71,11 +79,19 @@ async function fetchPending(limit) {
 }
 
 async function patchRow(id, fields) {
-  await sbFetch(`/rest/v1/engagement_candidates?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(fields),
-  });
+  // Return ok so callers can detect persistence failures. Previously this
+  // swallowed PATCH errors silently -- a draft that failed to write back to
+  // the DB still flipped the in-memory state to "drafted" with no draft
+  // text anywhere. Root cause of the 2026-06-10 row-29 data-loss incident.
+  const { ok, status, data } = await sbFetch(
+    `/rest/v1/engagement_candidates?id=eq.${id}`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(fields),
+    }
+  );
+  return { ok, status, data };
 }
 
 // ─── Claude ──────────────────────────────────────────────────────────────────
@@ -146,18 +162,60 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, drafted: 0, skipped: 0, message: 'queue empty' });
   }
 
+  // Pre-flight: pull today's per-platform counts. If a platform is at cap,
+  // skip drafting for it entirely so we don't waste Haiku tokens. Caps from
+  // scripts/_lib/comment-caps.js (Heath-approved 2026-06-10).
+  const todayCounts = await getTodayCounts(sbFetch);
+
   let drafted = 0;
   let skipped = 0;
   let failed = 0;
+  let capSkipped = 0;
 
+  let persistFailures = 0;
   for (const row of pending) {
+    const cap = await canComment(row.platform, sbFetch);
+    if (!cap.allowed) {
+      await patchRow(row.id, {
+        status: 'cap_deferred',
+        rejection_reason: cap.reason,
+      });
+      capSkipped++;
+      continue;
+    }
     const { draft, raw } = await draftFor(row);
     if (draft) {
-      await patchRow(row.id, {
+      // Substance floor — 80+ chars referencing specifics from the source post.
+      const keywords = Array.isArray(row.matched_keywords) ? row.matched_keywords : [];
+      const sub = meetsSubstanceFloor(draft, keywords);
+      if (!sub.ok) {
+        await patchRow(row.id, {
+          status: 'rejected',
+          rejection_reason: `substance_floor:${sub.reason}`,
+        });
+        skipped++;
+        continue;
+      }
+      // CRITICAL: verify PATCH actually wrote comment_draft. If the PATCH
+      // fails, do NOT advance status to 'drafted' -- leave the row pending
+      // so the next cron run retries. Losing a draft to a silent PATCH
+      // failure was the original 2026-06-10 row-29 data-loss path.
+      const patch = await patchRow(row.id, {
         comment_draft: draft,
         status: 'drafted',
       });
-      drafted++;
+      const wroteOk = patch && patch.ok && Array.isArray(patch.data) &&
+        patch.data[0] && patch.data[0].comment_draft === draft;
+      if (wroteOk) {
+        drafted++;
+      } else {
+        persistFailures++;
+        await patchRow(row.id, {
+          last_error: `draft_persist_failed status=${patch && patch.status}`,
+          post_attempt_count: (row.post_attempt_count || 0) + 1,
+        });
+        failed++;
+      }
     } else if (raw === 'SKIP') {
       await patchRow(row.id, {
         status: 'rejected',
@@ -180,6 +238,10 @@ module.exports = async function handler(req, res) {
     drafted,
     skipped,
     failed,
+    capSkipped,
+    persistFailures,
     sampled: pending.length,
+    todayCounts,
+    substanceFloorChars: SUBSTANCE_MIN_CHARS,
   });
 };
