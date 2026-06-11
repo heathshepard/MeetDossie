@@ -24,7 +24,7 @@
     { "action": "scroll", "y": 400, "pause_ms": 900 },
     { "action": "click_button_text", "text": "Buyer's full name", "pause_ms": 900 },
     { "action": "type", "value": "Jordan Reyes", "delay_ms": 65, "pause_ms": 900 },
-    { "action": "press", "key": "Tab", "pause_ms": 1500 },
-    { "action": "wait", "pause_ms": 1500 }
+    { "action": "press", "key": "Tab", "pause_ms": 1800 },
+    { "action": "wait", "pause_ms": 2000 }
   ]
 }
