@@ -244,25 +244,31 @@
     width: 70%;
     height: 70%;
     /* The translate is the resting transform; scale stacks on top.
-       --pulse-intensity adds up to +30% scale at peak amplitude. */
-    transform: translate(-50%, -50%) scale(calc(1 + var(--pulse-intensity) * 0.18));
+       --pulse-intensity adds up to +55% scale at peak amplitude — boosted
+       from the previous 18% because real speech RMS rarely peaks above
+       0.3-0.4 (observed Bill voice ~0.16 max in Playwright), so the
+       visible response was muted. Now even modest amplitude reads. */
+    transform: translate(-50%, -50%) scale(calc(1 + var(--pulse-intensity) * 0.55));
     border-radius: 50%;
     background: radial-gradient(circle,
-      rgba(255, 200, 130, 0.85) 0%,
-      rgba(255, 180, 100, 0.50) 15%,
-      rgba(255, 160, 80, 0.15) 30%,
+      rgba(255, 200, 130, 0.9) 0%,
+      rgba(255, 180, 100, 0.55) 15%,
+      rgba(255, 160, 80, 0.18) 30%,
       transparent 60%);
     mix-blend-mode: screen;
     pointer-events: none;
     z-index: 1;
-    /* Opacity = ambient breath baseline + audio-reactive boost.
-       When pulse-intensity > 0, ambient keyframe gives way to live amplitude. */
-    opacity: calc(0.6 + var(--pulse-intensity) * 0.4);
+    /* Opacity ranges from 0.5 (silence) to 1.0 (loud) — wider swing so the
+       brightness change is unmistakable. */
+    opacity: calc(0.5 + var(--pulse-intensity) * 0.9);
     animation: glowBreath 6s ease-in-out infinite;
     /* Audio reactivity overrides the keyframe via the CSS var — when intensity
        is held at 0 the keyframe still runs; when intensity is being written
        every frame it dominates visually. */
     transition: opacity 60ms linear;
+    /* Filter brightness also responds — adds a "lamp turning brighter" cue
+       independent of scale, so the change is visible even on slow phones. */
+    filter: brightness(calc(1 + var(--pulse-intensity) * 0.8));
   }
   /* When the orb is in "speaking" mode, suspend the ambient keyframe so the
      audio amplitude is the only driver of inner-glow opacity + scale. */
@@ -634,8 +640,10 @@
       sum += v * v;
     }
     const rms = Math.sqrt(sum / dataArray.length); // 0..~1
-    // Light gain — speech RMS rarely tops 0.3-0.4, so scale to use the full range.
-    return Math.min(1, rms * 2.6);
+    // Gain tuned from Playwright trace: Bill voice RMS peaks ~0.165.
+    // 4.0x gain → ~0.66 peak intensity → ~36% scale + ~60% opacity swing.
+    // Loud audio still clamps to 1.0 so we don't oversaturate.
+    return Math.min(1, rms * 4.0);
   }
 
   function tick() {
