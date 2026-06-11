@@ -27,14 +27,22 @@ from .relevance import score_text, MIN_SCORE
 log = logging.getLogger("unified_scanner.instagram")
 
 HASHTAGS = (
-    "texasrealtor",
-    "texasrealestate",
-    "transactioncoordinator",
+    # Heath's spec 2026-06-10: #txrealtor #texasrealestate #realestateagent
+    # #realtorslife are the four primary pain-point hashtags. We keep the
+    # broader Texas-city + TC-specific tags so we don't miss SA/Houston/Austin
+    # threads, but the spec tags lead the rotation.
     "txrealtor",
+    "texasrealestate",
+    "realestateagent",
+    "realtorslife",
+    "texasrealtor",
+    "transactioncoordinator",
     "trec",
     "sanantoniorealtor",
     "houstonrealtor",
     "austinrealtor",
+    "dfwrealtor",
+    "realestatelife",
 )
 
 # Post tile boundary heuristic: a relative timestamp on its own line.
@@ -133,7 +141,7 @@ def _scan_hashtag(tag: str, scanner_run_id: str) -> int:
     return inserted
 
 
-def scan(scanner_run_id: str = "", max_tags: int = 4) -> int:
+def scan(scanner_run_id: str = "", max_tags: int = 6) -> int:
     if not scanner_run_id:
         scanner_run_id = f"ig-{uuid.uuid4().hex[:8]}"
     total = 0

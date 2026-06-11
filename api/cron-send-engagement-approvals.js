@@ -23,12 +23,15 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CRON_SECRET = process.env.CRON_SECRET;
 
+const caps = require('./_lib/engagement-caps');
+
 const MAX_SEND_PER_RUN = 6;
 const PLATFORM_LABEL = {
   facebook:  'Facebook',
   instagram: 'Instagram',
   linkedin:  'LinkedIn',
   reddit:    'Reddit',
+  twitter:   'Twitter/X',
 };
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
@@ -122,13 +125,59 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Telegram env not configured' });
   }
 
-  const drafted = await fetchDrafted(MAX_SEND_PER_RUN);
+  // Pull a wider candidate window than MAX_SEND_PER_RUN so the cap filter has
+  // material to choose from -- some drafted rows will be deferred (author
+  // cooldown, platform-cap hit) and we still want to fill the daily budget
+  // from other platforms in the same run.
+  const drafted = await fetchDrafted(MAX_SEND_PER_RUN * 5);
   if (!drafted.length) {
     return res.status(200).json({ ok: true, sent: 0, message: 'queue empty' });
   }
 
+  // Heath's caps (5/day total, 2/day per platform, 1 author / 7d).
+  // Loaded once per run -- "in-flight" approvals from this run mutate the
+  // state object as we go so we never over-allocate inside the same loop.
+  const [counts, blockedAuthors] = await Promise.all([
+    caps.loadDailyCounts(),
+    caps.loadAuthorBlocklist(),
+  ]);
+  const capState = caps.makeCapState(counts, blockedAuthors);
+
   let sent = 0;
+  let skippedMissingDraft = 0;
+  const deferred = { total_daily_cap: 0, platform_daily_cap: 0, author_7d_cooldown: 0 };
+
   for (const row of drafted) {
+    if (sent >= MAX_SEND_PER_RUN) break;
+    if (capState.totalRemaining <= 0) break;
+
+    // Guard against data-loss bug -- never Telegram a row whose comment_draft
+    // isn't actually in the DB. Bounce it back to 'pending' so the drafting
+    // cron can re-run on it. Without this guard a status='drafted' row with
+    // null comment_draft surfaces as "(empty draft)" in the approval message
+    // and Heath approves an empty string, losing the in-flight comment text.
+    if (!row.comment_draft || !row.comment_draft.trim()) {
+      await patchRow(row.id, {
+        status: 'pending',
+        last_error: 'sender_found_null_draft_resetting_to_pending',
+      });
+      skippedMissingDraft++;
+      continue;
+    }
+
+    const decision = caps.tryConsume(capState, row);
+    if (!decision.allow) {
+      // Don't telegram-blast -- leave row at status='drafted' so the next
+      // cron run (post-midnight UTC, or after the author cooldown lifts)
+      // can pick it up. We tag the latest reason so the queue dashboard can
+      // explain "why is this row sitting" without a DB dive.
+      await patchRow(row.id, {
+        last_error: `deferred_by_cap:${decision.reason}`,
+      });
+      deferred[decision.reason] = (deferred[decision.reason] || 0) + 1;
+      continue;
+    }
+
     // Two-message pattern -- context first (no buttons), draft second (with buttons).
     await tgSend(buildContextMessage(row), null);
     await new Promise((r) => setTimeout(r, 700));
@@ -150,5 +199,15 @@ module.exports = async function handler(req, res) {
     await new Promise((r) => setTimeout(r, 1500));
   }
 
-  return res.status(200).json({ ok: true, sent, queued: drafted.length });
+  return res.status(200).json({
+    ok: true,
+    sent,
+    queued: drafted.length,
+    skippedMissingDraft,
+    deferred,
+    capState: {
+      totalRemaining: capState.totalRemaining,
+      perPlatformRemaining: capState.perPlatformRemaining,
+    },
+  });
 };

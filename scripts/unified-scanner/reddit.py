@@ -32,7 +32,15 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _FETCH_SCRIPT = _REPO_ROOT / "scripts" / "reddit-fetch-new.js"
 _SESSION_FILE = _REPO_ROOT / "scripts" / "sessions" / "reddit.json"
 
-SUBREDDITS = ("realtors", "realestate", "RealEstate", "RealEstateTechnology")
+SUBREDDITS = (
+    "realtors",
+    "realestate",
+    "RealEstate",
+    "RealEstateAgents",
+    "RealEstateTechnology",
+    "realestateinvesting",
+    "Texas",
+)
 LIMIT_PER_SUB = 25
 
 
