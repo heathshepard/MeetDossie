@@ -1,0 +1,21 @@
+{
+  "slug": "invite-a-seller",
+  "title": "Invite a Seller to Your Dossier",
+  "description": "Sellers want updates too. Send them a private view of the file in one tap.",
+  "voiceover_script": "Hi, I'm Dossie. If you represent the seller, invite them straight from the dossier. Open the file, tap the seller's name, and send the invite. They get a clean view of the timeline, the option period, the inspection window, and every milestone as it happens. You stop being their voicemail. I keep them in the loop for you.",
+  "tags": ["onboarding", "dossier", "seller", "client-view"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "youtube-short"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 4,
+  "viewport": { "width": 1280, "height": 720 },
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2000 },
+    { "action": "wait", "pause_ms": 4000 },
+    { "action": "click_text", "text": "Pipeline", "pause_ms": 1500 },
+    { "action": "wait", "pause_ms": 1500 },
+    { "action": "scroll", "y": 300, "pause_ms": 1500 },
+    { "action": "wait", "pause_ms": 2000 }
+  ]
+}

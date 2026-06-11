@@ -65,6 +65,14 @@
     {
       "source": "/orb-web",
       "destination": "/orb-web.html"
+    },
+    {
+      "source": "/help",
+      "destination": "/help.html"
+    },
+    {
+      "source": "/app/help",
+      "destination": "/help.html"
     }
   ],
   "headers": [
