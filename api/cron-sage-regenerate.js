@@ -77,10 +77,19 @@ Please regenerate with the feedback considered.`;
 
     const data = await res.json();
     const text = data?.content?.[0]?.text || '';
-    const match = text.match(/\{[^}]+\}/s);
-    if (!match) return null;
-
-    const parsed = JSON.parse(match[0]);
+    // Balanced-brace JSON extraction (same fix as cron-sage-autonomous-review).
+    const start = text.indexOf('{');
+    if (start === -1) return null;
+    let depth = 0, end = -1;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) return null;
+    let parsed;
+    try { parsed = JSON.parse(text.slice(start, end + 1)); }
+    catch (e) { console.warn('[cron-sage-regenerate] JSON parse failed:', e.message); return null; }
     return {
       content: String(parsed.content || ''),
       hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
