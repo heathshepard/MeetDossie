@@ -133,28 +133,23 @@ async function handleGroupPostCallback(action, postId, callbackQueryId, chatId, 
     await patchGroupPost(postId, {
       status: 'approved',
       approved_at: now,
+      auto_post_at: now,
     });
 
-    // Edit the approval message to show it's approved
+    // Edit the approval message to show it's approved and queued
     if (chatId && messageId) {
       const updatedText = [
         originalBody,
         '',
-        'Approved - run this command on your laptop to post:',
-        '',
-        `node scripts/fb-group-poster.js --post-id ${postId}`,
+        '✅ Approved — queued for auto-post via DossieBot.',
+        'You\'ll see ✅ POSTED when it lands.',
       ].join('\n').slice(0, 4096);
 
       await editMessage(chatId, messageId, updatedText);
     }
 
-    // Send the command as a separate message so Heath can copy-paste it easily
-    await sendPersonalNotification(
-      `Approved! Posting to "${post.group_name}"\n\nRun this on your laptop:\n\nnode scripts/fb-group-poster.js --post-id ${postId}`,
-    );
-
     if (callbackQueryId) await answerCallback(callbackQueryId, 'Approved');
-    console.log(`[group-post-callback] Approved post ${postId} for "${post.group_name}"`);
+    console.log(`[group-post-callback] Approved post ${postId} for "${post.group_name}" — queued for autonomous posting`);
     return;
   }
 
