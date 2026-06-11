@@ -8,13 +8,13 @@
   "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short"],
   "workflow_group": "general-onboarding",
   "workflow_order": 2,
-  "viewport": { "width": 1280, "height": 720 },
+  "viewport": { "width": 390, "height": 844 },
+  "version": 2,
   "demo_account": "demo@meetdossie.com",
   "steps": [
-    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2000 },
-    { "action": "wait", "pause_ms": 4000 },
-    { "action": "click_text", "text": "Pipeline", "pause_ms": 1500 },
-    { "action": "click_text", "text": "New Dossier", "exact": false, "pause_ms": 2500 },
-    { "action": "wait", "pause_ms": 2500 }
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 3000 },
+    { "action": "wait", "pause_ms": 3000 },
+    { "action": "click_text", "text": "Open New Dossier", "exact": false, "pause_ms": 3000 },
+    { "action": "wait", "pause_ms": 4000 }
   ]
 }
