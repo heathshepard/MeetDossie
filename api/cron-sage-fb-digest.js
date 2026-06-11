@@ -15,8 +15,8 @@
 // can just reply with the candidate number and Cole will spawn Sage to
 // draft on the spot.
 //
-// Schedule: cron-job.org daily 15:00 UTC (= 10 AM CDT). Vercel at cron cap.
-// Auth: Bearer ${CRON_SECRET}.
+// Schedule: Vercel cron daily 15:00 UTC (= 10 AM CDT).
+// Auth: Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -139,8 +139,10 @@ async function sendTelegram(text) {
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 module.exports = async (req, res) => {
-  const auth = req.headers.authorization || '';
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  const auth = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+  const isManualAuth = CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
+  if (!isVercelCron && !isManualAuth) {
     res.status(401).json({ error: 'unauthorized' });
     return;
   }

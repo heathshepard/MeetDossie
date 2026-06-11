@@ -1,330 +1,342 @@
 {
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "rewrites": [
-    {
-      "destination": "/index.html",
-      "source": "/"
-    },
-    {
-      "source": "/founding",
-      "destination": "/founding.html"
-    },
-    {
-      "source": "/welcome",
-      "destination": "/welcome.html"
-    },
-    {
-      "source": "/set-password",
-      "destination": "/set-password.html"
-    },
-    {
-      "source": "/forgot-password",
-      "destination": "/forgot-password.html"
-    },
-    {
-      "source": "/signin",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/workspace",
-      "destination": "/workspace.html"
-    },
-    {
-      "source": "/app",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/calculator",
-      "destination": "/calculator.html"
-    },
-    {
-      "source": "/privacy",
-      "destination": "/privacy.html"
-    },
-    {
-      "source": "/terms",
-      "destination": "/terms.html"
-    },
-    {
-      "source": "/ventures",
-      "destination": "/ventures.html"
-    },
-    {
-      "source": "/studio",
-      "destination": "/ventures.html"
-    },
-    {
-      "source": "/media-studio",
-      "destination": "/media-studio.html"
-    },
-    {
-      "source": "/ventures/social/fb-groups",
-      "destination": "/ventures-fb-groups.html"
-    },
-    {
-      "source": "/orb-web",
-      "destination": "/orb-web.html"
-    },
-    {
-      "source": "/help",
-      "destination": "/help.html"
-    },
-    {
-      "source": "/app/help",
-      "destination": "/help.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*).html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/manifest.webmanifest",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/icons/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
-        }
-      ]
-    }
-  ],
-  "functions": {
-    "api/cron-process-agent-requests.js": {
-      "maxDuration": 60
-    },
-    "api/agent-dispatch.js": {
-      "maxDuration": 10
-    },
-    "api/cron-sage-draft-engagements.js": {
-      "maxDuration": 60
-    },
-    "api/cron-send-engagement-approvals.js": {
-      "maxDuration": 30
-    },
-    "api/cron-engagement-summary.js": {
-      "maxDuration": 30
-    },
-    "api/cron-send-to-sage.js": {
-      "maxDuration": 30
-    },
-    "api/cron-sage-autonomous-review.js": {
-      "maxDuration": 60
-    },
-    "api/cron-sage-regenerate.js": {
-      "maxDuration": 60
-    },
-    "api/cron-sage-first-comment.js": {
-      "maxDuration": 30
-    },
-    "api/cron-heath-publish-digest.js": {
-      "maxDuration": 30
-    }
-  },
-  "crons": [
-    {
-      "path": "/api/alert-health",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron-followup",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron-pipeline-check",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-generate-posts",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-render-videos",
-      "schedule": "10 11 * * *"
-    },
-    {
-      "path": "/api/cron-send-to-sage",
-      "schedule": "30 11 * * *"
-    },
-    {
-      "path": "/api/cron-sage-autonomous-review",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-sage-regenerate",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-sage-first-comment",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron-heath-publish-digest",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron-publish-approved",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-content-brief",
-      "schedule": "0 14 * * 1-5"
-    },
-    {
-      "path": "/api/cron-calculator-deadline-reminders",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-email-digest",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-deadline-reminders",
-      "schedule": "5 13 * * *"
-    },
-    {
-      "path": "/api/cron-pipeline-health",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-morning-brief",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron-customer-morning-brief",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron-weekly-newsletter",
-      "schedule": "0 15 * * 5"
-    },
-    {
-      "path": "/api/cron-coverage-check",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron-analytics-sync",
-      "schedule": "0 2 * * 0"
-    },
-    {
-      "path": "/api/cron-video-approval",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron-post-videos",
-      "schedule": "30 13 * * *"
-    },
-    {
-      "path": "/api/cron-verify-posts",
-      "schedule": "45 * * * *"
-    },
-    {
-      "path": "/api/cron-generate-skit",
-      "schedule": "0 11 * * 1,2,5"
-    },
-    {
-      "path": "/api/cron-elevenlabs-monitor",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron-activation-drip",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron-testimonial-request",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron-auto-approve",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron-growth-alerts",
-      "schedule": "0 14 * * 1"
-    },
-    {
-      "path": "/api/cron-weekly-scorecard",
-      "schedule": "0 14 * * 1"
-    },
-    {
-      "path": "/api/cron-send-referral-blast",
-      "schedule": "30 13 9 6 *"
-    },
-    {
-      "path": "/api/cron-reddit-scanner",
-      "schedule": "0 13,17,21,1 * * *"
-    },
-    {
-      "path": "/api/cron-render-skits",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-assemble-skits",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron-thursday-blast",
-      "schedule": "30 13 10 6 *"
-    },
-    {
-      "path": "/api/cron-daily-platform-health",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron-competitor-intel",
-      "schedule": "0 14 * * 0"
-    },
-    {
-      "path": "/api/cron-daily-fb-posts",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron-cookie-health-check",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron-social-digest",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron-competitor-monitor",
-      "schedule": "0 12 * * 1"
-    },
-    {
-      "path": "/api/cron-sage-trends",
-      "schedule": "0 12 * * 2,5"
-    },
-    {
-      "path": "/api/cron-fb-unlock-alerts",
-      "schedule": "0 14 * * 1"
-    }
-  ]
+    "buildCommand":  "",
+    "outputDirectory":  ".",
+    "rewrites":  [
+                     {
+                         "destination":  "/index.html",
+                         "source":  "/"
+                     },
+                     {
+                         "source":  "/founding",
+                         "destination":  "/founding.html"
+                     },
+                     {
+                         "source":  "/welcome",
+                         "destination":  "/welcome.html"
+                     },
+                     {
+                         "source":  "/set-password",
+                         "destination":  "/set-password.html"
+                     },
+                     {
+                         "source":  "/forgot-password",
+                         "destination":  "/forgot-password.html"
+                     },
+                     {
+                         "source":  "/signin",
+                         "destination":  "/app.html"
+                     },
+                     {
+                         "source":  "/workspace",
+                         "destination":  "/workspace.html"
+                     },
+                     {
+                         "source":  "/app",
+                         "destination":  "/app.html"
+                     },
+                     {
+                         "source":  "/calculator",
+                         "destination":  "/calculator.html"
+                     },
+                     {
+                         "source":  "/privacy",
+                         "destination":  "/privacy.html"
+                     },
+                     {
+                         "source":  "/terms",
+                         "destination":  "/terms.html"
+                     },
+                     {
+                         "source":  "/ventures",
+                         "destination":  "/ventures.html"
+                     },
+                     {
+                         "source":  "/studio",
+                         "destination":  "/ventures.html"
+                     },
+                     {
+                         "source":  "/media-studio",
+                         "destination":  "/media-studio.html"
+                     },
+                     {
+                         "source":  "/ventures/social/fb-groups",
+                         "destination":  "/ventures-fb-groups.html"
+                     },
+                     {
+                         "source":  "/orb-web",
+                         "destination":  "/orb-web.html"
+                     },
+                     {
+                         "source":  "/help",
+                         "destination":  "/help.html"
+                     },
+                     {
+                         "source":  "/app/help",
+                         "destination":  "/help.html"
+                     }
+                 ],
+    "headers":  [
+                    {
+                        "source":  "/(.*).html",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-cache, no-store, must-revalidate"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/assets/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=3600, must-revalidate"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/manifest.webmanifest",
+                        "headers":  [
+                                        {
+                                            "key":  "Content-Type",
+                                            "value":  "application/manifest+json"
+                                        },
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=3600, must-revalidate"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/icons/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=86400, must-revalidate"
+                                        }
+                                    ]
+                    }
+                ],
+    "functions":  {
+                      "api/cron-process-agent-requests.js":  {
+                                                                 "maxDuration":  60
+                                                             },
+                      "api/agent-dispatch.js":  {
+                                                    "maxDuration":  10
+                                                },
+                      "api/cron-sage-draft-engagements.js":  {
+                                                                 "maxDuration":  60
+                                                             },
+                      "api/cron-send-engagement-approvals.js":  {
+                                                                    "maxDuration":  30
+                                                                },
+                      "api/cron-engagement-summary.js":  {
+                                                             "maxDuration":  30
+                                                         },
+                      "api/cron-send-to-sage.js":  {
+                                                       "maxDuration":  30
+                                                   },
+                      "api/cron-sage-autonomous-review.js":  {
+                                                                 "maxDuration":  60
+                                                             },
+                      "api/cron-sage-regenerate.js":  {
+                                                          "maxDuration":  60
+                                                      },
+                      "api/cron-sage-first-comment.js":  {
+                                                             "maxDuration":  30
+                                                         },
+                      "api/cron-heath-publish-digest.js":  {
+                                                               "maxDuration":  30
+                                                           }
+                  },
+    "crons":  [
+                  {
+                      "path":  "/api/alert-health",
+                      "schedule":  "*/5 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-followup",
+                      "schedule":  "0 12 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-pipeline-check",
+                      "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-generate-posts",
+                      "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-render-videos",
+                      "schedule":  "10 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-send-to-sage",
+                      "schedule":  "30 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-sage-autonomous-review",
+                      "schedule":  "*/30 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-sage-regenerate",
+                      "schedule":  "*/30 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-sage-first-comment",
+                      "schedule":  "*/15 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-heath-publish-digest",
+                      "schedule":  "0 7 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-publish-approved",
+                      "schedule":  "*/30 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-content-brief",
+                      "schedule":  "0 14 * * 1-5"
+                  },
+                  {
+                      "path":  "/api/cron-calculator-deadline-reminders",
+                      "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-email-digest",
+                      "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-deadline-reminders",
+                      "schedule":  "5 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-pipeline-health",
+                      "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-morning-brief",
+                      "schedule":  "0 12 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-customer-morning-brief",
+                      "schedule":  "0 12 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-weekly-newsletter",
+                      "schedule":  "0 15 * * 5"
+                  },
+                  {
+                      "path":  "/api/cron-coverage-check",
+                      "schedule":  "0 1 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-analytics-sync",
+                      "schedule":  "0 2 * * 0"
+                  },
+                  {
+                      "path":  "/api/cron-video-approval",
+                      "schedule":  "0 10 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-post-videos",
+                      "schedule":  "30 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-verify-posts",
+                      "schedule":  "45 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-generate-skit",
+                      "schedule":  "0 11 * * 1,2,5"
+                  },
+                  {
+                      "path":  "/api/cron-elevenlabs-monitor",
+                      "schedule":  "0 14 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-activation-drip",
+                      "schedule":  "0 15 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-testimonial-request",
+                      "schedule":  "0 14 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-auto-approve",
+                      "schedule":  "*/10 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-growth-alerts",
+                      "schedule":  "0 14 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-weekly-scorecard",
+                      "schedule":  "0 14 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-send-referral-blast",
+                      "schedule":  "30 13 9 6 *"
+                  },
+                  {
+                      "path":  "/api/cron-reddit-scanner",
+                      "schedule":  "0 13,17,21,1 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-render-skits",
+                      "schedule":  "0 13 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-assemble-skits",
+                      "schedule":  "*/10 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-thursday-blast",
+                      "schedule":  "30 13 10 6 *"
+                  },
+                  {
+                      "path":  "/api/cron-daily-platform-health",
+                      "schedule":  "0 3 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-competitor-intel",
+                      "schedule":  "0 14 * * 0"
+                  },
+                  {
+                      "path":  "/api/cron-daily-fb-posts",
+                      "schedule":  "0 14 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-cookie-health-check",
+                      "schedule":  "0 4 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-social-digest",
+                      "schedule":  "0 12 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-competitor-monitor",
+                      "schedule":  "0 12 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-sage-trends",
+                      "schedule":  "0 12 * * 2,5"
+                  },
+                  {
+                      "path":  "/api/cron-fb-unlock-alerts",
+                      "schedule":  "0 14 * * 1"
+                  },
+                  {
+                      "path":  "/api/cron-queue-tutorial-reels",
+                      "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-sage-fb-digest",
+                      "schedule":  "0 15 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-engagement-candidates-cleanup",
+                      "schedule":  "0 6 * * *"
+                  }
+              ]
 }
