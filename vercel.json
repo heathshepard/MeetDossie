@@ -124,6 +124,21 @@
     },
     "api/cron-engagement-summary.js": {
       "maxDuration": 30
+    },
+    "api/cron-send-to-sage.js": {
+      "maxDuration": 30
+    },
+    "api/cron-sage-autonomous-review.js": {
+      "maxDuration": 60
+    },
+    "api/cron-sage-regenerate.js": {
+      "maxDuration": 60
+    },
+    "api/cron-sage-first-comment.js": {
+      "maxDuration": 30
+    },
+    "api/cron-heath-publish-digest.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -148,8 +163,24 @@
       "schedule": "10 11 * * *"
     },
     {
-      "path": "/api/cron-send-for-approval",
+      "path": "/api/cron-send-to-sage",
       "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron-sage-autonomous-review",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-sage-regenerate",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-sage-first-comment",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron-heath-publish-digest",
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron-publish-approved",
