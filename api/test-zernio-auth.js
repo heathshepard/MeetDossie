@@ -1,9 +1,16 @@
 // GET /api/test-zernio-auth
 // Test Zernio API authentication and list accounts
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
+// Previously public — leaked Zernio account IDs and the last 4 chars of the API key.
 
 const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 export default async function handler(req, res) {
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
   try {
     // Test accounts endpoint
     const accountsRes = await fetch('https://zernio.com/api/v1/accounts', {

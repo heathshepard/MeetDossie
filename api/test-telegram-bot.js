@@ -6,11 +6,18 @@
 
 const TELEGRAM_MARKETING_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  // Auth added 2026-06-10 (Atlas) — endpoint sends Telegram messages.
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   if (!TELEGRAM_MARKETING_BOT_TOKEN) {

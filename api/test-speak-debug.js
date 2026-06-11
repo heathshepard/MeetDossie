@@ -1,4 +1,7 @@
 // Debug endpoint to diagnose speak 401 issue
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
+// Previously echoed ALL request headers including any Bearer tokens —
+// hard to abuse from outside but extremely loud if scraped.
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,6 +10,12 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
+  }
+
+  const CRON_SECRET = process.env.CRON_SECRET;
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   // Log EVERYTHING

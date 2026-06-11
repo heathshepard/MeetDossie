@@ -47,7 +47,14 @@ export default async function handler(req, res) {
     await checkRateLimit(ip, "leads", 60, 60 * 60 * 1000);
 
     if (req.method === "GET") {
-      // Return all leads, newest first
+      // Admin-only — requires CRON_SECRET. Public anonymous GET would leak
+      // every lead's name + email + notes (PII). Patched 2026-06-10 (Atlas).
+      const authHeader =
+        (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+      const CRON_SECRET = process.env.CRON_SECRET;
+      if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
       const leads = await supabaseRequest("leads?select=*&order=created_at.desc");
       return res.status(200).json(leads);
     }

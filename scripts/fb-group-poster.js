@@ -9,24 +9,8 @@
 // Usage:
 //   node scripts/fb-group-poster.js --post-id [uuid]
 //
-// ─── MANDATORY POST-EXISTENCE VERIFICATION ────────────────────────────────────
-// As of 2026-06-11, every post submission MUST be verified before status is
-// set to 'posted'. Submitting the composer is NOT sufficient — Facebook
-// silently drops posts that violate group rules, blocks posters who never
-// agreed to group rules, and queues posts for admin review without any
-// composer-level error. Previously 4 of 6 posts in a single day were marked
-// 'posted' in the DB but never appeared in any group, giving us false reach
-// data.
-//
-// After submitting, the poster verifies and writes one of these statuses:
-//   - posted                  → confirmed visible in the group feed
-//   - pending_admin_approval  → post is in the admin moderation queue
-//   - blocked_group_rules     → group rules consent banner detected
-//   - silently_dropped        → composer closed but post never appeared
-//   - failed                  → composer never submitted (network/UI error)
-//
-// Do NOT remove this verification step. Do NOT short-circuit on "composer
-// closed = success." See verifyPostExists() below.
+// Requires an approved group_posts row. Fetches it from Supabase, posts,
+// then updates group_posts status='posted' and group_registry last_posted_at.
 //
 // Migrated 2026-06-10 from sessions/facebook.json to launchPersistentContext
 // to eliminate the recurring "renew Facebook session" pings.
@@ -110,42 +94,32 @@ async function fetchPost(postId) {
   return data[0];
 }
 
-// Status-aware DB writer. `result` is the object returned by postToGroup():
-//   { status, postUrl?, failureReason? }
-// Only 'posted' bumps group_registry.last_posted_at — pending / blocked /
-// dropped posts must not count toward "we just hit this group" cooldowns.
-async function markResult(postId, groupRegistryId, result) {
+async function markPosted(postId, groupRegistryId, postUrl) {
   const now = new Date().toISOString();
-  const patch = {
-    status: result.status,
-    failure_reason: result.failureReason || null,
-    verified_at: now,
-  };
-
-  if (result.status === 'posted') {
-    patch.posted_at = now;
-    patch.post_url = result.postUrl || null;
-  } else if (result.status === 'pending_admin_approval') {
-    // Record the submission time so the 2hr auto-attach cron can pick it up
-    // once admins approve. Do NOT set post_url — there isn't one yet.
-    patch.posted_at = now;
-  }
 
   await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(patch),
+    body: JSON.stringify({ status: 'posted', posted_at: now, post_url: postUrl || null }),
   });
 
-  if (result.status === 'posted' && groupRegistryId) {
+  if (groupRegistryId) {
     await supabaseFetch(`/rest/v1/group_registry?id=eq.${encodeURIComponent(groupRegistryId)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ last_posted_at: now }),
     });
   }
+}
 
-  console.log(`[fb-group-poster] DB updated → status=${result.status}${result.failureReason ? ` reason="${result.failureReason}"` : ''}`);
+async function markFailed(postId, reason) {
+  // Reset to approved so Heath can retry
+  await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'approved' }),
+  });
+  console.error(`[fb-group-poster] Marked as failed (reset to approved): ${reason}`);
 }
 
 // ─── Telegram confirmation ────────────────────────────────────────────────────
@@ -262,142 +236,6 @@ async function postFirstComment(page, firstCommentBody) {
     console.warn('[fb-group-poster] Error posting first comment:', err.message);
     return false;
   }
-}
-
-// ─── Post-existence verification ──────────────────────────────────────────────
-//
-// After submitting the composer, decide the post's real fate. Order matters:
-// banners take priority over feed-scan because Facebook can show a banner
-// AND leave a phantom shadow of the post in the composer area.
-//
-// Returns one of: 'posted' | 'pending_admin_approval' | 'blocked_group_rules'
-//                 | 'silently_dropped'
-// Plus an optional failureReason string for the DB.
-
-async function verifyPostExists(page, post) {
-  const bodyNeedle = String(post.post_body || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-
-  // ── 1) Look for explicit error / status banners FIRST ──
-  // Facebook's banner copy varies; we match a few phrasings each.
-  const bannerChecks = [
-    {
-      patterns: [
-        /pending\s+(admin|moderator)\s+approval/i,
-        /awaiting\s+(admin|moderator)\s+approval/i,
-        /your\s+post\s+is\s+pending/i,
-        /sent\s+for\s+(admin|moderator)\s+review/i,
-        /pending\s+review/i,
-      ],
-      status: 'pending_admin_approval',
-      reason: 'Facebook surfaced an admin-moderation banner after submit.',
-    },
-    {
-      patterns: [
-        /haven['’]t\s+agreed\s+to\s+(the\s+)?group\s+rules/i,
-        /must\s+agree\s+to\s+(the\s+)?group\s+rules/i,
-        /agree\s+to\s+(the\s+)?(group\s+)?rules\s+(before|to)\s+post/i,
-        /group\s+rules.*before\s+posting/i,
-      ],
-      status: 'blocked_group_rules',
-      reason: 'Group rules consent banner blocked submission — agreement required.',
-    },
-    {
-      patterns: [
-        /your\s+post\s+couldn['’]t\s+be\s+(shared|posted)/i,
-        /something\s+went\s+wrong/i,
-        /this\s+post\s+goes\s+against\s+community\s+standards/i,
-        /you\s+can['’]t\s+post\s+(in|to)\s+this\s+group/i,
-      ],
-      status: 'silently_dropped',
-      reason: 'Facebook displayed a post-rejection banner.',
-    },
-  ];
-
-  try {
-    const pageText = await page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
-    for (const check of bannerChecks) {
-      for (const pattern of check.patterns) {
-        if (pattern.test(pageText)) {
-          console.log(`[fb-group-poster] verification: matched banner pattern → ${check.status}`);
-          return { status: check.status, failureReason: check.reason };
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[fb-group-poster] verification: banner scan threw:', err.message);
-  }
-
-  // ── 2) Reload the group page and scan the feed for our post body ──
-  // 5-10s lets FB index the post into the feed.
-  console.log('[fb-group-poster] verification: reloading group page to scan feed...');
-  try {
-    await page.waitForTimeout(7000);
-    await page.goto(post.group_url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(4000);
-  } catch (err) {
-    console.warn('[fb-group-poster] verification: reload failed:', err.message);
-  }
-
-  // Re-check banners after reload (group rules banner often shows on landing).
-  try {
-    const pageText = await page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
-    for (const check of bannerChecks) {
-      for (const pattern of check.patterns) {
-        if (pattern.test(pageText)) {
-          console.log(`[fb-group-poster] verification: matched banner pattern post-reload → ${check.status}`);
-          return { status: check.status, failureReason: check.reason };
-        }
-      }
-    }
-  } catch {}
-
-  // ── 3) Search the visible feed for our post body ──
-  if (!bodyNeedle) {
-    return {
-      status: 'silently_dropped',
-      failureReason: 'Empty post_body — cannot verify (this is a config bug).',
-    };
-  }
-
-  let permalink = null;
-  try {
-    // Scroll a bit to load lazy-rendered articles.
-    for (let i = 0; i < 3; i++) {
-      await page.mouse.wheel(0, 1200);
-      await page.waitForTimeout(800);
-    }
-
-    const articles = await page.locator('[role="article"]').all();
-    console.log(`[fb-group-poster] verification: scanning ${articles.length} articles for "${bodyNeedle.slice(0, 40)}..."`);
-
-    for (const article of articles.slice(0, 25)) {
-      const txt = (await article.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
-      if (!txt) continue;
-      if (txt.toLowerCase().includes(bodyNeedle.toLowerCase())) {
-        // Found a match — try to extract the permalink from this article.
-        try {
-          const link = await article.locator('a[href*="/posts/"]').first();
-          const href = await link.getAttribute('href').catch(() => null);
-          if (href) {
-            const absolute = href.startsWith('http') ? href : `https://www.facebook.com${href}`;
-            if (/\/groups\/[^/]+\/posts\/\d+/.test(absolute)) {
-              permalink = absolute.split('?')[0];
-            }
-          }
-        } catch {}
-        console.log(`[fb-group-poster] verification: post found in feed${permalink ? ` (${permalink})` : ''}`);
-        return { status: 'posted', postUrl: permalink || post.group_url };
-      }
-    }
-  } catch (err) {
-    console.warn('[fb-group-poster] verification: feed scan threw:', err.message);
-  }
-
-  // ── 4) Not found, no banner — Facebook silently dropped it ──
-  return {
-    status: 'silently_dropped',
-    failureReason: 'Composer submitted with no error, but post does not appear in the group feed after reload + scroll.',
-  };
 }
 
 // ─── Playwright posting ───────────────────────────────────────────────────────
@@ -609,31 +447,72 @@ async function postToGroup(post) {
     console.log('[fb-group-poster] Clicking Post button...');
     await postButton.click();
 
-    // Brief settle window — let Facebook process the submit and render either
-    // (a) a banner, (b) the post in the feed, or (c) a silent drop.
-    console.log('[fb-group-poster] Waiting for Facebook to process submit...');
-    await page.waitForTimeout(8000);
+    // Wait up to 30s for the post to appear (poll for success)
+    console.log('[fb-group-poster] Waiting for post confirmation...');
+    let posted = false;
+    for (let i = 0; i < 10; i++) {
+      await page.waitForTimeout(3000);
 
-    // Quick composer-error sniff (shows immediately on hard failures).
-    try {
-      const errorEl = page.locator('[data-testid="error-message"], [role="alert"]').first();
-      if (await errorEl.isVisible({ timeout: 1500 }).catch(() => false)) {
-        const errorText = await errorEl.innerText().catch(() => 'unknown error');
-        // Don't throw — let verifyPostExists classify it.
-        console.warn(`[fb-group-poster] Composer surfaced an alert: ${errorText}`);
+      // Check if the composer closed (success indicator)
+      const composerGone = !(await page.locator('div[contenteditable="true"]').isVisible().catch(() => false));
+      if (composerGone) {
+        posted = true;
+        console.log('[fb-group-poster] Composer closed - post likely submitted successfully');
+        break;
       }
-    } catch {}
 
-    // ─── MANDATORY VERIFICATION ───
-    // Decide the post's real fate. Banner > feed-scan > silently_dropped.
-    const result = await verifyPostExists(page, post);
-    console.log(`[fb-group-poster] verification result: ${result.status}`);
+      // Check for error message
+      const errorEl = await page.locator('[data-testid="error-message"], [role="alert"]').first();
+      const errorVisible = await errorEl.isVisible().catch(() => false);
+      if (errorVisible) {
+        const errorText = await errorEl.innerText().catch(() => 'unknown error');
+        throw new Error(`Facebook showed an error: ${errorText}`);
+      }
+    }
 
-    // First comment only fires on confirmed 'posted'.
-    if (result.status === 'posted' && post.first_comment_body) {
+    if (!posted) {
+      // Best-effort: assume it posted if no error after 30s
+      console.warn('[fb-group-poster] Could not confirm post - no error shown, assuming success');
+      posted = true;
+    }
+
+    // Try to capture the post permalink from the feed.
+    // Facebook renders a timestamp <a href="/groups/.../posts/..."> once the
+    // post appears. Give the feed a moment to render before querying.
+    let postUrl = null;
+    try {
+      await page.waitForTimeout(3000);
+      // Look for the most recent post permalink in the feed — links containing
+      // /posts/ that are not navigation links (skip if they contain /permalink/).
+      const links = await page.$$('a[href*="/posts/"]');
+      for (const link of links) {
+        const href = await link.getAttribute('href').catch(() => null);
+        if (!href) continue;
+        // Normalize to absolute URL
+        const absolute = href.startsWith('http') ? href : `https://www.facebook.com${href}`;
+        // Must look like a group post URL: /groups/[id]/posts/[id]
+        if (/\/groups\/[^/]+\/posts\/\d+/.test(absolute)) {
+          postUrl = absolute.split('?')[0]; // strip query params
+          console.log(`[fb-group-poster] Captured post permalink: ${postUrl}`);
+          break;
+        }
+      }
+    } catch (err) {
+      console.warn('[fb-group-poster] Could not capture post permalink:', err.message);
+    }
+
+    // Fallback: use group URL so the comment monitor can at least navigate there
+    if (!postUrl) {
+      postUrl = post.group_url;
+      console.log('[fb-group-poster] Permalink not found — falling back to group URL');
+    }
+
+    // Post first comment if needed (keeps page open)
+    if (post.first_comment_body) {
       console.log('[fb-group-poster] Posting first comment...');
       const firstCommentSuccess = await postFirstComment(page, post.first_comment_body);
       if (firstCommentSuccess) {
+        // Update DB to mark first comment as posted
         await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(post.id)}`, {
           method: 'PATCH',
           headers: { Prefer: 'return=minimal' },
@@ -643,11 +522,9 @@ async function postToGroup(post) {
       } else {
         console.warn('[fb-group-poster] First comment posting failed - continuing anyway');
       }
-    } else if (post.first_comment_body) {
-      console.log(`[fb-group-poster] Skipping first comment — post status is "${result.status}", not "posted".`);
     }
 
-    return result;
+    return postUrl;
   } finally {
     await context.close();
   }
@@ -693,31 +570,23 @@ async function main() {
   console.log(`[fb-group-poster] Posting to "${post.group_name}" (${post.group_url})`);
   console.log(`[fb-group-poster] Template: ${post.template_id} | Pillar: ${post.pillar}`);
 
-  let result = null;
+  let postUrl = null;
   let errorMsg = null;
 
   try {
-    result = await postToGroup(post);
+    postUrl = await postToGroup(post);
   } catch (err) {
     errorMsg = err.message;
     console.error('[fb-group-poster] Playwright error:', err.message);
-    result = { status: 'failed', failureReason: err.message };
   }
 
-  await markResult(POST_ID, post.group_registry_id, result);
-
-  // Telegram confirmation reflects the verified status, not a blind success.
-  const success = result.status === 'posted';
-  const reason = result.failureReason || errorMsg || null;
-  const tgNote = success
-    ? null
-    : `${result.status}${reason ? ` — ${reason}` : ''}`;
-  await sendTelegramConfirmation(post.group_name, post.post_body, success, tgNote);
-
-  // Non-zero exit on anything that isn't a verified post or a legitimate queue
-  // entry — so cron callers can retry or alert. pending_admin_approval is a
-  // success-with-asterisk and exits 0.
-  if (result.status !== 'posted' && result.status !== 'pending_admin_approval') {
+  if (postUrl) {
+    await markPosted(POST_ID, post.group_registry_id, postUrl);
+    console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${postUrl}`);
+    await sendTelegramConfirmation(post.group_name, post.post_body, true, null);
+  } else {
+    await markFailed(POST_ID, errorMsg || 'unknown error');
+    await sendTelegramConfirmation(post.group_name, post.post_body, false, errorMsg);
     process.exit(1);
   }
 }

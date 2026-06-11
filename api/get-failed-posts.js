@@ -1,8 +1,10 @@
 // GET /api/get-failed-posts?date=2026-05-14
 // Get error messages for failed posts
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 async function supabaseFetch(path) {
   const res = await fetch(`${SUPABASE_URL}${path}`, {
@@ -16,6 +18,10 @@ async function supabaseFetch(path) {
 }
 
 export default async function handler(req, res) {
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
   const date = req.query.date || new Date().toISOString().split('T')[0];
 
   try {

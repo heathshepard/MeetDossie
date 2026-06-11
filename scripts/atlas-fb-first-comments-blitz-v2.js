@@ -29,21 +29,16 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-// NEEDLES MUST MATCH live post_body text. Update these every time
-// cron-generate-posts regenerates a row. The blitz searches FB for these
-// exact phrases to locate the post on screen. If they don't match, FB
-// returns 0 hits -> outcome=needle_not_found -> JS coerces to 'unknown'.
-// Last alignment: 2026-06-10 (Sage diagnosis of 4 needle_not_found failures)
 const POSTS = [
   {
     id: 'fc1762df-60eb-463f-98c6-5e10eed13e6d',
     label: 'texas-real-estate-agents',
-    needle: 'every TREC deadline straight across your open files',
+    needle: 'Option periods, financing contingencies, appraisal windows',
   },
   {
     id: '37faa0aa-dce2-4dfe-bced-48e507eb2d2f',
     label: 'texas-real-estate-network',
-    needle: 'TC math caught up with me a while back',
+    needle: 'spreadsheet line item gets brutal',
   },
   {
     id: 'd078e368-1738-4bdc-a2f5-fc1f0fe8399c',
@@ -53,12 +48,12 @@ const POSTS = [
   {
     id: 'b9add267-e9b1-4f4d-8421-debe19dec9db',
     label: 'all-about-real-estate-houston',
-    needle: 'Option period is the part of the deal where I used to feel the most behind',
+    needle: 'email chains across six parties',
   },
   {
     id: 'b4aa1c2f-924b-4aa6-9330-373d897c1b36',
     label: 'realtors-san-antonio-boerne',
-    needle: 'Boerne / Bulverde / 281 corridor',
+    needle: 'Stone Oak listings and Hill Country buyers',
   },
   {
     id: 'd68ce2f6-f3e9-4dbb-99d5-5f053cf4f315',

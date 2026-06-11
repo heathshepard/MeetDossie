@@ -1,5 +1,7 @@
 // GET /api/social-diagnostic
 // Full health check of social posting engine with live env vars
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
+// Previously public — leaked Telegram webhook URL containing bot token.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -7,6 +9,7 @@ const TELEGRAM_MARKETING_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN;
 const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
 const HCTI_USER_ID = process.env.HCTI_USER_ID;
 const HCTI_API_KEY = process.env.HCTI_API_KEY;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -214,6 +217,10 @@ async function checkFailedPosts() {
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   try {
