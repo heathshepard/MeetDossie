@@ -1,3 +1,7 @@
+# Cole orb video pipeline — intermediate raw clip from Kling (do not commit)
+public/orb-smoke-raw.mp4
+public/frame_*.jpg
+
 # Logs
 logs
 *.log
