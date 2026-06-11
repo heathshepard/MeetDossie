@@ -259,6 +259,7 @@ module.exports = async function handler(req, res) {
   const gaps = [];         // subscriptions fixed this run
   const errors = [];       // subscriptions that failed to fix
   let alreadyProvisioned = 0;
+  let skippedDemoAccounts = 0;
 
   for (const sub of allStripeSubs) {
     const stripeSubscriptionId = sub.id;
@@ -305,6 +306,13 @@ module.exports = async function handler(req, res) {
       const errMsg = `No customer email found for sub=${stripeSubscriptionId} customer=${stripeCustomerId}`;
       console.error('[cron-stripe-reconcile]', errMsg);
       errors.push({ stripeSubscriptionId, stripeCustomerId, error: errMsg });
+      continue;
+    }
+
+    // Skip demo accounts.
+    if (customerEmail === 'demo@meetdossie.com' || customerEmail === 'demo2@meetdossie.com' || customerEmail === 'heath.shepard@gmail.com') {
+      console.log('[cron-stripe-reconcile] skipping demo/test account:', customerEmail);
+      skippedDemoAccounts += 1;
       continue;
     }
 
@@ -370,12 +378,12 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${errors.length} errors`);
+  console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${skippedDemoAccounts} demo/test accounts skipped, ${errors.length} errors`);
 
   // Send Telegram alert.
   let telegramText;
   if (gaps.length === 0 && errors.length === 0) {
-    telegramText = `Stripe reconcile (${new Date().toISOString().slice(0, 10)}): all clear. ${alreadyProvisioned} founding subs, 0 gaps.`;
+    telegramText = `Stripe reconcile (${new Date().toISOString().slice(0, 10)}): all clear. ${alreadyProvisioned} already provisioned${skippedDemoAccounts > 0 ? `, ${skippedDemoAccounts} demo/test skipped` : ''}.`;
   } else {
     const gapLines = gaps.map((g) => `  - ${g.customerEmail} (sub ${g.stripeSubscriptionId})`).join('\n');
     const errLines = errors.map((e) => `  - ${e.customerEmail || e.stripeSubscriptionId}: ${e.error}`).join('\n');
@@ -383,7 +391,7 @@ module.exports = async function handler(req, res) {
       `<b>Stripe reconcile ${new Date().toISOString().slice(0, 10)}</b>`,
       gaps.length > 0 ? `\nGaps FIXED (${gaps.length}):\n${gapLines}` : '',
       errors.length > 0 ? `\nErrors (${errors.length}):\n${errLines}` : '',
-      `\n${alreadyProvisioned} already provisioned.`,
+      `\n${alreadyProvisioned} already provisioned${skippedDemoAccounts > 0 ? `, ${skippedDemoAccounts} demo/test skipped` : ''}.`,
     ].filter(Boolean).join('');
   }
 
@@ -395,6 +403,7 @@ module.exports = async function handler(req, res) {
     total_stripe_subs: allStripeSubs.length,
     already_provisioned: alreadyProvisioned,
     gaps_fixed: gaps.length,
+    demo_accounts_skipped: skippedDemoAccounts,
     errors: errors.length,
     gaps,
     error_details: errors,
