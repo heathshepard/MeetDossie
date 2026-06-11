@@ -10,7 +10,8 @@
 // Keeps rows that are still in flight or that we want for analytics:
 //   - drafted, sent_for_approval, approved, posting, posted, failed
 //
-// Schedule: cron-job.org daily 06:00 UTC. Auth: Bearer ${CRON_SECRET}.
+// Schedule: Vercel cron daily 06:00 UTC.
+// Auth: Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -39,8 +40,10 @@ async function sbFetch(urlPath, init = {}) {
 }
 
 module.exports = async (req, res) => {
-  const auth = req.headers.authorization || '';
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  const auth = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+  const isManualAuth = CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
+  if (!isVercelCron && !isManualAuth) {
     res.status(401).json({ error: 'unauthorized' });
     return;
   }
