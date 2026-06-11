@@ -69,7 +69,7 @@ C) A physical calendar or notes app
 D) I have a TC who handles it
 
 Genuinely curious - I've been rethinking my whole setup lately and want to hear what's actually working for people.`,
-      first_comment: `Love seeing these answers - the spread is wild. For what it's worth, I've been using an AI that auto-calculates every TREC deadline from contract date and sends daily deal briefs. meetdossie.com/founding if you're in the B or C camp and want to try something different.`,
+      first_comment: `Love seeing these answers - the spread is wild. I built Dossie for exactly this - it auto-calculates every TREC deadline from the contract date and sends me a morning brief on what's due. meetdossie.com/founding if you're in the B or C camp and want to try it.`,
     },
   ],
   trec_education: [
@@ -111,7 +111,7 @@ The new OP-H Seller's Disclosure adds four new categories: insurance issues, pri
 For sellers who have properties with none of these - do you walk them through each item anyway and document the conversation, or do you consider a clean N/A column sufficient?
 
 I'm asking because I'm updating my transaction checklist and I want to make sure I'm not creating a gap for my sellers.`,
-      first_comment: `For what it's worth, I've been tracking TREC updates pretty closely because I built a tool that auto-maps form versions to transactions. Happy to share what I've found on the new disclosures if useful.`,
+      first_comment: `For what it's worth, I built Dossie to auto-map TREC form versions to transactions - July 1 updates are already in the system. Happy to share what I've found on the new disclosures if useful. meetdossie.com/founding`,
     },
   ],
   hyperlocal: [
@@ -160,7 +160,7 @@ At what transaction volume does it stop making sense to manage deals yourself an
 I've watched agents at 30+ deals/year burn out not because they can't sell, but because they're doing the same administrative work 30 separate times. The ceiling isn't sales skill - it's process leverage.
 
 What does your ops setup look like at scale? Still using TCs per file? In-house TC? Something else?`,
-      first_comment: `For what it's worth - I've been using AI to handle the ops layer. meetdossie.com/founding - Texas agents, founding pricing still open.`,
+      first_comment: `For what it's worth - I built Dossie to handle the ops layer for solo agents. meetdossie.com/founding - Texas agents, founding pricing still open.`,
     },
     {
       id: 'D-2',
@@ -194,7 +194,7 @@ Trying to understand what accountability structures actually work at the brokera
 For me it's chasing document signatures. I can spend 45 minutes of a day just following up on things that should take 5.
 
 Curious what yours is.`,
-      first_comment: `I built something to handle this for myself - AI transaction coordinator. Happy to share if anyone wants details.`,
+      first_comment: `I built Dossie to handle this for myself - she auto-calculates TREC deadlines, sends morning briefs, and chases document signatures. meetdossie.com/founding`,
     },
     {
       id: 'E-2',
@@ -204,7 +204,7 @@ Curious what yours is.`,
 The market punishes agents with high fixed costs in slow years. The ones with lean operations and good systems survive every cycle.
 
 Agree/disagree?`,
-      first_comment: `For what it's worth - the system I landed on is AI handling my transaction ops. meetdossie.com/founding if you're curious what that looks like.`,
+      first_comment: `For what it's worth - I built Dossie to handle my transaction ops. meetdossie.com/founding if you're curious what that looks like.`,
     },
   ],
   buyer_seller: [],
@@ -271,16 +271,35 @@ RULES - NON-NEGOTIABLE:
 7. For TREC/education posts: all facts must be accurate. July 1 2026 is the mandatory deadline for new TREC form versions.
 8. Length: 100-300 words depending on template type. Polls can be shorter. Stories need more room.
 
-FIRST COMMENT (rewrite this too, keep Dossie mention natural):
+FIRST COMMENT — DIFFERENT RULES FROM POST BODY:
 ---
 ${template.first_comment || '(no first comment for this template)'}
 ---
+
+FIRST COMMENT RULES — NON-NEGOTIABLE:
+A. The first comment MUST contain the literal word "Dossie" (capital D, exact spelling). This is the ONE place where the brand IS named.
+B. The first comment MUST name ONE specific Dossie capability tied to the post's pain point. Pick from:
+   - "Dossie auto-calculates every TREC deadline from the contract date"
+   - "Dossie sends me a morning brief with every deal that needs attention today"
+   - "Dossie tracks document uploads with timestamps"
+   - "Dossie pings me on every pending document so nothing sits"
+   - "Dossie handles the follow-up sequencing with title and lender"
+   - "Dossie maps every transaction to a pipeline view I can see at a glance"
+C. FORBIDDEN phrasings — do not use any of these:
+   - "an AI tool I've been working with"
+   - "a tool I've been using"
+   - "something I built"
+   - "the system I landed on"
+   - "AI handling my [anything]"
+   - any framing that describes Dossie without naming it
+D. Tone: still casual and in Heath's voice. Naming Dossie is required; sounding corporate is not.
+E. Include "meetdossie.com/founding" at the end of the first comment if (and only if) the scaffold's first_comment includes a URL.
 
 Return STRICT JSON only. No markdown. No commentary.
 
 {
   "post_body": "<the rewritten post, plain text, newlines allowed>",
-  "first_comment_body": "<rewritten first comment with Dossie mention, or null if template has no first comment>"
+  "first_comment_body": "<rewritten first comment that includes the literal word Dossie and ONE specific capability, or null if template has no first comment>"
 }`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -464,6 +483,85 @@ async function runGroupPostGeneration(opts) {
       continue;
     }
 
+    // Sage rule: first_comment_body must include the literal word "Dossie".
+    // Validator at api/group-post-callback.js will block approval if it doesn't.
+    // Retry once with explicit feedback before giving up.
+    if (firstComment && !firstComment.includes('Dossie')) {
+      log(`[group-post-generator] First comment for "${group.group_name}" missing "Dossie" - retrying with feedback`);
+
+      const retryPrompt = `Your previous first_comment_body did not contain the word "Dossie".
+
+The first comment is the ONE place where Dossie MUST be named explicitly. Rewrite the first comment to:
+1. Include the literal word "Dossie" (capital D).
+2. Name ONE specific Dossie capability tied to the post topic.
+3. Match Heath's casual voice.
+4. Do NOT use phrases like "an AI tool", "a tool I've been working with", "something I built". Those are forbidden.
+
+Original post_body (do not change):
+---
+${postBody}
+---
+
+Original first_comment that failed:
+---
+${firstComment}
+---
+
+Return STRICT JSON only:
+{
+  "first_comment_body": "<rewritten first comment that includes the literal word Dossie>"
+}`;
+
+      try {
+        const retryRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: HAIKU_MODEL,
+            max_tokens: 500,
+            messages: [{ role: 'user', content: retryPrompt }],
+          }),
+        });
+        const retryText = await retryRes.text();
+        if (retryRes.ok) {
+          const retryData = JSON.parse(retryText);
+          let r = (retryData?.content?.[0]?.text || '').trim();
+          if (r.startsWith('```')) r = r.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+          const fb = r.indexOf('{');
+          const lb = r.lastIndexOf('}');
+          if (fb >= 0 && lb > fb) {
+            const retryParsed = JSON.parse(r.slice(fb, lb + 1));
+            const retryComment = retryParsed.first_comment_body
+              ? String(retryParsed.first_comment_body).trim()
+              : null;
+            if (retryComment && retryComment.includes('Dossie')) {
+              log(`[group-post-generator] Retry succeeded for "${group.group_name}"`);
+              // Reassign for downstream insert
+              // eslint-disable-next-line no-param-reassign
+              result.first_comment_body = retryComment;
+            } else {
+              log(`[group-post-generator] Retry still missing "Dossie" for "${group.group_name}" - skipping insert`);
+              skipped++;
+              continue;
+            }
+          }
+        }
+      } catch (err) {
+        log(`[group-post-generator] Retry error for "${group.group_name}": ${err.message} - skipping insert`);
+        skipped++;
+        continue;
+      }
+    }
+
+    // Re-derive firstComment from possibly-updated result before insertRow
+    const finalFirstComment = result.first_comment_body
+      ? String(result.first_comment_body).trim()
+      : null;
+
     if (dryRun) {
       generated.push({ group_name: group.group_name, template_id: template.id, post_body: postBody, first_comment_body: firstComment });
       processed++;
@@ -477,7 +575,7 @@ async function runGroupPostGeneration(opts) {
       category: group.category,
       template_id: template.id,
       post_body: postBody,
-      first_comment_body: firstComment,
+      first_comment_body: finalFirstComment,
       status: 'draft',
       pillar: template.pillar,
     };
