@@ -103,6 +103,56 @@
     50%      { opacity: 0.7; }
   }
 
+  /* "Hear me speak" CTA — sits below the Tap-to-listen hint.
+     Warm coral border, plain background. On press, fades and the orb's
+     inner-glow takes over the visual lead via Web Audio amplitude. */
+  #speak-btn {
+    margin-top: 2.5vh;
+    padding: 0.85rem 1.6rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(245, 230, 224, 0.95);
+    background: rgba(232, 131, 107, 0.08);
+    border: 1px solid rgba(232, 131, 107, 0.45);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #speak-btn:hover {
+    background: rgba(232, 131, 107, 0.18);
+    border-color: rgba(232, 131, 107, 0.7);
+  }
+  #speak-btn:active { transform: scale(0.97); }
+  #speak-btn[disabled] {
+    opacity: 0.6;
+    cursor: default;
+  }
+  #speak-btn .speak-btn-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 12px rgba(232, 131, 107, 0.8);
+    transition: transform 0.2s ease;
+  }
+  #speak-btn.playing .speak-btn-dot {
+    animation: dotPulse 0.6s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%      { transform: scale(1.6); opacity: 0.6; }
+  }
+  #cole-audio { display: none; }
+
   /* === Orb section === */
   #orb-section {
     padding-top: 8vh;
@@ -143,14 +193,23 @@
 
   /* Inner glow — sun core BEHIND the smoke. Sized smaller than the orb so the
      bright spot only blooms in the middle, with screen-blend intensifying the
-     video's center without washing out color. */
+     video's center without washing out color.
+
+     Audio-reactive: --pulse-intensity (0-1) driven by Web Audio analyser
+     during TTS playback. Ambient breath (CSS keyframe) provides the idle
+     motion when no audio is playing. */
+  #orb-stage {
+    --pulse-intensity: 0;
+  }
   #orb-inner-glow {
     position: absolute;
     top: 50%;
     left: 50%;
     width: 70%;
     height: 70%;
-    transform: translate(-50%, -50%);
+    /* The translate is the resting transform; scale stacks on top.
+       --pulse-intensity adds up to +30% scale at peak amplitude. */
+    transform: translate(-50%, -50%) scale(calc(1 + var(--pulse-intensity) * 0.18));
     border-radius: 50%;
     background: radial-gradient(circle,
       rgba(255, 200, 130, 0.85) 0%,
@@ -160,7 +219,19 @@
     mix-blend-mode: screen;
     pointer-events: none;
     z-index: 1;
+    /* Opacity = ambient breath baseline + audio-reactive boost.
+       When pulse-intensity > 0, ambient keyframe gives way to live amplitude. */
+    opacity: calc(0.6 + var(--pulse-intensity) * 0.4);
     animation: glowBreath 6s ease-in-out infinite;
+    /* Audio reactivity overrides the keyframe via the CSS var — when intensity
+       is held at 0 the keyframe still runs; when intensity is being written
+       every frame it dominates visually. */
+    transition: opacity 60ms linear;
+  }
+  /* When the orb is in "speaking" mode, suspend the ambient keyframe so the
+     audio amplitude is the only driver of inner-glow opacity + scale. */
+  #orb-stage.speaking #orb-inner-glow {
+    animation: none;
   }
   @keyframes glowBreath {
     0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.0); }
@@ -324,7 +395,7 @@
       <div id="orb-inner-glow"></div>
       <video
         id="orb-video"
-        src="/orb-smoke-v1.mp4"
+        src="/orb-smoke-v2-palindrome.mp4"
         autoplay
         muted
         loop
@@ -336,6 +407,11 @@
     </div>
   </div>
   <div class="hint">Tap to listen</div>
+  <button id="speak-btn" type="button" aria-label="Hear Cole speak">
+    <span class="speak-btn-dot"></span>
+    Hear me speak
+  </button>
+  <audio id="cole-audio" src="/cole-sample.mp3" preload="auto" crossorigin="anonymous"></audio>
 </section>
 
 <!-- SECTION 2: WEB -->
@@ -470,6 +546,117 @@
 })();
 
 /* WebGL orb shader removed 2026-06-10 — replaced by /orb-smoke-v1.mp4 (Kling 2.5 loop). */
+
+
+/* ---------------------------------------------------------------------
+   2.5 AUDIO-REACTIVE PULSE
+   - "Hear me speak" button fires a short pre-rendered TTS sample.
+   - Web Audio API reads time-domain amplitude every frame, smoothed via
+     exponential moving average, and writes --pulse-intensity (0-1) to
+     the orb stage. CSS handles the visual: inner-glow scale + opacity.
+   - User gesture (button tap) satisfies iOS Safari autoplay policy
+     and the AudioContext resume requirement.
+   --------------------------------------------------------------------- */
+(function speak() {
+  const btn   = document.getElementById('speak-btn');
+  const audio = document.getElementById('cole-audio');
+  const stage = document.getElementById('orb-stage');
+  if (!btn || !audio || !stage) return;
+
+  let ctx = null;
+  let source = null;
+  let analyser = null;
+  let dataArray = null;
+  let rafId = 0;
+  // Smoothed amplitude state — exponential moving average makes the pulse
+  // feel organic rather than jittering on every frame's noise floor.
+  let smoothed = 0;
+  const ALPHA = 0.3; // 0..1, higher = more responsive, lower = more smoothing
+
+  function ensureAudioGraph() {
+    if (ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return; // Web Audio unavailable — button still plays sound, just no pulse
+    ctx = new AC();
+    source = ctx.createMediaElementSource(audio);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    dataArray = new Uint8Array(analyser.fftSize);
+    source.connect(analyser);
+    analyser.connect(ctx.destination);
+  }
+
+  function readAmplitude() {
+    if (!analyser) return 0;
+    analyser.getByteTimeDomainData(dataArray);
+    // RMS over the window, normalized so silence ≈ 0 and loud ≈ 1.
+    // Time-domain bytes center on 128; deviation from center = signal magnitude.
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const v = (dataArray[i] - 128) / 128; // -1..1
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / dataArray.length); // 0..~1
+    // Light gain — speech RMS rarely tops 0.3-0.4, so scale to use the full range.
+    return Math.min(1, rms * 2.6);
+  }
+
+  function tick() {
+    const raw = readAmplitude();
+    smoothed = ALPHA * raw + (1 - ALPHA) * smoothed;
+    stage.style.setProperty('--pulse-intensity', smoothed.toFixed(3));
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stopTick() {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+    // Decay to zero so the orb settles back to ambient breath.
+    const decay = () => {
+      smoothed *= 0.85;
+      stage.style.setProperty('--pulse-intensity', smoothed.toFixed(3));
+      if (smoothed > 0.005) requestAnimationFrame(decay);
+      else stage.style.setProperty('--pulse-intensity', 0);
+    };
+    decay();
+  }
+
+  async function play() {
+    try {
+      ensureAudioGraph();
+      // iOS Safari: resume the AudioContext within the user gesture.
+      if (ctx && ctx.state === 'suspended') await ctx.resume();
+      audio.currentTime = 0;
+      await audio.play();
+      btn.classList.add('playing');
+      stage.classList.add('speaking');
+      btn.disabled = true;
+      if (!rafId) rafId = requestAnimationFrame(tick);
+    } catch (err) {
+      // Autoplay block or decode error — re-enable button so user can retry.
+      btn.disabled = false;
+      btn.classList.remove('playing');
+      stage.classList.remove('speaking');
+      console.warn('[speak] play failed:', err);
+    }
+  }
+
+  audio.addEventListener('ended', () => {
+    btn.classList.remove('playing');
+    stage.classList.remove('speaking');
+    btn.disabled = false;
+    stopTick();
+  });
+  audio.addEventListener('pause', () => {
+    if (audio.ended) return;
+    btn.classList.remove('playing');
+    stage.classList.remove('speaking');
+    btn.disabled = false;
+    stopTick();
+  });
+
+  btn.addEventListener('click', play);
+})();
 
 
 /* ---------------------------------------------------------------------
