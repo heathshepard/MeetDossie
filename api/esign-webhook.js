@@ -62,9 +62,12 @@ function readRawBody(req) {
 // We also enforce a 5-minute replay-attack window.
 function verifyDocusealSignature(rawBody, signatureHeader) {
   if (!DOCUSEAL_WEBHOOK_SECRET) {
-    // If secret not set yet, log and pass through (allows testing without secret).
-    console.warn('[esign-webhook] DOCUSEAL_WEBHOOK_SECRET not set — skipping HMAC verification.');
-    return true;
+    // Fail closed (Atlas 2026-06-10) — previous behavior passed through
+    // unauthenticated webhooks when the secret was unset. In production
+    // this means an attacker could forge envelope-completed events and
+    // poison signed-document state. Refuse to verify rather than skip.
+    console.error('[esign-webhook] DOCUSEAL_WEBHOOK_SECRET not set — refusing webhook.');
+    return false;
   }
   if (!signatureHeader) {
     console.warn('[esign-webhook] Missing x-docuseal-signature header.');

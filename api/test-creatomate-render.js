@@ -7,8 +7,14 @@
 const CREATOMATE_API_KEY = process.env.CREATOMATE_API_KEY;
 const CREATOMATE_TEMPLATE_ID = process.env.CREATOMATE_TEMPLATE_ID || '791117d0-665c-4cd0-ba5f-a767f8921f9b';
 const SCREEN_RECORDING_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/screen-recordings/friday-full-pipeline-view-2026-05-08.mp4';
+const CRON_SECRET = process.env.CRON_SECRET;
 
 module.exports = async function handler(req, res) {
+  // Auth added 2026-06-10 (Atlas) — Creatomate renders cost money per call.
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
   if (!CREATOMATE_API_KEY) {
     return res.status(500).json({
       ok: false,

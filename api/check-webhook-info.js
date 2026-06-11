@@ -1,8 +1,14 @@
 // Check Telegram webhook registration status
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
 const TELEGRAM_MARKETING_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 module.exports = async function handler(req, res) {
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const effectiveToken = TELEGRAM_MARKETING_BOT_TOKEN || TELEGRAM_BOT_TOKEN;
 
   if (!effectiveToken) {

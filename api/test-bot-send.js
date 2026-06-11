@@ -1,8 +1,14 @@
 // Test if bot can send messages directly
+// Auth: Authorization: Bearer ${CRON_SECRET} (added 2026-06-10 Atlas)
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 module.exports = async function handler(req, res) {
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   if (!TELEGRAM_BOT_TOKEN) {
     return res.status(500).json({ error: 'No bot token' });
   }
