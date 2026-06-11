@@ -154,6 +154,13 @@ async function recordFlow(brief) {
   const { chromium } = require('playwright');
 
   const viewport = brief.viewport || { width: 390, height: 844 }; // iPhone 14 portrait
+  const isMobileViewport = viewport.width < 500;
+
+  // Guardrail: tutorial bites are vertical (1080x1920). Hard-warn on landscape briefs.
+  if (viewport.width > viewport.height) {
+    console.warn(`[tutorial] WARNING: brief viewport ${viewport.width}x${viewport.height} is landscape. Tutorial bites render at 1080x1920 portrait — content will be cropped. Use { width: 390, height: 844 }.`);
+  }
+
   const demoEmail = brief.demo_account || 'demo@meetdossie.com';
   const demoPassword = demoEmail === 'demo2@meetdossie.com' ? DEMO_PASSWORD_2 : DEMO_PASSWORD;
 
@@ -167,10 +174,10 @@ async function recordFlow(brief) {
   const context = await browser.newContext({
     recordVideo: { dir: RAW_DIR, size: viewport },
     viewport,
-    deviceScaleFactor: 2,
-    isMobile: viewport.width < 500,
-    hasTouch: viewport.width < 500,
-    userAgent: viewport.width < 500
+    deviceScaleFactor: isMobileViewport ? 3 : 2,
+    isMobile: isMobileViewport,
+    hasTouch: isMobileViewport,
+    userAgent: isMobileViewport
       ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
       : undefined,
   });
@@ -234,6 +241,30 @@ async function recordFlow(brief) {
           }
           if (!clicked) {
             // Last resort: scroll into view and force-click the first match
+            const el = locator.first();
+            await el.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
+            await el.click({ force: true, timeout: 5000 });
+          }
+          await page.waitForTimeout(pause);
+          break;
+        }
+        case 'click_aria': {
+          // For mobile: nav uses emoji buttons with aria-label="Pipeline" / "Settings" etc.
+          const locator = page.locator(`[aria-label="${step.aria}"]`);
+          const count = await locator.count();
+          let clicked = false;
+          for (let idx = 0; idx < count; idx++) {
+            const el = locator.nth(idx);
+            const visible = await el.isVisible().catch(() => false);
+            if (!visible) continue;
+            try {
+              await moveToElement(el);
+              await el.click({ timeout: 5000 });
+              clicked = true;
+              break;
+            } catch (_) { /* try next */ }
+          }
+          if (!clicked) {
             const el = locator.first();
             await el.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
             await el.click({ force: true, timeout: 5000 });
@@ -316,12 +347,18 @@ async function mergeToMP4(ffmpeg, webmPath, voiceoverPath, outPath) {
   const audioDur = voiceoverPath ? await getMediaDuration(ffmpeg, voiceoverPath) : 0;
   const tpadSec = Math.max(0, Math.ceil(audioDur + 0.5));
 
+  // Scale-to-fit + pad with blush brand background. Preserves the full mobile frame
+  // (no horizontal crop). Source is recorded at the brief's viewport; we fit it
+  // inside 1080x1920 without cropping content off the sides or top.
+  // Blush hex #F5E6E0 — matches Dossie brand letterbox color.
+  const padFilter = 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:0xF5E6E0,fps=30,setsar=1';
+
   if (voiceoverPath) {
     runFfmpeg(ffmpeg, [
       '-i', webmPath,
       '-i', voiceoverPath,
       '-filter_complex',
-      `[0:v]tpad=stop_mode=clone:stop_duration=${tpadSec},scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,setsar=1[v]`,
+      `[0:v]tpad=stop_mode=clone:stop_duration=${tpadSec},${padFilter}[v]`,
       '-map', '[v]',
       '-map', '1:a',
       '-c:v', 'libx264',
@@ -336,7 +373,7 @@ async function mergeToMP4(ffmpeg, webmPath, voiceoverPath, outPath) {
   } else {
     runFfmpeg(ffmpeg, [
       '-i', webmPath,
-      '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,setsar=1',
+      '-vf', padFilter,
       '-c:v', 'libx264',
       '-preset', 'fast',
       '-crf', '23',

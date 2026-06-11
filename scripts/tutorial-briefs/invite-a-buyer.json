@@ -8,14 +8,15 @@
   "distribution": ["welcome-email", "in-app-help", "instagram-reels", "youtube-short"],
   "workflow_group": "general-onboarding",
   "workflow_order": 3,
-  "viewport": { "width": 1280, "height": 720 },
+  "viewport": { "width": 390, "height": 844 },
+  "version": 2,
   "demo_account": "demo@meetdossie.com",
   "steps": [
-    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2000 },
-    { "action": "wait", "pause_ms": 4000 },
-    { "action": "click_text", "text": "Pipeline", "pause_ms": 1500 },
-    { "action": "wait", "pause_ms": 1500 },
-    { "action": "scroll", "y": 200, "pause_ms": 1500 },
-    { "action": "wait", "pause_ms": 2000 }
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 3000 },
+    { "action": "wait", "pause_ms": 3000 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 2500 },
+    { "action": "wait", "pause_ms": 2000 },
+    { "action": "scroll", "y": 250, "pause_ms": 2000 },
+    { "action": "scroll", "y": 250, "pause_ms": 2500 }
   ]
 }
