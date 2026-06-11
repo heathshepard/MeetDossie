@@ -123,35 +123,66 @@
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #orb-stage.listening { transform: scale(1.04); }
-  /* Soft outer halo — multiple layered shadows for a glass-ball rim glow.
-     Layered radial gradients give us depth without WebGL. */
+  /* Soft outer halo — atmospheric, no hard edge.
+     Mask feathers video opacity; glow layers create "sun through clouds" effect. */
   #orb-mask {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
-    overflow: hidden;
-    box-shadow:
-      0 0 60px rgba(232, 131, 107, 0.18),
-      0 0 120px rgba(201, 169, 110, 0.10),
-      0 0 200px rgba(111, 180, 176, 0.10),
-      inset 0 0 40px rgba(245, 230, 224, 0.03);
-    transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    /* No border-radius, no overflow:hidden — let smoke feather out organically. */
+    filter: drop-shadow(0 0 80px rgba(255, 180, 100, 0.30))
+            drop-shadow(0 0 160px rgba(255, 160, 80, 0.20))
+            drop-shadow(0 0 240px rgba(255, 140, 60, 0.10));
+    transition: filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #orb-stage.listening #orb-mask {
-    box-shadow:
-      0 0 90px rgba(232, 131, 107, 0.40),
-      0 0 180px rgba(201, 169, 110, 0.22),
-      0 0 280px rgba(111, 180, 176, 0.18),
-      inset 0 0 60px rgba(245, 230, 224, 0.06);
+    filter: drop-shadow(0 0 100px rgba(255, 210, 130, 0.55))
+            drop-shadow(0 0 200px rgba(255, 180, 90, 0.35))
+            drop-shadow(0 0 320px rgba(255, 150, 70, 0.20));
   }
-  #orb-video {
+
+  /* Inner glow — sun core BEHIND the smoke. Sized smaller than the orb so the
+     bright spot only blooms in the middle, with screen-blend intensifying the
+     video's center without washing out color. */
+  #orb-inner-glow {
     position: absolute;
-    inset: 0;
+    top: 50%;
+    left: 50%;
+    width: 70%;
+    height: 70%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      rgba(255, 200, 130, 0.85) 0%,
+      rgba(255, 180, 100, 0.50) 15%,
+      rgba(255, 160, 80, 0.15) 30%,
+      transparent 60%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 1;
+    animation: glowBreath 6s ease-in-out infinite;
+  }
+  @keyframes glowBreath {
+    0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.0); }
+    50%      { opacity: 1.0;  transform: translate(-50%, -50%) scale(1.08); }
+  }
+
+  #orb-video {
+    position: relative;
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    z-index: 2;
+    /* Soft radial mask — fully opaque in the middle, feathering atmospherically. */
+    -webkit-mask: radial-gradient(circle,
+      black 0%,
+      black 55%,
+      transparent 95%);
+    mask: radial-gradient(circle,
+      black 0%,
+      black 55%,
+      transparent 95%);
     /* Subtle ambient breathing — independent of video loop */
     animation: orbBreath 14s ease-in-out infinite;
   }
@@ -159,19 +190,42 @@
     0%, 100% { transform: scale(1); filter: brightness(1.0); }
     50%      { transform: scale(1.015); filter: brightness(1.05); }
   }
-  /* Listening overlay — brightens entire video for 1s on tap */
+
+  /* Outer light wash — sits IN FRONT of video, lower opacity, overlay-blend.
+     Adds the final "light filtering through clouds" cue. */
+  #orb-outer-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    height: 80%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      rgba(255, 220, 150, 0.6) 0%,
+      rgba(255, 190, 110, 0.30) 18%,
+      rgba(255, 170, 90, 0.10) 35%,
+      transparent 65%);
+    mix-blend-mode: overlay;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Listening overlay — warm sun-yellow flash across full stage on tap. */
   #orb-listen-flash {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
     background: radial-gradient(circle at 50% 50%,
-      rgba(245, 230, 224, 0.25) 0%,
-      rgba(232, 131, 107, 0.12) 40%,
-      transparent 75%);
+      rgba(255, 230, 150, 0.55) 0%,
+      rgba(255, 200, 110, 0.30) 25%,
+      rgba(255, 170, 80, 0.12) 50%,
+      transparent 80%);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
     mix-blend-mode: screen;
+    z-index: 4;
   }
   #orb-stage.listening #orb-listen-flash { opacity: 1; }
 
@@ -267,6 +321,7 @@
   <h1 class="hero-title">Meet your agent.</h1>
   <div id="orb-stage" role="button" aria-label="Tap to listen">
     <div id="orb-mask">
+      <div id="orb-inner-glow"></div>
       <video
         id="orb-video"
         src="/orb-smoke-v1.mp4"
@@ -276,6 +331,7 @@
         playsinline
         preload="auto"
         aria-hidden="true"></video>
+      <div id="orb-outer-glow"></div>
       <div id="orb-listen-flash"></div>
     </div>
   </div>
