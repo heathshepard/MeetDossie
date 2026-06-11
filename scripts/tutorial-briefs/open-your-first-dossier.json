@@ -9,7 +9,7 @@
   "workflow_group": "general-onboarding",
   "workflow_order": 2,
   "viewport": { "width": 390, "height": 844 },
-  "version": 4,
+  "version": 5,
   "pre_auth": true,
   "record_start_after_text": "Open New Dossier",
   "demo_account": "demo@meetdossie.com",
