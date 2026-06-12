@@ -99,7 +99,8 @@ async function tg(text) {
 
 // Sparticuz Chromium hosted binary URL — pinned to playwright-core ^1.60 compat.
 // The binary is too large to bundle in a Lambda layer; we fetch on first run.
-const CHROMIUM_REMOTE = 'https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar';
+// Vercel Lambda runs on x64. arm64 swap-in needed if Vercel ever moves to Graviton.
+const CHROMIUM_REMOTE = 'https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar';
 
 async function captureAll() {
   // Use @sparticuz/chromium-min + playwright-core for Vercel/Lambda compatibility.
