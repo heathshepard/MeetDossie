@@ -51,3 +51,23 @@ Each entry: date, finding, evidence, recommended fix, who owns it.
 - **Owner:** Carter (filter logic) + Sage (keyword blocklist curation)
 
 ---
+
+### Bug 6 (CRITICAL — entire engagement_candidates→posted flow has been architecturally broken): scanner produces non-navigable post_url for ~96% of FB candidates
+
+**Filed by:** Sage (day-of mission audit, 08:35 CDT 2026-06-12)
+
+- **File:** `scripts/sage-fb-comment-scanner.js` lines 263-273
+- **Root cause:** `PERMALINK_RX` matches `/groups/<slug>/permalink/<digits>` or `/groups/<slug>/posts/<digits>` or `story.php?...` — none of which appear in the chunked text the scanner extracts from m.facebook.com group feeds. When no permalink is extracted, the scanner synthesizes `groupURL#post-<hash>`. The fragment is a dedup key only; FB does NOT render the specific post at that fragment.
+- **Evidence:** 50 of 52 FB engagement_candidates have synthetic `#post-<hash>` URLs. ZERO have real permalinks. Two are status='approved' (id=29 from 2026-06-11 21:34 UTC, id=44 from 2026-06-12 10:02 UTC) — never posted because no shipper can locate the target post from the URL.
+- **Symptom:** **The entire FB engagement-comment shipping flow has never worked.** Every approved candidate has been unshippable since the scanner shipped. The mission's "25 FB comments today" target is unreachable through this flow until the scanner extracts real permalinks.
+- **Today's mitigation built:** `scripts/sage-engagement-poster.js` (Sage, 2026-06-12) — Playwright + DossieBot-Sage profile + per-platform comment-box locator. Validated via dry-run on id=44 (browser launches, navigates, types). Will ship once scanner produces real permalinks (or via the platform pivots below).
+- **Fix paths:**
+  - **A (preferred):** Update `sage-fb-comment-scanner.js` to follow each chunk's "View full post" / timestamp anchor link inside the rendered page and capture the canonical permalink. m.facebook.com renders each story with a `<a href="/groups/.../permalink/...">` wrapping the timestamp.
+  - **B (interim):** Write `null` to post_url when no permalink. Phase-2 enrichment job revisits pending candidates, finds matching post by content-hash, captures the canonical permalink.
+  - **C (today's pivot, in flight):** Skip FB engagement-candidate auto-shipping. Pivot today's "25 FB comments" target to two working paths:
+      - Reddit comments via `scripts/reddit-comment-playwright.js` (takes direct post URL, works today)
+      - LinkedIn comments via `linkedin-engager.js` (manual or scripted; URLs are real)
+      - FB replies to comments on Dossie's own posts via `fb-reply-poster.js` (URLs are real; we own the parent post)
+- **Owner:** Carter (Path A scanner fix — high priority for tomorrow) + Sage (today's Path C pivot)
+
+---
