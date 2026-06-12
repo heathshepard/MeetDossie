@@ -1,10 +1,14 @@
 """Reddit scanner -- subprocess wrapper around reddit-fetch-new.js.
 
 We don't need PyAutoGUI for Reddit. The Node script at
-``scripts/reddit-fetch-new.js`` already pulls /new from r/realtors and
-r/realestate using Heath's captured Reddit cookie session
-(``scripts/sessions/reddit.json``). It's the proven path -- today's
-shipped comment confirms it works end-to-end.
+``scripts/reddit-fetch-new.js`` pulls /new from r/realtors and
+r/realestate using Heath's persistent DossieBot Chrome profile.
+
+MIGRATION NOTE (2026-06-11): The previous cookie-session-file gate
+(``scripts/sessions/reddit.json``) is removed. The persistent profile is
+the only path. Session warmth is maintained by
+``scripts/reddit-session-keepalive.js`` every 3 days via Windows Task
+Scheduler.
 
 This module:
 1. Shells out to ``node scripts/reddit-fetch-new.js`` for each subreddit
@@ -30,7 +34,6 @@ log = logging.getLogger("unified_scanner.reddit")
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _FETCH_SCRIPT = _REPO_ROOT / "scripts" / "reddit-fetch-new.js"
-_SESSION_FILE = _REPO_ROOT / "scripts" / "sessions" / "reddit.json"
 
 SUBREDDITS = (
     "realtors",
@@ -47,9 +50,6 @@ LIMIT_PER_SUB = 25
 def _run_fetch(subreddit: str, limit: int = LIMIT_PER_SUB) -> dict:
     if not _FETCH_SCRIPT.exists():
         log.warning("reddit-fetch-new.js not at %s", _FETCH_SCRIPT)
-        return {}
-    if not _SESSION_FILE.exists():
-        log.warning("Reddit session not captured -- skipping (%s)", _SESSION_FILE)
         return {}
 
     try:

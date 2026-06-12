@@ -77,6 +77,18 @@
                      {
                          "source":  "/app/help",
                          "destination":  "/help.html"
+                     },
+                     {
+                         "source":  "/faq",
+                         "destination":  "/faq.html"
+                     },
+                     {
+                         "source":  "/learn",
+                         "destination":  "/learn.html"
+                     },
+                     {
+                         "source":  "/resources",
+                         "destination":  "/learn.html"
                      }
                  ],
     "headers":  [
@@ -335,10 +347,6 @@
                       "schedule":  "0 14 * * *"
                   },
                   {
-                      "path":  "/api/cron-cookie-health-check",
-                      "schedule":  "0 4 * * *"
-                  },
-                  {
                       "path":  "/api/cron-social-digest",
                       "schedule":  "0 12 * * *"
                   },
@@ -376,7 +384,11 @@
                   },
                   {
                       "path":  "/api/cron-dossie-qa-loop",
-                      "schedule":  "0 11 * * *"
+                      "schedule":  "0 13-23 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-dossie-qa-loop",
+                      "schedule":  "0 0 * * *"
                   },
                   {
                       "path":  "/api/cron-cron-fire-verifier",

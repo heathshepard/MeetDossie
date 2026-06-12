@@ -1,0 +1,49 @@
+# meetdossie.com robots.txt
+# Allow all friendly crawlers everywhere except internal-only areas.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /app
+Disallow: /app/
+Disallow: /workspace
+Disallow: /workspace.html
+Disallow: /set-password
+Disallow: /forgot-password
+Disallow: /ventures
+Disallow: /ventures/
+Disallow: /studio
+Disallow: /media-studio
+Disallow: /orb-web
+Disallow: /assets/
+Disallow: /icons/
+
+# AI training scrapers — block aggressively. Heath wants the brand,
+# tutorials, guides discoverable by search engines and AI assistants
+# (ChatGPT, Claude.ai, Perplexity), but does NOT consent to bulk
+# training of foundation models on his work.
+User-agent: GPTBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /app
+Disallow: /api/
+Disallow: /ventures
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /app
+Disallow: /api/
+Disallow: /ventures
+
+Sitemap: https://meetdossie.com/sitemap.xml

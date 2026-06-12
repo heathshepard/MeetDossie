@@ -2,21 +2,19 @@
 
 // scripts/renew-session.js
 //
-// Re-captures a Playwright session for the given site. Opens a headed
-// browser. If credentials for the site are in .env.local, attempts
-// auto-login first; otherwise falls back to manual.
+// Re-captures a Playwright session cookie file for emergency / legacy use.
+//
+// MIGRATION NOTE (2026-06-11): Reddit / Instagram / LinkedIn no longer use
+// cookie-file sessions. They run off Heath's persistent DossieBot Chrome
+// profile and are kept warm by their session-keepalive.js scripts on
+// Windows Task Scheduler. This renew tool now only supports `facebook`
+// for legacy emergency paths.
 //
 // Usage:
 //   node scripts/renew-session.js --site=facebook
-//   node scripts/renew-session.js --site=reddit
-//   node scripts/renew-session.js --site=instagram
-//   node scripts/renew-session.js --site=linkedin
 //
 // Site-specific credential env vars:
 //   facebook   FACEBOOK_EMAIL  FACEBOOK_PASSWORD
-//   reddit     REDDIT_USERNAME REDDIT_PASSWORD     (DEPRECATED — use OAuth)
-//   instagram  INSTAGRAM_USERNAME INSTAGRAM_PASSWORD
-//   linkedin   LINKEDIN_EMAIL LINKEDIN_PASSWORD
 
 const path = require('path');
 const fs = require('fs');
@@ -53,39 +51,6 @@ const SITE_CONFIG = {
     passEnv: 'FACEBOOK_PASSWORD',
     note: 'For Founding Files group posting, switch to MeetDossie Page after login before closing the browser. Use scripts/capture-facebook-session.js for that flow.',
   },
-  reddit: {
-    homeUrl: 'https://www.reddit.com',
-    loginUrl: 'https://www.reddit.com/login',
-    userField: 'input[name="username"]',
-    passField: 'input[name="password"]',
-    submitSel: 'button[type="submit"]',
-    loggedInCookie: 'reddit_session',
-    emailEnv: 'REDDIT_USERNAME',
-    passEnv: 'REDDIT_PASSWORD',
-    note: 'Reddit poster now uses OAuth (api/_lib/reddit-oauth.js). This session file is only for legacy scripts.',
-  },
-  instagram: {
-    homeUrl: 'https://www.instagram.com',
-    loginUrl: 'https://www.instagram.com/accounts/login/',
-    userField: 'input[name="username"]',
-    passField: 'input[name="password"]',
-    submitSel: 'button[type="submit"]',
-    loggedInCookie: 'sessionid',
-    emailEnv: 'INSTAGRAM_USERNAME',
-    passEnv: 'INSTAGRAM_PASSWORD',
-    note: '',
-  },
-  linkedin: {
-    homeUrl: 'https://www.linkedin.com',
-    loginUrl: 'https://www.linkedin.com/login',
-    userField: '#username',
-    passField: '#password',
-    submitSel: 'button[type="submit"]',
-    loggedInCookie: 'li_at',
-    emailEnv: 'LINKEDIN_EMAIL',
-    passEnv: 'LINKEDIN_PASSWORD',
-    note: '',
-  },
 };
 
 function parseArgs() {
@@ -101,7 +66,8 @@ function parseArgs() {
 async function main() {
   const { site } = parseArgs();
   if (!site) {
-    console.error('Usage: node scripts/renew-session.js --site=facebook|reddit|instagram|linkedin');
+    console.error('Usage: node scripts/renew-session.js --site=facebook');
+    console.error('(reddit/instagram/linkedin now use the persistent Chrome profile — see scripts/<platform>-session-keepalive.js)');
     process.exit(1);
   }
 
