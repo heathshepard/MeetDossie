@@ -41,10 +41,15 @@ const os = require('os');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
+// Migrated 2026-06-12 (Sage day-of-mission): default to the isolated
+// DossieBot-Sage user-data-dir so this script can run during Heath's work
+// hours WITHOUT requiring his Chrome to be closed. Falls back to the legacy
+// Profile-4-on-User-Data path if an explicit env override is set, for
+// backward compatibility with the 2:50 AM keepalive task.
 const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
-  os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data'
+  os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
 );
-const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Profile 4';
+const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Default';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
 
