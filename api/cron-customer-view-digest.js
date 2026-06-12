@@ -107,7 +107,9 @@ async function captureAll() {
   const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.VERCEL;
   let browser;
   if (isLambda) {
-    const chromium = require('@sparticuz/chromium-min').default || require('@sparticuz/chromium-min');
+    // @sparticuz/chromium-min ships as ESM only — must use dynamic import.
+    const chromiumMod = await import('@sparticuz/chromium-min');
+    const chromium = chromiumMod.default || chromiumMod;
     const { chromium: pwChromium } = require('playwright-core');
     const execPath = await chromium.executablePath(CHROMIUM_REMOTE);
     browser = await pwChromium.launch({
