@@ -1,0 +1,27 @@
+{
+  "slug": "visibility-see-every-deal-at-a-glance",
+  "title": "See Every Deal in Three Seconds",
+  "description": "The pipeline is the file. Every active deal, every deadline, every status — one screen, three seconds to know where everything stands.",
+  "voiceover_script": "You shouldn't have to dig through email to know where your deals stand. Open Dossie. Every active file. Every deadline. Every status. One screen. Three seconds. Red means urgent. Gold means soon. Sage means on track. This is visibility.",
+  "tags": ["pain-point", "visibility", "pipeline", "top-of-funnel", "control-pillar"],
+  "target_audience": "prospect",
+  "distribution": ["instagram-reels", "tiktok", "youtube-short", "facebook-reels"],
+  "workflow_group": "pain-point",
+  "workflow_order": 35,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 1,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1500 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 10000, "pause_ms": 3000 },
+    { "action": "scroll", "y": 200, "pause_ms": 2200 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "wait", "pause_ms": 2500 }
+  ]
+}

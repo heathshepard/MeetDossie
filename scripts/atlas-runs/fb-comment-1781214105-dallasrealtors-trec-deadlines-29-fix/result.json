@@ -1,0 +1,31 @@
+{
+  "ts": "2026-06-11T16:41:45.048707",
+  "group_url": "https://www.facebook.com/groups/dallasrealtors/",
+  "needle": "How are you actually staying on top of TREC",
+  "author": "Heath Shepard",
+  "label": "dallasrealtors-trec-deadlines-29-fix",
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-comment-1781214105-dallasrealtors-trec-deadlines-29-fix",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-comment-1781214105-dallasrealtors-trec-deadlines-29-fix\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-comment-1781214105-dallasrealtors-trec-deadlines-29-fix\\02-loaded.png"
+  ],
+  "steps": [
+    "opened new tab + navigated",
+    "waited 12s for FB load",
+    "scroll+search loop completed (post_rect=(379, 635, 1060, 864))",
+    "post rect found (379, 635, 1060, 864)",
+    "clicked Comment button at (449, 789)"
+  ],
+  "outcome": "composer_unclickable",
+  "reason": "composer did not accept clipboard probe",
+  "comment_preview": "Honestly I tried Dotloop and a spreadsheet for the first couple years and still missed an option period deadline that ne",
+  "window": {
+    "title": "shepard - Google Chrome",
+    "rect": [
+      20,
+      21,
+      1920,
+      1039
+    ]
+  }
+}

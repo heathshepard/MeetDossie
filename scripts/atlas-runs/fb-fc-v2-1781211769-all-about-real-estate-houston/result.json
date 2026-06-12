@@ -1,0 +1,16 @@
+{
+  "ts": "2026-06-11T21:02:49.819Z",
+  "group_url": "https://www.facebook.com/groups/1649764785300053/",
+  "needle": "Option period is the part of the deal where I used to feel the most behind",
+  "post_id": "b9add267-e9b1-4f4d-8421-debe19dec9db",
+  "label": "all-about-real-estate-houston",
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-fc-v2-1781211769-all-about-real-estate-houston",
+  "steps": [
+    "context_launched",
+    "nav_user_posts",
+    "nav_chronological"
+  ],
+  "outcome": "needle_not_found",
+  "reason": "needle not found in -1 articles after scrolls",
+  "comment_preview": "For anyone asking - I actually built something to solve this exact problem. It's called Dossie. It's an AI transaction c"
+}

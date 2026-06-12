@@ -1,0 +1,31 @@
+{
+  "slug": "switch-between-dossiers",
+  "title": "Switch Between Your Dossiers",
+  "description": "Move from one deal to another in two taps. Every file stays exactly where you left it.",
+  "voiceover_script": "Hi, I'm Dossie. When you're juggling multiple deals, switching between them is two taps. Tap Pipeline. Pick the file you need. Read it, edit it, then back to the pipeline and into the next one. Every file remembers exactly where you left off.",
+  "tags": ["daily-workflow", "pipeline", "multi-deal", "navigation"],
+  "target_audience": "existing-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short"],
+  "workflow_group": "daily-workflow",
+  "workflow_order": 16,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 1,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1800 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 10000, "pause_ms": 1800 },
+    { "action": "click_text", "text": "1247 Sample Way", "exact": false, "pause_ms": 2500 },
+    { "action": "wait_for_text", "text": "Deal details", "timeout_ms": 8000, "pause_ms": 1800 },
+    { "action": "scroll", "y": 300, "pause_ms": 1500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1800 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 8000, "pause_ms": 1500 },
+    { "action": "scroll", "y": 250, "pause_ms": 1200 },
+    { "action": "click_text", "text": "123 Main", "exact": false, "pause_ms": 2500 },
+    { "action": "wait_for_text", "text": "Deal details", "timeout_ms": 8000, "pause_ms": 1500 },
+    { "action": "wait", "pause_ms": 1500 }
+  ]
+}

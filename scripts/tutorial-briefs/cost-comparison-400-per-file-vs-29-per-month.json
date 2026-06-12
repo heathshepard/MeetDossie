@@ -1,0 +1,27 @@
+{
+  "slug": "cost-comparison-400-per-file-vs-29-per-month",
+  "title": "Four Hundred a File or Twenty-Nine a Month",
+  "description": "Texas transaction coordinators charge $300 to $400 per file. Dossie is $29 a month for unlimited deals. The math is brutal.",
+  "voiceover_script": "Texas transaction coordinators charge three to four hundred dollars a file. Close ten files a year, that's four thousand dollars. Close thirty, you just spent twelve thousand. Dossie is twenty nine dollars a month. Unlimited deals. Same Morning Brief, same TREC deadlines, same follow-ups. The math is brutal. The choice is yours.",
+  "tags": ["pain-point", "cost", "tc-replacement", "top-of-funnel", "cost-pillar"],
+  "target_audience": "prospect",
+  "distribution": ["instagram-reels", "tiktok", "youtube-short", "facebook-reels"],
+  "workflow_group": "pain-point",
+  "workflow_order": 34,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 1,
+  "pre_auth": true,
+  "record_start_after_text": "Refresh Brief",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Morning Brief\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Morning Brief", "pause_ms": 2200 },
+    { "action": "wait_for_text", "text": "Refresh Brief", "timeout_ms": 12000, "pause_ms": 2000 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "scroll", "y": 300, "pause_ms": 2200 },
+    { "action": "wait", "pause_ms": 2000 }
+  ]
+}

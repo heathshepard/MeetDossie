@@ -1,0 +1,28 @@
+{
+  "slug": "mark-action-item-complete",
+  "title": "Mark an Action Item Complete",
+  "description": "When you finish a follow-up Dossie was tracking, tap Done and she clears it off your plate.",
+  "voiceover_script": "Hi, I'm Dossie. When you finish a follow-up I was chasing, tap the dossier, scroll to Action items, and tap Done. I'll clear it, stop the reminders, and move on to the next thing that actually needs you. One tap. No more sticky notes.",
+  "tags": ["daily-workflow", "action-items", "follow-ups", "retention"],
+  "target_audience": "existing-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short"],
+  "workflow_group": "daily-workflow",
+  "workflow_order": 13,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 2,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1800 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 10000, "pause_ms": 2000 },
+    { "action": "click_text", "text": "1247 Sample Way", "exact": false, "pause_ms": 2800 },
+    { "action": "wait_for_text", "text": "Action items", "timeout_ms": 10000, "pause_ms": 1800 },
+    { "action": "scroll", "y": 500, "pause_ms": 1800 },
+    { "action": "scroll", "y": 400, "pause_ms": 2000 },
+    { "action": "click_button_text", "text": "^Done$", "pause_ms": 3000 },
+    { "action": "wait", "pause_ms": 3000 }
+  ]
+}

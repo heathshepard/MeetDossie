@@ -1,0 +1,28 @@
+{
+  "slug": "use-the-mobile-app",
+  "title": "Use Dossie on Your Phone",
+  "description": "Dossie is mobile-first. Pipeline, Morning Brief, Talk to Dossie, and Settings — all one tap away on the bottom tab bar.",
+  "voiceover_script": "Hi, I'm Dossie. I live on your phone. Bottom of the screen, you'll see Pipeline, Morning Brief, Talk to Dossie, and Settings. One tap each. Every deal you own, every deadline you owe, every update I'm tracking — right there in your pocket. Use me in the car, at a showing, in line for coffee.",
+  "tags": ["daily-workflow", "mobile", "navigation", "tour"],
+  "target_audience": "existing-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short"],
+  "workflow_group": "daily-workflow",
+  "workflow_order": 18,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 1,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 2000 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 10000, "pause_ms": 1800 },
+    { "action": "click_aria", "aria": "Morning Brief", "pause_ms": 2200 },
+    { "action": "wait_for_text", "text": "Refresh Brief", "timeout_ms": 12000, "pause_ms": 1800 },
+    { "action": "click_aria", "aria": "Talk to Dossie", "pause_ms": 2200 },
+    { "action": "wait", "pause_ms": 1500 },
+    { "action": "click_aria", "aria": "Settings", "pause_ms": 2200 },
+    { "action": "wait", "pause_ms": 2000 }
+  ]
+}

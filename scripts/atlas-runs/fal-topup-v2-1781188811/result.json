@@ -1,0 +1,16 @@
+{
+  "ts": "2026-06-11T09:40:11.129849",
+  "amount": "20",
+  "dry_run": false,
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fal-topup-v2-1781188811",
+  "outcome": "no_card_on_file",
+  "reason": "modal asked for new card",
+  "steps": [
+    "loaded /dashboard/usage-billing",
+    "clicked Manage credits"
+  ],
+  "balance_before": {
+    "locked": true,
+    "msg": "HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "slug": "use-talk-to-dossie-voice",
+  "title": "Use Talk to Dossie",
+  "description": "Ask Dossie anything about your transactions and get an answer in seconds — no typing required.",
+  "voiceover_script": "Hi, I'm Dossie. When you're driving between showings, tap Talk to Dossie at the top. Ask me anything — when does this option period expire, what's left to do on this file, who do I still need to email. I'll pull the answer from your pipeline and tell you back, hands free.",
+  "tags": ["daily-workflow", "voice", "talk-to-dossie", "retention"],
+  "target_audience": "existing-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short"],
+  "workflow_group": "daily-workflow",
+  "workflow_order": 10,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 4,
+  "pre_auth": true,
+  "record_start_after_text": "Talk to Dossie",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 3000 },
+    { "action": "wait_for_text", "text": "Talk to Dossie", "timeout_ms": 10000, "pause_ms": 2500 },
+    { "action": "click_aria", "aria": "Talk to Dossie", "pause_ms": 3000 },
+    { "action": "wait_for_text", "text": "Tell me what you need", "timeout_ms": 8000, "pause_ms": 3000 },
+    { "action": "wait", "pause_ms": 4000 },
+    { "action": "wait", "pause_ms": 4000 }
+  ]
+}

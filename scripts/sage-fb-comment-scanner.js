@@ -93,10 +93,15 @@ const HOT_PHRASES = [
   "broker won't accept", "broker won't sign off", 'office said',
 ];
 
-const MARKETPLACE_SIGNALS = [
+const MARKETPLACE_PRICE_SIGNALS = [
   'for sale', 'for rent', 'asking price', ' obo ', 'best offer',
   'just listed', 'just sold', 'property for', 'real estate for',
   '$ per month', '$ month', '$ /month', '$ annually',
+];
+
+const OFF_TOPIC_OBJECT_KEYWORDS = [
+  'barn', 'shed', 'porch', 'equipment', 'tractor', 'trailer',
+  'utv', 'atv', 'rv ', 'sq ft lot', 'acres ',
 ];
 
 function normalize(text) {
@@ -105,13 +110,23 @@ function normalize(text) {
 
 function isMarketplacePost(text) {
   const n = normalize(text);
-  // If contains dollar sign AND marketplace signal, likely a listing.
-  // This filters out barn sheds, property sales, rental posts, etc.
-  const hasDollar = /\$/.test(text);
-  if (!hasDollar) return false;
-  for (const sig of MARKETPLACE_SIGNALS) {
-    if (n.includes(sig)) return true;
+
+  // FB Marketplace listings render as "$26,900 · Belton, TX" — price followed by middot, city, state
+  if (/\$\s?[\d,]+(?:\.\d+)?\s*·\s*[A-Za-z][A-Za-z .'-]+,\s*[A-Z]{2}\b/.test(text)) return true;
+
+  // Check off-topic object keywords (no dollar sign required)
+  for (const keyword of OFF_TOPIC_OBJECT_KEYWORDS) {
+    if (n.includes(keyword)) return true;
   }
+
+  // If contains dollar sign AND marketplace price signal, likely a listing.
+  const hasDollar = /\$/.test(text);
+  if (hasDollar) {
+    for (const sig of MARKETPLACE_PRICE_SIGNALS) {
+      if (n.includes(sig)) return true;
+    }
+  }
+
   return false;
 }
 
@@ -340,6 +355,11 @@ function loadDotenv(filePath) {
     }
     if (!process.env[m[1]]) process.env[m[1]] = val;
   }
+}
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { isMarketplacePost };
 }
 
 main().catch(e => {
