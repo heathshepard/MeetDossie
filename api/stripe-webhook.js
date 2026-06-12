@@ -337,6 +337,8 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   const stripeSubscriptionId = typeof session.subscription === 'string'
     ? session.subscription
     : (session.subscription && session.subscription.id) || null;
+  // Affiliate ref can come from either metadata (preferred) or cookie fallback
+  const affiliateRef = (session.metadata && session.metadata.affiliate_ref) || null;
 
   let currentPeriodStart = null;
   let currentPeriodEnd = null;
@@ -411,6 +413,76 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     console.log('[stripe-webhook] checkout.session.completed: subscription row upserted for', customerEmail, 'status=pending_onboarding');
   } catch (err) {
     console.error('[stripe-webhook] subscription upsert failed:', err && err.message, '| userId=', userId, '| stripeCustomerId=', stripeCustomerId);
+  }
+
+  // Track affiliate referral if ref code present
+  if (affiliateRef) {
+    try {
+      const { data: affiliate } = await supabaseFetch(`/rest/v1/affiliate_links?code=eq.${encodeURIComponent(affiliateRef)}&select=user_id&limit=1`);
+      if (Array.isArray(affiliate) && affiliate.length > 0) {
+        const affiliateUserId = affiliate[0].user_id;
+        // Determine reward: founding customers get $100, others get $50
+        const reward = tier === 'founding' ? 10000 : 5000;
+
+        await supabaseFetch('/rest/v1/affiliate_referrals', {
+          method: 'POST',
+          headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({
+            affiliate_user_id: affiliateUserId,
+            referred_user_id: userId,
+            referred_email: customerEmail,
+            ref_code: affiliateRef,
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            reward_cents: reward,
+          }),
+        });
+
+        // Fetch current affiliate stats to increment
+        try {
+          const currentStats = await supabaseFetch(`/rest/v1/affiliate_links?user_id=eq.${encodeURIComponent(affiliateUserId)}&select=referrals_count,earnings_cents&limit=1`);
+          if (Array.isArray(currentStats) && currentStats.length > 0) {
+            await supabaseFetch(`/rest/v1/affiliate_links?user_id=eq.${encodeURIComponent(affiliateUserId)}`, {
+              method: 'PATCH',
+              headers: { Prefer: 'return=minimal' },
+              body: JSON.stringify({
+                referrals_count: currentStats[0].referrals_count + 1,
+                earnings_cents: currentStats[0].earnings_cents + reward,
+              }),
+            });
+          }
+        } catch (err) {
+          console.warn('[stripe-webhook] affiliate stats increment failed:', err && err.message);
+        }
+
+        console.log('[stripe-webhook] checkout.session.completed: affiliate referral tracked for affiliate=', affiliateUserId, 'referred=', userId, 'reward=', reward);
+
+        // Notify affiliate via email
+        try {
+          const affiliateData = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(affiliateUserId)}&select=full_name,email&limit=1`);
+          if (Array.isArray(affiliateData) && affiliateData.length > 0) {
+            const affiliateProfile = affiliateData[0];
+            const affiliateName = (affiliateProfile.full_name || '').split(' ')[0] || 'Friend';
+            const rewardFormatted = (reward / 100).toFixed(2);
+            await sendEmail({
+              to: affiliateProfile.email,
+              subject: `🎉 Someone signed up with your Dossie affiliate link — $${rewardFormatted} credited`,
+              html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #FDFCFA; color: #1A1A2E;">
+              <h2 style="margin-top: 0;">Hey ${affiliateName}!</h2>
+              <p>${customerName} just signed up using your affiliate link.</p>
+              <p style="font-weight: bold; color: #C9A96E; font-size: 18px;">$${rewardFormatted} has been credited to your affiliate balance.</p>
+              <p>Keep sharing — every referral counts toward your next payout.</p>
+              <p>—Cole</p>
+              </div>`,
+            });
+          }
+        } catch (err) {
+          console.warn('[stripe-webhook] affiliate notification email failed:', err && err.message);
+        }
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] affiliate referral tracking failed:', err && err.message);
+    }
   }
 
   // Do NOT send welcome email or password-set email here — that happens in
