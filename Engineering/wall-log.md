@@ -5,6 +5,46 @@ Each entry: date, finding, evidence, recommended fix, who owns it.
 
 ---
 
+## 2026-06-12 (afternoon) — cron_runs telemetry silent for 24h
+
+**Filed by:** Ridge (week-1 ship verification)
+
+### Bug: `cron_runs` upsert needed `on_conflict=cron_name`
+
+- **File:** `api/_lib/cron-telemetry.js` (Atlas/Carter, 2026-06-12 morning)
+- **Symptom:** `cron_runs` table empty despite Atlas's 4 overnight crons calling
+  `recordCronRun()` since dawn. Heath couldn't see any telemetry in `/ventures` Cron Health panel.
+- **Root cause #1:** `cron_runs.id` is the table's PRIMARY KEY (bigint, sequence-backed).
+  `cron_name` has a UNIQUE constraint but is NOT the primary key. PostgREST's
+  "Prefer: resolution=merge-duplicates" upsert silently fails on conflict when
+  the conflict target is not the primary key — unless `?on_conflict=cron_name`
+  is in the URL. Without that param, the second write for any cron name returns
+  409 and silently does nothing.
+- **Root cause #2:** Even with #1 fixed, the wrapper version of recordCronRun ran
+  AFTER `res.json()` returned, but Vercel kills the lambda the moment the response
+  flushes. The fetch to Supabase started but never completed.
+- **Fix #1:** Add `?on_conflict=cron_name` to the POST URL.
+- **Fix #2:** Monkey-patch `res.json` / `res.send` / `res.end` to await the
+  Supabase upsert BEFORE flushing — handlers `return res.status(N).json(body)` so
+  the async return contract correctly waits.
+- **Verified:** 12+ cron names showing up in `cron_runs` with correct `last_status`,
+  `http_status`, and `duration_ms` after both fixes shipped.
+- **Owner:** Ridge.
+
+### Side-finding: customer-view digest needed Sparticuz Chromium for Vercel
+
+- **File:** `api/cron-customer-view-digest.js`
+- **Symptom:** Playwright launch failed with "Executable doesn't exist" on Vercel runtime.
+- **Cause:** Playwright's Chromium binary isn't bundled in Vercel's serverless deployment.
+- **Fix:** Dual-mode launcher — when `process.env.VERCEL` is set, use
+  `@sparticuz/chromium-min` (ESM dynamic-import) + `playwright-core`. Falls back to
+  local Playwright otherwise. Binary URL pinned to
+  `https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar`.
+- **Verified:** All 5 customer-facing URLs captured + uploaded to Storage + emailed Heath end-to-end.
+- **Owner:** Ridge.
+
+---
+
 ## 2026-06-12 — Overnight social pipeline went dark; 3 structural bugs found
 
 **Filed by:** Sage (morning audit, 07:00 CDT)
@@ -88,5 +128,61 @@ Each entry: date, finding, evidence, recommended fix, who owns it.
 - **Fix:** Change to `if (post.platform === 'tiktok' && !post.media_url)`. When TikTok rows already have a video attached (the Sage reel-build path), let the normal Zernio publish flow handle them. Removes the dependency on Heath manually re-approving each one through the video_library gate.
 - **Workaround for today:** None without a code change + deploy. The 19:00 CDT TikTok mandatory slot will require cron-post-videos to ship a heath_approved video from video_library — but no video_library rows have `tiktok` in their platforms array. So today's TikTok slot is effectively un-shippable through the autonomous pipeline.
 - **Owner:** Carter (gate fix) + Sage (interim: schedule a heath_approved video for TikTok via video_library tomorrow)
+
+---
+
+### Bug 8: FB first-comments V2 blitz silently fails ALL targets (driver script does not exist) AND blitz queues comments on posts that never went live
+
+**Filed by:** Sage (recovery response to Heath's 10:04 CDT alert "V2 reported 2/6 live, 4 failed unknown", 2026-06-12)
+
+- **File 1:** `scripts/atlas-fb-first-comments-blitz-v2.js` line 65
+- **Code:**
+  ```javascript
+  const PY_DRIVER = path.join(__dirname, 'atlas-fb-first-comment-v2.py');
+  ```
+- **Reality:** This file does not exist. `Get-ChildItem` confirms only `atlas-fb-comment-pyautogui.py` and `atlas-fb-post-pyautogui.py` are present.
+- **Symptom 1 (driver missing):** Every `spawn('python', ['atlas-fb-first-comment-v2.py', ...])` exits immediately. stdout is empty, no `ATLAS_RESULT_JSON:` match, parsed `result = null`, outcome defaults to `'unknown'`. Driver missing + no error logging = silent mass failure. Today: 4 of 6 targets reported `unknown` outcome with `runDir=undefined`.
+- **Symptom 2 (phantom targets):** The 4 "failed" posts in today's V2 summary had NO Facebook target to comment on:
+  - `fc1762df` (Texas Real Estate Agents) — main post status `pending_admin_approval`, never approved by group admin
+  - `37faa0aa` (Texas Real Estate Network) — main post status `blocked_group_rules`, group rejected
+  - `b9add267` (All about Real Estate Houston) — main post status `failed`, never published
+  - `b4aa1c2f` (Realtors San Antonio Boerne) — main post status `failed`, never published
+  The blitz blindly queues every row in its hardcoded `POSTS` array regardless of whether the parent post is live. Even if the python driver existed, these 4 would never succeed because the parent post does not exist on Facebook.
+- **Fix:**
+  - **A (driver):** Either (a) point `PY_DRIVER` at the existing `atlas-fb-comment-pyautogui.py` and add the required `--author` arg + drop the unsupported `--post-id` arg, OR (b) build the real `atlas-fb-first-comment-v2.py` driver that operates on Dossie's OWN most recent post in the group (not author-targeted search). Path (b) is the right architecture — first-comments live under Dossie's own posts, not under other authors'.
+  - **B (preflight DB check):** Before spawning the driver, query `group_posts` for the target id and SKIP unless `status='posted'` AND `posted_at IS NOT NULL` AND `first_comment_posted_at IS NULL`. Emit outcome `skip_parent_not_live` instead of `unknown`. No driver invocation should happen for phantom rows.
+  - **C (logging):** When the python driver returns no `ATLAS_RESULT_JSON:` line, set outcome to `driver_no_result` not `unknown`. Include `exitCode` and last 500 chars of stderr in the summary.json. "Unknown" is itself a bug per Heath's mandate — every failure must self-explain.
+- **Today's recovery (Sage, 15:09 UTC):**
+  - 4 phantom targets marked: `failure_reason` appended with structural reason, `first_comment_posted_at = NOW()` to prevent the blitz from retrying them. The parent posts are dead; the first-comments can never ship.
+  - 1 genuine missing first-comment found via DB scan: `e0c0b233` Dallas Texas Realtors (main posted 2026-06-11 15:01 UTC, first-comment never went out). Cannot recover via `scripts/post-first-comments.js` — that script lands on the group URL and types into "the first contenteditable", which on a group landing page is the NEW-post composer, not a comment box. Would create a bogus top-level post. Marked `e0c0b233` `failure_reason` with `manual_recovery_needed` for Carter to ship a proper standalone first-comment-by-permalink driver.
+- **Owner:** Carter (V2 blitz driver + preflight + logging + standalone first-comment-by-permalink for backfills)
+
+---
+
+### Bug 9 (CRITICAL — 22 TikTok posts gone dark since 2026-05-06): `social_posts.status=pending_video` has no consumer; DONE-pipeline expectation never wired to tutorial_videos library
+
+**Filed by:** Sage (Heath's 14:51 CDT escalation 2026-06-12, "reels-first weeks ago — why are we still shipping static for IG/TikTok?")
+
+- **File 1:** `api/cron-publish-approved.js` lines 708-734
+- **Code:**
+  ```javascript
+  if (post.platform === 'tiktok' && !post.media_url) {
+    // park as pending_video, send Telegram asking Heath to record + DONE
+    status: 'pending_video',
+    error_message: 'TikTok requires a video attachment; awaiting DONE-pipeline render.',
+  }
+  ```
+- **Reality:** Nothing in the codebase consumes `social_posts.status='pending_video'`. `cron-post-videos` reads `video_library` and `skit_queue` — not `social_posts`. The DONE handler expects Heath to manually record and trigger `generate-creatomate-video.py`, which writes to `video_library`, NOT back to the originating `social_posts` row.
+- **Symptom:** 22 social_posts rows have been stuck in `pending_video` since 2026-05-06. All TikTok, all victor persona, all generated by daily `cron-generate-posts` with `video_required=true`. None ever got a video attached. None ever shipped. The Telegram notification fires once when the post is parked, then the row dies silently — no retry, no fallback, no heal.
+- **Evidence:** Sage query 2026-06-12 14:55 CDT — 22 rows in `social_posts WHERE status='pending_video'`, oldest 2026-05-06, newest 2026-06-11, ALL `victor`+`tiktok`. Meanwhile `tutorial_videos` has 18 published rows with `video_url` populated, 13 of which include 'tiktok' in `distribution[]`. The libraries exist; the wiring doesn't.
+- **Compounding failure:** `cron-queue-tutorial-reels` DOES exist and creates `social_posts` from `tutorial_videos` with `source_type='tutorial_repurpose'`. But every recent tutorial_repurpose row is `status='rejected'` (10 of last 10 inspected). Heath has been rejecting these in approval — likely caption quality or repetitive bite content — so the auto-route to TikTok via tutorial_videos was DEFACTO disabled even though the cron runs daily.
+- **Immediate fix (Sage, 2026-06-12 14:58 CDT):**
+  - Resurrected the 7 most recent stuck posts (2026-06-04 to 2026-06-11): attached best-match tutorial video URL by topic→pillar mapping, flipped `status='approved'`, set `source_type='tutorial_repurpose_resurrection'`, cleared `video_required`. They now ship via the normal `cron-publish-approved` Zernio flow.
+  - Marked the 15 stale rows (older than 14 days) as `status='failed'` with `error_message='stale pending_video — older than 14 days, killed by sage resurrection sweep 2026-06-12'` to stop them clogging future queries.
+- **Permanent fix (Carter brief):**
+  - **A (heal step):** Add a `cron-heal-pending-video` (or fold into `cron-mission-watchdog`) that runs hourly: SELECT `social_posts WHERE status='pending_video' AND media_url IS NULL AND age(created_at) > '2 hours'`. For each row, look up best-match tutorial video by topic→pillar mapping. If found, attach `media_url`, set `status='approved'`, `video_required=false`. If no match found and age > 48 hours, mark `failed` with diagnostic message.
+  - **B (kill the wait-for-DONE pattern at the source):** In `cron-publish-approved` line 713-734, BEFORE parking as pending_video, try to attach a tutorial video inline using the same topic→pillar mapping. Only park as pending_video if the tutorial library has no match. This makes the failure mode rare and self-explaining.
+  - **C (reels-first content mix flip):** Coordinate with Atlas. Today's content mix should default to reels for IG/TikTok/FB, not static. The 22-row gap was the symptom; the root content-strategy bug is that `cron-generate-posts` defaults to text-only for TikTok and relies on the broken DONE handoff to attach video. Atlas owns the strategy flip; Carter owns the wiring.
+- **Owner:** Carter (heal cron + inline attach) + Atlas (content mix flip, coordinated with Sage)
 
 ---
