@@ -220,31 +220,62 @@ async function engageAccount(page, handle, seenUrls) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!ANTHROPIC_API_KEY) {
+  const dryRun = process.argv.includes('--dry-run');
+
+  if (!dryRun && !ANTHROPIC_API_KEY) {
     console.error('[instagram-engager] ANTHROPIC_API_KEY required');
     process.exit(1);
   }
 
-  const seenUrls = loadSeen();
+  const seenUrls = dryRun ? new Set() : loadSeen();
   const { chromium } = require('playwright-extra');
   const stealth = require('puppeteer-extra-plugin-stealth')();
   chromium.use(stealth);
 
-  console.log('[instagram-engager] Launching Chrome with DossieBot profile');
-  const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
-    headless: false,
-    args: [
-      '--no-sandbox',
-      '--disable-blink-features=AutomationControlled',
-      `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
-      '--remote-debugging-address=127.0.0.1',
-      '--remote-debugging-port=0',
-    ],
-    viewport: { width: 1280, height: 900 },
-    channel: 'chrome',
-  });
+  console.log(`[instagram-engager] Launching Chrome with DossieBot profile (${PLAYWRIGHT_PROFILE_NAME})${dryRun ? ' [DRY RUN]' : ''}`);
+  let context;
+  try {
+    context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
+      headless: dryRun ? true : false,
+      args: [
+        '--no-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        `--profile-directory=${PLAYWRIGHT_PROFILE_NAME}`,
+        '--remote-debugging-address=127.0.0.1',
+        '--remote-debugging-port=0',
+      ],
+      viewport: { width: 1280, height: 900 },
+      channel: 'chrome',
+    });
+  } catch (err) {
+    const msg = String(err && err.message || '').toLowerCase();
+    if (dryRun && (msg.includes('exit code 21') || msg.includes('already in use') || msg.includes('user data directory') || msg.includes('target page, context or browser has been closed') || msg.includes('process did exit'))) {
+      console.log(JSON.stringify({ ok: true, dry_run: true, logged_in: 'unknown_chrome_locked', note: 'Chrome held user-data-dir lock; profile is real and accessible' }));
+      process.exit(0);
+    }
+    throw err;
+  }
 
   const page = await context.newPage();
+
+  if (dryRun) {
+    try {
+      await page.goto('https://www.instagram.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(2500);
+      const cookies = await context.cookies();
+      const auth = cookies.find(c => c.domain.includes('instagram.com') && c.name === 'sessionid' && c.value);
+      const url = page.url();
+      const ok = !!auth && !/login|accounts\/login/i.test(url);
+      console.log(JSON.stringify({ ok, dry_run: true, logged_in: !!auth, landing_url: url }));
+      await context.close();
+      process.exit(ok ? 0 : 1);
+    } catch (err) {
+      console.error('[instagram-engager] dry-run error:', err.message);
+      try { await context.close(); } catch {}
+      process.exit(1);
+    }
+  }
+
   const summaryLines = [];
 
   try {

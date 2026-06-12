@@ -4,26 +4,23 @@
 //
 // SV-ENG-RELIABILITY-003 (Atlas, 2026-06-11)
 //
-// ACCOUNT SESSION MONITOR. Runs every 6h. For each platform, validates the
-// underlying account session two ways:
+// ACCOUNT SESSION MONITOR. Runs every 6h. Validates the publishing-side
+// account session:
 //
-//   1. Publishing side (Zernio): probe https://zernio.com/api/v1/accounts
-//      and verify our account_id is present + active.
+//   - Publishing side (Zernio): probe https://zernio.com/api/v1/accounts
+//     and verify our account_id is present + active.
 //
-//   2. Engagement side (Playwright sessions): read public.session_health rows
-//      for reddit/instagram/linkedin. Status enum: healthy/expiring/expired/missing.
+// MIGRATION NOTE (2026-06-11 evening): The engagement-side check
+// (reddit/instagram/linkedin session_health rows) is removed. Those
+// platforms now run off Heath's persistent DossieBot Chrome profile and
+// are kept warm by scripts/<platform>-session-keepalive.js on Windows
+// Task Scheduler every 3 days. The local keepalive scripts ping Cole
+// directly via Telegram if 3 consecutive runs fail — no Vercel side
+// check needed. The cron-cookie-health-check.js cron has been removed.
 //
 // Action policy:
-//   - Session expiring < 24h or status=expiring → wall-log + Cole-only alert
-//     with the EXACT renewal command Heath should run locally.
-//   - Session expired or missing → wall-log + Cole-only escalation alert.
 //   - Zernio account inactive → wall-log + Cole-only alert (no refresh path
 //     from serverless — Heath must reconnect in Zernio dashboard).
-//
-// Why no auto-refresh: the Playwright sessions live on Heath's local desktop
-// (~/scripts/sessions/<site>.json). Vercel can't refresh them. The closest we
-// can do is detect-and-tell-Cole-the-command. Cole then asks Heath, or — when
-// the desktop-control bridge is online — drives the refresh via Heath's Chrome.
 //
 // Auth: Bearer ${CRON_SECRET} OR x-vercel-cron.
 // Schedule: vercel.json `0 */6 * * *`.
@@ -45,15 +42,6 @@ const ZERNIO_ACCOUNTS = {
   twitter:   '69f255c6985e734bf3d90ba1',
   linkedin:  '69fccd7392b3d8e85f8f12be',
   tiktok:    '69f15791985e734bf3d13b89',
-};
-
-// Playwright session sites we care about (matches cron-cookie-health-check).
-const ENGAGEMENT_SITES = ['reddit', 'instagram', 'linkedin'];
-
-const RENEW_COMMANDS = {
-  reddit: 'cd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie" && node scripts/save-reddit-session.js',
-  instagram: 'cd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie" && node scripts/save-instagram-session.js',
-  linkedin: 'cd "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie" && node scripts/save-linkedin-session.js',
 };
 
 async function sb(path, init = {}) {
@@ -108,21 +96,6 @@ async function probeZernio() {
   }
 }
 
-async function loadEngagementSessions() {
-  const { ok, data } = await sb('/rest/v1/session_health?select=site_name,status,expires_at,last_checked_at,notes');
-  if (!ok || !Array.isArray(data)) return new Map();
-  const map = new Map();
-  for (const row of data) map.set(row.site_name, row);
-  return map;
-}
-
-function hoursUntil(iso) {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return null;
-  return (t - Date.now()) / 3600 / 1000;
-}
-
 module.exports = async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -135,7 +108,6 @@ module.exports = async function handler(req, res) {
   }
 
   const zernio = await probeZernio();
-  const sessions = await loadEngagementSessions();
   const findings = [];
   const alerts = [];
 
@@ -180,57 +152,13 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ─── Engagement side (Playwright sessions) ──────────────────────────
-  for (const site of ENGAGEMENT_SITES) {
-    const row = sessions.get(site);
-    if (!row) {
-      findings.push({ side: 'engagement', platform: site, status: 'no-record', detail: {} });
-      continue;
-    }
-    const hLeft = hoursUntil(row.expires_at);
-    let derived = row.status;
-    if (hLeft != null && hLeft < 24 && derived !== 'expired' && derived !== 'missing') {
-      derived = 'expiring-24h';
-    }
-    findings.push({
-      side: 'engagement',
-      platform: site,
-      status: derived,
-      detail: { hours_left: hLeft != null ? Math.round(hLeft) : null, raw_status: row.status, notes: row.notes },
-    });
-
-    if (derived === 'expired' || derived === 'missing') {
-      const cmd = RENEW_COMMANDS[site] || `node scripts/save-${site}-session.js`;
-      alerts.push(`🔒 <b>${site}</b> session ${derived}. Renew with: <code>${cmd}</code>`);
-      await logWall({
-        wall_id: `WALL-SESSION-${site.toUpperCase()}-${derived.toUpperCase()}`,
-        title: `${site} engagement session ${derived}`,
-        what_broke: `Playwright session for ${site} is ${derived}; engagement scanner cannot use it`,
-        detected_by: SELF_NAME,
-        root_cause: 'Cookie expiry or session file missing on Heath\'s local desktop',
-        route_around: `Cole alert sent with renew command (${cmd}); engagement crons skip this platform until refreshed`,
-        permanent_fix: 'Heath runs the renew command on local desktop',
-        resolved_by: SELF_NAME,
-        reoccurrence_guard: `${SELF_NAME} every 6h; cron-cookie-health-check daily 04:00 UTC`,
-        metadata: { site, status: derived, expires_at: row.expires_at, hours_left: hLeft },
-      });
-    } else if (derived === 'expiring-24h' || derived === 'expiring') {
-      const cmd = RENEW_COMMANDS[site] || `node scripts/save-${site}-session.js`;
-      alerts.push(`⏰ <b>${site}</b> session expiring (${hLeft != null ? Math.round(hLeft) + 'h' : 'soon'}). Pre-emptive renew: <code>${cmd}</code>`);
-      await logWall({
-        wall_id: `WALL-SESSION-${site.toUpperCase()}-EXPIRING`,
-        title: `${site} engagement session expiring within 24h`,
-        what_broke: `Playwright session for ${site} expires in ~${hLeft != null ? Math.round(hLeft) : '?'}h`,
-        detected_by: SELF_NAME,
-        root_cause: 'Normal cookie lifetime; refresh proactively',
-        route_around: `Cole alert sent; recommend Heath run renew command before expiry`,
-        permanent_fix: 'PENDING — automatic session refresh via desktop-control bridge',
-        resolved_by: SELF_NAME,
-        reoccurrence_guard: `${SELF_NAME} every 6h catches within window`,
-        metadata: { site, expires_at: row.expires_at, hours_left: hLeft },
-      });
-    }
-  }
+  // ─── Engagement side ────────────────────────────────────────────────
+  // Reddit / Instagram / LinkedIn now run off Heath's persistent DossieBot
+  // Chrome profile. Local Windows scheduled tasks
+  // (scripts/<platform>-session-keepalive.js) check session warmth every 3
+  // days and ping Cole directly if 3 consecutive runs fail. No Vercel-side
+  // check is needed or possible (no access to the local Chrome profile).
+  // See: feedback_pyautogui_not_playwright.md / SV-ENG-COOKIE-MIGRATION-2026-06-11.
 
   if (alerts.length > 0) {
     const lines = ['🔐 <b>SESSION MONITOR</b>', '', ...alerts];
