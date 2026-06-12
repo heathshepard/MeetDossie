@@ -200,32 +200,34 @@ const BRAND_CORAL = '#E8927C';
 const BRAND_MUTED = '#9CA8B4';
 
 function welcomeEmailHtml(fullName) {
-  const name = (fullName || '').trim() || 'there';
+  const name = (fullName || '').trim().split(' ')[0] || 'there';
   return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
-  <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1.15; margin: 0 0 24px; color: ${BRAND_NAVY};">Hi ${name},</h1>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Welcome — you're officially a Dossie founding member, locked at <strong style="color: ${BRAND_NAVY};">$29/month for life</strong>. That price never goes up.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">I'm Dossie, your new AI transaction coordinator. I work nights, weekends, and holidays so your deals don't stall.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;"><strong style="color: ${BRAND_NAVY};">First step:</strong> check your inbox for our "Set Your Password" email — that gets you into the app at meetdossie.com/app.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 12px;"><strong style="color: ${BRAND_NAVY};">Then jump into the Founding Files Facebook group:</strong></p>
-  <ul style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 1.8; margin: 0 0 24px; padding-left: 20px;">
-    <li>Early access to new features before anyone else</li>
-    <li>Voting power on what we build next</li>
-    <li>A direct line to Heath (the founder)</li>
-  </ul>
-  <div style="margin: 28px 0;">
-    <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="display: inline-block; padding: 16px 32px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Join Founding Files</a>
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1.15; margin: 0 0 24px; color: ${BRAND_NAVY};">${name},</h1>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Heath here — founder of Dossie, and a licensed Texas REALTOR myself.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">I want to ask one specific thing in the next 60 seconds: open Dossie, pull up any deal you're working — even a closed one from last month — and drop the contract in.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">She reads it, pulls every TREC deadline with the paragraph it came from, and you'll see your option period, financing contingency, and closing date sitting on the page in clean order. That's the moment most agents text me back saying "okay, I see what this is now."</p>
+  <div style="margin: 28px 0; text-align: center;">
+    <a href="https://meetdossie.com/app" style="display: inline-block; padding: 16px 32px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Create Your First Dossier</a>
   </div>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 12px;">Once you're in the app, three things to try:</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 12px;"><strong style="color: ${BRAND_NAVY};">Here's the surface area of what you just bought:</strong></p>
   <ol style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 1.8; margin: 0 0 24px; padding-left: 20px;">
-    <li>Tell me about a current deal — type it or talk</li>
-    <li>Upload one contract — I'll pull your TREC deadlines automatically</li>
-    <li>Ask me anything — I work 24/7</li>
+    <li><strong>Morning Brief</strong> — 90-second audio at 6am, summarizing what's due, what closed, what needs your eyes.</li>
+    <li><strong>Talk to Dossie</strong> — tap the mic in any dossier and just say it: "Draft a follow-up to the lender." She writes the email.</li>
+    <li><strong>TREC deadlines, auto-calculated and cited</strong> — every deadline lands with the TREC paragraph it came from.</li>
+    <li><strong>DossieSign</strong> — fill TREC forms with the data already in your dossier and send for signature in two clicks.</li>
+    <li><strong>Form Packages</strong> — apply the Buyer or Seller bundle and every form you need attaches at once.</li>
+    <li><strong>Email and document scanning</strong> — paste an email or upload a PDF and Dossie pulls party names, amounts, dates into the dossier.</li>
+    <li><strong>Closing milestone cards</strong> — clean, shareable wins for your social. No client data.</li>
+    <li><strong>Compliance Vault</strong> — your brokerage's required docs organized in one place.</li>
   </ol>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;"><strong style="color: ${BRAND_NAVY};">A heads-up on how I work:</strong> I'll email you a daily digest at 8am whenever you have email drafts waiting to send (no email on quiet days). I'll also send TREC deadline reminders 7 days out, 1 day out, and the morning of — so nothing slips. You stay in control: I draft, you tap send.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Hit reply if you ever get stuck. Heath reads every email personally and responds within the hour.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Welcome aboard.</p>
-  <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; color: ${BRAND_NAVY}; line-height: 1.4; margin: 0;">— Dossie</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Reply to this email any time. I read every one personally, usually within the hour.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Heath</p>
+  <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0 0 18px;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
+  <hr style="border: none; border-top: 1px solid ${BRAND.border}; margin: 24px 0;">
+  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>
 </div>`;
 }
 
