@@ -34,6 +34,125 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+**Fixed testimonial request email delivery** (customer)
+- We fixed a bug that could cause testimonial request emails to fail silently when your user profile wasn't set up yet. We also improved the testimonial request form to show a helpful prompt instead of broken links when review URLs are missing.
+
+**Fixed greeting capitalization in testimonial emails** (customer)
+- We fixed a small bug where customer names appeared in lowercase in our testimonial request emails. Your name now displays correctly in the greeting.
+
+**New TREC July 2026 compliance guide** (customer)
+- We added a comprehensive guide covering all mandatory Texas real estate form updates effective July 1, 2026, including new categories and revised forms to help you stay compliant.
+
+**Voice features now more reliable** (customer)
+- We improved the reliability of voice features like Talk-to-Dossie and video generation by adding a backup voice service. If our primary service has any hiccups, we automatically switch to a backup so your voice features keep working.
+
+**Track warm leads before contract** (customer)
+- We've added a new pre-contract stage so you can log prospect names, addresses, and follow-up dates before deals move to contract. Your pipeline now shows warm leads separately with overdue indicators so you never miss a follow-up.
+
+**Pre-contract dossiers now work correctly** (customer)
+- We fixed issues that were blocking agents from creating pre-contract dossiers. You'll now see the right checklists and deadline rules when you start working with warm leads and pre-approval clients.
+
+**Six pipeline management features for pre-contract deals** (customer)
+- We've added new ways to organize and track your pipeline deals: mark where leads came from (Facebook, referral, open house, etc.), set deal readiness status and temperature (hot/warm/cold), log touchpoints as you work with clients, draft follow-up messages with AI help, and archive cold leads to keep your active pipeline clean.
+
+**Delete closed dossiers and cold leads** (customer)
+- You can now permanently remove closed dossiers and cold leads from your workspace with a single click. We added delete buttons to these sections with a confirmation step to prevent accidental removal.
+
+**Track seller leads before listing goes live** (customer)
+- We added a new pre-listing stage so you can organize and follow up with seller leads before their property hits the market. You'll see warm lead cards with temperature tracking, checklists, and a button to move listings live when ready.
+
+**Fixed mobile status card layout** (customer)
+- We fixed a display issue on mobile where status card labels were getting squeezed. Labels and buttons now stack cleanly so you can read all the information clearly on your phone.
+
+**Pre-listing dossiers now save properly** (customer)
+- We fixed a bug that prevented agents from creating pre-listing dossiers. These dossiers can now be saved and used even before a property address is added.
+
+**Fixed mobile banner text overlap on small screens** (customer)
+- We fixed a layout issue on mobile phones where text in important disclosure banners (IABS and Seller Disclosure) was overlapping buttons. Now the button moves below the text on narrow screens so everything is readable and clickable.
+
+**Fix mobile button text wrapping** (customer)
+- We fixed status buttons on mobile that were awkwardly breaking words in half. Now your button labels stay on one line and read clearly on your phone.
+
+**Fixed mobile Log It input display** (customer)
+- We fixed a layout issue on mobile where the Log It form was collapsing into a tiny white box. The input field and button now stack properly so you can easily log touchpoints on your phone.
+
+**Track seller check-in dates on listings** (customer)
+- We've added a seller check-in date field to your active listing dossiers so you can schedule and track follow-ups. The app highlights overdue check-ins in red on both your deal details and pipeline card.
+
+**Fixed seller check-in date display** (customer)
+- We fixed a bug where check-in reminders were showing the wrong day for agents in Central Time. Sellers will now see accurate 'Check in today' notifications at the right time.
+
+**Pre-contract dossiers now show client name fields** (customer)
+- We added support for pre-contract dossiers so you can start entering client details before an offer is made. You can also set a target timeline for when you expect the contract to close.
+
+**Weekly pipeline stage announcements** (customer)
+- We now send you a weekly Thursday email highlighting your pre-listing and pre-buyer pipeline stages, so you can stay on top of your deals without logging in.
+
+**Auto-apply recommended forms to new dossiers** (customer)
+- When you create a new dossier, we now show a quick one-tap banner that automatically adds the right set of forms based on your transaction type. The banner disappears once your forms are set up, saving you time on manual setup.
+
+**Daily morning brief emails** (customer)
+- We now send you a personalized email each morning at 7 AM with your deadlines, closing deals, open tasks, and a quick audio summary — so you start each day fully caught up.
+
+**Morning Brief redesign and faster loading** (customer)
+- We've redesigned your Morning Brief with clearer headers and a more focused 4-item layout, plus made it load noticeably faster so you can get started quicker each day.
+
+**Smoother voice narration during service hiccups** (customer)
+- We fixed an issue where voice narration would read technical markup instead of pausing naturally when our primary voice service had problems. Now narration sounds clean and professional no matter which service handles it.
+
+**Cleaner inbox for operational emails** (customer)
+- We stopped adding blind copies to your deadline reminders, morning briefs, and signing notifications, so your email stays focused on what matters. Marketing emails from us still include the blind copy as before.
+
+**Cleaner emails from Dossie** (customer)
+- We removed hidden copy addresses from operational emails so your inbox stays organized and you only see messages meant directly for you.
+
+**Smoother, more lifelike orb animation** (customer)
+- We've refined the animated orb that appears in Dossie to have slower, more natural smoke movement and deeper visual depth. The effect now feels more calming and polished when you interact with it.
+
+**Orb video now has softer, more natural glow** (customer)
+- We've updated the Orb animation to feature a feathered glow effect that looks more like sunlight filtering through clouds, making it feel warmer and more inviting when you're using Talk-to-Dossie.
+
+**Smoother orb animation and clearer audio-reactive button** (customer)
+- We improved the orb's smoke effect to loop seamlessly without visual glitches, and made the speak button more noticeable with a breathing glow and on-page preview so you can see the audio-reactive pulse in action right away.
+
+**Tutorial videos now available in help center** (customer)
+- We've added video tutorials to help you get started faster. Watch walkthroughs for signing up, opening your first dossier, inviting buyers and sellers, and setting up your team.
+
+**Tutorial videos now display correctly on mobile** (customer)
+- We fixed an issue where our tutorial videos were cutting off on the sides when watched on phones. Now the full video appears properly on mobile screens with a branded border, so you can see everything clearly.
+
+**Fixed UI overlaps and improved visual polish** (customer)
+- We fixed a few visual issues: the help badge no longer covers pipeline cards, modals now have a clearer backdrop so they stand out better, and demo tutorials use realistic names instead of placeholder text.
+
+**Tutorial videos now show full actions clearly** (customer)
+- We fixed our setup tutorial videos so you can see every button click and action without audio cutting off or content going off-screen. The videos are clearer and easier to follow from start to finish.
+
+**Fixed demo account names and file creation message** (customer)
+- We cleaned up demo account data to show realistic names instead of placeholder text. We also fixed a bug where creating a new file would show an empty message -- now it properly confirms 'I've started the file for [client name].'
+
+**Tutorial videos now match actual workflow** (customer)
+- We updated our onboarding tutorial videos to show exactly what you'll do in Dossie — naming your buyer or seller — instead of outdated steps. The videos are clearer and faster to follow.
+
+**Fixed confusing toast notification text** (customer)
+- We fixed a bug where deal notifications would show incomplete text like 'for .' when client names weren't filled in properly. Notifications now display correctly even with unusual spacing in names.
+
+**Contract fill-in now works reliably** (customer)
+- We fixed an issue where contract fields weren't always matching up correctly, causing fill-in failures. Your contracts will now extract and populate accurately every time.
+
+**New FAQ and Learn hub for self-service help** (customer)
+- We launched a searchable FAQ page and unified Learn hub so agents can quickly find answers to common questions, explore tutorials, and discover our calculators — all without leaving the Dossie site. Talk to Dossie now suggests relevant help articles when you ask how-to questions.
+
+**New welcome email and help center for new agents** (customer)
+- We've redesigned the welcome email new agents receive to introduce you to all eight core features of Dossie and point you straight into the app. We've also added a built-in help center so you can quickly find answers about Getting Started, Morning Brief, Talk to Dossie, DossieSign, TREC deadlines, Compliance Vault, and sharing milestones.
+
+**Land purchase transactions now fully mapped** (customer)
+- We've connected all 29 land purchase fields to your transaction data, so your land deal information flows seamlessly into Dossie without manual re-entry.
+
+**Helpful guidance when you have nothing yet** (customer)
+- We added smart tips that appear when your pipeline, documents, or task lists are empty, so you know what to do next. We're also building a help center with articles to answer your questions right inside the app.
+
+<!-- applied_shas: 0912a4d,0b0b66a,0e9bdfb,10d193a,13f2c3e,1592e16,230760e,25e1a90,2d7b31a,2e66c98,35aba84,3bec469,42a4e45,42c0fdf,49aac5a,5710ac1,5c017b2,5c25b94,62c58af,631a020,63b8318,65a1d9f,715f06e,831d282,867047d,9383da2,952cafd,b3baa27,b7521b6,bdeca8f,c117288,c663522,c7caf5a,cbb99b1,cc72b79,d75babd,e6d4d69,f3e0f9a,f434745 -->
+
 ## Week of May 29, 2026 (fill-and-sign expansion)
 
 **Fill-and-sign now works for land and new construction contracts**
