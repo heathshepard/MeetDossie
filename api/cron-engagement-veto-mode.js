@@ -61,6 +61,8 @@ const {
   getTodayCounts,
   meetsSubstanceFloor,
   TOTAL_DAILY_CAP,
+  PLATFORM_DAILY_CAPS,
+  SUBSTANCE_MIN_CHARS,
 } = require('../scripts/_lib/comment-caps');
 
 const HAIKU_MODEL            = 'claude-haiku-4-5-20251001';
