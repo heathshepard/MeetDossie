@@ -426,6 +426,10 @@
                   {
                       "path":  "/api/cron-sage-intelligence-update",
                       "schedule":  "0 7 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-auto-populate-weekly-improvements",
+                      "schedule":  "0 23 * * *"
                   }
               ]
 }
