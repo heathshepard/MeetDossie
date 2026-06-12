@@ -78,6 +78,8 @@ module.exports = async function handler(req, res) {
 
     const body = req.body || {};
     let customerEmail = null;
+    let affiliateRef = null;
+
     if (body.email !== undefined && body.email !== null && body.email !== '') {
       const cleaned = sanitizeString(body.email, { maxLength: 320 });
       const lower = cleaned ? cleaned.toLowerCase() : null;
@@ -85,6 +87,10 @@ module.exports = async function handler(req, res) {
         throw new ValidationError('That email looks off. Mind double-checking it?');
       }
       customerEmail = lower;
+    }
+
+    if (body.affiliate_ref !== undefined && body.affiliate_ref !== null && body.affiliate_ref !== '') {
+      affiliateRef = sanitizeString(body.affiliate_ref, { maxLength: 100 });
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
@@ -96,7 +102,7 @@ module.exports = async function handler(req, res) {
       cancel_url: CANCEL_URL,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      metadata: { source: 'founding_landing' },
+      metadata: { source: 'founding_landing', ...(affiliateRef ? { affiliate_ref: affiliateRef } : {}) },
       subscription_data: { metadata: { source: 'founding_landing' } },
     };
     if (customerEmail) {
