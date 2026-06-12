@@ -5,6 +5,8 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 12 * * *
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -30,7 +32,7 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-social-digest', async function handler(req, res) {
   // Auth: accept Vercel's built-in cron header OR manual Bearer token.
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -165,4 +167,4 @@ module.exports = async function handler(req, res) {
     sage_delivered: sageDelivered,
     rows_found: data.length,
   });
-};
+});

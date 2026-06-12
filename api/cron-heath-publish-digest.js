@@ -11,6 +11,8 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 7 * * * (7:00 UTC daily, ~2am CST).
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -51,7 +53,7 @@ async function sendTelegram(text) {
   return { ok: res.ok && data.ok === true, status: res.status, data };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-heath-publish-digest', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -143,4 +145,4 @@ ${postSamples}
     platforms: Object.keys(byPlatform),
     personas: Object.keys(byPersona),
   });
-};
+});

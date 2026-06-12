@@ -37,6 +37,8 @@
 //   - email contains 'demo'              → skip (defense-in-depth)
 //   - subscriptions.status != 'active'   → skip
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -258,7 +260,7 @@ async function recordReminder(row) {
   return true;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-deadline-reminders', async function handler(req, res) {
   try {
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -870,4 +872,4 @@ module.exports = async function handler(req, res) {
     console.error('[deadline-reminders] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
-};
+});

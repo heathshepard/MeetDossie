@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-reddit-scanner.js
@@ -189,7 +191,7 @@ async function sendVetoMessages(post, keyword, draft, engId) {
 
 // ─── Handler ───────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-reddit-scanner', async function handler(req, res) {
   const auth = req.headers.authorization || '';
   if (auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -253,4 +255,4 @@ module.exports = async function handler(req, res) {
     substance_rejected: substanceRejected,
     substance_floor_chars: SUBSTANCE_MIN_CHARS,
   });
-}
+})

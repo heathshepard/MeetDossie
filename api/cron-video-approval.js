@@ -6,6 +6,8 @@
 // Auth: Vercel cron header OR Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — "0 10 * * *"
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -43,7 +45,7 @@ async function tgSend(body) {
   return { ok: res.ok, data };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-video-approval', async function handler(req, res) {
   // Auth check
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -218,4 +220,4 @@ module.exports = async function handler(req, res) {
     library: libraryResult,
     skits_sent_for_approval: skitResults,
   });
-};
+});

@@ -15,6 +15,8 @@
 //
 // Env vars required: FAL_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const { fal } = require('@fal-ai/client');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -43,7 +45,7 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-render-skits', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -175,4 +177,4 @@ module.exports = async function handler(req, res) {
     total: skits.length,
     results,
   });
-};
+});

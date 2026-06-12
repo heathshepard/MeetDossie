@@ -24,6 +24,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CRON_SECRET = process.env.CRON_SECRET;
 
 const caps = require('./_lib/engagement-caps');
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const MAX_SEND_PER_RUN = 6;
 const PLATFORM_LABEL = {
@@ -116,7 +117,7 @@ function buildDraftMessage(row) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-send-engagement-approvals', async function handler(req, res) {
   const auth = req.headers.authorization || '';
   if (auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -210,4 +211,4 @@ module.exports = async function handler(req, res) {
       perPlatformRemaining: capState.perPlatformRemaining,
     },
   });
-};
+});

@@ -49,6 +49,8 @@
 //   ~20 commits/day × ~250 input + 150 output tokens each on Haiku 4.5
 //   ≈ $0.001/day on Anthropic. Negligible. GitHub API is free.
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -534,7 +536,7 @@ async function sendTelegram(text) {
 
 // ─── Handler ────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-auto-populate-weekly-improvements', async function handler(req, res) {
   try {
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -722,4 +724,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-auto-populate-weekly-improvements] fatal', err);
     return res.status(500).json({ ok: false, error: String(err.message || err) });
   }
-};
+});

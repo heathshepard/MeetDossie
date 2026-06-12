@@ -12,6 +12,8 @@
 //   TELEGRAM_CHAT_ID             — Heath's Telegram chat ID
 //   CRON_SECRET                  — bearer token for manual auth
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -115,7 +117,7 @@ async function sendTelegram(text) {
   }
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-weekly-scorecard', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -179,4 +181,4 @@ module.exports = async function handler(req, res) {
     metrics,
     message_sent: true,
   });
-};
+});

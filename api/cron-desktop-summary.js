@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-desktop-summary.js
@@ -133,7 +135,7 @@ async function sendTelegram(text) {
   }
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-desktop-summary', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -175,4 +177,4 @@ module.exports = async function handler(req, res) {
     buckets: Object.fromEntries(Object.entries(buckets).map(([k, v]) => [k, v.length])),
     message,
   });
-};
+});

@@ -7,6 +7,8 @@
 // Auth:     Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 // Schedule: vercel.json — "45 * * * *"
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const { retryFetch } = require('./_lib/retry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -181,7 +183,7 @@ async function tryAcquirePublishLock(postId) {
 }
 
 // Main handler
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-verify-posts', async function handler(req, res) {
   // Auth: accept Vercel's built-in cron header OR manual Bearer token.
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -321,4 +323,4 @@ module.exports = async function handler(req, res) {
     missed,
     retried,
   });
-};
+});

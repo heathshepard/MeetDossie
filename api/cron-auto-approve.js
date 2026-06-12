@@ -11,6 +11,8 @@
 //
 // Auth: Authorization: Bearer ${CRON_SECRET} OR x-vercel-cron: 1
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -31,7 +33,7 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-auto-approve', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -157,4 +159,4 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(200).json({ ok: true, autoApproved, approvedReplies, autoApprovedComments });
-};
+});

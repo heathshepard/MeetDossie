@@ -10,6 +10,8 @@
 //
 // Schedule: vercel.json — 0 12 * * * (noon UTC = 7am Central).
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -52,7 +54,7 @@ async function sendResendEmail({ from, to, subject, html }) {
 const escapeHtml = (s) =>
   String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-followup', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -249,4 +251,4 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(200).json({ ok: true, summary, alerts });
-};
+});

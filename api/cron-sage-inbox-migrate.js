@@ -3,6 +3,8 @@
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -23,7 +25,7 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-sage-inbox-migrate', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -92,4 +94,4 @@ CREATE INDEX IF NOT EXISTS idx_sage_engagement_post ON sage_engagement_queue(pos
       details: result.data,
     });
   }
-};
+});

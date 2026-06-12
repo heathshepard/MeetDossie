@@ -16,6 +16,8 @@
 // From: heath@meetdossie.com (Resend)
 // Env vars required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET, RESEND_API_KEY
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -231,7 +233,7 @@ function buildReferralEmail(profile, remaining) {
 // Main handler
 // ---------------------------------------------------------------------------
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-activation-drip', async function handler(req, res) {
   // Auth
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = req.headers.authorization || req.headers.Authorization || '';
@@ -463,4 +465,4 @@ module.exports = async function handler(req, res) {
     total_sent: totalSent,
     results,
   });
-};
+});

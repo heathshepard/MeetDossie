@@ -6,6 +6,8 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 6 * * * (6 AM CDT / 11 AM UTC daily)
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -184,7 +186,7 @@ async function createPost(tutorialVideoId, platform, caption, bite) {
   return true;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-queue-tutorial-reels', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const token = authHeader.split(' ')[1];
@@ -258,4 +260,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-queue-tutorial-reels] Unhandled error:', err);
     res.status(500).json({ error: 'Internal server error', message: err && err.message });
   }
-};
+});

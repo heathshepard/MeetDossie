@@ -304,4 +304,5 @@ async function handler(req, res) {
   }
 }
 
-module.exports = handler;
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+module.exports = withTelemetry('cron-dossie-qa-loop', handler);

@@ -6,6 +6,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -83,7 +84,7 @@ async function logTriageAction(userId, action, daysSinceSignup, metadata = {}) {
   });
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-activation-triage', async function handler(req, res) {
   // Authorization via CRON_SECRET
   const authHeader = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!CRON_SECRET || authHeader !== CRON_SECRET) {
@@ -255,4 +256,4 @@ module.exports = async function handler(req, res) {
     await sendTelegram(`❌ Activation triage cron failed: ${err.message}`);
     return res.status(500).json({ ok: false, error: err.message });
   }
-};
+});

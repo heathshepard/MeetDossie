@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // Vercel Serverless Function: /api/cron-competitor-monitor
@@ -106,7 +108,7 @@ async function sendSageTelegram(text) {
   }
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-competitor-monitor', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -160,4 +162,4 @@ module.exports = async function handler(req, res) {
     sage_delivered: sageDelivered,
     results: results.map((r) => ({ competitor: r.competitor, posts_last_7d: r.posts_last_7d })),
   });
-};
+});

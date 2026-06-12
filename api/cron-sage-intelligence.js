@@ -24,6 +24,8 @@
 // Self-report snippet (paste into subagent context to update status):
 //   await fetch('/api/ventures/agent-status', { method: 'POST', headers: { 'Authorization': 'Bearer CRON_SECRET', 'Content-Type': 'application/json' }, body: JSON.stringify({ agent_name: 'sage', status: 'active', task: 'Daily intelligence run', heartbeat: new Date().toISOString() }) });
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -509,7 +511,7 @@ async function fetchTrendBrief() {
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-sage-intelligence', async function handler(req, res) {
   // Auth: Vercel cron header OR Bearer token (for cron-job.org + manual trigger)
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -655,4 +657,4 @@ module.exports = async function handler(req, res) {
     daily_brief: dailyBrief,
     material_low_alert_sent: inventory.materialLow && !!TELEGRAM_BOT_TOKEN,
   });
-};
+});

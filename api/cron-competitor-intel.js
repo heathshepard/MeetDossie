@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-competitor-intel.js
@@ -186,7 +188,7 @@ async function sendTelegram(text) {
 }
 
 // ── handler ──────────────────────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-competitor-intel', async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method not allowed' });
   }
@@ -221,4 +223,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-competitor-intel] error:', err.message);
     return res.status(500).json({ ok: false, error: err.message });
   }
-};
+});
