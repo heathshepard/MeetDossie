@@ -97,12 +97,32 @@ async function tg(text) {
   } catch (err) { console.error('[customer-view] tg error:', err && err.message); }
 }
 
+// Sparticuz Chromium hosted binary URL — pinned to playwright-core ^1.60 compat.
+// The binary is too large to bundle in a Lambda layer; we fetch on first run.
+const CHROMIUM_REMOTE = 'https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar';
+
 async function captureAll() {
-  const playwright = require('playwright');
-  const browser = await playwright.chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  // Use @sparticuz/chromium-min + playwright-core for Vercel/Lambda compatibility.
+  // Falls back to local playwright when running on a developer machine (no AWS_LAMBDA env).
+  const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.VERCEL;
+  let browser;
+  if (isLambda) {
+    const chromium = require('@sparticuz/chromium-min').default || require('@sparticuz/chromium-min');
+    const { chromium: pwChromium } = require('playwright-core');
+    const execPath = await chromium.executablePath(CHROMIUM_REMOTE);
+    browser = await pwChromium.launch({
+      args: chromium.args,
+      executablePath: execPath,
+      headless: true,
+    });
+  } else {
+    const { chromium: pwChromium } = require('playwright');
+    browser = await pwChromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }
+
   const results = [];
   try {
     const ctx = await browser.newContext({
