@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Social — Today | Shepard Ventures</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --navy-mid: #20203a;
+      --coral: #E8836B;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(245,230,224,0.10);
+      --border-hover: rgba(245,230,224,0.22);
+      --text-dim: rgba(245,230,224,0.55);
+      --ok: #8BA888;
+      --warn: #C9A96E;
+      --err: #E8836B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100vh;
+      background: var(--navy);
+      background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--blush);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page { max-width: 1100px; margin: 0 auto; padding: 24px 18px 80px; }
+
+    /* Auth gate */
+    #auth-gate {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+    #auth-gate.visible { display: flex; }
+    #app { display: none; }
+    #app.visible { display: block; }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--blush);
+      font-family: inherit;
+      font-size: 0.92rem;
+    }
+    .form-input:focus { outline: none; border-color: var(--gold); }
+    .btn {
+      padding: 10px 18px;
+      background: var(--coral);
+      border: none;
+      border-radius: 8px;
+      color: var(--navy);
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    .btn:hover { opacity: 0.92; }
+
+    /* Hero */
+    .hero {
+      padding: 16px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .hero-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: clamp(1.8rem, 5vw, 2.5rem);
+      color: var(--blush);
+      line-height: 1.1;
+    }
+    .hero-sub {
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+      color: var(--gold);
+      font-size: 1rem;
+      margin-top: 4px;
+    }
+    .meta {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+    .meta a { color: var(--gold); text-decoration: none; }
+    .meta a:hover { text-decoration: underline; }
+
+    /* Mission gauge */
+    .mission {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 26px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 640px) { .mission { grid-template-columns: 1fr; } }
+    .mission-cell { display: flex; flex-direction: column; gap: 4px; }
+    .mission-label {
+      font-size: 0.66rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .mission-value {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: var(--blush);
+      line-height: 1;
+    }
+    .mission-value .num { color: var(--gold); }
+    .mission-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .mission-bar > div {
+      height: 100%;
+      background: linear-gradient(90deg, var(--sage), var(--gold));
+      transition: width 0.6s ease;
+    }
+
+    /* Section heads */
+    .section-head {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.4rem;
+      color: var(--blush);
+      margin: 26px 0 12px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Platforms table */
+    .platforms {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 110px repeat(5, 1fr) 1fr 130px;
+      gap: 10px;
+      align-items: center;
+    }
+    @media (max-width: 880px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .row .col-label { grid-column: span 2; }
+    }
+    .row-header {
+      background: transparent;
+      border: none;
+      padding: 4px 16px;
+      font-size: 0.66rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    @media (max-width: 880px) { .row-header { display: none; } }
+    .col-label {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--blush);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .platform-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--sage);
+    }
+    .platform-dot.warn { background: var(--warn); }
+    .platform-dot.err { background: var(--err); }
+    .platform-dot.paused { background: var(--blush-deep); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cell-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .cell-value { font-size: 1.05rem; font-weight: 600; color: var(--blush); }
+    .cell-value .ok { color: var(--sage); }
+    .cell-value .warn { color: var(--warn); }
+    .cell-value .err { color: var(--err); }
+    .cell-value .dim { color: var(--text-dim); }
+
+    /* Watchdog / walls */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 14px;
+    }
+    .panel + .panel { margin-top: 14px; }
+    .panel h3 {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.2rem;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .kv { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; }
+    .kv .k { color: var(--text-dim); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .kv .v { color: var(--blush); font-weight: 600; }
+
+    .wall-list { display: flex; flex-direction: column; gap: 8px; }
+    .wall-row {
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.02);
+      border-left: 3px solid var(--blush-deep);
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+    .wall-row .title { font-weight: 600; color: var(--blush); }
+    .wall-row .meta-line { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+    .wall-row.empty { color: var(--text-dim); font-style: italic; border-left-color: var(--sage); }
+
+    .reliability-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .rel-cell {
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .rel-cell .name { font-size: 0.78rem; color: var(--blush); font-weight: 600; }
+    .rel-cell .status { font-size: 0.7rem; margin-top: 4px; }
+    .rel-cell .status.ok { color: var(--sage); }
+    .rel-cell .status.warn { color: var(--warn); }
+    .rel-cell .status.err { color: var(--err); }
+    .rel-cell .status.dim { color: var(--text-dim); }
+
+    .refresh-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .refresh-pill .pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--sage);
+      animation: pulse 1.5s infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth gate -->
+  <div id="auth-gate">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--gold);margin-bottom:4px;">SV</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--text-dim);margin-bottom:24px;letter-spacing:0.06em;">Shepard Ventures</div>
+    <form id="login-form" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;" onsubmit="return false;">
+      <div>
+        <label class="cell-label" for="login-email" style="display:block;margin-bottom:6px;">Email</label>
+        <input class="form-input" id="login-email" type="email" autocomplete="email" placeholder="heath@example.com" required />
+      </div>
+      <div>
+        <label class="cell-label" for="login-password" style="display:block;margin-bottom:6px;">Password</label>
+        <input class="form-input" id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+      </div>
+      <button class="btn" id="login-btn" type="submit">Sign In</button>
+      <div id="login-error" style="display:none;color:var(--err);font-size:0.82rem;text-align:center;"></div>
+    </form>
+  </div>
+
+  <div id="app">
+    <div class="page">
+      <div class="hero">
+        <div>
+          <div class="hero-title">Social — Today</div>
+          <div class="hero-sub">Mission control for the publishing + engagement pipeline.</div>
+        </div>
+        <div class="meta">
+          <div><a href="/ventures">Back to Ventures</a></div>
+          <div id="generated-at" style="margin-top:6px;">—</div>
+          <div style="margin-top:6px;"><span class="refresh-pill"><span class="pulse"></span>auto-refresh 60s</span></div>
+        </div>
+      </div>
+
+      <!-- Mission gauge -->
+      <div class="mission">
+        <div class="mission-cell">
+          <div class="mission-label">Posts</div>
+          <div class="mission-value"><span class="num" id="m-posts-now">0</span>/<span id="m-posts-tgt">0</span></div>
+          <div class="mission-bar"><div id="m-posts-bar" style="width:0%;"></div></div>
+          <div style="font-size:0.7rem;color:var(--text-dim);margin-top:4px;"><span id="m-posts-pct">0</span>% of today's target</div>
+        </div>
+        <div class="mission-cell">
+          <div class="mission-label">Comments</div>
+          <div class="mission-value"><span class="num" id="m-cmt-now">0</span>/<span id="m-cmt-tgt">0</span></div>
+          <div class="mission-bar"><div id="m-cmt-bar" style="width:0%;"></div></div>
+          <div style="font-size:0.7rem;color:var(--text-dim);margin-top:4px;"><span id="m-cmt-pct">0</span>% of daily cap</div>
+        </div>
+        <div class="mission-cell">
+          <div class="mission-label">Overall mission</div>
+          <div class="mission-value"><span class="num" id="m-all-pct">0</span>%</div>
+          <div class="mission-bar"><div id="m-all-bar" style="width:0%;"></div></div>
+          <div style="font-size:0.7rem;color:var(--text-dim);margin-top:4px;">Posts + comments combined</div>
+        </div>
+      </div>
+
+      <!-- Platforms -->
+      <div class="section-head">Platforms</div>
+      <div class="platforms">
+        <div class="row row-header">
+          <div>Platform</div>
+          <div>Posted / target</div>
+          <div>Approved queue</div>
+          <div>Draft</div>
+          <div>Blocked</div>
+          <div>Comments today</div>
+          <div>Probe</div>
+          <div>Status</div>
+        </div>
+        <div id="platform-rows"></div>
+      </div>
+
+      <!-- Watchdog -->
+      <div class="section-head">Watchdog</div>
+      <div class="panel">
+        <h3>Mission Watchdog</h3>
+        <div class="kv" id="watchdog-kv">
+          <div><div class="k">Last run</div><div class="v" id="wd-last-run">—</div></div>
+          <div><div class="k">Status</div><div class="v" id="wd-status">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Reliability stack</h3>
+        <div class="reliability-grid" id="rel-grid"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Recent walls (last 10)</h3>
+        <div class="wall-list" id="wall-list">
+          <div class="wall-row empty">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+    let supabase = null;
+    let token = null;
+
+    async function bootstrap() {
+      let config;
+      try {
+        config = await fetch('/api/config').then((r) => r.json());
+      } catch {
+        showLoginError('Failed to load config — refresh.');
+        document.getElementById('auth-gate').classList.add('visible');
+        return;
+      }
+      supabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage,
+          storageKey: 'ventures.auth.token',
+          flowType: 'pkce',
+        },
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showLoginForm();
+        return;
+      }
+      revealApp(session.access_token);
+    }
+
+    function showLoginForm() {
+      document.getElementById('auth-gate').classList.add('visible');
+      document.getElementById('app').classList.remove('visible');
+      document.getElementById('login-form').addEventListener('submit', handleLogin);
+      document.getElementById('login-btn').addEventListener('click', handleLogin);
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('login-error');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        showLoginError(error.message);
+        return;
+      }
+      revealApp(data.session.access_token);
+    }
+
+    function revealApp(t) {
+      token = t;
+      document.getElementById('auth-gate').classList.remove('visible');
+      document.getElementById('app').classList.add('visible');
+      loadAll();
+      setInterval(loadAll, 60_000);
+    }
+
+    async function loadAll() {
+      try {
+        const res = await fetch('/api/ventures/social-today', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          console.error('social-today fetch failed', res.status);
+          return;
+        }
+        const data = await res.json();
+        renderMission(data.mission);
+        renderPlatforms(data.platforms);
+        renderWatchdog(data.watchdog);
+        renderReliability(data.reliability);
+        renderWalls(data.walls_recent);
+        document.getElementById('generated-at').textContent =
+          'Updated ' + new Date(data.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch (err) {
+        console.error('loadAll err', err);
+      }
+    }
+
+    function renderMission(m) {
+      if (!m) return;
+      document.getElementById('m-posts-now').textContent = m.posts_posted;
+      document.getElementById('m-posts-tgt').textContent = m.posts_target;
+      document.getElementById('m-posts-pct').textContent = m.posts_pct;
+      document.getElementById('m-posts-bar').style.width = Math.min(100, m.posts_pct) + '%';
+      document.getElementById('m-cmt-now').textContent = m.comments_posted;
+      document.getElementById('m-cmt-tgt').textContent = m.comments_target;
+      document.getElementById('m-cmt-pct').textContent = m.comments_pct;
+      document.getElementById('m-cmt-bar').style.width = Math.min(100, m.comments_pct) + '%';
+      document.getElementById('m-all-pct').textContent = m.overall_pct;
+      document.getElementById('m-all-bar').style.width = Math.min(100, m.overall_pct) + '%';
+    }
+
+    function dotClass(p) {
+      if (p.paused) return 'paused';
+      if (p.blocked > 0 || p.failed > 0) return 'err';
+      if (p.target > 0 && p.posted < p.target) return 'warn';
+      return '';
+    }
+
+    function valClass(actual, target) {
+      if (target === 0) return 'dim';
+      if (actual >= target) return 'ok';
+      if (actual / target >= 0.5) return 'warn';
+      return 'err';
+    }
+
+    function fmtPlatform(name) {
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+
+    function renderPlatforms(rows) {
+      const wrap = document.getElementById('platform-rows');
+      if (!rows || !rows.length) { wrap.innerHTML = '<div class="wall-row empty">No platforms scheduled today.</div>'; return; }
+      wrap.innerHTML = '';
+      for (const p of rows) {
+        const el = document.createElement('div');
+        el.className = 'row';
+        const probeLabel = p.last_probe_ok === null ? '—' : (p.last_probe_ok ? 'OK' : `fail ×${p.consecutive_fails}`);
+        const probeClass = p.last_probe_ok === null ? 'dim' : (p.last_probe_ok ? 'ok' : 'err');
+        const pausedLabel = p.paused
+          ? `paused until ${new Date(p.paused_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          : 'live';
+        const pausedClass = p.paused ? 'err' : 'ok';
+        el.innerHTML = `
+          <div class="col-label"><span class="platform-dot ${dotClass(p)}"></span>${fmtPlatform(p.platform)}</div>
+          <div class="cell"><div class="cell-label">Posts</div><div class="cell-value"><span class="${valClass(p.posted, p.target)}">${p.posted}/${p.target}</span></div></div>
+          <div class="cell"><div class="cell-label">Approved</div><div class="cell-value"><span class="dim">${p.approved}</span></div></div>
+          <div class="cell"><div class="cell-label">Draft</div><div class="cell-value"><span class="dim">${p.draft}</span></div></div>
+          <div class="cell"><div class="cell-label">Blocked</div><div class="cell-value"><span class="${p.blocked > 0 ? 'err' : 'ok'}">${p.blocked}</span></div></div>
+          <div class="cell"><div class="cell-label">Comments</div><div class="cell-value"><span class="${valClass(p.comments_today, p.comments_cap)}">${p.comments_today}/${p.comments_cap}</span></div></div>
+          <div class="cell"><div class="cell-label">Probe</div><div class="cell-value"><span class="${probeClass}">${probeLabel}</span>${p.last_latency_ms != null ? ` <span class="dim" style="font-size:0.7rem;">(${p.last_latency_ms}ms)</span>` : ''}</div></div>
+          <div class="cell"><div class="cell-label">Status</div><div class="cell-value"><span class="${pausedClass}">${pausedLabel}</span></div></div>
+        `;
+        wrap.appendChild(el);
+      }
+    }
+
+    function renderWatchdog(w) {
+      if (!w) {
+        document.getElementById('wd-last-run').textContent = 'never';
+        document.getElementById('wd-status').textContent = 'unknown';
+        return;
+      }
+      const last = w.last_run ? new Date(w.last_run) : null;
+      document.getElementById('wd-last-run').textContent = last ? last.toLocaleString() : '—';
+      document.getElementById('wd-status').textContent = w.last_status || '—';
+    }
+
+    function renderReliability(items) {
+      const wrap = document.getElementById('rel-grid');
+      wrap.innerHTML = '';
+      if (!items || !items.length) {
+        wrap.innerHTML = '<div class="rel-cell"><div class="name">No reliability crons logged.</div></div>';
+        return;
+      }
+      for (const r of items) {
+        const last = r.last_run ? new Date(r.last_run) : null;
+        const ageMin = last ? Math.round((Date.now() - last.getTime()) / 60000) : null;
+        let cls = 'dim';
+        if (r.last_status === 'ok') cls = 'ok';
+        else if (r.last_status === 'recovered') cls = 'warn';
+        else if (r.last_status === 'error') cls = 'err';
+        const el = document.createElement('div');
+        el.className = 'rel-cell';
+        el.innerHTML = `
+          <div class="name">${r.name}</div>
+          <div class="status ${cls}">${r.last_status || 'never run'}${ageMin != null ? ` · ${ageMin}m ago` : ''}</div>
+        `;
+        wrap.appendChild(el);
+      }
+    }
+
+    function renderWalls(walls) {
+      const wrap = document.getElementById('wall-list');
+      wrap.innerHTML = '';
+      if (!walls || !walls.length) {
+        wrap.innerHTML = '<div class="wall-row empty">No recent walls — all clear.</div>';
+        return;
+      }
+      for (const w of walls) {
+        const el = document.createElement('div');
+        el.className = 'wall-row';
+        const when = w.detected_at ? new Date(w.detected_at).toLocaleString() : '—';
+        el.innerHTML = `
+          <div class="title">[${w.wall_id || '—'}] ${w.title || ''}</div>
+          <div class="meta-line">${when} · detected by ${w.detected_by || '—'}${w.route_around ? ' · ' + w.route_around : ''}</div>
+        `;
+        wrap.appendChild(el);
+      }
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
