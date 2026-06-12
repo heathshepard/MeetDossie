@@ -30,8 +30,10 @@ async function recordCronRun(cronName, status, meta = {}) {
   };
 
   try {
+    // PostgREST upsert requires on_conflict when the conflict target isn't the
+    // table's primary key. cron_runs.id is PK; cron_name has a UNIQUE constraint.
     const res = await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/cron_runs`,
+      `${process.env.SUPABASE_URL}/rest/v1/cron_runs?on_conflict=cron_name`,
       {
         method: 'POST',
         headers: {
