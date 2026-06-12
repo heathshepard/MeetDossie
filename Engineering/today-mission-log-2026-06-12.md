@@ -67,8 +67,14 @@ Combine 2-3 existing tutorial bites with transition cards. Carter to build assem
 
 ### 08:50 CDT — Wall: Reddit yields only 1 qualifying candidate from 175 posts
 - **Symptom:** Relevance scorer thresholds (PAIN_KEYWORDS + TEXAS_SIGNALS) are tight — only 1 of 175 posts crossed MIN_SCORE=3. Same post (id=1) from 2026-06-09 demo; dedup prevented re-queue.
-- **Route:** Acknowledge: today's Reddit-comment target needs supplementing via direct topic search (e.g., manually search "transaction coordinator" / "TC quit" recent posts in r/realtors via `reddit-comment-playwright.js --url` calls). Will fold into the live veto queue.
-- **Owner:** Sage (manual augmentation today) + Carter (loosen thresholds for Texas RE niche in Phase 2)
+- **Route:** Pulled r/RealEstateTechnology directly. Found 3 high-fit posts; drafted 3 strong Dossie comments in `Engineering/sage-reddit-comment-queue-2026-06-12.md`.
+- **Owner:** Sage (drafted) + Carter (loosen thresholds for Texas RE niche in Phase 2)
+
+### 09:05 CDT — Wall: DossieBot-Sage Reddit session is logged out
+- **Symptom:** `reddit-comment-playwright.js --dry-run` claims `logged_in=true` (token_v2 cookie present), but live ship attempt on r/RealEstateTechnology/1topp0i landed on a page showing "Join the most real place on the Internet" sidebar = not actually logged in. Screenshot: `scripts/atlas-runs/reddit-no-composer.png`.
+- **Root cause hypothesis:** Stale token_v2 cookie passes the dry-run cookie check but Reddit invalidated the session server-side. The DossieBot-Sage profile was set up for FB primarily — Reddit may never have been properly logged in here, or session expired.
+- **Route:** Cannot ship Reddit comments today via the persistent profile. Requires Heath to log into Reddit through the DossieBot-Sage Chrome profile (one-time setup, ~2 min). All 3 drafted comments held in queue for tomorrow.
+- **Owner:** Heath (one-time login at end of day) + Sage (ship queue once logged in)
 
 ## Revised mission targets (realistic given walls found)
 
