@@ -63,44 +63,76 @@ async function recordCronRun(cronName, status, meta = {}) {
  *   - handler throws  → status='error', meta.error = message
  *   - response.statusCode >= 400 → status='error', meta.status=N
  *   - otherwise → status='ok', meta.status=N, meta.duration_ms=N
- * Telemetry runs AFTER the response is sent so it never blocks the cron.
+ *
+ * IMPORTANT: We must intercept the response BEFORE Vercel flushes it, otherwise
+ * the lambda gets killed mid-await and telemetry never writes. We monkey-patch
+ * res.send / res.json / res.end so the telemetry write happens inline as part
+ * of the response chain.
  */
 function withTelemetry(cronName, handler) {
   return async function wrapped(req, res) {
     const startedAt = Date.now();
-    let thrownError = null;
+    let recorded = false;
 
-    // Patch res to remember status code (Vercel may have already written it).
-    // We rely on res.statusCode being set by handler before they call res.send/json/end.
-    try {
-      await handler(req, res);
-    } catch (err) {
-      thrownError = err;
-      // Mirror the original handler's responsibility: if it didn't respond, we do.
-      if (res && !res.headersSent) {
-        try {
-          res.status(500).json({ ok: false, error: err && err.message ? err.message : 'crash' });
-        } catch { /* ignore */ }
+    async function record(status, extraMeta = {}) {
+      if (recorded) return;
+      recorded = true;
+      try {
+        const duration_ms = Date.now() - startedAt;
+        const code = (res && typeof res.statusCode === 'number') ? res.statusCode : 0;
+        const meta = { duration_ms, http_status: code, ...extraMeta };
+        await recordCronRun(cronName, status, meta);
+      } catch (e) {
+        console.warn(`[telemetry] wrapper record crashed: ${e && e.message}`, { cronName });
       }
     }
 
-    // Fire-and-forget telemetry (non-blocking; we do await to ensure write before
-    // Vercel kills the lambda, but we swallow any error).
-    try {
-      const duration_ms = Date.now() - startedAt;
+    // Patch res.end so we write telemetry BEFORE flushing the response.
+    // res.json and res.send all funnel through res.end eventually but Vercel
+    // implements them differently; safer to wrap each.
+    const origJson = res.json && res.json.bind(res);
+    const origSend = res.send && res.send.bind(res);
+    const origEnd  = res.end  && res.end.bind(res);
+
+    async function finalizeAndPassThrough(passThrough) {
       const code = (res && typeof res.statusCode === 'number') ? res.statusCode : 0;
-      let status = 'ok';
-      const meta = { duration_ms, http_status: code };
-      if (thrownError) {
-        status = 'error';
-        meta.error = (thrownError && thrownError.message) ? thrownError.message.slice(0, 500) : 'crash';
-      } else if (code >= 400) {
-        status = 'error';
-        meta.error = `http_${code}`;
+      const status = code >= 400 ? 'error' : 'ok';
+      const extra = code >= 400 ? { error: `http_${code}` } : {};
+      await record(status, extra);
+      return passThrough();
+    }
+
+    if (origJson) {
+      res.json = function (body) {
+        // Note: schedule telemetry then call origJson. We can't await here without
+        // changing the signature, so we kick off telemetry and trust Vercel to wait.
+        // To guarantee write completion we make this async by returning a Promise.
+        return finalizeAndPassThrough(() => origJson(body));
+      };
+    }
+    if (origSend) {
+      res.send = function (body) {
+        return finalizeAndPassThrough(() => origSend(body));
+      };
+    }
+    if (origEnd) {
+      res.end = function (...args) {
+        return finalizeAndPassThrough(() => origEnd(...args));
+      };
+    }
+
+    try {
+      await handler(req, res);
+      // If the handler returned without sending a response, force-record.
+      if (!recorded) {
+        await record('ok', {});
       }
-      await recordCronRun(cronName, status, meta);
-    } catch (e) {
-      console.warn(`[telemetry] wrapper telemetry crashed: ${e && e.message}`, { cronName });
+    } catch (err) {
+      const meta = { error: (err && err.message) ? err.message.slice(0, 500) : 'crash' };
+      await record('error', meta);
+      if (res && !res.headersSent) {
+        try { res.status(500).json({ ok: false, error: meta.error }); } catch { /* ignore */ }
+      }
     }
   };
 }
