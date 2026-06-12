@@ -48,6 +48,7 @@
 
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
+const { recordCronRun } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL              = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -307,88 +308,96 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Supabase not configured' });
   }
 
-  const clock = nowInTz();
+  try {
+    const clock = nowInTz();
 
-  const schedules = await loadSchedules();
-  const state = {};
-  const actions = [];
+    const schedules = await loadSchedules();
+    const state = {};
+    const actions = [];
 
-  for (const platform of PLATFORMS) {
-    const pace     = paceFor(platform, schedules, clock);
-    if (!pace.has_schedule) {
-      state[platform] = { has_schedule: false, actual: 0, expected: 0, notes: [] };
-      continue;
-    }
-    const actual    = await countActuallyPostedToday(platform);
-    const approved  = await countApprovedReady(platform);
-    const rejected  = await countRejectedToday(platform);
+    for (const platform of PLATFORMS) {
+      const pace     = paceFor(platform, schedules, clock);
+      if (!pace.has_schedule) {
+        state[platform] = { has_schedule: false, actual: 0, expected: 0, notes: [] };
+        continue;
+      }
+      const actual    = await countActuallyPostedToday(platform);
+      const approved  = await countApprovedReady(platform);
+      const rejected  = await countRejectedToday(platform);
 
-    const notes = [];
-    const behind = actual < pace.expected;
-    const nextSlotMinAway = pace.next_slot_min != null
-      ? pace.next_slot_min - clock.minute
-      : null;
+      const notes = [];
+      const behind = actual < pace.expected;
+      const nextSlotMinAway = pace.next_slot_min != null
+        ? pace.next_slot_min - clock.minute
+        : null;
 
-    // Case A/B: behind pace
-    if (behind) {
-      const urgent =
-        nextSlotMinAway == null ||
-        nextSlotMinAway <= NEXT_SLOT_GRACE_HOURS * 60;
-      if (urgent) {
-        // Route around. Sage may need to regenerate AND publish.
-        if (approved === 0) {
-          // No approved row to publish — try regenerate first.
-          const regen = await fireCron('/api/cron-sage-regenerate');
-          actions.push({ platform, action: 'regenerate', ok: regen.ok });
-          notes.push('regen-fired');
+      // Case A/B: behind pace
+      if (behind) {
+        const urgent =
+          nextSlotMinAway == null ||
+          nextSlotMinAway <= NEXT_SLOT_GRACE_HOURS * 60;
+        if (urgent) {
+          // Route around. Sage may need to regenerate AND publish.
+          if (approved === 0) {
+            // No approved row to publish — try regenerate first.
+            const regen = await fireCron('/api/cron-sage-regenerate');
+            actions.push({ platform, action: 'regenerate', ok: regen.ok });
+            notes.push('regen-fired');
+          }
+          const pub = await fireCron('/api/cron-publish-approved');
+          actions.push({ platform, action: 'publish', ok: pub.ok });
+          notes.push('publish-fired');
+        } else {
+          notes.push(`behind-but-${nextSlotMinAway}min-to-next-slot`);
         }
-        const pub = await fireCron('/api/cron-publish-approved');
-        actions.push({ platform, action: 'publish', ok: pub.ok });
-        notes.push('publish-fired');
-      } else {
-        notes.push(`behind-but-${nextSlotMinAway}min-to-next-slot`);
       }
-    }
 
-    // LinkedIn-specific replacement (Fix #4)
-    if (platform === 'linkedin') {
-      const lr = await ensureLinkedInReplacement(rejected, approved);
-      if (lr.triggered) {
-        actions.push({ platform: 'linkedin', action: 'replace-rejected', post_id: lr.post_id });
-        notes.push('linkedin-replacement-queued');
+      // LinkedIn-specific replacement (Fix #4)
+      if (platform === 'linkedin') {
+        const lr = await ensureLinkedInReplacement(rejected, approved);
+        if (lr.triggered) {
+          actions.push({ platform: 'linkedin', action: 'replace-rejected', post_id: lr.post_id });
+          notes.push('linkedin-replacement-queued');
+        }
       }
+
+      // TikTok-specific swap (Fix #5)
+      if (platform === 'tiktok') {
+        const swap = await swapTikTokForOtherPlatform(clock);
+        if (swap.swapped) notes.push('tiktok-swap-active');
+      }
+
+      state[platform] = {
+        has_schedule: true,
+        actual,
+        expected: pace.expected,
+        cap: pace.cap,
+        approved_ready: approved,
+        rejected_today: rejected,
+        next_slot_in_min: nextSlotMinAway,
+        notes,
+      };
     }
 
-    // TikTok-specific swap (Fix #5)
-    if (platform === 'tiktok') {
-      const swap = await swapTikTokForOtherPlatform(clock);
-      if (swap.swapped) notes.push('tiktok-swap-active');
+    // End-of-day summary at 8 PM CDT (only one fire per day — guarded by hour).
+    let summarySent = false;
+    if (clock.hour >= BUSINESS_END_HOUR_CDT) {
+      await sendDailySummary(state);
+      summarySent = true;
     }
 
-    state[platform] = {
-      has_schedule: true,
-      actual,
-      expected: pace.expected,
-      cap: pace.cap,
-      approved_ready: approved,
-      rejected_today: rejected,
-      next_slot_in_min: nextSlotMinAway,
-      notes,
-    };
-  }
+    await recordCronRun('cron-mission-watchdog', 'ok', { actions: actions.length });
 
-  // End-of-day summary at 8 PM CDT (only one fire per day — guarded by hour).
-  let summarySent = false;
-  if (clock.hour >= BUSINESS_END_HOUR_CDT) {
-    await sendDailySummary(state);
-    summarySent = true;
+    return res.status(200).json({
+      ok: true,
+      clock,
+      state,
+      actions,
+      summary_sent: summarySent,
+    });
+  } catch (e) {
+    console.error('cron-mission-watchdog crashed:', e);
+    await recordCronRun('cron-mission-watchdog', 'error', { error: e.message });
+    return res.status(500).json({ ok: false, error: e.message });
   }
-
-  return res.status(200).json({
-    ok: true,
-    clock,
-    state,
-    actions,
-    summary_sent: summarySent,
-  });
 };

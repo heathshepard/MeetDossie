@@ -1,0 +1,16 @@
+{
+  "ts": "2026-06-11T20:02:18.959Z",
+  "group_url": "https://www.facebook.com/groups/752142151598217/",
+  "needle": "Boerne / Bulverde / 281 corridor",
+  "post_id": "b4aa1c2f-924b-4aa6-9330-373d897c1b36",
+  "label": "realtors-san-antonio-boerne",
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-fc-v2-1781208138-realtors-san-antonio-boerne",
+  "steps": [
+    "context_launched",
+    "nav_user_posts",
+    "nav_chronological"
+  ],
+  "outcome": "needle_not_found",
+  "reason": "needle not found in -1 articles after scrolls",
+  "comment_preview": "I actually built something for this exact problem - Dossie. It auto-calculates every TREC deadline the moment a contract"
+}

@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-06-11T20:18:25.925Z",
+  "version": 2,
+  "results": [
+    {
+      "slug": "mark-action-item-complete",
+      "version": 2,
+      "mp4_exists": true,
+      "duration": 19.736,
+      "has_audio": true,
+      "in_range": true,
+      "frames": {
+        "frame-0p5s": ".tmp-qc\\onboarding-v3-selfcheck\\frames\\mark-action-item-complete\\frame-0p5s.jpg",
+        "frame-5s": ".tmp-qc\\onboarding-v3-selfcheck\\frames\\mark-action-item-complete\\frame-5s.jpg",
+        "frame-mid": ".tmp-qc\\onboarding-v3-selfcheck\\frames\\mark-action-item-complete\\frame-mid.jpg",
+        "frame-3q": ".tmp-qc\\onboarding-v3-selfcheck\\frames\\mark-action-item-complete\\frame-3q.jpg",
+        "frame-last": ".tmp-qc\\onboarding-v3-selfcheck\\frames\\mark-action-item-complete\\frame-last.jpg"
+      },
+      "freezes": [
+        {
+          "between": [
+            "frame-5s",
+            "frame-mid"
+          ],
+          "sizeA": 102084,
+          "sizeB": 94735,
+          "sizeDeltaPct": 0.07198973394459465,
+          "ssim": 0.854277
+        },
+        {
+          "between": [
+            "frame-mid",
+            "frame-3q"
+          ],
+          "sizeA": 94735,
+          "sizeB": 95911,
+          "sizeDeltaPct": 0.012261367309276308,
+          "ssim": 0.871927
+        },
+        {
+          "between": [
+            "frame-3q",
+            "frame-last"
+          ],
+          "sizeA": 95911,
+          "sizeB": 95310,
+          "sizeDeltaPct": 0.006266225980335937,
+          "ssim": 0.995641
+        }
+      ],
+      "issues": [],
+      "pass": true
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "pass": 1,
+    "fail": 0
+  }
+}

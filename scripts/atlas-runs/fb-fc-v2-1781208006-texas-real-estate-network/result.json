@@ -1,0 +1,16 @@
+{
+  "ts": "2026-06-11T20:00:06.422Z",
+  "group_url": "https://www.facebook.com/groups/texasrealestategroup/",
+  "needle": "TC math caught up with me a while back",
+  "post_id": "37faa0aa-dce2-4dfe-bced-48e507eb2d2f",
+  "label": "texas-real-estate-network",
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-fc-v2-1781208006-texas-real-estate-network",
+  "steps": [
+    "context_launched",
+    "nav_user_posts",
+    "nav_chronological"
+  ],
+  "outcome": "needle_not_found",
+  "reason": "needle not found in -1 articles after scrolls",
+  "comment_preview": "Solo agents under 20 deals - that's the exact market I'm building for with Dossie. It's an AI transaction coordinator th"
+}

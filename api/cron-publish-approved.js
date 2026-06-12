@@ -33,6 +33,7 @@
 
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
+const { recordCronRun } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -663,27 +664,29 @@ module.exports = async function handler(req, res) {
   }
   if (!ZERNIO_API_KEY) {
     console.error('[cron-publish-approved] ZERNIO_API_KEY not configured — skipping run.');
+    await recordCronRun('cron-publish-approved', 'skipped', { reason: 'zernio not configured' });
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
-  // Recover any rows stuck in 'publishing' from a crashed prior run.
-  await recoverStuckPublishing();
-
-  // Self-heal: if today's daily batch never landed (Vercel missed the trigger),
-  // kick generate + send before we look for approved-and-due rows. Wrapped so
-  // any failure is logged and we still publish whatever's already approved.
   try {
-    await selfHealMissedBatch();
-  } catch (err) {
-    console.error('[self-heal] uncaught error:', err && err.message);
-  }
+    // Recover any rows stuck in 'publishing' from a crashed prior run.
+    await recoverStuckPublishing();
 
-  const nowIso = new Date().toISOString();
-  const filter = `status=eq.approved&posted_at=is.null&or=(scheduled_for.is.null,scheduled_for.lte.${encodeURIComponent(nowIso)})`;
-  const { data: items, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?${filter}&order=approved_at.asc.nullslast&limit=${MAX_PER_RUN}`,
-  );
-  if (!loadOk) {
+    // Self-heal: if today's daily batch never landed (Vercel missed the trigger),
+    // kick generate + send before we look for approved-and-due rows. Wrapped so
+    // any failure is logged and we still publish whatever's already approved.
+    try {
+      await selfHealMissedBatch();
+    } catch (err) {
+      console.error('[self-heal] uncaught error:', err && err.message);
+    }
+
+    const nowIso = new Date().toISOString();
+    const filter = `status=eq.approved&posted_at=is.null&or=(scheduled_for.is.null,scheduled_for.lte.${encodeURIComponent(nowIso)})`;
+    const { data: items, ok: loadOk } = await supabaseFetch(
+      `/rest/v1/social_posts?${filter}&order=approved_at.asc.nullslast&limit=${MAX_PER_RUN}`,
+    );
+    if (!loadOk) {
     return res.status(502).json({ ok: false, error: 'failed to load approved posts' });
   }
   const queue = Array.isArray(items) ? items : [];
@@ -882,26 +885,37 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  console.log('[cron-publish-approved] done — published', published,
-    'parked-tiktok:', parkedTiktok,
-    'skipped(schedule):', skippedSchedule,
-    'skipped(duplicate):', skippedDuplicate,
-    'skipped(lock):', skippedLock,
-    'errors:', errors.length);
+    console.log('[cron-publish-approved] done — published', published,
+      'parked-tiktok:', parkedTiktok,
+      'skipped(schedule):', skippedSchedule,
+      'skipped(duplicate):', skippedDuplicate,
+      'skipped(lock):', skippedLock,
+      'errors:', errors.length);
 
-  // Send publish summary
-  const totalSkipped = skippedSchedule + skippedDuplicate + skippedLock;
-  await sendPublishSummary(published, parkedTiktok, totalSkipped, errors);
+    // Send publish summary
+    const totalSkipped = skippedSchedule + skippedDuplicate + skippedLock;
+    await sendPublishSummary(published, parkedTiktok, totalSkipped, errors);
 
-  return res.status(200).json({
-    ok: true,
-    published,
-    parked_tiktok: parkedTiktok,
-    skipped_schedule: skippedSchedule,
-    skipped_duplicate: skippedDuplicate,
-    skipped_lock: skippedLock,
-    attempted: queue.length,
-    errors,
-    skips,
-  });
+    await recordCronRun('cron-publish-approved', 'ok', {
+      published,
+      parked_tiktok: parkedTiktok,
+      errors: errors.length,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      published,
+      parked_tiktok: parkedTiktok,
+      skipped_schedule: skippedSchedule,
+      skipped_duplicate: skippedDuplicate,
+      skipped_lock: skippedLock,
+      attempted: queue.length,
+      errors,
+      skips,
+    });
+  } catch (e) {
+    console.error('cron-publish-approved crashed:', e);
+    await recordCronRun('cron-publish-approved', 'error', { error: e.message });
+    return res.status(500).json({ ok: false, error: e.message });
+  }
 };

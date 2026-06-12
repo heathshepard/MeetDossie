@@ -372,11 +372,7 @@
                   },
                   {
                       "path":  "/api/cron-mission-watchdog",
-                      "schedule":  "0 13-23 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-mission-watchdog",
-                      "schedule":  "0 0,1 * * *"
+                      "schedule":  "0 * * * *"
                   },
                   {
                       "path":  "/api/cron-morning-ops-digest",

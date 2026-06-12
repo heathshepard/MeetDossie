@@ -1,0 +1,31 @@
+{
+  "ts": "2026-06-11T09:36:50.017827",
+  "amount": "20",
+  "dry_run": false,
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fal-topup-1781188610",
+  "screenshots": [
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fal-topup-1781188610\\01-before.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fal-topup-1781188610\\02-billing-loaded.png",
+    "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fal-topup-1781188610\\04-no-topup-btn.png"
+  ],
+  "steps": [
+    "probe before: locked=True",
+    "opened new tab + nav https://fal.ai/dashboard/billing"
+  ],
+  "outcome": "top_up_button_missing",
+  "reason": "could not find 'Top up' / 'Add credits' on billing page",
+  "balance_before": {
+    "locked": true,
+    "msg": "HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+  },
+  "balance_after": null,
+  "window": {
+    "title": "Login to fal.ai | Access 1000+ Generative AI Models - Google Chrome",
+    "rect": [
+      -8,
+      -8,
+      1936,
+      1048
+    ]
+  }
+}
