@@ -77,6 +77,18 @@
                      {
                          "source":  "/app/help",
                          "destination":  "/help.html"
+                     },
+                     {
+                         "source":  "/faq",
+                         "destination":  "/faq.html"
+                     },
+                     {
+                         "source":  "/learn",
+                         "destination":  "/learn.html"
+                     },
+                     {
+                         "source":  "/resources",
+                         "destination":  "/learn.html"
                      }
                  ],
     "headers":  [
@@ -333,10 +345,6 @@
                   {
                       "path":  "/api/cron-daily-fb-posts",
                       "schedule":  "0 14 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-cookie-health-check",
-                      "schedule":  "0 4 * * *"
                   },
                   {
                       "path":  "/api/cron-social-digest",
