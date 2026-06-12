@@ -501,8 +501,13 @@ const POST_PLAN_BASE = [
 ];
 
 function getPostPlan(date = new Date(), opts = {}) {
-  // LinkedIn now posts daily, no day-of-week routing needed
-  return POST_PLAN_BASE;
+  // LinkedIn now posts daily, no day-of-week routing needed.
+  // Filter out platforms paused in posting_schedule (Atlas 2026-06-12 engagement-fix:
+  // skip platforms where is_active=false to avoid generating drafts that will only
+  // be skipped at publish time. Active set is passed in via opts.activePlatforms.)
+  const active = opts && Array.isArray(opts.activePlatforms) ? new Set(opts.activePlatforms) : null;
+  if (!active) return POST_PLAN_BASE;
+  return POST_PLAN_BASE.filter(slot => active.has(slot.platform));
 }
 
 function parseForceDay(req) {
@@ -1278,7 +1283,23 @@ module.exports = async function handler(req, res) {
   const now = new Date();
   const topic = pickTopic();
   const forceDay = parseForceDay(req);
-  let plan = getPostPlan(now, { forceDay });
+
+  // Atlas 2026-06-12 engagement-fix: respect posting_schedule.is_active so
+  // we don't generate drafts for paused platforms (currently instagram + tiktok).
+  let activePlatforms = null;
+  try {
+    const schedRes = await supabaseFetch(
+      '/rest/v1/posting_schedule?is_active=eq.true&select=platform',
+    );
+    if (schedRes.ok && Array.isArray(schedRes.data)) {
+      activePlatforms = [...new Set(schedRes.data.map(r => r.platform))];
+      console.log(`[cron-generate-posts] active platforms from posting_schedule: ${activePlatforms.join(',')}`);
+    }
+  } catch (e) {
+    console.warn(`[cron-generate-posts] could not load posting_schedule (${e.message}) — using full POST_PLAN`);
+  }
+
+  let plan = getPostPlan(now, { forceDay, activePlatforms });
   const founding = await getFoundingMemberCount();
   const dayOfYear = getDayOfYear();
 
