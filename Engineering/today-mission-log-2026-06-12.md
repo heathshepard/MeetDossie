@@ -86,10 +86,54 @@ Combine 2-3 existing tutorial bites with transition cards. Carter to build assem
 
 ## Checkpoints
 
-- [x] 08:50 CDT — Mid-recon checkpoint: 4 walls found and routed; comment target revised to 12-18 realistic
+- [x] 08:30 CDT — Mid-recon checkpoint: 4 walls found and routed (timestamp corrected — earlier log misread "08:50" was actually 08:30)
+- [x] 08:35 CDT — Bug 6 logged + engagement-poster built + dry-run validated
+- [x] 09:00 CDT — Bug 7 fixed (TikTok publisher gate) — committed to staging, awaits Heath merge
 - [ ] 10:00 CDT — first scheduled checkpoint
-- [ ] 12:00 CDT
+- [ ] 12:00 CDT — verify FB 9 AM slot shipped + LinkedIn second slot if applicable
 - [ ] 14:00 CDT
 - [ ] 16:00 CDT
-- [ ] 18:00 CDT
-- [ ] 19:00-19:30 CDT — end-of-day digest to Heath
+- [ ] 18:00 CDT — pre-EOD posture check + verify FB 6 PM slot + TikTok 7 PM slot
+- [ ] 19:00-19:30 CDT — end-of-day digest to Heath at chat_id 7874782923
+
+## EOD digest template (to be sent at 19:00-19:30 CDT)
+
+```
+DAY-OF MISSION DIGEST — 2026-06-12
+
+Posts: X/8 shipped
+  Twitter: 3/3
+  LinkedIn: 1/1
+  Instagram: 1/1
+  Facebook: X/2
+  TikTok: X/1
+
+Comments: X/[revised target] shipped
+  Reddit: X / blocked on DossieBot-Sage Reddit re-login (~2 min setup)
+  LinkedIn: X / scheduled-task points to missing script (Bug 8)
+  Instagram: X
+  Facebook: 0 / Bug 6 (scanner permalink) blocks entire flow until Carter fix
+  FB group posts: X / from existing queue
+
+Bites: 0 produced today (no recording session); 5 scripts queued for Heath
+Reels: 0 today (same)
+
+Walls routed:
+- 4 structural script-level fixes shipped to staging
+- 7 bugs documented in Engineering/wall-log.md for Carter tomorrow
+
+Structural needs Carter overnight:
+1. Bug 6: FB scanner permalink extraction (50 stranded candidates)
+2. Bug 7: TikTok publisher gate fix is on staging — needs MERGE TO MAIN to unblock today's 19:00 slot (already too late) and tomorrow's flow
+3. Bug 8: Restore scripts/linkedin-cron.ps1 or repoint DossieLinkedInOutreach task
+4. Reddit session re-login in DossieBot-Sage profile (Heath, 2 min)
+
+Today's wins:
+- Post pipeline executed on every slot it could
+- 4 permanent structural fixes (scripts + wall-log) shipped
+- 5 tutorial bite scripts ready for next Heath recording session
+- 3 Reddit comments drafted + ready to ship after re-login
+- Engagement-poster script built + dry-run validated for tomorrow's posting flow
+
+Recommendation: Heath approve staging→main merge tonight so Bug 7 takes effect for tomorrow's autonomous TikTok pipeline.
+```
