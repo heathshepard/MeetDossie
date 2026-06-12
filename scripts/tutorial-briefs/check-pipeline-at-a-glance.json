@@ -1,0 +1,27 @@
+{
+  "slug": "check-pipeline-at-a-glance",
+  "title": "Check Your Pipeline at a Glance",
+  "description": "Every deal, every deadline, every status — all on one screen. See exactly where every file stands in three seconds.",
+  "voiceover_script": "Hi, I'm Dossie. Tap Pipeline on the bottom tabs. Every active dossier shows up as a card with your client's name, the property, and the next deadline I'm tracking. Red means urgent, gold means soon, sage means on track. Three seconds and you know where every deal stands.",
+  "tags": ["daily-workflow", "pipeline", "dashboard", "visibility"],
+  "target_audience": "existing-user",
+  "distribution": ["welcome-email", "in-app-help", "instagram-reels", "tiktok", "youtube-short", "linkedin"],
+  "workflow_group": "daily-workflow",
+  "workflow_order": 11,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 3,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1800 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 10000, "pause_ms": 3000 },
+    { "action": "scroll", "y": 250, "pause_ms": 2500 },
+    { "action": "scroll", "y": 300, "pause_ms": 2500 },
+    { "action": "scroll", "y": 300, "pause_ms": 2500 },
+    { "action": "scroll", "y": 300, "pause_ms": 2500 },
+    { "action": "wait", "pause_ms": 3000 }
+  ]
+}

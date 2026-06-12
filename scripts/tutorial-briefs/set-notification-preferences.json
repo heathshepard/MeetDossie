@@ -1,0 +1,27 @@
+{
+  "slug": "set-notification-preferences",
+  "title": "Tune Your Dossie Settings",
+  "description": "Make Dossie match how you work — name, brokerage, license, and compliance email all live in Settings.",
+  "voiceover_script": "Hi, I'm Dossie. Open Settings to tell me how you work. Your name, your brokerage, your Texas license, your compliance email. I use all of it on every contract, every milestone card, every package I send to your broker. Set it once, I remember it forever.",
+  "tags": ["onboarding", "settings", "personalization"],
+  "target_audience": "new-user",
+  "distribution": ["welcome-email", "in-app-help", "linkedin"],
+  "workflow_group": "general-onboarding",
+  "workflow_order": 6,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 1,
+  "pre_auth": true,
+  "record_start_after_text": "AGENT PROFILE",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Settings\"]", "timeout_ms": 10000, "pause_ms": 400 },
+    { "action": "click_aria", "aria": "Settings", "pause_ms": 1800 },
+    { "action": "wait_for_text", "text": "AGENT PROFILE", "timeout_ms": 10000, "pause_ms": 2000 },
+    { "action": "scroll", "y": 250, "pause_ms": 2000 },
+    { "action": "scroll", "y": 300, "pause_ms": 2000 },
+    { "action": "scroll", "y": 300, "pause_ms": 2000 },
+    { "action": "scroll", "y": 300, "pause_ms": 2000 },
+    { "action": "wait", "pause_ms": 1500 }
+  ]
+}

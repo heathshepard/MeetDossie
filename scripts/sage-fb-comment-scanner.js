@@ -93,12 +93,49 @@ const HOT_PHRASES = [
   "broker won't accept", "broker won't sign off", 'office said',
 ];
 
+const MARKETPLACE_PRICE_SIGNALS = [
+  'for sale', 'for rent', 'asking price', ' obo ', 'best offer',
+  'just listed', 'just sold', 'property for', 'real estate for',
+  '$ per month', '$ month', '$ /month', '$ annually',
+];
+
+const OFF_TOPIC_OBJECT_KEYWORDS = [
+  'barn', 'shed', 'porch', 'equipment', 'tractor', 'trailer',
+  'utv', 'atv', 'rv ', 'sq ft lot', 'acres ',
+];
+
 function normalize(text) {
   return ' ' + (text || '').toLowerCase().replace(/\n/g, ' ').replace(/\t/g, ' ') + ' ';
 }
 
+function isMarketplacePost(text) {
+  const n = normalize(text);
+
+  // FB Marketplace listings render as "$26,900 · Belton, TX" — price followed by middot, city, state
+  if (/\$\s?[\d,]+(?:\.\d+)?\s*·\s*[A-Za-z][A-Za-z .'-]+,\s*[A-Z]{2}\b/.test(text)) return true;
+
+  // Check off-topic object keywords (no dollar sign required)
+  for (const keyword of OFF_TOPIC_OBJECT_KEYWORDS) {
+    if (n.includes(keyword)) return true;
+  }
+
+  // If contains dollar sign AND marketplace price signal, likely a listing.
+  const hasDollar = /\$/.test(text);
+  if (hasDollar) {
+    for (const sig of MARKETPLACE_PRICE_SIGNALS) {
+      if (n.includes(sig)) return true;
+    }
+  }
+
+  return false;
+}
+
 function scoreText(text) {
   if (!text) return { score: 0, matched: [] };
+  // Reject marketplace/listing posts entirely (no score)
+  if (isMarketplacePost(text)) {
+    return { score: 0, matched: ['MARKETPLACE_FILTERED'] };
+  }
   const n = normalize(text);
   let score = 0;
   const matched = [];
@@ -318,6 +355,11 @@ function loadDotenv(filePath) {
     }
     if (!process.env[m[1]]) process.env[m[1]] = val;
   }
+}
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { isMarketplacePost };
 }
 
 main().catch(e => {

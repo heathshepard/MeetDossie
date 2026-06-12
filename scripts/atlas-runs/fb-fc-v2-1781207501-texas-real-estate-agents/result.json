@@ -1,0 +1,24 @@
+{
+  "ts": "2026-06-11T14:51:41.472983",
+  "group_url": "https://www.facebook.com/groups/texasusarealestateagents/",
+  "needle": "every TREC deadline straight across your open files",
+  "post_id": "fc1762df-60eb-463f-98c6-5e10eed13e6d",
+  "label": "texas-real-estate-agents",
+  "run_dir": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts\\atlas-runs\\fb-fc-v2-1781207501-texas-real-estate-agents",
+  "steps": [
+    "nav_chronological",
+    "loaded"
+  ],
+  "outcome": "needle_not_found",
+  "reason": "could not locate post containing 'every TREC deadline straight across your open files' after scrolls",
+  "comment_preview": "Really digging these replies - honestly the variety is kind of eye-opening. For the folks stuck in the B or C camps, I'v",
+  "window": {
+    "title": "Credits | fal.ai - Google Chrome",
+    "rect": [
+      684,
+      58,
+      945,
+      1012
+    ]
+  }
+}

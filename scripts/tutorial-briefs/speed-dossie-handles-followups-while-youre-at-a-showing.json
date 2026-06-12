@@ -1,0 +1,26 @@
+{
+  "slug": "speed-dossie-handles-followups-while-youre-at-a-showing",
+  "title": "Dossie Handles Follow-Ups While You're at a Showing",
+  "description": "Hands-free. Voice-first. Update any deal in 30 seconds while you're walking a client through a property.",
+  "voiceover_script": "You're at a showing. Title company calls. Lender wants a status update. You can't stop. Pull out your phone. Tap Talk to Dossie. Say the update out loud. I log it, I email the right people, I close the loop. By the time you're back in your car, the follow-ups are already done.",
+  "tags": ["pain-point", "speed", "voice", "top-of-funnel", "speed-pillar"],
+  "target_audience": "prospect",
+  "distribution": ["instagram-reels", "tiktok", "youtube-short", "facebook-reels"],
+  "workflow_group": "pain-point",
+  "workflow_order": 36,
+  "viewport": { "width": 390, "height": 844 },
+  "version": 1,
+  "pre_auth": true,
+  "record_start_after_text": "Pipeline Dashboard",
+  "demo_account": "demo@meetdossie.com",
+  "steps": [
+    { "action": "goto", "url": "https://meetdossie.com/app", "pause_ms": 2500 },
+    { "action": "wait_for_selector", "selector": "[aria-label=\"Pipeline\"]", "timeout_ms": 10000, "pause_ms": 500 },
+    { "action": "click_aria", "aria": "Pipeline", "pause_ms": 1500 },
+    { "action": "wait_for_text", "text": "Pipeline Dashboard", "timeout_ms": 10000, "pause_ms": 1800 },
+    { "action": "click_aria", "aria": "Talk to Dossie", "pause_ms": 2500 },
+    { "action": "wait", "pause_ms": 3500 },
+    { "action": "scroll", "y": 200, "pause_ms": 2000 },
+    { "action": "wait", "pause_ms": 2000 }
+  ]
+}

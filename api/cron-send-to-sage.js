@@ -15,6 +15,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
+const { recordCronRun } = require('./_lib/cron-telemetry.js');
+
 const MAX_PER_RUN = 12;
 
 async function supabaseFetch(path, init = {}) {
@@ -45,67 +47,78 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Supabase not configured' });
   }
 
-  // Find draft posts not yet queued to Sage
-  const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?telegram_sent_at=is.null&status=eq.draft&order=created_at.asc&limit=${MAX_PER_RUN}`,
-  );
-
-  if (!loadOk) {
-    return res.status(502).json({ ok: false, error: 'failed to load posts' });
-  }
-
-  const items = Array.isArray(posts) ? posts : [];
-  console.log('[cron-send-to-sage] posts to queue to Sage:', items.length);
-
-  if (items.length === 0) {
-    return res.status(200).json({ ok: true, queued: 0 });
-  }
-
-  let queued = 0;
-  const errors = [];
-
-  for (const post of items) {
-    if (!post || !post.id) continue;
-
-    // Insert into sage_inbox
-    const { data: inbox, ok: inboxOk } = await supabaseFetch('/rest/v1/sage_inbox', {
-      method: 'POST',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({
-        post_id: post.id,
-        status: 'pending_sage_review',
-      }),
-    });
-
-    if (!inboxOk) {
-      console.error('[cron-send-to-sage] failed to insert sage_inbox for', post.id);
-      errors.push({ id: post.id, error: 'sage_inbox insert failed' });
-      continue;
-    }
-
-    // Mark post as queued (set telegram_sent_at so it won't re-queue)
-    const now = new Date().toISOString();
-    const { ok: patchOk } = await supabaseFetch(
-      `/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`,
-      {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ telegram_sent_at: now }),
-      }
+  try {
+    // Find draft posts not yet queued to Sage (newest-first so fresh morning drafts
+    // don't get blocked by a backlog of overnight items)
+    const { data: posts, ok: loadOk } = await supabaseFetch(
+      `/rest/v1/social_posts?telegram_sent_at=is.null&status=eq.draft&order=created_at.desc&limit=${MAX_PER_RUN}`,
     );
 
-    if (patchOk) {
-      queued++;
-      console.log('[cron-send-to-sage] queued to Sage:', post.id);
-    } else {
-      errors.push({ id: post.id, error: 'post patch failed' });
+    if (!loadOk) {
+      await recordCronRun('cron-send-to-sage', 'error', { error: 'failed to load posts' });
+      return res.status(502).json({ ok: false, error: 'failed to load posts' });
     }
-  }
 
-  return res.status(200).json({
-    ok: true,
-    queued,
-    total: items.length,
-    errors: errors.length > 0 ? errors : undefined,
-  });
+    const items = Array.isArray(posts) ? posts : [];
+    console.log('[cron-send-to-sage] posts to queue to Sage:', items.length);
+
+    if (items.length === 0) {
+      await recordCronRun('cron-send-to-sage', 'ok', { queued: 0 });
+      return res.status(200).json({ ok: true, queued: 0 });
+    }
+
+    let queued = 0;
+    const errors = [];
+
+    for (const post of items) {
+      if (!post || !post.id) continue;
+
+      // Insert into sage_inbox
+      const { data: inbox, ok: inboxOk } = await supabaseFetch('/rest/v1/sage_inbox', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          post_id: post.id,
+          status: 'pending_sage_review',
+        }),
+      });
+
+      if (!inboxOk) {
+        console.error('[cron-send-to-sage] failed to insert sage_inbox for', post.id);
+        errors.push({ id: post.id, error: 'sage_inbox insert failed' });
+        continue;
+      }
+
+      // Mark post as queued (set telegram_sent_at so it won't re-queue)
+      const now = new Date().toISOString();
+      const { ok: patchOk } = await supabaseFetch(
+        `/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ telegram_sent_at: now }),
+        }
+      );
+
+      if (patchOk) {
+        queued++;
+        console.log('[cron-send-to-sage] queued to Sage:', post.id);
+      } else {
+        errors.push({ id: post.id, error: 'post patch failed' });
+      }
+    }
+
+    await recordCronRun('cron-send-to-sage', 'ok', { queued, total: items.length, errors: errors.length });
+
+    return res.status(200).json({
+      ok: true,
+      queued,
+      total: items.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (e) {
+    console.error('cron-send-to-sage crashed:', e);
+    await recordCronRun('cron-send-to-sage', 'error', { error: e.message });
+    return res.status(500).json({ ok: false, error: e.message });
+  }
 };

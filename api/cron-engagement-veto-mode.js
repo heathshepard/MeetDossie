@@ -1,5 +1,7 @@
 'use strict';
 
+const { recordCronRun } = require('./_lib/cron-telemetry.js');
+
 // api/cron-engagement-veto-mode.js
 //
 // SV-FB-VETO-001 (Atlas, 2026-06-11)
@@ -448,20 +450,32 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const phaseA = await phaseAutoDraft();
-  const phaseB = await phaseShipVeto();
-  const phaseC = await phaseAutoApprove();
+  try {
+    const phaseA = await phaseAutoDraft();
+    const phaseB = await phaseShipVeto();
+    const phaseC = await phaseAutoApprove();
 
-  return res.status(200).json({
-    ok: true,
-    phase_a_auto_draft: phaseA,
-    phase_b_ship_veto: phaseB,
-    phase_c_auto_approve: phaseC,
-    veto_minutes: VETO_MINUTES,
-    auto_draft_min_score: AUTO_DRAFT_MIN_SCORE,
-    platform_daily_caps: PLATFORM_DAILY_CAPS,
-    total_daily_cap: TOTAL_DAILY_CAP,
-    substance_floor_chars: SUBSTANCE_MIN_CHARS,
-    per_group_days: PER_GROUP_DAYS,
-  });
+    await recordCronRun('cron-engagement-veto-mode', 'ok', {
+      phase_a_drafted: phaseA.drafted,
+      phase_b_veto_sent: phaseB.sent,
+      phase_c_approved: phaseC.approved,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      phase_a_auto_draft: phaseA,
+      phase_b_ship_veto: phaseB,
+      phase_c_auto_approve: phaseC,
+      veto_minutes: VETO_MINUTES,
+      auto_draft_min_score: AUTO_DRAFT_MIN_SCORE,
+      platform_daily_caps: PLATFORM_DAILY_CAPS,
+      total_daily_cap: TOTAL_DAILY_CAP,
+      substance_floor_chars: SUBSTANCE_MIN_CHARS,
+      per_group_days: PER_GROUP_DAYS,
+    });
+  } catch (e) {
+    console.error('cron-engagement-veto-mode crashed:', e);
+    await recordCronRun('cron-engagement-veto-mode', 'error', { error: e.message });
+    return res.status(500).json({ ok: false, error: e.message });
+  }
 };
