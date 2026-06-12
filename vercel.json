@@ -272,6 +272,14 @@
                       "schedule":  "0 12 * * *"
                   },
                   {
+                      "path":  "/api/cron-weekly-newsletter-draft",
+                      "schedule":  "0 13 * * 4"
+                  },
+                  {
+                      "path":  "/api/cron-newsletter-draft-reminder",
+                      "schedule":  "0 21 * * 4"
+                  },
+                  {
                       "path":  "/api/cron-weekly-newsletter",
                       "schedule":  "0 15 * * 5"
                   },

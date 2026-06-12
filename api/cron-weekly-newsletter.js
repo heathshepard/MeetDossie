@@ -366,56 +366,95 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Load file.
-    const { path: filePath, contents } = loadImprovementsFile();
-    if (!contents) {
-      return res.status(200).json({
-        ok: true,
-        skipped: true,
-        reason: 'WEEKLY-IMPROVEMENTS.md not found on disk',
+    // Check for Thursday draft first (newsletter_drafts table)
+    let html, subject, toAddresses;
+    const draftRes = await supabaseFetch(
+      `/rest/v1/newsletter_drafts?week_iso=eq.${encodeURIComponent(weekKey)}&select=id,content_html,subject,status`,
+    );
+
+    if (draftRes.ok && Array.isArray(draftRes.data) && draftRes.data.length > 0) {
+      const draft = draftRes.data[0];
+
+      // Draft exists — use its content (whether pending, approved, etc.)
+      // If pending, we send the draft as-is; if approved, same content; if skipped, use fallback
+      if (draft.status === 'skipped') {
+        // Draft was explicitly skipped — regenerate from file
+        console.log('[cron-weekly-newsletter] draft skipped, regenerating from WEEKLY-IMPROVEMENTS.md');
+      } else if (draft.content_html && draft.subject) {
+        // Use draft content
+        html = draft.content_html;
+        subject = draft.subject;
+
+        // Mark draft as sent
+        await supabaseFetch(
+          `/rest/v1/newsletter_drafts?week_iso=eq.${encodeURIComponent(weekKey)}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'sent', sent_at: new Date().toISOString() }),
+          }
+        );
+      } else {
+        // Draft row exists but is missing content — regenerate
+        console.log('[cron-weekly-newsletter] draft has no content, regenerating');
+      }
+    }
+
+    // Fallback: regenerate from WEEKLY-IMPROVEMENTS.md if no usable draft
+    if (!html) {
+      const { path: filePath, contents } = loadImprovementsFile();
+      if (!contents) {
+        return res.status(200).json({
+          ok: true,
+          skipped: true,
+          reason: 'WEEKLY-IMPROVEMENTS.md not found on disk',
+        });
+      }
+
+      const { weekHeader, body } = extractLatestWeekSection(contents);
+      if (!body || body.length < 20) {
+        return res.status(200).json({
+          ok: true,
+          skipped: true,
+          reason: 'no entries in latest week section',
+          file_path: filePath,
+        });
+      }
+
+      // Rewrite via Haiku.
+      let rewritten;
+      try {
+        rewritten = await callAnthropic(buildPromptForRewrite({ weekHeader, body }));
+      } catch (err) {
+        console.error('[cron-weekly-newsletter] Anthropic failed:', err.message);
+        return res.status(500).json({ ok: false, error: `Anthropic failed: ${err.message}` });
+      }
+
+      const items = Array.isArray(rewritten?.items) ? rewritten.items.filter((i) => i && i.header && i.body) : [];
+      if (items.length === 0) {
+        return res.status(200).json({
+          ok: true,
+          skipped: true,
+          reason: 'no customer-facing items after Haiku filter',
+          week_key: weekKey,
+        });
+      }
+
+      html = buildNewsletterHtml({
+        greeting: rewritten.greeting || `Quick update on what's new in Dossie this week.`,
+        items,
+        closing: rewritten.closing || `As always — hit reply with anything you want us to build next.`,
+        weekRange,
       });
+      subject = `Dossie weekly update — ${weekRange}`;
     }
 
-    const { weekHeader, body } = extractLatestWeekSection(contents);
-    if (!body || body.length < 20) {
-      return res.status(200).json({
-        ok: true,
-        skipped: true,
-        reason: 'no entries in latest week section',
-        file_path: filePath,
-      });
+    if (!html || !subject) {
+      return res.status(500).json({ ok: false, error: 'Failed to generate newsletter HTML or subject' });
     }
-
-    // Rewrite via Haiku.
-    let rewritten;
-    try {
-      rewritten = await callAnthropic(buildPromptForRewrite({ weekHeader, body }));
-    } catch (err) {
-      console.error('[cron-weekly-newsletter] Anthropic failed:', err.message);
-      return res.status(500).json({ ok: false, error: `Anthropic failed: ${err.message}` });
-    }
-
-    const items = Array.isArray(rewritten?.items) ? rewritten.items.filter((i) => i && i.header && i.body) : [];
-    if (items.length === 0) {
-      return res.status(200).json({
-        ok: true,
-        skipped: true,
-        reason: 'no customer-facing items after Haiku filter',
-        week_key: weekKey,
-      });
-    }
-
-    const html = buildNewsletterHtml({
-      greeting: rewritten.greeting || `Quick update on what's new in Dossie this week.`,
-      items,
-      closing: rewritten.closing || `As always — hit reply with anything you want us to build next.`,
-      weekRange,
-    });
-    const subject = `Dossie weekly update — ${weekRange}`;
 
     // Recipients: active paying customers + Heath.
     const customers = await loadActiveCustomers();
-    const toAddresses = customers.map((c) => c.email);
+    toAddresses = customers.map((c) => c.email);
     if (!toAddresses.includes(HEATH_CC_EMAIL)) toAddresses.push(HEATH_CC_EMAIL);
 
     const sendResults = { sent: 0, failed: 0, errors: [] };
