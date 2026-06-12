@@ -187,7 +187,16 @@
                                                               },
                       "api/ventures/social-today.js":  {
                                                            "maxDuration":  30
-                                                       }
+                                                       },
+                      "api/cron-verify-zernio-deliveries.js":  {
+                                                                   "maxDuration":  60
+                                                               },
+                      "api/cron-pull-post-analytics.js":  {
+                                                              "maxDuration":  120
+                                                          },
+                      "api/cron-sage-intelligence-update.js":  {
+                                                                   "maxDuration":  90
+                                                               }
                   },
     "crons":  [
                   {
@@ -397,6 +406,18 @@
                   {
                       "path":  "/api/cron-account-session-monitor",
                       "schedule":  "0 */6 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-verify-zernio-deliveries",
+                      "schedule":  "*/30 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-pull-post-analytics",
+                      "schedule":  "0 6 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-sage-intelligence-update",
+                      "schedule":  "0 7 * * *"
                   }
               ]
 }
