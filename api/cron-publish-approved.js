@@ -361,14 +361,37 @@ async function pushToZernio(post) {
         data,
       };
     }
-    // Extract Zernio post ID — try all known field names from Zernio's API responses.
-    // Log the full response so we can identify the correct field if still null.
-    const zernioPostId = data?.id || data?.post_id || data?.postId || data?.data?.id || data?.data?.post_id || null;
+    // Extract Zernio post ID — try ALL known field paths. Today's failure
+    // (2026-06-11) had every fresh row land with zernio_post_id=NULL, which
+    // makes the watchdog count them as "didn't actually post." Documented
+    // Zernio v1 response shapes seen so far:
+    //   { id, ... }
+    //   { post_id, ... }
+    //   { data: { id, ... } }
+    //   { data: { postId, ... } }
+    //   { posts: [ { id, platform, ... } ] }   ← multi-platform fan-out
+    //   { results: [ { id, platform, ... } ] }
+    const zernioPostId =
+      data?.id ||
+      data?.post_id ||
+      data?.postId ||
+      data?.data?.id ||
+      data?.data?.post_id ||
+      data?.data?.postId ||
+      (Array.isArray(data?.posts) && data.posts[0]?.id) ||
+      (Array.isArray(data?.results) && data.results[0]?.id) ||
+      (Array.isArray(data?.data?.posts) && data.data.posts[0]?.id) ||
+      null;
     if (!zernioPostId) {
-      console.warn(`[zernio-post-id] post ${post.id} (${post.platform}): could not extract post_id from response. Full response: ${respText.slice(0, 300)}`);
-    } else {
-      console.log(`[zernio-post-id] post ${post.id} (${post.platform}): captured zernio_post_id=${zernioPostId}`);
+      // FIX #3: post-survival verification — when Zernio says 2xx but gives us
+      // no post_id back, the post may have silently failed validation on
+      // their side (today's empty-zernio_post_id wave). Flag it so the
+      // watchdog AND the morning digest treat it as unverified, not
+      // counted-as-posted.
+      console.warn(`[zernio-post-id] post ${post.id} (${post.platform}): NO post_id in 2xx response — treating as unverified. Full response: ${respText.slice(0, 600)}`);
+      return { ok: true, status: res.status, data, zernio_post_id: null, unverified: true };
     }
+    console.log(`[zernio-post-id] post ${post.id} (${post.platform}): captured zernio_post_id=${zernioPostId}`);
     return { ok: true, status: res.status, data, zernio_post_id: zernioPostId };
   } catch (err) {
     const errorMsg = err && err.message ? `Zernio exception: ${err.message}` : 'No response from Zernio';
@@ -778,6 +801,13 @@ module.exports = async function handler(req, res) {
     }
 
     if (result.ok) {
+      // FIX #3 (Atlas 2026-06-11): if zernio_post_id is null even on a 2xx,
+      // mark posted with an error_message flagging unverified. The watchdog
+      // and morning digest both filter on zernio_post_id IS NOT NULL so an
+      // unverified row will appear as "behind pace" and the watchdog will
+      // route around. Don't auto-republish from this lane — that risks
+      // double-posting if Zernio actually fired.
+      const unverified = !!result.unverified || !result.zernio_post_id;
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
@@ -786,12 +816,16 @@ module.exports = async function handler(req, res) {
           posted_at: new Date().toISOString(),
           publishing_started_at: null,
           zernio_post_id: result.zernio_post_id,
-          error_message: null,
+          error_message: unverified ? 'Zernio returned 2xx but no post_id — unverified survival' : null,
         }),
       });
       if (patch.ok) {
         published++;
-        console.log(`[cron-publish-approved] ✅ Published ${post.id} successfully`);
+        if (unverified) {
+          console.warn(`[cron-publish-approved] ⚠ Published ${post.id} (${post.platform}) BUT UNVERIFIED — Zernio gave no post_id`);
+        } else {
+          console.log(`[cron-publish-approved] ✅ Published ${post.id} successfully`);
+        }
       } else {
         console.error(`[cron-publish-approved] Patch after publish failed for ${post.id}:`, patch.status, patch.text);
         errors.push({ id: post.id, error: 'patch after publish failed', status: patch.status });

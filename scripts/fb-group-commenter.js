@@ -357,6 +357,20 @@ async function main() {
     return;
   }
 
+  // Fix #6 (Atlas, 2026-06-11): chrome-profile-unlock pre-flight on EVERY
+  // fb-group-commenter run, not just when called explicitly. Matches the
+  // pattern already in fb-group-poster.js. Kills any stale chrome.exe holding
+  // the user-data-dir lock, waits 2s for handle release, then launches.
+  try {
+    const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+    const unlocked = await unlockProfile({ profileDir: CHROME_PROFILE_PATH, reason: 'fb-group-commenter' });
+    if (unlocked.killed > 0) {
+      console.log(`[fb-group-commenter] profile-unlock: killed ${unlocked.killed} stale chrome process(es)`);
+    }
+  } catch (e) {
+    console.warn(`[fb-group-commenter] profile-unlock non-fatal error: ${e.message}`);
+  }
+
   const { chromium } = require('playwright-extra');
   const stealth = require('puppeteer-extra-plugin-stealth')();
   chromium.use(stealth);
