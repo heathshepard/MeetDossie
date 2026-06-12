@@ -24,6 +24,7 @@
 //   CRON_SECRET                  — bearer token for manual auth
 
 const Stripe = require('stripe');
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -206,7 +207,7 @@ async function sendTelegramAlert(text) {
 // Main handler
 // ---------------------------------------------------------------------------
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-stripe-reconcile', async function handler(req, res) {
   // Auth: accept Vercel's built-in cron header OR manual Bearer token.
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -408,4 +409,4 @@ module.exports = async function handler(req, res) {
     gaps,
     error_details: errors,
   });
-};
+});

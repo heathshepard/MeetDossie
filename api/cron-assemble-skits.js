@@ -17,6 +17,8 @@
 // Env vars required: FAL_KEY, ELEVENLABS_API_KEY, SHOTSTACK_API_KEY,
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const { fal } = require('@fal-ai/client');
 const { generateSpeech } = require('./_utils/tts');
 
@@ -248,7 +250,7 @@ async function assembleSkit(skit, clipUrls) {
   return videoUrl;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-assemble-skits', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -365,4 +367,4 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(200).json({ ok: true, checked: skits.length, results });
-};
+});

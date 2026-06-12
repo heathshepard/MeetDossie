@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reliability — Shepard Ventures</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231A1A2E'/><text y='.9em' font-size='70' x='10' fill='%238BA888'>R</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --blush: #F5E6E0;
+  --blush-deep: #D4A0A0;
+  --sage: #8BA888;
+  --gold: #C9A96E;
+  --navy: #1A1A2E;
+  --coral: #E8836B;
+  --green: #2E7D32;
+  --yellow: #ED6C02;
+  --red: #C62828;
+  --grey: #757575;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  min-height: 100vh;
+}
+.header {
+  background: var(--navy);
+  color: white;
+  padding: 1.5rem 2rem;
+}
+.header-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand {
+  display:flex; align-items:center; gap:.75rem;
+}
+.brand-circle {
+  width: 36px; height: 36px;
+  background: var(--sage);
+  border-radius: 50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 700;
+  color: var(--navy);
+}
+.brand-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 700;
+}
+.brand-sub { font-size: 13px; opacity:.7; margin-left:.5rem; }
+.back-link {
+  color: white; text-decoration: none; font-size: 14px;
+  opacity: .85;
+}
+.back-link:hover { opacity: 1; }
+
+.container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.stat {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--grey);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #666; margin-bottom: .25rem; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat.green   { border-left-color: var(--green);  }
+.stat.yellow  { border-left-color: var(--yellow); }
+.stat.red     { border-left-color: var(--red);    }
+.stat.error   { border-left-color: var(--red);    }
+.stat.silent  { border-left-color: var(--grey);   }
+.stat.green   .stat-value { color: var(--green); }
+.stat.yellow  .stat-value { color: var(--yellow); }
+.stat.red     .stat-value { color: var(--red); }
+.stat.error   .stat-value { color: var(--red); }
+.stat.silent  .stat-value { color: var(--grey); }
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar input, .toolbar select {
+  padding: .5rem .75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+}
+.toolbar input { flex: 1; min-width: 200px; }
+.refresh-btn {
+  background: var(--navy);
+  color: white;
+  border: none;
+  padding: .5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.refresh-btn:hover { background: #2a2a44; }
+
+.table-wrap {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+th {
+  text-align: left;
+  padding: .75rem 1rem;
+  background: #fafafa;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  user-select: none;
+}
+th:hover { background: #f0f0f0; }
+td {
+  padding: .75rem 1rem;
+  border-bottom: 1px solid #f5f5f5;
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr.dim td { color: #999; }
+
+.health-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: .5rem;
+  vertical-align: middle;
+}
+.health-dot.green   { background: var(--green); }
+.health-dot.yellow  { background: var(--yellow); }
+.health-dot.red     { background: var(--red); }
+.health-dot.error   { background: var(--red); }
+.health-dot.silent  { background: var(--grey); }
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.badge.green   { background: #E8F5E9; color: var(--green); }
+.badge.yellow  { background: #FFF3E0; color: var(--yellow); }
+.badge.red     { background: #FFEBEE; color: var(--red); }
+.badge.error   { background: #FFEBEE; color: var(--red); }
+.badge.silent  { background: #F5F5F5; color: var(--grey); }
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+.meta-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: #666;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.muted { color: #999; font-size: 12px; }
+
+.login-prompt {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  max-width: 480px;
+  margin: 4rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.login-prompt h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  margin-bottom: 1rem;
+  color: var(--navy);
+}
+.login-prompt input {
+  width: 100%;
+  padding: .75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: .75rem;
+  font-size: 14px;
+}
+.login-prompt button {
+  background: var(--navy);
+  color: white;
+  border: none;
+  padding: .75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+.error-msg { color: var(--red); margin-top: .5rem; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-circle">R</div>
+      <div>
+        <div class="brand-title">Reliability</div>
+        <div class="brand-sub">Cron health monitor — Ridge</div>
+      </div>
+    </div>
+    <a href="/ventures" class="back-link">← back to ventures</a>
+  </div>
+</div>
+
+<div id="root" class="container">
+  <div class="login-prompt">
+    <h2>Loading…</h2>
+  </div>
+</div>
+
+<script type="module">
+const SUPABASE_URL_DEFAULT = 'https://pgwoitbdiyubjugwufhk.supabase.co';
+
+async function getSupabasePublicConfig() {
+  try {
+    const r = await fetch('/api/get-supabase-public-config');
+    if (!r.ok) throw new Error('config endpoint');
+    const c = await r.json();
+    return { url: c.url || SUPABASE_URL_DEFAULT, anon: c.publishableKey || c.anonKey };
+  } catch {
+    return { url: SUPABASE_URL_DEFAULT, anon: null };
+  }
+}
+
+let SB_URL = SUPABASE_URL_DEFAULT;
+let SB_ANON = null;
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem('sb-pgwoitbdiyubjugwufhk-auth-token');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.access_token || null;
+  } catch { return null; }
+}
+
+async function authFetch(url) {
+  const token = getStoredSession();
+  if (!token) return { status: 401, json: async () => ({ error: 'no-session' }) };
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+}
+
+async function signInWithPassword(email, password) {
+  const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!r.ok) return null;
+  const data = await r.json();
+  localStorage.setItem('sb-pgwoitbdiyubjugwufhk-auth-token', JSON.stringify({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    user: data.user,
+  }));
+  return data.access_token;
+}
+
+function renderLogin(msg) {
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <div class="login-prompt">
+      <h2>Heath only</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:1.5rem;">Sign in with your Dossie account.</p>
+      <input id="email" type="email" placeholder="email" autocomplete="email">
+      <input id="password" type="password" placeholder="password" autocomplete="current-password">
+      <button id="signin">Sign in</button>
+      ${msg ? `<div class="error-msg">${msg}</div>` : ''}
+    </div>`;
+  document.getElementById('signin').onclick = async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const tok = await signInWithPassword(email, password);
+    if (!tok) { renderLogin('Sign in failed.'); return; }
+    bootstrap();
+  };
+}
+
+let cronState = { all: [], counts: {} };
+let sortKey = 'health';
+let sortDir = 'asc';
+let filterText = '';
+let filterHealth = 'all';
+
+const HEALTH_ORDER = { error: 0, red: 1, yellow: 2, silent: 3, green: 4 };
+
+function fmtAge(iso) {
+  if (!iso) return 'never';
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = ms / 60000;
+  if (m < 1) return 'just now';
+  if (m < 60) return `${Math.floor(m)}m ago`;
+  const h = m / 60;
+  if (h < 24) return `${Math.floor(h)}h ago`;
+  const d = h / 24;
+  return `${Math.floor(d)}d ago`;
+}
+
+function fmtMeta(meta) {
+  if (!meta || typeof meta !== 'object') return '';
+  const parts = [];
+  if (meta.http_status) parts.push(`http=${meta.http_status}`);
+  if (meta.duration_ms !== undefined) parts.push(`${meta.duration_ms}ms`);
+  if (meta.error) parts.push(`err=${String(meta.error).slice(0, 60)}`);
+  // include any other top-level scalars
+  for (const [k, v] of Object.entries(meta)) {
+    if (['http_status', 'duration_ms', 'error'].includes(k)) continue;
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+      parts.push(`${k}=${String(v).slice(0, 40)}`);
+    }
+  }
+  return parts.join(' · ');
+}
+
+function fmtSchedule(s) {
+  if (!s) return '—';
+  // friendlier hint
+  const map = {
+    '*/5 * * * *': 'every 5 min',
+    '*/10 * * * *': 'every 10 min',
+    '*/15 * * * *': 'every 15 min',
+    '*/30 * * * *': 'every 30 min',
+    '45 * * * *': 'hourly :45',
+    '0 * * * *': 'hourly :00',
+  };
+  return map[s] || s;
+}
+
+function render() {
+  const filtered = cronState.all.filter((c) => {
+    if (filterHealth !== 'all' && c.health !== filterHealth) return false;
+    if (filterText && !c.name.toLowerCase().includes(filterText.toLowerCase())) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'health') { av = HEALTH_ORDER[a.health] ?? 9; bv = HEALTH_ORDER[b.health] ?? 9; }
+    else if (sortKey === 'name') { av = a.name; bv = b.name; }
+    else if (sortKey === 'last_run') { av = a.last_run || ''; bv = b.last_run || ''; }
+    else if (sortKey === 'window') { av = a.window_min ?? 9e9; bv = b.window_min ?? 9e9; }
+    else { av = a[sortKey] || ''; bv = b[sortKey] || ''; }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const c = cronState.counts || {};
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <div class="summary">
+      <div class="stat green"><div class="stat-label">Healthy</div><div class="stat-value">${c.green || 0}</div></div>
+      <div class="stat yellow"><div class="stat-label">Late</div><div class="stat-value">${c.yellow || 0}</div></div>
+      <div class="stat red"><div class="stat-label">Silent</div><div class="stat-value">${c.red || 0}</div></div>
+      <div class="stat error"><div class="stat-label">Errored</div><div class="stat-value">${c.error || 0}</div></div>
+      <div class="stat silent"><div class="stat-label">No telemetry</div><div class="stat-value">${c.silent || 0}</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input id="search" placeholder="filter by name…" value="${filterText.replace(/"/g, '&quot;')}">
+      <select id="health-filter">
+        <option value="all"${filterHealth==='all'?' selected':''}>All states</option>
+        <option value="green"${filterHealth==='green'?' selected':''}>Healthy</option>
+        <option value="yellow"${filterHealth==='yellow'?' selected':''}>Late</option>
+        <option value="red"${filterHealth==='red'?' selected':''}>Silent</option>
+        <option value="error"${filterHealth==='error'?' selected':''}>Errored</option>
+        <option value="silent"${filterHealth==='silent'?' selected':''}>No telemetry</option>
+      </select>
+      <button class="refresh-btn" id="refresh">↻ Refresh</button>
+      <div class="muted">Generated ${cronState.generatedAt ? new Date(cronState.generatedAt).toLocaleString() : '—'} · ${filtered.length} shown of ${cronState.all.length}</div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-key="health" style="width:120px;">Health</th>
+            <th data-key="name">Cron</th>
+            <th data-key="schedule" style="width:160px;">Schedule</th>
+            <th data-key="last_run" style="width:140px;">Last run</th>
+            <th data-key="last_status" style="width:120px;">Status</th>
+            <th>Meta</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map((c) => `
+            <tr class="${c.declared===false?'dim':''}">
+              <td><span class="health-dot ${c.health}"></span><span class="badge ${c.health}">${c.health}</span></td>
+              <td><div>${c.name}</div><div class="muted">${c.declared===false?'(manual)':''}</div></td>
+              <td><span class="mono">${fmtSchedule(c.schedule)}</span></td>
+              <td>${fmtAge(c.last_run)}</td>
+              <td>${c.last_status || '—'}</td>
+              <td class="meta-cell" title="${(fmtMeta(c.last_meta)||'').replace(/"/g,'&quot;')}">${fmtMeta(c.last_meta)||'—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.querySelectorAll('th[data-key]').forEach((th) => {
+    th.onclick = () => {
+      const k = th.getAttribute('data-key');
+      if (sortKey === k) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortKey = k; sortDir = 'asc'; }
+      render();
+    };
+  });
+
+  document.getElementById('search').oninput = (e) => { filterText = e.target.value; render(); };
+  document.getElementById('health-filter').onchange = (e) => { filterHealth = e.target.value; render(); };
+  document.getElementById('refresh').onclick = bootstrap;
+}
+
+async function loadReliability() {
+  const r = await authFetch('/api/ventures/reliability');
+  if (r.status === 401) { renderLogin('Session expired or unauthorized.'); return; }
+  if (!r.ok) { document.getElementById('root').innerHTML = `<div class="login-prompt"><h2>Error</h2><p>Status ${r.status}</p></div>`; return; }
+  const data = await r.json();
+  cronState = { all: data.crons || [], counts: data.counts || {}, generatedAt: data.generatedAt };
+  render();
+}
+
+async function bootstrap() {
+  const cfg = await getSupabasePublicConfig();
+  SB_URL = cfg.url; SB_ANON = cfg.anon;
+  if (!getStoredSession()) { renderLogin(); return; }
+  await loadReliability();
+}
+
+bootstrap();
+</script>
+</body>
+</html>

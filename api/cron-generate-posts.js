@@ -14,6 +14,8 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 11 * * * (11:00 UTC daily, ~6am Central during DST).
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -1264,7 +1266,7 @@ async function lookupZernioAccountId(platform) {
   return null;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-generate-posts', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -1657,4 +1659,4 @@ module.exports = async function handler(req, res) {
       brief_preview: sageIntel.daily_brief ? sageIntel.daily_brief.slice(0, 120) : null,
     } : null,
   });
-};
+});

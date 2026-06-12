@@ -25,6 +25,7 @@
 
 const { execSync } = require('child_process');
 const nodePath = require('path');
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -685,7 +686,7 @@ async function buildBrief() {
 
 // ─── Handler ─────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-morning-brief', async function handler(req, res) {
   try {
     // Auth: accept Vercel cron header OR Bearer CRON_SECRET.
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
@@ -724,4 +725,4 @@ module.exports = async function handler(req, res) {
       error: err && err.message ? err.message : String(err),
     });
   }
-};
+});

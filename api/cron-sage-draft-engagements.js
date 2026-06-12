@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-sage-draft-engagements.js
@@ -151,7 +153,7 @@ async function draftFor(row) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-sage-draft-engagements', async function handler(req, res) {
   const auth = req.headers.authorization || '';
   if (auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -244,4 +246,4 @@ module.exports = async function handler(req, res) {
     todayCounts,
     substanceFloorChars: SUBSTANCE_MIN_CHARS,
   });
-};
+});

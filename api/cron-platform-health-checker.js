@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-platform-health-checker.js
@@ -147,7 +149,7 @@ async function insertCheck(platform, result) {
   });
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-platform-health-checker', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -258,4 +260,4 @@ module.exports = async function handler(req, res) {
     probe_latency_ms: probe.latencyMs,
     results,
   });
-};
+});

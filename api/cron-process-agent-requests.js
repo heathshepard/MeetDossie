@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // Vercel Serverless Function: /api/cron-process-agent-requests
@@ -237,7 +239,7 @@ async function processOne(row) {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-process-agent-requests', async function handler(req, res) {
   const auth = req.headers.authorization || '';
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const isCronSecret = CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
@@ -284,4 +286,4 @@ module.exports = async function handler(req, res) {
     processed: results.length,
     results,
   });
-};
+});

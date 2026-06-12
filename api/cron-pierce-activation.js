@@ -13,6 +13,8 @@
 //   4. Send a Telegram summary to Heath
 //   5. Log event to ventures_activity_events
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -76,7 +78,7 @@ async function logActivityEvent(summary, inactiveCount) {
   }
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-pierce-activation', async function handler(req, res) {
   // Auth: Vercel built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers.authorization || req.headers.Authorization || '');
@@ -197,4 +199,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-pierce-activation] unhandled error:', err);
     return res.status(500).json({ ok: false, error: 'Internal server error', message: err.message });
   }
-};
+});

@@ -6,6 +6,8 @@
 // Auth: Authorization: Bearer ${CRON_SECRET} OR Vercel cron header
 // Schedule: vercel.json — 0 13 * * * (7AM CST)
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
@@ -122,7 +124,7 @@ function flagIssues(post) {
   return issues;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-pipeline-health', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -263,4 +265,4 @@ module.exports = async function handler(req, res) {
       stuck_videos: Array.isArray(stuckVideos) ? stuckVideos.length : 0,
     },
   });
-};
+});

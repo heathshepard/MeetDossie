@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-engagement-summary.js
@@ -75,7 +77,7 @@ async function stuckPosting() {
   return countWhere(`status=eq.posting&updated_at=lt.${encodeURIComponent(since)}`);
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-engagement-summary', async function handler(req, res) {
   const auth = req.headers.authorization || '';
   if (auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -137,4 +139,4 @@ module.exports = async function handler(req, res) {
     approved_24h: approvedToday,
     stuck,
   });
-};
+});

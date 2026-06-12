@@ -7,12 +7,14 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 14 * * * (2:00 PM UTC daily, ~9am CDT)
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const CRON_SECRET = process.env.CRON_SECRET;
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = '7874782923';
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-elevenlabs-monitor', async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth || auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -63,4 +65,4 @@ module.exports = async function handler(req, res) {
     alert: remaining < 3000 ? 'critical' : 'warning',
     telegram: tgData.ok
   });
-}
+})

@@ -7,6 +7,8 @@
 // Schedule: vercel.json — 0 11 * * * (same minute as cron-generate-posts;
 // Vercel queues them so both fire at 11:00 UTC without conflict)
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -42,7 +44,7 @@ async function sendTelegram(token, chatId, text) {
   return { ok: res.ok && data?.ok === true };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-pipeline-check', async function handler(req, res) {
   // Auth: accept Vercel built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -113,4 +115,4 @@ module.exports = async function handler(req, res) {
     dropped: droppedCount,
     telegram_sent: tgResult.ok,
   });
-};
+});

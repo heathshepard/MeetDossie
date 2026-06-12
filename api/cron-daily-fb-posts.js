@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // Vercel Serverless Function: /api/cron-daily-fb-posts
@@ -28,7 +30,7 @@ const CRON_SECRET = process.env.CRON_SECRET;
 
 const MAX_GROUPS_PER_DAY = 4;
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-daily-fb-posts', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -73,4 +75,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-daily-fb-posts] Fatal:', err && err.message);
     return res.status(500).json({ ok: false, error: err && err.message });
   }
-};
+});

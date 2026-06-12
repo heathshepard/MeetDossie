@@ -6,6 +6,8 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 30 11 * * * (11:30 UTC, ~30 min after generation).
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -243,7 +245,7 @@ async function telegramSend(chatId, text, replyMarkup, mediaUrl) {
   return { ok: res.ok && data?.ok === true, status: res.status, data, raw: respText };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-send-for-approval', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -418,4 +420,4 @@ module.exports = async function handler(req, res) {
 
   console.log('[cron-send-for-approval] done — sent', sent, 'errors:', sendErrors.length);
   return res.status(200).json({ ok: true, sent, total: items.length, errors: sendErrors });
-};
+});

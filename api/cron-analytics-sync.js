@@ -17,6 +17,8 @@
 // zernio_post_id we fall back to matching by accountId + posted_at window
 // (+-5 min) in the Zernio paginated response, then back-fill the ID if found.
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const { retryFetch } = require('./_lib/retry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -227,7 +229,7 @@ async function sendTelegramSummary(text) {
 
 // ─── Main handler ─────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-analytics-sync', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -500,4 +502,4 @@ module.exports = async function handler(req, res) {
     top_performer_threshold: threshold,
     errors,
   });
-};
+});

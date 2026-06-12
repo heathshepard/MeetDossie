@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-sage-fb-digest.js
@@ -138,7 +140,7 @@ async function sendTelegram(text) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-module.exports = async (req, res) => {
+module.exports = withTelemetry('cron-sage-fb-digest', async (req, res) => {
   const auth = req.headers.authorization || '';
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
     res.status(401).json({ error: 'unauthorized' });
@@ -166,4 +168,4 @@ module.exports = async (req, res) => {
     console.error('cron-sage-fb-digest error:', e);
     res.status(500).json({ error: String(e.message || e) });
   }
-};
+});

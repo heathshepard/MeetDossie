@@ -67,6 +67,10 @@
                          "destination":  "/ventures-social-today.html"
                      },
                      {
+                         "source":  "/ventures/reliability",
+                         "destination":  "/ventures-reliability.html"
+                     },
+                     {
                          "source":  "/orb-web",
                          "destination":  "/orb-web.html"
                      },
@@ -196,7 +200,13 @@
                                                           },
                       "api/cron-sage-intelligence-update.js":  {
                                                                    "maxDuration":  90
-                                                               }
+                                                               },
+                      "api/cron-kpi-drift-detector.js":  {
+                                                             "maxDuration":  60
+                                                         },
+                      "api/cron-customer-view-digest.js":  {
+                                                               "maxDuration":  120
+                                                           }
                   },
     "crons":  [
                   {
@@ -430,6 +440,14 @@
                   {
                       "path":  "/api/cron-auto-populate-weekly-improvements",
                       "schedule":  "0 23 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-kpi-drift-detector",
+                      "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-customer-view-digest",
+                      "schedule":  "0 11 * * 1"
                   }
               ]
 }

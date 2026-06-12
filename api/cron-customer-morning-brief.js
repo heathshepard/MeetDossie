@@ -19,6 +19,8 @@
 //
 // Test mode: ?test=1 sends only to heath@meetdossie.com, skips log insert.
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -456,7 +458,7 @@ function buildAudioScript({ firstName, todayDeadlines, closingThisWeek, transact
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-customer-morning-brief', async function handler(req, res) {
   try {
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -602,4 +604,4 @@ module.exports = async function handler(req, res) {
     console.error('[customer-morning-brief] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
-};
+});

@@ -12,6 +12,8 @@
 //   RESEND_API_KEY
 //   CRON_SECRET
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -136,7 +138,7 @@ async function sendEmail(to, firstName) {
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-thursday-blast', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -194,4 +196,4 @@ module.exports = async function handler(req, res) {
     failed,
     results,
   });
-};
+});

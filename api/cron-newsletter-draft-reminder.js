@@ -7,6 +7,8 @@
 // Auth:     Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 // Schedule: vercel.json — "0 21 * * 4" (21:00 UTC Thursday = 4:00 PM CDT).
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -55,7 +57,7 @@ async function sendTelegram(chat_id, text) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-newsletter-draft-reminder', async function handler(req, res) {
   try {
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -103,4 +105,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-newsletter-draft-reminder] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
-};
+});

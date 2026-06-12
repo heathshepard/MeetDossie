@@ -17,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -329,7 +330,7 @@ function loadImprovementsFile() {
 
 // ─── Handler ─────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-weekly-newsletter', async function handler(req, res) {
   try {
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -494,4 +495,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-weekly-newsletter] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
-};
+});

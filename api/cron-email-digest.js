@@ -16,6 +16,8 @@
 //
 // Customer filter mirrors cron-morning-brief.js.
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -177,7 +179,7 @@ function buildDigestHtml({ firstName, drafts }) {
   </div>`;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-email-digest', async function handler(req, res) {
   try {
     const isVercelCron = req.headers['x-vercel-cron'] === '1';
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -230,4 +232,4 @@ module.exports = async function handler(req, res) {
     console.error('[cron-email-digest] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
-};
+});

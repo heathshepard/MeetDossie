@@ -16,6 +16,8 @@
 //   - Telegram message to TELEGRAM_CHAT_ID
 //   - ventures_activity_events log: agent_name='cole', event_type='orchestration'
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -220,7 +222,7 @@ async function logActivityEvent(summary) {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-cole-orchestration', async function handler(req, res) {
   // Auth: Vercel built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -263,4 +265,4 @@ module.exports = async function handler(req, res) {
     agentsActive: Object.keys(activity).length,
     digest: message,
   });
-};
+});

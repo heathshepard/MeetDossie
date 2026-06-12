@@ -28,6 +28,8 @@
 //   -- RLS: service role only (internal table, no customer access)
 //   ALTER TABLE sage_trend_briefs ENABLE ROW LEVEL SECURITY;
 
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -212,7 +214,7 @@ async function tableExists() {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-module.exports = async function handler(req, res) {
+module.exports = withTelemetry('cron-sage-trends', async function handler(req, res) {
   // Auth: Vercel cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -330,4 +332,4 @@ CREATE POLICY sage_trend_briefs_service ON sage_trend_briefs
     googleTopics: googleData?.topics?.length || 0,
     redditPosts: Object.values(redditData || {}).reduce((sum, p) => sum + (p ? p.length : 0), 0),
   });
-};
+});

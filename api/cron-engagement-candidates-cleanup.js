@@ -1,3 +1,5 @@
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
 'use strict';
 
 // api/cron-engagement-candidates-cleanup.js
@@ -38,7 +40,7 @@ async function sbFetch(urlPath, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-module.exports = async (req, res) => {
+module.exports = withTelemetry('cron-engagement-candidates-cleanup', async (req, res) => {
   const auth = req.headers.authorization || '';
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
     res.status(401).json({ error: 'unauthorized' });
@@ -70,4 +72,4 @@ module.exports = async (req, res) => {
     console.error('cron-engagement-candidates-cleanup error:', e);
     res.status(500).json({ error: String(e.message || e) });
   }
-};
+});
