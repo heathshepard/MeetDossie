@@ -61,55 +61,48 @@ def _focus_comment_box_with_tab(passes: int = 4) -> None:
 
 
 def _post_reddit_comment(post_url: str, comment_text: str) -> Optional[str]:
-    """Reddit: reuse the proven Node cookie-based poster.
+    """Reddit: reuse the proven Node poster driving the DossieBot Chrome profile.
 
-    The PyAutoGUI flow on Reddit is fragile (the comment box scrolls into
-    view differently for sh.reddit.com vs old.reddit.com), but the Node
-    poster at scripts/reddit-comment-cookie.js is already wired and works.
-    Extract the t3_<id> from the URL and shell out.
+    MIGRATION NOTE (2026-06-11): switched from reddit-comment-cookie.js
+    (deleted; cookie-bearer approach) to reddit-comment-playwright.js, which
+    drives Heath's persistent DossieBot Chrome profile.
     """
-    import re
     import subprocess
-    m = re.search(r"/comments/([a-z0-9]+)/", post_url)
-    if not m:
-        log.warning("could not extract reddit post id from %s", post_url)
-        return None
-    parent = f"t3_{m.group(1)}"
 
     repo_root = Path(__file__).resolve().parents[2]
-    node_script = repo_root / "scripts" / "reddit-comment-cookie.js"
+    node_script = repo_root / "scripts" / "reddit-comment-playwright.js"
     if not node_script.exists():
-        log.warning("reddit-comment-cookie.js not present at %s", node_script)
+        log.warning("reddit-comment-playwright.js not present at %s", node_script)
         return None
 
     try:
         result = subprocess.run(
             ["node", str(node_script),
-             f"--parent={parent}",
+             f"--url={post_url}",
              f"--text={comment_text}"],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=45,
+            timeout=120,
             cwd=str(repo_root),
         )
     except Exception as e:
-        log.warning("reddit-comment-cookie.js exception: %s", e)
+        log.warning("reddit-comment-playwright.js exception: %s", e)
         return None
 
     out = (result.stdout or "").strip()
     if not out:
-        log.warning("reddit-comment-cookie.js empty stdout: %s",
+        log.warning("reddit-comment-playwright.js empty stdout: %s",
                     result.stderr[:300])
         return None
     try:
         payload = json.loads(out)
     except Exception:
-        log.warning("reddit-comment-cookie.js bad json: %s", out[:300])
+        log.warning("reddit-comment-playwright.js bad json: %s", out[:300])
         return None
     if not payload.get("ok"):
-        log.warning("reddit-comment-cookie.js failed: %s", payload)
+        log.warning("reddit-comment-playwright.js failed: %s", payload)
         return None
     return payload.get("url") or payload.get("permalink")
 
