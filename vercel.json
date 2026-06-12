@@ -368,7 +368,7 @@
                   },
                   {
                       "path":  "/api/cron-engagement-veto-mode",
-                      "schedule":  "*/30 13-23 * * *"
+                      "schedule":  "*/30 * * * *"
                   },
                   {
                       "path":  "/api/cron-mission-watchdog",

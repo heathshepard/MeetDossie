@@ -93,12 +93,34 @@ const HOT_PHRASES = [
   "broker won't accept", "broker won't sign off", 'office said',
 ];
 
+const MARKETPLACE_SIGNALS = [
+  'for sale', 'for rent', 'asking price', ' obo ', 'best offer',
+  'just listed', 'just sold', 'property for', 'real estate for',
+  '$ per month', '$ month', '$ /month', '$ annually',
+];
+
 function normalize(text) {
   return ' ' + (text || '').toLowerCase().replace(/\n/g, ' ').replace(/\t/g, ' ') + ' ';
 }
 
+function isMarketplacePost(text) {
+  const n = normalize(text);
+  // If contains dollar sign AND marketplace signal, likely a listing.
+  // This filters out barn sheds, property sales, rental posts, etc.
+  const hasDollar = /\$/.test(text);
+  if (!hasDollar) return false;
+  for (const sig of MARKETPLACE_SIGNALS) {
+    if (n.includes(sig)) return true;
+  }
+  return false;
+}
+
 function scoreText(text) {
   if (!text) return { score: 0, matched: [] };
+  // Reject marketplace/listing posts entirely (no score)
+  if (isMarketplacePost(text)) {
+    return { score: 0, matched: ['MARKETPLACE_FILTERED'] };
+  }
   const n = normalize(text);
   let score = 0;
   const matched = [];
