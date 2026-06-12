@@ -45,9 +45,10 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Supabase not configured' });
   }
 
-  // Find draft posts not yet queued to Sage
+  // Find draft posts not yet queued to Sage (newest-first so fresh morning drafts
+  // don't get blocked by a backlog of overnight items)
   const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?telegram_sent_at=is.null&status=eq.draft&order=created_at.asc&limit=${MAX_PER_RUN}`,
+    `/rest/v1/social_posts?telegram_sent_at=is.null&status=eq.draft&order=created_at.desc&limit=${MAX_PER_RUN}`,
   );
 
   if (!loadOk) {

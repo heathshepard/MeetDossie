@@ -309,11 +309,6 @@ module.exports = async function handler(req, res) {
 
   const clock = nowInTz();
 
-  // Outside business hours: just exit clean (Task Scheduler will fire next loop).
-  if (clock.hour < BUSINESS_START_HOUR_CDT || clock.hour > BUSINESS_END_HOUR_CDT) {
-    return res.status(200).json({ ok: true, skipped: 'outside-business-hours', hour: clock.hour });
-  }
-
   const schedules = await loadSchedules();
   const state = {};
   const actions = [];
