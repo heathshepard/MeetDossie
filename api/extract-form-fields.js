@@ -223,7 +223,116 @@ Fields to extract:
 };
 
 // ---------------------------------------------------------------------------
-// Extract fields via Claude Haiku
+// Canonical field names per form type (enforces strict JSON schema)
+// ---------------------------------------------------------------------------
+const CANONICAL_FIELDS = {
+  'resale-contract': [
+    'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
+    'legal_description', 'sale_price', 'earnest_money', 'option_fee', 'option_days',
+    'loan_amount', 'down_payment_pct', 'down_payment_amt', 'closing_date', 'close_in_days',
+    'title_company', 'financing_type', 'hoa_exists', 'contract_effective_date'
+  ],
+  'financing-addendum': [
+    'property_address', 'city_state_zip', 'buyer_name', 'financing_type',
+    'loan_amount', 'down_payment_pct', 'interest_rate_max', 'loan_term_years'
+  ],
+  'termination-notice': [
+    'property_address', 'city_state_zip', 'seller_name', 'buyer_name',
+    'contract_effective_date', 'termination_reason'
+  ],
+  'unimproved-property': [
+    'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
+    'legal_description', 'land_acreage', 'land_parcel_id', 'sale_price', 'earnest_money',
+    'option_fee', 'option_days', 'loan_amount', 'down_payment_pct', 'down_payment_amt',
+    'closing_date', 'title_company', 'financing_type', 'contract_effective_date'
+  ],
+  'new-home-incomplete': [
+    'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
+    'legal_description', 'sale_price', 'earnest_money', 'option_fee', 'option_days',
+    'loan_amount', 'down_payment_pct', 'down_payment_amt', 'closing_date', 'title_company',
+    'financing_type', 'builder_name', 'builder_rep_name', 'builder_rep_phone',
+    'expected_completion_date', 'contract_effective_date'
+  ],
+  'new-home-complete': [
+    'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
+    'legal_description', 'sale_price', 'earnest_money', 'option_fee', 'option_days',
+    'loan_amount', 'down_payment_pct', 'down_payment_amt', 'closing_date', 'title_company',
+    'financing_type', 'builder_name', 'builder_rep_name', 'builder_rep_phone',
+    'builder_warranty_company', 'co_received_date', 'co_number', 'contract_effective_date'
+  ],
+  'farm-ranch': [
+    'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
+    'legal_description', 'land_acreage', 'land_parcel_id', 'sale_price', 'earnest_money',
+    'option_fee', 'option_days', 'loan_amount', 'down_payment_pct', 'down_payment_amt',
+    'closing_date', 'title_company', 'financing_type', 'contract_effective_date'
+  ]
+};
+
+// Common field name variations model might return (maps to canonical names)
+const FIELD_NAME_ALIASES = {
+  'price': 'sale_price',
+  'purchase_price': 'sale_price',
+  'contract_price': 'sale_price',
+  'amount': 'sale_price',
+  'down_payment_percent': 'down_payment_pct',
+  'down_payment_percentage': 'down_payment_pct',
+  'down_pct': 'down_payment_pct',
+  'down_percent': 'down_payment_pct',
+  'down_payment_amount': 'down_payment_amt',
+  'down_amount': 'down_payment_amt',
+  'down_payment_dollars': 'down_payment_amt',
+  'down_dollars': 'down_payment_amt',
+  'address': 'property_address',
+  'property': 'property_address',
+  'street_address': 'property_address',
+  'location': 'property_address',
+  'buyer': 'buyer_name',
+  'buyer_names': 'buyer_name',
+  'sellers': 'seller_name',
+  'seller_names': 'seller_name',
+  'city_state': 'city_state_zip',
+  'city': 'city_state_zip',
+  'financing': 'financing_type',
+  'loan_type': 'financing_type',
+  'loan': 'financing_type',
+  'principal': 'loan_amount',
+  'loan_principal': 'loan_amount',
+  'mortgage_amount': 'loan_amount',
+  'option_period': 'option_days',
+  'days_option': 'option_days',
+  'option_period_days': 'option_days',
+  'earnest': 'earnest_money',
+  'earnest_money_amount': 'earnest_money',
+  'em_amount': 'earnest_money',
+  'em': 'earnest_money',
+  'close_date': 'closing_date',
+  'closing': 'closing_date',
+  'close': 'closing_date',
+  'settlement_date': 'closing_date',
+  'contract_date': 'contract_effective_date',
+  'effective_date': 'contract_effective_date',
+  'execution_date': 'contract_effective_date'
+};
+
+// Normalize field names from model output
+function normalizeFields(raw) {
+  const normalized = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === null || value === undefined) continue;
+
+    // Try direct match first, then aliases
+    let canonical = key;
+    if (FIELD_NAME_ALIASES[key.toLowerCase()]) {
+      canonical = FIELD_NAME_ALIASES[key.toLowerCase()];
+    }
+
+    normalized[canonical] = value;
+  }
+  return normalized;
+}
+
+// ---------------------------------------------------------------------------
+// Extract fields via Claude Haiku with strict schema enforcement
 // ---------------------------------------------------------------------------
 async function extractFieldsWithAI(formType, message, transaction) {
   const anthropic = new Anthropic({
@@ -231,6 +340,7 @@ async function extractFieldsWithAI(formType, message, transaction) {
   });
 
   const schema = FIELD_SCHEMAS[formType] || FIELD_SCHEMAS['resale-contract'];
+  const canonicalFields = CANONICAL_FIELDS[formType] || CANONICAL_FIELDS['resale-contract'];
 
   // Build context from existing transaction record
   const txContext = transaction && typeof transaction === 'object'
@@ -239,14 +349,25 @@ async function extractFieldsWithAI(formType, message, transaction) {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // Create strict schema template with all canonical field names
+  const strictSchema = `\`\`\`json
+{
+  ${canonicalFields.map(f => `"${f}": null`).join(',\n  ')}
+}
+\`\`\``;
+
   const systemPrompt = `You are a Texas real estate transaction coordinator extracting structured data from an agent's message to fill out a TREC form.
 
 Today's date: ${today}
 
 ${schema}
 
+CRITICAL: You MUST return ONLY valid JSON matching this exact structure (include only fields with values):
+${strictSchema}
+
 Rules:
-- Return ONLY valid JSON — no markdown, no explanation, no code fences
+- Return ONLY the JSON object shown above — no markdown, no explanation, no code fences
+- Use ONLY the field names shown in the template above
 - Numbers must be actual numbers (not strings) for numeric fields
 - Dates must be ISO format YYYY-MM-DD
 - If a field cannot be determined, omit it entirely (do not include null values)
@@ -254,13 +375,13 @@ Rules:
 - If "3.5% down" on a $300k purchase → down_payment_amt = 10500, loan_amount = 289500
 - If "conventional loan" → financing_type = "conventional"
 - Never fabricate values not present in the message or transaction context
-- Return a flat JSON object, not nested`;
+- Do NOT nest any fields — return a flat JSON object`;
 
   const userPrompt = `${txContext}
 
 Agent's message: "${message}"
 
-Extract the form fields as a JSON object.`;
+Extract the form fields. Use ONLY field names from the template above.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -282,7 +403,10 @@ Extract the form fields as a JSON object.`;
     throw new Error('AI extraction returned invalid JSON. Please try again.');
   }
 
-  return parsed;
+  // Normalize any field names the model might have invented
+  const normalized = normalizeFields(parsed);
+
+  return normalized;
 }
 
 // ---------------------------------------------------------------------------
