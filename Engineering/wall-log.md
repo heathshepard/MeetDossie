@@ -71,3 +71,22 @@ Each entry: date, finding, evidence, recommended fix, who owns it.
 - **Owner:** Carter (Path A scanner fix — high priority for tomorrow) + Sage (today's Path C pivot)
 
 ---
+
+### Bug 7: cron-publish-approved blocks TikTok posts even when media_url is already attached
+
+**Filed by:** Sage (day-of mission audit, 09:30 CDT 2026-06-12)
+
+- **File:** `api/cron-publish-approved.js` lines 708-730
+- **Code:**
+  ```javascript
+  if (post.platform === 'tiktok') {
+    // ... patches status='pending_video' UNCONDITIONALLY
+    continue;
+  }
+  ```
+- **Symptom:** Three TikTok social_posts (id=55ef1523, id=8c4fa6ce, id=c2218ade) sit at status='approved' with `media_url` pointing to a valid Supabase storage URL for a real reel video. Publisher checks `platform === 'tiktok'` BEFORE checking `media_url` and parks them as `pending_video` regardless. They never publish via cron-publish-approved; they're only eligible for the separate cron-post-videos pipeline (which is heath_approved-gated through video_library).
+- **Fix:** Change to `if (post.platform === 'tiktok' && !post.media_url)`. When TikTok rows already have a video attached (the Sage reel-build path), let the normal Zernio publish flow handle them. Removes the dependency on Heath manually re-approving each one through the video_library gate.
+- **Workaround for today:** None without a code change + deploy. The 19:00 CDT TikTok mandatory slot will require cron-post-videos to ship a heath_approved video from video_library — but no video_library rows have `tiktok` in their platforms array. So today's TikTok slot is effectively un-shippable through the autonomous pipeline.
+- **Owner:** Carter (gate fix) + Sage (interim: schedule a heath_approved video for TikTok via video_library tomorrow)
+
+---
