@@ -706,7 +706,11 @@ module.exports = async function handler(req, res) {
     if (!post || !post.id) continue;
 
     // TikTok text-only → park for video pipeline.
-    if (post.platform === 'tiktok') {
+    // FIX (Sage, 2026-06-12, Bug 7): only park when media_url is null. If a
+    // tutorial-reel video is already attached at generation time (the Sage
+    // reel build path that lands media_url='videos/tutorials/reels/...'),
+    // let the normal Zernio publish flow handle it like any other post.
+    if (post.platform === 'tiktok' && !post.media_url) {
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
