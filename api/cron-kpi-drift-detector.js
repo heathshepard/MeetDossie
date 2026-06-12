@@ -69,17 +69,23 @@ async function tg(text) {
 // We pull all active subscriptions and sum their "price" column if present,
 // else apply a price-by-plan map.
 async function getMrr() {
+  // subscriptions table has no `price` column — derive from `plan`.
+  // Founding-friend rows ($1) appear under `plan='founding_friend'` if set,
+  // or via the FOUNDING_FRIEND coupon path which may leave them as `founding`.
+  // We undercount slightly when a friend row says `founding` (treats as $29).
+  // This is a known accuracy limit until a `price` or `mrr_amount` column lands.
   const PRICE_MAP = {
     founding: 29,
+    founding_friend: 1,
     solo: 79,
     team: 199,
-    'founding_friend': 1,
+    brokerage: 199,
   };
-  const { ok, data } = await sb('/rest/v1/subscriptions?status=eq.active&select=plan,price');
+  const { ok, data } = await sb('/rest/v1/subscriptions?status=eq.active&select=plan');
   if (!ok || !Array.isArray(data)) return 0;
   let total = 0;
   for (const row of data) {
-    const p = row.price != null ? Number(row.price) : (PRICE_MAP[row.plan] ?? 0);
+    const p = PRICE_MAP[row.plan] ?? 0;
     if (!Number.isNaN(p)) total += p;
   }
   return total;
