@@ -30,6 +30,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
+from . import caps
 from . import chrome
 from . import sb
 
@@ -197,37 +198,106 @@ def _post_one(row: dict) -> bool:
                               result="no permalink")
         return False
 
+    from datetime import datetime, timezone
+    posted_at_iso = datetime.now(timezone.utc).isoformat()
     sb.update_candidate(row["id"], {
         "status": "posted",
         "posted_comment_url": permalink,
+        "posted_at": posted_at_iso,
     })
     sb.log_desktop_action("comment_post_ok",
                           target=f"{platform}:{post_url}",
                           text_typed=draft,
                           result=f"permalink={permalink}",
                           approved_by="heath")
+
+    # SV-FB-VETO-001: notify Heath when veto-mode auto-post lands.
+    # Always fires (the cron daily cap upstream guarantees max 5/day).
+    try:
+        group_label = (
+            row.get("group_name")
+            or _group_from_post_url(post_url)
+            or platform
+        )
+        sb.telegram_alert(
+            f"POSTED in {group_label}\n{permalink}"
+        )
+    except Exception as e:
+        log.debug("telegram POSTED notify failed: %s", e)
+
     log.info("posted %s comment -> %s", platform, permalink)
     return True
 
 
+def _group_from_post_url(post_url: str) -> Optional[str]:
+    """Best-effort: pull the slug after /groups/ from a FB URL."""
+    if not post_url:
+        return None
+    import re
+    m = re.search(r"/groups/([^/?#]+)", post_url)
+    if m:
+        return f"groups/{m.group(1)}"
+    return None
+
+
 def run(max_posts: int = MAX_POSTS_PER_RUN) -> int:
-    """Pull approved candidates and post them. Returns posted count."""
-    approved = sb.fetch_candidates("approved", limit=max_posts)
+    """Pull approved candidates and post them. Returns posted count.
+
+    Honors Heath's caps (5/day total, 2/day per platform, 1 author / 7d).
+    We pull more candidates than ``max_posts`` so the cap filter can skip
+    deferred rows and still fill the daily budget from other platforms /
+    other authors in the same run.
+    """
+    # Heath's cap state is loaded once and mutated as we post -- so two
+    # approved Twitter rows in one run don't both fire if the daily Twitter
+    # budget is 1 remaining.
+    cap_state = caps.load_state()
+    log.info("cap state at run start: %s", cap_state.snapshot())
+
+    fetch_limit = max(max_posts * 5, 25)
+    approved = sb.fetch_candidates("approved", limit=fetch_limit)
     if not approved:
         log.info("no approved candidates -- nothing to post")
         return 0
 
     posted = 0
+    deferred = {"total_daily_cap": 0, "platform_daily_cap": 0, "author_7d_cooldown": 0}
+
     for row in approved:
         if chrome.kill_switch_check():
             log.warning("Kill switch active -- stopping poster")
             break
         if posted >= max_posts:
             break
+        if cap_state.total_remaining <= 0:
+            log.info("total daily cap exhausted -- stopping poster")
+            break
+
+        allow, reason = cap_state.try_consume(row)
+        if not allow:
+            deferred[reason] = deferred.get(reason, 0) + 1
+            sb.update_candidate(row["id"], {
+                "last_error": f"deferred_by_cap:{reason}",
+            })
+            log.info("deferred row %s: %s", row.get("id"), reason)
+            continue
+
         ok = _post_one(row)
         if ok:
             posted += 1
+        else:
+            # Refund the cap budget so a failed post doesn't burn a slot.
+            cap_state.total_remaining += 1
+            platform = row.get("platform") or ""
+            cap_state.per_platform_remaining[platform] = (
+                cap_state.per_platform_remaining.get(platform, 0) + 1
+            )
         time.sleep(COOLDOWN_SECONDS)
+
+    log.info(
+        "poster done: posted=%d deferred=%s final_cap_state=%s",
+        posted, deferred, cap_state.snapshot(),
+    )
     return posted
 
 

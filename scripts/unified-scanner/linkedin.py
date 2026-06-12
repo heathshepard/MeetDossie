@@ -28,11 +28,16 @@ from .relevance import score_text, MIN_SCORE
 log = logging.getLogger("unified_scanner.linkedin")
 
 QUERIES = (
+    # Heath's spec 2026-06-10: surface recent LinkedIn posts mentioning TC,
+    # transaction coordinator, TREC, broker pain in a TX-RE pro context.
     "transaction coordinator texas",
     "TC quit",
-    "real estate deadline stress",
-    "broker compliance Texas",
-    "texas realtor tools",
+    "TREC deadline",
+    "real estate broker compliance",
+    "texas realtor TC",
+    "real estate transaction coordinator software",
+    "texas realtor burnout",
+    "real estate paperwork stress",
 )
 
 _POST_DIVIDER_RX = re.compile(
@@ -131,7 +136,7 @@ def _scan_query(query: str, scanner_run_id: str) -> int:
     return inserted
 
 
-def scan(scanner_run_id: str = "", max_queries: int = 3) -> int:
+def scan(scanner_run_id: str = "", max_queries: int = 4) -> int:
     if not scanner_run_id:
         scanner_run_id = f"li-{uuid.uuid4().hex[:8]}"
     total = 0

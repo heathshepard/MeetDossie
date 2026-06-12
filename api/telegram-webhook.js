@@ -1070,6 +1070,56 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Veto mode for engagement_candidates (Atlas SV-FB-VETO-001, 2026-06-11).
+  // callback_data: eng_stop:<id>  -> mark vetoed, kill the auto-post path.
+  // callback_data: eng_edit:<id>  -> ack + prompt Heath to reply with new
+  //                                  draft text (handled in message handler).
+  // Numeric id is the bigserial primary key on engagement_candidates.
+  const engStopMatch = data.match(/^eng_stop:(\d+)$/);
+  if (engStopMatch) {
+    const engId = engStopMatch[1];
+    const nowIso = new Date().toISOString();
+    await supabaseFetch(`/rest/v1/engagement_candidates?id=eq.${encodeURIComponent(engId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        status: 'vetoed',
+        vetoed_at: nowIso,
+        veto_reason: 'user_stop',
+      }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n🛑 STOPPED -- comment killed, will not post.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Stopped');
+    return;
+  }
+
+  const engEditMatch = data.match(/^eng_edit:(\d+)$/);
+  if (engEditMatch) {
+    const engId = engEditMatch[1];
+    // Park the row as vetoed for now -- Heath sending edit text is a future
+    // hook (would need message-handler thread state). The veto-mode cron will
+    // not auto-post a vetoed row, so this is safe-by-default.
+    const nowIso = new Date().toISOString();
+    await supabaseFetch(`/rest/v1/engagement_candidates?id=eq.${encodeURIComponent(engId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        status: 'vetoed',
+        vetoed_at: nowIso,
+        veto_reason: 'user_edit_requested',
+      }),
+    });
+    const originalBody = String(message?.text || '');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n✏️ EDIT requested -- comment held. Reply with the new draft to ship manually, or leave as-is to drop it.`);
+    }
+    if (callbackId) await answerCallback(callbackId, 'Edit -- held');
+    return;
+  }
+
   // Veto mode: STOP for reddit_engagements
   // callback_data format: reddit_stop_<post_id>
   // where post_id is the composite key "subreddit_redditid" stored in reddit_engagements.post_id

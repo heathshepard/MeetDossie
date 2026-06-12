@@ -1,16 +1,18 @@
 """Unified social-engagement scanner -- orchestrator.
 
 Usage:
-    python -m unified-scanner                     # scan all 4 platforms
+    python -m unified-scanner                     # scan all 5 platforms
     python -m unified-scanner --only=reddit       # one platform
-    python -m unified-scanner --only=reddit,fb    # comma list
+    python -m unified-scanner --only=reddit,fb,tw # comma list
     python -m unified-scanner --post              # run the poster
     python -m unified-scanner --summary           # just print + send claudy summary
 
-Heath needs Chrome already open + logged into FB/IG/LinkedIn (Reddit uses
-cookie session). The scanner cycles through the platforms sequentially so
-only one tab is being driven at any moment -- if PyAutoGUI loses focus we
-don't corrupt multiple sessions.
+Heath needs Chrome already open + logged into FB/IG/LinkedIn (Reddit + Twitter
+both use headless Playwright against captured sessions / the DossieBot
+persistent profile, so they're safe even if Heath's Chrome is closed). The
+scanner cycles through the platforms sequentially so only one tab is being
+driven at any moment -- if PyAutoGUI loses focus we don't corrupt multiple
+sessions.
 
 Telegram summary is sent via Claudy bot at the end of every run.
 """
@@ -45,6 +47,7 @@ reddit_mod = import_module(f"{PKG}.reddit")
 fb_mod = import_module(f"{PKG}.fb_groups")
 ig_mod = import_module(f"{PKG}.instagram")
 li_mod = import_module(f"{PKG}.linkedin")
+tw_mod = import_module(f"{PKG}.twitter")
 post_mod = import_module(f"{PKG}.post_via_chrome")
 sb = import_module(f"{PKG}.sb")
 chrome = import_module(f"{PKG}.chrome")
@@ -58,6 +61,9 @@ PLATFORM_ALIASES = {
     "instagram": "instagram",
     "li": "linkedin",
     "linkedin": "linkedin",
+    "tw": "twitter",
+    "twitter": "twitter",
+    "x": "twitter",
 }
 
 PLATFORM_FNS = {
@@ -65,6 +71,7 @@ PLATFORM_FNS = {
     "facebook":  fb_mod.scan,
     "instagram": ig_mod.scan,
     "linkedin":  li_mod.scan,
+    "twitter":   tw_mod.scan,
 }
 
 
@@ -84,7 +91,7 @@ def _parse_only(raw: str) -> list:
 
 def _send_summary(counts: dict) -> None:
     parts = []
-    for plat in ("facebook", "instagram", "linkedin", "reddit"):
+    for plat in ("facebook", "instagram", "linkedin", "reddit", "twitter"):
         n = counts.get(plat, 0)
         if plat in counts:
             parts.append(f"{n} {plat[:2].upper()}")
@@ -106,8 +113,11 @@ def run_scan(only: list) -> dict:
     log = logging.getLogger("unified_scanner")
     log.info("Scanner run %s starting platforms: %s", run_id, only)
 
-    # Reddit first (no Chrome driving -- safe even if Heath's Chrome is closed)
-    order = sorted(only, key=lambda p: 0 if p == "reddit" else 1)
+    # Headless-Playwright platforms first (no PyAutoGUI window-focus risk):
+    # Reddit + Twitter both run under captured/persistent sessions and don't
+    # need Heath's real Chrome. Then FB/IG/LinkedIn drive the real Chrome.
+    _PRIORITY = {"reddit": 0, "twitter": 0}
+    order = sorted(only, key=lambda p: (_PRIORITY.get(p, 1), p))
 
     for platform in order:
         fn = PLATFORM_FNS.get(platform)

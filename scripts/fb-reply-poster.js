@@ -136,6 +136,19 @@ async function postReply(postUrl, replyAuthor, replyText, draft) {
   const { chromium } = require('playwright');
   console.log('[fb-reply-poster] NOTE: Close all Chrome windows before running this script.');
 
+  // Fix #6 (Atlas, 2026-06-11): chrome-profile-unlock pre-flight on every
+  // fb-reply-poster run. Kills stale chrome.exe holding the user-data-dir
+  // lock so the persistent context can attach cleanly.
+  try {
+    const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+    const unlocked = await unlockProfile({ profileDir: CHROME_PROFILE_PATH, reason: 'fb-reply-poster' });
+    if (unlocked.killed > 0) {
+      console.log(`[fb-reply-poster] profile-unlock: killed ${unlocked.killed} stale chrome process(es)`);
+    }
+  } catch (e) {
+    console.warn(`[fb-reply-poster] profile-unlock non-fatal error: ${e.message}`);
+  }
+
   const context = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
     headless: false,
     args: [

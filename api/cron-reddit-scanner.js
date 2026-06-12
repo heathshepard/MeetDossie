@@ -16,6 +16,13 @@ const CRON_SECRET = process.env.CRON_SECRET;
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
+// Heath-approved caps 2026-06-10 -- shared source of truth.
+const {
+  canComment,
+  meetsSubstanceFloor,
+  SUBSTANCE_MIN_CHARS,
+} = require('../scripts/_lib/comment-caps');
+
 const SUBREDDITS = ['realtors', 'realestate'];
 const KEYWORDS = [
   'transaction coordinator',
@@ -190,6 +197,8 @@ module.exports = async function handler(req, res) {
 
   let queued = 0;
   let skipped = 0;
+  let capBlocked = 0;
+  let substanceRejected = 0;
 
   for (const subreddit of SUBREDDITS) {
     for (const keyword of KEYWORDS) {
@@ -201,16 +210,32 @@ module.exports = async function handler(req, res) {
         .sort((a, b) => b.score - a.score);
 
       for (const { post } of scored) {
+        // Per-platform cap gate (Heath-approved 2026-06-10: Reddit 5/day).
+        const cap = await canComment('reddit', sbFetch);
+        if (!cap.allowed) { capBlocked++; continue; }
+
         const redditId = `${subreddit}_${post.id}`;
         const seen = await isAlreadySeen(redditId);
         if (seen) { skipped++; continue; }
 
         const draft = await draftReply(post, keyword);
-        const saved = await saveEngagement(post, keyword, draft);
+
+        // Substance floor: 80+ chars referencing a source-post specific.
+        let finalDraft = draft;
+        if (draft) {
+          const srcKeywords = [keyword].filter(Boolean);
+          const sub = meetsSubstanceFloor(draft, srcKeywords);
+          if (!sub.ok) {
+            finalDraft = null;
+            substanceRejected++;
+          }
+        }
+
+        const saved = await saveEngagement(post, keyword, finalDraft);
         if (!saved) continue;
 
-        if (draft) {
-          await sendVetoMessages(post, keyword, draft, saved.id);
+        if (finalDraft) {
+          await sendVetoMessages(post, keyword, finalDraft, saved.id);
           await new Promise(r => setTimeout(r, 2000));
           queued++;
         }
@@ -220,5 +245,12 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ ok: true, queued, skipped });
+  return res.status(200).json({
+    ok: true,
+    queued,
+    skipped,
+    cap_blocked: capBlocked,
+    substance_rejected: substanceRejected,
+    substance_floor_chars: SUBSTANCE_MIN_CHARS,
+  });
 }
