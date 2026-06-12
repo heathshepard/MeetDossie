@@ -147,6 +147,15 @@
                                                          },
                       "api/cron-heath-publish-digest.js":  {
                                                                "maxDuration":  30
+                                                           },
+                      "api/cron-mission-watchdog.js":  {
+                                                           "maxDuration":  60
+                                                       },
+                      "api/cron-morning-ops-digest.js":  {
+                                                             "maxDuration":  30
+                                                         },
+                      "api/cron-engagement-veto-mode.js":  {
+                                                               "maxDuration":  60
                                                            }
                   },
     "crons":  [
@@ -329,6 +338,22 @@
                   {
                       "path":  "/api/cron-queue-tutorial-reels",
                       "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-engagement-veto-mode",
+                      "schedule":  "*/30 13-23 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-mission-watchdog",
+                      "schedule":  "0 13-23 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-mission-watchdog",
+                      "schedule":  "0 0,1 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-morning-ops-digest",
+                      "schedule":  "0 13 * * *"
                   }
               ]
 }
