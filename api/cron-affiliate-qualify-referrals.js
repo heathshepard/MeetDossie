@@ -10,199 +10,104 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Find all referrals that have reached their 6-month qualification date
-    const { data: pendingReferrals, error: queryError } = await supabase
+    // Find all referrals pending qualification where 6 months have passed
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const sixMonthsAgoISO = sixMonthsAgo.toISOString();
+
+    const { data: pendingReferrals, error: fetchError } = await supabase
       .from('affiliate_referrals')
       .select(`
         id,
         affiliate_user_id,
         referred_user_id,
         referred_email,
+        paid_at,
         reward_cents,
-        payout_eligible_at
+        profiles:affiliate_user_id(full_name, email)
       `)
       .eq('status', 'pending_qualification')
-      .lt('payout_eligible_at', new Date().toISOString())
-      .order('payout_eligible_at', { ascending: true });
+      .lt('paid_at', sixMonthsAgoISO);
 
-    if (queryError) {
-      console.error('[cron-affiliate-qualify] query failed:', queryError.message);
-      return res.status(500).json({ error: 'Query failed' });
+    if (fetchError) {
+      console.error('Error fetching pending referrals:', fetchError);
+      return res.status(500).json({ error: fetchError.message });
     }
 
     if (!pendingReferrals || pendingReferrals.length === 0) {
-      console.log('[cron-affiliate-qualify] no pending referrals to process');
-      return res.status(200).json({ message: 'No referrals to process', processed: 0 });
+      return res.status(200).json({ message: 'No referrals to qualify', processed: 0 });
     }
 
     const results = [];
 
     for (const referral of pendingReferrals) {
       try {
-        // Check if the referred user's subscription is still active
-        const { data: subscription, error: subError } = await supabase
+        // Check if the referred user still has an active subscription
+        const { data: subscription } = await supabase
           .from('subscriptions')
-          .select('status, user_id')
+          .select('status')
           .eq('user_id', referral.referred_user_id)
           .eq('status', 'active')
           .single();
 
-        let status = 'reversed';
-        let reversalReason = 'canceled_within_qualification_period';
+        // If subscription is still active, qualify. Otherwise, reverse.
+        const newStatus = subscription ? 'qualified' : 'reversed';
+        const qualifiedAt = new Date().toISOString();
 
-        if (!subError && subscription && subscription.status === 'active') {
-          status = 'qualified';
-          reversalReason = null;
+        // Update referral status
+        const { error: updateError } = await supabase
+          .from('affiliate_referrals')
+          .update({
+            status: newStatus,
+            qualified_at: qualifiedAt,
+          })
+          .eq('id', referral.id);
 
-          // Update the referral to qualified and set qualified_at
-          const { error: updateError } = await supabase
-            .from('affiliate_referrals')
-            .update({
-              status: 'qualified',
-              qualified_at: new Date().toISOString(),
-            })
-            .eq('id', referral.id);
-
-          if (updateError) {
-            console.error('[cron-affiliate-qualify] update to qualified failed:', updateError.message);
-            results.push({
-              referral_id: referral.id,
-              status: 'failed',
-              reason: updateError.message,
-            });
-            continue;
-          }
-
-          // Increment affiliate's earnings_cents
-          const { data: affiliateLink, error: fetchError } = await supabase
-            .from('affiliate_links')
-            .select('earnings_cents')
-            .eq('user_id', referral.affiliate_user_id)
-            .single();
-
-          if (!fetchError && affiliateLink) {
-            const { error: patchError } = await supabase
-              .from('affiliate_links')
-              .update({
-                earnings_cents: affiliateLink.earnings_cents + referral.reward_cents,
-              })
-              .eq('user_id', referral.affiliate_user_id);
-
-            if (patchError) {
-              console.warn('[cron-affiliate-qualify] earnings increment failed:', patchError.message);
-            }
-          }
-
-          // Send qualified notification to affiliate
-          try {
-            const { data: affiliateProfile } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', referral.affiliate_user_id)
-              .single();
-
-            if (affiliateProfile?.email) {
-              const affiliateName = (affiliateProfile.full_name || '').split(' ')[0] || 'Friend';
-              const referredName = (referral.referred_email || '').split('@')[0] || 'your referral';
-              const rewardFormatted = (referral.reward_cents / 100).toFixed(2);
-
-              await resend.emails.send({
-                from: 'heath@meetdossie.com',
-                to: affiliateProfile.email,
-                subject: `🎉 Your $${rewardFormatted} Dossie affiliate reward just qualified`,
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #FDFCFA; color: #1A1A2E;">
-                    <h2 style="margin-top: 0;">Hey ${affiliateName}!</h2>
-                    <p>Good news: <strong>${referredName}'s subscription is still active</strong>, so your $${rewardFormatted} affiliate reward just qualified.</p>
-                    <p style="font-weight: bold; color: #8BA888; font-size: 16px;">✅ Qualified and ready</p>
-                    <p>This credit will apply to your next monthly invoice or can be used toward premium add-ons.</p>
-                    <p>Thanks for the referral!</p>
-                    <p>—Cole</p>
-                  </div>
-                `,
-              });
-            }
-          } catch (err) {
-            console.warn('[cron-affiliate-qualify] qualified notification failed:', err && err.message);
-          }
-
+        if (updateError) {
           results.push({
             referral_id: referral.id,
-            status: 'qualified',
-            amount: (referral.reward_cents / 100).toFixed(2),
+            status: 'failed',
+            error: updateError.message,
           });
-        } else {
-          // Subscription not active — mark as reversed
-          const { error: updateError } = await supabase
-            .from('affiliate_referrals')
-            .update({
-              status: 'reversed',
-              reversal_reason: reversalReason,
-            })
-            .eq('id', referral.id);
+          continue;
+        }
 
-          if (updateError) {
-            console.error('[cron-affiliate-qualify] update to reversed failed:', updateError.message);
-            results.push({
-              referral_id: referral.id,
-              status: 'failed',
-              reason: updateError.message,
-            });
-            continue;
-          }
-
-          // Send reversal notification to affiliate
-          try {
-            const { data: affiliateProfile } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', referral.affiliate_user_id)
-              .single();
-
-            if (affiliateProfile?.email) {
-              const affiliateName = (affiliateProfile.full_name || '').split(' ')[0] || 'Friend';
-              const referredName = (referral.referred_email || '').split('@')[0] || 'your referral';
-              const rewardFormatted = (referral.reward_cents / 100).toFixed(2);
-
-              await resend.emails.send({
-                from: 'heath@meetdossie.com',
-                to: affiliateProfile.email,
-                subject: `Heads up: Your $${rewardFormatted} Dossie affiliate reward was voided`,
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #FDFCFA; color: #1A1A2E;">
-                    <h2 style="margin-top: 0;">Hey ${affiliateName}!</h2>
-                    <p><strong>${referredName}'s subscription was cancelled before the 6-month qualification period</strong>, so the $${rewardFormatted} affiliate reward has been voided.</p>
-                    <p style="font-size: 14px; color: #5C6B7A;">This is part of our anti-gaming policy — we only credit rewards for referrals that stay active for 6 months.</p>
-                    <p>No worries though — keep sharing, and we'll get plenty of long-term subscribers coming your way.</p>
-                    <p>—Cole</p>
-                  </div>
-                `,
-              });
-            }
-          } catch (err) {
-            console.warn('[cron-affiliate-qualify] reversal notification failed:', err && err.message);
-          }
-
-          results.push({
-            referral_id: referral.id,
-            status: 'reversed',
-            reason: reversalReason,
+        // If qualified, send notification to affiliate
+        if (newStatus === 'qualified' && referral.profiles?.email) {
+          const amountFormatted = (referral.reward_cents / 100).toFixed(2);
+          await resend.emails.send({
+            from: 'heath@meetdossie.com',
+            to: referral.profiles.email,
+            subject: `🎉 Your referral earned $${amountFormatted} — now available for payout`,
+            html: `
+              <p>Hi ${referral.profiles.full_name},</p>
+              <p>Your referral for ${referral.referred_email} has been active for 6 months.</p>
+              <p>The <strong>$${amountFormatted}</strong> referral reward is now qualified and available for payout when you request it.</p>
+              <p>Visit your affiliate dashboard to claim your earnings.</p>
+              <p>Thanks for growing Dossie!</p>
+              <p>—Cole</p>
+            `,
           });
         }
+
+        results.push({
+          referral_id: referral.id,
+          referred_email: referral.referred_email,
+          status: newStatus,
+          amount: (referral.reward_cents / 100).toFixed(2),
+        });
       } catch (error) {
-        console.error('[cron-affiliate-qualify] processing referral failed:', error && error.message);
         results.push({
           referral_id: referral.id,
           status: 'failed',
-          reason: error && error.message,
+          error: error.message,
         });
       }
     }
 
-    console.log('[cron-affiliate-qualify] processing complete:', results);
-    return res.status(200).json({ processed: results });
+    return res.status(200).json({ processed: results.length, results });
   } catch (error) {
-    console.error('[cron-affiliate-qualify] handler error:', error);
+    console.error('Affiliate qualify cron error:', error);
     return res.status(500).json({ error: error.message });
   }
 }

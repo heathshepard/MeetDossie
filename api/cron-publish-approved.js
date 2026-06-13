@@ -362,26 +362,28 @@ async function pushToZernio(post) {
         data,
       };
     }
-    // Extract Zernio post ID — try ALL known field paths. Today's failure
-    // (2026-06-11) had every fresh row land with zernio_post_id=NULL, which
-    // makes the watchdog count them as "didn't actually post." Documented
-    // Zernio v1 response shapes seen so far:
+    // Extract Zernio post ID — try ALL known field paths. 2026-06-06 regression
+    // had new shape: { post: { _id, platforms: [ { _id, ... } ] } }.
+    // Documented response shapes seen so far:
     //   { id, ... }
     //   { post_id, ... }
     //   { data: { id, ... } }
     //   { data: { postId, ... } }
     //   { posts: [ { id, platform, ... } ] }   ← multi-platform fan-out
     //   { results: [ { id, platform, ... } ] }
+    //   { post: { _id, platforms: [ { _id, ... } ] } }   ← 2026-06-06 NEW SHAPE
     const zernioPostId =
       data?.id ||
       data?.post_id ||
       data?.postId ||
+      data?.post?._id ||
       data?.data?.id ||
       data?.data?.post_id ||
       data?.data?.postId ||
       (Array.isArray(data?.posts) && data.posts[0]?.id) ||
       (Array.isArray(data?.results) && data.results[0]?.id) ||
       (Array.isArray(data?.data?.posts) && data.data.posts[0]?.id) ||
+      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?._id) ||
       null;
     if (!zernioPostId) {
       // FIX #3: post-survival verification — when Zernio says 2xx but gives us
