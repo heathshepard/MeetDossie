@@ -1,0 +1,45 @@
+{
+  "_meta": "4-reel queue for 2026-06-13 feature-focused pivot. Reel 1 sent to Heath for vibe-check. Reels 2-4 ready to fire on approval.",
+  "reel_1_TREC_DEADLINES_FACEBOOK": {
+    "status": "AWAITING_HEATH_APPROVAL",
+    "platform": "facebook",
+    "bite": "control-never-miss-a-deadline-again",
+    "out": "trec-deadlines-feature-reel-v2.mp4",
+    "public_url": "https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/reels/trec-deadlines-feature-reel-v2.mp4"
+  },
+  "reel_2_TALK_TO_DOSSIE_LINKEDIN": {
+    "status": "ready_to_build",
+    "platform": "linkedin",
+    "bite": "use-talk-to-dossie-voice",
+    "feature": "TALK TO DOSSIE",
+    "old_way": "15 minutes filling a TREC form",
+    "new_way": "Tell her. She fills it.",
+    "script": "You just left a showing. Your buyer wants to write an offer. Old way: pull out the laptop. Open the form. Fill twenty-seven fields. Dossie way: tell her the address, the price, the terms. She fills the contract. You sign. Twenty-nine dollars a month. Texas agents, meetdossie.com slash founding.",
+    "out_name": "talk-to-dossie-feature-reel-v1",
+    "linkedin_note": "Long-form caption hook: 'I was sitting in my car after a showing. Buyer wanted to write an offer. 15 minutes of form-filling on a phone keyboard. Or 30 seconds of voice. Watch.' — Algorithm rewards long comments; ask 'What's the longest form-fill you've done from your car?'"
+  },
+  "reel_3_MORNING_BRIEF_TWITTER": {
+    "status": "ready_to_build",
+    "platform": "twitter",
+    "bite": "read-your-morning-brief",
+    "feature": "MORNING BRIEF",
+    "old_way": "5 AM review of every deal",
+    "new_way": "90-second audio. With your coffee.",
+    "script": "Five a.m. Every Monday. Pull up every dossier. Check every deadline. Write tomorrow's to-do list. Or — Dossie sends you a ninety-second audio brief while you drink coffee. Every deal. Every deadline. Every action item. Twenty-nine dollars a month. Texas agents, meetdossie.com slash founding.",
+    "out_name": "morning-brief-feature-reel-v1",
+    "twitter_thread_hook": "Old way to prep for Monday: 5 AM. Laptop. Coffee. Hour of digging through 12 open deals. New way:"
+  },
+  "reel_4_FORM_LIBRARY_YOUTUBE": {
+    "status": "ready_to_build",
+    "platform": "youtube",
+    "bite": "control-never-miss-a-deadline-again",
+    "_bite_note": "Reusing control bite — closest existing demo to form-library workflow. Consider building dedicated form-library bite later.",
+    "feature": "TREC FORMS AUTOFILL",
+    "old_way": "Hunt PDFs. Fill manually. Fax.",
+    "new_way": "Pick form. Auto-filled. Sent.",
+    "script": "Resale contract. Financing addendum. Termination notice. Old way: hunt the PDF. Type the buyer name twenty-seven times. Print. Sign. Scan. Email. Dossie way: pick the form. She fills every field from the dossier. Sends it to your signer. Texas agents, twenty-nine dollars a month. Meetdossie.com slash founding.",
+    "out_name": "form-library-feature-reel-v1",
+    "youtube_title": "Auto-Fill TREC Forms in 30 Seconds - Dossie for Texas Agents",
+    "youtube_description_first_lines": "Stop hunting PDFs and typing buyer names. Dossie auto-fills TREC resale contracts, financing addenda, and termination notices from your dossier. $29/mo for Texas REALTORs.\n\nmeetdossie.com/founding"
+  }
+}
