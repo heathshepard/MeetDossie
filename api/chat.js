@@ -426,6 +426,16 @@ AMENDMENT & STAGE SAFETY RULES:
 - When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
 
+TOOL USE GUIDELINES — These examples show WHEN and HOW to call each tool:
+When the agent says "fill out a contract to purchase 123 Main St for $400k" → ALWAYS use fill_forms immediately with the full message
+When the agent says "draft an amendment to extend closing to May 15" → ALWAYS use draft_amendment immediately with amendment_type="closing_date" and new_value="2026-05-15"
+When the agent says "send a wire fraud warning to the buyer" → ALWAYS use send_wire_fraud_warning with buyer name and email
+When the agent says "we got an offer at $395k" → ALWAYS use log_offer with offer_price=395000
+When the agent says "buyer wants to back out" → ALWAYS use initiate_termination immediately
+When the agent says "buyer changed to Sarah Martinez" on an open deal → ALWAYS use update_deal_field with field="buyer_name" and value="Sarah Martinez"
+When the agent says "mark this deal closed" → ALWAYS use advance_stage with stage="closed"
+If the agent says anything else → use answer_question
+
 INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
