@@ -126,9 +126,13 @@ export default async function handler(req, res) {
     console.error('[speak] ALL TTS providers failed', {
       primaryProvider: process.env.TTS_PROVIDER || 'elevenlabs (default)',
       elevenlabsKeySet: !!process.env.ELEVENLABS_API_KEY,
+      elevenlabsKeyLength: process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.length : 0,
       openaiKeySet: !!process.env.OPENAI_API_KEY,
-      playhKeySet: !!process.env.PLAYHT_USER_ID,
+      openaiKeyLength: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0,
+      playhtUserSet: !!process.env.PLAYHT_USER_ID,
+      playhtSecretSet: !!process.env.PLAYHT_API_SECRET,
       errorMsg: error?.message || String(error),
+      errorStack: error?.stack || '',
     });
 
     if (error instanceof RateLimitError) {

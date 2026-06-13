@@ -101,12 +101,12 @@ async function tryOpenAI(text, options) {
   if (!process.env.OPENAI_API_KEY) return null;
   const persona = (options.persona || 'luna').toLowerCase();
   const openaiVoice = OPENAI_VOICE_MAP[persona] || 'nova';
-  
+
   // OpenAI tts-1-hd doesn't support SSML. Strip all break tags and replace with ellipsis pauses.
   const cleanedText = text
     .replace(/<break\s+time=["']?\d+ms["']?\s*\/?>/g, '... ')
     .replace(/<[^>]+>/g, ''); // Remove any other XML-like tags as fallback
-  
+
   try {
     const res = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -134,8 +134,9 @@ async function tryOpenAI(text, options) {
   }
 }
 
+
 async function generateSpeech(text, options = {}) {
-  // Provider order: primary chosen by TTS_PROVIDER, then the other two as fallbacks.
+  // Provider order: primary chosen by TTS_PROVIDER, then the other APIs as fallbacks.
   const all = {
     playht: tryPlayHT,
     elevenlabs: tryElevenLabs,
@@ -143,11 +144,16 @@ async function generateSpeech(text, options = {}) {
   };
   const order = [PROVIDER, ...Object.keys(all).filter((k) => k !== PROVIDER)];
 
+  console.log(`[tts] generateSpeech starting with primary provider: ${PROVIDER}`);
   for (const name of order) {
     const fn = all[name];
     if (!fn) continue;
+    console.log(`[tts] Trying provider: ${name}`);
     const result = await fn(text, options);
-    if (result) return result;
+    if (result) {
+      console.log(`[tts] SUCCESS with provider: ${name}`);
+      return result;
+    }
   }
 
   throw new Error('TTS unavailable: all providers (PlayHT, ElevenLabs, OpenAI) failed or unconfigured');
