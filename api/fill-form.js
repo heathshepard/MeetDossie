@@ -443,38 +443,12 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
     if (m) closingDateDisplay = months[parseInt(m[2], 10) - 1] + ' ' + parseInt(m[3], 10) + ', ' + m[1];
   }
 
-  const buyerFields = [
-    { name: 'buyer_name',              default_value: fv.buyer_name || '',                                  readonly: true },
-    { name: 'property_address',        default_value: fv.property_address || '',                            readonly: true },
-    { name: 'legal_description',       default_value: fv.legal_description || '',                           readonly: true },
-    { name: 'county',                  default_value: fv.county || '',                                      readonly: true },
-    { name: 'down_payment',            default_value: fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : '', readonly: true },
-    { name: 'loan_amount',             default_value: fv.loan_amount ? formatMoney(fv.loan_amount) : '',    readonly: true },
-    { name: 'sales_price',             default_value: fv.sale_price ? formatMoney(fv.sale_price) : '',      readonly: true },
-    { name: 'earnest_money_amount',    default_value: fv.earnest_money ? formatMoney(fv.earnest_money) : '', readonly: true },
-    { name: 'earnest_money_holder',    default_value: fv.earnest_money_to || fv.title_company || '',        readonly: true },
-    { name: 'option_period_days',      default_value: fv.option_period_days != null ? String(fv.option_period_days) : '', readonly: true },
-    { name: 'option_fee',              default_value: fv.option_fee ? formatMoney(fv.option_fee) : '',      readonly: true },
-    { name: 'title_company_name',      default_value: fv.title_company || '',                               readonly: true },
-    { name: 'closing_date',            default_value: closingDateDisplay,                                   readonly: true },
-    { name: 'listing_broker_firm',     default_value: fv.listing_broker_firm || '',                        readonly: true },
-    { name: 'listing_agent_name',      default_value: fv.listing_agent_name || '',                         readonly: true },
-    { name: 'listing_agent_license',   default_value: fv.listing_agent_license || '',                      readonly: true },
-    { name: 'other_broker_firm',       default_value: fv.other_broker_firm || '',                          readonly: true },
-    { name: 'other_agent_name',        default_value: fv.selling_agent_name || fv.other_broker_assoc_name || '', readonly: true },
-    { name: 'other_agent_license',     default_value: fv.selling_agent_license || fv.other_broker_assoc_license || '', readonly: true },
-    { name: 'buyers_agent_commission', default_value: fv.buyer_agent_commission ? String(fv.buyer_agent_commission).replace('%','').trim() : '', readonly: true },
-    { name: 'third_party_financing',   default_value: isFinanced ? 'true' : 'false',                       readonly: true },
-    { name: 'financing_addendum_check',default_value: (isFinanced || fv.financing_addendum === true) ? 'true' : 'false', readonly: true },
-    { name: 'hoa_addendum_check',      default_value: (fv.hoa_exists === true || fv.hoa_addendum === true) ? 'true' : 'false', readonly: true },
-    { name: 'as_is',                   default_value: fv.as_is_with_repairs !== true ? 'true' : 'false',   readonly: true },
-    { name: 'survey_c1',               default_value: (fv.survey_option || 'c1') === 'c1' ? 'true' : 'false', readonly: true },
-    { name: 'title_seller_pays',       default_value: fv.title_buyer_expense !== true ? 'true' : 'false',  readonly: true },
-  ];
-
-  const sellerFields = [
-    { name: 'seller_name', default_value: fv.seller_name || '', readonly: true },
-  ];
+  // NOTE: DocuSeal template 4111319 currently only has signature/date/initial fields.
+  // Prefilled data fields (buyer_name, property_address, etc.) do not exist in the template.
+  // Phase 2 will add these fields to the template via the DocuSeal UI.
+  // For Phase 1, we submit without prefill fields — just signatures.
+  const buyerFields = [];
+  const sellerFields = [];
 
   // DOCUSEAL TEMPLATE ROLE MAPPING
   // Template 4111319 (TREC 20-19) uses "First Party" as the role name, not "Buyer"/"Seller".
