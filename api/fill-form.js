@@ -476,15 +476,22 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
     { name: 'seller_name', default_value: fv.seller_name || '', readonly: true },
   ];
 
+  // DOCUSEAL TEMPLATE ROLE MAPPING
+  // Template 4111319 (TREC 20-19) uses "First Party" as the role name, not "Buyer"/"Seller".
+  // If the template doesn't support those role names, we submit with a single "First Party" role
+  // and only include buyer fields for now (Phase 1: buyer-side signing).
+  // Phase 2 will require updating the DocuSeal template to support two-party signing.
+
   const res = await fetch(DOCUSEAL_BASE + '/submissions', {
     method: 'POST',
     headers: { 'X-Auth-Token': DOCUSEAL_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       template_id: DOCUSEAL_TREC_20_19_TEMPLATE_ID,
       send_email: false,
+      // DocuSeal template only has "First Party" role for Phase 1.
+      // Phase 2 will require template redesign to support buyer + seller two-party signing.
       submitters: [
-        { role: 'Buyer',  name: buyerName  || fv.buyer_name  || 'Buyer',  email: buyerEmail  || '', fields: buyerFields },
-        { role: 'Seller', name: sellerName || fv.seller_name || 'Seller', email: sellerEmail || '', fields: sellerFields },
+        { role: 'First Party', name: buyerName || fv.buyer_name || 'Buyer', email: buyerEmail || '', fields: buyerFields },
       ],
     }),
   });
