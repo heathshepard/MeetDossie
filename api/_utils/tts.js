@@ -21,7 +21,7 @@
 
 const { synthesize: playhtSynthesize } = require('../_lib/playht-tts');
 
-const PROVIDER = (process.env.TTS_PROVIDER || 'playht').toLowerCase();
+const PROVIDER = (process.env.TTS_PROVIDER || 'elevenlabs').toLowerCase();
 
 // OpenAI voice mapping — closest perceptual match to each Dossie persona.
 const OPENAI_VOICE_MAP = {
