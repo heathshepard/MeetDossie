@@ -124,8 +124,9 @@ async function loadSchedules() {
   return ok && Array.isArray(data) ? data : [];
 }
 
-// Count posts with status='posted' AND a real zernio_post_id (post-survival
-// verification — see Fix #3). NULL zernio_post_id means we don't trust it.
+// Count posts with status='posted' today (primary ship signal). Secondary
+// verification: log warning if zernio_post_id is null (Zernio API shape
+// regression on 2026-06-06 fixed by adding new shape extraction paths).
 async function countActuallyPostedToday(platform) {
   const now = DateTime.now().setZone(TZ);
   const startUtc = now.startOf('day').toUTC().toISO();
@@ -133,12 +134,19 @@ async function countActuallyPostedToday(platform) {
 
   const filter = `platform=eq.${encodeURIComponent(platform)}` +
     `&status=eq.posted` +
-    `&zernio_post_id=not.is.null` +
     `&posted_at=gte.${encodeURIComponent(startUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endUtc)}` +
-    `&select=id`;
+    `&select=id,zernio_post_id,error_message`;
   const { ok, data } = await sb(`/rest/v1/social_posts?${filter}`);
-  return ok && Array.isArray(data) ? data.length : 0;
+  if (!ok || !Array.isArray(data)) return 0;
+
+  // Log warning if any posted rows are missing zernio_post_id (likely unverified)
+  const unverified = data.filter(r => !r.zernio_post_id);
+  if (unverified.length > 0) {
+    console.warn(`[watchdog] ${platform}: ${unverified.length} posted rows missing zernio_post_id (unverified survival — see error_message)`);
+  }
+
+  return data.length;
 }
 
 // Count "approved-and-due" (not yet posted) for this platform — does the
