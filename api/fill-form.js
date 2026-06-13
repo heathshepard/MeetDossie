@@ -3048,6 +3048,26 @@ module.exports = async function handler(req, res) {
     // Agent-supplied field_values override transaction defaults
     const mergedFields = Object.assign({}, txDefaults, fieldValues);
 
+    // VALIDATION: Buyer/seller role integrity check
+    // If the transaction has a role, validate that buyer_name and seller_name are on the correct sides.
+    if (tx.role && resolvedFormType === 'resale-contract') {
+      const hasBuyerName = mergedFields.buyer_name && String(mergedFields.buyer_name).trim();
+      const hasSellerName = mergedFields.seller_name && String(mergedFields.seller_name).trim();
+
+      if (tx.role === 'buyer' && hasSellerName && !hasBuyerName) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Buyer name is required for buyer-side contract. The party you named appears to be the seller — please re-state which client is the buyer.',
+        });
+      }
+      if (tx.role === 'listing' && hasBuyerName && !hasSellerName) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Seller name is required for listing-side contract. The party you named appears to be the buyer — please re-state which client is the seller.',
+        });
+      }
+    }
+
     console.log('[fill-form] filling', resolvedFormType, 'for tx', transactionId);
 
     // Resale contract uses DocuSeal template (semantic field names, no AcroForm guessing).
