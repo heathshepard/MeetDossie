@@ -123,7 +123,13 @@ export default async function handler(req, res) {
     res.end();
 
   } catch (error) {
-    console.error('Speak API error:', error);
+    console.error('[speak] ALL TTS providers failed', {
+      primaryProvider: process.env.TTS_PROVIDER || 'elevenlabs (default)',
+      elevenlabsKeySet: !!process.env.ELEVENLABS_API_KEY,
+      openaiKeySet: !!process.env.OPENAI_API_KEY,
+      playhKeySet: !!process.env.PLAYHT_USER_ID,
+      errorMsg: error?.message || String(error),
+    });
 
     if (error instanceof RateLimitError) {
       if (error.retryAfterSeconds) {
