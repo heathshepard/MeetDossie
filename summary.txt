@@ -1,0 +1,49 @@
+OPUS VS SONNET TALK-TO-DOSSIE TEST REPORT
+Date: 2026-06-13
+
+STATUS: Test framework prepared. Awaiting Quinn's bug report to execute.
+
+WHAT I PREPARED:
+1. test-opus-vs-sonnet.mjs - Intent extraction test harness
+2. opus-vs-sonnet-results.json - Results capture format
+3. Documented methodology for 2-step model comparison
+
+WHAT I CANNOT DO WITHOUT QUINN'S REPORT:
+- Actual bug re-testing (35 specific bugs)
+- Cost-benefit calculation
+- Final recommendation (SHIP / MIXED / STAY)
+
+BLOCKING DEPENDENCY:
+File: C:\Users\Health Shepard\Desktop\Shepard-Ventures\Engineering\dossie-stress-test-2026-06-13.md
+Status: Not created yet (Quinn's overnight test results)
+
+WHEN QUINN'S REPORT ARRIVES:
+1. Extract bug list (35 bugs with reproduction steps)
+2. Create staging-opus-test branch
+3. Modify api/chat.js line 111 + 696: Sonnet -> Opus
+4. Deploy to Vercel preview
+5. Re-run each bug test against Opus
+6. Calculate: bugs_fixed / 35 * 100
+7. Decision:
+   - >= 60% fixed: SHIP_OPUS (cost justified)
+   - 40-59% fixed: MIXED_APPROACH (hybrid routing)
+   - < 40% fixed: STAY_SONNET (focus on infra bugs)
+
+COST MATH (current scale ~100 calls/day):
+- Sonnet: $9/mo
+- Opus: $37/mo (5x increase, ~$27 delta per month)
+- Break-even: fixes >= 15 bugs (43%)
+
+TIMELINE:
+- Preparation: DONE (1.5 hours)
+- Execution (once Quinn reports): ~1-1.5 hours
+- Total ETA from now: 2-3 hours as Heath requested
+
+TEST HARNESS FILES CREATED:
+- test-opus-vs-sonnet.mjs (ready to run)
+- scripts/test-opus-vs-sonnet.js (simpler version)
+- opus-vs-sonnet-results.json (output format)
+
+NEXT STEP:
+Wait for Quinn to post bug report to Telegram or file system.
+Then execute the test plan above.
