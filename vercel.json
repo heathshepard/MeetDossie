@@ -206,6 +206,9 @@
                                                          },
                       "api/cron-customer-view-digest.js":  {
                                                                "maxDuration":  120
+                                                           },
+                      "api/cron-affiliate-qualify-referrals.js":  {
+                                                               "maxDuration":  60
                                                            }
                   },
     "crons":  [
