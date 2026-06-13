@@ -45,33 +45,39 @@ async function main() {
   try {
     console.log('Fetching all founding members...');
 
-    // Get all founding members
-    const { data: founders, error: fetchError } = await supabase
+    // Get all active founding subscriptions
+    const { data: subscriptions, error: fetchError } = await supabase
       .from('subscriptions')
-      .select('user_id, profiles(id, full_name, email)')
+      .select('user_id')
       .eq('plan', 'founding')
       .eq('status', 'active');
 
     if (fetchError) {
-      console.error('Error fetching founders:', fetchError);
+      console.error('Error fetching subscriptions:', fetchError);
       process.exit(1);
     }
 
-    if (!founders || founders.length === 0) {
+    if (!subscriptions || subscriptions.length === 0) {
       console.log('No founding members found.');
       process.exit(0);
     }
 
-    console.log(`Found ${founders.length} founding members. Generating affiliate codes...`);
+    console.log(`Found ${subscriptions.length} founding members. Generating affiliate codes...`);
 
     let generatedCount = 0;
     let errorCount = 0;
 
-    for (const founder of founders) {
-      const userId = founder.user_id;
-      const profile = founder.profiles;
+    for (const sub of subscriptions) {
+      const userId = sub.user_id;
 
-      if (!profile) {
+      // Get the profile for this user
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile) {
         console.warn(`No profile found for user ${userId}`);
         errorCount++;
         continue;

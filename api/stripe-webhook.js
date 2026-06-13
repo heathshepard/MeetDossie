@@ -416,6 +416,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   }
 
   // Track affiliate referral if ref code present
+  // NEW FLOW: referral starts as 'pending_qualification', only locks in rewards after 6 months
   if (affiliateRef) {
     try {
       const { data: affiliate } = await supabaseFetch(`/rest/v1/affiliate_links?code=eq.${encodeURIComponent(affiliateRef)}&select=user_id&limit=1`);
@@ -423,6 +424,8 @@ async function handleCheckoutSessionCompleted(stripe, session) {
         const affiliateUserId = affiliate[0].user_id;
         // Determine reward: founding customers get $100, others get $50
         const reward = tier === 'founding' ? 10000 : 5000;
+        const now = new Date();
+        const payoutEligibleAt = new Date(now.getTime() + 6 * 30 * 24 * 60 * 60 * 1000).toISOString();
 
         await supabaseFetch('/rest/v1/affiliate_referrals', {
           method: 'POST',
@@ -432,46 +435,49 @@ async function handleCheckoutSessionCompleted(stripe, session) {
             referred_user_id: userId,
             referred_email: customerEmail,
             ref_code: affiliateRef,
-            status: 'paid',
-            paid_at: new Date().toISOString(),
+            status: 'pending_qualification',
             reward_cents: reward,
+            payout_eligible_at: payoutEligibleAt,
           }),
         });
 
-        // Fetch current affiliate stats to increment
+        // Increment referrals_count but NOT earnings_cents (wait for qualification)
         try {
-          const currentStats = await supabaseFetch(`/rest/v1/affiliate_links?user_id=eq.${encodeURIComponent(affiliateUserId)}&select=referrals_count,earnings_cents&limit=1`);
+          const currentStats = await supabaseFetch(`/rest/v1/affiliate_links?user_id=eq.${encodeURIComponent(affiliateUserId)}&select=referrals_count&limit=1`);
           if (Array.isArray(currentStats) && currentStats.length > 0) {
             await supabaseFetch(`/rest/v1/affiliate_links?user_id=eq.${encodeURIComponent(affiliateUserId)}`, {
               method: 'PATCH',
               headers: { Prefer: 'return=minimal' },
               body: JSON.stringify({
                 referrals_count: currentStats[0].referrals_count + 1,
-                earnings_cents: currentStats[0].earnings_cents + reward,
               }),
             });
           }
         } catch (err) {
-          console.warn('[stripe-webhook] affiliate stats increment failed:', err && err.message);
+          console.warn('[stripe-webhook] affiliate referrals_count increment failed:', err && err.message);
         }
 
-        console.log('[stripe-webhook] checkout.session.completed: affiliate referral tracked for affiliate=', affiliateUserId, 'referred=', userId, 'reward=', reward);
+        console.log('[stripe-webhook] checkout.session.completed: affiliate referral pending_qualification for affiliate=', affiliateUserId, 'referred=', userId, 'reward=', reward, 'eligible_at=', payoutEligibleAt);
 
-        // Notify affiliate via email
+        // Notify affiliate via email with qualification timeline
         try {
           const affiliateData = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(affiliateUserId)}&select=full_name,email&limit=1`);
           if (Array.isArray(affiliateData) && affiliateData.length > 0) {
             const affiliateProfile = affiliateData[0];
             const affiliateName = (affiliateProfile.full_name || '').split(' ')[0] || 'Friend';
             const rewardFormatted = (reward / 100).toFixed(2);
+            const qualificationDate = new Date(payoutEligibleAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const referredName = (customerName || 'your referral').split(' ')[0];
             await sendEmail({
               to: affiliateProfile.email,
-              subject: `🎉 Someone signed up with your Dossie affiliate link — $${rewardFormatted} credited`,
+              subject: `🌱 ${referredName} signed up with your Dossie affiliate link — $${rewardFormatted} pending`,
               html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #FDFCFA; color: #1A1A2E;">
               <h2 style="margin-top: 0;">Hey ${affiliateName}!</h2>
-              <p>${customerName} just signed up using your affiliate link.</p>
-              <p style="font-weight: bold; color: #C9A96E; font-size: 18px;">$${rewardFormatted} has been credited to your affiliate balance.</p>
-              <p>Keep sharing — every referral counts toward your next payout.</p>
+              <p>${referredName} just signed up using your affiliate link.</p>
+              <p style="font-weight: bold; color: #8BA888; font-size: 16px;">🌱 Pending qualification</p>
+              <p>Your <strong>$${rewardFormatted} reward will lock in on ${qualificationDate}</strong> if ${referredName}'s subscription is still active. This prevents gaming and keeps the program fair.</p>
+              <p style="font-size: 14px; color: #5C6B7A;">If ${referredName} cancels before ${qualificationDate}, the reward voids — but we'll let you know.</p>
+              <p>Keep sharing — thanks for spreading the word about Dossie!</p>
               <p>—Cole</p>
               </div>`,
             });

@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   // Get recent referrals
   const { data: referrals } = await supabase
     .from('affiliate_referrals')
-    .select('id, referred_email, status, reward_cents, click_at, paid_at')
+    .select('id, referred_email, status, reward_cents, click_at, paid_at, payout_eligible_at, qualified_at')
     .eq('affiliate_user_id', user.id)
     .order('click_at', { ascending: false });
 
@@ -44,8 +44,23 @@ export default async function handler(req, res) {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Calculate available balance
+  // Calculate balances
   const availableBalance = affiliate.earnings_cents - affiliate.paid_out_cents;
+
+  // Calculate pending qualification balance (sum of pending referral rewards)
+  const pendingQualificationCents = (referrals || [])
+    .filter(r => r.status === 'pending_qualification')
+    .reduce((sum, r) => sum + (r.reward_cents || 0), 0);
+
+  // Find earliest qualification date for pending referrals
+  const pendingReferrals = (referrals || []).filter(r => r.status === 'pending_qualification');
+  const earliestQualificationDate = pendingReferrals.length > 0
+    ? pendingReferrals.reduce((earliest, r) => {
+        const rDate = new Date(r.payout_eligible_at);
+        const eDate = new Date(earliest.payout_eligible_at);
+        return rDate < eDate ? r : earliest;
+      }).payout_eligible_at
+    : null;
 
   return res.status(200).json({
     code: affiliate.code,
@@ -54,6 +69,8 @@ export default async function handler(req, res) {
     earningsCents: affiliate.earnings_cents,
     paidOutCents: affiliate.paid_out_cents,
     availableBalanceCents: availableBalance,
+    pendingQualificationCents,
+    earliestQualificationDate,
     createdAt: affiliate.created_at,
     recentReferrals: referrals || [],
     payoutHistory: payouts || [],
