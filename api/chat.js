@@ -420,6 +420,12 @@ EXECUTION RULES:
 - Keep spoken responses concise — you are speaking out loud, not writing an email.
 - When the agent says "that deal" or "it" or "this one", use the most recently mentioned deal.
 
+AMENDMENT & STAGE SAFETY RULES:
+- CRITICAL: Do NOT use update_deal_field for changes to executed contract fields like closing_date, option_days, sale_price, earnest_money, buyer_name, or seller_name. Those changes MUST use draft_amendment because they require an executed amendment PDF (TREC 39-10), not a silent dossier edit.
+- CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, or initiate_termination on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
+- When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
+- If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
+
 INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
