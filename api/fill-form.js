@@ -1067,22 +1067,21 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   // LOAN TYPE — wire each type's fields
   if (ft === 'conventional' || fv.financing_conventional === true) {
     safeCheck(form, '1 Conventional Financing');
-    // PRINCIPAL AMOUNT: "a A first mortgage loan in the principal amount of"
-    safeSetText(form, 'a A first mortgage loan in the principal amount of', loanAmt);
-    // TERM YEARS: "due in full in" [X] "year(s)" — use loan_term_years or default 30
+    // PRINCIPAL AMOUNT: Field verified from PDF inspector as 'any financed PMI premium due in full in 1'
+    safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
+    // TERM YEARS: Conventional term stored in same "years" field as other loan types
     const loanTermYears = fv.loan_term_years || 30;
-    safeSetText(form, 'due in full in', String(loanTermYears));
+    safeSetText(form, 'years', String(loanTermYears));
     // INTEREST RATE: "with interest not to exceed" [X] "% per annum"
     const interestRate = fv.interest_rate_max || '';
     safeSetText(form, 'with interest not to exceed', interestRate);
-    // ORIGINATION CHARGES CAP: "Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed"
+    // ORIGINATION CHARGES CAP: "shown on Buyers Loan Estimate for the loan not to exceed"
     safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || '');
 
     // Second loan (if applicable)
-    safeSetText(form, 'any financed PMI premium due in full in 1_2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
-    safeSetText(form, 'any financed PMI premium due in full in 2_2', fv.second_loan_amount_2 != null && fv.second_loan_amount_2 !== '' ? formatMoney(fv.second_loan_amount_2) : '');
-    safeSetText(form, 'per annum for the first_2', fv.second_interest_rate_cap || '');
-    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed_2', fv.second_origination_charges_cap || '');
+    safeSetText(form, 'any financed PMI premium due in full in 2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
+    safeSetText(form, 'per annum for the first', fv.second_interest_rate_cap || '');
+    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.second_origination_charges_cap || '');
   }
 
   if (ft === 'tx_veterans' || fv.financing_tx_veterans === true) {
@@ -1093,15 +1092,15 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'fha' || fv.financing_fha === true) {
     safeCheck(form, '3 FHA Insured Financing A Section');
-    // FHA loan amount (principal)
+    // FHA loan amount (principal) — Field verified from PDF: 'excluding any financed MIP amortizable monthly for not less'
     safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', loanAmt);
-    // FHA amortization years
+    // FHA amortization years — Field verified from PDF: 'than'
     const fhaYears = fv.loan_term_years || fv.fha_amortization_years || 30;
     safeSetText(form, 'than', String(fhaYears));
-    // FHA interest rate cap
+    // FHA interest rate cap — Field verified from PDF: 'years with interest not to exceed_2'
     const fhaRate = fv.interest_rate_max || fv.fha_interest_rate_cap || '';
     safeSetText(form, 'years with interest not to exceed_2', fhaRate);
-    // FHA origination charges
+    // FHA origination charges — Field verified from PDF: 'Charges as shown on Buyers Loan Estimate for the loan not to exceed'
     safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '');
     if (fv.fha_conversion_amount) {
       safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
@@ -1111,28 +1110,33 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'va' || fv.financing_va === true) {
     safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
-    // VA loan amount
+    // VA loan amount — Field verified from PDF: 'excluding any financed Funding Fee amortizable monthly for not less than'
     safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', loanAmt);
-    // VA amortization years
+    // VA amortization years — Field verified from PDF: 'years'
     const vaYears = fv.loan_term_years || fv.va_amortization_years || 30;
     safeSetText(form, 'years', String(vaYears));
-    // VA interest rate
+    // VA interest rate — Field verified from PDF: 'with interest not to exceed'
     const vaRate = fv.interest_rate_max || fv.va_interest_rate_cap || '';
     safeSetText(form, 'with interest not to exceed', vaRate);
+    // VA per annum first — Field verified from PDF: 'per annum for the first_4'
     safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '');
+    // VA origination charges — Field verified from PDF: 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed'
     safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '');
+    // VA appraised value
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : '');
   }
 
   if (ft === 'usda' || fv.financing_usda === true) {
     safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
-    // USDA loan amount
+    // USDA loan amount — Field verified from PDF: 'any financed PMI premium or other costs with interest not to exceed'
+    // NOTE: This field was incorrectly holding interest_rate_max in tests; ensure only loan amount is set here
     safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', loanAmt);
-    // Note: USDA section may need additional fields (amortization years, interest rate) — verify PDF
+    // TODO: Add USDA amortization years and interest rate fields once PDF structure is fully audited
   }
 
   if (ft === 'reverse' || fv.financing_reverse === true) {
     safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
+    // Reverse mortgage fields — verified from PDF inspection
     safeSetText(form, 'excluding_2', fv.reverse_exclusion || '');
     safeSetText(form, 'not to exceed_2', fv.reverse_not_exceed || '');
     safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
