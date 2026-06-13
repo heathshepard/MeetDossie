@@ -1,0 +1,46 @@
+{
+  "results": [
+    {
+      "id": "fc1762df-60eb-463f-98c6-5e10eed13e6d",
+      "label": "texas-real-estate-agents",
+      "needle": "Option periods, financing contingencies, appraisal windows",
+      "groupName": "Texas Real Estate Agents",
+      "outcome": "unknown"
+    },
+    {
+      "id": "37faa0aa-dce2-4dfe-bced-48e507eb2d2f",
+      "label": "texas-real-estate-network",
+      "needle": "spreadsheet line item gets brutal",
+      "groupName": "Texas Real Estate Network",
+      "outcome": "unknown"
+    },
+    {
+      "id": "d078e368-1738-4bdc-a2f5-fc1f0fe8399c",
+      "label": "dallas-texas-realtors",
+      "needle": "drained me the most early on",
+      "groupName": "Dallas Texas Realtors",
+      "outcome": "already_posted"
+    },
+    {
+      "id": "b9add267-e9b1-4f4d-8421-debe19dec9db",
+      "label": "all-about-real-estate-houston",
+      "needle": "email chains across six parties",
+      "groupName": "All about Real Estate Houston",
+      "outcome": "unknown"
+    },
+    {
+      "id": "b4aa1c2f-924b-4aa6-9330-373d897c1b36",
+      "label": "realtors-san-antonio-boerne",
+      "needle": "Stone Oak listings and Hill Country buyers",
+      "groupName": "Realtors San Antonio Boerne Bulverde New Braunfels",
+      "outcome": "unknown"
+    },
+    {
+      "id": "d68ce2f6-f3e9-4dbb-99d5-5f053cf4f315",
+      "label": "texas-hill-country-real-estate",
+      "needle": "solo agents working Hill Country deals",
+      "groupName": "Texas Hill Country Real Estate",
+      "outcome": "already_posted"
+    }
+  ]
+}

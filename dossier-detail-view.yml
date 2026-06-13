@@ -1,0 +1,153 @@
+- generic [ref=e8]:
+  - banner [ref=e9]:
+    - button "D Dossie" [ref=e10] [cursor=pointer]:
+      - generic [ref=e11]: D
+      - generic [ref=e12]: Dossie
+    - button "Talk to Dossie" [ref=e13] [cursor=pointer]: 📞 Talk to Dossie
+  - complementary [ref=e14]:
+    - generic [ref=e16]:
+      - button "☀️ Morning Brief 2" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: ☀️
+        - generic [ref=e19]: Morning Brief
+        - generic [ref=e20]: "2"
+      - button "🗂️ Pipeline" [ref=e21] [cursor=pointer]:
+        - generic [ref=e22]: 🗂️
+        - generic [ref=e23]: Pipeline
+      - button "🚀 What's Coming" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: 🚀
+        - generic [ref=e26]: What's Coming
+      - button "✉️ Emails" [ref=e27] [cursor=pointer]:
+        - generic [ref=e28]: ✉️
+        - generic [ref=e29]: Emails
+      - button "🧷 Closed Dossiers 6" [ref=e30] [cursor=pointer]:
+        - generic [ref=e31]: 🧷
+        - generic [ref=e32]: Closed Dossiers
+        - generic [ref=e33]: "6"
+      - button "🎫 Support" [ref=e34] [cursor=pointer]:
+        - generic [ref=e35]: 🎫
+        - generic [ref=e36]: Support
+      - button "⚙️ Settings" [ref=e37] [cursor=pointer]:
+        - generic [ref=e38]: ⚙️
+        - generic [ref=e39]: Settings
+      - button "✓ Getting Started Done" [ref=e40] [cursor=pointer]:
+        - generic [ref=e41]: ✓
+        - generic [ref=e42]: Getting Started
+        - generic [ref=e43]: Done
+    - button "Share Dossie" [ref=e44] [cursor=pointer]:
+      - img [ref=e46]
+      - generic [ref=e49]: Share Dossie
+    - generic [ref=e50]:
+      - generic [ref=e51]: SW
+      - generic [ref=e52]:
+        - generic [ref=e53]: Sarah Whitley
+        - generic [ref=e54]: demo@meetdossie.com
+      - button "Sign Out" [ref=e55] [cursor=pointer]
+  - main [ref=e56]:
+    - generic [ref=e57]:
+      - generic [ref=e58]:
+        - generic [ref=e59]: The TC That Never Sleeps.
+        - heading "Dossie keeps the whole file." [level=1] [ref=e60]
+      - button "Open New Dossier" [ref=e61] [cursor=pointer]
+    - generic [ref=e203]:
+      - button "Have broker-required documents? Add them to Settings → My Standard Documents and they'll appear on every dossier automatically. Dismiss" [ref=e204] [cursor=pointer]:
+        - generic [ref=e205]:
+          - text: Have broker-required documents? Add them to
+          - strong [ref=e206]: Settings → My Standard Documents
+          - text: and they'll appear on every dossier automatically.
+        - button "Dismiss" [ref=e207]: ×
+      - generic [ref=e209]:
+        - heading "Pipeline Dashboard" [level=2] [ref=e210]
+        - generic [ref=e211]: All active dossiers organized by stage. Click any card to open the dossier.
+      - generic [ref=e212]:
+        - generic [ref=e213]:
+          - generic [ref=e214]:
+            - generic [ref=e215]: 📋 Pre-Contract
+            - generic [ref=e216]: "2"
+          - generic [ref=e217] [cursor=pointer]:
+            - generic [ref=e218]: Warm Lead
+            - generic [ref=e220]: 123 Main Street
+          - generic [ref=e221] [cursor=pointer]:
+            - generic [ref=e222]: Warm Lead
+            - generic [ref=e224]: Jordan Reyes
+            - generic [ref=e225]: Jordan Reyes
+        - generic [ref=e226]:
+          - generic [ref=e227]:
+            - generic [ref=e228]: 📋 Pre-Listing
+            - generic [ref=e229]: "1"
+          - generic [ref=e230] [cursor=pointer]:
+            - generic [ref=e231]: Warm Lead
+            - generic [ref=e233]: 742 Lakeview Drive
+            - generic [ref=e234]: Sandra Martinez
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - generic [ref=e237]: 🏡 Active Listing
+            - generic [ref=e238]: "0"
+          - generic [ref=e239]: No files in this stage.
+        - generic [ref=e240]:
+          - generic [ref=e241]:
+            - generic [ref=e242]: 🤝 Under Contract
+            - generic [ref=e243]: "4"
+          - generic [ref=e244] [cursor=pointer]:
+            - generic [ref=e245]: 1247 Sample Way
+            - generic [ref=e246]: Carlos and Rosa Martinez
+            - generic [ref=e247]: Financing due in 3 days · 6/16/2026
+          - generic [ref=e248] [cursor=pointer]:
+            - generic "Has milestones" [ref=e249]: 🏆
+            - generic [ref=e250]: 456 Builder Blvd
+            - generic [ref=e251]: Brian and Cassie Nguyen
+            - generic [ref=e252]: Financing due in 6 days · 6/19/2026
+          - generic [ref=e253] [cursor=pointer]:
+            - generic "Has milestones" [ref=e254]: 🏆
+            - generic [ref=e255]: 789 Ranch Rd
+            - generic [ref=e256]: Mark and Deborah Castillo
+            - generic [ref=e257]: Financing due in 6 days · 6/19/2026
+          - generic [ref=e258] [cursor=pointer]:
+            - generic "Has milestones" [ref=e259]: 🏆
+            - generic [ref=e260]: 321 Oak St
+            - generic [ref=e261]: Lindsey Moore
+            - generic [ref=e262]: Financing due in 6 days · 6/19/2026
+        - generic [ref=e263]:
+          - generic [ref=e264]:
+            - generic [ref=e265]: 🔎 Option Period
+            - generic [ref=e266]: "0"
+          - generic [ref=e267]: No files in this stage.
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - generic [ref=e270]: 🛠️ Inspection
+            - generic [ref=e271]: "0"
+          - generic [ref=e272]: No files in this stage.
+        - generic [ref=e273]:
+          - generic [ref=e274]:
+            - generic [ref=e275]: 🏦 Financing
+            - generic [ref=e276]: "0"
+          - generic [ref=e277]: No files in this stage.
+        - generic [ref=e278]:
+          - generic [ref=e279]:
+            - generic [ref=e280]: 📜 Title & Survey
+            - generic [ref=e281]: "0"
+          - generic [ref=e282]: No files in this stage.
+        - generic [ref=e283]:
+          - generic [ref=e284]:
+            - generic [ref=e285]: ✨ Clear to Close
+            - generic [ref=e286]: "1"
+          - generic [ref=e287] [cursor=pointer]:
+            - generic "Has milestones" [ref=e288]: 🏆
+            - generic [ref=e289]: 311 Rilla Vista
+            - generic [ref=e290]: Kim Paqueo
+  - complementary [ref=e185]:
+    - generic [ref=e186]:
+      - generic [ref=e188]:
+        - generic [ref=e189]: Talk to Dossie
+        - heading [level=3] [ref=e190]: Tell me what you need.
+        - paragraph [ref=e191]: Type your command or tap the mic to dictate. Try "what's urgent today?", "change closing on 311 Main to May 15", or "extend option period on Rilla Vista by 2 days".
+      - button [ref=e192] [cursor=pointer]:
+        - generic [ref=e193]: ⓘ
+        - generic [ref=e194]: "Email monitoring: Not connected"
+        - generic [ref=e195]: Coming Soon
+      - generic [ref=e197]:
+        - textbox [ref=e198]:
+          - /placeholder: Type a command, or tap the mic to start a voice call…
+        - generic [ref=e199]:
+          - button [ref=e200] [cursor=pointer]: 🎤 Voice call
+          - button [disabled] [ref=e201] [cursor=pointer]: Send
+  - button "Help and feedback" [ref=e202] [cursor=pointer]: "?"
