@@ -4,129 +4,129 @@
   "form_number": "TREC 38-7",
   "effective_date": "02-19-2021",
   "page_count": 1,
-  "page_dimensions": { "width": 612, "height": 792 },
-  "description": "Single-page buyer termination notice. Read every line of the PDF to identify: property address, buyer/seller names, contract date, termination date, and reason checkboxes/free text.",
+  "page_dimensions": {
+    "width": 612,
+    "height": 792
+  },
   "fields": {
     "property_address": {
       "page": 1,
-      "x": 80,
-      "y": 650,
+      "anchor_label": "(Street Address and City)",
+      "x": 110,
+      "y": 140,
       "width": 450,
       "height": 20,
       "font_size": 11,
-      "label": "Street Address and City",
       "required": true,
-      "notes": "Full street address, city, state, zip"
+      "notes": "Full street address"
     },
     "seller_name": {
       "page": 1,
-      "x": 80,
-      "y": 615,
-      "width": 250,
+      "anchor_label": "(SELLER)",
+      "x": 50,
+      "y": 172,
+      "width": 140,
       "height": 18,
       "font_size": 11,
-      "label": "SELLER",
       "required": true,
-      "notes": "Full legal name of seller"
+      "notes": "Seller legal name"
     },
     "buyer_name": {
       "page": 1,
-      "x": 80,
-      "y": 590,
-      "width": 250,
+      "anchor_label": "BETWEEN THE UNDERSIGNED BUYER",
+      "x": 50,
+      "y": 175,
+      "width": 200,
       "height": 18,
       "font_size": 11,
-      "label": "BUYER",
       "required": true,
-      "notes": "Full legal name of buyer"
+      "notes": "Buyer legal name"
     },
     "contract_effective_date": {
       "page": 1,
       "x": 350,
-      "y": 590,
+      "y": 160,
       "width": 120,
       "height": 18,
       "font_size": 11,
-      "label": "Date of Contract",
       "required": false,
-      "notes": "Contract date MM/DD/YYYY"
+      "notes": "Contract effective date MM/DD/YYYY"
+    },
+    "termination_notice_date": {
+      "page": 1,
+      "x": 540,
+      "y": 665,
+      "width": 120,
+      "height": 18,
+      "font_size": 11,
+      "required": true,
+      "notes": "Termination notice date MM/DD/YYYY"
     },
     "termination_checkbox_option_period": {
       "page": 1,
-      "x": 45,
-      "y": 518,
       "type": "checkbox",
-      "label": "(1) Option Period - Paragraph 5",
-      "notes": "Check if termination under Option Period right"
+      "x": 60,
+      "y": 290,
+      "required": false,
+      "label": "Option Period"
     },
-    "termination_checkbox_financing_approval": {
+    "termination_checkbox_financing": {
       "page": 1,
-      "x": 45,
-      "y": 485,
       "type": "checkbox",
-      "label": "(2) Financing Approval",
-      "notes": "Check if financing approval failed"
+      "x": 60,
+      "y": 320,
+      "required": false,
+      "label": "Financing"
     },
-    "termination_checkbox_property_approval": {
+    "termination_checkbox_property": {
       "page": 1,
-      "x": 45,
-      "y": 450,
       "type": "checkbox",
-      "label": "(3) Property Approval",
-      "notes": "Check if property approval failed"
+      "x": 60,
+      "y": 350,
+      "required": false,
+      "label": "Property Approval"
     },
     "termination_checkbox_hoa": {
       "page": 1,
-      "x": 45,
-      "y": 415,
       "type": "checkbox",
-      "label": "(4) HOA Termination Right",
-      "notes": "Check if HOA addendum termination"
+      "x": 60,
+      "y": 380,
+      "required": false,
+      "label": "HOA"
     },
     "termination_checkbox_disclosure": {
       "page": 1,
-      "x": 45,
-      "y": 380,
       "type": "checkbox",
-      "label": "(5) Disclosure Notice Issue",
-      "notes": "Check if Seller's Disclosure issue"
+      "x": 60,
+      "y": 410,
+      "required": false,
+      "label": "Disclosure"
     },
     "termination_checkbox_appraisal": {
       "page": 1,
-      "x": 45,
-      "y": 345,
       "type": "checkbox",
-      "label": "(6) Appraisal Termination Right",
-      "notes": "Check if lender appraisal issue"
+      "x": 60,
+      "y": 440,
+      "required": false,
+      "label": "Appraisal"
     },
-    "termination_checkbox_objections": {
+    "termination_checkbox_other": {
       "page": 1,
-      "x": 45,
-      "y": 310,
       "type": "checkbox",
-      "label": "(7) Title Objections Not Cured",
-      "notes": "Check if title objections issue"
+      "x": 60,
+      "y": 470,
+      "required": false,
+      "label": "Other"
     },
     "termination_reason_other": {
       "page": 1,
       "x": 80,
-      "y": 275,
-      "width": 420,
-      "height": 20,
+      "y": 490,
+      "width": 400,
+      "height": 50,
       "font_size": 10,
-      "label": "Other (identify paragraph)",
-      "notes": "Free text for other termination reason"
-    },
-    "buyer_signature_date": {
-      "page": 1,
-      "x": 150,
-      "y": 145,
-      "width": 100,
-      "height": 18,
-      "font_size": 11,
-      "label": "Date",
-      "required": true,
-      "notes": "Date buyer signed notice MM/DD/YYYY"
+      "required": false,
+      "notes": "Free-text reason if 'other' checkbox selected"
     }
   },
   "field_count": 13
