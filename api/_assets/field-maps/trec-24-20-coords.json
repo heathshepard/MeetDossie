@@ -1,66 +1,104 @@
 {
   "form_id": "trec-24-20",
-  "form_name": "New Home Contract (Completed Construction)",
+  "form_name": "New Home Contract (Completed)",
   "form_number": "TREC 24-20",
-  "effective_date": "05-04-2026",
-  "page_count": 11,
-  "page_dimensions": { "width": 612, "height": 792 },
-  "description": "11-page new home contract for completed construction. Similar structure to TREC 23-20 but for finished homes.",
-  "critical_field_count": 45,
-  "fields": {
-    "buyer_name": { "page": 1, "x": 200, "y": 720, "width": 350, "height": 18, "font_size": 11, "label": "BUYER NAME", "required": true },
-    "seller_name": { "page": 1, "x": 80, "y": 698, "width": 450, "height": 18, "font_size": 11, "label": "SELLER NAME", "required": true },
-    "property_address_header": { "page": 1, "x": 80, "y": 760, "width": 450, "height": 20, "font_size": 10, "label": "Contract Concerning (Address)", "required": true },
-    "lot_number": { "page": 1, "x": 100, "y": 660, "width": 80, "height": 16, "font_size": 10, "label": "Lot" },
-    "block_number": { "page": 1, "x": 220, "y": 660, "width": 80, "height": 16, "font_size": 10, "label": "Block" },
-    "addition_name": { "page": 1, "x": 80, "y": 640, "width": 300, "height": 16, "font_size": 10, "label": "Addition" },
-    "city_state": { "page": 1, "x": 400, "y": 640, "width": 150, "height": 16, "font_size": 10, "label": "City of" },
-    "county": { "page": 1, "x": 80, "y": 620, "width": 200, "height": 16, "font_size": 10, "label": "County of" },
-    "property_zip": { "page": 1, "x": 400, "y": 620, "width": 120, "height": 16, "font_size": 10, "label": "Zip/Address" },
-    "property_full_address": { "page": 1, "x": 80, "y": 600, "width": 450, "height": 16, "font_size": 10, "label": "Texas known as (full address)" },
-    "cash_down_payment": { "page": 1, "x": 450, "y": 555, "width": 100, "height": 16, "font_size": 10, "label": "Cash Portion $ (3.A)" },
-    "loan_amount": { "page": 1, "x": 450, "y": 535, "width": 100, "height": 16, "font_size": 10, "label": "Financing Amount $ (3.B)" },
-    "total_sales_price": { "page": 1, "x": 450, "y": 515, "width": 100, "height": 16, "font_size": 10, "label": "Total Sales Price $ (3.C)" },
-    "escrow_agent": { "page": 1, "x": 80, "y": 420, "width": 300, "height": 16, "font_size": 10, "label": "Escrow Agent Name" },
-    "escrow_agent_address": { "page": 1, "x": 80, "y": 400, "width": 400, "height": 16, "font_size": 10, "label": "Escrow Agent Address" },
-    "earnest_money_amount": { "page": 1, "x": 300, "y": 390, "width": 80, "height": 16, "font_size": 10, "label": "Earnest Money $" },
-    "option_fee_amount": { "page": 1, "x": 400, "y": 390, "width": 80, "height": 16, "font_size": 10, "label": "Option Fee $" },
-    "additional_earnest_days": { "page": 1, "x": 100, "y": 370, "width": 60, "height": 16, "font_size": 10, "label": "Additional Earnest Days" },
-    "additional_earnest_amount": { "page": 1, "x": 250, "y": 370, "width": 80, "height": 16, "font_size": 10, "label": "Additional Earnest $" },
-    "option_period_days": { "page": 1, "x": 350, "y": 350, "width": 80, "height": 16, "font_size": 10, "label": "Option Period Days", "required": true },
-    "title_company_name": { "page": 2, "x": 80, "y": 680, "width": 350, "height": 16, "font_size": 10, "label": "Title Company Name/Escrow Agent" },
-    "title_company_address": { "page": 2, "x": 80, "y": 660, "width": 400, "height": 16, "font_size": 10, "label": "Title Company Address" },
-    "title_objection_days": { "page": 2, "x": 350, "y": 600, "width": 60, "height": 16, "font_size": 10, "label": "Title Commitment Days" },
-    "exception_objection_days": { "page": 2, "x": 350, "y": 580, "width": 60, "height": 16, "font_size": 10, "label": "Exception Objection Days" },
-    "survey_option_buyer": { "page": 2, "x": 50, "y": 540, "type": "checkbox", "label": "Buyer pays for survey" },
-    "survey_option_seller": { "page": 2, "x": 250, "y": 540, "type": "checkbox", "label": "Seller pays for survey" },
-    "closing_date": { "page": 3, "x": 80, "y": 750, "width": 150, "height": 18, "font_size": 11, "label": "Closing Date", "required": true },
-    "possession_date": { "page": 3, "x": 80, "y": 710, "width": 150, "height": 18, "font_size": 11, "label": "Possession Date" },
-    "special_provisions": { "page": 5, "x": 80, "y": 600, "width": 450, "height": 100, "font_size": 10, "label": "Special Provisions (Section 11)" },
-    "as_is_checkbox": { "page": 4, "x": 50, "y": 450, "type": "checkbox", "label": "Property As Is" },
-    "as_is_except_checkbox": { "page": 4, "x": 50, "y": 430, "type": "checkbox", "label": "As Is Except Repairs" },
-    "buyer_closing_cost_credit": { "page": 4, "x": 350, "y": 350, "width": 100, "height": 16, "font_size": 10, "label": "Buyer Closing Cost Credit $" },
-    "listing_broker_name": { "page": 10, "x": 80, "y": 680, "width": 250, "height": 16, "font_size": 10, "label": "Listing Broker Name" },
-    "listing_broker_license": { "page": 10, "x": 380, "y": 680, "width": 100, "height": 16, "font_size": 10, "label": "License No." },
-    "listing_agent_name": { "page": 10, "x": 80, "y": 660, "width": 250, "height": 16, "font_size": 10, "label": "Listing Agent Name" },
-    "listing_agent_license": { "page": 10, "x": 380, "y": 660, "width": 100, "height": 16, "font_size": 10, "label": "License No." },
-    "listing_agent_phone": { "page": 10, "x": 80, "y": 640, "width": 150, "height": 16, "font_size": 10, "label": "Phone" },
-    "listing_agent_email": { "page": 10, "x": 250, "y": 640, "width": 250, "height": 16, "font_size": 10, "label": "Email" },
-    "selling_broker_name": { "page": 10, "x": 80, "y": 600, "width": 250, "height": 16, "font_size": 10, "label": "Selling/Buyer Broker Name" },
-    "selling_broker_license": { "page": 10, "x": 380, "y": 600, "width": 100, "height": 16, "font_size": 10, "label": "License No." },
-    "selling_agent_name": { "page": 10, "x": 80, "y": 580, "width": 250, "height": 16, "font_size": 10, "label": "Buyer Agent Name" },
-    "selling_agent_license": { "page": 10, "x": 380, "y": 580, "width": 100, "height": 16, "font_size": 10, "label": "License No." },
-    "selling_agent_phone": { "page": 10, "x": 80, "y": 560, "width": 150, "height": 16, "font_size": 10, "label": "Phone" },
-    "selling_agent_email": { "page": 10, "x": 250, "y": 560, "width": 250, "height": 16, "font_size": 10, "label": "Email" },
-    "contract_effective_date": { "page": 11, "x": 350, "y": 150, "width": 150, "height": 18, "font_size": 11, "label": "Effective Date" },
-    "buyer_initials": { "page": 1, "x": 200, "y": 770, "width": 50, "height": 16, "font_size": 10, "label": "Buyer Initials" },
-    "seller_initials": { "page": 1, "x": 400, "y": 770, "width": 50, "height": 16, "font_size": 10, "label": "Seller Initials" }
+  "effective_date": "12-01-2023",
+  "page_count": 10,
+  "page_dimensions": {
+    "width": 612,
+    "height": 792
   },
-  "field_count": 46,
-  "notes": [
-    "FLAT PDF — no AcroForm fields. Use drawText() with coordinates.",
-    "Very similar to TREC 23-20 but for completed construction homes.",
-    "Key difference: no construction progress/completion date fields.",
-    "Coordinates based on standard TREC 24-20 layout analysis."
-  ]
+  "fields": {
+    "seller_name": {
+      "page": 1,
+      "x": 50,
+      "y": 91,
+      "width": 140,
+      "height": 16,
+      "font_size": 11,
+      "required": true
+    },
+    "buyer_name": {
+      "page": 1,
+      "x": 320,
+      "y": 91,
+      "width": 140,
+      "height": 16,
+      "font_size": 11,
+      "required": true
+    },
+    "lot_number": {
+      "page": 1,
+      "x": 150,
+      "y": 114,
+      "width": 80,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "block_number": {
+      "page": 1,
+      "x": 270,
+      "y": 114,
+      "width": 80,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "addition_name": {
+      "page": 1,
+      "x": 100,
+      "y": 135,
+      "width": 250,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "county": {
+      "page": 1,
+      "x": 380,
+      "y": 124,
+      "width": 120,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "earnest_money": {
+      "page": 1,
+      "x": 460,
+      "y": 180,
+      "width": 80,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "option_fee": {
+      "page": 1,
+      "x": 460,
+      "y": 200,
+      "width": 80,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "sales_price": {
+      "page": 1,
+      "x": 460,
+      "y": 220,
+      "width": 80,
+      "height": 14,
+      "font_size": 10,
+      "required": true
+    },
+    "closing_date": {
+      "page": 2,
+      "x": 150,
+      "y": 110,
+      "width": 150,
+      "height": 16,
+      "font_size": 11,
+      "required": true
+    }
+  },
+  "field_count": 10
 }
