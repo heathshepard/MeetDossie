@@ -173,6 +173,50 @@ async function countRejectedToday(platform) {
   return ok && Array.isArray(data) ? data.length : 0;
 }
 
+// Diagnose WHY a platform fell short. Returns a short string for the digest:
+//   "no-gen"     — generator never produced a row today
+//   "all-rejected" — every row this platform got was rejected (Sage flap)
+//   "stuck-pending" — drafts exist but never reached approved status
+//   "publish-failed" — approved rows exist but didn't post
+//   "stale-no-data" — platform has no rows ever (structural break)
+//   null         — no shortfall to diagnose
+async function diagnoseShortfall(platform, actual, expected) {
+  if (actual >= expected) return null;
+  const now = DateTime.now().setZone(TZ);
+  const startUtc = now.startOf('day').toUTC().toISO();
+  // All today's rows for the platform.
+  const todayRes = await sb(
+    `/rest/v1/social_posts?platform=eq.${encodeURIComponent(platform)}` +
+    `&created_at=gte.${encodeURIComponent(startUtc)}` +
+    `&select=id,status`
+  );
+  const todayRows = todayRes.ok && Array.isArray(todayRes.data) ? todayRes.data : [];
+
+  if (todayRows.length === 0) {
+    // Did this platform EVER produce a row? If never → structural break.
+    const everRes = await sb(
+      `/rest/v1/social_posts?platform=eq.${encodeURIComponent(platform)}` +
+      `&select=id&limit=1`
+    );
+    if (everRes.ok && Array.isArray(everRes.data) && everRes.data.length === 0) {
+      return 'stale-no-data';
+    }
+    return 'no-gen';
+  }
+
+  const counts = todayRows.reduce((acc, r) => {
+    acc[r.status] = (acc[r.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  if (counts.posted >= expected) return null; // edge: counted differently
+  if (counts.rejected === todayRows.length) return 'all-rejected';
+  if (counts.approved > 0 && !counts.posted) return 'publish-failed';
+  if (counts.draft > 0 && !counts.approved && !counts.posted) return 'stuck-pending';
+  if (counts.failed > 0) return 'gen-failed';
+  return null;
+}
+
 // ─── Pace math ────────────────────────────────────────────────────────────
 
 function paceFor(platform, schedules, clock) {
@@ -415,6 +459,13 @@ module.exports = async function handler(req, res) {
       if (platform === 'tiktok') {
         const swap = await swapTikTokForOtherPlatform(clock);
         if (swap.swapped) notes.push('tiktok-swap-active');
+      }
+
+      // Diagnose root cause if we're behind pace — surfaces in the EOD digest
+      // so Heath sees WHY a platform is 0/1, not just "regen-fired".
+      if (behind) {
+        const why = await diagnoseShortfall(platform, actual, pace.expected);
+        if (why) notes.unshift(`root-cause:${why}`);
       }
 
       state[platform] = {
