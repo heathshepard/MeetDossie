@@ -11,123 +11,138 @@
   "fields": {
     "property_address": {
       "page": 1,
-      "anchor_label": "(Street Address and City)",
-      "x": 110,
-      "y": 140,
-      "width": 450,
-      "height": 20,
+      "x": 49,
+      "y": 115,
+      "width": 510,
+      "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Full street address"
+      "notes": "Above '(Street Address and City)' label at y=128"
     },
     "seller_name": {
       "page": 1,
-      "anchor_label": "(SELLER)",
-      "x": 50,
-      "y": 172,
-      "width": 140,
-      "height": 18,
+      "x": 49,
+      "y": 160,
+      "width": 455,
+      "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Seller legal name"
+      "notes": "Long blank wraps y=153->y=172 ending at (SELLER) at x=507"
     },
     "buyer_name": {
       "page": 1,
-      "anchor_label": "BETWEEN THE UNDERSIGNED BUYER",
-      "x": 50,
-      "y": 175,
-      "width": 200,
-      "height": 18,
+      "x": 72,
+      "y": 651,
+      "width": 190,
+      "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Buyer legal name"
+      "notes": "Buyer signature line 1 (left) \u2014 'Buyer' label at y=663 below"
+    },
+    "buyer_name_2": {
+      "page": 1,
+      "x": 325,
+      "y": 651,
+      "width": 190,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Buyer signature line 2 (right) \u2014 second buyer if joint"
     },
     "contract_effective_date": {
       "page": 1,
-      "x": 350,
-      "y": 160,
-      "width": 120,
-      "height": 18,
+      "x": 270,
+      "y": 651,
+      "width": 110,
+      "height": 14,
       "font_size": 11,
       "required": false,
-      "notes": "Contract effective date MM/DD/YYYY"
+      "notes": "Date line under signature 1 \u2014 'Date' label at (270.9, 663.2)"
     },
     "termination_notice_date": {
       "page": 1,
-      "x": 540,
-      "y": 665,
-      "width": 120,
-      "height": 18,
+      "x": 525,
+      "y": 651,
+      "width": 110,
+      "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Termination notice date MM/DD/YYYY"
+      "notes": "Date line under signature 2 \u2014 'Date' label at (526.5, 663.2)"
     },
     "termination_checkbox_option_period": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 290,
+      "y": 213,
       "required": false,
-      "label": "Option Period"
+      "label": "(1) Option Period unrestricted"
     },
     "termination_checkbox_financing": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 320,
+      "y": 244,
       "required": false,
-      "label": "Financing"
+      "label": "(2) Financing (Buyer Approval)"
     },
     "termination_checkbox_property": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 350,
+      "y": 275,
       "required": false,
-      "label": "Property Approval"
+      "label": "(3) Property Approval"
     },
     "termination_checkbox_hoa": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 380,
+      "y": 320,
       "required": false,
-      "label": "HOA"
+      "label": "(4) HOA mandatory membership"
     },
     "termination_checkbox_disclosure": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 410,
+      "y": 351,
       "required": false,
-      "label": "Disclosure"
+      "label": "(5) Seller's Disclosure 7B(2)"
     },
     "termination_checkbox_appraisal": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 440,
+      "y": 383,
       "required": false,
-      "label": "Appraisal"
+      "label": "(6) Lender's Appraisal Para 3"
+    },
+    "termination_checkbox_objections": {
+      "page": 1,
+      "type": "checkbox",
+      "x": 60,
+      "y": 428,
+      "required": false,
+      "label": "(7) Para 6.D objections not cured"
     },
     "termination_checkbox_other": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 470,
+      "y": 472,
       "required": false,
-      "label": "Other"
+      "label": "(8) Other"
     },
     "termination_reason_other": {
       "page": 1,
       "x": 80,
-      "y": 490,
-      "width": 400,
-      "height": 50,
+      "y": 485,
+      "width": 475,
+      "height": 70,
       "font_size": 10,
       "required": false,
-      "notes": "Free-text reason if 'other' checkbox selected"
+      "notes": "Free-text reason if (8) Other checked \u2014 6 blank lines"
     }
   },
-  "field_count": 13
+  "field_count": 15
 }
