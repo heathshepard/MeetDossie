@@ -356,11 +356,30 @@ async function extractFieldsWithAI(formType, message, transaction) {
 }
 \`\`\``;
 
+  // Determine agent role for disambiguation
+  const agentRole = transaction?.agent_role || null;
+  const roleContext = agentRole
+    ? `The agent represents the ${agentRole === 'seller' ? 'SELLER' : 'BUYER'} side.`
+    : 'The agent's role is not specified; treat as BUYER unless message clearly indicates seller-side language.';
+
   const systemPrompt = `You are a Texas real estate transaction coordinator extracting structured data from an agent's message to fill out a TREC form.
 
 Today's date: ${today}
 
 ${schema}
+
+CRITICAL DISAMBIGUATION RULE (read carefully):
+${roleContext}
+
+When extracting buyer_name and seller_name:
+- The PARTY THE AGENT REPRESENTS is determined by their role above.
+- If agent_role is BUYER:
+  * The buyer is typically named with: "for", "buying", "purchasing", "buyer is", "client", "my buyer", "the buyers"
+  * The seller is the OTHER party (typically named with "from", "owned by", "listed by", etc.)
+- If agent_role is SELLER:
+  * The seller is the party the agent represents (usually not explicitly named, defaults to agent context)
+  * The buyer is the offeror (typically named with "from", "offer from", "buyer is", "they're buying")
+- If role is unclear: assume BUYER, which is the most common case for "make an offer" statements.
 
 CRITICAL: You MUST return ONLY valid JSON matching this exact structure (include only fields with values):
 ${strictSchema}

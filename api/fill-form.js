@@ -443,38 +443,18 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
     if (m) closingDateDisplay = months[parseInt(m[2], 10) - 1] + ' ' + parseInt(m[3], 10) + ', ' + m[1];
   }
 
-  const buyerFields = [
-    { name: 'buyer_name',              default_value: fv.buyer_name || '',                                  readonly: true },
-    { name: 'property_address',        default_value: fv.property_address || '',                            readonly: true },
-    { name: 'legal_description',       default_value: fv.legal_description || '',                           readonly: true },
-    { name: 'county',                  default_value: fv.county || '',                                      readonly: true },
-    { name: 'down_payment',            default_value: fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : '', readonly: true },
-    { name: 'loan_amount',             default_value: fv.loan_amount ? formatMoney(fv.loan_amount) : '',    readonly: true },
-    { name: 'sales_price',             default_value: fv.sale_price ? formatMoney(fv.sale_price) : '',      readonly: true },
-    { name: 'earnest_money_amount',    default_value: fv.earnest_money ? formatMoney(fv.earnest_money) : '', readonly: true },
-    { name: 'earnest_money_holder',    default_value: fv.earnest_money_to || fv.title_company || '',        readonly: true },
-    { name: 'option_period_days',      default_value: fv.option_period_days != null ? String(fv.option_period_days) : '', readonly: true },
-    { name: 'option_fee',              default_value: fv.option_fee ? formatMoney(fv.option_fee) : '',      readonly: true },
-    { name: 'title_company_name',      default_value: fv.title_company || '',                               readonly: true },
-    { name: 'closing_date',            default_value: closingDateDisplay,                                   readonly: true },
-    { name: 'listing_broker_firm',     default_value: fv.listing_broker_firm || '',                        readonly: true },
-    { name: 'listing_agent_name',      default_value: fv.listing_agent_name || '',                         readonly: true },
-    { name: 'listing_agent_license',   default_value: fv.listing_agent_license || '',                      readonly: true },
-    { name: 'other_broker_firm',       default_value: fv.other_broker_firm || '',                          readonly: true },
-    { name: 'other_agent_name',        default_value: fv.selling_agent_name || fv.other_broker_assoc_name || '', readonly: true },
-    { name: 'other_agent_license',     default_value: fv.selling_agent_license || fv.other_broker_assoc_license || '', readonly: true },
-    { name: 'buyers_agent_commission', default_value: fv.buyer_agent_commission ? String(fv.buyer_agent_commission).replace('%','').trim() : '', readonly: true },
-    { name: 'third_party_financing',   default_value: isFinanced ? 'true' : 'false',                       readonly: true },
-    { name: 'financing_addendum_check',default_value: (isFinanced || fv.financing_addendum === true) ? 'true' : 'false', readonly: true },
-    { name: 'hoa_addendum_check',      default_value: (fv.hoa_exists === true || fv.hoa_addendum === true) ? 'true' : 'false', readonly: true },
-    { name: 'as_is',                   default_value: fv.as_is_with_repairs !== true ? 'true' : 'false',   readonly: true },
-    { name: 'survey_c1',               default_value: (fv.survey_option || 'c1') === 'c1' ? 'true' : 'false', readonly: true },
-    { name: 'title_seller_pays',       default_value: fv.title_buyer_expense !== true ? 'true' : 'false',  readonly: true },
-  ];
+  // NOTE: DocuSeal template 4111319 currently only has signature/date/initial fields.
+  // Prefilled data fields (buyer_name, property_address, etc.) do not exist in the template.
+  // Phase 2 will add these fields to the template via the DocuSeal UI.
+  // For Phase 1, we submit without prefill fields — just signatures.
+  const buyerFields = [];
+  const sellerFields = [];
 
-  const sellerFields = [
-    { name: 'seller_name', default_value: fv.seller_name || '', readonly: true },
-  ];
+  // DOCUSEAL TEMPLATE ROLE MAPPING
+  // Template 4111319 (TREC 20-19) uses "First Party" as the role name, not "Buyer"/"Seller".
+  // If the template doesn't support those role names, we submit with a single "First Party" role
+  // and only include buyer fields for now (Phase 1: buyer-side signing).
+  // Phase 2 will require updating the DocuSeal template to support two-party signing.
 
   const res = await fetch(DOCUSEAL_BASE + '/submissions', {
     method: 'POST',
@@ -482,9 +462,10 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
     body: JSON.stringify({
       template_id: DOCUSEAL_TREC_20_19_TEMPLATE_ID,
       send_email: false,
+      // DocuSeal template only has "First Party" role for Phase 1.
+      // Phase 2 will require template redesign to support buyer + seller two-party signing.
       submitters: [
-        { role: 'Buyer',  name: buyerName  || fv.buyer_name  || 'Buyer',  email: buyerEmail  || '', fields: buyerFields },
-        { role: 'Seller', name: sellerName || fv.seller_name || 'Seller', email: sellerEmail || '', fields: sellerFields },
+        { role: 'First Party', name: buyerName || fv.buyer_name || 'Buyer', email: buyerEmail || '', fields: buyerFields },
       ],
     }),
   });
@@ -1060,15 +1041,21 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   // LOAN TYPE — wire each type's fields
   if (ft === 'conventional' || fv.financing_conventional === true) {
     safeCheck(form, '1 Conventional Financing');
+    // PRINCIPAL AMOUNT: Field verified from PDF inspector as 'any financed PMI premium due in full in 1'
     safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
-    safeSetText(form, 'any financed PMI premium due in full in 2', fv.loan_amount_2 != null ? formatMoney(fv.loan_amount_2) : '');
-    safeSetText(form, 'per annum for the first', fv.interest_rate_cap || '');
+    // TERM YEARS: Conventional term stored in same "years" field as other loan types
+    const loanTermYears = fv.loan_term_years || 30;
+    safeSetText(form, 'years', String(loanTermYears));
+    // INTEREST RATE: "with interest not to exceed" [X] "% per annum"
+    const interestRate = fv.interest_rate_max || '';
+    safeSetText(form, 'with interest not to exceed', interestRate);
+    // ORIGINATION CHARGES CAP: "shown on Buyers Loan Estimate for the loan not to exceed"
     safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || '');
-    safeSetText(form, 'excluding', fv.pmi_exclusion || '');
-    safeSetText(form, 'any financed PMI premium due in full in 1_2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
-    safeSetText(form, 'any financed PMI premium due in full in 2_2', fv.second_loan_amount_2 != null && fv.second_loan_amount_2 !== '' ? formatMoney(fv.second_loan_amount_2) : '');
-    safeSetText(form, 'per annum for the first_2', fv.second_interest_rate_cap || '');
-    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed_2', fv.second_origination_charges_cap || '');
+
+    // Second loan (if applicable)
+    safeSetText(form, 'any financed PMI premium due in full in 2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
+    safeSetText(form, 'per annum for the first', fv.second_interest_rate_cap || '');
+    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.second_origination_charges_cap || '');
   }
 
   if (ft === 'tx_veterans' || fv.financing_tx_veterans === true) {
@@ -1079,10 +1066,15 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'fha' || fv.financing_fha === true) {
     safeCheck(form, '3 FHA Insured Financing A Section');
-    safeSetText(form, 'undefined', fv.fha_loan_section || '');
+    // FHA loan amount (principal) — Field verified from PDF: 'excluding any financed MIP amortizable monthly for not less'
     safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', loanAmt);
-    safeSetText(form, 'than', fv.fha_amortization_years || '');
-    safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || '');
+    // FHA amortization years — Field verified from PDF: 'than'
+    const fhaYears = fv.loan_term_years || fv.fha_amortization_years || 30;
+    safeSetText(form, 'than', String(fhaYears));
+    // FHA interest rate cap — Field verified from PDF: 'years with interest not to exceed_2'
+    const fhaRate = fv.interest_rate_max || fv.fha_interest_rate_cap || '';
+    safeSetText(form, 'years with interest not to exceed_2', fhaRate);
+    // FHA origination charges — Field verified from PDF: 'Charges as shown on Buyers Loan Estimate for the loan not to exceed'
     safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '');
     if (fv.fha_conversion_amount) {
       safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
@@ -1092,21 +1084,33 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'va' || fv.financing_va === true) {
     safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
+    // VA loan amount — Field verified from PDF: 'excluding any financed Funding Fee amortizable monthly for not less than'
     safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', loanAmt);
-    safeSetText(form, 'years', fv.va_amortization_years || '');
-    safeSetText(form, 'with interest not to exceed', fv.va_interest_rate_cap || '');
+    // VA amortization years — Field verified from PDF: 'years'
+    const vaYears = fv.loan_term_years || fv.va_amortization_years || 30;
+    safeSetText(form, 'years', String(vaYears));
+    // VA interest rate — Field verified from PDF: 'with interest not to exceed'
+    const vaRate = fv.interest_rate_max || fv.va_interest_rate_cap || '';
+    safeSetText(form, 'with interest not to exceed', vaRate);
+    // VA per annum first — Field verified from PDF: 'per annum for the first_4'
     safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '');
+    // VA origination charges — Field verified from PDF: 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed'
     safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '');
+    // VA appraised value
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : '');
   }
 
   if (ft === 'usda' || fv.financing_usda === true) {
     safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
+    // USDA loan amount — Field verified from PDF: 'any financed PMI premium or other costs with interest not to exceed'
+    // NOTE: This field was incorrectly holding interest_rate_max in tests; ensure only loan amount is set here
     safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', loanAmt);
+    // TODO: Add USDA amortization years and interest rate fields once PDF structure is fully audited
   }
 
   if (ft === 'reverse' || fv.financing_reverse === true) {
     safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
+    // Reverse mortgage fields — verified from PDF inspection
     safeSetText(form, 'excluding_2', fv.reverse_exclusion || '');
     safeSetText(form, 'not to exceed_2', fv.reverse_not_exceed || '');
     safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
@@ -3047,6 +3051,26 @@ module.exports = async function handler(req, res) {
 
     // Agent-supplied field_values override transaction defaults
     const mergedFields = Object.assign({}, txDefaults, fieldValues);
+
+    // VALIDATION: Buyer/seller role integrity check
+    // If the transaction has a role, validate that buyer_name and seller_name are on the correct sides.
+    if (tx.role && resolvedFormType === 'resale-contract') {
+      const hasBuyerName = mergedFields.buyer_name && String(mergedFields.buyer_name).trim();
+      const hasSellerName = mergedFields.seller_name && String(mergedFields.seller_name).trim();
+
+      if (tx.role === 'buyer' && hasSellerName && !hasBuyerName) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Buyer name is required for buyer-side contract. The party you named appears to be the seller — please re-state which client is the buyer.',
+        });
+      }
+      if (tx.role === 'listing' && hasBuyerName && !hasSellerName) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Seller name is required for listing-side contract. The party you named appears to be the buyer — please re-state which client is the seller.',
+        });
+      }
+    }
 
     console.log('[fill-form] filling', resolvedFormType, 'for tx', transactionId);
 
