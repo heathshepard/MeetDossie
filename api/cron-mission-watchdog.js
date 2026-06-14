@@ -285,7 +285,48 @@ function platformEmoji(p) {
   })[p] || p;
 }
 
-async function sendDailySummary(state) {
+// Idempotency: claim the date-stamped notification key BEFORE sending the
+// digest. If another concurrent watchdog run already wrote the row, skip.
+//
+// 2026-06-14 (Sage): Heath saw 3 copies of WATCHDOG END-OF-DAY in overnight
+// digests. Root cause: watchdog runs hourly via vercel.json AND a Windows
+// Task Scheduler entry; the previous guard `clock.hour >= 20` triggered the
+// summary on EVERY hourly run past 8 PM (20:00, 21:00, 22:00, 23:00...).
+// Two-layer fix:
+//   (a) Caller restricts firing to a SINGLE hour: clock.hour === 20.
+//   (b) This claim() check ensures even two concurrent 20:00 runs only
+//       ship one digest, keyed by the CDT date.
+async function claimDigestSlot(notificationKey, meta) {
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const lookup = await sb(
+    `/rest/v1/cron_notifications?notification_key=eq.${encodeURIComponent(notificationKey)}` +
+    `&sent_at=gte.${encodeURIComponent(cutoff)}&select=id&limit=1`
+  );
+  if (lookup.ok && Array.isArray(lookup.data) && lookup.data.length > 0) {
+    return false;
+  }
+  const insert = await sb('/rest/v1/cron_notifications', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ notification_key: notificationKey, meta: meta || {} }),
+  });
+  return insert.ok;
+}
+
+async function sendDailySummary(state, clock) {
+  // Date-stamped key in America/Chicago to prevent same-day dupes across
+  // timezone boundaries (e.g. a run at 00:30 UTC is still 19:30 CDT same day).
+  const digestKey = `watchdog-eod-${clock.dateKey}`;
+  const claimed = await claimDigestSlot(digestKey, {
+    hour_cdt: clock.hour,
+    platforms: Object.fromEntries(
+      Object.entries(state).map(([p, s]) => [p, { actual: s.actual, expected: s.expected }])
+    ),
+  });
+  if (!claimed) {
+    console.log(`[watchdog] EOD digest already sent today (key=${digestKey}) — suppressing duplicate`);
+    return false;
+  }
   const lines = ['📊 <b>WATCHDOG END-OF-DAY</b>', ''];
   let totalActual = 0;
   let totalExpected = 0;
@@ -301,6 +342,7 @@ async function sendDailySummary(state) {
   lines.push('');
   lines.push(`Total: ${totalActual}/${totalExpected} shipped today`);
   await tg(lines.join('\n'));
+  return true;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────
@@ -387,11 +429,16 @@ module.exports = async function handler(req, res) {
       };
     }
 
-    // End-of-day summary at 8 PM CDT (only one fire per day — guarded by hour).
+    // End-of-day summary at 8 PM CDT EXACTLY (one fire per day).
+    //
+    // Previous bug (2026-06-14): used `clock.hour >= 20` which matched every
+    // hourly run from 20:00 onward — Heath got 3-4 duplicate digests overnight.
+    // Now: fires ONLY on the 20:00 hourly tick. claimDigestSlot() inside
+    // sendDailySummary() is a belt-and-suspenders idempotency check in case
+    // two concurrent 20:00 runs collide (vercel cron + Windows Task Scheduler).
     let summarySent = false;
-    if (clock.hour >= BUSINESS_END_HOUR_CDT) {
-      await sendDailySummary(state);
-      summarySent = true;
+    if (clock.hour === BUSINESS_END_HOUR_CDT) {
+      summarySent = await sendDailySummary(state, clock);
     }
 
     await recordCronRun('cron-mission-watchdog', 'ok', { actions: actions.length });
