@@ -1,0 +1,4 @@
+file 'C:/Users/Heath Shepard/Desktop/MeetDossie/.tmp-reel-work/reel-1781359366/intro.mp4'
+file 'C:/Users/Heath Shepard/Desktop/MeetDossie/.tmp-reel-work/reel-1781359366/sped.mp4'
+file 'C:/Users/Heath Shepard/Desktop/MeetDossie/.tmp-reel-work/reel-1781359366/comparison.mp4'
+file 'C:/Users/Heath Shepard/Desktop/MeetDossie/.tmp-reel-work/reel-1781359366/outro.mp4'

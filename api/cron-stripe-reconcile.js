@@ -124,6 +124,20 @@ async function subscriptionRowExists(stripeSubscriptionId) {
   return r.ok && Array.isArray(r.data) && r.data.length > 0;
 }
 
+// Returns true if a subscriptions row already exists for this user_id.
+// Needed because the unique constraint is on user_id — a user may already be
+// provisioned under a DIFFERENT stripe_subscription_id (e.g. resubscribe).
+// Without this, the reconciler attempts INSERT and catches a 409 that it
+// mislabels as an error in the digest.
+async function subscriptionRowExistsForUser(userId) {
+  if (!userId) return false;
+  const encoded = encodeURIComponent(userId);
+  const r = await supabaseFetch(
+    `/rest/v1/subscriptions?user_id=eq.${encoded}&select=id,stripe_subscription_id&limit=1`,
+  );
+  return r.ok && Array.isArray(r.data) && r.data.length > 0;
+}
+
 // Insert a new subscription row. Uses ON CONFLICT DO NOTHING (idempotent).
 async function insertSubscriptionRow({
   userId, stripeCustomerId, stripeSubscriptionId, stripePriceId,
@@ -257,8 +271,10 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
 
   console.log(`[cron-stripe-reconcile] total active founding subscriptions in Stripe: ${allStripeSubs.length}`);
 
-  const gaps = [];         // subscriptions fixed this run
-  const errors = [];       // subscriptions that failed to fix
+  const gaps = [];         // subscriptions newly provisioned this run
+  const errors = [];       // REAL errors only — actual failures (network, perm, malformed data).
+                           // Constraint-violation 409s on existing rows are NOT errors; they get
+                           // counted in alreadyProvisioned via the SELECT-first check below.
   let alreadyProvisioned = 0;
   let skippedDemoAccounts = 0;
 
@@ -342,6 +358,22 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
       continue;
     }
 
+    // SELECT-first by user_id — the unique constraint is on user_id, so a row
+    // may already exist under a different stripe_subscription_id (e.g. resub).
+    // This avoids the INSERT-and-catch-409 noise that was polluting the digest.
+    let userAlreadyHasSubscription = false;
+    try {
+      userAlreadyHasSubscription = await subscriptionRowExistsForUser(userId);
+    } catch (err) {
+      console.warn('[cron-stripe-reconcile] subscriptionRowExistsForUser check failed for', userId, ':', err && err.message);
+    }
+
+    if (userAlreadyHasSubscription) {
+      console.log('[cron-stripe-reconcile] user already provisioned (different sub_id):', customerEmail, 'userId=', userId);
+      alreadyProvisioned += 1;
+      continue;
+    }
+
     // Insert the missing subscription row.
     try {
       const ins = await insertSubscriptionRow({
@@ -349,6 +381,14 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
         currentPeriodStart, currentPeriodEnd,
       });
       if (!ins.ok) {
+        // 409 conflict means the row was inserted between our SELECT and INSERT
+        // (race), OR another unique constraint matched. Either way the user IS
+        // provisioned — count as alreadyProvisioned, not an error.
+        if (ins.status === 409) {
+          console.log('[cron-stripe-reconcile] insert hit 409 (already provisioned via race) for', customerEmail);
+          alreadyProvisioned += 1;
+          continue;
+        }
         const errMsg = `Insert failed status=${ins.status} body=${JSON.stringify(ins.data).slice(0, 200)}`;
         console.error('[cron-stripe-reconcile]', errMsg, 'for', customerEmail);
         errors.push({ stripeSubscriptionId, customerEmail, error: errMsg });
@@ -379,22 +419,36 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     });
   }
 
-  console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${skippedDemoAccounts} demo/test accounts skipped, ${errors.length} errors`);
+  console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${skippedDemoAccounts} demo/test accounts skipped, ${errors.length} real errors`);
 
   // Send Telegram alert.
-  let telegramText;
-  if (gaps.length === 0 && errors.length === 0) {
-    telegramText = `Stripe reconcile (${new Date().toISOString().slice(0, 10)}): all clear. ${alreadyProvisioned} already provisioned${skippedDemoAccounts > 0 ? `, ${skippedDemoAccounts} demo/test skipped` : ''}.`;
-  } else {
+  // Digest shape (clean — no INSERT-and-catch-409 noise):
+  //   Stripe reconcile YYYY-MM-DD
+  //   ✅ <N> verified provisioned (<gaps> newly provisioned, <already> already on file)
+  //   ⏭ <skipped> demo/test skipped
+  //   🛠 <gaps> new provisioning required
+  //   ⚠ <errors> real errors
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const verifiedTotal = alreadyProvisioned + gaps.length;
+  const lines = [
+    `<b>Stripe reconcile ${dateStr}</b>`,
+    `✅ ${verifiedTotal} verified provisioned (${gaps.length} newly provisioned, ${alreadyProvisioned} already on file)`,
+    `⏭ ${skippedDemoAccounts} demo/test skipped`,
+    `🛠 ${gaps.length} new provisioning required`,
+    `⚠ ${errors.length} real errors`,
+  ];
+
+  if (gaps.length > 0) {
     const gapLines = gaps.map((g) => `  - ${g.customerEmail} (sub ${g.stripeSubscriptionId})`).join('\n');
-    const errLines = errors.map((e) => `  - ${e.customerEmail || e.stripeSubscriptionId}: ${e.error}`).join('\n');
-    telegramText = [
-      `<b>Stripe reconcile ${new Date().toISOString().slice(0, 10)}</b>`,
-      gaps.length > 0 ? `\nGaps FIXED (${gaps.length}):\n${gapLines}` : '',
-      errors.length > 0 ? `\nErrors (${errors.length}):\n${errLines}` : '',
-      `\n${alreadyProvisioned} already provisioned${skippedDemoAccounts > 0 ? `, ${skippedDemoAccounts} demo/test skipped` : ''}.`,
-    ].filter(Boolean).join('');
+    lines.push('', `Newly provisioned:`, gapLines);
   }
+
+  if (errors.length > 0) {
+    const errLines = errors.map((e) => `  - ${e.customerEmail || e.stripeSubscriptionId}: ${e.error}`).join('\n');
+    lines.push('', `Real errors (need investigation):`, errLines);
+  }
+
+  const telegramText = lines.join('\n');
 
   await sendTelegramAlert(telegramText);
 
@@ -402,10 +456,11 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     ok: true,
     ran_at: new Date().toISOString(),
     total_stripe_subs: allStripeSubs.length,
+    verified_provisioned: alreadyProvisioned + gaps.length,
     already_provisioned: alreadyProvisioned,
     gaps_fixed: gaps.length,
     demo_accounts_skipped: skippedDemoAccounts,
-    errors: errors.length,
+    real_errors: errors.length,
     gaps,
     error_details: errors,
   });
