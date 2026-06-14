@@ -60,7 +60,10 @@ const REGISTERED_CRONS = [
   { name: 'cron-daily-platform-health',   schedule: '0 3 * * *',      expectedMinutes: 1440,  criticalForMission: false, path: '/api/cron-daily-platform-health' },
   { name: 'cron-morning-ops-digest',      schedule: '0 13 * * *',     expectedMinutes: 1440,  criticalForMission: false, path: '/api/cron-morning-ops-digest' },
   { name: 'cron-pipeline-health',         schedule: '0 13 * * *',     expectedMinutes: 1440,  criticalForMission: false, path: '/api/cron-pipeline-health' },
-  { name: 'cron-cookie-health-check',     schedule: '0 4 * * *',      expectedMinutes: 1440,  criticalForMission: false, path: '/api/cron-cookie-health-check' },
+  // cron-cookie-health-check REMOVED 2026-06-14 (Atlas) — endpoint was deleted
+  // as part of SV-ENG-COOKIE-MIGRATION-2026-06-11 (persistent Chrome profile +
+  // local keepalive scripts replaced session_health rows). Verifier was
+  // re-firing it nightly and getting 404 because the route no longer exists.
 
   // Verify lane
   { name: 'cron-verify-posts',            schedule: '45 * * * *',     expectedMinutes: 60,    criticalForMission: false, path: '/api/cron-verify-posts' },
