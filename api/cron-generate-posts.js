@@ -1,18 +1,21 @@
 // Vercel Serverless Function: /api/cron-generate-posts
-// Daily content generator for Dossie's marketing pipeline.
+// Daily content generator for Dossie's marketing pipeline (DOSSIE-ONLY BRAND VOICE).
 //   - Generates 9 social posts per day via Claude Sonnet:
 //     CAPABILITY_ONELINER (Facebook), TREC_EDUCATION (Instagram),
-//     PERSONA_STORY/brenda (Twitter), CAPABILITY_ONELINER (LinkedIn),
+//     CAPABILITY_ONELINER (Twitter), CAPABILITY_ONELINER (LinkedIn),
 //     TREC_EDUCATION (Twitter), FOUNDER_STORY (Facebook),
-//     PERSONA_STORY/victor (Twitter - 3rd daily slot),
-//     PERSONA_STORY/victor (TikTok - activates DONE video pipeline),
-//     TREC_EDUCATION (YouTube - educational 60-90s voiceover, added 2026-05-29),
+//     CAPABILITY_ONELINER (Twitter - 3rd daily slot, ops angle),
+//     TREC_EDUCATION (TikTok - activates DONE video pipeline),
+//     TREC_EDUCATION (YouTube - educational 60-90s voiceover),
 //     rotating topic chosen by day-of-year.
-//   - Inserts each post into social_posts as status='draft'.
+//   - All posts written in Dossie brand voice only (no fictional personas).
+//   - Verifier gate rejects any post with fabricated specifics before insertion.
+//   - Inserts each post into social_posts as status='draft' or 'rejected'.
 //   - Wraps the run in a content_batches row for tracking.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 11 * * * (11:00 UTC daily, ~6am Central during DST).
+// Personas removed 2026-06-14: all content now brand-voice (dossie) only.
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -446,14 +449,14 @@ const POST_PLAN_BASE = [
     platform: 'instagram',
     notes: 'TREC fact/rule -> why it matters -> how Dossie handles it -> CTA. Keep it crisp and mobile-readable. Line breaks between each beat.',
   },
-  // PERSONA_STORY — one emotional persona slot for connection
+  // CAPABILITY_ONELINER — first Twitter slot (replaces brenda persona_story)
   {
-    format: 'PERSONA_STORY',
-    persona: 'brenda',
+    format: 'CAPABILITY_ONELINER',
+    persona: null,
     platform: 'twitter',
-    notes: 'One punchline. Tired-but-witty voice. Third person throughout.',
+    notes: 'Punchy single feature. Dossie brand voice. One specific capability + concrete outcome. Sharp, operator-focused. Twitter audience rewrds opinionated takes — deliver a strong operational insight here.',
   },
-  // CAPABILITY_ONELINER — second slot, LinkedIn/professional audience
+  // CAPABILITY_ONELINER — LinkedIn/professional audience
   {
     format: 'CAPABILITY_ONELINER',
     persona: null,
@@ -474,21 +477,21 @@ const POST_PLAN_BASE = [
     platform: 'facebook',
     notes: 'Draw ONLY from the three approved Heath pain stories. Specific moment -> what it cost -> what Dossie would have done -> CTA. Conversational, not polished-marketing. This is a founder talking to agents, not a brand announcement.',
   },
-  // PERSONA_STORY — Victor third Twitter slot (fills the 3/day cap)
+  // CAPABILITY_ONELINER — second Twitter slot (replaces victor persona_story)
   {
-    format: 'PERSONA_STORY',
-    persona: 'victor',
+    format: 'CAPABILITY_ONELINER',
+    persona: null,
     platform: 'twitter',
-    notes: 'Confident, math-driven voice. Volume-agent angle. Third person throughout. A sharp operational take — margins, deal count, efficiency. One punchy thread or single tweet.',
+    notes: 'Operational insight for volume agents. Margins, deal capacity, efficiency angle. One specific feature that unlocks scale. Third Twitter slot — make it math-driven and confident.',
   },
-  // PERSONA_STORY — TikTok slot. Generates caption+hook for the DONE video pipeline.
+  // TREC_EDUCATION — TikTok slot. Generates caption+hook for the DONE video pipeline.
   // cron-publish-approved parks these as pending_video; a video must be attached
   // before they publish. Short-form, curiosity-first, under 150 words.
   {
-    format: 'PERSONA_STORY',
-    persona: 'victor',
+    format: 'TREC_EDUCATION',
+    persona: null,
     platform: 'tiktok',
-    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. End with "Link in bio" or "Comment YES if this is you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
+    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. Teach one TREC rule, show how Dossie solves it. End with "Link in bio" or "Comment YES if this applies to you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
   },
   // TREC_EDUCATION — YouTube slot. Educational long-form (60-90s voiceover).
   // YouTube rewards watch time — more depth than TikTok/Instagram.
@@ -1024,8 +1027,8 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 {
   "posts": [
     {
-      "format": "PERSONA_STORY" | "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
-      "persona": "brenda" | "patricia" | "victor" | "dossie",
+      "format": "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
+      "persona": "dossie",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter" | "youtube",
       "voiceover_script": "<35-45 second spoken script for ElevenLabs TTS. Conversational, present-tense, no em-dashes. Ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.' Never use special characters. Approx 400-500 chars.>",
       "card_body": "<MAX 50 WORDS. Punchy, standalone body text for the image card (instagram + facebook only). 2-3 short sentences. Must work visually on the card without the full caption. Example: 'You already answered that. Yesterday. In writing. But here you are, fielding the same question again because your TC has no system.'>",
