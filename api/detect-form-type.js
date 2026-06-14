@@ -101,7 +101,8 @@ Known Texas TREC/TAR form types and their identifiers:
 - new-home-complete: TREC 24-18, "New Home Contract (Completed Construction)"
 - farm-ranch: TREC 25-15, "Farm and Ranch Contract"
 - financing-addendum: TREC 40-11 or 49-1, "Third Party Financing Addendum" or "Right to Terminate Due to Lender's Appraisal"
-- termination-notice: TREC 38-7, "Notice of Buyer's Termination of Contract"
+- termination-notice: TREC 50-0, "Seller's Termination" (currently implemented - NOTE: This is seller-side termination, not buyer-side)
+  - buyer-termination: TREC 38-7, "Notice of Buyer's Termination of Contract" (NOT YET IMPLEMENTED)
 - amendment: TREC 39-10, "Amendment to Contract"
 - sellers-disclosure: OP-H, "Seller's Disclosure Notice"
 - hoa-addendum: TREC 36-11, "Addendum for Property Subject to Mandatory Membership in Property Owners Association"
