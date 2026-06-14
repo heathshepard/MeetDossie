@@ -1,0 +1,66 @@
+STRIPE BILLING FIX — EXECUTION INSTRUCTIONS
+
+This executes Heath's Telegram directive from 2026-06-14:
+
+A) Retry past-due invoices for Brittney YBarbo + Suzanne Page
+B) Create recurring subscriptions for 7 customers (no charge today)
+
+═══════════════════════════════════════════════════════════════════
+
+HOW TO RUN:
+
+Run these two curl commands in sequence from your terminal.
+Replace $CRON_SECRET with the value from .env.local:
+
+1. RETRY GROUP A (past-due):
+curl -X POST https://meetdossie.com/api/fix-billing-recurring \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"retry-group-a"}'
+
+2. CREATE GROUP B (recurring):
+curl -X POST https://meetdossie.com/api/fix-billing-recurring \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"create-group-b"}'
+
+═══════════════════════════════════════════════════════════════════
+
+WHAT WILL HAPPEN:
+
+Group A (2 customers):
+  ✓ Britney YBarbo (brittney@setxrealtors.com)
+    - Look up subscription
+    - If past_due: retry invoice
+    - If active: skip (already charges)
+
+  ✓ Suzanne Page (k.suzanne.page@gmail.com)
+    - Same as above
+
+Group B (7 customers):
+  ✓ Natalie Megerson (natalie@localchoicegroup.com)
+  ✓ Zelda Cain (zelda@a2zrealestateconsultants.com)
+  ✓ Amanda Nuckles (amanda@amandanuckles.com)
+  ✓ Cecilia Whitley (cecilia@sterlingassociatesre.com)
+  ✓ Miki Mccarthy (mikirgvrealtor@gmail.com)
+  ✓ Kim Herrera (kimberlyherrera@kw.com)
+  ✓ Tiffany Gill (tgill@phyllisbrowning.com)
+
+  For each:
+  - Create Stripe subscription with trial_end = created_at + 30 days
+  - NO CHARGE TODAY (charge happens at trial_end)
+  - Update database with stripe_subscription_id
+
+═══════════════════════════════════════════════════════════════════
+
+EXPECTED OUTPUT:
+
+Success: {"ok":true,"action":"...","charged":[],"synced":[],"created":[...],"failed":[...]}
+
+═══════════════════════════════════════════════════════════════════
+
+SECURITY NOTE:
+
+After this fix is complete, rotate CRON_SECRET in Vercel within 24h.
+
+═══════════════════════════════════════════════════════════════════
