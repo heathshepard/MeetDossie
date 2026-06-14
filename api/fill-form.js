@@ -1026,8 +1026,13 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   safeSetText(form, 'Street Address and City', propertyFull);
   safeSetText(form, 'Address of Property', fv.property_address || '');
 
-  const ft = String(fv.financing_type || '').toLowerCase();
+  let ft = String(fv.financing_type || '').toLowerCase();
   const loanAmt = fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '';
+
+  // Default to conventional if loan amount present but no explicit type
+  if (!ft && fv.loan_amount && Number(fv.loan_amount) > 0) {
+    ft = 'conventional';
+  }
 
   // FIRST MORTGAGE CHECKBOX (auto-checked if any financed loan)
   if (ft && ft !== 'cash') {
