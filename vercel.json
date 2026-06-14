@@ -209,7 +209,10 @@
                                                            },
                       "api/cron-affiliate-qualify-referrals.js":  {
                                                                "maxDuration":  60
-                                                           }
+                                                           },
+                      "api/cron-staging-watcher.js":  {
+                                                          "maxDuration":  30
+                                                      }
                   },
     "crons":  [
                   {
@@ -455,6 +458,10 @@
                   {
                       "path":  "/api/cron-affiliate-qualify-referrals",
                       "schedule":  "0 8 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-staging-watcher",
+                      "schedule":  "*/2 * * * *"
                   }
               ]
 }

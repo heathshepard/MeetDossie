@@ -1,18 +1,21 @@
 // Vercel Serverless Function: /api/cron-generate-posts
-// Daily content generator for Dossie's marketing pipeline.
+// Daily content generator for Dossie's marketing pipeline (DOSSIE-ONLY BRAND VOICE).
 //   - Generates 9 social posts per day via Claude Sonnet:
 //     CAPABILITY_ONELINER (Facebook), TREC_EDUCATION (Instagram),
-//     PERSONA_STORY/brenda (Twitter), CAPABILITY_ONELINER (LinkedIn),
+//     CAPABILITY_ONELINER (Twitter), CAPABILITY_ONELINER (LinkedIn),
 //     TREC_EDUCATION (Twitter), FOUNDER_STORY (Facebook),
-//     PERSONA_STORY/victor (Twitter - 3rd daily slot),
-//     PERSONA_STORY/victor (TikTok - activates DONE video pipeline),
-//     TREC_EDUCATION (YouTube - educational 60-90s voiceover, added 2026-05-29),
+//     CAPABILITY_ONELINER (Twitter - 3rd daily slot, ops angle),
+//     TREC_EDUCATION (TikTok - activates DONE video pipeline),
+//     TREC_EDUCATION (YouTube - educational 60-90s voiceover),
 //     rotating topic chosen by day-of-year.
-//   - Inserts each post into social_posts as status='draft'.
+//   - All posts written in Dossie brand voice only (no fictional personas).
+//   - Verifier gate rejects any post with fabricated specifics before insertion.
+//   - Inserts each post into social_posts as status='draft' or 'rejected'.
 //   - Wraps the run in a content_batches row for tracking.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 11 * * * (11:00 UTC daily, ~6am Central during DST).
+// Personas removed 2026-06-14: all content now brand-voice (dossie) only.
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -41,14 +44,13 @@ const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
 // these facts and flag fabrications.
 const VERIFIER_SYSTEM_PROMPT = `You are the Dossie Content Verifier. Your only job is to find fabrications, false specifics, and over-claims in customer-facing marketing copy before it ships. You are skeptical, terse, and accurate. You do not rewrite the copy — you flag what needs to change.
 
+NOTE: As of 2026-06-14, fictional personas (Brenda, Patricia, Victor) have been RETIRED from the generation pipeline. All posts are now written in Dossie brand voice only. If you encounter persona-formatted posts in legacy data, treat them with HIGHEST SKEPTICISM.
+
 ## CONTENT FORMATS — know which rules apply
 
-Posts come in four formats. The format is declared in the verification request. Apply format-specific rules:
+Posts now come in three formats. The format is declared in the verification request. Apply format-specific rules:
 
-### PERSONA_STORY posts (Brenda, Patricia, Victor)
-These are fictional Texas agent personas — NOT real customers. Any persona-branded content is intentional. Do NOT flag persona names, persona usage of Dossie, or persona pain stories.
-
-### CAPABILITY_ONELINER posts (Dossie brand voice)
+### CAPABILITY_ONELINER posts (Dossie brand voice ONLY)
 Dossie brand voice, no persona. Verifier must check: (a) is the claimed feature in the shipped features list? (b) is only ONE feature the central subject of the post?
 
 STACKED CAPABILITIES definition — ONLY flag as red when the post claims MULTIPLE DISTINCT FEATURES as if they are all part of the product (e.g. "Dossie scans your contract AND drafts your emails AND sends morning briefs AND tracks your pipeline"). This is stacking.
@@ -65,33 +67,16 @@ Dossie brand voice, no persona. Verifier must check: is the TREC fact accurate a
 ### FOUNDER_STORY posts (Heath's real verified stories only)
 Three approved stories: (1) TC quit while Heath was in Italy, (2) $400/file + 4:30am stress about option fee receipts, (3) remote deal management anxiety. Flag any specific detail that is NOT from these three stories (invented addresses, invented dollar amounts, invented timestamps) as red.
 
-## FICTIONAL MARKETING PERSONAS — NEVER check against the founding member list
+## VERIFIED FACTS ONLY — All current posts are brand-voice (persona="dossie") only
 
-Brenda, Patricia, and Victor are FICTIONAL characters used in Dossie's social media marketing content. They are NOT real customers and must NEVER be compared against or checked against the verified founding member list below. Any post written in one of their voices is intentional persona content — the persona name appearing in a post is never a fabrication or an unverified customer claim. Do not flag Brenda, Patricia, or Victor for any reason related to customer verification.
+As of 2026-06-14, no persona-formatted posts are generated. All posts are verified-facts-only brand voice.
 
-IMPORTANT - PERSONA CONTENT IS LEGITIMATE:
-These posts are written from the perspective of FICTIONAL MARKETING PERSONAS (Brenda, Patricia, Victor). They are invented characters illustrating real agent pain points - NOT real Dossie customers.
-
-ALWAYS APPROVE content that is:
-- A persona's pain story (e.g. "Brenda got a 4:30am call", "Victor missed a deadline")
-- Hypothetical frustrations or scenarios ("imagine losing a deal because...")
-- General agent experiences without specific Dossie usage claims
-- A persona described as USING Dossie (e.g. "She started using Dossie recently", "Victor uses Dossie now", "The morning brief lands in his inbox") — this is fictional persona storytelling, NOT a real customer claim. Approve it.
-- A persona experiencing a Dossie feature in the narrative (e.g. "Now she gets a morning brief", "He saw the deadline tracker pull every date from the contract") — this is persona storytelling. Approve it.
-- CAPABILITY_ONELINER, TREC_EDUCATION, or FOUNDER_STORY posts written in Dossie brand voice (no persona) — these are intentional brand-voice posts. Approve them if facts are accurate per the format-specific rules above.
-
-ONLY FLAG content that:
+FLAG these ALWAYS:
 - Claims a REAL named person (from the founding member list below) SIGNED UP, joined, or became a Dossie MEMBER — with specifics like join date or member number
 - Gives an exact join date, timestamp, or member number for a real customer
 - Quotes a real customer by name with a specific claim Heath did not make
 - States a specific founding member count as fact using a number higher than __FOUNDING_COUNT__
-- Claims Brenda, Patricia, or Victor is a "founding member" or gives them a member number (they are fictional personas, not real members)
-
-NEVER FLAG these patterns in persona copy:
-- "[Persona] started using Dossie recently" — fictional usage, fine
-- "[Persona] uses Dossie now" — fictional, fine
-- Persona experiencing any real Dossie feature — fine
-- Persona described as solving pain with Dossie — fine
+- Invents timestamps or scenarios not in the three verified founder pain stories (below)
 
 ## VERIFIED FACTS — the only source of truth for specific claims
 
@@ -446,14 +431,14 @@ const POST_PLAN_BASE = [
     platform: 'instagram',
     notes: 'TREC fact/rule -> why it matters -> how Dossie handles it -> CTA. Keep it crisp and mobile-readable. Line breaks between each beat.',
   },
-  // PERSONA_STORY — one emotional persona slot for connection
+  // CAPABILITY_ONELINER — first Twitter slot (replaces brenda persona_story)
   {
-    format: 'PERSONA_STORY',
-    persona: 'brenda',
+    format: 'CAPABILITY_ONELINER',
+    persona: null,
     platform: 'twitter',
-    notes: 'One punchline. Tired-but-witty voice. Third person throughout.',
+    notes: 'Punchy single feature. Dossie brand voice. One specific capability + concrete outcome. Sharp, operator-focused. Twitter audience rewrds opinionated takes — deliver a strong operational insight here.',
   },
-  // CAPABILITY_ONELINER — second slot, LinkedIn/professional audience
+  // CAPABILITY_ONELINER — LinkedIn/professional audience
   {
     format: 'CAPABILITY_ONELINER',
     persona: null,
@@ -474,21 +459,21 @@ const POST_PLAN_BASE = [
     platform: 'facebook',
     notes: 'Draw ONLY from the three approved Heath pain stories. Specific moment -> what it cost -> what Dossie would have done -> CTA. Conversational, not polished-marketing. This is a founder talking to agents, not a brand announcement.',
   },
-  // PERSONA_STORY — Victor third Twitter slot (fills the 3/day cap)
+  // CAPABILITY_ONELINER — second Twitter slot (replaces victor persona_story)
   {
-    format: 'PERSONA_STORY',
-    persona: 'victor',
+    format: 'CAPABILITY_ONELINER',
+    persona: null,
     platform: 'twitter',
-    notes: 'Confident, math-driven voice. Volume-agent angle. Third person throughout. A sharp operational take — margins, deal count, efficiency. One punchy thread or single tweet.',
+    notes: 'Operational insight for volume agents. Margins, deal capacity, efficiency angle. One specific feature that unlocks scale. Third Twitter slot — make it math-driven and confident.',
   },
-  // PERSONA_STORY — TikTok slot. Generates caption+hook for the DONE video pipeline.
+  // TREC_EDUCATION — TikTok slot. Generates caption+hook for the DONE video pipeline.
   // cron-publish-approved parks these as pending_video; a video must be attached
   // before they publish. Short-form, curiosity-first, under 150 words.
   {
-    format: 'PERSONA_STORY',
-    persona: 'victor',
+    format: 'TREC_EDUCATION',
+    persona: null,
     platform: 'tiktok',
-    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. End with "Link in bio" or "Comment YES if this is you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
+    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. Teach one TREC rule, show how Dossie solves it. End with "Link in bio" or "Comment YES if this applies to you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
   },
   // TREC_EDUCATION — YouTube slot. Educational long-form (60-90s voiceover).
   // YouTube rewards watch time — more depth than TikTok/Instagram.
@@ -1024,8 +1009,8 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
 {
   "posts": [
     {
-      "format": "PERSONA_STORY" | "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
-      "persona": "brenda" | "patricia" | "victor" | "dossie",
+      "format": "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
+      "persona": "dossie",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter" | "youtube",
       "voiceover_script": "<35-45 second spoken script for ElevenLabs TTS. Conversational, present-tense, no em-dashes. Ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.' Never use special characters. Approx 400-500 chars.>",
       "card_body": "<MAX 50 WORDS. Punchy, standalone body text for the image card (instagram + facebook only). 2-3 short sentences. Must work visually on the card without the full caption. Example: 'You already answered that. Yesterday. In writing. But here you are, fielding the same question again because your TC has no system.'>",
