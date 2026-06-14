@@ -1406,7 +1406,7 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     const p = generated[i];
     if (!p || typeof p !== 'object') continue;
     const format = String(p.format || 'PERSONA_STORY').toUpperCase();
-    const persona = String(p.persona || '').toLowerCase();
+    let persona = String(p.persona || '').toLowerCase();
     const platform = String(p.platform || '').toLowerCase();
     let caption = String(p.caption || p.content || '').trim(); // caption = full post text
     const voiceoverScript = String(p.voiceover_script || '').trim(); // spoken TTS script for Creatomate video
@@ -1415,6 +1415,15 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     const stat = String(p.stat || '').trim();
     const stat_label = String(p.stat_label || '').trim();
     const hashtags = Array.isArray(p.hashtags) ? p.hashtags.map((h) => String(h).replace(/^#/, '').trim()).filter(Boolean) : [];
+
+    // BUG FIX 2: For brand-voice formats (CAPABILITY_ONELINER, TREC_EDUCATION, FOUNDER_STORY),
+    // default persona to 'dossie' if null/empty. This fixes the YouTube slot (TREC_EDUCATION)
+    // which has persona=null in the plan but should be a valid brand-voice post.
+    const BRAND_VOICE_FORMATS = ['CAPABILITY_ONELINER', 'TREC_EDUCATION', 'FOUNDER_STORY'];
+    if (!persona && BRAND_VOICE_FORMATS.includes(format)) {
+      persona = 'dossie';
+    }
+
     // Brand-voice formats set persona="dossie" — valid, not a missing field.
     if (!caption || !platform || !persona) {
       insertErrors.push({ index: i, error: 'missing required field', got: { persona, platform, format, caption_length: caption.length } });
@@ -1537,6 +1546,22 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
       verifierResult.flags.some((f) => ['red', 'yellow'].includes(String(f?.severity || '').toLowerCase()));
     const requiresApproval = hasVerifierFlags || !!(p.group_name);
 
+    // BUG FIX 1: Check if post already exists with a "locked" status (approved, posted, etc).
+    // If it does, preserve the existing status — don't overwrite it with a fresh generation status.
+    // This prevents re-rejecting Twitter posts that were already approved.
+    let finalStatus = rowStatus;
+    const existingPost = await supabaseFetch(
+      `/rest/v1/social_posts?post_id=eq.${encodeURIComponent(postId)}&select=status&limit=1`
+    );
+    if (existingPost.ok && Array.isArray(existingPost.data) && existingPost.data.length > 0) {
+      const existingStatus = existingPost.data[0].status;
+      // Preserve status if already approved, posted, or pending_video (locked states)
+      if (['approved', 'posted', 'pending_video'].includes(existingStatus)) {
+        finalStatus = existingStatus;
+        console.log(`[cron-generate-posts] preserving existing status "${existingStatus}" for post ${postId} (was about to set to "${rowStatus}")`);
+      }
+    }
+
     const row = {
       post_id: postId,
       platform,
@@ -1545,7 +1570,7 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
       hook: hook || caption.slice(0, 120),
       cta,
       hashtags,
-      status: rowStatus,
+      status: finalStatus,
       telegram_sent_at: null,
       zernio_account_id: zernioAccountId,
       persona,

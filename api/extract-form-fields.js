@@ -360,7 +360,7 @@ async function extractFieldsWithAI(formType, message, transaction) {
   const agentRole = transaction?.agent_role || null;
   const roleContext = agentRole
     ? `The agent represents the ${agentRole === 'seller' ? 'SELLER' : 'BUYER'} side.`
-    : 'The agent's role is not specified; treat as BUYER unless message clearly indicates seller-side language.';
+    : "The agent's role is not specified; treat as BUYER unless message clearly indicates seller-side language.";
 
   const systemPrompt = `You are a Texas real estate transaction coordinator extracting structured data from an agent's message to fill out a TREC form.
 
