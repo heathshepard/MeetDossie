@@ -3074,63 +3074,6 @@ module.exports = async function handler(req, res) {
 
     console.log('[fill-form] filling', resolvedFormType, 'for tx', transactionId);
 
-    // Resale contract uses DocuSeal template (semantic field names, no AcroForm guessing).
-    // All other form types continue through the pdf-lib path.
-    if (resolvedFormType === 'resale-contract') {
-      const buyerEmail = mergedFields.buyer_email || '';
-      const sellerEmail = mergedFields.seller_email || '';
-      const buyerName = mergedFields.buyer_name || 'Buyer';
-      const sellerName = mergedFields.seller_name || 'Seller';
-
-      const { submissionId, signers } = await fillResaleContractDocuSeal(
-        mergedFields, buyerName, buyerEmail, sellerName, sellerEmail
-      );
-
-      const config = FORM_CONFIGS[resolvedFormType];
-      const ts = Date.now();
-      const safeName = config.shortName + '-' + ts + '.pdf';
-      // storage_path stores the DocuSeal submission reference (no actual upload)
-      const storagePath = 'docuseal/submission/' + submissionId;
-
-      const docResp = await supabaseRest('documents', {
-        method: 'POST',
-        headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({
-          transaction_id: transactionId,
-          user_id: userId,
-          file_name: safeName,
-          file_type: 'application/pdf',
-          document_type: config.documentType,
-          storage_path: storagePath,
-          file_size: 0,
-          status: 'pending_signature',
-        }),
-      });
-      if (!docResp.ok) {
-        const text = await docResp.text().catch(function() { return ''; });
-        throw new Error('documents insert failed (' + docResp.status + '): ' + text.slice(0, 300));
-      }
-      const docRows = await docResp.json();
-      const docRow = Array.isArray(docRows) ? docRows[0] : docRows;
-
-      const buyerSigner = signers.find((s) => s.role === 'Buyer') || signers[0];
-      const signingUrl = buyerSigner ? buyerSigner.signingUrl : null;
-
-      return res.status(200).json({
-        ok: true,
-        documentId: docRow && docRow.id ? docRow.id : null,
-        storagePath,
-        signedUrl: signingUrl,
-        signingUrl,
-        signers,
-        submissionId,
-        fileName: safeName,
-        formName: config.name,
-        formType: resolvedFormType,
-        via: 'docuseal',
-      });
-    }
-
     const filledBytes = await fillForm(resolvedFormType, mergedFields);
     const buffer = Buffer.from(filledBytes);
 
