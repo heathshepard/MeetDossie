@@ -1971,8 +1971,9 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   // (Already loaded by fillForm; pdfDoc is passed in)
 
   // PARTIES
-  safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
-  safeSetText(form, 'and', fv.seller_name || '');
+  // Note: First field after "1. PARTIES" is the Seller slot, second field is the Buyer slot
+  safeSetText(form, '1 PARTIES The parties to this contract are', fv.seller_name || '');
+  safeSetText(form, 'and', fv.buyer_name || '');
 
   // PROPERTY ADDRESS
   const addr = fv.property_address || '';
