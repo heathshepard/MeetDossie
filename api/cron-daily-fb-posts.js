@@ -17,7 +17,11 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 //           x-vercel-cron header (Vercel cron)
 // Schedule: vercel.json — 0 14 * * *  (14 UTC = 9 AM CST late-morning FB peak).
 //
-// Cap:      MAX_GROUPS_PER_DAY=4 — keeps daily volume sane for review.
+// Cap:      MAX_GROUPS_PER_DAY=8 — bumped 2026-06-14 to feed the rotation
+//           engine that now spans ~32 active groups in group_registry.
+//           At 8/day × 7 days = 56 posts/week, each of the 32 active groups
+//           gets touched ~1.75x/week, satisfying the "every group ≤1x/week"
+//           rule (cool_down_hours=168 enforces hard cap).
 
 const { runGroupPostGeneration } = require('./_lib/group-post-generator');
 
@@ -28,7 +32,7 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const MAX_GROUPS_PER_DAY = 4;
+const MAX_GROUPS_PER_DAY = 8;
 
 module.exports = withTelemetry('cron-daily-fb-posts', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
