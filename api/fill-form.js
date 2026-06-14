@@ -1140,8 +1140,8 @@ async function fillTerminationNotice(pdfDoc, fv) {
   // PROPERTY + PARTIES
   const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   safeSetText(form, 'Street Address and City', propertyFull);
-  safeSetText(form, 'BETWEEN THE UNDERSIGNED SELLER AND', fv.seller_name || '');
-  safeSetText(form, 'BUYER', fv.buyer_name || '');
+  safeSetText(form, 'BETWEEN THE UNDERSIGNED SELLER AND', fv.buyer_name || '');
+  safeSetText(form, 'BUYER', fv.seller_name || '');
 
   // TERMINATION REASON (radio group)
   // termination_reason: 'earnest_money' selects option 1 (Paragraph 5 earnest money failure)
