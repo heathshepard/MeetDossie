@@ -668,15 +668,9 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
 
   // SECTION 5A — ESCROW AGENT NAME (Page 2 §5A)
-  // CRITICAL (2026-06-15): Quinn's visual QA found that the §5A blank
-  // "Buyer must deliver to ___ (Escrow Agent)" is empty despite title_company being provided.
-  // Investigation (node fill-form.js): The PDF has NO AcroForm field corresponding to this blank.
-  // Possible explanations:
-  //   (a) TREC 20-17 §5A doesn't have a pre-fill blank for escrow agent name (form may assume it's the title company)
-  //   (b) Field exists but has a non-obvious name
-  // The form likely assumes escrow_agent == title_company. If a separate field is discovered,
-  // add: safeSetText(form, '[field_name]', fv.escrow_agent || fv.title_company || '');
-  // Deferred: next round, inspect the raw PDF with field overlays to find the actual field name.
+  // Field: "Escrow Agent" (verified in field map 2026-06-15)
+  // Per Hadley: The escrow agent name is typically the title company.
+  safeSetText(form, 'Escrow Agent', fv.escrow_agent || fv.title_company || '');
 
   // Section 6A.8 — Survey amendment to title policy
   // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
