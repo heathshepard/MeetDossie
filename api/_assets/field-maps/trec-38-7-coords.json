@@ -73,7 +73,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 213,
+      "y": 165,
       "required": false,
       "label": "(1) Option Period unrestricted"
     },
@@ -81,7 +81,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 244,
+      "y": 196,
       "required": false,
       "label": "(2) Financing (Buyer Approval)"
     },
@@ -89,7 +89,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 275,
+      "y": 227,
       "required": false,
       "label": "(3) Property Approval"
     },
@@ -97,7 +97,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 320,
+      "y": 272,
       "required": false,
       "label": "(4) HOA mandatory membership"
     },
@@ -105,7 +105,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 351,
+      "y": 303,
       "required": false,
       "label": "(5) Seller's Disclosure 7B(2)"
     },
@@ -113,7 +113,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 383,
+      "y": 335,
       "required": false,
       "label": "(6) Lender's Appraisal Para 3"
     },
@@ -121,7 +121,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 428,
+      "y": 380,
       "required": false,
       "label": "(7) Para 6.D objections not cured"
     },
@@ -129,7 +129,7 @@
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 472,
+      "y": 424,
       "required": false,
       "label": "(8) Other"
     },
