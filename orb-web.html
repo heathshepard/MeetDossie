@@ -617,9 +617,9 @@
    Flow:
      idle  → tap orb → recording (mic open, orb pulses to mic amplitude,
                                   silence > 1.5s OR tap stops it)
-           → thinking (POST audio → /api/cole-listen, then text →
-                       /api/cole-chat, orb shimmers thinking palette)
-           → speaking (POST text → /api/cole-speak, returns audio/mpeg,
+           → thinking (POST audio → /api/cole-voice?op=listen, then text →
+                       /api/cole-voice?op=chat, orb shimmers thinking palette)
+           → speaking (POST text → /api/cole-voice?op=speak, returns audio/mpeg,
                        playback through #cole-audio reuses the existing
                        Web Audio analyser pulse path)
            → idle
@@ -738,7 +738,7 @@
     }
 
     // Pick a MediaRecorder MIME the browser supports. Safari iOS prefers mp4,
-    // Chrome/Firefox prefer webm/opus. We send whichever to /api/cole-listen
+    // Chrome/Firefox prefer webm/opus. We send whichever to /api/cole-voice?op=listen
     // and let Whisper handle the format.
     const mimeCandidates = [
       'audio/webm;codecs=opus',
@@ -911,7 +911,7 @@
   }
 
   async function sendForTranscription(blob, mime) {
-    const res = await fetch('/api/cole-listen', {
+    const res = await fetch('/api/cole-voice?op=listen', {
       method: 'POST',
       headers: { 'Content-Type': mime || 'audio/webm' },
       body: blob,
@@ -926,7 +926,7 @@
   }
 
   async function sendForReply(message) {
-    const res = await fetch('/api/cole-chat', {
+    const res = await fetch('/api/cole-voice?op=chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -944,7 +944,7 @@
   }
 
   async function speakResponse(text) {
-    const res = await fetch('/api/cole-speak', {
+    const res = await fetch('/api/cole-voice?op=speak', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
@@ -1042,7 +1042,7 @@
   // ---- Public bridge for the orb voice loop -----------------------------
   // The orb() IIFE needs to (a) reuse this AudioContext for mic amplitude
   // (so iOS allows it within the user-gesture chain) and (b) play TTS audio
-  // returned from /api/cole-speak through the same analyser-driven pipeline.
+  // returned from /api/cole-voice?op=speak through the same analyser-driven pipeline.
   // We expose two functions on window.coleAudio.
   window.coleAudio = window.coleAudio || {};
   window.coleAudio.ensureContext = function () {
