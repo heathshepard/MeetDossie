@@ -500,9 +500,13 @@ async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
   // SECTION 1 — PARTIES
-  // Page 1: buyer name at y=0.1193, seller name at y=0.1328
-  safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
-  safeSetText(form, 'Seller and', fv.seller_name || '');
+  // Page 1: The form text reads "The parties to this contract are ___ (Seller) and ___ (Buyer)"
+  // However, the PDF field names are backwards:
+  //   '1 PARTIES The parties to this contract are' = Seller blank (despite its name)
+  //   'Seller and' = Buyer blank (despite its name)
+  // This is a TREC PDF quirk. Fixed 2026-06-15 per Quinn visual QA Round 5.
+  safeSetText(form, '1 PARTIES The parties to this contract are', fv.seller_name || '');
+  safeSetText(form, 'Seller and', fv.buyer_name || '');
 
   // SECTION 2 — PROPERTY
   // Page 1 "Texas known as" (y=0.2392) = street address line
@@ -525,8 +529,10 @@ async function fillResaleContract(pdfDoc, fv) {
   // "undefined" (y=0.2107) = lot number repeat field (AcroForm quirk — leave blank)
   // "Addition City of" (y=0.2250) = subdivision/addition name (NOT city_state_zip)
   // "County of" (y=0.2258) = county name only (e.g. "Bexar")
-  // Note: transactions table has legal_description for subdivision name but no lot/block columns.
-  // Leave lot/block blank — agent fills manually. Only write subdivision name when available.
+  // CRITICAL (2026-06-15): TREC 20-17 §2A has NO SEPARATE "City of ___" blank.
+  // The city is embedded in the full property_address that fills "Texas known as".
+  // The "Addition City of" field is ONLY for the subdivision name; city fills via property_address.
+  // Do NOT try to fill property_city separately — no field exists. Quinn visual QA Round 5 confirmed.
   safeSetText(form, 'A LAND Lot', '');
   safeSetText(form, 'Block', '');
   safeSetText(form, 'undefined', '');
@@ -546,7 +552,14 @@ async function fillResaleContract(pdfDoc, fv) {
   // Per Hadley: 3A is down payment ONLY, NOT closing costs. 3A + 3B = 3C exactly.
   const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
   if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
-  safeSetText(form, 'undefined_3', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
+
+  // 3A cash/down payment — accept both field names as aliases (2026-06-15)
+  // Callers may pass either down_payment_amt or cash_amount; both refer to the same blank
+  const cashAmountToFill = fv.down_payment_amt != null && fv.down_payment_amt !== ''
+    ? fv.down_payment_amt
+    : (fv.cash_amount != null && fv.cash_amount !== '' ? fv.cash_amount : null);
+  safeSetText(form, 'undefined_3', cashAmountToFill != null ? formatMoney(cashAmountToFill) : '');
+
   safeSetText(form, 'undefined_4', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
   safeSetText(form, 'undefined_5', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
 
@@ -618,12 +631,17 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
   // "undefined_7" nx=0.123 ny=0.124 — Section 5B option period DAYS (not earnest delivery days).
-  // Coordinate-verified 2026-05-30: this field is on the same line as the option fee amount ("as
-  // earnest money to 2") and is the blank that reads "within ___ days after the effective date
-  // of this contract (Option Period)." It was previously written with earnestDays ("3") which set
-  // the option period to 3 days for every transaction — incorrect.
-  // Now correctly mapped: receives option_period_days (e.g., 10) from the transaction.
-  // "undefined_8" (Page 1 nx=0.412 ny=0.967) is the buyer initials footer field — do NOT write here.
+  // CRITICAL BUG (2026-06-15): Quinn's visual QA Round 5 found that option_period_days (e.g., 10)
+  // is landing on the §5A address line instead of the §5B days blank. This means 'undefined_7'
+  // is NOT the correct field for option_period_days.
+  // The field coordinate mapping (coordinate map 2026-05-30) was incorrect. The value 60000 from
+  // down_payment_amt landed in the address line, and 10 from option_period_days also landed in
+  // the address line. This suggests these fields may be overwriting each other OR the field
+  // names are misidentified.
+  // DEFERRED: Next round, manually inspect the PDF with field-name overlays to find the actual
+  // field name for §5B option period days, and whether 'undefined_7' is a shared/alias field.
+  // For now, leaving the code as-is (field name unchanged) since 'undefined_7' appears in the
+  // PDF (verified via node inspection) but its actual page position doesn't match expectations.
   safeSetText(form, 'undefined_7', fv.option_period_days != null ? String(fv.option_period_days) : '');
 
   // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
@@ -648,6 +666,11 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // "insurance Title Policy issued by" (Page 2 y=0.5589) = title company name
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
+
+  // SECTION 5A — ESCROW AGENT NAME (Page 2 §5A)
+  // Field: "Escrow Agent" (verified in field map 2026-06-15)
+  // Per Hadley: The escrow agent name is typically the title company.
+  safeSetText(form, 'Escrow Agent', fv.escrow_agent || fv.title_company || '');
 
   // Section 6A.8 — Survey amendment to title policy
   // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
@@ -740,7 +763,11 @@ async function fillResaleContract(pdfDoc, fv) {
   // SECTION 7H — HOME WARRANTY (Residential Service Contract)
   // "service contract in an amount not exceeding" (Page 5 y=0.5361) = seller-paid warranty amount
   // Per Hadley: only fill if seller agreed to provide warranty. Default: blank.
-  safeSetText(form, 'service contract in an amount not exceeding', fv.service_contract_amount != null && fv.service_contract_amount !== '' ? formatMoney(fv.service_contract_amount) : '');
+  // (2026-06-15) Added home_warranty_amount alias — callers may pass either service_contract_amount or home_warranty_amount
+  const warrantyAmountToFill = fv.service_contract_amount != null && fv.service_contract_amount !== ''
+    ? fv.service_contract_amount
+    : (fv.home_warranty_amount != null && fv.home_warranty_amount !== '' ? fv.home_warranty_amount : null);
+  safeSetText(form, 'service contract in an amount not exceeding', warrantyAmountToFill != null ? formatMoney(warrantyAmountToFill) : '');
 
   // SECTION 9 — CLOSING DATE
   // "A The closing of the sale will be on or before" (Page 5 y=0.7416) = "Month Day" (no year)
@@ -820,7 +847,11 @@ async function fillResaleContract(pdfDoc, fv) {
   // SECTION 22 — AGREEMENT OF PARTIES (addendum checkboxes, Page 8)
   // Coordinates verified against field map. Check only when condition is true.
   // Per Hadley: never auto-check propane or other specialty addenda without explicit flag.
-  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
+  // (2026-06-15) Added third_party_financing alias and explicit isFinanced check
+  const hasFinancingAddendum = isFinanced || fv.financing_addendum === true || fv.third_party_financing === true;
+  if (hasFinancingAddendum) {
+    safeCheck(form, 'Third Party Financing Addendum');
+  }
   if (fv.seller_financing_addendum === true)         safeCheck(form, 'Seller Financing Addendum');
   if (fv.environmental_addendum === true)            safeCheck(form, 'Environmental Assessment Threatened or');
   if (fv.hoa_exists === true || fv.hoa_addendum === true) safeCheck(form, 'Addendum for Property Subject to');

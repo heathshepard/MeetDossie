@@ -2,6 +2,9 @@
 public/orb-smoke-raw.mp4
 public/frame_*.jpg
 
+# Fill-and-verify loop scratch output (PDFs + PNGs, large + ephemeral)
+.tmp-fill-verify/
+
 # Logs
 logs
 *.log
