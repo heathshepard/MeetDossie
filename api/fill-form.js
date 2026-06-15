@@ -577,13 +577,15 @@ async function fillResaleContract(pdfDoc, fv) {
   // Checking "is" for HOA was checking Section 4A, making it appear that the property has a
   // residential lease on every HOA transaction. Fixed 2026-05-30.
   //
-  // Standard residential sale (no leases): check "is not" — property is NOT subject to any lease.
+  // CRITICAL FIX (2026-06-14): ONLY check "is" or "is not" if explicitly specified.
+  // Do NOT auto-default to "is not" if agent didn't specify.
   if (fv.has_tenant_lease === true) {
     safeCheck(form, 'is');
-  } else {
+  } else if (fv.has_tenant_lease === false) {
     safeCheck(form, 'is not');
   }
-  // 4C Natural Resource Leases: only check sub-options when NRL explicitly exists
+  // If has_tenant_lease is null/undefined, leave both unchecked
+
   if (fv.has_natural_resource_lease === true) {
     if (fv.nrl_delivered === true) {
       safeCheck(form, '2Within');
@@ -605,7 +607,7 @@ async function fillResaleContract(pdfDoc, fv) {
   //   "to escrow agent within 1" x=0.5505 y=0.9123 — earnest delivery days on page 1 footer
   //
   // Per Hadley: earnest money goes to escrow agent (title company). 3 days is TX standard.
-  const earnestDays = fv.earnest_delivery_days != null ? String(fv.earnest_delivery_days) : '3';
+  const earnestDays = fv.earnest_delivery_days != null && fv.earnest_delivery_days !== '' ? String(fv.earnest_delivery_days) : '';
   safeSetText(form, 'undefined_6', earnestDays);
   safeSetText(form, 'to escrow agent within', earnestDays);
   safeSetText(form, 'to escrow agent within 1', earnestDays);
@@ -659,11 +661,11 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // Title objection days: "receipt or the date specified in this paragraph whichever is earlier"
   // (Page 3 y=0.3287) — days buyer has to object to title commitment. Standard: 5 days.
-  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days || '5');
+  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days != null && fv.title_objection_days !== '' ? fv.title_objection_days : '');
 
   // Exception document objection days: "the Commitment Exception Documents and the survey..."
   // (Page 3 y=0.3411) — days buyer has to object to exception documents. Standard: 5 days.
-  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '5');
+  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days != null && fv.exception_objection_days !== '' ? fv.exception_objection_days : '');
 
   // SECTION 6C — SURVEY OPTIONS (Page 3 y=0.5899/0.5908)
   // "1Within" (y=0.5899) = C.1: seller provides existing survey + T-47/T-47.1 (DEFAULT)
@@ -672,7 +674,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // When C.1 is selected, sub-checkboxes handle who pays for new survey if existing is unacceptable:
   //   "Sellers" (Page 2 y=0.5442 — note: same field name used in 6A!) — this is ambiguous in the PDF
   //   "Buyer" (Page 3 y=0.0957) = buyer pays if existing survey unacceptable
-  const surveyOption = fv.survey_option || 'c1';
+  const surveyOption = fv.survey_option != null && fv.survey_option !== '' ? fv.survey_option : '';
   if (surveyOption === 'c2' || fv.survey_buyer_new === true) {
     safeCheck(form, '2 Within');
   } else if (surveyOption === 'c3' || fv.survey_seller_new === true) {
@@ -680,17 +682,19 @@ async function fillResaleContract(pdfDoc, fv) {
     // "Sellers" on Page 1 (y=0.8641) is in the title expense area, NOT the survey section.
     // Use 1Within (C.1) as the closest match; the seller-provides sub-option has no AcroForm widget.
     safeCheck(form, '1Within');
-  } else {
-    // Default: C.1 seller provides existing survey
+  } else if (surveyOption === 'c1') {
+    // CRITICAL FIX (2026-06-14): ONLY check C.1 if explicitly specified. Do NOT auto-default.
+    // C.1 seller provides existing survey
     safeCheck(form, '1Within');
     // Sub-checkbox: if existing survey is unacceptable, who pays for new one?
     // "Buyer" (Page 3 y=0.0957) is the only survey sub-checkbox in the PDF.
-    // "Sellers" checkbox exists only on Page 1 (title area) — do NOT check it for survey purposes.
-    // Default: buyer pays (most common in TX when C.1 is used).
-    if (fv.survey_sellers_expense !== true && fv.seller_provides_survey !== true) {
+    // "Sellers" checkbox exists only on Page 1 (title area) � do NOT check it for survey purposes.
+    // Only check "Buyer" if explicitly specified AND seller_provides_survey is true
+    if (fv.survey_sellers_expense !== true && fv.seller_provides_survey === true) {
       safeCheck(form, 'Buyer');
     }
   }
+
 
   // Section 6C survey delivery days (Page 3 y=0.0971)
   // Actual field name verified against 20-18 map: "than 3 days prior to Closing Date"
@@ -700,7 +704,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // Section 6D — Permitted use and property use objection days
   // "Commitment other than items 6A1 through 9 above or which prohibit the following use"
   // (Page 3 y=0.3287) = permitted use text field
-  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use || 'single family residence');
+  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use != null && fv.permitted_use !== '' ? fv.permitted_use : '');
 
   // SECTION 7B — SELLER'S DISCLOSURE NOTICE
   // "Within one" (Page 3 y=0.1811) / "Within two" (y=0.1807) / "Within three" (y=0.1934) /
