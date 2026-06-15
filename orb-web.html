@@ -616,13 +616,18 @@
    ---------------------------------------------------------------------
    Flow:
      idle  → tap orb → recording (mic open, orb pulses to mic amplitude,
-                                  silence > 1.5s OR tap stops it)
-           → thinking (POST audio → /api/cole-voice?op=listen, then text →
-                       /api/cole-voice?op=chat, orb shimmers thinking palette)
+                                  browser SpeechRecognition captures transcript;
+                                  end-of-speech OR tap stops it)
+           → thinking (transcript → /api/cole-voice?op=chat,
+                       orb shimmers thinking palette)
            → speaking (POST text → /api/cole-voice?op=speak, returns audio/mpeg,
                        playback through #cole-audio reuses the existing
                        Web Audio analyser pulse path)
            → idle
+
+   Note: STT is browser-native (Web Speech API). The legacy
+   /api/cole-voice?op=listen Whisper path is kept server-side as a fallback
+   but is no longer called from this page.
 
    Sharing: the Web Audio AudioContext + analyser are owned by the speak()
    IIFE below. We expose a couple of helpers on window.coleAudio so the orb
@@ -694,22 +699,34 @@
       .replace(/"/g, '&quot;');
   }
 
+  // ---- Browser-native SpeechRecognition setup ----------------------------
+  // Replaces the legacy Whisper round-trip. Mobile Chrome (Android) + Safari
+  // (iOS 14.5+) both support webkitSpeechRecognition. Unsupported browsers
+  // get a one-line fallback message and the orb refuses to enter recording.
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SPEECH_SUPPORTED = !!SpeechRecognitionCtor;
+  let recognition = null;
+  let lastTranscript = '';
+  if (SPEECH_SUPPORTED) {
+    recognition = new SpeechRecognitionCtor();
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+  }
+
   // ---- Mic capture + amplitude → orb pulse -------------------------------
   // We share window.coleAudio.driveIntensity(value) with the speak() IIFE so
   // the same --pulse-intensity var responds to BOTH mic input and TTS output.
+  // (Note: SpeechRecognition manages its own internal mic stream; we still
+  // open a parallel getUserMedia stream purely for the live amplitude pulse.)
   let mediaStream = null;
-  let mediaRecorder = null;
-  let recordedChunks = [];
   let micAnalyser = null;
   let micDataArray = null;
   let micRaf = 0;
-  let silenceTimer = null;
-  let recordStartedAt = 0;
   let smoothedMic = 0;
   const MIC_ALPHA = 0.35;
-  const SILENCE_RMS_THRESHOLD = 0.02; // below this counts as silence
-  const SILENCE_HOLD_MS = 1500;       // 1.5s of silence ends the recording
-  const MAX_RECORD_MS = 30000;        // hard cap so a runaway tab doesn't bill
+  const MAX_RECORD_MS = 30000;        // hard cap so a runaway tab doesn't hang
 
   function setIntensity(v) {
     stage.style.setProperty('--pulse-intensity', v.toFixed(3));
@@ -717,6 +734,11 @@
 
   async function startRecording() {
     if (state !== 'idle') return; // ignore taps mid-flow
+    if (!SPEECH_SUPPORTED) {
+      setState('error', 'Voice not supported here — try Chrome or Safari');
+      setTimeout(() => setState('idle'), 4000);
+      return;
+    }
     // If the marketing preview pulse is still demoing, kill it so our
     // recording state owns the orb cleanly.
     if (window.coleAudio && window.coleAudio.cancelPreview) {
@@ -737,45 +759,9 @@
       return;
     }
 
-    // Pick a MediaRecorder MIME the browser supports. Safari iOS prefers mp4,
-    // Chrome/Firefox prefer webm/opus. We send whichever to /api/cole-voice?op=listen
-    // and let Whisper handle the format.
-    const mimeCandidates = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/mp4',
-      'audio/mpeg',
-      'audio/ogg;codecs=opus',
-      '',
-    ];
-    let chosenMime = '';
-    for (const m of mimeCandidates) {
-      if (m === '' || (window.MediaRecorder && MediaRecorder.isTypeSupported(m))) {
-        chosenMime = m;
-        break;
-      }
-    }
-    try {
-      mediaRecorder = chosenMime
-        ? new MediaRecorder(mediaStream, { mimeType: chosenMime })
-        : new MediaRecorder(mediaStream);
-    } catch (err) {
-      console.warn('[orb] MediaRecorder init failed:', err);
-      cleanupStream();
-      setState('error', 'Recording unsupported on this browser');
-      setTimeout(() => setState('idle'), 3000);
-      return;
-    }
-
-    recordedChunks = [];
-    mediaRecorder.addEventListener('dataavailable', (e) => {
-      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-    });
-    mediaRecorder.addEventListener('stop', onRecordingStopped);
-
     // Wire up amplitude analysis through the shared AudioContext (via
-    // window.coleAudio). If the helper isn't ready (shouldn't happen — speak()
-    // IIFE runs first), we skip the live pulse but still record.
+    // window.coleAudio). The parallel getUserMedia stream powers the live
+    // visual pulse; SpeechRecognition manages its own internal capture.
     try {
       const ctx = window.coleAudio && window.coleAudio.ensureContext && window.coleAudio.ensureContext();
       if (ctx) {
@@ -791,13 +777,46 @@
       console.warn('[orb] mic analyser setup failed (non-fatal):', err);
     }
 
-    mediaRecorder.start();
-    recordStartedAt = performance.now();
+    // Wire SpeechRecognition handlers fresh for each session.
+    lastTranscript = '';
+    recognition.onresult = (event) => {
+      try {
+        const r = event.results && event.results[0] && event.results[0][0];
+        if (r && r.transcript) lastTranscript = r.transcript.trim();
+      } catch (_) { /* ignore */ }
+    };
+    recognition.onerror = (event) => {
+      const errType = event && event.error;
+      console.warn('[orb] SpeechRecognition error:', errType);
+      cleanupStream();
+      let msg = 'Didn\'t catch that — tap to try again';
+      if (errType === 'not-allowed' || errType === 'service-not-allowed') msg = 'Mic blocked — allow access then tap';
+      else if (errType === 'audio-capture') msg = 'No mic detected';
+      else if (errType === 'network') msg = 'Connection hiccup — tap to retry';
+      setState('error', msg);
+      setTimeout(() => setState('idle'), 2800);
+    };
+    recognition.onend = () => {
+      // Fires whether result arrived, silence timed out, or stop() was called.
+      // If we have a transcript, run the chat pipeline; otherwise reset.
+      if (state !== 'recording' && state !== 'thinking') return;
+      handleRecognitionEnd();
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      console.warn('[orb] SpeechRecognition start failed:', err);
+      cleanupStream();
+      setState('error', 'Voice unavailable — tap to retry');
+      setTimeout(() => setState('idle'), 3000);
+      return;
+    }
     setState('recording');
     if (transcriptEl) transcriptEl.innerHTML = '';
     micRaf = requestAnimationFrame(micTick);
 
-    // Hard cap — kill the recording if it runs too long.
+    // Hard cap — kill recognition if it runs too long.
     setTimeout(() => {
       if (state === 'recording') stopRecording();
     }, MAX_RECORD_MS);
@@ -820,29 +839,14 @@
     }
     smoothedMic = MIC_ALPHA * Math.min(1, rms * 4.0) + (1 - MIC_ALPHA) * smoothedMic;
     setIntensity(smoothedMic);
-
-    // Silence detection: only kicks in after the first 600ms so a slow speaker
-    // doesn't lose their opening pause.
-    const elapsed = performance.now() - recordStartedAt;
-    if (elapsed > 600) {
-      if (rms < SILENCE_RMS_THRESHOLD) {
-        if (!silenceTimer) {
-          silenceTimer = setTimeout(() => {
-            if (state === 'recording') stopRecording();
-          }, SILENCE_HOLD_MS);
-        }
-      } else if (silenceTimer) {
-        clearTimeout(silenceTimer);
-        silenceTimer = null;
-      }
-    }
+    // Silence detection lives inside SpeechRecognition — it fires `end`
+    // automatically when the user stops speaking.
     micRaf = requestAnimationFrame(micTick);
   }
 
   function stopRecording() {
-    if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
-    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    try { mediaRecorder.stop(); } catch (_) { /* already stopped */ }
+    if (!recognition) return;
+    try { recognition.stop(); } catch (_) { /* already stopped */ }
   }
 
   function cleanupStream() {
@@ -857,39 +861,25 @@
     setIntensity(0);
   }
 
-  async function onRecordingStopped() {
+  async function handleRecognitionEnd() {
     // Move to thinking state immediately for responsiveness.
     setState('thinking');
-    const mime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
     cleanupStream();
 
-    if (!recordedChunks.length) {
-      setState('error', 'No audio captured — tap to try again');
-      setTimeout(() => setState('idle'), 2500);
-      return;
-    }
-    const blob = new Blob(recordedChunks, { type: mime });
-    recordedChunks = [];
+    const transcript = (lastTranscript || '').trim();
+    lastTranscript = '';
 
-    if (blob.size < 600) {
-      // Way too short — almost certainly a stray tap. Reset cleanly.
-      setState('error', 'Too short — hold and speak, then tap');
+    if (!transcript) {
+      setState('error', 'Didn\'t catch that — tap to try again');
       setTimeout(() => setState('idle'), 2500);
       return;
     }
 
     try {
-      // 1. STT
-      const transcript = await sendForTranscription(blob, mime);
-      if (!transcript) {
-        setState('error', 'Didn\'t catch that — try again');
-        setTimeout(() => setState('idle'), 2500);
-        return;
-      }
       rememberTurn('user', transcript);
       renderTranscript(transcript, '');
 
-      // 2. Chat
+      // Chat (STT happened client-side via Web Speech API — no Whisper round-trip)
       const reply = await sendForReply(transcript);
       if (!reply) {
         setState('error', 'Cole couldn\'t answer — try again');
@@ -899,7 +889,7 @@
       rememberTurn('assistant', reply);
       renderTranscript(transcript, reply);
 
-      // 3. TTS + playback (speak() IIFE handles the pulse via the shared graph)
+      // TTS + playback (speak() IIFE handles the pulse via the shared graph)
       setState('speaking');
       await speakResponse(reply);
       setState('idle');
@@ -908,21 +898,6 @@
       setState('error', err && err.userMessage ? err.userMessage : 'Connection hiccup — tap to retry');
       setTimeout(() => setState('idle'), 3500);
     }
-  }
-
-  async function sendForTranscription(blob, mime) {
-    const res = await fetch('/api/cole-voice?op=listen', {
-      method: 'POST',
-      headers: { 'Content-Type': mime || 'audio/webm' },
-      body: blob,
-    });
-    if (!res.ok) {
-      const err = new Error('STT failed');
-      err.userMessage = res.status === 429 ? 'Slow down — too many requests' : 'Transcription failed';
-      throw err;
-    }
-    const data = await res.json();
-    return (data && data.transcript || '').trim();
   }
 
   async function sendForReply(message) {
