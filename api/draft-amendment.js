@@ -303,15 +303,16 @@ module.exports = async function handler(req, res) {
     }
     body = body || {};
 
-    const transactionId = sanitizeString(body.transactionId, { maxLength: 200 });
-    const amendmentType = sanitizeString(body.amendmentType, { maxLength: 50 });
-    const newValueRaw = body.newValue;
+    // Accept BOTH camelCase (legacy) and snake_case (Talk-to-Dossie chat dispatcher).
+    const transactionId = sanitizeString(body.transactionId || body.transaction_id, { maxLength: 200 });
+    const amendmentType = sanitizeString(body.amendmentType || body.amendment_type, { maxLength: 50 });
+    const newValueRaw = body.newValue != null ? body.newValue : body.new_value;
     const notes = sanitizeString(body.notes, { maxLength: 500 });
 
     if (!transactionId) throw new ValidationError('transactionId is required.');
     if (!amendmentType) throw new ValidationError('amendmentType is required.');
     if (!ALLOWED_TYPES.has(amendmentType)) {
-      throw new ValidationError('amendmentType must be one of: closing_date, option_extension, price_change.');
+      throw new ValidationError('amendmentType must be one of: closing_date, option_extension, price_change, repair_items.');
     }
     const newValue = sanitizeString(newValueRaw == null ? '' : String(newValueRaw), { maxLength: 200 });
     if (!newValue) throw new ValidationError('newValue is required.');
