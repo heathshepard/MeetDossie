@@ -1095,9 +1095,9 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeCheck(form, '1 Conventional Financing');
     safeCheck(form, 'a A first mortgage loan in the principal amount of');
     // PRINCIPAL AMOUNT
-    safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
+    safeSetText(form, 'any financed PMI premium due in full in 1', String(fv.loan_term_years || ''));
     // TERM YEARS
-    safeSetText(form, 'years with interest not to exceed', String(fv.loan_term_years || ''));
+    safeSetText(form, 'years with interest not to exceed', loanAmt);
     // INTEREST RATE
     safeSetText(form, 'per annum for the first', String(fv.interest_rate_max || ''));
     // ORIGINATION CHARGES CAP
