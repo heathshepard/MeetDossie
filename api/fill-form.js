@@ -1199,6 +1199,18 @@ async function fillTerminationNotice(pdfDoc, fv) {
   const fieldMapModule = require('./_assets/field-maps/trec-38-7-coords.json');
   const { fillFlatPdfFromMap } = require('./_assets/flat-pdf-filler.js');
 
+  // Map termination_reason to the correct checkbox based on pattern matching
+  const reason = String(fv.termination_reason || '').toLowerCase();
+  let checkboxKey = null;
+  if (/option period|paragraph 5|unrestricted/.test(reason)) checkboxKey = 'termination_checkbox_option_period';
+  else if (/financing addendum|buyer approval|loan/.test(reason)) checkboxKey = 'termination_checkbox_financing';
+  else if (/property appraisal|property approval/.test(reason)) checkboxKey = 'termination_checkbox_property';
+  else if (/hoa|property owners|association/.test(reason)) checkboxKey = 'termination_checkbox_hoa';
+  else if (/seller.s disclosure|7b\(2\)/.test(reason)) checkboxKey = 'termination_checkbox_disclosure';
+  else if (/lender.s appraisal|appraisal|paragraph 3/.test(reason)) checkboxKey = 'termination_checkbox_appraisal';
+  else if (/objection|cure period|paragraph 6/.test(reason)) checkboxKey = 'termination_checkbox_objections';
+  else if (reason) checkboxKey = 'termination_checkbox_other';
+
   // Prepare values with formatting
   const flatFieldValues = {
     buyer_name: fv.buyer_name || '',
@@ -1206,9 +1218,13 @@ async function fillTerminationNotice(pdfDoc, fv) {
     property_address: fv.property_address || '',
     contract_effective_date: fv.contract_effective_date ? formatDate(fv.contract_effective_date) : '',
     termination_notice_date: fv.termination_notice_date ? formatDate(fv.termination_notice_date) : formatDate(new Date().toISOString().slice(0, 10)),
-    termination_reason: fv.termination_reason || '',
-    termination_other_reasons: fv.termination_other_reasons || '',
+    termination_reason_other: (checkboxKey === 'termination_checkbox_other') ? fv.termination_reason : '',
   };
+
+  // Set the mapped checkbox to true
+  if (checkboxKey) {
+    flatFieldValues[checkboxKey] = true;
+  }
 
   await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
   return pdfDoc;
