@@ -1171,6 +1171,9 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeSetText(form, 'per annum for the first_3', fv.reverse_per_annum || '');
   }
 
+  // Force appearance update for checkboxes with custom appearance dicts (TREC 40 conventional financing)
+  try { form.updateFieldAppearances(); } catch (e) { console.warn('[fill-form] updateFieldAppearances failed:', e.message); }
+
   return pdfDoc;
 }
 
