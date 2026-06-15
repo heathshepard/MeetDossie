@@ -2876,7 +2876,11 @@ async function fillForm(formType, fieldValues) {
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
 
-  try { pdfDoc.getForm().flatten(); } catch (e) { console.warn('[fill-form] flatten failed:', e && e.message); }
+  // Only flatten if this is an AcroForm-based PDF (not TREC 23/24/25 which are flat)
+  const isAcroForm = formType && ["resale-contract", "financing-addendum", "termination-notice"].includes(formType);
+  if (isAcroForm) {
+    try { pdfDoc.getForm().flatten(); } catch (e) { console.warn('[fill-form] flatten failed:', e && e.message); }
+  }
 
   return await pdfDoc.save();
 }
