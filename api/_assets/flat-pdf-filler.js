@@ -2,6 +2,8 @@
 // These PDFs have no form fields, so we draw text directly at specified coordinates using pdf-lib.
 
 const { rgb, StandardFonts } = require('pdf-lib');
+const fs = require('fs');
+const path = require('path');
 
 let cachedHelvetica = null;
 
@@ -58,18 +60,42 @@ async function fillFlatPdfFromMap(pdfDoc, fv, field_map) {
   const nonEmptyCount = Object.values(fv).filter(v => v && v !== '').length;
   console.log('[fillFlatPdfFromMap] fv has', nonEmptyCount, 'non-empty values; cash_portion:', fv.cash_portion, 'financing_amount:', fv.financing_amount, 'sales_price:', fv.sales_price);
 
+  const filledFields = [];
+  const skippedFields = [];
+
   for (const [logical_name, field_config] of Object.entries(fields)) {
     // Skip checkboxes and other non-text fields for now
     if (field_config.type === 'checkbox') continue;
 
     const value = fv[logical_name];
-    if (!value || value === '') continue;
+    if (!value || value === '') {
+      skippedFields.push({ name: logical_name, reason: 'no_value' });
+      continue;
+    }
 
     try {
+      filledFields.push({ name: logical_name, value: String(value).slice(0, 50), page: field_config.page });
       await drawTextAtCoords(pdfDoc, field_config.page, field_config, String(value));
     } catch (err) {
       console.warn(`[flat-pdf-filler] Error filling ${logical_name}:`, err.message);
+      filledFields.push({ name: logical_name, error: err.message });
     }
+  }
+
+  // Write debug log to tmp file so we can see what happened
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const logPath = path.join('/tmp', `fillFlatPdfFromMap-${timestamp}.json`);
+    fs.writeFileSync(logPath, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      nonEmptyValues: nonEmptyCount,
+      filledCount: filledFields.length,
+      filled: filledFields,
+      skippedCount: skippedFields.length
+    }, null, 2));
+    console.log('[fillFlatPdfFromMap] Wrote debug log to ' + logPath);
+  } catch (logErr) {
+    console.warn('[fillFlatPdfFromMap] Could not write debug log:', logErr && logErr.message);
   }
 }
 
