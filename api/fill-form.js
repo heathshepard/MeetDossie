@@ -1082,6 +1082,9 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   if (ft && ft !== 'cash') {
     safeCheck(form, 'a A first mortgage loan in the principal amount of');
     safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
+    // NOTE: approval_days field is NOT supported in TREC 40 financing addendum.
+    // The approval checkbox auto-checks if financed; approval days belong in the main resale contract (Section 23.1).
+    // Silently ignore fv.approval_days if provided.
   }
   if (fv.second_mortgage === true) {
     safeCheck(form, 'b A second mortgage loan in the principal amount of');
@@ -1092,18 +1095,18 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeCheck(form, '1 Conventional Financing');
     // PRINCIPAL AMOUNT: Field verified from PDF inspector as 'any financed PMI premium due in full in 1'
     safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
-    // TERM YEARS: Conventional term stored in same "years" field as other loan types
-    const loanTermYears = fv.loan_term_years || 30;
-    safeSetText(form, 'years', String(loanTermYears));
-    // INTEREST RATE: "with interest not to exceed" [X] "% per annum"
-    const interestRate = fv.interest_rate_max || '';
-    safeSetText(form, 'with interest not to exceed', interestRate);
+    // TERM YEARS & INTEREST RATE: TREC 40 conventional section does NOT have dedicated AcroForm fields for term or rate.
+    // Visual blanks exist in PDF but are unfillable. Skipping writes to 'years' and 'with interest not to exceed'
+    // to avoid contaminating VA section fields (which have those names).
+    // TODO: Implement drawText overlay mechanism if Heath needs these values captured for conventional.
+
     // ORIGINATION CHARGES CAP: "shown on Buyers Loan Estimate for the loan not to exceed"
     safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || '');
 
     // Second loan (if applicable)
     safeSetText(form, 'any financed PMI premium due in full in 2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
     safeSetText(form, 'per annum for the first', fv.second_interest_rate_cap || '');
+    // Second origination shares field with primary origination; will overwrite if both provided
     safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.second_origination_charges_cap || '');
   }
 
