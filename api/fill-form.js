@@ -2412,52 +2412,74 @@ async function fillNewHomeComplete(pdfDoc, fv) {
   const fieldMapModule = require('./_assets/field-maps/trec-24-20-coords.json');
   const { fillFlatPdfFromMap } = require('./_assets/flat-pdf-filler.js');
 
-  // Prepare values with formatting (same structure as TREC 23, with CO/warranty additions)
+  // Map caller's transaction field names to the PDF field-map keys (trec-24-20-coords.json).
+  // The field-map keys are: buyer_name, seller_name, lot_number, block_number, addition_name,
+  // county, property_address, cash_portion, financing_amount, sales_price, escrow_agent,
+  // escrow_address, earnest_money, option_fee, additional_earnest_money, additional_earnest_days,
+  // option_period_days, closing_date, closing_date_page{4,5,6,7}, buyer_address, seller_address,
+  // effective_date, seller_signature, seller_signature_date, buyer_signature, buyer_signature_date,
+  // other_broker(+_license,+_address), listing_broker(+_license,+_address),
+  // escrow_receipt_date_{1,2,3,4}.
   const flatFieldValues = {
+    // Section 1: Parties
     buyer_name: fv.buyer_name || '',
     seller_name: fv.seller_name || '',
-    property_address_header: fv.property_address || '',
+
+    // Section 2: Property
+    property_address: fv.property_address || '',
     lot_number: fv.lot_number || '',
     block_number: fv.block_number || '',
-    addition_name: fv.legal_description || fv.addition_name || '',
-    city_state: fv.city_state || '',
+    addition_name: fv.addition_name || fv.legal_description || '',
     county: fv.county || '',
-    property_zip: fv.property_zip || '',
-    cash_down_payment: fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : '',
-    loan_amount: fv.loan_amount ? formatMoney(fv.loan_amount) : '',
-    total_sales_price: fv.sale_price ? formatMoney(fv.sale_price) : '',
-    escrow_agent: fv.escrow_agent || fv.title_company || '',
-    escrow_agent_address: fv.escrow_agent_address || '',
-    earnest_money_amount: fv.earnest_money ? formatMoney(fv.earnest_money) : '',
-    option_fee_amount: fv.option_fee ? formatMoney(fv.option_fee) : '',
+
+    // Section 3: Sales Price
+    cash_portion: fv.cash_portion || (fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : ''),
+    financing_amount: fv.financing_amount || (fv.loan_amount ? formatMoney(fv.loan_amount) : ''),
+    sales_price: fv.sales_price || (fv.sale_price ? formatMoney(fv.sale_price) : ''),
+
+    // Section 5: Earnest Money + Option
+    earnest_money: fv.earnest_money_formatted || (fv.earnest_money ? formatMoney(fv.earnest_money) : ''),
+    option_fee: fv.option_fee_formatted || (fv.option_fee ? formatMoney(fv.option_fee) : ''),
+    option_period_days: fv.option_period_days || fv.option_days || '',
     additional_earnest_days: fv.additional_earnest_days || '',
-    additional_earnest_amount: fv.additional_earnest_amount ? formatMoney(fv.additional_earnest_amount) : '',
-    option_period_days: fv.option_period_days || '',
-    title_company_name: fv.title_company || '',
-    title_company_address: fv.title_company_address || '',
-    title_objection_days: fv.title_objection_days || '',
-    exception_objection_days: fv.exception_objection_days || '',
+    additional_earnest_money: fv.additional_earnest_money || (fv.additional_earnest_amount ? formatMoney(fv.additional_earnest_amount) : ''),
+
+    // Escrow agent
+    escrow_agent: fv.escrow_agent || fv.title_company || '',
+    escrow_address: fv.escrow_address || fv.title_company_address || '',
+
+    // Closing and effective dates
     closing_date: fv.closing_date ? formatDate(fv.closing_date) : '',
-    completion_date: fv.co_received_date ? formatDate(fv.co_received_date) : '',
-    co_number: fv.co_number || '',
-    possession_date: fv.possession_date ? formatDate(fv.possession_date) : '',
-    special_provisions: fv.special_provisions || '',
-    builder_warranty_company: fv.builder_warranty_company || '',
-    listing_broker_name: fv.listing_broker_name || '',
-    listing_broker_license: fv.listing_broker_license || '',
-    listing_agent_name: fv.listing_agent_name || '',
-    listing_agent_license: fv.listing_agent_license || '',
-    listing_agent_phone: fv.listing_agent_phone || '',
-    listing_agent_email: fv.listing_agent_email || '',
-    selling_broker_name: fv.selling_broker_name || '',
-    selling_broker_license: fv.selling_broker_license || '',
-    selling_agent_name: fv.selling_agent_name || '',
-    selling_agent_license: fv.selling_agent_license || '',
-    selling_agent_phone: fv.selling_agent_phone || '',
-    selling_agent_email: fv.selling_agent_email || '',
-    contract_effective_date: fv.contract_effective_date ? formatDate(fv.contract_effective_date) : '',
-    buyer_initials: fv.buyer_initials || '',
-    seller_initials: fv.seller_initials || '',
+    closing_date_page4: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page5: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page6: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page7: fv.closing_date ? formatDate(fv.closing_date) : '',
+    effective_date: (fv.effective_date || fv.contract_effective_date) ? formatDate(fv.effective_date || fv.contract_effective_date) : '',
+
+    // Broker information
+    listing_broker: fv.listing_broker_name || fv.listing_broker || '',
+    listing_broker_license: fv.listing_broker_license || fv.listing_broker_license_no || '',
+    listing_broker_address: fv.listing_broker_address || '',
+
+    other_broker: fv.other_broker_name || fv.selling_broker_name || fv.other_broker || '',
+    other_broker_license: fv.other_broker_license || fv.selling_broker_license || fv.other_broker_license_no || '',
+    other_broker_address: fv.other_broker_address || '',
+
+    // Notice addresses
+    buyer_address: fv.buyer_address || fv.buyer_notice_name || '',
+    seller_address: fv.seller_address || fv.seller_notice_name || '',
+
+    // Signatures and dates
+    buyer_signature: fv.buyer_signature || '',
+    buyer_signature_date: fv.buyer_signature_date ? formatDate(fv.buyer_signature_date) : '',
+    seller_signature: fv.seller_signature || '',
+    seller_signature_date: fv.seller_signature_date ? formatDate(fv.seller_signature_date) : '',
+
+    // Escrow receipt dates
+    escrow_receipt_date_1: fv.escrow_receipt_date_1 ? formatDate(fv.escrow_receipt_date_1) : '',
+    escrow_receipt_date_2: fv.escrow_receipt_date_2 ? formatDate(fv.escrow_receipt_date_2) : '',
+    escrow_receipt_date_3: fv.escrow_receipt_date_3 ? formatDate(fv.escrow_receipt_date_3) : '',
+    escrow_receipt_date_4: fv.escrow_receipt_date_4 ? formatDate(fv.escrow_receipt_date_4) : '',
   };
 
   await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
@@ -2474,54 +2496,79 @@ async function fillFarmRanch(pdfDoc, fv) {
   const fieldMapModule = require('./_assets/field-maps/trec-25-17-coords.json');
   const { fillFlatPdfFromMap } = require('./_assets/flat-pdf-filler.js');
 
-  // Prepare values with formatting
+  // Map caller's transaction field names to the PDF field-map keys (trec-25-17-coords.json).
+  // Field-map keys: seller_name, buyer_name, county, property_description, acreage,
+  // cash_portion, financing_amount, sales_price, acreage_adjustment, survey_days,
+  // escrow_agent, escrow_address, earnest_money, option_fee, additional_earnest_money,
+  // option_period_days, closing_date, closing_date_page{3b,5,6,7,8}, reservations_{oil_gas,water,timber},
+  // buyer_address, seller_address, effective_date, seller_signature, seller_signature_date,
+  // buyer_signature, buyer_signature_date, other_broker(+_license,+_address),
+  // listing_broker(+_license,+_address), escrow_receipt_date_{1,2,3,4}.
   const flatFieldValues = {
+    // Section 1: Parties
     buyer_name: fv.buyer_name || '',
     seller_name: fv.seller_name || '',
-    property_address_header: fv.property_address || '',
-    lot_number: fv.lot_number || '',
-    block_number: fv.block_number || '',
-    section_number: fv.section_number || '',
-    township_range: fv.township_range || '',
-    abstract_number: fv.abstract_number || '',
-    addition_name: fv.legal_description || fv.addition_name || '',
-    city_state: fv.city_state || '',
+
+    // Section 2: Property
     county: fv.county || '',
-    property_zip: fv.property_zip || '',
-    land_acres: fv.land_acreage ? String(fv.land_acreage) : '',
-    improvements_description: fv.improvements_description || '',
-    cash_down_payment: fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : '',
-    loan_amount: fv.loan_amount ? formatMoney(fv.loan_amount) : '',
-    total_sales_price: fv.sale_price ? formatMoney(fv.sale_price) : '',
+    property_description: fv.property_description || fv.property_address || fv.legal_description || '',
+    acreage: fv.acreage || (fv.land_acreage != null ? String(fv.land_acreage) : ''),
+    acreage_adjustment: fv.acreage_adjustment || '',
+    survey_days: fv.survey_days || '',
+
+    // Section 3: Sales Price
+    cash_portion: fv.cash_portion || (fv.down_payment_amt ? formatMoney(fv.down_payment_amt) : ''),
+    financing_amount: fv.financing_amount || (fv.loan_amount ? formatMoney(fv.loan_amount) : ''),
+    sales_price: fv.sales_price || (fv.sale_price ? formatMoney(fv.sale_price) : ''),
+
+    // Section 5: Earnest Money + Option
+    earnest_money: fv.earnest_money_formatted || (fv.earnest_money ? formatMoney(fv.earnest_money) : ''),
+    option_fee: fv.option_fee_formatted || (fv.option_fee ? formatMoney(fv.option_fee) : ''),
+    option_period_days: fv.option_period_days || fv.option_days || '',
+    additional_earnest_money: fv.additional_earnest_money || (fv.additional_earnest_amount ? formatMoney(fv.additional_earnest_amount) : ''),
+
+    // Escrow agent
     escrow_agent: fv.escrow_agent || fv.title_company || '',
-    escrow_agent_address: fv.escrow_agent_address || '',
-    earnest_money_amount: fv.earnest_money ? formatMoney(fv.earnest_money) : '',
-    option_fee_amount: fv.option_fee ? formatMoney(fv.option_fee) : '',
-    option_period_days: fv.option_period_days || '',
-    title_company_name: fv.title_company || '',
-    title_company_address: fv.title_company_address || '',
-    title_objection_days: fv.title_objection_days || '',
-    exception_objection_days: fv.exception_objection_days || '',
+    escrow_address: fv.escrow_address || fv.title_company_address || '',
+
+    // Closing and effective dates
     closing_date: fv.closing_date ? formatDate(fv.closing_date) : '',
-    possession_date: fv.possession_date ? formatDate(fv.possession_date) : '',
-    special_provisions: fv.special_provisions || '',
-    mineral_rights_provision: fv.mineral_rights_provision || '',
-    oil_gas_lease_status: fv.oil_gas_lease_status || '',
-    listing_broker_name: fv.listing_broker_name || '',
-    listing_broker_license: fv.listing_broker_license || '',
-    listing_agent_name: fv.listing_agent_name || '',
-    listing_agent_license: fv.listing_agent_license || '',
-    listing_agent_phone: fv.listing_agent_phone || '',
-    listing_agent_email: fv.listing_agent_email || '',
-    selling_broker_name: fv.selling_broker_name || '',
-    selling_broker_license: fv.selling_broker_license || '',
-    selling_agent_name: fv.selling_agent_name || '',
-    selling_agent_license: fv.selling_agent_license || '',
-    selling_agent_phone: fv.selling_agent_phone || '',
-    selling_agent_email: fv.selling_agent_email || '',
-    contract_effective_date: fv.contract_effective_date ? formatDate(fv.contract_effective_date) : '',
-    buyer_initials: fv.buyer_initials || '',
-    seller_initials: fv.seller_initials || '',
+    closing_date_page3b: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page5: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page6: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page7: fv.closing_date ? formatDate(fv.closing_date) : '',
+    closing_date_page8: fv.closing_date ? formatDate(fv.closing_date) : '',
+    effective_date: (fv.effective_date || fv.contract_effective_date) ? formatDate(fv.effective_date || fv.contract_effective_date) : '',
+
+    // Reservations (oil/gas/water/timber)
+    reservations_oil_gas: fv.reservations_oil_gas || '',
+    reservations_water: fv.reservations_water || '',
+    reservations_timber: fv.reservations_timber || '',
+
+    // Broker information
+    listing_broker: fv.listing_broker_name || fv.listing_broker || '',
+    listing_broker_license: fv.listing_broker_license || fv.listing_broker_license_no || '',
+    listing_broker_address: fv.listing_broker_address || '',
+
+    other_broker: fv.other_broker_name || fv.selling_broker_name || fv.other_broker || '',
+    other_broker_license: fv.other_broker_license || fv.selling_broker_license || fv.other_broker_license_no || '',
+    other_broker_address: fv.other_broker_address || '',
+
+    // Notice addresses
+    buyer_address: fv.buyer_address || fv.buyer_notice_name || '',
+    seller_address: fv.seller_address || fv.seller_notice_name || '',
+
+    // Signatures and dates
+    buyer_signature: fv.buyer_signature || '',
+    buyer_signature_date: fv.buyer_signature_date ? formatDate(fv.buyer_signature_date) : '',
+    seller_signature: fv.seller_signature || '',
+    seller_signature_date: fv.seller_signature_date ? formatDate(fv.seller_signature_date) : '',
+
+    // Escrow receipt dates
+    escrow_receipt_date_1: fv.escrow_receipt_date_1 ? formatDate(fv.escrow_receipt_date_1) : '',
+    escrow_receipt_date_2: fv.escrow_receipt_date_2 ? formatDate(fv.escrow_receipt_date_2) : '',
+    escrow_receipt_date_3: fv.escrow_receipt_date_3 ? formatDate(fv.escrow_receipt_date_3) : '',
+    escrow_receipt_date_4: fv.escrow_receipt_date_4 ? formatDate(fv.escrow_receipt_date_4) : '',
   };
 
   await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
