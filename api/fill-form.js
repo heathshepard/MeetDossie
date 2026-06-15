@@ -1014,8 +1014,8 @@ async function fillResaleContract(pdfDoc, fv) {
     try {
       const page2 = pdfDoc.getPage(1); // 0-indexed: page 1 = printed page 2
       page2.drawText(String(fv.option_period_days), {
-        x: 75,   // estimate: adjust in next iteration if needed
-        y: 130,  // upper-middle: aligned with �5B section
+        x: 75,   // left edge of "within ___ days" blank
+        y: 588,  // vertical center of blank line (Cole visual inspection 2026-06-14) �5B section
         size: 10,
         color: rgb(0, 0, 0),
       });
