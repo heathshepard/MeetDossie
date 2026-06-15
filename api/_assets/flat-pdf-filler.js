@@ -6,6 +6,44 @@ const { rgb, StandardFonts } = require('pdf-lib');
 let cachedHelvetica = null;
 
 /**
+ * Helper to draw a checkmark at checkbox coordinates.
+ */
+async function drawCheckmarkAtCoords(pdfDoc, page_num, field_config) {
+  if (!pdfDoc || !field_config) return;
+
+  const pages = pdfDoc.getPages();
+  if (page_num < 1 || page_num > pages.length) {
+    console.warn(`[flat-pdf-filler] Invalid page ${page_num} for checkbox (PDF has ${pages.length} pages)`);
+    return;
+  }
+
+  const page = pages[page_num - 1];
+  const { height } = page.getSize();
+
+  const x = field_config.x || 0;
+  const y_design = field_config.y || 0;
+  const size = 10;
+
+  // Center the checkmark within the checkbox field
+  const y_pdf = height - y_design - size;
+
+  try {
+    if (!cachedHelvetica) {
+      cachedHelvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    }
+    page.drawText('X', {
+      x: x + 1,
+      y: y_pdf - 2,
+      size,
+      color: rgb(0, 0, 0),
+      font: cachedHelvetica,
+    });
+  } catch (err) {
+    console.warn(`[flat-pdf-filler] Could not draw checkmark at [${x}, ${y_design}]:`, err.message);
+  }
+}
+
+/**
  * Helper to write text at specific coordinates on a PDF page.
  * Note: PDF y-coordinates are from bottom-left; we need to convert from top-left design coords.
  */
@@ -60,8 +98,13 @@ async function fillFlatPdfFromMap(pdfDoc, fv, field_map) {
   const { fields } = field_map;
 
   for (const [logical_name, field_config] of Object.entries(fields)) {
-    // Skip checkboxes and other non-text fields for now
-    if (field_config.type === 'checkbox') continue;
+    if (field_config.type === 'checkbox') {
+      const value = fv[logical_name];
+      if (value === true) {
+        await drawCheckmarkAtCoords(pdfDoc, field_config.page, field_config);
+      }
+      continue;
+    }
 
     const value = fv[logical_name];
     if (!value || value === '') continue;
@@ -76,5 +119,6 @@ async function fillFlatPdfFromMap(pdfDoc, fv, field_map) {
 
 module.exports = {
   drawTextAtCoords,
+  drawCheckmarkAtCoords,
   fillFlatPdfFromMap,
 };
