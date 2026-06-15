@@ -178,3 +178,6 @@ scripts/.reddit-scanner-seen.json
 
 # Playwright session cookies — contain auth tokens, never commit
 scripts/sessions/
+
+# Pre-merge smoke-test runs (screenshots + summary.json per run) — local only
+.tmp-smoke/

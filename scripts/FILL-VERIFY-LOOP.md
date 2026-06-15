@@ -198,6 +198,7 @@ Anything Heath will see goes through the loop. Period.
 - `Shepard-Ventures/Legal/dossie-fill-system/trec-20-19-field-schema.md` — Hadley's authoritative field map (91 fields, page assignments)
 - `api/fill-form.js` — the fill function Carter owns
 - `Shepard-Ventures/Engineering/INDEX.md` — `SV-ENG-FORMFILL-001-2026-06-13` work stream
+- `scripts/MERGE-GATE.md` — broader pre-merge T00 app-pages smoke gate (orthogonal but parallel; both gates must pass before any contract-fill ship that touches the app bundle)
 
 ---
 
