@@ -1093,21 +1093,23 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   // LOAN TYPE — wire each type's fields
   if (ft === 'conventional' || fv.financing_conventional === true) {
     safeCheck(form, '1 Conventional Financing');
-    // PRINCIPAL AMOUNT: Field verified from PDF inspector as 'any financed PMI premium due in full in 1'
+    safeCheck(form, 'a A first mortgage loan in the principal amount of');
+    // PRINCIPAL AMOUNT
     safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
-    // TERM YEARS & INTEREST RATE: TREC 40 conventional section does NOT have dedicated AcroForm fields for term or rate.
-    // Visual blanks exist in PDF but are unfillable. Skipping writes to 'years' and 'with interest not to exceed'
-    // to avoid contaminating VA section fields (which have those names).
-    // TODO: Implement drawText overlay mechanism if Heath needs these values captured for conventional.
-
-    // ORIGINATION CHARGES CAP: "shown on Buyers Loan Estimate for the loan not to exceed"
+    // TERM YEARS
+    safeSetText(form, 'years with interest not to exceed', String(fv.loan_term_years || ''));
+    // INTEREST RATE
+    safeSetText(form, 'per annum for the first', String(fv.interest_rate_max || ''));
+    // ORIGINATION CHARGES CAP
     safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || '');
 
     // Second loan (if applicable)
-    safeSetText(form, 'any financed PMI premium due in full in 2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
-    safeSetText(form, 'per annum for the first', fv.second_interest_rate_cap || '');
-    // Second origination shares field with primary origination; will overwrite if both provided
-    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.second_origination_charges_cap || '');
+    if (fv.second_loan_amount != null && fv.second_loan_amount !== '') {
+      safeCheck(form, 'b A second mortgage loan in the principal amount of');
+      safeSetText(form, 'any financed PMI premium due in full in 2', formatMoney(fv.second_loan_amount));
+      safeSetText(form, 'per annum for the first_2', fv.second_interest_rate_cap || '');
+      safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed_2', fv.second_origination_charges_cap || '');
+    }
   }
 
   if (ft === 'tx_veterans' || fv.financing_tx_veterans === true) {
