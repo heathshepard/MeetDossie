@@ -1198,6 +1198,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 async function fillTerminationNotice(pdfDoc, fv) {
   const fieldMapModule = require('./_assets/field-maps/trec-38-7-coords.json');
   const { fillFlatPdfFromMap } = require('./_assets/flat-pdf-filler.js');
+  const { rgb } = require('pdf-lib');
 
   // Prepare values with formatting
   const flatFieldValues = {
@@ -1211,6 +1212,66 @@ async function fillTerminationNotice(pdfDoc, fv) {
   };
 
   await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
+
+  // Auto-check the termination reason box based on fv.termination_reason text
+  const reasonText = String(fv.termination_reason || '').toLowerCase();
+  const pages = pdfDoc.getPages();
+  if (pages.length > 0) {
+    const page = pages[0];
+    const { height } = page.getSize();
+
+    // Decide which checkbox to mark based on regex match on reason text
+    let checkboxKey = null;
+    if (/option period|paragraph 5|unrestricted/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_option_period';
+    } else if (/financing|buyer approval|loan/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_financing';
+    } else if (/property approval|inspection/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_property';
+    } else if (/hoa|property owners|association|mandatory/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_hoa';
+    } else if (/seller.s disclosure|7b\(2\)|7b/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_disclosure';
+    } else if (/lender.s appraisal|para 3|appraisal/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_appraisal';
+    } else if (/objection|cure period|paragraph 6|para 6|6\.d/.test(reasonText)) {
+      checkboxKey = 'termination_checkbox_objections';
+    } else if (reasonText) {
+      checkboxKey = 'termination_checkbox_other';
+    }
+
+    if (checkboxKey && fieldMapModule.fields[checkboxKey]) {
+      const checkboxRect = fieldMapModule.fields[checkboxKey];
+      // Convert from design coordinates (top-left) to PDF coordinates (bottom-left)
+      const x = checkboxRect.x + 5; // Offset slightly into the checkbox
+      const y_pdf = height - checkboxRect.y - 10;
+
+      page.drawText('X', {
+        x,
+        y: y_pdf,
+        size: 10,
+        color: rgb(0, 0, 0),
+      });
+
+      // If (8) Other was selected, also draw the free-text reason
+      if (checkboxKey === 'termination_checkbox_other' && fv.termination_other_reasons) {
+        const reasonField = fieldMapModule.fields['termination_reason_other'];
+        if (reasonField) {
+          const reasonX = reasonField.x;
+          const reasonY = reasonField.y;
+          const reasonY_pdf = height - reasonY - reasonField.font_size;
+          const reasonText_str = String(fv.termination_other_reasons).slice(0, 100);
+          page.drawText(reasonText_str, {
+            x: reasonX,
+            y: reasonY_pdf,
+            size: reasonField.font_size || 10,
+            color: rgb(0, 0, 0),
+          });
+        }
+      }
+    }
+  }
+
   return pdfDoc;
 }
 
