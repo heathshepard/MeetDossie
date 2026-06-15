@@ -7,7 +7,7 @@ let cachedHelvetica = null;
 
 /**
  * Helper to write text at specific coordinates on a PDF page.
- * Note: PDF y-coordinates are from bottom-left; we need to convert from top-left design coords.
+ * Note: field_map coordinates are already in PDF coords (bottom-left origin).
  */
 async function drawTextAtCoords(pdfDoc, page_num, field_config, text_value) {
   if (!text_value || text_value === '') return;
@@ -19,16 +19,12 @@ async function drawTextAtCoords(pdfDoc, page_num, field_config, text_value) {
   }
 
   const page = pages[page_num - 1]; // Convert 1-indexed to 0-indexed
-  const { height } = page.getSize();
 
-  // Field config coordinates (x, y from top-left)
+  // Field config coordinates (x, y already in PDF coords: bottom-left origin)
   const x = field_config.x || 0;
-  const y_design = field_config.y || 0;
+  const y_pdf = field_config.y || 0;
   const fontSize = field_config.font_size || 10;
   const max_width = field_config.width || 300;
-
-  // Convert from design coords (top-left) to PDF coords (bottom-left)
-  const y_pdf = height - y_design - fontSize;
 
   // Truncate text if it exceeds estimated width
   const max_chars = Math.floor(max_width / (fontSize * 0.55));
@@ -48,7 +44,7 @@ async function drawTextAtCoords(pdfDoc, page_num, field_config, text_value) {
       font: cachedHelvetica,
     });
   } catch (err) {
-    console.warn(`[flat-pdf-filler] Could not draw text at [${x}, ${y_design}]:`, err.message);
+    console.warn(`[flat-pdf-filler] Could not draw text at [${x}, ${y_pdf}]:`, err.message);
   }
 }
 
