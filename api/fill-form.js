@@ -1218,8 +1218,6 @@ async function fillTerminationNotice(pdfDoc, fv) {
   const pages = pdfDoc.getPages();
   if (pages.length > 0) {
     const page = pages[0];
-    const { height } = page.getSize();
-
     // Decide which checkbox to mark based on regex match on reason text
     let checkboxKey = null;
     if (/option period|paragraph 5|unrestricted/.test(reasonText)) {
@@ -1242,9 +1240,8 @@ async function fillTerminationNotice(pdfDoc, fv) {
 
     if (checkboxKey && fieldMapModule.fields[checkboxKey]) {
       const checkboxRect = fieldMapModule.fields[checkboxKey];
-      // Convert from design coordinates (top-left) to PDF coordinates (bottom-left)
       const x = checkboxRect.x + 5; // Offset slightly into the checkbox
-      const y_pdf = height - checkboxRect.y - 10;
+      const y_pdf = checkboxRect.y; // Checkbox coords are already in PDF coords (bottom-left)
 
       page.drawText('X', {
         x,
@@ -1258,8 +1255,7 @@ async function fillTerminationNotice(pdfDoc, fv) {
         const reasonField = fieldMapModule.fields['termination_reason_other'];
         if (reasonField) {
           const reasonX = reasonField.x;
-          const reasonY = reasonField.y;
-          const reasonY_pdf = height - reasonY - reasonField.font_size;
+          const reasonY_pdf = reasonField.y; // Field coords are already in PDF coords (bottom-left)
           const reasonText_str = String(fv.termination_other_reasons).slice(0, 100);
           page.drawText(reasonText_str, {
             x: reasonX,
