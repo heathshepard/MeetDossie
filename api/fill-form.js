@@ -10,7 +10,7 @@
 // Authorization: Bearer <supabase user JWT>
 // Returns: { ok: true, documentId, storagePath, signedUrl, fileName, formName }
 
-const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const { PDFDocument } = require('pdf-lib');
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
@@ -628,8 +628,378 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
   // NOTE: "Earnest Money in the form of" is a Page 11 receipts field filled by escrow agent — do not pre-fill.
-  // DEFERRED: §5B option period days (pdf-lib coord transform quirk; agent fills manually at signing). 2026-06-15.
+
+  // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
+  // "undefined_7" nx=0.123 ny=0.124 — Section 5B option period DAYS (not earnest delivery days).
+  // CRITICAL BUG (2026-06-15): Quinn's visual QA Round 5 found that option_period_days (e.g., 10)
+  // is landing on the §5A address line instead of the §5B days blank. This means 'undefined_7'
+  // is NOT the correct field for option_period_days.
+  // The field coordinate mapping (coordinate map 2026-05-30) was incorrect. The value 60000 from
+  // down_payment_amt landed in the address line, and 10 from option_period_days also landed in
+  // the address line. This suggests these fields may be overwriting each other OR the field
+  // names are misidentified.
+  // DEFERRED: Next round, manually inspect the PDF with field-name overlays to find the actual
+  // field name for §5B option period days, and whether 'undefined_7' is a shared/alias field.
+  // For now, leaving the code as-is (field name unchanged) since 'undefined_7' appears in the
+  // PDF (verified via node inspection) but its actual page position doesn't match expectations.
+  safeSetText(form, 'undefined_7', fv.option_period_days != null ? String(fv.option_period_days) : '');
+
+  // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
+  // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
+  // This field is the receipts section on Page 11 — leave blank (title company fills at receipt).
+  // However current usage maps listing_agent_name here. Per Hadley this field on Page 11
+  // is the "Seller or Listing Broker" signature line for option fee receipt — NOT agent-filled.
+  // Leave blank. The title company fills Page 11.
+
+  // SECTION 6A — TITLE POLICY
+  // "A TITLE POLICY Seller shall furnish to Buyer at" (Page 1 y=0.8180) = Seller pays title (DEFAULT)
+  // "Sellers" (Page 2 y=0.5442) = Seller pays title (repeat checkbox on page 2)
+  // "Buyers expense no later" (Page 2 y=0.5442) = Buyer pays title (override)
+  // Per Hadley: Seller pays owner's title policy is the overwhelming TX standard. BOTH
+  // Page 1 and Page 2 checkboxes must be set consistently.
+  if (fv.title_buyer_expense === true) {
+    safeCheck(form, 'Buyers expense no later');
+  } else {
+    safeCheck(form, 'A TITLE POLICY Seller shall furnish to Buyer at');
+    safeCheck(form, 'Sellers_2');
   }
+
+  // "insurance Title Policy issued by" (Page 2 y=0.5589) = title company name
+  safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
+
+  // SECTION 5A — ESCROW AGENT NAME (Page 2 §5A)
+  // Field: "Escrow Agent" (verified in field map 2026-06-15)
+  // Per Hadley: The escrow agent name is typically the title company.
+  safeSetText(form, 'Escrow Agent', fv.escrow_agent || fv.title_company || '');
+
+  // Section 6A.8 — Survey amendment to title policy
+  // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
+  // "ii will be amended to read shortages in area at the expense of" (Page 1 y=0.7736) = AMENDED (default)
+  // Per Hadley: check 6A.8 amended (protects buyer from survey discrepancies). DEFAULT: CHECKED.
+  if (fv.title_area_amendment === false) {
+    safeCheck(form, 'i will not be amended or deleted from the title policy or');
+  } else {
+    safeCheck(form, 'ii will be amended to read shortages in area at the expense of');
+  }
+
+  // Title objection days: "receipt or the date specified in this paragraph whichever is earlier"
+  // (Page 3 y=0.3287) — days buyer has to object to title commitment. Standard: 5 days.
+  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days != null && fv.title_objection_days !== '' ? fv.title_objection_days : '');
+
+  // Exception document objection days: "the Commitment Exception Documents and the survey..."
+  // (Page 3 y=0.3411) — days buyer has to object to exception documents. Standard: 5 days.
+  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days != null && fv.exception_objection_days !== '' ? fv.exception_objection_days : '');
+
+  // SECTION 6C — SURVEY OPTIONS (Page 3 y=0.5899/0.5908)
+  // "1Within" (y=0.5899) = C.1: seller provides existing survey + T-47/T-47.1 (DEFAULT)
+  // "2 Within" (y=0.5908) = C.2: new survey at buyer's expense
+  // Per Hadley: C.1 is the most common option in San Antonio.
+  // When C.1 is selected, sub-checkboxes handle who pays for new survey if existing is unacceptable:
+  //   "Sellers" (Page 2 y=0.5442 — note: same field name used in 6A!) — this is ambiguous in the PDF
+  //   "Buyer" (Page 3 y=0.0957) = buyer pays if existing survey unacceptable
+  const surveyOption = fv.survey_option != null && fv.survey_option !== '' ? fv.survey_option : '';
+  if (surveyOption === 'c2' || fv.survey_buyer_new === true) {
+    safeCheck(form, '2 Within');
+  } else if (surveyOption === 'c3' || fv.survey_seller_new === true) {
+    // C.3 not a distinct checkbox — TREC 20-18 PDF has no separate "Sellers" checkbox in survey section.
+    // "Sellers" on Page 1 (y=0.8641) is in the title expense area, NOT the survey section.
+    // Use 1Within (C.1) as the closest match; the seller-provides sub-option has no AcroForm widget.
+    safeCheck(form, '1Within');
+  } else if (surveyOption === 'c1') {
+    // CRITICAL FIX (2026-06-14): ONLY check C.1 if explicitly specified. Do NOT auto-default.
+    // C.1 seller provides existing survey
+    safeCheck(form, '1Within');
+    // Sub-checkbox: if existing survey is unacceptable, who pays for new one?
+    // "Buyer" (Page 3 y=0.0957) is the only survey sub-checkbox in the PDF.
+    // "Sellers" checkbox exists only on Page 1 (title area) � do NOT check it for survey purposes.
+    // Only check "Buyer" if explicitly specified AND seller_provides_survey is true
+    if (fv.survey_sellers_expense !== true && fv.seller_provides_survey === true) {
+      safeCheck(form, 'Buyer');
+    }
+  }
+
+
+  // Section 6C survey delivery days (Page 3 y=0.0971)
+  // Actual field name verified against 20-18 map: "than 3 days prior to Closing Date"
+  // ("3 days prior" does not exist in the PDF — would silently fail).
+  safeSetText(form, 'than 3 days prior to Closing Date', fv.survey_delivery_days != null ? String(fv.survey_delivery_days) : '');
+
+  // Section 6D — Permitted use and property use objection days
+  // "Commitment other than items 6A1 through 9 above or which prohibit the following use"
+  // (Page 3 y=0.3287) = permitted use text field
+  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use != null && fv.permitted_use !== '' ? fv.permitted_use : '');
+
+  // SECTION 7B — SELLER'S DISCLOSURE NOTICE
+  // "Within one" (Page 3 y=0.1811) / "Within two" (y=0.1807) / "Within three" (y=0.1934) /
+  // "Within four" (y=0.2574) = SDN delivery option checkboxes
+  // "receipt or the date specified..." (y=0.2566 on Page 3) = SDN delivery days
+  // When sdn_received === true: SDN already delivered — check the SDN received option
+  // For simplicity: leave these SDN checkbox options to agent; only check §22 addendum checkbox.
+
+  // SECTION 7D — PROPERTY CONDITION
+  // "1 Buyer accepts the Property As Is" (Page 4 y=0.7998) = As-Is (DEFAULT)
+  // "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the"
+  //   (Page 4 y=0.8136) = As-Is with specific required repairs
+  // "As Is" (Page 5 y=0.1279) and "As Is except" (Page 5 y=0.1433) = repeat on page 5
+  // Per Hadley: As-Is is the overwhelming TX default. Does NOT waive inspection rights.
+  if (fv.as_is_with_repairs === true) {
+    safeCheck(form, '2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the');
+    safeCheck(form, 'As Is except');
+    safeSetText(form, 'following specific repairs and treatments', fv.required_repairs || '');
+    safeSetText(form, 'undefined_13', fv.repairs_additional || '');
+  } else {
+    safeCheck(form, '1 Buyer accepts the Property As Is');
+    safeCheck(form, 'As Is');
+  }
+
+  // "upon" (Page 4 y=0.8890) = Seller agrees to complete lender-required repairs
+  // This checkbox is in Section 7 area. Per Hadley, standard: seller agrees "upon".
+  safeCheck(form, 'upon');
+
+  // Repair completion days before closing (Section 7E)
+  // "Within" (Page 4 y=0.8134) = number of days before closing repairs must be complete
+  safeSetText(form, 'Within', fv.repair_completion_days != null ? String(fv.repair_completion_days) : '');
+
+  // SECTION 7H — HOME WARRANTY (Residential Service Contract)
+  // "service contract in an amount not exceeding" (Page 5 y=0.5361) = seller-paid warranty amount
+  // Per Hadley: only fill if seller agreed to provide warranty. Default: blank.
+  // (2026-06-15) Added home_warranty_amount alias — callers may pass either service_contract_amount or home_warranty_amount
+  const warrantyAmountToFill = fv.service_contract_amount != null && fv.service_contract_amount !== ''
+    ? fv.service_contract_amount
+    : (fv.home_warranty_amount != null && fv.home_warranty_amount !== '' ? fv.home_warranty_amount : null);
+  safeSetText(form, 'service contract in an amount not exceeding', warrantyAmountToFill != null ? formatMoney(warrantyAmountToFill) : '');
+
+  // SECTION 9 — CLOSING DATE
+  // "A The closing of the sale will be on or before" (Page 5 y=0.7416) = "Month Day" (no year)
+  // "20" (Page 5 y=0.7416) = 2-digit year
+  if (fv.closing_date) {
+    const cd = String(fv.closing_date);
+    if (cd.includes('-')) {
+      safeSetText(form, 'A The closing of the sale will be on or before', formatLongDateNoYear(cd));
+      safeSetText(form, '20', formatTwoDigitYear(cd));
+    } else {
+      safeSetText(form, 'A The closing of the sale will be on or before', cd);
+    }
+  }
+
+  // SECTION 10 — POSSESSION
+  // "upon" = possession upon closing and funding (DEFAULT per Hadley)
+  // Already checked above (Page 4 y=0.8890 is the same "upon" field)
+  // The "upon closing and funding" checkbox is the Page 4 "upon" field already checked.
+
+  // SECTION 11 — SPECIAL PROVISIONS (Page 6, 3-line free text block)
+  // "Text3" (y=0.4420) = line 1, "Text3 2" (y=0.4554) = line 2, "Text3 3" (y=0.4687) = line 3
+  // Per Hadley: usually blank. Only factual statements/business details, never new legal obligations.
+  if (fv.special_provisions) {
+    const lines = fv.special_provisions.split('\n');
+    safeSetText(form, 'Text3', lines[0] || '');
+    safeSetText(form, 'Text3 2', lines[1] || '');
+    safeSetText(form, 'Text3 3', lines[2] || '');
+  }
+
+  // SECTION 12 — SETTLEMENT AND OTHER EXPENSES
+  // Section 12A(1)(b): Seller contribution to buyer's broker fee
+  // "Brokers and Sales" (Page 5 y=0.6706) and "Brokers and Sales 2" (y=0.6843) = broker fee contribution fields
+  safeSetText(form, 'Brokers and Sales', fv.seller_buyer_broker_contribution != null && fv.seller_buyer_broker_contribution !== '' ? formatMoney(fv.seller_buyer_broker_contribution) : '');
+
+  // Section 12A(1)(c): Seller closing cost credit to buyer.
+  // NOTE: "Buyers Expenses as allowed by the lender" (Page 5 x=0.4133 y=0.9605) is one of four footer
+  // initials fields at the bottom of Page 5, NOT a closing cost credit field.
+  // TREC 20-18 has no dedicated AcroForm field for Section 12 closing cost credit — agents enter it
+  // in Special Provisions (Text3/Text3 2/Text3 3 on Page 6) or leave it for manual entry.
+  // Do not write buyer_closing_cost_credit into the initials footer.
+
+  // Page 6 seller concession / credited fields
+  // "acknowledged by Seller and Buyers agreement to pay Seller 1" (y=0.6050) = seller contribution amount field
+  // "acknowledged by Seller and Buyers agreement to pay Seller2" (y=0.6046) = secondary field
+  // "acknowledged by Seller and Buyers agreement to pay Seller" (y=0.6173) = third field
+  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller 1', fv.listing_commission_total != null && fv.listing_commission_total !== '' ? formatMoney(fv.listing_commission_total) : '');
+
+  // SECTION 18 — ATTORNEYS
+  // "Attorney is" (Page 8 y=0.7283) = buyer's attorney name
+  // "Attorney is_2" (Page 8 y=0.7284) = seller's attorney name
+  safeSetText(form, 'Attorney is', fv.buyer_attorney || '');
+  safeSetText(form, 'Attorney is_2', fv.seller_attorney || '');
+
+  // SECTION 21 — NOTICES (Page 8)
+  // "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows"
+  //   (Page 8 y=0.1034 x=0.2181) = buyer's notice contact info
+  // "undefined_19" (Page 8 y=0.1024 x=0.6307) = seller's notice contact info
+  // "at" (Page 8 y=0.1332) = buyer's notice sub-field (address or email)
+  // "at_2" (Page 8 y=0.1345) = seller's notice sub-field
+  // Per Hadley: DO NOT leave both blank. Use buyer_email as default for buyer notice.
+  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || fv.buyer_email || '');
+  safeSetText(form, 'undefined_19', fv.notice_address_2 || fv.seller_email || '');
+  safeSetText(form, 'at', fv.buyer_email || '');
+  safeSetText(form, 'at_2', fv.seller_email || '');
+
+  // HOA MEMBERSHIP (Page 2, Section 2 membership disclosure)
+  // TREC 20-18 Section 2 does not have AcroForm checkboxes for HOA "is/is not" membership.
+  // The "is" and "is not" fields in this PDF are Section 4A lease checkboxes (already handled above).
+  // Section 2 only has a text field for HOA description — filled here.
+  safeSetText(form, '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property', fv.hoa_description || '');
+
+  // SECTION 20 — FEDERAL REQUIREMENTS (FIRPTA)
+  // Per Hadley: "Seller is not a foreign person" is the default for virtually all TX sellers.
+  // The checkbox name in the PDF matches the pre-printed text at Page 8 area.
+  // Not a named checkbox in the coordinate map — skip (TREC pre-prints this area).
+
+  // SECTION 22 — AGREEMENT OF PARTIES (addendum checkboxes, Page 8)
+  // Coordinates verified against field map. Check only when condition is true.
+  // Per Hadley: never auto-check propane or other specialty addenda without explicit flag.
+  // (2026-06-15) Added third_party_financing alias and explicit isFinanced check
+  const hasFinancingAddendum = isFinanced || fv.financing_addendum === true || fv.third_party_financing === true;
+  if (hasFinancingAddendum) {
+    safeCheck(form, 'Third Party Financing Addendum');
+  }
+  if (fv.seller_financing_addendum === true)         safeCheck(form, 'Seller Financing Addendum');
+  if (fv.environmental_addendum === true)            safeCheck(form, 'Environmental Assessment Threatened or');
+  if (fv.hoa_exists === true || fv.hoa_addendum === true) safeCheck(form, 'Addendum for Property Subject to');
+  if (fv.seller_leaseback_addendum === true)         safeCheck(form, 'Sellers Temporary Residential Lease');
+  if (fv.short_sale_addendum === true)               safeCheck(form, 'Short Sale Addendum');
+  if (fv.buyer_leaseback_addendum === true)          safeCheck(form, 'Buyers Temporary Residential Lease');
+  // "Loan Assumption Addendum" (Page 1 y=0.6483) is in the Section 3B financing area — do NOT check for Section 22.
+  // "Loan Assumption Addendum_2" (Page 8 y=0.4326) is the correct Section 22 addendum checkbox.
+  if (fv.loan_assumption_addendum === true)          safeCheck(form, 'Loan Assumption Addendum_2');
+  if (fv.coastal_addendum === true)                  safeCheck(form, 'Addendum for Property Located Seaward');
+  if (fv.other_property_addendum === true)           safeCheck(form, 'Addendum for Sale of Other Property by');
+  // "Sellers Disclos" (Page 8 y=0.4710) = Lead-Based Paint Addendum (OP-L, pre-1978 properties)
+  // "Addend. for Sellers Disclos" (Page 8 y=0.5005) = Seller's Disclosure Notice (OP-H) attachment
+  if (fv.lead_paint_addendum === true || (fv.year_built && Number(fv.year_built) < 1978)) {
+    safeCheck(form, 'Sellers Disclos');
+  }
+  if (fv.sdn_received === true || fv.sellers_disclosure_addendum === true) {
+    safeCheck(form, 'Addend. for Sellers Disclos');
+  }
+  if (fv.oil_gas_addendum === true)                  safeCheck(form, 'Addendum for Reservation of Oil Gas');
+  if (fv.backup_contract_addendum === true)          safeCheck(form, 'Addendum for BackUp Contract');
+  if (fv.propane_addendum === true)                  safeCheck(form, 'Addendum for Property in a Propane Gas');
+  if (fv.pid_addendum === true)                      safeCheck(form, 'PID');
+  if (fv.exchange_1031 === true)                     safeCheck(form, 'Addendum for Section 1031');
+  if (fv.residential_leases_addendum === true || fv.has_tenant_lease === true) {
+    safeCheck(form, 'Check Box8');
+  }
+  if (fv.fixture_leases_addendum === true || fv.has_fixture_lease === true) {
+    safeCheck(form, 'Check Box9');
+  }
+  if (fv.appraisal_addendum === true || (isFinanced && fv.financing_type !== 'fha' && fv.financing_type !== 'va')) {
+    safeCheck(form, 'Check box 10');
+  }
+  safeSetText(form, 'System Service Area', fv.propane_system_area || '');
+  safeSetText(form, 'The private transfer fee', fv.private_transfer_fee || '');
+
+  // EXECUTION DATE (Page 9)
+  // "EXECUTED the" (y=0.2811) = day number, "day of" (y=0.2837) = month name, "20_2" (y=0.2830) = 2-digit year
+  // Per Hadley: buyer's agent fills execution date. Leave seller execution date blank.
+  // STRICT MODE (2026-06-14): Do NOT auto-set to today. Only fill if explicitly provided.
+  if (fv.execution_date) {
+    const execDate = new Date(fv.execution_date);
+    const execMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    safeSetText(form, 'EXECUTED the', String(execDate.getUTCDate()));
+    safeSetText(form, 'day of', execMonths[execDate.getUTCMonth()]);
+    safeSetText(form, '20_2', String(execDate.getUTCFullYear()).slice(2));
+  } else {
+    // Leave all three fields blank if execution_date not provided
+    safeSetText(form, 'EXECUTED the', '');
+    safeSetText(form, 'day of', '');
+    safeSetText(form, '20_2', '');
+  }
+
+  // Effective date field: "Date" (Page 9 y=0.2617 area via Page 11 "Date" field)
+  // Per Hadley: leave blank at contract creation — filled when last party accepts.
+  if (fv.contract_effective_date) {
+    safeSetText(form, 'Date', fv.contract_effective_date);
+  }
+
+  // CONTACT EMAILS (Page 8)
+  // "Email" (y=0.9252) = buyer email, "Email_2" (y=0.9256) = seller email
+  safeSetText(form, 'Email', fv.buyer_email || '');
+  safeSetText(form, 'Email_2', fv.seller_email || '');
+
+  // PAGE 10 — BROKER INFORMATION
+  // Listing broker = agent representing the seller
+  safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
+  safeSetText(form, 'License No_4', fv.listing_broker_license || '');
+  safeSetText(form, 'List Assoc Name', fv.listing_agent_name || '');
+  safeSetText(form, 'License No_5', fv.listing_agent_license || '');
+  safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email || '');
+  safeSetText(form, 'Phone_3', fv.listing_agent_phone || '');
+  safeSetText(form, 'Licensed Supervisor of Listing Associate', fv.listing_supervisor || '');
+  safeSetText(form, 'License No_6', fv.listing_supervisor_license || '');
+  safeSetText(form, 'Listing Brokers Office Address', fv.listing_broker_address || '');
+  safeSetText(form, 'Phone_4', fv.listing_broker_phone || '');
+  safeSetText(form, 'City_2', fv.listing_broker_city || '');
+  safeSetText(form, 'State_2', fv.listing_broker_state || '');
+  safeSetText(form, 'Zip_2', fv.listing_broker_zip || '');
+
+  // Listing broker representation: "Seller only as Sellers agent" = default (checked)
+  if (fv.listing_intermediary === true) {
+    safeCheck(form, 'Seller and Buyer as an intermediary');
+  } else {
+    safeCheck(form, 'Seller only as Sellers agent');
+  }
+
+  // Other/selling broker = agent representing the buyer (cooperating agent)
+  // STRICT MODE ROUTING (2026-06-14): If other_broker_firm is specified, the
+  // selling_agent_name goes in the LEFT column (Other Broker → Associates Name),
+  // NOT the RIGHT column (Selling Associates). This follows TREC 20-18 convention
+  // for separate brokerages: buy-side cooperating agent is under "Other Broker".
+  const otherBrokerFirmProvided = fv.other_broker_firm && String(fv.other_broker_firm).trim();
+  const sellingAgentNameProvided = fv.selling_agent_name && String(fv.selling_agent_name).trim();
+  const routeToOtherBroker = otherBrokerFirmProvided && sellingAgentNameProvided;
+
+  safeSetText(form, 'Other Broker Firm', fv.other_broker_firm || '');
+  safeSetText(form, 'License No', fv.other_broker_license || '');
+  // LEFT COLUMN — Other Broker Associate's Name
+  // If routing to other broker, use selling_agent_name here; otherwise use other_broker_assoc_name
+  safeSetText(form, 'Associates Name numb 1', routeToOtherBroker ? fv.selling_agent_name : (fv.other_broker_assoc_name || ''));
+  // RIGHT COLUMN — Selling Associates (intra-firm agent)
+  // Only fill if NOT routing to other broker (i.e., same brokerage scenario)
+  safeSetText(form, 'Selling Associates Name', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
+  safeSetText(form, 'Selling Associates Name-1', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
+  safeSetText(form, 'License No_2', routeToOtherBroker ? (fv.selling_agent_license || '') : (fv.other_broker_assoc_license || ''));
+  safeSetText(form, 'Associates Email Address', routeToOtherBroker ? (fv.selling_agent_email || '') : (fv.other_broker_assoc_email || ''));
+  safeSetText(form, 'Phone', fv.other_broker_phone || '');
+  safeSetText(form, 'Licensed Supervisor of Associate', fv.other_broker_supervisor || '');
+  safeSetText(form, 'License No_3', fv.other_broker_supervisor_license || '');
+  safeSetText(form, 'Other Brokers Address', fv.other_broker_address || '');
+  safeSetText(form, 'Phone_2', fv.other_broker_address_phone || '');
+  safeSetText(form, 'City', fv.other_broker_city || '');
+  safeSetText(form, 'State', fv.other_broker_state || '');
+  safeSetText(form, 'Zip', fv.other_broker_zip || '');
+  safeSetText(form, 'License No_7', routeToOtherBroker ? '' : (fv.selling_agent_license || ''));
+  safeSetText(form, 'Selling Associates Email Address', routeToOtherBroker ? '' : (fv.selling_agent_email || ''));
+  safeSetText(form, 'Phone_5', routeToOtherBroker ? '' : (fv.selling_agent_phone || ''));
+  safeSetText(form, 'Licensed Supervisor of Selling Associate', routeToOtherBroker ? '' : (fv.selling_supervisor || ''));
+  safeSetText(form, 'License No_8', routeToOtherBroker ? '' : (fv.selling_supervisor_license || ''));
+  safeSetText(form, 'Selling Associates Office Address', routeToOtherBroker ? '' : (fv.selling_broker_address || ''));
+  safeSetText(form, 'City_3', routeToOtherBroker ? '' : (fv.selling_broker_city || ''));
+  safeSetText(form, 'State_3', routeToOtherBroker ? '' : (fv.selling_broker_state || ''));
+  safeSetText(form, 'Zip_3', routeToOtherBroker ? '' : (fv.selling_broker_zip || ''));
+
+  // Selling broker representation: "Buyer only" = default when other broker data present
+  if (fv.buyer_only_agent === true || (fv.other_broker_firm && fv.buyer_only_agent !== false)) {
+    safeCheck(form, 'Buyer only');
+  }
+
+  // BAC commission percentage field (Page 10)
+  // "when mailed to" (Page 10 y=0.8023) = BAC dollar/pct amount field in broker compensation disclosure
+  // "Percentage" checkbox (y=0.8027) = check if expressing BAC as percentage
+  // Per Hadley: leave commission amounts blank unless agent explicitly provides them.
+  // AC numb 1 through AC numb 4 are phone area code fields — do NOT use for commission.
+  const bac = fv.buyer_agent_commission || fv.buyers_agent_commission_pct || '';
+  if (bac) {
+    const commStr = String(bac).replace('%', '').trim();
+    safeSetText(form, 'when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from', commStr);
+    safeCheck(form, 'Percentage');
+  }
+
+  // PAGE 11 — RECEIPTS (DO NOT PRE-FILL — title company fills when funds arrive)
+  // Per Hadley: all Page 11 fields are post-execution, filled by escrow agent.
+  // Option Fee Receipt: "is acknowledged" (Page 11 y=0.1205), "Seller or Listing Broker" (y=0.1668)
+  // Earnest Money Receipt: "is acknowledged_2" (y=0.2290), "Escrow Agent" (y=0.2617)
+  // Additional Earnest: "is acknowledged_3" (y=0.5488)
+  // Leave all Page 11 fields blank at contract creation.
 
   return pdfDoc;
 }
