@@ -1067,7 +1067,11 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   safeSetText(form, 'Address of Property', fv.property_address || '');
 
   let ft = String(fv.financing_type || '').toLowerCase();
-  const loanAmt = fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '';
+  // BUG FIX: Use principal_amount instead of loan_amount; use principal_amount as fallback
+  let loanAmt = fv.principal_amount != null && fv.principal_amount !== '' ? formatMoney(fv.principal_amount) : '';
+  if (!loanAmt && fv.loan_amount != null && fv.loan_amount !== '') {
+    loanAmt = formatMoney(fv.loan_amount);
+  }
 
   // Default to conventional if loan amount present but no explicit type
   if (!ft && fv.loan_amount && Number(fv.loan_amount) > 0) {
