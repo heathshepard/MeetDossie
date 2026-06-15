@@ -1008,13 +1008,14 @@ async function fillResaleContract(pdfDoc, fv) {
   // Visual QA Round 5 found that 10 landed on the §5A address line instead of §5B blank.
   // Solution: use page.drawText() with estimated coordinates to overlay the value directly.
   // PDF page 2 (0-indexed: page 1) has §5B at roughly (75 pts, 530 pts) in PDF coordinate system.
+  // "within ___ days" blank: x≈75 pt (left-center), y≈710 pt.
   // Conversion: pixel coords from 150-DPI render → PDF pts: x_pdf ≈ x_pixel × 0.48, y_pdf ≈ 792 − y_pixel × 0.48
   if (fv.option_period_days != null && fv.option_period_days !== '') {
     try {
       const page2 = pdfDoc.getPage(1); // 0-indexed: page 1 = printed page 2
       page2.drawText(String(fv.option_period_days), {
         x: 75,   // estimate: adjust in next iteration if needed
-        y: 530,  // estimate: adjust in next iteration if needed
+        y: 710,  // upper-middle: aligned with �5B section
         size: 10,
         color: rgb(0, 0, 0),
       });
