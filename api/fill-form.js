@@ -860,12 +860,19 @@ async function fillResaleContract(pdfDoc, fv) {
   // EXECUTION DATE (Page 9)
   // "EXECUTED the" (y=0.2811) = day number, "day of" (y=0.2837) = month name, "20_2" (y=0.2830) = 2-digit year
   // Per Hadley: buyer's agent fills execution date. Leave seller execution date blank.
-  const today = new Date();
-  const execDate = fv.execution_date ? new Date(fv.execution_date) : today;
-  const execMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  safeSetText(form, 'EXECUTED the', String(execDate.getUTCDate()));
-  safeSetText(form, 'day of', execMonths[execDate.getUTCMonth()]);
-  safeSetText(form, '20_2', String(execDate.getUTCFullYear()).slice(2));
+  // STRICT MODE (2026-06-14): Do NOT auto-set to today. Only fill if explicitly provided.
+  if (fv.execution_date) {
+    const execDate = new Date(fv.execution_date);
+    const execMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    safeSetText(form, 'EXECUTED the', String(execDate.getUTCDate()));
+    safeSetText(form, 'day of', execMonths[execDate.getUTCMonth()]);
+    safeSetText(form, '20_2', String(execDate.getUTCFullYear()).slice(2));
+  } else {
+    // Leave all three fields blank if execution_date not provided
+    safeSetText(form, 'EXECUTED the', '');
+    safeSetText(form, 'day of', '');
+    safeSetText(form, '20_2', '');
+  }
 
   // Effective date field: "Date" (Page 9 y=0.2617 area via Page 11 "Date" field)
   // Per Hadley: leave blank at contract creation — filled when last party accepts.
@@ -902,14 +909,26 @@ async function fillResaleContract(pdfDoc, fv) {
     safeCheck(form, 'Seller only as Sellers agent');
   }
 
-  // Other/selling broker = agent representing the buyer
+  // Other/selling broker = agent representing the buyer (cooperating agent)
+  // STRICT MODE ROUTING (2026-06-14): If other_broker_firm is specified, the
+  // selling_agent_name goes in the LEFT column (Other Broker → Associates Name),
+  // NOT the RIGHT column (Selling Associates). This follows TREC 20-18 convention
+  // for separate brokerages: buy-side cooperating agent is under "Other Broker".
+  const otherBrokerFirmProvided = fv.other_broker_firm && String(fv.other_broker_firm).trim();
+  const sellingAgentNameProvided = fv.selling_agent_name && String(fv.selling_agent_name).trim();
+  const routeToOtherBroker = otherBrokerFirmProvided && sellingAgentNameProvided;
+
   safeSetText(form, 'Other Broker Firm', fv.other_broker_firm || '');
   safeSetText(form, 'License No', fv.other_broker_license || '');
-  safeSetText(form, 'Associates Name', fv.other_broker_assoc_name || '');
-  safeSetText(form, 'Selling Associates Name', fv.selling_agent_name || '');
-  safeSetText(form, 'Selling Associates Name-1', fv.selling_agent_name || '');
-  safeSetText(form, 'License No_2', fv.other_broker_assoc_license || '');
-  safeSetText(form, 'Associates Email Address', fv.other_broker_assoc_email || '');
+  // LEFT COLUMN — Other Broker Associate's Name
+  // If routing to other broker, use selling_agent_name here; otherwise use other_broker_assoc_name
+  safeSetText(form, 'Associates Name', routeToOtherBroker ? fv.selling_agent_name : (fv.other_broker_assoc_name || ''));
+  // RIGHT COLUMN — Selling Associates (intra-firm agent)
+  // Only fill if NOT routing to other broker (i.e., same brokerage scenario)
+  safeSetText(form, 'Selling Associates Name', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
+  safeSetText(form, 'Selling Associates Name-1', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
+  safeSetText(form, 'License No_2', routeToOtherBroker ? (fv.selling_agent_license || '') : (fv.other_broker_assoc_license || ''));
+  safeSetText(form, 'Associates Email Address', routeToOtherBroker ? (fv.selling_agent_email || '') : (fv.other_broker_assoc_email || ''));
   safeSetText(form, 'Phone', fv.other_broker_phone || '');
   safeSetText(form, 'Licensed Supervisor of Associate', fv.other_broker_supervisor || '');
   safeSetText(form, 'License No_3', fv.other_broker_supervisor_license || '');
@@ -918,15 +937,15 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'City', fv.other_broker_city || '');
   safeSetText(form, 'State', fv.other_broker_state || '');
   safeSetText(form, 'Zip', fv.other_broker_zip || '');
-  safeSetText(form, 'License No_7', fv.selling_agent_license || '');
-  safeSetText(form, 'Selling Associates Email Address', fv.selling_agent_email || '');
-  safeSetText(form, 'Phone_5', fv.selling_agent_phone || '');
-  safeSetText(form, 'Licensed Supervisor of Selling Associate', fv.selling_supervisor || '');
-  safeSetText(form, 'License No_8', fv.selling_supervisor_license || '');
-  safeSetText(form, 'Selling Associates Office Address', fv.selling_broker_address || '');
-  safeSetText(form, 'City_3', fv.selling_broker_city || '');
-  safeSetText(form, 'State_3', fv.selling_broker_state || '');
-  safeSetText(form, 'Zip_3', fv.selling_broker_zip || '');
+  safeSetText(form, 'License No_7', routeToOtherBroker ? '' : (fv.selling_agent_license || ''));
+  safeSetText(form, 'Selling Associates Email Address', routeToOtherBroker ? '' : (fv.selling_agent_email || ''));
+  safeSetText(form, 'Phone_5', routeToOtherBroker ? '' : (fv.selling_agent_phone || ''));
+  safeSetText(form, 'Licensed Supervisor of Selling Associate', routeToOtherBroker ? '' : (fv.selling_supervisor || ''));
+  safeSetText(form, 'License No_8', routeToOtherBroker ? '' : (fv.selling_supervisor_license || ''));
+  safeSetText(form, 'Selling Associates Office Address', routeToOtherBroker ? '' : (fv.selling_broker_address || ''));
+  safeSetText(form, 'City_3', routeToOtherBroker ? '' : (fv.selling_broker_city || ''));
+  safeSetText(form, 'State_3', routeToOtherBroker ? '' : (fv.selling_broker_state || ''));
+  safeSetText(form, 'Zip_3', routeToOtherBroker ? '' : (fv.selling_broker_zip || ''));
 
   // Selling broker representation: "Buyer only" = default when other broker data present
   if (fv.buyer_only_agent === true || (fv.other_broker_firm && fv.buyer_only_agent !== false)) {
@@ -3021,9 +3040,17 @@ module.exports = async function handler(req, res) {
     };
 
     // Agent-supplied field_values override transaction defaults
-    
-    // In strict mode, skip txDefaults entirely�use ONLY caller's field_values
+
+    // In strict mode, skip txDefaults entirely—use ONLY caller's field_values
     const mergedFields = strictMode ? fieldValues : Object.assign({}, txDefaults, fieldValues);
+
+    // STRICT MODE NORMALIZATION (2026-06-14): Combine city + zip into city_state_zip if needed
+    // This allows callers to pass separate city/zip fields instead of a pre-combined city_state_zip.
+    if (!mergedFields.city_state_zip && (mergedFields.city || mergedFields.zip)) {
+      const cityPart = mergedFields.city || '';
+      const zipPart = mergedFields.zip || '';
+      mergedFields.city_state_zip = [cityPart, zipPart].filter(Boolean).join(', ');
+    }
 
     // VALIDATION: Buyer/seller role integrity check
     // If the transaction has a role, validate that buyer_name and seller_name are on the correct sides.
