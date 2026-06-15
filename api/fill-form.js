@@ -67,9 +67,10 @@ const TREC_IMPROVEMENT_DISTRICT_B64 = require('./_assets/trec-improvement-distri
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
   'https://www.meetdossie.com',
+  'https://staging.meetdossie.com',
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+(?:-heathshepard-6590s-projects)?\.vercel\.app$/;
 
 // Form configs -- base64 assets embedded at deploy time.
 // Field names from actual AcroForm inspection of each PDF (see scripts/inspect_resale_fields.py).
