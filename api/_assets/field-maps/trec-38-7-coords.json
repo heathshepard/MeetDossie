@@ -37,7 +37,7 @@
       "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Buyer signature line 1 (left) \u2014 'Buyer' label at y=663 below"
+      "notes": "Buyer signature line 1 (left) — 'Buyer' label at y=663 below"
     },
     "buyer_name_2": {
       "page": 1,
@@ -47,7 +47,7 @@
       "height": 14,
       "font_size": 11,
       "required": false,
-      "notes": "Buyer signature line 2 (right) \u2014 second buyer if joint"
+      "notes": "Buyer signature line 2 (right) — second buyer if joint"
     },
     "contract_effective_date": {
       "page": 1,
@@ -57,7 +57,7 @@
       "height": 14,
       "font_size": 11,
       "required": false,
-      "notes": "Date line under signature 1 \u2014 'Date' label at (270.9, 663.2)"
+      "notes": "Date line under signature 1 — 'Date' label at (270.9, 663.2)"
     },
     "termination_notice_date": {
       "page": 1,
@@ -67,71 +67,79 @@
       "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Date line under signature 2 \u2014 'Date' label at (526.5, 663.2)"
+      "notes": "Date line under signature 2 — 'Date' label at (526.5, 663.2)"
     },
     "termination_checkbox_option_period": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 165,
+      "y": 196,
       "required": false,
-      "label": "(1) Option Period unrestricted"
+      "label": "(1) Option Period unrestricted",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_financing": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 196,
+      "y": 228,
       "required": false,
-      "label": "(2) Financing (Buyer Approval)"
+      "label": "(2) Financing (Buyer Approval)",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_property": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 227,
+      "y": 259,
       "required": false,
-      "label": "(3) Property Approval"
+      "label": "(3) Property Approval",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_hoa": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 272,
+      "y": 304,
       "required": false,
-      "label": "(4) HOA mandatory membership"
+      "label": "(4) HOA mandatory membership",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_disclosure": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 303,
+      "y": 335,
       "required": false,
-      "label": "(5) Seller's Disclosure 7B(2)"
+      "label": "(5) Seller's Disclosure 7B(2)",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_appraisal": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 335,
+      "y": 367,
       "required": false,
-      "label": "(6) Lender's Appraisal Para 3"
+      "label": "(6) Lender's Appraisal Para 3",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_objections": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 380,
+      "y": 412,
       "required": false,
-      "label": "(7) Para 6.D objections not cured"
+      "label": "(7) Para 6.D objections not cured",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_checkbox_other": {
       "page": 1,
       "type": "checkbox",
       "x": 60,
-      "y": 424,
+      "y": 456,
       "required": false,
-      "label": "(8) Other"
+      "label": "(8) Other",
+      "note": "X-overlay position approximate; agent ticks visually at signing"
     },
     "termination_reason_other": {
       "page": 1,
@@ -141,7 +149,7 @@
       "height": 70,
       "font_size": 10,
       "required": false,
-      "notes": "Free-text reason if (8) Other checked \u2014 6 blank lines"
+      "notes": "Free-text reason if (8) Other checked — 6 blank lines"
     }
   },
   "field_count": 15
