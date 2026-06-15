@@ -577,13 +577,15 @@ async function fillResaleContract(pdfDoc, fv) {
   // Checking "is" for HOA was checking Section 4A, making it appear that the property has a
   // residential lease on every HOA transaction. Fixed 2026-05-30.
   //
-  // Standard residential sale (no leases): check "is not" — property is NOT subject to any lease.
+  // CRITICAL FIX (2026-06-14): ONLY check "is" or "is not" if explicitly specified.
+  // Do NOT auto-default to "is not" if agent didn't specify.
   if (fv.has_tenant_lease === true) {
     safeCheck(form, 'is');
-  } else {
+  } else if (fv.has_tenant_lease === false) {
     safeCheck(form, 'is not');
   }
-  // 4C Natural Resource Leases: only check sub-options when NRL explicitly exists
+  // If has_tenant_lease is null/undefined, leave both unchecked
+
   if (fv.has_natural_resource_lease === true) {
     if (fv.nrl_delivered === true) {
       safeCheck(form, '2Within');
@@ -605,7 +607,7 @@ async function fillResaleContract(pdfDoc, fv) {
   //   "to escrow agent within 1" x=0.5505 y=0.9123 — earnest delivery days on page 1 footer
   //
   // Per Hadley: earnest money goes to escrow agent (title company). 3 days is TX standard.
-  const earnestDays = fv.earnest_delivery_days != null ? String(fv.earnest_delivery_days) : '3';
+  const earnestDays = fv.earnest_delivery_days != null && fv.earnest_delivery_days !== '' ? String(fv.earnest_delivery_days) : '';
   safeSetText(form, 'undefined_6', earnestDays);
   safeSetText(form, 'to escrow agent within', earnestDays);
   safeSetText(form, 'to escrow agent within 1', earnestDays);
@@ -659,11 +661,11 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // Title objection days: "receipt or the date specified in this paragraph whichever is earlier"
   // (Page 3 y=0.3287) — days buyer has to object to title commitment. Standard: 5 days.
-  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days || '5');
+  safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days != null && fv.title_objection_days !== '' ? fv.title_objection_days : '');
 
   // Exception document objection days: "the Commitment Exception Documents and the survey..."
   // (Page 3 y=0.3411) — days buyer has to object to exception documents. Standard: 5 days.
-  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '5');
+  safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days != null && fv.exception_objection_days !== '' ? fv.exception_objection_days : '');
 
   // SECTION 6C — SURVEY OPTIONS (Page 3 y=0.5899/0.5908)
   // "1Within" (y=0.5899) = C.1: seller provides existing survey + T-47/T-47.1 (DEFAULT)
@@ -672,7 +674,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // When C.1 is selected, sub-checkboxes handle who pays for new survey if existing is unacceptable:
   //   "Sellers" (Page 2 y=0.5442 — note: same field name used in 6A!) — this is ambiguous in the PDF
   //   "Buyer" (Page 3 y=0.0957) = buyer pays if existing survey unacceptable
-  const surveyOption = fv.survey_option || 'c1';
+  const surveyOption = fv.survey_option != null && fv.survey_option !== '' ? fv.survey_option : '';
   if (surveyOption === 'c2' || fv.survey_buyer_new === true) {
     safeCheck(form, '2 Within');
   } else if (surveyOption === 'c3' || fv.survey_seller_new === true) {
@@ -680,17 +682,19 @@ async function fillResaleContract(pdfDoc, fv) {
     // "Sellers" on Page 1 (y=0.8641) is in the title expense area, NOT the survey section.
     // Use 1Within (C.1) as the closest match; the seller-provides sub-option has no AcroForm widget.
     safeCheck(form, '1Within');
-  } else {
-    // Default: C.1 seller provides existing survey
+  } else if (surveyOption === 'c1') {
+    // CRITICAL FIX (2026-06-14): ONLY check C.1 if explicitly specified. Do NOT auto-default.
+    // C.1 seller provides existing survey
     safeCheck(form, '1Within');
     // Sub-checkbox: if existing survey is unacceptable, who pays for new one?
     // "Buyer" (Page 3 y=0.0957) is the only survey sub-checkbox in the PDF.
-    // "Sellers" checkbox exists only on Page 1 (title area) — do NOT check it for survey purposes.
-    // Default: buyer pays (most common in TX when C.1 is used).
-    if (fv.survey_sellers_expense !== true && fv.seller_provides_survey !== true) {
+    // "Sellers" checkbox exists only on Page 1 (title area) � do NOT check it for survey purposes.
+    // Only check "Buyer" if explicitly specified AND seller_provides_survey is true
+    if (fv.survey_sellers_expense !== true && fv.seller_provides_survey === true) {
       safeCheck(form, 'Buyer');
     }
   }
+
 
   // Section 6C survey delivery days (Page 3 y=0.0971)
   // Actual field name verified against 20-18 map: "than 3 days prior to Closing Date"
@@ -700,7 +704,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // Section 6D — Permitted use and property use objection days
   // "Commitment other than items 6A1 through 9 above or which prohibit the following use"
   // (Page 3 y=0.3287) = permitted use text field
-  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use || 'single family residence');
+  safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use != null && fv.permitted_use !== '' ? fv.permitted_use : '');
 
   // SECTION 7B — SELLER'S DISCLOSURE NOTICE
   // "Within one" (Page 3 y=0.1811) / "Within two" (y=0.1807) / "Within three" (y=0.1934) /
@@ -856,12 +860,19 @@ async function fillResaleContract(pdfDoc, fv) {
   // EXECUTION DATE (Page 9)
   // "EXECUTED the" (y=0.2811) = day number, "day of" (y=0.2837) = month name, "20_2" (y=0.2830) = 2-digit year
   // Per Hadley: buyer's agent fills execution date. Leave seller execution date blank.
-  const today = new Date();
-  const execDate = fv.execution_date ? new Date(fv.execution_date) : today;
-  const execMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  safeSetText(form, 'EXECUTED the', String(execDate.getUTCDate()));
-  safeSetText(form, 'day of', execMonths[execDate.getUTCMonth()]);
-  safeSetText(form, '20_2', String(execDate.getUTCFullYear()).slice(2));
+  // STRICT MODE (2026-06-14): Do NOT auto-set to today. Only fill if explicitly provided.
+  if (fv.execution_date) {
+    const execDate = new Date(fv.execution_date);
+    const execMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    safeSetText(form, 'EXECUTED the', String(execDate.getUTCDate()));
+    safeSetText(form, 'day of', execMonths[execDate.getUTCMonth()]);
+    safeSetText(form, '20_2', String(execDate.getUTCFullYear()).slice(2));
+  } else {
+    // Leave all three fields blank if execution_date not provided
+    safeSetText(form, 'EXECUTED the', '');
+    safeSetText(form, 'day of', '');
+    safeSetText(form, '20_2', '');
+  }
 
   // Effective date field: "Date" (Page 9 y=0.2617 area via Page 11 "Date" field)
   // Per Hadley: leave blank at contract creation — filled when last party accepts.
@@ -879,7 +890,6 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
   safeSetText(form, 'License No_4', fv.listing_broker_license || '');
   safeSetText(form, 'List Assoc Name', fv.listing_agent_name || '');
-  safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
   safeSetText(form, 'License No_5', fv.listing_agent_license || '');
   safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email || '');
   safeSetText(form, 'Phone_3', fv.listing_agent_phone || '');
@@ -898,14 +908,26 @@ async function fillResaleContract(pdfDoc, fv) {
     safeCheck(form, 'Seller only as Sellers agent');
   }
 
-  // Other/selling broker = agent representing the buyer
+  // Other/selling broker = agent representing the buyer (cooperating agent)
+  // STRICT MODE ROUTING (2026-06-14): If other_broker_firm is specified, the
+  // selling_agent_name goes in the LEFT column (Other Broker → Associates Name),
+  // NOT the RIGHT column (Selling Associates). This follows TREC 20-18 convention
+  // for separate brokerages: buy-side cooperating agent is under "Other Broker".
+  const otherBrokerFirmProvided = fv.other_broker_firm && String(fv.other_broker_firm).trim();
+  const sellingAgentNameProvided = fv.selling_agent_name && String(fv.selling_agent_name).trim();
+  const routeToOtherBroker = otherBrokerFirmProvided && sellingAgentNameProvided;
+
   safeSetText(form, 'Other Broker Firm', fv.other_broker_firm || '');
   safeSetText(form, 'License No', fv.other_broker_license || '');
-  safeSetText(form, 'Associates Name', fv.other_broker_assoc_name || '');
-  safeSetText(form, 'Selling Associates Name', fv.selling_agent_name || '');
-  safeSetText(form, 'Selling Associates Name-1', fv.selling_agent_name || '');
-  safeSetText(form, 'License No_2', fv.other_broker_assoc_license || '');
-  safeSetText(form, 'Associates Email Address', fv.other_broker_assoc_email || '');
+  // LEFT COLUMN — Other Broker Associate's Name
+  // If routing to other broker, use selling_agent_name here; otherwise use other_broker_assoc_name
+  safeSetText(form, 'Associates Name numb 1', routeToOtherBroker ? fv.selling_agent_name : (fv.other_broker_assoc_name || ''));
+  // RIGHT COLUMN — Selling Associates (intra-firm agent)
+  // Only fill if NOT routing to other broker (i.e., same brokerage scenario)
+  safeSetText(form, 'Selling Associates Name', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
+  safeSetText(form, 'Selling Associates Name-1', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
+  safeSetText(form, 'License No_2', routeToOtherBroker ? (fv.selling_agent_license || '') : (fv.other_broker_assoc_license || ''));
+  safeSetText(form, 'Associates Email Address', routeToOtherBroker ? (fv.selling_agent_email || '') : (fv.other_broker_assoc_email || ''));
   safeSetText(form, 'Phone', fv.other_broker_phone || '');
   safeSetText(form, 'Licensed Supervisor of Associate', fv.other_broker_supervisor || '');
   safeSetText(form, 'License No_3', fv.other_broker_supervisor_license || '');
@@ -914,15 +936,15 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'City', fv.other_broker_city || '');
   safeSetText(form, 'State', fv.other_broker_state || '');
   safeSetText(form, 'Zip', fv.other_broker_zip || '');
-  safeSetText(form, 'License No_7', fv.selling_agent_license || '');
-  safeSetText(form, 'Selling Associates Email Address', fv.selling_agent_email || '');
-  safeSetText(form, 'Phone_5', fv.selling_agent_phone || '');
-  safeSetText(form, 'Licensed Supervisor of Selling Associate', fv.selling_supervisor || '');
-  safeSetText(form, 'License No_8', fv.selling_supervisor_license || '');
-  safeSetText(form, 'Selling Associates Office Address', fv.selling_broker_address || '');
-  safeSetText(form, 'City_3', fv.selling_broker_city || '');
-  safeSetText(form, 'State_3', fv.selling_broker_state || '');
-  safeSetText(form, 'Zip_3', fv.selling_broker_zip || '');
+  safeSetText(form, 'License No_7', routeToOtherBroker ? '' : (fv.selling_agent_license || ''));
+  safeSetText(form, 'Selling Associates Email Address', routeToOtherBroker ? '' : (fv.selling_agent_email || ''));
+  safeSetText(form, 'Phone_5', routeToOtherBroker ? '' : (fv.selling_agent_phone || ''));
+  safeSetText(form, 'Licensed Supervisor of Selling Associate', routeToOtherBroker ? '' : (fv.selling_supervisor || ''));
+  safeSetText(form, 'License No_8', routeToOtherBroker ? '' : (fv.selling_supervisor_license || ''));
+  safeSetText(form, 'Selling Associates Office Address', routeToOtherBroker ? '' : (fv.selling_broker_address || ''));
+  safeSetText(form, 'City_3', routeToOtherBroker ? '' : (fv.selling_broker_city || ''));
+  safeSetText(form, 'State_3', routeToOtherBroker ? '' : (fv.selling_broker_state || ''));
+  safeSetText(form, 'Zip_3', routeToOtherBroker ? '' : (fv.selling_broker_zip || ''));
 
   // Selling broker representation: "Buyer only" = default when other broker data present
   if (fv.buyer_only_agent === true || (fv.other_broker_firm && fv.buyer_only_agent !== false)) {
@@ -934,8 +956,9 @@ async function fillResaleContract(pdfDoc, fv) {
   // "Percentage" checkbox (y=0.8027) = check if expressing BAC as percentage
   // Per Hadley: leave commission amounts blank unless agent explicitly provides them.
   // AC numb 1 through AC numb 4 are phone area code fields — do NOT use for commission.
-  if (fv.buyer_agent_commission) {
-    const commStr = String(fv.buyer_agent_commission).replace('%', '').trim();
+  const bac = fv.buyer_agent_commission || fv.buyers_agent_commission_pct || '';
+  if (bac) {
+    const commStr = String(bac).replace('%', '').trim();
     safeSetText(form, 'when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from', commStr);
     safeCheck(form, 'Percentage');
   }
@@ -2809,6 +2832,7 @@ module.exports = async function handler(req, res) {
 
     const transactionId = sanitizeString(body.transaction_id, { maxLength: 200 });
     const fieldValues = (body.field_values && typeof body.field_values === 'object') ? body.field_values : {};
+    const strictMode = body.strict === true;
 
     // Support both form_type (canonical) and trec_number (legacy bundle format).
     // trec_number -> form_type translation table:
@@ -2836,7 +2860,10 @@ module.exports = async function handler(req, res) {
 
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
-    const txResp = await supabaseRest(
+    let tx = null;
+    let profile = {};
+    if (!strictMode) {
+      const txResp = await supabaseRest(
       'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,seller_email,seller_phone,sale_price,earnest_money,earnest_money_title_company,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,title_officer_name,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date,service_contract_amount,seller_other_expenses,hoa,as_is,seller_provides_survey,sdn_received,listing_broker_name,listing_broker_license_no,listing_agent_name,listing_agent_license_no,listing_agent_email_addr,listing_agent_phone_no,other_broker_name,other_broker_license_no,other_agent_name,other_agent_license_no,other_agent_email_addr,buyer_agent_commission,down_payment,buyer_email,buyer_notice_name,seller_notice_name,escrow_officer_name&limit=1',
       { method: 'GET' },
     );
@@ -2845,16 +2872,17 @@ module.exports = async function handler(req, res) {
       throw new Error('transaction fetch failed (' + txResp.status + '): ' + text.slice(0, 200));
     }
     const txRows = await txResp.json();
-    const tx = (Array.isArray(txRows) && txRows[0]) || null;
+    tx = (Array.isArray(txRows) && txRows[0]) || null;
     if (!tx) {
       return res.status(404).json({ ok: false, error: 'Dossier not found.' });
+    }
     }
 
     // Auto-upgrade form type based on transaction_type when the caller sent the generic
     // resale-contract form type but the transaction is actually land or new construction.
     // This fires when the legacy bundle sends trec_number:"20-16" for a non-resale tx.
     let resolvedFormType = formType;
-    if (formType === 'resale-contract' && tx.transaction_type) {
+    if (!strictMode && formType === 'resale-contract' && tx && tx.transaction_type) {
       const txType = String(tx.transaction_type).toLowerCase();
       if (txType === 'land') resolvedFormType = 'unimproved-property';
       else if (txType === 'land_purchase') resolvedFormType = 'unimproved-property';
@@ -2868,8 +2896,8 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    let profile = {};
-    try {
+    if (!strictMode) {
+      try {
       const profResp = await supabaseRest(
         'profiles?id=eq.' + safeUid + '&select=full_name,phone,email,brokerage,trec_license_number&limit=1',
         { method: 'GET' },
@@ -2881,52 +2909,53 @@ module.exports = async function handler(req, res) {
     } catch (e) {
       console.warn('[fill-form] profile fetch failed (non-fatal):', e && e.message);
     }
+    }
 
     // Normalize transaction data, mirroring normalize_transaction.py
-    const ft = tx.financing_type || (tx.lender_name ? 'conventional' : null);
+    const ft = strictMode ? null : (tx && tx.financing_type) || (tx && tx.lender_name ? 'conventional' : null);
     // Section 3: down payment — use explicit column if set, else compute from sale_price - loan_amount.
-    const rawSalePrice = tx.sale_price != null ? Number(tx.sale_price) : 0;
-    const rawLoanAmount = tx.loan_amount != null ? Number(tx.loan_amount) : 0;
-    const computedDownPayment = tx.down_payment != null
+    const rawSalePrice = !strictMode && tx && tx.sale_price != null ? Number(tx.sale_price) : 0;
+    const rawLoanAmount = !strictMode && tx && tx.loan_amount != null ? Number(tx.loan_amount) : 0;
+    const computedDownPayment = !strictMode && tx && tx.down_payment != null
       ? String(tx.down_payment)
       : (rawSalePrice > 0 && rawSalePrice > rawLoanAmount ? String(rawSalePrice - rawLoanAmount) : '');
 
     // Broker fields: transaction columns take precedence over agent profile.
     // This lets test contracts specify different brokers than the logged-in agent.
-    const listingAgentName    = tx.listing_agent_name    || profile.full_name     || '';
-    const listingBrokerFirm   = tx.listing_broker_name   || profile.brokerage     || '';
-    const listingAgentPhone   = tx.listing_agent_phone_no|| profile.phone         || '';
-    const listingAgentEmail   = tx.listing_agent_email_addr || profile.email      || '';
-    const listingAgentLicense = tx.listing_agent_license_no || profile.trec_license_number || '';
-    const listingBrokerLicense = tx.listing_broker_license_no || '';
+    const listingAgentName    = !strictMode && tx && tx.listing_agent_name    || profile.full_name     || '';
+    const listingBrokerFirm   = !strictMode && tx && tx.listing_broker_name   || profile.brokerage     || '';
+    const listingAgentPhone   = !strictMode && tx && tx.listing_agent_phone_no|| profile.phone         || '';
+    const listingAgentEmail   = !strictMode && tx && tx.listing_agent_email_addr || profile.email      || '';
+    const listingAgentLicense = !strictMode && tx && tx.listing_agent_license_no || profile.trec_license_number || '';
+    const listingBrokerLicense = !strictMode && tx && tx.listing_broker_license_no || '';
 
     const txDefaults = {
-      buyer_name:              tx.buyer_name || '',
-      seller_name:             tx.seller_name || '',
+      buyer_name:              !strictMode && tx && tx.buyer_name ? tx.buyer_name : '',
+      seller_name:             !strictMode && tx && tx.seller_name ? tx.seller_name : '',
       // Section 21 Notices — buyer/seller names for notice address block
-      buyer_email:             tx.buyer_email || '',
-      seller_email:            tx.seller_email || '',
-      seller_phone:            tx.seller_phone || '',
-      notice_address:          tx.buyer_notice_name || tx.buyer_name || '',
-      notice_address_2:        tx.seller_notice_name || tx.seller_name || '',
-      property_address:        tx.property_address || '',
-      city_state_zip:          tx.city_state_zip || '',
-      property_full:           [tx.property_address, tx.city_state_zip].filter(Boolean).join(', '),
-      county:                  tx.county || '',
-      legal_description:       tx.legal_description || '',
+      buyer_email:             !strictMode && tx && tx.buyer_email ? tx.buyer_email : '',
+      seller_email:            !strictMode && tx && tx.seller_email ? tx.seller_email : '',
+      seller_phone:            !strictMode && tx && tx.seller_phone ? tx.seller_phone : '',
+      notice_address:          tx && (tx.buyer_notice_name || tx.buyer_name) || '',
+      notice_address_2:        tx && (tx.seller_notice_name || tx.seller_name) || '',
+      property_address:        tx && tx.property_address || '',
+      city_state_zip:          tx && tx.city_state_zip || '',
+      property_full:           tx && [tx.property_address, tx.city_state_zip].filter(Boolean).join(', ') || '',
+      county:                  tx && tx.county || '',
+      legal_description:       tx && tx.legal_description || '',
       sale_price:              rawSalePrice > 0 ? String(rawSalePrice) : '',
       // Section 3A: down payment (cash buyer brings to closing)
       down_payment_amt:        computedDownPayment,
-      earnest_money:           tx.earnest_money != null ? String(tx.earnest_money) : '',
-      earnest_money_to:        tx.earnest_money_title_company || tx.title_company || '',
-      option_fee:              tx.option_fee != null ? String(tx.option_fee) : '',
+      earnest_money:           tx && tx.earnest_money != null ? String(tx.earnest_money) : '',
+      earnest_money_to:        tx && (tx.earnest_money_title_company || tx.title_company) || '',
+      option_fee:              tx && tx.option_fee != null ? String(tx.option_fee) : '',
       // Section 5: option period days from option_days column
-      option_period_days:      tx.option_days != null ? tx.option_days : null,
-      closing_date:            tx.closing_date || '',
-      contract_effective_date: tx.contract_effective_date || '',
-      title_company:           tx.title_company || '',
+      option_period_days:      tx && tx.option_days != null ? tx.option_days : null,
+      closing_date:            tx && tx.closing_date || '',
+      contract_effective_date: tx && tx.contract_effective_date || '',
+      title_company:           tx && tx.title_company || '',
       // Escrow officer name pre-fills the "Received by" / escrow receipt section
-      earnest_received_by:     tx.escrow_officer_name || tx.title_officer_name || '',
+      earnest_received_by:     tx && (tx.escrow_officer_name || tx.title_officer_name) || '',
       loan_amount:             rawLoanAmount > 0 ? String(rawLoanAmount) : '',
       financing_type:          ft || '',
       financing_addendum:      Boolean(ft && ft !== 'cash'),
@@ -2941,81 +2970,99 @@ module.exports = async function handler(req, res) {
       listing_agent_license:   listingAgentLicense,
       listing_broker_license:  listingBrokerLicense,
       // Other/selling broker (agent representing buyer)
-      other_broker_firm:       tx.other_broker_name      || '',
-      other_broker_license:    tx.other_broker_license_no || '',
-      other_broker_assoc_name: tx.other_agent_name       || '',
-      other_broker_assoc_license: tx.other_agent_license_no || '',
-      other_broker_assoc_email: tx.other_agent_email_addr || '',
-      selling_agent_name:      tx.other_agent_name       || '',
-      selling_agent_license:   tx.other_agent_license_no || '',
-      selling_agent_email:     tx.other_agent_email_addr || '',
+      other_broker_firm:       tx && tx.other_broker_name      || '',
+      other_broker_license:    tx && tx.other_broker_license_no || '',
+      other_broker_assoc_name: tx && tx.other_agent_name       || '',
+      other_broker_assoc_license: tx && tx.other_agent_license_no || '',
+      other_broker_assoc_email: tx && tx.other_agent_email_addr || '',
+      selling_agent_name:      tx && tx.other_agent_name       || '',
+      selling_agent_license:   tx && tx.other_agent_license_no || '',
+      selling_agent_email:     tx && tx.other_agent_email_addr || '',
       // Buyer's agent commission (BAC field in Section 10)
-      buyer_agent_commission:  tx.buyer_agent_commission  || '',
+      buyer_agent_commission:  tx && tx.buyer_agent_commission  || '',
       // HOA fields (Block 9B)
-      hoa_exists:              tx.hoa === true,
-      hoa_name:                tx.hoa_name || '',
-      hoa_phone:               tx.hoa_phone || '',
-      hoa_management_company:  tx.hoa_management_company || '',
+      hoa_exists:              tx && tx.hoa === true,
+      hoa_name:                tx && tx.hoa_name || '',
+      hoa_phone:               tx && tx.hoa_phone || '',
+      hoa_management_company:  tx && tx.hoa_management_company || '',
       // Section 22 — HOA addendum checkbox (auto-set when hoa===true)
-      hoa_addendum:            tx.hoa === true,
+      hoa_addendum:            tx && tx.hoa === true,
       // Section 22 — Propane Gas addendum: only check when explicitly true (Bug 4 fix)
-      propane_addendum:        tx.propane_gas_addendum === true,
+      propane_addendum:        tx && tx.propane_gas_addendum === true,
       // Section 7 — Property condition (as-is vs. as-is with repairs)
       // Default: as-is unless explicitly false
-      as_is_with_repairs:      tx.as_is === false,
+      as_is_with_repairs:      tx && tx.as_is === false,
       // Section 6A — Title area/boundaries amendment: default checked per Hadley
       title_area_amendment:    true,
       // Section 6C — Survey option: C.1 (seller provides existing) is default
-      survey_option:           tx.seller_provides_survey === true ? 'c1' : 'c1',
+      survey_option:           tx && tx.seller_provides_survey === true ? 'c1' : 'c1',
       // Section 6.C sub-checkbox: seller pays when seller_provides_survey===true
-      survey_sellers_expense:  tx.seller_provides_survey === true,
+      survey_sellers_expense:  tx && tx.seller_provides_survey === true,
       // When seller pays survey, uncheck the default "Buyer pays" checkbox behavior
-      survey_buyer_expense:    tx.seller_provides_survey !== true,
+      survey_buyer_expense:    !tx || tx.seller_provides_survey !== true,
       // Section 22 — Sellers Disclosure Notice (OP-H) received checkbox
-      sdn_received:            tx.sdn_received === true,
-      sellers_disclosure_addendum: tx.sdn_received === true,
+      sdn_received:            tx && tx.sdn_received === true,
+      sellers_disclosure_addendum: tx && tx.sdn_received === true,
       // Section 22 — Lead paint addendum (OP-L): auto-check for pre-1978 homes
-      lead_paint_addendum:     tx.year_built != null && Number(tx.year_built) < 1978,
+      lead_paint_addendum:     tx && tx.year_built != null && Number(tx.year_built) < 1978,
       // Section 22 — TREC 49-1 appraisal addendum: auto for conventional/usda/tx-vet financed
       // (not FHA or VA which have their own appraisal protections)
       appraisal_addendum:      Boolean(rawLoanAmount > 0 && ft && ft !== 'fha' && ft !== 'va'),
       // Section 5A — Earnest delivery days (3 calendar days is TX standard)
       earnest_delivery_days:   null,
       // Section 11 — Optional residential service contract amount
-      service_contract_amount: tx.service_contract_amount != null ? String(tx.service_contract_amount) : '',
+      service_contract_amount: tx && tx.service_contract_amount != null ? String(tx.service_contract_amount) : '',
       // Section 12.B — Other expenses seller pays at closing
-      buyer_closing_cost_credit: tx.seller_other_expenses != null ? String(tx.seller_other_expenses) : '',
+      buyer_closing_cost_credit: tx && tx.seller_other_expenses != null ? String(tx.seller_other_expenses) : '',
       // Appraisal fields (Block 10)
-      appraised_value:         tx.appraisal_value != null ? String(tx.appraisal_value) : '',
-      appraisal_deadline:      tx.appraisal_deadline || '',
+      appraised_value:         tx && tx.appraisal_value != null ? String(tx.appraisal_value) : '',
+      appraisal_deadline:      tx && tx.appraisal_deadline || '',
       sales_price:             rawSalePrice > 0 ? String(rawSalePrice) : '',
       // Seller name split for T-47 and other multi-seller forms
-      seller_name_1:           tx.seller_name || '',
+      seller_name_1:           tx && tx.seller_name || '',
       // Year built for lead paint trigger
-      year_built:              tx.year_built || null,
+      year_built:              tx && tx.year_built || null,
       // Transaction type (used by chat.js routing for form selection)
-      transaction_type:        tx.transaction_type || '',
+      transaction_type:        tx && tx.transaction_type || '',
       // Land fields (TREC 9 + TREC 25)
-      land_acreage:            tx.land_acreage != null ? String(tx.land_acreage) : '',
-      land_legal_description:  tx.land_legal_description || '',
-      land_parcel_id:          tx.land_parcel_id || '',
+      land_acreage:            tx && tx.land_acreage != null ? String(tx.land_acreage) : '',
+      land_legal_description:  tx && tx.land_legal_description || '',
+      land_parcel_id:          tx && tx.land_parcel_id || '',
       // Builder/new construction fields (TREC 23 + TREC 24)
-      builder_name:            tx.builder_name || '',
-      builder_rep_name:        tx.builder_rep_name || '',
-      builder_rep_phone:       tx.builder_rep_phone || '',
-      builder_rep_email:       tx.builder_rep_email || '',
-      builder_warranty_company: tx.builder_warranty_company || '',
-      co_received_date:        tx.co_received_date || '',
-      co_number:               tx.co_number || '',
-      expected_completion_date: tx.expected_completion_date || '',
+      builder_name:            tx && tx.builder_name || '',
+      builder_rep_name:        tx && tx.builder_rep_name || '',
+      builder_rep_phone:       tx && tx.builder_rep_phone || '',
+      builder_rep_email:       tx && tx.builder_rep_email || '',
+      builder_warranty_company: tx && tx.builder_warranty_company || '',
+      co_received_date:        tx && tx.co_received_date || '',
+      co_number:               tx && tx.co_number || '',
+      expected_completion_date: tx && tx.expected_completion_date || '',
     };
 
     // Agent-supplied field_values override transaction defaults
-    const mergedFields = Object.assign({}, txDefaults, fieldValues);
+
+    // In strict mode, skip txDefaults entirely—use ONLY caller's field_values
+    const mergedFields = strictMode ? fieldValues : Object.assign({}, txDefaults, fieldValues);
+
+    // STRICT MODE NORMALIZATION (2026-06-14): Combine city + zip into property address if needed
+    // TREC 20-18 does NOT have a dedicated "City of ___" field in Section 2A.
+    // The city must be part of the full property address (e.g., "123 Main St, Boerne, TX 78006").
+    // When caller passes city/zip separately, merge them into property_address.
+    if ((mergedFields.city || mergedFields.zip) && !mergedFields.city_state_zip) {
+      const addrPart = mergedFields.property_address || '';
+      const cityPart = mergedFields.city || '';
+      const zipPart = mergedFields.zip || '';
+      // Build combined city_state_zip for other forms that need it
+      mergedFields.city_state_zip = [cityPart, zipPart].filter(Boolean).join(', ');
+      // Also update property_address to include city/zip if not already present
+      if (addrPart && !addrPart.includes(cityPart)) {
+        mergedFields.property_address = [addrPart, cityPart, zipPart].filter(Boolean).join(', ');
+      }
+    }
 
     // VALIDATION: Buyer/seller role integrity check
     // If the transaction has a role, validate that buyer_name and seller_name are on the correct sides.
-    if (tx.role && resolvedFormType === 'resale-contract') {
+    if (tx && tx.role && resolvedFormType === 'resale-contract') {
       const hasBuyerName = mergedFields.buyer_name && String(mergedFields.buyer_name).trim();
       const hasSellerName = mergedFields.seller_name && String(mergedFields.seller_name).trim();
 
