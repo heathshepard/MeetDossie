@@ -1,0 +1,235 @@
+{
+  "form_id": "trec-50-0",
+  "form_name": "Notice of Seller's Termination of Contract",
+  "form_number": "TREC 50-0",
+  "effective_date": "01-01-2025",
+  "page_count": 1,
+  "page_dimensions": {
+    "width": 612,
+    "height": 792
+  },
+  "fields": {
+    "property_address": {
+      "page": 1,
+      "x": 49,
+      "y": 110,
+      "width": 510,
+      "height": 14,
+      "font_size": 11,
+      "required": true,
+      "notes": "Full property address at top of form"
+    },
+    "property_city": {
+      "page": 1,
+      "x": 49,
+      "y": 130,
+      "width": 150,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "City component"
+    },
+    "property_county": {
+      "page": 1,
+      "x": 250,
+      "y": 130,
+      "width": 150,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "County component"
+    },
+    "property_zip": {
+      "page": 1,
+      "x": 450,
+      "y": 130,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "ZIP code"
+    },
+    "buyer_name": {
+      "page": 1,
+      "x": 49,
+      "y": 160,
+      "width": 455,
+      "height": 14,
+      "font_size": 11,
+      "required": true,
+      "notes": "BETWEEN THE UNDERSIGNED SELLER AND [Buyer Name]"
+    },
+    "seller_name": {
+      "page": 1,
+      "x": 49,
+      "y": 190,
+      "width": 455,
+      "height": 14,
+      "font_size": 11,
+      "required": true,
+      "notes": "Seller name field"
+    },
+    "contract_effective_date": {
+      "page": 1,
+      "x": 49,
+      "y": 220,
+      "width": 110,
+      "height": 14,
+      "font_size": 11,
+      "required": true,
+      "notes": "Effective date of contract"
+    },
+    "termination_notice_date": {
+      "page": 1,
+      "x": 350,
+      "y": 220,
+      "width": 110,
+      "height": 14,
+      "font_size": 11,
+      "required": true,
+      "notes": "Date of termination notice"
+    },
+    "termination_date": {
+      "page": 1,
+      "x": 49,
+      "y": 250,
+      "width": 110,
+      "height": 14,
+      "font_size": 11,
+      "required": true,
+      "notes": "Actual termination date"
+    },
+    "termination_reason": {
+      "page": 1,
+      "x": 49,
+      "y": 280,
+      "width": 510,
+      "height": 50,
+      "font_size": 10,
+      "required": true,
+      "notes": "Reason for termination (multi-line)"
+    },
+    "earnest_money": {
+      "page": 1,
+      "x": 49,
+      "y": 345,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Earnest money amount"
+    },
+    "option_fee": {
+      "page": 1,
+      "x": 200,
+      "y": 345,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Option period fee"
+    },
+    "title_company": {
+      "page": 1,
+      "x": 49,
+      "y": 375,
+      "width": 300,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Title company name"
+    },
+    "listing_broker_firm": {
+      "page": 1,
+      "x": 49,
+      "y": 405,
+      "width": 300,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Listing broker firm name"
+    },
+    "listing_broker_license": {
+      "page": 1,
+      "x": 400,
+      "y": 405,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Listing broker license number"
+    },
+    "listing_agent_name": {
+      "page": 1,
+      "x": 49,
+      "y": 430,
+      "width": 300,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Listing agent name"
+    },
+    "listing_agent_license": {
+      "page": 1,
+      "x": 400,
+      "y": 430,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Listing agent license number"
+    },
+    "other_broker_firm": {
+      "page": 1,
+      "x": 49,
+      "y": 460,
+      "width": 300,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Other broker firm (selling side)"
+    },
+    "other_broker_license": {
+      "page": 1,
+      "x": 400,
+      "y": 460,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Other broker license number"
+    },
+    "selling_agent_name": {
+      "page": 1,
+      "x": 49,
+      "y": 485,
+      "width": 300,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Selling agent name"
+    },
+    "selling_agent_license": {
+      "page": 1,
+      "x": 400,
+      "y": 485,
+      "width": 100,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Selling agent license number"
+    },
+    "effective_date": {
+      "page": 1,
+      "x": 49,
+      "y": 520,
+      "width": 110,
+      "height": 14,
+      "font_size": 11,
+      "required": false,
+      "notes": "Effective date (if different from contract date)"
+    }
+  },
+  "field_count": 21,
+  "notes": "TREC 50-0 seller termination form. Coordinates estimated based on standard TREC form layout and TREC 38-7 reference. NEEDS VISUAL VERIFICATION on actual PDF before production use."
+}

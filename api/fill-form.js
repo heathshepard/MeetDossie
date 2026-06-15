@@ -1192,25 +1192,61 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 // [TextField] "Date_2" -> termination_notice_date (defaults to today)
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// BUYER TERMINATION NOTICE (TREC 38-7) — FLAT PDF, COORDINATE-BASED
-// Uses field map from api/_assets/field-maps/trec-38-7-coords.json
+// TERMINATION NOTICES — FLAT PDFs, COORDINATE-BASED
+// Supports:
+// - TREC 38-7: Buyer Termination Notice (form_type='termination-notice', defaults to 38-7)
+// - TREC 50-0: Seller Termination Notice (form_type='termination-notice', fv.form_variant='seller' or detect from field presence)
+// Uses field maps from api/_assets/field-maps/trec-{38-7,50-0}-coords.json
 // ---------------------------------------------------------------------------
 async function fillTerminationNotice(pdfDoc, fv) {
-  const fieldMapModule = require('./_assets/field-maps/trec-38-7-coords.json');
   const { fillFlatPdfFromMap } = require('./_assets/flat-pdf-filler.js');
 
-  // Prepare values with formatting
-  const flatFieldValues = {
-    buyer_name: fv.buyer_name || '',
-    seller_name: fv.seller_name || '',
-    property_address: fv.property_address || '',
-    contract_effective_date: fv.contract_effective_date ? formatDate(fv.contract_effective_date) : '',
-    termination_notice_date: fv.termination_notice_date ? formatDate(fv.termination_notice_date) : formatDate(new Date().toISOString().slice(0, 10)),
-    termination_reason: fv.termination_reason || '',
-    termination_other_reasons: fv.termination_other_reasons || '',
-  };
+  // Detect form variant: TREC 50-0 has earnest_money/option_fee/broker fields; TREC 38-7 does not
+  const isSeller50_0 = fv.form_variant === 'seller' || fv.earnest_money != null || fv.option_fee != null;
 
-  await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
+  if (isSeller50_0) {
+    // TREC 50-0: Seller Termination
+    const fieldMapModule = require('./_assets/field-maps/trec-50-0-coords.json');
+    const flatFieldValues = {
+      buyer_name: fv.buyer_name || '',
+      seller_name: fv.seller_name || '',
+      property_address: fv.property_address || '',
+      property_city: fv.property_city || '',
+      property_county: fv.property_county || '',
+      property_zip: fv.property_zip || '',
+      contract_effective_date: fv.contract_effective_date ? formatDate(fv.contract_effective_date) : '',
+      termination_notice_date: fv.termination_notice_date ? formatDate(fv.termination_notice_date) : formatDate(new Date().toISOString().slice(0, 10)),
+      termination_date: fv.termination_date ? formatDate(fv.termination_date) : '',
+      termination_reason: fv.termination_reason || '',
+      earnest_money: fv.earnest_money != null ? formatMoney(fv.earnest_money) : '',
+      option_fee: fv.option_fee != null ? formatMoney(fv.option_fee) : '',
+      title_company: fv.title_company || '',
+      listing_broker_firm: fv.listing_broker_firm || '',
+      listing_broker_license: fv.listing_broker_license || '',
+      listing_agent_name: fv.listing_agent_name || '',
+      listing_agent_license: fv.listing_agent_license || '',
+      other_broker_firm: fv.other_broker_firm || '',
+      other_broker_license: fv.other_broker_license || '',
+      selling_agent_name: fv.selling_agent_name || '',
+      selling_agent_license: fv.selling_agent_license || '',
+      effective_date: fv.effective_date ? formatDate(fv.effective_date) : '',
+    };
+    await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
+  } else {
+    // TREC 38-7: Buyer Termination (original behavior)
+    const fieldMapModule = require('./_assets/field-maps/trec-38-7-coords.json');
+    const flatFieldValues = {
+      buyer_name: fv.buyer_name || '',
+      seller_name: fv.seller_name || '',
+      property_address: fv.property_address || '',
+      contract_effective_date: fv.contract_effective_date ? formatDate(fv.contract_effective_date) : '',
+      termination_notice_date: fv.termination_notice_date ? formatDate(fv.termination_notice_date) : formatDate(new Date().toISOString().slice(0, 10)),
+      termination_reason: fv.termination_reason || '',
+      termination_other_reasons: fv.termination_other_reasons || '',
+    };
+    await fillFlatPdfFromMap(pdfDoc, flatFieldValues, fieldMapModule);
+  }
+
   return pdfDoc;
 }
 
