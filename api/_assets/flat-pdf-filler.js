@@ -55,6 +55,9 @@ async function drawTextAtCoords(pdfDoc, page_num, field_config, text_value) {
 async function fillFlatPdfFromMap(pdfDoc, fv, field_map) {
   const { fields } = field_map;
 
+  const nonEmptyCount = Object.values(fv).filter(v => v && v !== '').length;
+  console.log('[fillFlatPdfFromMap] fv has', nonEmptyCount, 'non-empty values; cash_portion:', fv.cash_portion, 'financing_amount:', fv.financing_amount, 'sales_price:', fv.sales_price);
+
   for (const [logical_name, field_config] of Object.entries(fields)) {
     // Skip checkboxes and other non-text fields for now
     if (field_config.type === 'checkbox') continue;
