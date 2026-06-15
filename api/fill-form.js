@@ -3044,12 +3044,20 @@ module.exports = async function handler(req, res) {
     // In strict mode, skip txDefaults entirely—use ONLY caller's field_values
     const mergedFields = strictMode ? fieldValues : Object.assign({}, txDefaults, fieldValues);
 
-    // STRICT MODE NORMALIZATION (2026-06-14): Combine city + zip into city_state_zip if needed
-    // This allows callers to pass separate city/zip fields instead of a pre-combined city_state_zip.
-    if (!mergedFields.city_state_zip && (mergedFields.city || mergedFields.zip)) {
+    // STRICT MODE NORMALIZATION (2026-06-14): Combine city + zip into property address if needed
+    // TREC 20-18 does NOT have a dedicated "City of ___" field in Section 2A.
+    // The city must be part of the full property address (e.g., "123 Main St, Boerne, TX 78006").
+    // When caller passes city/zip separately, merge them into property_address.
+    if ((mergedFields.city || mergedFields.zip) && !mergedFields.city_state_zip) {
+      const addrPart = mergedFields.property_address || '';
       const cityPart = mergedFields.city || '';
       const zipPart = mergedFields.zip || '';
+      // Build combined city_state_zip for other forms that need it
       mergedFields.city_state_zip = [cityPart, zipPart].filter(Boolean).join(', ');
+      // Also update property_address to include city/zip if not already present
+      if (addrPart && !addrPart.includes(cityPart)) {
+        mergedFields.property_address = [addrPart, cityPart, zipPart].filter(Boolean).join(', ');
+      }
     }
 
     // VALIDATION: Buyer/seller role integrity check
