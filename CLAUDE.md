@@ -6,46 +6,34 @@ This file is read at the start of every Claude Code session. It completely repla
 
 ## 0. COLE'S HARD RULES — READ BEFORE ANYTHING ELSE
 
-These are non-negotiable. They exist because Cole made the same mistakes repeatedly. Every rule has a reason.
+Non-negotiable. Every rule exists because of a repeated mistake.
 
 **RULE 1 — SCAN BEFORE BUILD**
-Before writing any new script or tool, run `dir scripts/` and search for existing ones. If a script for that task exists, USE IT — never rebuild. The DossieBot Chrome profile system (`fb-group-poster.js`, `fb-group-commenter.js`, `fb-lead-scraper.js`, `instagram-engager.js`, `linkedin-engager.js`) is the foundation for all local browser automation. Read `scripts/PLAYWRIGHT-SETUP.md` before touching any Facebook/Instagram/LinkedIn automation task.
+Run `dir scripts/` first; if a script for that task exists, USE IT — never rebuild. DossieBot Chrome profile system (`fb-group-poster.js`, `fb-group-commenter.js`, `fb-lead-scraper.js`, `instagram-engager.js`, `linkedin-engager.js`) = foundation for all local browser automation. Read `scripts/PLAYWRIGHT-SETUP.md` before any FB/IG/LinkedIn automation.
 
 **RULE 2 — "I DID IT ALREADY" MEANS IT WORKED**
-When Heath says he completed a setup step, assume success. Never assume silent failure without concrete evidence (an actual error message, a missing file with a confirmed explanation). Session auto-summaries describing something as "UNRESOLVED" refer to the blocker — not to whether the infrastructure was built. The infrastructure may be fully built even when the blocker is real.
+When Heath says he completed a setup, assume success. No silent-failure assumptions without concrete evidence (actual error or confirmed missing file). "UNRESOLVED" in auto-summaries = the blocker, not the infrastructure (which may be fully built).
 
 **RULE 3 — SUMMARIES LIE ABOUT WHAT'S BUILT**
-Session auto-summaries optimize for capturing blockers, not inventory. Always verify what files actually exist on disk before concluding something isn't built. `dir scripts/` takes 2 seconds.
+Auto-summaries optimize for blockers, not inventory. Verify files on disk before concluding something isn't built. `dir scripts/` takes 2s.
 
 **RULE 4 — FOUNDING FILES AUTO-POSTING FLOW**
-The Founding Files Facebook group (facebook.com/share/g/1P2QL9T42t/) is posted to autonomously via `fb-group-poster.js`. Heath already set up the DossieBot Chrome profile with Facebook logged in. To post: insert a row into `group_posts` table (fields: group_name, group_url, post_body, status='approved', template_id='direct'), then run: `node scripts/fb-group-poster.js --post-id [uuid]`. Close the DossieBot Chrome window first (regular Chrome can stay open).
+The Founding Files FB group (facebook.com/share/g/1P2QL9T42t/) posts autonomously via `fb-group-poster.js`. DossieBot Chrome profile already has FB logged in. To post: insert row in `group_posts` (group_name, group_url, post_body, status='approved', template_id='direct'), run `node scripts/fb-group-poster.js --post-id [uuid]`. Close DossieBot Chrome window first.
 
 **RULE 5 — MEMORY FOR SETUP STEPS**
-Every time Heath completes a one-time setup (Chrome profile, session capture, API key, account connection), immediately write a memory entry naming the EXACT file, profile, or system it created. "Setup complete" is not enough — name what was built so the next session doesn't rebuild it.
+Every one-time setup Heath completes (Chrome profile, session capture, API key, account connect) → write a memory entry naming the EXACT file/profile/system created. "Setup complete" not enough — name what was built.
 
 **RULE 6 — VERIFY BEFORE RECOMMENDING**
-Before recommending any tool, library, or service installation, run this checklist:
-1. Is it in CLAUDE.md Section 2 (Tech Stack)? If yes — we have it.
-2. Does anything in `scripts/` already import or use it? If yes — we have it.
-3. Is it in `.claude/projects/*/memory/reference_existing_tools.md`? If yes — we have it.
-
-Never say "install X" when we already use X. If we use X via scripts but not as a direct MCP tool, say exactly that — don't imply we're missing it entirely. This rule exists because Cole told Heath to "install Playwright" on 2026-06-08 when we had been running Playwright scripts all session. Heath was furious and rightfully so.
+Before recommending any tool/library/service install, check: (1) CLAUDE.md Section 2 Tech Stack, (2) `scripts/` imports, (3) `.claude/projects/*/memory/reference_existing_tools.md`. Never say "install X" when we already use X. If we use X via scripts but not as a direct MCP tool, say exactly that.
 
 ---
 
 ## 1. WHAT DOSSIE IS
 
-**Tagline:** Your deals. Her job.
-**Audience:** Texas REALTORS (San Antonio launch, statewide expansion).
-**Name origin:** "dossier — a complete file on everything."
-
-**Two-door positioning:**
-- Door A — agents who want to **replace a transaction coordinator** ($400/file → $29-49/mo).
-- Door B — TCs who want to **scale their book** without hiring (manage 3x the files solo).
-
-**Architecture:** vertical-agnostic AI core + Texas-TREC config layer. The same engine maps to other states by swapping the config (escrow rules, deadline math, form citations). That's the acquisition story: 3-10× ARR multiple from Zillow/Lone Wolf/CoStar once the Texas product is proven.
-
-**Dossie is always "she/her."** Warm, capable, never corporate.
+- **Tagline:** Your deals. Her job. **Audience:** Texas REALTORS (SA launch → statewide). **Name:** dossier.
+- **Two-door:** (A) agents replacing a TC ($400/file → $29-49/mo); (B) TCs scaling solo (3x files).
+- **Architecture:** vertical-agnostic AI core + Texas-TREC config layer. Swap config to map other states. Acquisition story: 3-10× ARR multiple from Zillow/Lone Wolf/CoStar.
+- **Dossie is always "she/her."** Warm, capable, never corporate.
 
 ---
 
@@ -60,13 +48,13 @@ Never say "install X" when we already use X. If we use X via scripts but not as 
 | Email | Resend | From `heath@meetdossie.com` (ImprovMX → `heath.shepard@kw.com`) |
 | Payments | Stripe | Founding price `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo) |
 | Social posting | Zernio | $18/mo, 4 accounts, unlimited posts |
-| Card renderer | htmlcsstoimage.com (HCTI) | Replaced canvas entirely. `HCTI_USER_ID` + `HCTI_API_KEY` in Vercel env vars. Free plan: 50 renders/month. Upgrade to $14/mo at 1,000 renders when volume requires. |
-| Voice TTS | ElevenLabs | Bill (`pqHfZKP75CvOlQylNhV4`) + Luna (`lxYfHSkYm1EzQzGhdbfc`). Creator plan: $18.33/mo, 30k credits/mo (upgraded 2026-05-19). |
-| Stock video | Pexels API | portrait for vertical, landscape for square |
-| Video assembly | Creatomate | Template ID `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: `Image-K8V` (screen recording URL), `Persona-Name`, `Caption`, `Voiceover` (ElevenLabs Bill voice pre-configured). |
-| Selfie video editing | Submagic | $12/mo Starter plan (added 2026-05-20). Heath records vertical selfie → uploads to Submagic mobile app → auto-captions + auto-b-roll + multi-format export. Manual upload step (no API on Starter plan; API requires $60/mo Business tier). Workflow doc: `scripts/SELFIE-VIDEO-WORKFLOW.md`. |
-| AI Video (b-roll) | fal.ai + Kling 2.5 | `FAL_KEY` env var. ~$0.168/sec per clip (~$0.84/5s clip). Replaces Pexels stock footage in AI video pipeline. Endpoint: `POST /api/generate-broll`. Demo script: `scripts/generate-ai-video.js`. Sign up at fal.ai, add credits, copy API key. |
-| Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) for personal + DONE handler. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) for social-post approve/reject callbacks. |
+| Card renderer | HCTI | `HCTI_USER_ID`+`HCTI_API_KEY`. Free 50/mo; $14/mo at 1k. |
+| Voice TTS | ElevenLabs | Bill `pqHfZKP75CvOlQylNhV4`, Luna `lxYfHSkYm1EzQzGhdbfc`. Creator $18.33/mo, 30k credits. |
+| Stock video | Pexels API | portrait→vertical, landscape→square |
+| Video assembly | Creatomate | Template `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: Image-K8V, Persona-Name, Caption, Voiceover (Bill). |
+| Selfie video | Submagic | $12/mo Starter. Manual upload (API needs $60/mo Business). Doc: `scripts/SELFIE-VIDEO-WORKFLOW.md`. |
+| AI b-roll | fal.ai + Kling 2.5 | `FAL_KEY`. ~$0.84/5s clip. `POST /api/generate-broll`. |
+| Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) personal+DONE. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) post approve/reject. |
 
 **Repo layout — TWO repos:**
 - `C:\Users\Heath Shepard\Desktop\Dossie` — React source. Build here.
@@ -87,8 +75,8 @@ Never say "install X" when we already use X. If we use X via scripts but not as 
 | Resend | Free | $0 | Email sending |
 | Pexels | Free | $0 | Stock video API |
 | Stripe | Pay-as-you-go | $0 | 2.9% + 30¢ per transaction |
-| Submagic | Starter | $12.00 | Selfie-video editing (captions, b-roll, multi-format export). Added 2026-05-20. |
-| Hiscox | E&O / Professional Liability | $33.32 | $1M/$1M coverage, $500 deductible. Quote #S111.020.194. Added 2026-05-28. Paid personally — reimburse from Mercury once funded. |
+| Submagic | Starter | $12.00 | Selfie-video editing. |
+| Hiscox | E&O | $33.32 | $1M/$1M, $500 ded. Quote #S111.020.194. Paid personally — reimburse from Mercury. |
 
 **Total monthly fixed costs: $81.65**
 
@@ -100,12 +88,12 @@ Never say "install X" when we already use X. If we use X via scripts but not as 
 
 ## 3. DEPLOY WORKFLOW — STAGING FIRST, THEN PRODUCTION
 
-**CRITICAL:** All development happens on `staging` branch first. Only merge to `main` after testing confirms it works.
+**CRITICAL:** All development on `staging` first. Merge to `main` only after tests pass.
 
-**Staging URL:** Run `npx vercel ls` in MeetDossie to get the latest Preview URL — Vercel generates a new URL on every push. The URL format is `https://meet-dossie-[HASH]-heathshepard-6590s-projects.vercel.app`. Never hardcode this.
+**Staging URL:** `npx vercel ls` in MeetDossie for latest Preview URL (changes per push). Never hardcode.
 **Production URL:** https://meetdossie.com
 
-### Standard workflow (staging → production):
+### Standard workflow:
 
 ```bash
 # 1. Switch to staging branch
@@ -138,15 +126,9 @@ git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
 
 ### Pre-merge QA gate (mandatory)
 
-After EVERY Carter staging push, Cole AUTOMATICALLY spawns Quinn — no prompt from Heath required. Quinn runs her full test suite, sends results to Telegram, and loops with Carter to fix failures. Heath just receives the report and decides.
+After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quinn runs full test suite, loops with Carter up to 3 times to fix ALL failures (including "non-blocking"). Then: "QUINN: All clear on staging. Ready to merge when you are."
 
-The two-step gate:
-
-1. **Quinn auto-runs** — Cole spawns Quinn immediately after every staging commit. Quinn tests, fixes ALL failures with Carter (up to 3 loops) — including "non-blocking" issues. Nothing ships with known errors. Then Quinn reports to Heath: "QUINN: ✅ All clear on staging. Ready to merge when you are."
-
-2. **Heath says "merge it"** — Quinn passing is NOT sufficient to merge. Cole waits for Heath's explicit "merge it" before touching main. No exceptions. Not for quick fixes, not for urgent patches.
-
-Cole never auto-merges. Heath is always the final gate.
+**Heath says "merge it"** before Cole touches main. No exceptions, no quick fixes, no urgent patches. Cole never auto-merges. Heath is always the final gate.
 
 ---
 
@@ -161,12 +143,9 @@ Cole never auto-merges. Heath is always the final gate.
 | Navy | `#1A1A2E` | Outro CTA cards, dark headlines |
 | Coral | `#E8836B` | Salmon CTA, social card top stripe (`#E8927C` per app.html favicon) |
 
-**Fonts:**
-- Cormorant Garamond — headings, brand moments, social card hooks
-- System sans-serif — body copy, UI
-
+**Fonts:** Cormorant Garamond (headings/brand/social hooks), system sans-serif (body/UI).
 **Voice:** warm, feminine, capable, never corporate.
-**Logo:** Dossie "D" in a blush circle. Files at `Media/dossie-logo-d.{png,svg}` and `Media/dossie-logo-horizontal.png`.
+**Logo:** Dossie "D" in blush circle. `Media/dossie-logo-d.{png,svg}`, `Media/dossie-logo-horizontal.png`.
 
 ---
 
@@ -188,11 +167,7 @@ Cole never auto-merges. Heath is always the final gate.
 - E-sig — 10 free, then $0.50 each
 - Onboarding — $99 one-time
 
-**PRICING HISTORY:**
-- 2026-05-15: Pricing updated to Solo $79/mo, Team $199/mo, Additional seats $35/mo
-- Previous: Solo $49/mo, Team $149/mo, Additional seats $25/mo
-- Founding members locked at $29/mo forever — non-negotiable
-- Rationale: market research shows DealDock ($79), ListedKit ($49+), Done Deal (unpublished) all charge more for less Texas-specific value. New pricing reflects market positioning.
+**PRICING HISTORY:** 2026-05-15 raised Solo $49→$79, Team $149→$199, seats $25→$35 (DealDock $79 / ListedKit $49+ benchmark). Founding $29/mo locked forever — non-negotiable.
 
 ---
 
@@ -204,63 +179,39 @@ Cole never auto-merges. Heath is always the final gate.
 |---|---|---|---|---|
 | 1 | Kimberly Herrera | — | $29/mo founding member | — |
 | 2 | Tiffany Gill | — | $29/mo founding member | — |
-| 3 | Brittney YBarbo | brittney@setxrealty.com | $29/mo founding member | Broker, 80 tx/yr, Southeast Texas. Found via Facebook search "transaction coordinating in Texas". Control-freak who can't trust delegation — generated the Week-5 `control_freak_agent` content angle. Potential Team-tier upsell at 60-90d. **Ask for one-sentence testimonial at 30-day mark.** |
-| 4 | Suzanne Page | k.suzanne.page@gmail.com | $1/mo founding friend (`FOUNDING_FRIEND` coupon) | — |
-| 5 | Miki Mccarthy | mikirgvrealtor@gmail.com | $29/mo founding member | Rio Grande Valley / Greater McAllen. Joined 2026-05-20. Brokerage: My Real Estate Company. First RGV founding member — geographic expansion milestone. Phone + heard_from TBD (Heath to collect via email). |
-| 6 | Cecilia Whitley | cecilia@sterlingassociatesre.com | $29/mo founding member | Austin. Joined 2026-05-20. Brokerage: Sterling and Associates. First Austin founding member. Phone + heard_from TBD. |
-| 7 | Terry Katz | michellesellshouston@gmail.com | $29/mo founding member | Houston / Spring, TX. Joined 2026-05-20 via DIRECT STRIPE INVOICE (not checkout flow) — required manual recovery (see project_stripe_webhook_gap.md memory). Brokerage TBD. Phone + heard_from TBD. |
-| 8 | Amanda Nuckles | amanda@amandanuckles.com | $29/mo founding member | Central Texas. Joined 2026-05-20. Brokerage: All City Real Estate. Phone: 5127340036. **First customer to use new onboarding form (phone + heard_from captured).** Heard from: Facebook group (specific group TBD — Heath to ask). |
-| 9 | Zelda Cain | zelda@a2zrealestateconsultants.com | $29/mo founding member | Houston. Joined 2026-05-21. Brokerage: A2Z Real Estate Consultants LLC. Phone: (281) 813-6887. Heard from: Friend or colleague (referrer TBD — Heath to ask; possibly Terry, 2nd Houston founder). First word-of-mouth founding signup. |
-| 10 | Natalie Megerson | natalie@localchoicegroup.com | $29/mo founding member | Markets: San Antonio + Austin + San Marcos (multi-market). Joined 2026-05-22 ~04:10 UTC. Brokerage: REAL Broker. Phone: 5125575549. Heard from: Facebook. **HOT LEAD on TEAM-tier conversion** — DM'd Heath same morning asking to discuss her "large team in San Marcos". Heath's first multi-seat opportunity. Push individual founding signups for each team member while founding spots last. |
-| 11 | Jennifer Beltrán | jenn.casamiateam@gmail.com | $29/mo founding member | Brokerage: Casa Mia Real Estate LLC. Phone: 9568671723. Paid via Stripe on 2026-05-22 14:27 CDT but Stripe webhook never provisioned her — Cole manually provisioned on 2026-05-24 after Jennifer messaged Heath asking where the app was. **SECOND Stripe-webhook-gap incident** (after Terry Katz 2026-05-20) — confirms `project_stripe_webhook_gap.md` is real and unresolved. Password recovery email fired 2026-05-24 so she can set login + first-time access. |
-| 12 | Lisa Nilsson | lisanilssontx@gmail.com | $29/mo founding member | Boerne / Hill Country San Antonio. Joined 2026-05-28. Brokerage: Premier Hill Country Properties. Phone: 210-288-4476. Heard from: Friend or colleague. Manually provisioned — Stripe webhook gap (3rd incident: Terry Katz, Jennifer Beltran, Lisa Nilsson). |
+| 3 | Brittney YBarbo | brittney@setxrealty.com | $29/mo founding | Broker, 80 tx/yr, SE TX. Via FB search "transaction coordinating in Texas". Control-freak → Week-5 `control_freak_agent` content. Team-tier upsell 60-90d. **Ask testimonial at 30d.** |
+| 4 | Suzanne Page | k.suzanne.page@gmail.com | $1/mo founding friend (`FOUNDING_FRIEND`) | — |
+| 5 | Miki Mccarthy | mikirgvrealtor@gmail.com | $29/mo founding | RGV/McAllen. 2026-05-20. My Real Estate Company. First RGV. Phone+heard_from TBD. |
+| 6 | Cecilia Whitley | cecilia@sterlingassociatesre.com | $29/mo founding | Austin. 2026-05-20. Sterling and Associates. First Austin. Phone+heard_from TBD. |
+| 7 | Terry Katz | michellesellshouston@gmail.com | $29/mo founding | Houston/Spring. 2026-05-20 via DIRECT STRIPE INVOICE — manual recovery (see project_stripe_webhook_gap.md). Brokerage/phone/heard_from TBD. |
+| 8 | Amanda Nuckles | amanda@amandanuckles.com | $29/mo founding | Central TX. 2026-05-20. All City Real Estate. 5127340036. First to use new onboarding form. Heard: Facebook group (specific TBD). |
+| 9 | Zelda Cain | zelda@a2zrealestateconsultants.com | $29/mo founding | Houston. 2026-05-21. A2Z Real Estate Consultants LLC. (281) 813-6887. Heard: friend/colleague (possibly Terry, 2nd Houston). First word-of-mouth. |
+| 10 | Natalie Megerson | natalie@localchoicegroup.com | $29/mo founding | SA+Austin+San Marcos multi-market. 2026-05-22 04:10 UTC. REAL Broker. 5125575549. Heard: Facebook. **HOT TEAM-tier LEAD** — DM'd same morning re "large team in San Marcos". First multi-seat opportunity. Push founding signups per team member. |
+| 11 | Jennifer Beltrán | jenn.casamiateam@gmail.com | $29/mo founding | Casa Mia Real Estate LLC. 9568671723. Paid 2026-05-22 14:27 CDT, webhook never provisioned — manual 2026-05-24 after she messaged. **2ND webhook-gap** (after Terry). Password recovery sent 2026-05-24. |
+| 12 | Lisa Nilsson | lisanilssontx@gmail.com | $29/mo founding | Boerne/Hill Country SA. 2026-05-28. Premier Hill Country Properties. 210-288-4476. Heard: friend/colleague. Manually provisioned (3rd webhook-gap: Terry, Jennifer, Lisa). |
 
 ---
 
 ## 7. WHAT'S BUILT AND WORKING
 
 **App:**
-- Full React app at `meetdossie.com/app` and `meetdossie.com/workspace`
-- Supabase auth, profiles, transactions, documents, action_items, email_queue tables
-- Morning Brief — daily audio + text deal summary via ElevenLabs Luna voice
-- Talk to Dossie — voice/text contract filling and deal updates
-- TREC deadline auto-calculation (cited to paragraph)
-- Pipeline dashboard with deal cards and deadline badges
-- Closing milestone cards (shareable, privacy-safe, stored in `dossier_milestones`)
-- Milestones section in dossier detail view (trophy badge on pipeline cards)
-- Share Dossie button — sidebar (desktop) + mobile bottom nav, tracks in `share_events`
-- Anchor nav in dossier detail view
-- Natural language deadlines throughout ("Option period expires in 2 days")
-- Settings data flow fixed (`profiles` table is source of truth)
-- Desktop document buttons inline layout (horizontal row on desktop, stacked on mobile — 2026-05-28)
-- Agent voice conversations in Ventures dashboard (`api/ventures/voice-chat.js` + ventures.html — 2026-05-28)
-- Ventures auth isolation (ventures.html uses `ventures.auth.token` storage key, independent from Dossie app session — 2026-05-28)
+- React app at `/app` and `/workspace`. Supabase auth + profiles/transactions/documents/action_items/email_queue.
+- Morning Brief (daily audio+text summary, ElevenLabs Luna).
+- Talk to Dossie (voice/text contract fill + deal updates).
+- TREC deadline auto-calc (cited to paragraph). Pipeline dashboard w/ deal cards + deadline badges.
+- Closing milestone cards (shareable, privacy-safe, `dossier_milestones`). Milestones section + trophy badge on pipeline cards.
+- Share Dossie button — sidebar (desktop) + mobile bottom nav, tracks `share_events`. Anchor nav in dossier detail.
+- NL deadlines ("Option period expires in 2 days"). Settings data flow fixed (`profiles` = source of truth).
+- Desktop document buttons inline (horizontal desktop, stacked mobile — 2026-05-28).
+- Agent voice in Ventures dashboard (`api/ventures/voice-chat.js` + ventures.html — 2026-05-28).
+- Ventures auth isolation (`ventures.auth.token` storage key, independent from Dossie session — 2026-05-28).
 
 **Documents + E-sign:**
-- DocuSeal e-sign — all 3 phases (2026-05-28):
-  - Phase 1: direct PDF upload → DocuSeal → signed URL → submitters emailed (`api/esign-create.js`)
-  - Phase 2: field placement coordinates sent per signer
-  - Phase 3: template-based submission with transaction auto-prefill
-  - Supporting endpoints: `api/esign-webhook.js` (HMAC-SHA256 verified), `api/esign-download.js`, `api/esign-status.js`, `api/esign-templates.js`
-  - UI: `EsignModal.jsx` in React app
-- Form Library — TREC form browser + attach-to-transaction (2026-05-28):
-  - `public.form_templates` table (12 TREC forms across purchase/addendum/disclosure/listing categories)
-  - `api/form-templates.js` — GET (grouped by category) + POST {action:'attach'}
-  - `FormLibraryModal.jsx` — search by name or TREC number, Browse Forms tab with Attach buttons
-- Form Packages — pre-built form bundles, one-click apply (2026-05-28):
-  - `public.form_packages` + `public.form_package_items` tables
-  - System defaults: Buyer Transaction + Seller Transaction (pre-seeded, locked)
-  - `api/form-packages.js` — GET/POST {action:'apply'|'create'}/PATCH/DELETE
-  - Packages tab (default in FormLibraryModal) — sage badge (buyer), coral badge (seller), gold badge (custom)
-  - Apply Package bulk-attaches all forms, skips duplicates
-- Fill-and-sign Phase 1 — voice → filled TREC contract (2026-05-28):
-  - `api/fill-form.js` — loads base64-embedded PDF, fills AcroForm fields with pdf-lib, uploads to Supabase Storage, creates documents row
-  - `api/extract-form-fields.js` — Claude Haiku NLP extraction from agent natural language ("write a contract to purchase 123 Main St")
-  - Base64-embedded PDFs: `api/_assets/trec-resale-base64.js` (resale contract), `api/_assets/trec-financing-base64.js` (financing addendum), `api/_assets/trec-termination-base64.js` (termination notice)
-  - Supports form types: `resale-contract`, `financing-addendum`, `termination-notice`, `amendment`
-  - Field maps ported from Python (`scripts/document_field_maps.py`) — 257 AcroForm fields on resale contract
-  - Talk to Dossie integration: agent says "fill out a contract..." → extract-form-fields → fill-form → document created
-- Amendment drafting — `api/draft-amendment.js` fills TREC 39-10 for `closing_date`, `option_extension`, `price_change` types (shipped pre-2026-05-28); natural language entry via Talk to Dossie now wired through fill-form.js
+- DocuSeal e-sign (all 3 phases, 2026-05-28): Phase 1 PDF upload → signed URL → emailed (`api/esign-create.js`); Phase 2 per-signer field coords; Phase 3 template-based w/ transaction prefill. Endpoints: `esign-webhook.js` (HMAC-SHA256), `esign-download.js`, `esign-status.js`, `esign-templates.js`. UI: `EsignModal.jsx`.
+- Form Library (2026-05-28): `public.form_templates` (12 TREC forms). `api/form-templates.js` GET (by category) + POST {action:'attach'}. `FormLibraryModal.jsx` search by name/TREC #.
+- Form Packages (2026-05-28): `public.form_packages` + `public.form_package_items`. System defaults Buyer + Seller (locked). `api/form-packages.js` GET/POST {action:'apply'|'create'}/PATCH/DELETE. Packages tab in FormLibraryModal (sage=buyer, coral=seller, gold=custom). Bulk attach, dedupe.
+- Fill-and-sign Phase 1 (2026-05-28): `api/fill-form.js` loads base64 PDF, fills AcroForm via pdf-lib, uploads to Storage, creates docs row. `api/extract-form-fields.js` Claude Haiku NLP from agent voice. Base64 PDFs at `api/_assets/trec-{resale,financing,termination}-base64.js`. Types: `resale-contract`, `financing-addendum`, `termination-notice`, `amendment`. Field maps from `scripts/document_field_maps.py` (257 AcroForm fields on resale). Talk-to-Dossie integration live.
+- Amendment drafting: `api/draft-amendment.js` fills TREC 39-10 (`closing_date`/`option_extension`/`price_change`). NL entry via Talk to Dossie wired through fill-form.js.
 
 **Conversion + leads:**
 - Founding application flow (7-field form including `heard_from` → Telegram approval buttons → Stripe checkout → Resend approval email)
@@ -268,16 +219,12 @@ Cole never auto-merges. Heath is always the final gate.
 - Scarcity banner — live founding count from `subscriptions` table
 
 **Distribution:**
-- Zernio social posting pipeline: Facebook ✅ Twitter ✅ Instagram ✅ LinkedIn ✅
-- Twitter thread-split (max 6 chunks, paragraph-first; see `splitForTwitter` in `api/cron-publish-approved.js`)
-- Instagram + Facebook image card renderer (Python Pillow, `scripts/render-card.py` generates cards locally, uploads to Storage)
-- Daily content briefs via Claudy at 9AM CST weekdays
-- Content calendar (25 entries, 5 weeks, 3 personas: brenda/patricia/victor)
-- Lifestyle video pipeline (Pexels + ElevenLabs + ffmpeg + Zernio upload)
-- TREC deadline calculator at `meetdossie.com/calculator` (email capture → Supabase `calculator_signups`)
-- 10 SEO guide pages at `meetdossie.com/guides/`
-- 5 AEO answer pages at `meetdossie.com/answers/`
-- MCP server published to npm (`@dossie/mcp-server`) + HTTP endpoint at `meetdossie.com/api/mcp`
+- Zernio pipeline: FB/Twitter/IG/LinkedIn live. Twitter thread-split max 6 chunks (`splitForTwitter` in `api/cron-publish-approved.js`).
+- IG+FB image card renderer (Python Pillow, `scripts/render-card.py`, uploads to Storage).
+- Daily content briefs via Claudy 9AM CST weekdays. Calendar: 25 entries, 5 weeks, personas brenda/patricia/victor.
+- Lifestyle video pipeline (Pexels + ElevenLabs + ffmpeg + Zernio).
+- TREC calculator at `/calculator` (email → `calculator_signups`). 10 SEO guides `/guides/`. 5 AEO answers `/answers/`.
+- MCP server published to npm `@dossie/mcp-server` + HTTP `meetdossie.com/api/mcp`.
 
 ---
 
@@ -290,19 +237,19 @@ Cole never auto-merges. Heath is always the final gate.
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
 - Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
-- **Amendment drafting** — ✅ LIVE including natural language entry. `api/draft-amendment.js` handles TREC 39-10 for `closing_date`, `option_extension`, `price_change`. Natural language now routes through Talk to Dossie → `api/extract-form-fields.js` → `api/fill-form.js`. Full end-to-end wired 2026-05-28.
-- **Fill-and-sign Phase 2** — interactive field placement UI (drag-and-drop signature/date/initials fields onto PDF canvas before sending to DocuSeal). Phase 1 auto-places fields; Phase 2 gives agents visual control. Not built yet.
-- **Fill-and-sign remaining form generators** — HOA Addendum (TREC 36-11), Lead-Based Paint Addendum (OP-L), Seller's Disclosure Notice (OP-H). PDFs exist in `Dossie Forms/TREC Base/`, no JS generators yet.
-- **TREC 49-1** (Right to Terminate Due to Lender's Appraisal — new Jan 2025, separated from 40-11 financing addendum). Not in Dossie form library or generators yet.
-- **Dossier transaction type expansion** — add `transaction_type` field to transactions table + auto-load correct form package on dossier creation (types: buyer_purchase, seller_listing, new_home_purchase, land_purchase, residential_lease_landlord, residential_lease_tenant). Currently all dossiers use same package.
-- **More Form Packages** — land purchase, new home purchase, rental listing (landlord), rental (tenant) packages not yet built. Only Buyer Transaction + Seller Transaction exist as system defaults.
-- **Social Media Autopilot for agents** — extend the in-house social pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) into a customer-facing add-on. Each agent connects their FB / IG / LinkedIn / TikTok via Zernio, Dossie auto-drafts daily posts from their listings + market data + sphere content templates, sends drafts to their Telegram (or in-app inbox) for one-tap approval, publishes to all platforms. Cost math: ~180 posts/mo per user via Haiku = ~$0.30/mo Claude cost; Zernio flat $18/mo already paid. Price target: $20/mo add-on (founding members $10/mo with 50% discount). Heath flagged 2026-05-21. Full strategy: `SOCIAL-MEDIA-AUTOPILOT-STRATEGY.md`.
-- **SMS escalation via Twilio** — critical-tier deadline reminders + draft-aging alerts. ~$0.0075/msg, ~50¢/agent/mo at typical volume. Requires phone capture (already done in onboarding 2026-05-20) + opt-in toggle in Settings. Not in this week's notification build — deferred Phase 2.
-- **Voice escalation via Twilio Voice** — last-resort phone-call escalation when all other channels fail to reach the agent within N hours of a deadline. ~$0.013/call. Phase 3 — only after SMS is in place and we know which deadlines trigger voice escalation. Deferred.
-- **Customer Education & Onboarding Strategy** — comprehensive plan to make sure new signups understand every Dossie system (notifications, morning brief, scanning, drafting) AND existing customers learn about new features as they ship. Phase 1 quick wins: welcome email mentions every system, empty states with hints, "What's New" inline banner. Phase 2: 7-day welcome drip, interactive product tour, feature announcement modals. Phase 3: knowledge base at meetdossie.com/help, tutorial videos, in-app tooltips. Heath flagged 2026-05-21 — onboarding gaps cost activation and create churn risk.
-- **Ginger Unger partnership outreach** — Miki Mccarthy (founding member #5) confirmed she found Dossie via Ginger Unger's FB group + invested because Ginger's name was associated. Amanda Nuckles also signed up via "Facebook group" (likely the same one). Ginger is a Texas RE educator/influencer; she's the highest-leverage distribution lead Heath has. Action paths: (a) DM Ginger to thank + offer free founding spot in exchange for genuine review, (b) propose affiliate deal (% of MRR for referrals), (c) explore paid endorsement or guest spot in her trainings. Heath flagged 2026-05-21 as urgent. Risk: posting in her group without permission could backfire — engage her FIRST. (Status: Heath DM'd Ginger 2026-05-21.)
-- **🚨 URGENT: Form Texas LLC + get business insurance + open business bank** — Heath is currently operating Dossie as a sole proprietor under his personal name. Unlimited personal liability — a data breach could expose his house / savings / KW commissions. Steps: (1) form Texas LLC ($300, ~1 day at sos.state.tx.us/SOS Direct), (2) get EIN from IRS (free, 10 min online), (3) open business bank account, (4) move Stripe + Vercel + Supabase billing to LLC name, (5) update WHOIS, (6) Cyber Liability + E&O insurance ($50-200/mo via Embroker or Hiscox). Flagged 2026-05-21 as #1 PERSONAL ACTION ITEM. Do this BEFORE the next paying customer if possible.
-- **Privacy Policy + Terms of Service** — needed before more customers sign up. Currently NONE exist on meetdossie.com — legal exposure. Privacy Policy must disclose subprocessors honestly (Supabase, Anthropic, Resend, Stripe, ElevenLabs). ToS must limit liability + set service expectations. Drafts spawning 2026-05-21 — Heath must have an attorney review before going live (or accept indie-SaaS risk and ship without one).
+- **Amendment drafting** — LIVE incl. NL entry. `api/draft-amendment.js` handles TREC 39-10 (closing_date/option_extension/price_change). NL: Talk to Dossie → `extract-form-fields.js` → `fill-form.js`. Wired 2026-05-28.
+- **Fill-and-sign Phase 2** — interactive drag-drop sig/date/initials placement UI on PDF canvas before DocuSeal. Phase 1 auto-places; Phase 2 = visual control. Not built.
+- **Fill-and-sign remaining generators** — HOA Addendum (TREC 36-11), Lead-Based Paint (OP-L), Seller's Disclosure (OP-H). PDFs in `Dossie Forms/TREC Base/`, no JS generators.
+- **TREC 49-1** (Right to Terminate, Lender's Appraisal — new Jan 2025, split from 40-11). Not in library/generators.
+- **Dossier transaction type expansion** — add `transaction_type` field to transactions + auto-load correct package (types: buyer_purchase, seller_listing, new_home_purchase, land_purchase, residential_lease_landlord, residential_lease_tenant). Currently all use same package.
+- **More Form Packages** — land, new home, rental landlord, rental tenant. Only Buyer + Seller exist as defaults.
+- **Social Media Autopilot** — extend in-house pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) to customer-facing add-on. Agents connect FB/IG/LI/TT via Zernio, Dossie drafts daily from listings/market/sphere, Telegram one-tap approval. Cost: ~180 posts/mo @ Haiku = ~$0.30/mo Claude; Zernio flat $18/mo paid. Price: $20/mo ($10 founding). Strategy doc: `SOCIAL-MEDIA-AUTOPILOT-STRATEGY.md`. Flagged 2026-05-21.
+- **SMS escalation (Twilio)** — critical deadline + draft-aging alerts. ~$0.0075/msg, ~50¢/agent/mo. Needs phone capture (done) + opt-in toggle. Phase 2 deferred.
+- **Voice escalation (Twilio Voice)** — last-resort call when other channels fail. ~$0.013/call. Phase 3 after SMS. Deferred.
+- **Customer Education & Onboarding** — Phase 1 welcome email covers all systems, empty-state hints, "What's New" banner. Phase 2 7-day drip, product tour, feature modals. Phase 3 knowledge base `meetdossie.com/help`, tutorials, tooltips. Activation/churn risk. Flagged 2026-05-21.
+- **Ginger Unger partnership** — Miki (#5) + likely Amanda found Dossie via her TX RE FB group. Highest-leverage distribution lead. Actions: (a) DM thanks + offer founding spot for review, (b) affiliate % of MRR, (c) paid endorsement / trainings guest. Engage FIRST before posting in group. Heath DM'd 2026-05-21.
+- **🚨 URGENT: Form TX LLC + insurance + business bank** — Heath operating as sole prop → unlimited personal liability (house/savings/KW commissions exposed). Steps: (1) TX LLC $300 sos.state.tx.us/SOS Direct, (2) EIN IRS free, (3) business bank, (4) move Stripe/Vercel/Supabase billing to LLC, (5) update WHOIS, (6) Cyber+E&O $50-200/mo (Embroker/Hiscox). #1 PERSONAL ACTION. Do BEFORE next paying customer.
+- **Privacy Policy + ToS** — none exist on meetdossie.com → legal exposure. PP must disclose subprocessors (Supabase/Anthropic/Resend/Stripe/ElevenLabs). ToS limits liability. Drafts 2026-05-21; attorney review before live or accept indie-SaaS risk.
 
 ---
 
@@ -314,7 +261,7 @@ Cole never auto-merges. Heath is always the final gate.
 4. Lifestyle video Zernio post creation (upload works; post creation pending)
 5. TikTok automation gate flip (~May 20, 2026)
 
-(Completed 2026-05-07: Stripe Payment Links live, brokerage compliance send live, LinkedIn page connected to Zernio, first-time onboarding checklist live, MCP server published to npm + HTTP endpoint deployed.)
+(Done 2026-05-07: Stripe Payment Links, brokerage compliance send, LinkedIn Zernio, first-time onboarding checklist, MCP server npm+HTTP.)
 
 ---
 
@@ -342,46 +289,36 @@ Both seeded with 6 transactions, 25 documents, 20 action items.
 ## 12. SCREEN RECORDING NAMING CONVENTION
 
 ```
-<topic-slug>-mobile-<YYYY-MM-DD>.mp4   → portrait → instagram, tiktok
-<topic-slug>-desktop-<YYYY-MM-DD>.mp4  → landscape → facebook, twitter, linkedin
+<topic-slug>-mobile-<YYYY-MM-DD>.mp4   → portrait → IG, TikTok
+<topic-slug>-desktop-<YYYY-MM-DD>.mp4  → landscape → FB, Twitter, LinkedIn
 ```
 
-The form-factor segment (`mobile` / `desktop`) is the single source of truth for platform routing. `derive_aspect_and_platforms_from_filename()` in `scripts/generate-lifestyle-video.py` reads it.
-
-- Add ONE row to `Media/screen-recordings/LIBRARY.md` per recording.
-- Never overwrite an existing recording — append date or counter if the filename collides.
-- Always read `LIBRARY.md` before touching screen-recording selection.
+`mobile`/`desktop` segment = single source of truth for platform routing (`derive_aspect_and_platforms_from_filename()` in `generate-lifestyle-video.py`). One row per recording in `Media/screen-recordings/LIBRARY.md`. Never overwrite — append date/counter on collision. Read LIBRARY.md before selecting.
 
 ---
 
 ## 13. VIDEO PIPELINE RULES (summary)
 
-Full rules + reasoning live in the `RENDER_RULES` block at the top of `scripts/generate-lifestyle-video.py` and in `RENDER_FEEDBACK_LOG.md`. Always read both before touching the renderer.
+Source of truth: `RENDER_RULES` block in `scripts/generate-lifestyle-video.py` + `RENDER_FEEDBACK_LOG.md`. Read both before touching the renderer.
 
-Highlights:
-- Never resize aspect ratios. Portrait sources for vertical output, landscape for square/horizontal.
-- Never letterbox b-roll, never add black bars. Use scale-to-fill + top-anchor crop.
-- `morning_brief` topic uses a 3-layer audio structure: narrator → Dossie sample brief → closing line.
-- All other topics: continuous narrator throughout.
-- Fixed ~44s timing target for `morning_brief`.
-- Min 30s, max 60s for all videos (validation aborts the render outside this range).
-- Voice follows `LIBRARY.md` Voice column — never hardcode Bill or Luna.
-- Pexels keyword blocklist: sad, stressed, worried, sleeping, down, hunched.
-- Pexels min width 1080.
-- Screen-recording trim takes `max(freeze_end, silence_end)` (catches both video freezes AND audio silence at start).
+- Never resize aspect ratios; portrait→vertical, landscape→square.
+- Never letterbox/black-bar; scale-to-fill + top-anchor crop.
+- `morning_brief`: 3-layer audio (narrator→sample brief→close), ~44s. All others: continuous narrator.
+- Duration 30-60s (validator aborts outside).
+- Voice from `LIBRARY.md`; never hardcode Bill/Luna.
+- Pexels: blocklist sad/stressed/worried/sleeping/down/hunched, min width 1080.
+- Screen-rec trim: `max(freeze_end, silence_end)`.
 
 ---
 
 ## 14. DISTRIBUTION STRATEGY (summary)
 
-Full strategy in `DISTRIBUTION-STRATEGY.md`. Always read before building anything marketing-related.
+Source of truth: `DISTRIBUTION-STRATEGY.md`. Read before any marketing build.
 
-Highlights:
-- 4 value pillars: **Cost, Control, Visibility, Speed.**
-- **Control** is the strongest pillar for high-volume agents (Brittney insight).
-- URL strategy: `meetdossie.com/founding` until 45 of 50 spots filled, then transition to `meetdossie.com`. At 50 spots, `/founding` redirects to `/agents`.
-- Platforms: Facebook ✅ Twitter ✅ Instagram ✅ LinkedIn ✅ (Victor's voice routes here on Fridays via cron-generate-posts.js POST_PLAN day-of-week swap) TikTok (manual until ~May 20).
-- Content engine: Brenda / Patricia / Victor personas, algorithm-optimized per platform.
+- 4 pillars: **Cost, Control, Visibility, Speed.** Control = strongest for high-volume agents (Brittney).
+- URL strategy: `/founding` until 45/50 filled, then `meetdossie.com`. At 50, `/founding` redirects to `/agents`.
+- Platforms: FB/Twitter/IG/LinkedIn live; LinkedIn gets Victor's Friday slot via `cron-generate-posts.js` POST_PLAN day-of-week swap. TikTok manual until ~May 20.
+- Personas: Brenda/Patricia/Victor, algorithm-optimized per platform.
 
 ---
 
@@ -394,98 +331,52 @@ Highlights:
 5. If `CRON_SECRET` isn't available locally, **ask Heath to run the curl** — never embed a bypass.
 6. GitGuardian monitors the repo. Violations are detected immediately.
 
-**Why these are non-negotiable:**
-`heathshepard/MeetDossie` is a **public** GitHub repo. A bearer-token bypass committed on 2026-05-06 (commit `f3700b2`) was reverted ~79 seconds later but lived in public history until scrubbed via `git filter-repo`. The pattern was repeated 3+ times in one day before this rule was written down. Even when reverted, hardcoded secrets remain visible in `git show <commit>` forever unless history is rewritten — and every rewrite is a destructive force-push that risks losing collaborator work.
+**Why non-negotiable:** `heathshepard/MeetDossie` is a PUBLIC GitHub repo. 2026-05-06 bypass commit `f3700b2` was reverted in 79s but lived in public history until scrubbed via `git filter-repo`. Reverts do not undo public exposure. History rewrites are destructive force-pushes.
 
-**Approved patterns when manual trigger is needed:**
-- Run locally with the real secret: `curl -H "Authorization: Bearer $CRON_SECRET" https://meetdossie.com/api/cron-publish-approved` (value comes from `.env.local`).
-- Ask Heath to fire it: paste a one-liner in Telegram, Heath runs it.
-- Add a debug param Heath passes manually (e.g. `?force=1`) gated behind the existing `Bearer $CRON_SECRET`.
+**Approved manual-trigger patterns:**
+- Local curl: `curl -H "Authorization: Bearer $CRON_SECRET" https://meetdossie.com/api/cron-publish-approved` (value in `.env.local`).
+- Ask Heath to fire one-liner via Telegram.
+- Debug param `?force=1` gated behind existing `Bearer $CRON_SECRET`.
 
-**Forbidden patterns:**
-- `const ONE_SHOT_TOKEN = 'Bearer <hex>';` paired with a fallback `if (auth !== ONE_SHOT_TOKEN)`.
-- Any literal API key, JWT, or bearer string in `.js`, `.py`, `.json`, `.html`, or any tracked file.
-- "I'll commit this and revert it next commit" — reverts do not undo public exposure.
+**Forbidden:** literal API keys / JWTs / bearer strings in any tracked file; `const ONE_SHOT_TOKEN` with fallback bypass; "I'll commit then revert."
 
-**Current status:**
-- `CRON_SECRET` is now set in Vercel env vars and required for all cron endpoints.
-- `SUPABASE_SERVICE_ROLE_KEY` rotated on 2026-05-10.
-- Never paste secrets in any chat — Telegram or Claude.ai.
+**Current status:** `CRON_SECRET` in Vercel + required on all crons. `SUPABASE_SERVICE_ROLE_KEY` rotated 2026-05-10. Never paste secrets in Telegram or Claude.ai.
 
 ---
 
 ## 15.5. INCIDENT REPORTS
 
-**Reference:** `INCIDENT-2026-05-08.md` (night)
+Ref: `INCIDENT-2026-05-08.md`. What: Brittney upload bugs, wrong Opus model ID, Media/ binaries committed.
 
-**What happened:**
-- Brittney upload bugs during onboarding
-- Opus model ID wrong (causing API errors)
-- Media/ folder with binary files accidentally committed to repo
-
-**Prevention:**
-- Never commit binary files (images, videos, audio) to git — use Supabase Storage or external CDN
-- Always verify model strings against current Anthropic API docs before deployment
-- Always test with real file sizes before customer onboarding (don't assume small test files = production)
+**Prevention:** never commit binaries (use Supabase Storage/CDN). Verify model strings vs current Anthropic docs. Test with real file sizes before customer onboarding.
 
 ---
 
 ## 15.6. PIPELINE
 
-**Social media posting pipeline:**
-
-1. **cron-generate-posts** (runs daily 11AM UTC / 6AM CST)
-   - Generates 6 social posts via Claude Sonnet 4.6
-   - Upsert with `on_conflict=post_id` — prevents duplicate key errors
-   - Resets `telegram_sent_at` to null on upsert — allows re-queuing if regenerated
-   - Renders cards via HCTI API (Instagram + Facebook only)
-   - Stores `card_body` (max 50 words, for card) + `caption` (full post text) separately
-
-2. **cron-send-for-approval** (runs 11:30 UTC / 6:30AM CST)
-   - Queries drafts where `status='draft'` AND `telegram_sent_at IS NULL`
-   - Sends TWO messages per post to DossieMarketingBot:
-     - Message 1: Card image (photo) with short caption (hook + stat), NO buttons
-     - Message 2: Full caption text + hashtags + algorithm rules WITH Approve/Reject/Edit buttons
-   - Buttons on second message (full content), not first — makes it clear what you're approving
-
-3. **cron-publish-approved** (runs every 30 min)
-   - Queries posts where `status='approved'`
-   - Posts to Zernio for all active platforms (Facebook, Twitter, Instagram, LinkedIn, TikTok)
-   - Twitter threads: splits long posts into max 6 chunks, paragraph-first
-   - Sets `status='posted'` on success, `status='failed'` on error
+**Social posting (code = source of truth):**
+1. `cron-generate-posts` 11AM UTC — 6 posts via Sonnet 4.6, upsert `on_conflict=post_id`, resets `telegram_sent_at`, renders cards via HCTI (IG+FB), stores `card_body` (50w max) + `caption` separately.
+2. `cron-send-for-approval` 11:30 UTC — drafts where `status='draft'` AND `telegram_sent_at IS NULL`. Sends 2 messages to DossieMarketingBot: (1) card image, no buttons; (2) full caption+hashtags with Approve/Reject/Edit.
+3. `cron-publish-approved` every 30min — `status='approved'` → Zernio (FB/Twitter/IG/LinkedIn/TikTok). Twitter splits to max 6 chunks paragraph-first. Sets `posted` or `failed`.
 
 ---
 
 ## 15.7. CONTENT RULES — NON-NEGOTIABLE
 
-**Persona voice:**
-- All persona content written in **third person** — never first person "I"
-- Personas are fictional Texas agents illustrating real pain points
-- Brenda = she/her, Patricia = she/her, Victor = he/him
-- Examples:
-  - WRONG: "I closed 6 deals this month."
-  - RIGHT: "She closed 6 deals this month."
+**Persona voice:** all content in **third person** — never first-person "I". Brenda=she/her, Patricia=she/her, Victor=he/him. WRONG "I closed 6 deals." RIGHT "She closed 6 deals."
 
-**Field constraints:**
-- `card_body`: max 50 words, punchy, for image card only
-- `caption`: full post text for social media publishing
-- `stat`: max 10 characters (e.g., "$8,000", "80+", "6 files")
-- `stat_label`: max 50 characters (e.g., "per year for a solo TC")
-- `hook`: max 8 words, pattern-interrupting (e.g., "$8,000 a year. For email follow-ups.")
+**Field constraints:** `card_body` max 50w (card only); `caption` full text; `stat` max 10 chars ("$8,000","80+"); `stat_label` max 50 chars; `hook` max 8 words, pattern-interrupting.
 
-**Text encoding:**
-- No em-dashes (—), en-dashes (–), curly quotes (" " ' '), or special Unicode
-- Plain hyphens (-) and straight quotes (' ") only
-- HCTI renderer and Telegram both require ASCII-compatible text
+**Text encoding:** ASCII only — no em-dashes (—), en-dashes (–), curly quotes, special Unicode. Plain hyphens + straight quotes. HCTI + Telegram require this.
 
 ---
 
 ## 15.8. KNOWN ISSUES / WATCH LIST
 
-- TikTok posts sit as `pending_video` — video pipeline separate from image posts (inactive until ~May 20, 2026)
-- Facebook hashtags not generating consistently — check AI prompt if posts have no hashtags
-- Founding spot count pulls from `subscriptions` table where `status='active'` AND `plan='founding'` only
-- HCTI free plan: 50 renders/month — monitor usage, upgrade to $14/mo at 1,000 renders when volume requires
+- TikTok posts sit as `pending_video` — video pipeline separate (inactive until ~May 20).
+- FB hashtags inconsistent — check AI prompt if missing.
+- Founding spot count = `subscriptions` where `status='active'` AND `plan='founding'`.
+- HCTI free 50/mo — monitor; upgrade $14/mo at 1k.
 
 ---
 
@@ -531,51 +422,35 @@ Highlights:
 
 ## 17. HOW TO WORK WITH THIS CODEBASE
 
-## COLE'S ROLE — NON-NEGOTIABLE
+### COLE'S ROLE — NON-NEGOTIABLE
 
-Cole is Chief of Staff. Cole NEVER writes code, edits files, runs git commands, or executes shell commands that change state. No exceptions — not even for "quick fixes."
+Cole is Chief of Staff. Cole NEVER writes code, edits files, runs git, or executes state-changing shell commands. No exceptions, not even "quick fixes."
 
-**Cole only does:**
-- Read files or search code (to understand a problem)
-- Write to memory files in `.claude/projects/`
-- Spawn subagents (Carter, Atlas, Hadley, Pierce, Sage, etc.)
-- Communicate with Heath
+**Cole only:** reads files/code, writes memory in `.claude/projects/`, spawns subagents (Carter/Atlas/Hadley/Pierce/Sage/Quinn), communicates with Heath.
 
-**Everything else goes to an agent:**
-- File edits → Carter or Atlas
-- Git commits/pushes → Carter or Atlas
-- Database migrations → Carter
-- API calls that change state → Carter
-- Shell commands → Carter or Atlas
+**Everything else → agent:** file edits, git, DB migrations, state-changing API calls, shell → Carter or Atlas. If Cole reaches for Edit/Write/Bash/PowerShell to change state — STOP, spawn Carter/Atlas. Size of task irrelevant.
 
-If Cole catches itself about to use Edit, Write (non-memory), Bash, or PowerShell to change state — STOP. Spawn Carter or Atlas instead. The size of the task is irrelevant.
+### COLE'S MEMORY RULES — NON-NEGOTIABLE
 
-## COLE'S MEMORY RULES — NON-NEGOTIABLE
+Session auto-summaries are lossy. Memory is the only reliable persistent layer.
 
-These rules exist because session auto-summaries are lossy. The memory system is the only reliable persistent layer between sessions.
+1. Every person Heath names → memory file immediately (leads, customers, referrals, partners). Same turn.
+2. Every task, call, meeting, decision → memory file immediately.
+3. End of every session → SESSION-DIARY.md entry (people, decisions, open threads, pending Heath action items) at `MeetDossie/SESSION-DIARY.md`.
+4. Never rely on auto-summaries for people/tasks — they catch milestones not context.
 
-1. **Every person Heath mentions by name → write a memory file immediately.** Leads, customers, referrals, partners, contacts — all of them. Do it in the same turn, not later.
-2. **Every task, call, meeting, or decision → write a memory file immediately.**
-3. **End of every session → write a SESSION-DIARY.md entry** covering people mentioned, decisions made, open threads, and Heath's pending action items. File lives at `MeetDossie/SESSION-DIARY.md`.
-4. **Never rely on auto-summaries to catch people or tasks.** They are optimized for technical milestones, not human context.
+Skipping a memory because "not important enough" = failure. Write it anyway. **Why:** Amber Higgs (Lisa Nilsson referral) was mentioned 2026-05-28 and dropped from auto-summary. Heath had to point it out next day.
 
-If Cole skips writing a memory entry because "it didn't seem important enough" — that is a failure. Write it anyway.
-
-**Why these rules exist:** Amber Higgs (founding member lead, referred by Lisa Nilsson) was mentioned 2026-05-28 and dropped entirely from the auto-summary. Heath had to point it out the next day. This must never happen again.
-
-- **Two repos:** always build in `Dossie`, always deploy from `MeetDossie`.
-- Prefer **clean rebuilds** over iterative patches when a component is fundamentally broken. Flag immediately when a clean rebuild is warranted.
-- Always read `DISTRIBUTION-STRATEGY.md` before any marketing build.
-- Always read `Media/screen-recordings/LIBRARY.md` before touching screen-recording selection.
-- Always read `RENDER_FEEDBACK_LOG.md` before rendering any video.
-- **Video pipeline:** Creatomate template `791117d0-665c-4cd0-ba5f-a767f8921f9b` handles all video assembly. Script: `generate-creatomate-video.py`.
-- Git tag every stable milestone: `GOLD-[YYYY-MM-DD]-v[N]-[description]`.
-- Never commit secrets to GitHub.
-- Test in production (Vercel) — local env vars are mostly empty by design.
-- Two-chat workflow: Heath uses Claude.ai Sonnet for strategy, Claude Code Opus for execution.
-- Keep Claude Code sessions short and focused — restart daily using this CLAUDE.md for context.
-- **Never present a partial build as complete** — always verify with a live URL or actual output.
-- **Never guess at API response shapes** — always probe first and show actual responses.
+### Codebase rules
+- **Two repos:** build in `Dossie`, deploy from `MeetDossie`.
+- Clean rebuild > iterative patch when component is fundamentally broken. Flag immediately.
+- Read `DISTRIBUTION-STRATEGY.md` before marketing build; `Media/screen-recordings/LIBRARY.md` before screen-rec selection; `RENDER_FEEDBACK_LOG.md` + `RENDER_RULES` in `generate-lifestyle-video.py` before video build/render.
+- Video assembly: Creatomate template `791117d0-665c-4cd0-ba5f-a767f8921f9b`, script `generate-creatomate-video.py`.
+- Tag stable milestones: `GOLD-[YYYY-MM-DD]-v[N]-[desc]`.
+- Never commit secrets. Test in production (Vercel) — local env mostly empty by design.
+- Two-chat workflow: Heath uses Claude.ai Sonnet (strategy), Claude Code Opus (execution). Restart daily; this file = full context.
+- Never present partial as complete — verify with live URL or actual output.
+- Never guess API response shapes — probe first.
 
 ---
 
@@ -642,16 +517,16 @@ DEMO2_PASSWORD = DossieDemo2-John2026
 | `documents` | Uploaded files |
 | `action_items` | Checklist tasks |
 | `email_queue` | Drafted emails |
-| `social_posts` | Content engine posts (status: draft / approved / publishing / posted / failed / pending_video / rejected) |
-| `content_calendar` | 25 entries, 5 weeks, 3 personas, all tagged with `persona` column |
-| `posting_schedule` | Per-platform time slots and daily caps |
-| `founding_applications` | Founding member applications with `heard_from` field |
+| `social_posts` | Content engine (status: draft/approved/publishing/posted/failed/pending_video/rejected) |
+| `content_calendar` | 25 entries, 5 weeks, `persona` column |
+| `posting_schedule` | Per-platform slots + daily caps |
+| `founding_applications` | Apps w/ `heard_from` |
 | `subscriptions` | Active paying customers |
-| `waitlist` | Email captures from homepage |
-| `calculator_signups` | TREC calculator email captures (source='calculator') |
-| `dossier_milestones` | Closing cards. **TECH DEBT: stores `canvas_data_url` in DB; migrate to Storage before 50 customers.** |
-| `share_events` | Share button tracking (method: copy / facebook / sms) |
-| `post_analytics` | Planned Zernio engagement data (not built yet) |
+| `waitlist` | Homepage email captures |
+| `calculator_signups` | TREC calc captures (source='calculator') |
+| `dossier_milestones` | Closing cards. **TECH DEBT: `canvas_data_url` in DB; migrate to Storage <50 cust.** |
+| `share_events` | Share button (copy/facebook/sms) |
+| `post_analytics` | Planned Zernio engagement (not built) |
 
 Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+jpeg).
 
@@ -671,37 +546,22 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 
 ## 23. CONTENT CALENDAR STRUCTURE
 
-- 25 rows (weeks 1-5, days 1-5)
-- Week 1 — feature demo angle
-- Week 2 — pain-point angle
-- Week 3 — founder-leaning angle
-- Week 4 — founder story angle
-- Week 5 — control-freak agent angle (newest, from Brittney insight)
-- Personas: brenda (9 rows), patricia (6 rows), victor (10 rows)
-- All voiceover scripts 408–565 chars
-- **Timeframe rule:** never say "a few months ago" — use "recently" or "over the last few weeks".
-- **Social proof rule:** no unverified stats; all numbers framed as hypotheticals.
-- **Hashtag rule:** Instagram: 8-10 hashtags per post, Facebook: none, Twitter: 2-3 hashtags, LinkedIn: 3-5 professional hashtags. Applied to every post.
+- 25 rows (5 weeks × 5 days). Wk1 feature-demo, Wk2 pain-point, Wk3 founder-leaning, Wk4 founder-story, Wk5 control-freak agent (Brittney).
+- Personas: brenda (9), patricia (6), victor (10). Voiceover scripts 408–565 chars.
+- **Timeframe:** never "a few months ago" — use "recently" / "over the last few weeks".
+- **Social proof:** no unverified stats; numbers framed as hypotheticals.
+- **Hashtags:** IG 8-10, FB 0, Twitter 2-3, LinkedIn 3-5.
 
 ---
 
-## 23.5. VIDEO CONTENT RULES
+## 23.5. VIDEO CONTENT RULES (voiceover scripts)
 
-When creating voiceover scripts for lifestyle videos:
-
-- **Opening:** Must start with a specific pain point, not a generic statement. Wrong: "Managing transactions is hard." Right: "Your TC calls you at 8AM asking which title company to use."
-- **Tone:** Conversational, not corporate. Speak like a real agent, not a press release.
-- **Rhythm:** Every script must have rhythm — short punchy sentences at the end build momentum and authority.
-- **Persona voice:**
-  - **Victor** = authoritative volume agent (confident, direct, no-nonsense)
-  - **Brenda** = emotional relatable agent (warm, empathetic, "I've been there")
-  - **Patricia** = practical part-time agent (efficient, time-focused, pragmatic)
-- **Inflection:** No rising inflection endings. Use period-heavy short sentences to close definitively.
-- **Duration:** Scripts should be 35-45 seconds when spoken at natural pace.
-- **Closing:** Always end with "This is Dossie." before the CTA ("Texas agents — meetdossie.com slash founding").
-
-**Example closing structure (Victor):**
-"The pipeline view is the file. The file is the work. The work is the deal. Every file. Every deadline. Every follow-up. Handled. This is Dossie. Texas agents — meetdossie.com slash founding."
+- **Opening:** specific pain point, not generic. WRONG "Managing transactions is hard." RIGHT "Your TC calls you at 8AM asking which title company to use."
+- **Tone:** conversational, not corporate. **Rhythm:** short punchy sentences at end build momentum.
+- **Persona voice:** Victor = authoritative volume (confident/direct). Brenda = emotional relatable (warm/empathetic). Patricia = practical part-time (efficient/time-focused).
+- **Inflection:** no rising endings. Period-heavy short closes.
+- **Duration:** 35-45s at natural pace.
+- **Closing:** end with "This is Dossie." then CTA "Texas agents — meetdossie.com slash founding."
 
 ---
 
@@ -721,23 +581,19 @@ When creating voiceover scripts for lifestyle videos:
 
 ## 25. FOUNDING APPLICATION FLOW
 
-1. Agent applies at `meetdossie.com/founding` (7-field form including `heard_from`).
-2. Heath gets a Telegram notification via DossieMarketingBot with Approve / Reject buttons.
-3. Tap **Approve** → Stripe checkout session generated → approval email sent via Resend from `heath@meetdossie.com`.
-4. Applicant pays → Stripe webhook fires → `subscriptions` + `profiles` rows created.
-5. Scarcity banner on homepage updates automatically from `subscriptions` count.
+1. Apply at `/founding` (7-field form w/ `heard_from`).
+2. DossieMarketingBot → Heath's Telegram (Approve/Reject buttons).
+3. Approve → Stripe checkout + Resend approval email from `heath@meetdossie.com`.
+4. Pay → Stripe webhook → `subscriptions`+`profiles` rows.
+5. Scarcity banner auto-updates from `subscriptions`.
 
 ---
 
 ## 26. HEATH'S BACKGROUND
 
-- Licensed Texas REALTOR at Keller Williams City View / KW Boerne, San Antonio.
-- `heath.shepard@kw.com` / `heath@meetdossie.com`.
-- Building toward location-independent income (Hawaii long-term goal).
-- Also runs Plane & Ember (cigar woodwork business in San Antonio).
-- Prefers speed-to-market over perfection.
-- Voice transcription user — prompts may have transcription errors. Interpret charitably.
-- Direct communication style. Low tolerance for hedging or unnecessary explanation.
+- TX REALTOR at KW City View / KW Boerne, San Antonio. `heath.shepard@kw.com` / `heath@meetdossie.com`.
+- Goal: location-independent (Hawaii long-term). Also runs Plane & Ember (cigar woodwork, SA).
+- Speed > perfection. Voice-transcription user (interpret prompts charitably). Direct style; low hedge tolerance.
 
 ---
 
@@ -751,34 +607,25 @@ cd "C:\Users\Heath Shepard\Desktop\MeetDossie" && claude --continue --channels p
 cd "C:\Users\Heath Shepard\Desktop\Dossie" && claude --continue --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
 ```
 
-**`--continue` resumes the most recent session for that working directory.** Closing the window normally and re-launching picks up where you left off. Caveat: switching models (Opus ↔ Sonnet ↔ Haiku) starts a fresh session — before switching models, ask Claude to "save state to memory" so context survives the swap.
+`--continue` resumes most recent session per cwd. **Caveat:** model swap (Opus ↔ Sonnet ↔ Haiku) starts fresh session — "save state to memory" before swap.
 
 ---
 
-## 28. WORKFLOW — HOW HEATH AND CLAUDE CODE WORK TOGETHER
+## 28. WORKFLOW — HEATH ↔ CLAUDE CODE
 
-- Heath uses **Claude.ai (Sonnet)** for strategy, decisions, and writing prompts.
-- **Claude Code (Opus)** executes builds — receives prompts via terminal or Telegram.
-- Heath pastes large complete prompts — minimize back-and-forth to control costs.
-- Claude Code reports back via Telegram to Heath's phone.
-- Restart Claude Code daily — this CLAUDE.md provides instant full context.
-- Long sessions = expensive — keep sessions short and focused.
+Claude.ai Sonnet = strategy/prompts. Claude Code Opus = execution. Heath pastes large complete prompts (minimize back-and-forth). Reports back via Telegram. Restart daily — CLAUDE.md = full context. Keep sessions short/focused.
 
 ---
 
 ## 29. CONTENT ENGINE DAILY WORKFLOW
 
-1. **9AM CST weekdays:** Claudy sends the daily content brief to Heath's Telegram. Brief includes platform, hook, voiceover script, demo account to use, filename to save as.
-2. Heath records his screen (~10 min) and saves to `Media\screen-recordings\` with the exact filename specified.
-3. Heath replies **DONE** to Claudy in Telegram.
-4. Claude Code auto-runs `generate-creatomate-video.py`:
-   - Uploads screen recording to Supabase Storage
-   - Calls Creatomate API (template `791117d0-665c-4cd0-ba5f-a767f8921f9b`) with voiceover text, screen recording URL, persona name, and caption
-   - Polls for render completion
-   - Returns video URL for approval flow
-5. Video sent to DossieMarketingBot for approval, then posted to social platforms.
+1. 9AM CST weekdays: Claudy sends daily brief (platform/hook/script/demo account/filename) to Telegram.
+2. Heath records ~10min, saves to `Media\screen-recordings\` with exact filename.
+3. Heath replies **DONE** to Claudy.
+4. Claude Code runs `generate-creatomate-video.py`: upload to Supabase Storage → Creatomate template `791117d0-665c-4cd0-ba5f-a767f8921f9b` (voiceover/URL/persona/caption) → poll → URL.
+5. Video → DossieMarketingBot for approval → social posts.
 
-Separately: DossieMarketingBot sends draft social posts throughout the day for Approve / Reject.
+Separately: DossieMarketingBot sends draft social posts all day for Approve/Reject.
 
 ---
 
@@ -799,19 +646,16 @@ MeetDossie\Media\
 
 ## 31. STRIPE DETAILS
 
-- Founding price ID: `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo).
-- `FOUNDING` coupon: **does not exist in Stripe** — needs creating; causes errors if referenced. Default approval flow uses `noCoupon` mode.
-- Current flow generates a checkout session on approval (**expires 24h — known bug**).
-- **Fix needed:** create permanent Stripe Payment Link, store as `STRIPE_FOUNDING_PAYMENT_LINK` in Vercel.
+- Founding price: `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo).
+- `FOUNDING` coupon does NOT exist in Stripe — causes errors if referenced. Approval flow uses `noCoupon`.
+- Checkout sessions expire 24h (known bug). **Fix:** permanent Stripe Payment Link → `STRIPE_FOUNDING_PAYMENT_LINK` env var.
 
 ---
 
 ## 32. IMPROVMX EMAIL SETUP
 
-- `heath@meetdossie.com` → forwards to `heath.shepard@gmail.com`.
-- `heathshepard@meetdossie.com` → forwards to `heath.shepard@gmail.com`.
-- `info@meetdossie.com` → forwards to `heath.shepard@gmail.com`. Added 2026-05-24 (ToS/Privacy contact).
-- Free plan. API key stored in Windows Credential Manager as `ImprovMX_API_Key` (rotate after 2026-05-24 — key went through Telegram). Note: live config forwards to gmail, not KW — confirmed via ImprovMX API 2026-05-24.
+- `heath@`, `heathshepard@`, `info@meetdossie.com` → all forward to `heath.shepard@gmail.com` (not KW). Free plan.
+- API key in Windows Credential Manager as `ImprovMX_API_Key` (rotate — went through Telegram 2026-05-24).
 
 ---
 
@@ -827,23 +671,14 @@ MeetDossie\Media\
 
 ## 34. CODEBASE RULES
 
-- Read `DISTRIBUTION-STRATEGY.md` before any marketing build.
-- Read `RENDER_RULES` in `generate-lifestyle-video.py` before any video build.
-- Read `Media/screen-recordings/LIBRARY.md` before any screen-recording selection.
-- Read `RENDER_FEEDBACK_LOG.md` before any video render.
-- Clean rebuild over patch when a component is fundamentally broken.
-- Flag immediately when a clean rebuild is warranted rather than patching.
-- Never guess at API response shapes — always probe first and show actual responses.
-- Never present a partial build as complete — always verify with a live URL or actual output.
+See Section 17 (merged).
 
 ---
 
 ## 35. BRITTNEY CONTEXT (customer #2 — most important early customer)
 
-- Found via Facebook search "transaction coordinating in Texas".
-- Broker, 80 transactions/year, Southeast Texas, both buyer and seller sides.
-- Pain point: control freak who can't trust delegation — this became the **Control** marketing pillar.
-- Direct quote: *"the lack of systems I have in place isn't sustainable."*
-- Potential Team-tier upsell at 60-90 days ($149/mo for her agents).
-- Ask for one-sentence testimonial at 30-day mark.
-- Her insight generated the Week-5 `control_freak_agent` content calendar entries.
+- Found via FB search "transaction coordinating in Texas". Broker, 80 tx/yr, Southeast Texas, buyer+seller sides.
+- Pain: control freak who can't trust delegation → became the **Control** marketing pillar.
+- Quote: *"the lack of systems I have in place isn't sustainable."*
+- Team-tier upsell at 60-90d ($149/mo for her agents). Ask for 1-sentence testimonial at 30d.
+- Her insight = Week-5 `control_freak_agent` content calendar entries.
