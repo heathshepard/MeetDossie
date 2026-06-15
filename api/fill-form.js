@@ -2813,6 +2813,7 @@ module.exports = async function handler(req, res) {
 
     const transactionId = sanitizeString(body.transaction_id, { maxLength: 200 });
     const fieldValues = (body.field_values && typeof body.field_values === 'object') ? body.field_values : {};
+    const strictMode = body.strict === true;
 
     // Support both form_type (canonical) and trec_number (legacy bundle format).
     // trec_number -> form_type translation table:
@@ -2840,7 +2841,8 @@ module.exports = async function handler(req, res) {
 
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
-    const txResp = await supabaseRest(
+    if (!strictMode) {
+      const txResp = await supabaseRest(
       'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,seller_email,seller_phone,sale_price,earnest_money,earnest_money_title_company,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,title_officer_name,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date,service_contract_amount,seller_other_expenses,hoa,as_is,seller_provides_survey,sdn_received,listing_broker_name,listing_broker_license_no,listing_agent_name,listing_agent_license_no,listing_agent_email_addr,listing_agent_phone_no,other_broker_name,other_broker_license_no,other_agent_name,other_agent_license_no,other_agent_email_addr,buyer_agent_commission,down_payment,buyer_email,buyer_notice_name,seller_notice_name,escrow_officer_name&limit=1',
       { method: 'GET' },
     );
@@ -2852,6 +2854,7 @@ module.exports = async function handler(req, res) {
     const tx = (Array.isArray(txRows) && txRows[0]) || null;
     if (!tx) {
       return res.status(404).json({ ok: false, error: 'Dossier not found.' });
+    }
     }
 
     // Auto-upgrade form type based on transaction_type when the caller sent the generic
@@ -2873,7 +2876,9 @@ module.exports = async function handler(req, res) {
     }
 
     let profile = {};
-    try {
+    if (strictMode) tx = {};
+    if (!strictMode) {
+      try {
       const profResp = await supabaseRest(
         'profiles?id=eq.' + safeUid + '&select=full_name,phone,email,brokerage,trec_license_number&limit=1',
         { method: 'GET' },
@@ -2885,32 +2890,33 @@ module.exports = async function handler(req, res) {
     } catch (e) {
       console.warn('[fill-form] profile fetch failed (non-fatal):', e && e.message);
     }
+    }
 
     // Normalize transaction data, mirroring normalize_transaction.py
-    const ft = tx.financing_type || (tx.lender_name ? 'conventional' : null);
+    const ft = strictMode ? null : (tx && tx.financing_type) || (tx.lender_name ? 'conventional' : null);
     // Section 3: down payment — use explicit column if set, else compute from sale_price - loan_amount.
-    const rawSalePrice = tx.sale_price != null ? Number(tx.sale_price) : 0;
-    const rawLoanAmount = tx.loan_amount != null ? Number(tx.loan_amount) : 0;
-    const computedDownPayment = tx.down_payment != null
+    const rawSalePrice = !strictMode && tx && tx.sale_price != null ? Number(tx.sale_price) : 0;
+    const rawLoanAmount = !strictMode && tx && tx.loan_amount != null ? Number(tx.loan_amount) : 0;
+    const computedDownPayment = !strictMode && tx && tx.down_payment != null
       ? String(tx.down_payment)
       : (rawSalePrice > 0 && rawSalePrice > rawLoanAmount ? String(rawSalePrice - rawLoanAmount) : '');
 
     // Broker fields: transaction columns take precedence over agent profile.
     // This lets test contracts specify different brokers than the logged-in agent.
-    const listingAgentName    = tx.listing_agent_name    || profile.full_name     || '';
-    const listingBrokerFirm   = tx.listing_broker_name   || profile.brokerage     || '';
-    const listingAgentPhone   = tx.listing_agent_phone_no|| profile.phone         || '';
-    const listingAgentEmail   = tx.listing_agent_email_addr || profile.email      || '';
-    const listingAgentLicense = tx.listing_agent_license_no || profile.trec_license_number || '';
-    const listingBrokerLicense = tx.listing_broker_license_no || '';
+    const listingAgentName    = !strictMode && tx && tx.listing_agent_name    || profile.full_name     || '';
+    const listingBrokerFirm   = !strictMode && tx && tx.listing_broker_name   || profile.brokerage     || '';
+    const listingAgentPhone   = !strictMode && tx && tx.listing_agent_phone_no|| profile.phone         || '';
+    const listingAgentEmail   = !strictMode && tx && tx.listing_agent_email_addr || profile.email      || '';
+    const listingAgentLicense = !strictMode && tx && tx.listing_agent_license_no || profile.trec_license_number || '';
+    const listingBrokerLicense = !strictMode && tx && tx.listing_broker_license_no || '';
 
     const txDefaults = {
-      buyer_name:              tx.buyer_name || '',
-      seller_name:             tx.seller_name || '',
+      buyer_name:              !strictMode && tx && tx.buyer_name ? tx.buyer_name : '',
+      seller_name:             !strictMode && tx && tx.seller_name ? tx.seller_name : '',
       // Section 21 Notices — buyer/seller names for notice address block
-      buyer_email:             tx.buyer_email || '',
-      seller_email:            tx.seller_email || '',
-      seller_phone:            tx.seller_phone || '',
+      buyer_email:             !strictMode && tx && tx.buyer_email ? tx.buyer_email : '',
+      seller_email:            !strictMode && tx && tx.seller_email ? tx.seller_email : '',
+      seller_phone:            !strictMode && tx && tx.seller_phone ? tx.seller_phone : '',
       notice_address:          tx.buyer_notice_name || tx.buyer_name || '',
       notice_address_2:        tx.seller_notice_name || tx.seller_name || '',
       property_address:        tx.property_address || '',
@@ -3015,7 +3021,9 @@ module.exports = async function handler(req, res) {
     };
 
     // Agent-supplied field_values override transaction defaults
-    const mergedFields = Object.assign({}, txDefaults, fieldValues);
+    
+    // In strict mode, skip txDefaults entirely�use ONLY caller's field_values
+    const mergedFields = strictMode ? fieldValues : Object.assign({}, txDefaults, fieldValues);
 
     // VALIDATION: Buyer/seller role integrity check
     // If the transaction has a role, validate that buyer_name and seller_name are on the correct sides.
