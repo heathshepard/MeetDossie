@@ -341,6 +341,67 @@
     z-index: 4;
   }
   #orb-stage.listening #orb-listen-flash { opacity: 1; }
+  /* Recording state — sustained warm halo while the mic is open.
+     Distinct from the brief "listening" flash so a held-record session reads
+     as a steady listening posture rather than the one-shot tap-to-listen cue. */
+  #orb-stage.recording #orb-listen-flash { opacity: 0.85; }
+  #orb-stage.recording {
+    transform: scale(1.06);
+  }
+  /* Thinking state — desaturate slightly + slow shimmer so the orb feels like
+     it's holding its breath waiting for the model. */
+  #orb-stage.thinking #orb-listen-flash {
+    opacity: 0.35;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(180, 220, 230, 0.45) 0%,
+      rgba(140, 180, 200, 0.22) 30%,
+      transparent 75%);
+    animation: thinkingShimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes thinkingShimmer {
+    0%, 100% { opacity: 0.30; }
+    50%      { opacity: 0.55; }
+  }
+
+  /* Status text — surfaces "Listening", "Thinking", "Speaking" beneath the orb.
+     Lives where the original "Tap to listen" hint used to sit so the layout
+     doesn't reflow when state changes. */
+  #cole-status {
+    margin-top: 2.4vh;
+    min-height: 1.6em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: clamp(0.85rem, 1.7vw, 1.05rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(245, 230, 224, 0.7);
+    text-align: center;
+    transition: color 0.4s ease, opacity 0.4s ease;
+    opacity: 1;
+  }
+  #cole-status.idle    { color: rgba(245, 230, 224, 0.45); }
+  #cole-status.recording { color: rgba(255, 210, 130, 0.95); }
+  #cole-status.thinking  { color: rgba(180, 220, 230, 0.85); }
+  #cole-status.speaking  { color: rgba(255, 200, 150, 0.95); }
+  #cole-status.error     { color: rgba(255, 140, 140, 0.95); }
+
+  /* Transcript / response readout — small + low-pressure. Surfaces what Cole
+     heard and what he said so Heath can debug from the phone without DevTools.
+     Hidden until there's content. */
+  #cole-transcript {
+    margin: 1.4vh auto 0;
+    max-width: 42ch;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgba(245, 230, 224, 0.55);
+    text-align: center;
+    min-height: 1.2em;
+  }
+  #cole-transcript .you    { color: rgba(255, 210, 130, 0.85); }
+  #cole-transcript .cole   { color: rgba(180, 220, 230, 0.85); }
+  #cole-transcript .label  { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.7; margin-right: 0.4em; }
 
   /* === Web section === */
   #web-section {
@@ -448,12 +509,13 @@
       <div id="orb-listen-flash"></div>
     </div>
   </div>
-  <div class="hint">Tap to listen</div>
+  <div id="cole-status" class="idle">Tap the orb &mdash; speak</div>
+  <div id="cole-transcript" aria-live="polite"></div>
   <button id="speak-btn" type="button" aria-label="Hear Cole speak">
     <span class="speak-btn-dot"></span>
-    Hear me speak
+    Hear sample voice
   </button>
-  <div class="speak-subline">Tap to hear Cole &mdash; <em>watch the glow pulse with each syllable.</em></div>
+  <div class="speak-subline">Demo Cole's voice &mdash; <em>tap the orb above to talk to him.</em></div>
   <audio id="cole-audio" src="/cole-sample.mp3" preload="auto" crossorigin="anonymous"></audio>
 </section>
 
@@ -550,11 +612,29 @@
 
 
 /* ---------------------------------------------------------------------
-   2. ORB: Kling video loop + tap-to-listen handler
+   2. ORB: Kling video loop + tap-to-talk LIVE voice loop with Cole
+   ---------------------------------------------------------------------
+   Flow:
+     idle  → tap orb → recording (mic open, orb pulses to mic amplitude,
+                                  silence > 1.5s OR tap stops it)
+           → thinking (POST audio → /api/cole-listen, then text →
+                       /api/cole-chat, orb shimmers thinking palette)
+           → speaking (POST text → /api/cole-speak, returns audio/mpeg,
+                       playback through #cole-audio reuses the existing
+                       Web Audio analyser pulse path)
+           → idle
+
+   Sharing: the Web Audio AudioContext + analyser are owned by the speak()
+   IIFE below. We expose a couple of helpers on window.coleAudio so the orb
+   loop can drive the same --pulse-intensity variable from BOTH directions
+   (mic amplitude during recording, TTS amplitude during playback) without
+   creating a second AudioContext (iOS allows only one resumed at a time).
    --------------------------------------------------------------------- */
 (function orb() {
   const stage = document.getElementById('orb-stage');
   const video = document.getElementById('orb-video');
+  const statusEl = document.getElementById('cole-status');
+  const transcriptEl = document.getElementById('cole-transcript');
   if (!stage || !video) return;
 
   // Mobile autoplay safety: muted + playsinline are set, but some browsers
@@ -566,15 +646,344 @@
     document.addEventListener('click', kick, { once: true });
   });
 
-  // Tap â†’ "listening" cue: scale up + flash overlay for ~1s.
-  let listenTimer = null;
-  function fireListening() {
-    stage.classList.add('listening');
-    clearTimeout(listenTimer);
-    listenTimer = setTimeout(() => stage.classList.remove('listening'), 1000);
+  // ---- State machine -----------------------------------------------------
+  // 'idle' | 'recording' | 'thinking' | 'speaking' | 'error'
+  let state = 'idle';
+  const STATE_LABELS = {
+    idle:      'Tap the orb — speak',
+    recording: 'Listening…',
+    thinking:  'Thinking…',
+    speaking:  'Speaking…',
+    error:     'Something went off — tap to retry',
+  };
+  function setState(next, errorMsg) {
+    if (state === next) return;
+    state = next;
+    // Clear all state classes then add the current one.
+    stage.classList.remove('listening', 'recording', 'thinking', 'speaking');
+    if (next === 'recording') stage.classList.add('recording');
+    if (next === 'thinking')  stage.classList.add('thinking');
+    if (next === 'speaking')  stage.classList.add('speaking');
+    if (statusEl) {
+      statusEl.classList.remove('idle', 'recording', 'thinking', 'speaking', 'error');
+      statusEl.classList.add(next);
+      statusEl.textContent = errorMsg || STATE_LABELS[next] || '';
+    }
   }
-  stage.addEventListener('click', fireListening);
-  stage.addEventListener('touchstart', fireListening, { passive: true });
+  setState('idle');
+
+  // ---- Conversation memory (in-page only, resets on reload) --------------
+  const history = [];
+  const MAX_HISTORY = 20;
+  function rememberTurn(role, content) {
+    history.push({ role, content });
+    while (history.length > MAX_HISTORY) history.shift();
+  }
+  function renderTranscript(youText, coleText) {
+    if (!transcriptEl) return;
+    let html = '';
+    if (youText) html += `<div><span class="label you">You</span><span class="you">${escapeHtml(youText)}</span></div>`;
+    if (coleText) html += `<div style="margin-top:0.5em;"><span class="label cole">Cole</span><span class="cole">${escapeHtml(coleText)}</span></div>`;
+    transcriptEl.innerHTML = html;
+  }
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ---- Mic capture + amplitude → orb pulse -------------------------------
+  // We share window.coleAudio.driveIntensity(value) with the speak() IIFE so
+  // the same --pulse-intensity var responds to BOTH mic input and TTS output.
+  let mediaStream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let micAnalyser = null;
+  let micDataArray = null;
+  let micRaf = 0;
+  let silenceTimer = null;
+  let recordStartedAt = 0;
+  let smoothedMic = 0;
+  const MIC_ALPHA = 0.35;
+  const SILENCE_RMS_THRESHOLD = 0.02; // below this counts as silence
+  const SILENCE_HOLD_MS = 1500;       // 1.5s of silence ends the recording
+  const MAX_RECORD_MS = 30000;        // hard cap so a runaway tab doesn't bill
+
+  function setIntensity(v) {
+    stage.style.setProperty('--pulse-intensity', v.toFixed(3));
+  }
+
+  async function startRecording() {
+    if (state !== 'idle') return; // ignore taps mid-flow
+    // If the marketing preview pulse is still demoing, kill it so our
+    // recording state owns the orb cleanly.
+    if (window.coleAudio && window.coleAudio.cancelPreview) {
+      window.coleAudio.cancelPreview();
+    }
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    } catch (err) {
+      console.warn('[orb] mic permission denied or unavailable:', err);
+      setState('error', 'Mic blocked — allow access then tap');
+      setTimeout(() => setState('idle'), 3000);
+      return;
+    }
+
+    // Pick a MediaRecorder MIME the browser supports. Safari iOS prefers mp4,
+    // Chrome/Firefox prefer webm/opus. We send whichever to /api/cole-listen
+    // and let Whisper handle the format.
+    const mimeCandidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/mpeg',
+      'audio/ogg;codecs=opus',
+      '',
+    ];
+    let chosenMime = '';
+    for (const m of mimeCandidates) {
+      if (m === '' || (window.MediaRecorder && MediaRecorder.isTypeSupported(m))) {
+        chosenMime = m;
+        break;
+      }
+    }
+    try {
+      mediaRecorder = chosenMime
+        ? new MediaRecorder(mediaStream, { mimeType: chosenMime })
+        : new MediaRecorder(mediaStream);
+    } catch (err) {
+      console.warn('[orb] MediaRecorder init failed:', err);
+      cleanupStream();
+      setState('error', 'Recording unsupported on this browser');
+      setTimeout(() => setState('idle'), 3000);
+      return;
+    }
+
+    recordedChunks = [];
+    mediaRecorder.addEventListener('dataavailable', (e) => {
+      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    });
+    mediaRecorder.addEventListener('stop', onRecordingStopped);
+
+    // Wire up amplitude analysis through the shared AudioContext (via
+    // window.coleAudio). If the helper isn't ready (shouldn't happen — speak()
+    // IIFE runs first), we skip the live pulse but still record.
+    try {
+      const ctx = window.coleAudio && window.coleAudio.ensureContext && window.coleAudio.ensureContext();
+      if (ctx) {
+        const src = ctx.createMediaStreamSource(mediaStream);
+        micAnalyser = ctx.createAnalyser();
+        micAnalyser.fftSize = 256;
+        micDataArray = new Uint8Array(micAnalyser.fftSize);
+        src.connect(micAnalyser);
+        // DO NOT connect analyser to destination — we'd feedback-loop the mic
+        // through the speakers. Analyser-only is a leaf node, fine.
+      }
+    } catch (err) {
+      console.warn('[orb] mic analyser setup failed (non-fatal):', err);
+    }
+
+    mediaRecorder.start();
+    recordStartedAt = performance.now();
+    setState('recording');
+    if (transcriptEl) transcriptEl.innerHTML = '';
+    micRaf = requestAnimationFrame(micTick);
+
+    // Hard cap — kill the recording if it runs too long.
+    setTimeout(() => {
+      if (state === 'recording') stopRecording();
+    }, MAX_RECORD_MS);
+  }
+
+  function micTick() {
+    if (state !== 'recording') {
+      micRaf = 0;
+      return;
+    }
+    let rms = 0;
+    if (micAnalyser) {
+      micAnalyser.getByteTimeDomainData(micDataArray);
+      let sum = 0;
+      for (let i = 0; i < micDataArray.length; i++) {
+        const v = (micDataArray[i] - 128) / 128;
+        sum += v * v;
+      }
+      rms = Math.sqrt(sum / micDataArray.length);
+    }
+    smoothedMic = MIC_ALPHA * Math.min(1, rms * 4.0) + (1 - MIC_ALPHA) * smoothedMic;
+    setIntensity(smoothedMic);
+
+    // Silence detection: only kicks in after the first 600ms so a slow speaker
+    // doesn't lose their opening pause.
+    const elapsed = performance.now() - recordStartedAt;
+    if (elapsed > 600) {
+      if (rms < SILENCE_RMS_THRESHOLD) {
+        if (!silenceTimer) {
+          silenceTimer = setTimeout(() => {
+            if (state === 'recording') stopRecording();
+          }, SILENCE_HOLD_MS);
+        }
+      } else if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+    }
+    micRaf = requestAnimationFrame(micTick);
+  }
+
+  function stopRecording() {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    try { mediaRecorder.stop(); } catch (_) { /* already stopped */ }
+  }
+
+  function cleanupStream() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => t.stop());
+      mediaStream = null;
+    }
+    micAnalyser = null;
+    micDataArray = null;
+    if (micRaf) { cancelAnimationFrame(micRaf); micRaf = 0; }
+    smoothedMic = 0;
+    setIntensity(0);
+  }
+
+  async function onRecordingStopped() {
+    // Move to thinking state immediately for responsiveness.
+    setState('thinking');
+    const mime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
+    cleanupStream();
+
+    if (!recordedChunks.length) {
+      setState('error', 'No audio captured — tap to try again');
+      setTimeout(() => setState('idle'), 2500);
+      return;
+    }
+    const blob = new Blob(recordedChunks, { type: mime });
+    recordedChunks = [];
+
+    if (blob.size < 600) {
+      // Way too short — almost certainly a stray tap. Reset cleanly.
+      setState('error', 'Too short — hold and speak, then tap');
+      setTimeout(() => setState('idle'), 2500);
+      return;
+    }
+
+    try {
+      // 1. STT
+      const transcript = await sendForTranscription(blob, mime);
+      if (!transcript) {
+        setState('error', 'Didn\'t catch that — try again');
+        setTimeout(() => setState('idle'), 2500);
+        return;
+      }
+      rememberTurn('user', transcript);
+      renderTranscript(transcript, '');
+
+      // 2. Chat
+      const reply = await sendForReply(transcript);
+      if (!reply) {
+        setState('error', 'Cole couldn\'t answer — try again');
+        setTimeout(() => setState('idle'), 2500);
+        return;
+      }
+      rememberTurn('assistant', reply);
+      renderTranscript(transcript, reply);
+
+      // 3. TTS + playback (speak() IIFE handles the pulse via the shared graph)
+      setState('speaking');
+      await speakResponse(reply);
+      setState('idle');
+    } catch (err) {
+      console.error('[orb] conversation pipeline error:', err);
+      setState('error', err && err.userMessage ? err.userMessage : 'Connection hiccup — tap to retry');
+      setTimeout(() => setState('idle'), 3500);
+    }
+  }
+
+  async function sendForTranscription(blob, mime) {
+    const res = await fetch('/api/cole-listen', {
+      method: 'POST',
+      headers: { 'Content-Type': mime || 'audio/webm' },
+      body: blob,
+    });
+    if (!res.ok) {
+      const err = new Error('STT failed');
+      err.userMessage = res.status === 429 ? 'Slow down — too many requests' : 'Transcription failed';
+      throw err;
+    }
+    const data = await res.json();
+    return (data && data.transcript || '').trim();
+  }
+
+  async function sendForReply(message) {
+    const res = await fetch('/api/cole-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        history: history.slice(0, -1), // exclude the turn we just pushed
+      }),
+    });
+    if (!res.ok) {
+      const err = new Error('Chat failed');
+      err.userMessage = res.status === 429 ? 'Slow down — too many requests' : 'Cole couldn\'t answer';
+      throw err;
+    }
+    const data = await res.json();
+    return (data && data.response || '').trim();
+  }
+
+  async function speakResponse(text) {
+    const res = await fetch('/api/cole-speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      const err = new Error('TTS failed');
+      err.userMessage = 'Voice unavailable';
+      throw err;
+    }
+    const audioBlob = await res.blob();
+    const url = URL.createObjectURL(audioBlob);
+    if (window.coleAudio && window.coleAudio.playUrl) {
+      await window.coleAudio.playUrl(url);
+    } else {
+      // Fallback if helper unavailable — direct play, no pulse.
+      const audio = document.getElementById('cole-audio');
+      audio.src = url;
+      await audio.play();
+      await new Promise((r) => audio.addEventListener('ended', r, { once: true }));
+    }
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- Orb tap handler --------------------------------------------------
+  // Single tap toggles record/stop. Mid-thinking/speaking taps are ignored.
+  function onOrbTap(e) {
+    if (e && e.cancelable) e.preventDefault();
+    if (state === 'idle')      { startRecording(); return; }
+    if (state === 'recording') { stopRecording(); return; }
+    if (state === 'error')     { setState('idle'); return; }
+    // thinking / speaking — do nothing; let the pipeline finish
+  }
+  // Use a single pointer event so we don't double-fire on touch+click.
+  if ('PointerEvent' in window) {
+    stage.addEventListener('pointerdown', onOrbTap);
+  } else {
+    stage.addEventListener('click', onOrbTap);
+    stage.addEventListener('touchstart', onOrbTap, { passive: false });
+  }
 
   // Pause when scrolled off-screen to save battery.
   if ('IntersectionObserver' in window) {
@@ -617,9 +1026,9 @@
   const ALPHA = 0.3; // 0..1, higher = more responsive, lower = more smoothing
 
   function ensureAudioGraph() {
-    if (ctx) return;
+    if (ctx) return ctx;
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return; // Web Audio unavailable — button still plays sound, just no pulse
+    if (!AC) return null; // Web Audio unavailable — button still plays sound, just no pulse
     ctx = new AC();
     source = ctx.createMediaElementSource(audio);
     analyser = ctx.createAnalyser();
@@ -627,7 +1036,48 @@
     dataArray = new Uint8Array(analyser.fftSize);
     source.connect(analyser);
     analyser.connect(ctx.destination);
+    return ctx;
   }
+
+  // ---- Public bridge for the orb voice loop -----------------------------
+  // The orb() IIFE needs to (a) reuse this AudioContext for mic amplitude
+  // (so iOS allows it within the user-gesture chain) and (b) play TTS audio
+  // returned from /api/cole-speak through the same analyser-driven pipeline.
+  // We expose two functions on window.coleAudio.
+  window.coleAudio = window.coleAudio || {};
+  window.coleAudio.ensureContext = function () {
+    const c = ensureAudioGraph();
+    if (c && c.state === 'suspended') c.resume().catch(() => {});
+    return c;
+  };
+  window.coleAudio.playUrl = async function (url) {
+    ensureAudioGraph();
+    if (ctx && ctx.state === 'suspended') await ctx.resume().catch(() => {});
+    // Cancel the marketing preview pulse if it's still running so the real
+    // TTS pulse takes over cleanly.
+    if (typeof cancelPreview === 'function') cancelPreview();
+    // Reset the audio element and play.
+    try { audio.pause(); } catch (_) {}
+    audio.src = url;
+    audio.currentTime = 0;
+    stage.classList.add('speaking');
+    if (!rafId) rafId = requestAnimationFrame(tick);
+    await audio.play();
+    return new Promise((resolve) => {
+      const done = () => {
+        audio.removeEventListener('ended', done);
+        audio.removeEventListener('pause', done);
+        stage.classList.remove('speaking');
+        stopTick();
+        // Restore the sample audio source so the "Hear me speak" button
+        // still works after a conversation turn.
+        audio.src = '/cole-sample.mp3';
+        resolve();
+      };
+      audio.addEventListener('ended', done);
+      audio.addEventListener('pause', done);
+    });
+  };
 
   function readAmplitude() {
     if (!analyser) return 0;
@@ -766,6 +1216,8 @@
     previewCanceled = true;
     cancelAnimationFrame(previewRaf);
   }
+  // Expose to the orb voice loop so a tap-to-record also kills the preview.
+  window.coleAudio.cancelPreview = cancelPreview;
   btn.addEventListener('click', cancelPreview, { once: true });
   // Fire preview after ~1.2s so the page settles first
   setTimeout(runPreviewPulse, 1200);
