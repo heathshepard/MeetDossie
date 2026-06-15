@@ -24,9 +24,10 @@ const {
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
   'https://www.meetdossie.com',
+  'https://staging.meetdossie.com',
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+(?:-heathshepard-6590s-projects)?\.vercel\.app$/;
 
 const ALLOWED_FORM_TYPES = new Set([
   'resale-contract',

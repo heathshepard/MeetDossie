@@ -27,8 +27,10 @@ const BUCKET = 'documents';
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
   'https://www.meetdossie.com',
+  'https://staging.meetdossie.com',
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+(?:-heathshepard-6590s-projects)?\.vercel\.app$/;
 
 const ALLOWED_TYPES = new Set(['closing_date', 'option_extension', 'price_change', 'repair_items']);
 
@@ -36,7 +38,7 @@ function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
   let allowOrigin = null;
   if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
+    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin)) {
       allowOrigin = origin;
     }
   }
