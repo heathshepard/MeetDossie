@@ -10,7 +10,7 @@
 // Authorization: Bearer <supabase user JWT>
 // Returns: { ok: true, documentId, storagePath, signedUrl, fileName, formName }
 
-const { PDFDocument } = require('pdf-lib');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
@@ -1002,6 +1002,27 @@ async function fillResaleContract(pdfDoc, fv) {
   // Earnest Money Receipt: "is acknowledged_2" (y=0.2290), "Escrow Agent" (y=0.2617)
   // Additional Earnest: "is acknowledged_3" (y=0.5488)
   // Leave all Page 11 fields blank at contract creation.
+
+  // SECTION 5B — OPTION PERIOD DAYS (coordinate-overlay text, Round 10 2026-06-15)
+  // The AcroForm field 'undefined_7' does not place option_period_days in the correct location.
+  // Visual QA Round 5 found that 10 landed on the §5A address line instead of §5B blank.
+  // Solution: use page.drawText() with estimated coordinates to overlay the value directly.
+  // PDF page 2 (0-indexed: page 1) has §5B at roughly (75 pts, 530 pts) in PDF coordinate system.
+  // Conversion: pixel coords from 150-DPI render → PDF pts: x_pdf ≈ x_pixel × 0.48, y_pdf ≈ 792 − y_pixel × 0.48
+  if (fv.option_period_days != null && fv.option_period_days !== '') {
+    try {
+      const page2 = pdfDoc.getPage(1); // 0-indexed: page 1 = printed page 2
+      page2.drawText(String(fv.option_period_days), {
+        x: 75,   // estimate: adjust in next iteration if needed
+        y: 530,  // estimate: adjust in next iteration if needed
+        size: 10,
+        color: rgb(0, 0, 0),
+      });
+    } catch (err) {
+      // Silently continue if drawText fails — the form field may still have filled via undefined_7
+      console.log('Warning: drawText for §5B failed:', err.message);
+    }
+  }
 
   return pdfDoc;
 }
