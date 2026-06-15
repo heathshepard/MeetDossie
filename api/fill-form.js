@@ -2985,6 +2985,25 @@ module.exports = async function handler(req, res) {
     const fieldValues = (body.field_values && typeof body.field_values === 'object') ? body.field_values : {};
     const strictMode = body.strict === true;
 
+    // Strict-mode safety: refuse to fill with too few user-supplied field values.
+    // In strict mode the API does NOT pull from the transaction; if the caller
+    // sends empty or near-empty field_values the result would be a blank PDF
+    // with nothing but the form template. That is a silent failure mode for
+    // Talk-to-Dossie. Require at least 2 non-empty values.
+    if (strictMode) {
+      const nonEmptyKeys = Object.keys(fieldValues).filter((k) => {
+        const v = fieldValues[k];
+        return v !== '' && v !== null && v !== undefined;
+      });
+      if (nonEmptyKeys.length < 2) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Not enough contract details — please tell me at least the property, the buyer, the seller, and the sale price so I can fill this out for you.',
+          code: 'STRICT_MODE_INSUFFICIENT_FIELDS',
+        });
+      }
+    }
+
     // Support both form_type (canonical) and trec_number (legacy bundle format).
     // trec_number -> form_type translation table:
     const TREC_NUMBER_MAP = {
