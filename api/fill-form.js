@@ -629,20 +629,11 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
   // NOTE: "Earnest Money in the form of" is a Page 11 receipts field filled by escrow agent — do not pre-fill.
 
-  // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
-  // "undefined_7" nx=0.123 ny=0.124 — Section 5B option period DAYS (not earnest delivery days).
-  // CRITICAL BUG (2026-06-15): Quinn's visual QA Round 5 found that option_period_days (e.g., 10)
-  // is landing on the §5A address line instead of the §5B days blank. This means 'undefined_7'
-  // is NOT the correct field for option_period_days.
-  // The field coordinate mapping (coordinate map 2026-05-30) was incorrect. The value 60000 from
-  // down_payment_amt landed in the address line, and 10 from option_period_days also landed in
-  // the address line. This suggests these fields may be overwriting each other OR the field
-  // names are misidentified.
-  // DEFERRED: Next round, manually inspect the PDF with field-name overlays to find the actual
-  // field name for §5B option period days, and whether 'undefined_7' is a shared/alias field.
-  // For now, leaving the code as-is (field name unchanged) since 'undefined_7' appears in the
-  // PDF (verified via node inspection) but its actual page position doesn't match expectations.
-  safeSetText(form, 'undefined_7', fv.option_period_days != null ? String(fv.option_period_days) : '');
+  // SECTION 5A — ESCROW AGENT NAME (undefined_7 visual position confirmed Round 8 + 11)
+  // undefined_7 is NOT for option_period_days. It's the escrow agent name field in §5A.
+  // Round 8 identified this after visual QA found "10" landing in the wrong spot.
+  safeSetText(form, 'undefined_7', fv.escrow_agent || fv.title_company || '');
+  // §5B option_period_days — DEFERRED (no AcroForm field; pdf-lib coord overlay offsets wrong on this PDF).
 
   // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
   // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
@@ -666,11 +657,6 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // "insurance Title Policy issued by" (Page 2 y=0.5589) = title company name
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
-
-  // SECTION 5A — ESCROW AGENT NAME (Page 2 §5A)
-  // Field: "Escrow Agent" (verified in field map 2026-06-15)
-  // Per Hadley: The escrow agent name is typically the title company.
-  safeSetText(form, 'Escrow Agent', fv.escrow_agent || fv.title_company || '');
 
   // Section 6A.8 — Survey amendment to title policy
   // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
