@@ -85,7 +85,7 @@ async function fillFlatPdfFromMap(pdfDoc, fv, field_map) {
   // Write debug log to tmp file so we can see what happened
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const logPath = path.join('/tmp', `fillFlatPdfFromMap-${timestamp}.json`);
+    const logPath = path.join('.', `fillFlatPdfFromMap-${timestamp}.json`);
     fs.writeFileSync(logPath, JSON.stringify({
       timestamp: new Date().toISOString(),
       nonEmptyValues: nonEmptyCount,

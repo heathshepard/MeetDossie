@@ -2885,7 +2885,7 @@ async function fillForm(formType, fieldValues) {
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
 
-  try { pdfDoc.getForm().flatten(); } catch (e) { console.warn('[fill-form] flatten failed:', e && e.message); }
+  // SKIP FOR NOW: try { pdfDoc.getForm().flatten(); } catch (e) { console.warn('[fill-form] flatten failed:', e && e.message); }
 
   return await pdfDoc.save();
 }
