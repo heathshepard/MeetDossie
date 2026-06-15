@@ -630,19 +630,20 @@ async function fillResaleContract(pdfDoc, fv) {
   // NOTE: "Earnest Money in the form of" is a Page 11 receipts field filled by escrow agent — do not pre-fill.
 
   // SECTION 5B — TERMINATION OPTION (OPTION PERIOD)
-  // "undefined_7" nx=0.123 ny=0.124 — Section 5B option period DAYS (not earnest delivery days).
-  // CRITICAL BUG (2026-06-15): Quinn's visual QA Round 5 found that option_period_days (e.g., 10)
-  // is landing on the §5A address line instead of the §5B days blank. This means 'undefined_7'
-  // is NOT the correct field for option_period_days.
-  // The field coordinate mapping (coordinate map 2026-05-30) was incorrect. The value 60000 from
-  // down_payment_amt landed in the address line, and 10 from option_period_days also landed in
-  // the address line. This suggests these fields may be overwriting each other OR the field
-  // names are misidentified.
-  // DEFERRED: Next round, manually inspect the PDF with field-name overlays to find the actual
-  // field name for §5B option period days, and whether 'undefined_7' is a shared/alias field.
-  // For now, leaving the code as-is (field name unchanged) since 'undefined_7' appears in the
-  // PDF (verified via node inspection) but its actual page position doesn't match expectations.
-  safeSetText(form, 'undefined_7', fv.option_period_days != null ? String(fv.option_period_days) : '');
+  // Field name CORRECTED 2026-06-15: 'undefined_7' is actually the §5A ESCROW AGENT NAME blank,
+  // NOT the option period days field. This was identified during visual QA Round 8 when the
+  // value 10 (option_period_days) appeared in the wrong location on the PDF.
+  // The real field mapping for §5A page 2 is:
+  //   "undefined_6"          y=0.1046 — earnest delivery days
+  //   "undefined_7"          y=0.1184 — ESCROW AGENT NAME
+  //   "as earnest money to"  y=0.1174 — earnest money dollar amount
+  //   "as earnest money to 2" y=0.1178 — option fee dollar amount
+  //   "to escrow agent within" y=0.1725 — earnest delivery days (alternate)
+  // DEFERRED: §5B option period days field location TBD. Currently unmapped. Visual spec:
+  // TREC §5D "Seller grants Buyer the option to terminate... within ___ days" blank.
+  // TODO: find the correct AcroForm field name for the option period "days" blank and wire it.
+  // Leaving unwritten for now (acceptable; closing date is more critical than option period).
+  // safeSetText(form, '[OPTION_PERIOD_FIELD_TBD]', fv.option_period_days != null ? String(fv.option_period_days) : '');
 
   // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
   // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
@@ -668,9 +669,10 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
 
   // SECTION 5A — ESCROW AGENT NAME (Page 2 §5A)
-  // Field: "Escrow Agent" (verified in field map 2026-06-15)
-  // Per Hadley: The escrow agent name is typically the title company.
-  safeSetText(form, 'Escrow Agent', fv.escrow_agent || fv.title_company || '');
+  // Field: "undefined_7" (x=0.1234, y=0.1184, w=0.2466 on page 2)
+  // This field was previously misidentified as option_period_days. Corrected per visual QA
+  // Round 8 (2026-06-15). Per Hadley: The escrow agent name is typically the title company.
+  safeSetText(form, 'undefined_7', fv.escrow_agent || fv.title_company || '');
 
   // Section 6A.8 — Survey amendment to title policy
   // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
