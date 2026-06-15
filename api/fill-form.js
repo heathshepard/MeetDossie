@@ -890,7 +890,6 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
   safeSetText(form, 'License No_4', fv.listing_broker_license || '');
   safeSetText(form, 'List Assoc Name', fv.listing_agent_name || '');
-  safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
   safeSetText(form, 'License No_5', fv.listing_agent_license || '');
   safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email || '');
   safeSetText(form, 'Phone_3', fv.listing_agent_phone || '');
@@ -922,7 +921,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'License No', fv.other_broker_license || '');
   // LEFT COLUMN — Other Broker Associate's Name
   // If routing to other broker, use selling_agent_name here; otherwise use other_broker_assoc_name
-  safeSetText(form, 'Associates Name', routeToOtherBroker ? fv.selling_agent_name : (fv.other_broker_assoc_name || ''));
+  safeSetText(form, 'Associates Name numb 1', routeToOtherBroker ? fv.selling_agent_name : (fv.other_broker_assoc_name || ''));
   // RIGHT COLUMN — Selling Associates (intra-firm agent)
   // Only fill if NOT routing to other broker (i.e., same brokerage scenario)
   safeSetText(form, 'Selling Associates Name', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
@@ -957,8 +956,9 @@ async function fillResaleContract(pdfDoc, fv) {
   // "Percentage" checkbox (y=0.8027) = check if expressing BAC as percentage
   // Per Hadley: leave commission amounts blank unless agent explicitly provides them.
   // AC numb 1 through AC numb 4 are phone area code fields — do NOT use for commission.
-  if (fv.buyer_agent_commission) {
-    const commStr = String(fv.buyer_agent_commission).replace('%', '').trim();
+  const bac = fv.buyer_agent_commission || fv.buyers_agent_commission_pct || '';
+  if (bac) {
+    const commStr = String(bac).replace('%', '').trim();
     safeSetText(form, 'when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from', commStr);
     safeCheck(form, 'Percentage');
   }
