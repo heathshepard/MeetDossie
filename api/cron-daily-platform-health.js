@@ -34,13 +34,17 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
+
 async function sendTelegram(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.error('[cron-daily-platform-health] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing in env — skipping Telegram send');
+    return;
+  }
   // Label the message so Heath (and Cole) recognize that the alert originates
   // from the marketing-bot health system even though it's delivered via Claudy.
   const labeled = `📊 <b>DossieMarketingBot — Platform Health</b>\n\n${text}`;
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -50,10 +54,15 @@ async function sendTelegram(text) {
         disable_web_page_preview: true,
       }),
     });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[cron-daily-platform-health] Telegram send failed: status=${res.status} body=${body}`);
+    }
   } catch (err) {
-    console.error('[cron-daily-platform-health] telegram send failed:', err && err.message);
+    console.error('[cron-daily-platform-health] telegram send error:', err && err.message);
   }
 }
+
 
 // Returns yesterday's UTC date range as ISO strings — start and end of UTC day.
 function todayUtcRange() {
