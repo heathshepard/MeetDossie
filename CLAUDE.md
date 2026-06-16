@@ -1,6 +1,6 @@
 # MeetDossie — Claude Code Operating Manual
 
-This file is read at the start of every Claude Code session. It completely replaces re-briefing — assume nothing, look here first.
+Read this front page first every session. Topic depth lives in `docs/` — Read those on-demand (see Reference Docs index at bottom).
 
 ---
 
@@ -60,29 +60,7 @@ Before recommending any tool/library/service install, check: (1) CLAUDE.md Secti
 - `C:\Users\Heath Shepard\Desktop\Dossie` — React source. Build here.
 - `C:\Users\Heath Shepard\Desktop\MeetDossie` — Vercel deploy. Push here. Cron functions, API routes, scripts, Media live here.
 
----
-
-## 2.5. MONTHLY OPERATING COSTS
-
-| Service | Plan | Monthly Cost | Notes |
-|---|---|---|---|
-| Vercel | Hobby (Free) | $0 | Auto-deploys, serverless functions |
-| Supabase | Free | $0 | 500MB database, 1GB storage |
-| Zernio | Pro | $18.00 | 4 social accounts, unlimited posts |
-| ElevenLabs | Creator | $18.33 | 30k credits/month, upgraded 2026-05-19 |
-| Creatomate | Free | $0 | Video rendering |
-| HCTI | Free | $0 | 50 renders/month (upgrade at $14/mo when needed) |
-| Resend | Free | $0 | Email sending |
-| Pexels | Free | $0 | Stock video API |
-| Stripe | Pay-as-you-go | $0 | 2.9% + 30¢ per transaction |
-| Submagic | Starter | $12.00 | Selfie-video editing. |
-| Hiscox | E&O | $33.32 | $1M/$1M, $500 ded. Quote #S111.020.194. Paid personally — reimburse from Mercury. |
-
-**Total monthly fixed costs: $81.65**
-
-**Variable costs:**
-- Stripe transaction fees (2.9% + 30¢ per charge)
-- HCTI upgrade at 1,000 renders/month ($14/mo)
+**Monthly fixed costs:** $81.65 (Zernio $18 + ElevenLabs $18.33 + Submagic $12 + Hiscox E&O $33.32; Vercel/Supabase/Creatomate/HCTI/Resend/Pexels/Stripe = $0). Variable: Stripe 2.9%+30¢/charge, HCTI $14/mo at 1k renders.
 
 ---
 
@@ -93,33 +71,16 @@ Before recommending any tool/library/service install, check: (1) CLAUDE.md Secti
 **Staging URL:** `npx vercel ls` in MeetDossie for latest Preview URL (changes per push). Never hardcode.
 **Production URL:** https://meetdossie.com
 
-### Standard workflow:
+### Standard workflow
 
-```bash
-# 1. Switch to staging branch
-git checkout staging
-
-# 2. Build the React bundle (Dossie repo)
-cd "C:\Users\Heath Shepard\Desktop\Dossie" && npm run build
-
-# 3. Copy bundle into MeetDossie
-cp dist/assets/workspace-*.js ../MeetDossie/assets/
-
-# 4. Update hash references in app.html and workspace.html (replace old workspace-*.js with new)
-# 5. Remove the previous bundle file
-git rm assets/workspace-[OLD-HASH].js
-
-# 6. Commit + push to staging (Vercel auto-deploys to staging URL)
-git add . && git commit -m "Deploy workspace-[NEW-HASH]" && git push
-
-# 7. Test at staging URL
-
-# 8. When confirmed working, merge to main and push to production
-git checkout main && git merge staging && git push
-
-# 9. Tag stable milestones
-git tag GOLD-[YYYY-MM-DD]-v[N]-[description] && git push origin [tag]
-```
+1. `git checkout staging`
+2. Build in Dossie repo: `cd ../Dossie && npm run build`
+3. Copy bundle: `cp dist/assets/workspace-*.js ../MeetDossie/assets/`
+4. Update hash references in `app.html` and `workspace.html`; remove old bundle via `git rm assets/workspace-[OLD-HASH].js`
+5. Commit + push to staging (Vercel auto-deploys preview)
+6. Test on staging preview URL
+7. After Heath approves: `git checkout main && git merge staging && git push`
+8. Tag: `git tag GOLD-[YYYY-MM-DD]-v[N]-[desc] && git push origin [tag]`
 
 **Never run `vercel --prod` manually** — Vercel auto-deploys from GitHub.
 **Never push directly to main** — always go through staging first.
@@ -145,7 +106,6 @@ After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quin
 
 **Fonts:** Cormorant Garamond (headings/brand/social hooks), system sans-serif (body/UI).
 **Voice:** warm, feminine, capable, never corporate.
-**Logo:** Dossie "D" in blush circle. `Media/dossie-logo-d.{png,svg}`, `Media/dossie-logo-horizontal.png`.
 
 ---
 
@@ -158,167 +118,19 @@ After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quin
 | Brokerage | custom | custom |
 | **Founding Member** | **$29** (50 spots, 12 taken, 38 remaining) | — |
 
-**Add-ons:**
-- Reply Monitoring — $10/mo
-- AI Autopilot — $15/mo
-- Compliance Vault — $10/mo
-- White Label — $200-500/mo
-- Scans — 5 free, then $1.50 each
-- E-sig — 10 free, then $0.50 each
-- Onboarding — $99 one-time
-
-**PRICING HISTORY:** 2026-05-15 raised Solo $49→$79, Team $149→$199, seats $25→$35 (DealDock $79 / ListedKit $49+ benchmark). Founding $29/mo locked forever — non-negotiable.
+Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
 ---
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $349/month** (12 founding @ $29 + 1 friend @ $1)
-
-| # | Name | Email | Plan | Notes |
-|---|---|---|---|---|
-| 1 | Kimberly Herrera | — | $29/mo founding member | — |
-| 2 | Tiffany Gill | — | $29/mo founding member | — |
-| 3 | Brittney YBarbo | brittney@setxrealty.com | $29/mo founding | Broker, 80 tx/yr, SE TX. Via FB search "transaction coordinating in Texas". Control-freak → Week-5 `control_freak_agent` content. Team-tier upsell 60-90d. **Ask testimonial at 30d.** |
-| 4 | Suzanne Page | k.suzanne.page@gmail.com | $1/mo founding friend (`FOUNDING_FRIEND`) | — |
-| 5 | Miki Mccarthy | mikirgvrealtor@gmail.com | $29/mo founding | RGV/McAllen. 2026-05-20. My Real Estate Company. First RGV. Phone+heard_from TBD. |
-| 6 | Cecilia Whitley | cecilia@sterlingassociatesre.com | $29/mo founding | Austin. 2026-05-20. Sterling and Associates. First Austin. Phone+heard_from TBD. |
-| 7 | Terry Katz | michellesellshouston@gmail.com | $29/mo founding | Houston/Spring. 2026-05-20 via DIRECT STRIPE INVOICE — manual recovery (see project_stripe_webhook_gap.md). Brokerage/phone/heard_from TBD. |
-| 8 | Amanda Nuckles | amanda@amandanuckles.com | $29/mo founding | Central TX. 2026-05-20. All City Real Estate. 5127340036. First to use new onboarding form. Heard: Facebook group (specific TBD). |
-| 9 | Zelda Cain | zelda@a2zrealestateconsultants.com | $29/mo founding | Houston. 2026-05-21. A2Z Real Estate Consultants LLC. (281) 813-6887. Heard: friend/colleague (possibly Terry, 2nd Houston). First word-of-mouth. |
-| 10 | Natalie Megerson | natalie@localchoicegroup.com | $29/mo founding | SA+Austin+San Marcos multi-market. 2026-05-22 04:10 UTC. REAL Broker. 5125575549. Heard: Facebook. **HOT TEAM-tier LEAD** — DM'd same morning re "large team in San Marcos". First multi-seat opportunity. Push founding signups per team member. |
-| 11 | Jennifer Beltrán | jenn.casamiateam@gmail.com | $29/mo founding | Casa Mia Real Estate LLC. 9568671723. Paid 2026-05-22 14:27 CDT, webhook never provisioned — manual 2026-05-24 after she messaged. **2ND webhook-gap** (after Terry). Password recovery sent 2026-05-24. |
-| 12 | Lisa Nilsson | lisanilssontx@gmail.com | $29/mo founding | Boerne/Hill Country SA. 2026-05-28. Premier Hill Country Properties. 210-288-4476. Heard: friend/colleague. Manually provisioned (3rd webhook-gap: Terry, Jennifer, Lisa). |
-
----
-
-## 7. WHAT'S BUILT AND WORKING
-
-**App:**
-- React app at `/app` and `/workspace`. Supabase auth + profiles/transactions/documents/action_items/email_queue.
-- Morning Brief (daily audio+text summary, ElevenLabs Luna).
-- Talk to Dossie (voice/text contract fill + deal updates).
-- TREC deadline auto-calc (cited to paragraph). Pipeline dashboard w/ deal cards + deadline badges.
-- Closing milestone cards (shareable, privacy-safe, `dossier_milestones`). Milestones section + trophy badge on pipeline cards.
-- Share Dossie button — sidebar (desktop) + mobile bottom nav, tracks `share_events`. Anchor nav in dossier detail.
-- NL deadlines ("Option period expires in 2 days"). Settings data flow fixed (`profiles` = source of truth).
-- Desktop document buttons inline (horizontal desktop, stacked mobile — 2026-05-28).
-- Agent voice in Ventures dashboard (`api/ventures/voice-chat.js` + ventures.html — 2026-05-28).
-- Ventures auth isolation (`ventures.auth.token` storage key, independent from Dossie session — 2026-05-28).
-
-**Documents + E-sign:**
-- DocuSeal e-sign (all 3 phases, 2026-05-28): Phase 1 PDF upload → signed URL → emailed (`api/esign-create.js`); Phase 2 per-signer field coords; Phase 3 template-based w/ transaction prefill. Endpoints: `esign-webhook.js` (HMAC-SHA256), `esign-download.js`, `esign-status.js`, `esign-templates.js`. UI: `EsignModal.jsx`.
-- Form Library (2026-05-28): `public.form_templates` (12 TREC forms). `api/form-templates.js` GET (by category) + POST {action:'attach'}. `FormLibraryModal.jsx` search by name/TREC #.
-- Form Packages (2026-05-28): `public.form_packages` + `public.form_package_items`. System defaults Buyer + Seller (locked). `api/form-packages.js` GET/POST {action:'apply'|'create'}/PATCH/DELETE. Packages tab in FormLibraryModal (sage=buyer, coral=seller, gold=custom). Bulk attach, dedupe.
-- Fill-and-sign Phase 1 (2026-05-28): `api/fill-form.js` loads base64 PDF, fills AcroForm via pdf-lib, uploads to Storage, creates docs row. `api/extract-form-fields.js` Claude Haiku NLP from agent voice. Base64 PDFs at `api/_assets/trec-{resale,financing,termination}-base64.js`. Types: `resale-contract`, `financing-addendum`, `termination-notice`, `amendment`. Field maps from `scripts/document_field_maps.py` (257 AcroForm fields on resale). Talk-to-Dossie integration live.
-- Amendment drafting: `api/draft-amendment.js` fills TREC 39-10 (`closing_date`/`option_extension`/`price_change`). NL entry via Talk to Dossie wired through fill-form.js.
-
-**Conversion + leads:**
-- Founding application flow (7-field form including `heard_from` → Telegram approval buttons → Stripe checkout → Resend approval email)
-- Stripe checkout for founding members (`price_1TPxxNL920SKTEEiN7Gphq8T`)
-- Scarcity banner — live founding count from `subscriptions` table
-
-**Distribution:**
-- Zernio pipeline: FB/Twitter/IG/LinkedIn live. Twitter thread-split max 6 chunks (`splitForTwitter` in `api/cron-publish-approved.js`).
-- IG+FB image card renderer (Python Pillow, `scripts/render-card.py`, uploads to Storage).
-- Daily content briefs via Claudy 9AM CST weekdays. Calendar: 25 entries, 5 weeks, personas brenda/patricia/victor.
-- Lifestyle video pipeline (Pexels + ElevenLabs + ffmpeg + Zernio).
-- TREC calculator at `/calculator` (email → `calculator_signups`). 10 SEO guides `/guides/`. 5 AEO answers `/answers/`.
-- MCP server published to npm `@dossie/mcp-server` + HTTP `meetdossie.com/api/mcp`.
-
----
-
-## 8. NOT DONE / ACTIVE BLOCKERS
-
-- Brokerage compliance document sending (specced, not built — high value)
-- Stripe Payment Links (permanent, non-expiring) — current checkout sessions expire 24h
-- MCP server registry submissions: MCPT / OpenTools (Smithery ✅ live)
-- TikTok automation (manual only until ~May 20, 2026)
-- Zernio analytics feedback loop (`post_analytics` table specced, not built)
-- Brevo email nurture sequence (segmented agent vs TC)
-- Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
-- **Amendment drafting** — LIVE incl. NL entry. `api/draft-amendment.js` handles TREC 39-10 (closing_date/option_extension/price_change). NL: Talk to Dossie → `extract-form-fields.js` → `fill-form.js`. Wired 2026-05-28.
-- **Fill-and-sign Phase 2** — interactive drag-drop sig/date/initials placement UI on PDF canvas before DocuSeal. Phase 1 auto-places; Phase 2 = visual control. Not built.
-- **Fill-and-sign remaining generators** — HOA Addendum (TREC 36-11), Lead-Based Paint (OP-L), Seller's Disclosure (OP-H). PDFs in `Dossie Forms/TREC Base/`, no JS generators.
-- **TREC 49-1** (Right to Terminate, Lender's Appraisal — new Jan 2025, split from 40-11). Not in library/generators.
-- **Dossier transaction type expansion** — add `transaction_type` field to transactions + auto-load correct package (types: buyer_purchase, seller_listing, new_home_purchase, land_purchase, residential_lease_landlord, residential_lease_tenant). Currently all use same package.
-- **More Form Packages** — land, new home, rental landlord, rental tenant. Only Buyer + Seller exist as defaults.
-- **Social Media Autopilot** — extend in-house pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) to customer-facing add-on. Agents connect FB/IG/LI/TT via Zernio, Dossie drafts daily from listings/market/sphere, Telegram one-tap approval. Cost: ~180 posts/mo @ Haiku = ~$0.30/mo Claude; Zernio flat $18/mo paid. Price: $20/mo ($10 founding). Strategy doc: `SOCIAL-MEDIA-AUTOPILOT-STRATEGY.md`. Flagged 2026-05-21.
-- **SMS escalation (Twilio)** — critical deadline + draft-aging alerts. ~$0.0075/msg, ~50¢/agent/mo. Needs phone capture (done) + opt-in toggle. Phase 2 deferred.
-- **Voice escalation (Twilio Voice)** — last-resort call when other channels fail. ~$0.013/call. Phase 3 after SMS. Deferred.
-- **Customer Education & Onboarding** — Phase 1 welcome email covers all systems, empty-state hints, "What's New" banner. Phase 2 7-day drip, product tour, feature modals. Phase 3 knowledge base `meetdossie.com/help`, tutorials, tooltips. Activation/churn risk. Flagged 2026-05-21.
-- **Ginger Unger partnership** — Miki (#5) + likely Amanda found Dossie via her TX RE FB group. Highest-leverage distribution lead. Actions: (a) DM thanks + offer founding spot for review, (b) affiliate % of MRR, (c) paid endorsement / trainings guest. Engage FIRST before posting in group. Heath DM'd 2026-05-21.
-- **🚨 URGENT: Form TX LLC + insurance + business bank** — Heath operating as sole prop → unlimited personal liability (house/savings/KW commissions exposed). Steps: (1) TX LLC $300 sos.state.tx.us/SOS Direct, (2) EIN IRS free, (3) business bank, (4) move Stripe/Vercel/Supabase billing to LLC, (5) update WHOIS, (6) Cyber+E&O $50-200/mo (Embroker/Hiscox). #1 PERSONAL ACTION. Do BEFORE next paying customer.
-- **Privacy Policy + ToS** — none exist on meetdossie.com → legal exposure. PP must disclose subprocessors (Supabase/Anthropic/Resend/Stripe/ElevenLabs). ToS limits liability. Drafts 2026-05-21; attorney review before live or accept indie-SaaS risk.
-
----
-
-## 9. NEXT PRIORITIES (in order)
-
-1. MCP server registry submissions (Smithery ✅ live; MCPT + OpenTools pending)
-2. Brevo email nurture (agent vs TC segmented)
-3. Zernio analytics feedback loop
-4. Lifestyle video Zernio post creation (upload works; post creation pending)
-5. TikTok automation gate flip (~May 20, 2026)
-
-(Done 2026-05-07: Stripe Payment Links, brokerage compliance send, LinkedIn Zernio, first-time onboarding checklist, MCP server npm+HTTP.)
-
----
-
-## 10. DEMO ACCOUNTS — LOCKED. DO NOT CHANGE.
-
-| Email | Password (env var) | Profile Name | Personas | Voice |
-|---|---|---|---|---|
-| `demo@meetdossie.com` | `DEMO_PASSWORD` = `DossieDemo-VaIiAt6Bab` | Sarah Whitley | brenda, patricia | Luna |
-| `demo2@meetdossie.com` | `DEMO2_PASSWORD` = `DossieDemo2-John2026` | John Smith | victor | Bill |
-
-Both seeded with 6 transactions, 25 documents, 20 action items.
-
----
-
-## 11. PERSONA → DEMO ACCOUNT MAPPING — LOCKED
-
-| Persona | Demo account | Voice |
-|---|---|---|
-| brenda | Sarah Whitley / `demo@meetdossie.com` | Luna |
-| patricia | Sarah Whitley / `demo@meetdossie.com` | Luna |
-| victor | John Smith / `demo2@meetdossie.com` | Bill |
-
----
-
-## 12. SCREEN RECORDING NAMING CONVENTION
-
-```
-<topic-slug>-mobile-<YYYY-MM-DD>.mp4   → portrait → IG, TikTok
-<topic-slug>-desktop-<YYYY-MM-DD>.mp4  → landscape → FB, Twitter, LinkedIn
-```
-
-`mobile`/`desktop` segment = single source of truth for platform routing (`derive_aspect_and_platforms_from_filename()` in `generate-lifestyle-video.py`). One row per recording in `Media/screen-recordings/LIBRARY.md`. Never overwrite — append date/counter on collision. Read LIBRARY.md before selecting.
-
----
-
-## 13. VIDEO PIPELINE RULES (summary)
-
-Source of truth: `RENDER_RULES` block in `scripts/generate-lifestyle-video.py` + `RENDER_FEEDBACK_LOG.md`. Read both before touching the renderer.
-
-- Never resize aspect ratios; portrait→vertical, landscape→square.
-- Never letterbox/black-bar; scale-to-fill + top-anchor crop.
-- `morning_brief`: 3-layer audio (narrator→sample brief→close), ~44s. All others: continuous narrator.
-- Duration 30-60s (validator aborts outside).
-- Voice from `LIBRARY.md`; never hardcode Bill/Luna.
-- Pexels: blocklist sad/stressed/worried/sleeping/down/hunched, min width 1080.
-- Screen-rec trim: `max(freeze_end, silence_end)`.
+**MRR: $349/month** (12 founding @ $29 + 1 friend @ $1). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
 
 ---
 
 ## 14. DISTRIBUTION STRATEGY (summary)
 
-Source of truth: `DISTRIBUTION-STRATEGY.md`. Read before any marketing build.
-
-- 4 pillars: **Cost, Control, Visibility, Speed.** Control = strongest for high-volume agents (Brittney).
-- URL strategy: `/founding` until 45/50 filled, then `meetdossie.com`. At 50, `/founding` redirects to `/agents`.
-- Platforms: FB/Twitter/IG/LinkedIn live; LinkedIn gets Victor's Friday slot via `cron-generate-posts.js` POST_PLAN day-of-week swap. TikTok manual until ~May 20.
-- Personas: Brenda/Patricia/Victor, algorithm-optimized per platform.
+Source of truth: `DISTRIBUTION-STRATEGY.md`. 4 pillars: **Cost, Control, Visibility, Speed** (Control = strongest for high-volume agents). URL strategy: `/founding` until 45/50 filled, then `meetdossie.com`. Platforms FB/Twitter/IG/LinkedIn live; LinkedIn gets Victor's Friday slot via `cron-generate-posts.js`. Personas Brenda/Patricia/Victor, algorithm-optimized per platform.
 
 ---
 
@@ -342,81 +154,7 @@ Source of truth: `DISTRIBUTION-STRATEGY.md`. Read before any marketing build.
 
 **Current status:** `CRON_SECRET` in Vercel + required on all crons. `SUPABASE_SERVICE_ROLE_KEY` rotated 2026-05-10. Never paste secrets in Telegram or Claude.ai.
 
----
-
-## 15.5. INCIDENT REPORTS
-
-Ref: `INCIDENT-2026-05-08.md`. What: Brittney upload bugs, wrong Opus model ID, Media/ binaries committed.
-
-**Prevention:** never commit binaries (use Supabase Storage/CDN). Verify model strings vs current Anthropic docs. Test with real file sizes before customer onboarding.
-
----
-
-## 15.6. PIPELINE
-
-**Social posting (code = source of truth):**
-1. `cron-generate-posts` 11AM UTC — 6 posts via Sonnet 4.6, upsert `on_conflict=post_id`, resets `telegram_sent_at`, renders cards via HCTI (IG+FB), stores `card_body` (50w max) + `caption` separately.
-2. `cron-send-for-approval` 11:30 UTC — drafts where `status='draft'` AND `telegram_sent_at IS NULL`. Sends 2 messages to DossieMarketingBot: (1) card image, no buttons; (2) full caption+hashtags with Approve/Reject/Edit.
-3. `cron-publish-approved` every 30min — `status='approved'` → Zernio (FB/Twitter/IG/LinkedIn/TikTok). Twitter splits to max 6 chunks paragraph-first. Sets `posted` or `failed`.
-
----
-
-## 15.7. CONTENT RULES — NON-NEGOTIABLE
-
-**Persona voice:** all content in **third person** — never first-person "I". Brenda=she/her, Patricia=she/her, Victor=he/him. WRONG "I closed 6 deals." RIGHT "She closed 6 deals."
-
-**Field constraints:** `card_body` max 50w (card only); `caption` full text; `stat` max 10 chars ("$8,000","80+"); `stat_label` max 50 chars; `hook` max 8 words, pattern-interrupting.
-
-**Text encoding:** ASCII only — no em-dashes (—), en-dashes (–), curly quotes, special Unicode. Plain hyphens + straight quotes. HCTI + Telegram require this.
-
----
-
-## 15.8. KNOWN ISSUES / WATCH LIST
-
-- TikTok posts sit as `pending_video` — video pipeline separate (inactive until ~May 20).
-- FB hashtags inconsistent — check AI prompt if missing.
-- Founding spot count = `subscriptions` where `status='active'` AND `plan='founding'`.
-- HCTI free 50/mo — monitor; upgrade $14/mo at 1k.
-
----
-
-## 16. GOLD TAG HISTORY (recover from these if something breaks)
-
-- `GOLD-2026-05-04-v1-conversion-and-leads`
-- `GOLD-2026-05-04-v2-full-pipeline-live`
-- `GOLD-2026-05-04-v3-overnight`
-- `GOLD-2026-05-05-v1-distribution-checklist-complete`
-- `GOLD-2026-05-05-v2-distribution-complete`
-- `GOLD-2026-05-05-v3-closing-cards-live`
-- `GOLD-2026-05-06-v1-customer-2-brittney-live`
-- `GOLD-2026-05-06-v2-pipeline-stable`
-- `GOLD-2026-05-06-v3-share-button-live`
-- `GOLD-2026-05-06-v4-demo-accounts-locked`
-- `GOLD-2026-05-06-v5-all-platforms-live`
-- `GOLD-2026-05-06-v5-pipeline-complete`
-- `GOLD-2026-05-07-v5-card-redesign`
-- `GOLD-2026-05-07-v6-routing-fixed`
-- `GOLD-2026-05-07-v7-mcp-published`
-- `GOLD-2026-05-07-v8-mcp-http-live`
-- `GOLD-2026-05-07-v8-smithery-live`
-- `GOLD-2026-05-08-v9-deployment-fixed`
-- `GOLD-2026-05-08-v10-creatomate-live`
-- `GOLD-2026-05-09-v3-canvas-renderer-postable`
-- `GOLD-2026-05-10-v4-card-renderer-postable`
-- `GOLD-2026-05-10-v6-hcti-renderer-live`
-- `GOLD-2026-05-10-v7-pipeline-complete`
-- `GOLD-2026-05-11-v2-first-autonomous-posts`
-- `GOLD-2026-05-11-v3-pipeline-live-social-posting`
-- `GOLD-2026-05-28-v1-lisa-nilsson-stripe-webhook-whisper`
-- `GOLD-2026-05-28-v2-dashboard-insurance-crons`
-- `GOLD-2026-05-28-v3-dashboard-improvements`
-- `GOLD-2026-05-28-v4-dashboard-30-improvements`
-- `GOLD-2026-05-28-v5-agent-voice-chat`
-- `GOLD-2026-05-28-v7-esign-live`
-- `GOLD-2026-05-28-v8-form-library-live`
-- `GOLD-2026-05-28-v9-desktop-document-buttons-inline`
-- `GOLD-2026-05-28-v10-form-packages-live`
-- `GOLD-2026-05-28-v12-fill-and-sign-phase1`
+Incident history → `docs/INCIDENT-LOG.md`.
 
 ---
 
@@ -441,6 +179,16 @@ Session auto-summaries are lossy. Memory is the only reliable persistent layer.
 
 Skipping a memory because "not important enough" = failure. Write it anyway. **Why:** Amber Higgs (Lisa Nilsson referral) was mentioned 2026-05-28 and dropped from auto-summary. Heath had to point it out next day.
 
+### Discovery rules — when to Read which doc
+
+- Customer-specific tasks (any named customer, MRR math, onboarding history) → Read `docs/CUSTOMERS.md` first.
+- Video/social work (recording, voiceover, posting schedule, persona rules, pipeline crons) → Read `docs/VIDEO-RULES.md` + `docs/PIPELINE.md`.
+- Env vars / external service config (Stripe, ImprovMX, Zernio IDs, secrets) → Read `docs/ENV.md`.
+- Recovering from broken state → check `docs/GOLD-HISTORY.md` for recovery tags.
+- Picking what to ship next → check `docs/TECH-DEBT.md`.
+- Demo account questions (passwords, persona mapping, seeding) → Read `docs/DEMO-ACCOUNTS.md`.
+- Pricing-change discussion → Read `docs/PRICING-HISTORY.md` (current pricing stays in CLAUDE.md Section 5).
+
 ### Codebase rules
 - **Two repos:** build in `Dossie`, deploy from `MeetDossie`.
 - Clean rebuild > iterative patch when component is fundamentally broken. Flag immediately.
@@ -454,25 +202,12 @@ Skipping a memory because "not important enough" = failure. Write it anyway. **W
 
 ---
 
-## 18. SOCIAL MEDIA ACCOUNTS
-
-| Platform | Handle | Zernio status |
-|---|---|---|
-| Facebook Page | MeetDossie | ✅ connected |
-| Instagram | @meetdossie | ✅ connected |
-| Twitter / X | @meetdossie | ✅ connected |
-| TikTok | @meetdossietc | ✅ connected ✅ active (live since 2026-05-08) |
-| Threads | @meetdossie | not automated |
-| LinkedIn | linkedin.com/company/meetdossie | ✅ connected ✅ active (live since 2026-05-07) |
-
----
-
-## 19. KEY ENV VAR NAMES (values in Vercel only — never paste values here)
+## 19. KEY ENV VAR NAMES (values in Vercel only)
 
 ```
 TELEGRAM_BOT_TOKEN
 TELEGRAM_MARKETING_BOT_TOKEN
-TELEGRAM_CHAT_ID = 7874782923
+TELEGRAM_CHAT_ID
 CRON_SECRET
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
@@ -484,11 +219,13 @@ ELEVENLABS_API_KEY
 PEXELS_API_KEY
 ZERNIO_API_KEY
 CREATOMATE_API_KEY
-CREATOMATE_TEMPLATE_ID = 791117d0-665c-4cd0-ba5f-a767f8921f9b
+CREATOMATE_TEMPLATE_ID
 FAL_KEY
-DEMO_PASSWORD = DossieDemo-VaIiAt6Bab
-DEMO2_PASSWORD = DossieDemo2-John2026
+DEMO_PASSWORD
+DEMO2_PASSWORD
 ```
+
+Values, Zernio IDs, Stripe details, ImprovMX → `docs/ENV.md`.
 
 ---
 
@@ -532,54 +269,7 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 
 ---
 
-## 22. ZERNIO ACCOUNT IDs
-
-| Platform | Account ID | Active |
-|---|---|---|
-| facebook | `69f253c3985e734bf3d8f9bc` | ✅ |
-| instagram | `69f25431985e734bf3d8fcbe` | ✅ |
-| twitter | `69f255c6985e734bf3d90ba1` | ✅ |
-| linkedin | `69fccd7392b3d8e85f8f12be` | ✅ (URN `urn:li:organization:115997183`) |
-| tiktok | `69f15791985e734bf3d13b89` | ✅ |
-
----
-
-## 23. CONTENT CALENDAR STRUCTURE
-
-- 25 rows (5 weeks × 5 days). Wk1 feature-demo, Wk2 pain-point, Wk3 founder-leaning, Wk4 founder-story, Wk5 control-freak agent (Brittney).
-- Personas: brenda (9), patricia (6), victor (10). Voiceover scripts 408–565 chars.
-- **Timeframe:** never "a few months ago" — use "recently" / "over the last few weeks".
-- **Social proof:** no unverified stats; numbers framed as hypotheticals.
-- **Hashtags:** IG 8-10, FB 0, Twitter 2-3, LinkedIn 3-5.
-
----
-
-## 23.5. VIDEO CONTENT RULES (voiceover scripts)
-
-- **Opening:** specific pain point, not generic. WRONG "Managing transactions is hard." RIGHT "Your TC calls you at 8AM asking which title company to use."
-- **Tone:** conversational, not corporate. **Rhythm:** short punchy sentences at end build momentum.
-- **Persona voice:** Victor = authoritative volume (confident/direct). Brenda = emotional relatable (warm/empathetic). Patricia = practical part-time (efficient/time-focused).
-- **Inflection:** no rising endings. Period-heavy short closes.
-- **Duration:** 35-45s at natural pace.
-- **Closing:** end with "This is Dossie." then CTA "Texas agents — meetdossie.com slash founding."
-
----
-
-## 24. POSTING SCHEDULE (caps enforced in `posting_schedule` DB table; TikTok posts park as `pending_video` until DONE pipeline attaches a video)
-
-| Platform | Slots (CST) | Cap |
-|---|---|---|
-| Facebook | 9AM, 6PM | 2/day |
-| Twitter | 8AM, 12PM, 4PM | 3/day |
-| Instagram | 8AM, 6PM | 1/day |
-| LinkedIn | 7AM, 12PM | 1/day |
-| TikTok | 7AM, 7PM | 1/day (ACTIVE - video required via DONE pipeline) |
-
-**Daily generation target: 8 posts** (2 Facebook, 3 Twitter, 1 Instagram, 1 LinkedIn, 1 TikTok)
-
----
-
-## 25. FOUNDING APPLICATION FLOW
+## 22. FOUNDING APPLICATION FLOW
 
 1. Apply at `/founding` (7-field form w/ `heard_from`).
 2. DossieMarketingBot → Heath's Telegram (Approve/Reject buttons).
@@ -589,7 +279,7 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 
 ---
 
-## 26. HEATH'S BACKGROUND
+## 23. HEATH'S BACKGROUND
 
 - TX REALTOR at KW City View / KW Boerne, San Antonio. `heath.shepard@kw.com` / `heath@meetdossie.com`.
 - Goal: location-independent (Hawaii long-term). Also runs Plane & Ember (cigar woodwork, SA).
@@ -597,7 +287,7 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 
 ---
 
-## 27. CLAUDE CODE LAUNCH COMMANDS (save as `.bat` files on Desktop)
+## 24. CLAUDE CODE LAUNCH COMMANDS (save as `.bat` files on Desktop)
 
 ```bat
 :: MeetDossie
@@ -609,76 +299,22 @@ cd "C:\Users\Heath Shepard\Desktop\Dossie" && claude --continue --channels plugi
 
 `--continue` resumes most recent session per cwd. **Caveat:** model swap (Opus ↔ Sonnet ↔ Haiku) starts fresh session — "save state to memory" before swap.
 
----
-
-## 28. WORKFLOW — HEATH ↔ CLAUDE CODE
-
-Claude.ai Sonnet = strategy/prompts. Claude Code Opus = execution. Heath pastes large complete prompts (minimize back-and-forth). Reports back via Telegram. Restart daily — CLAUDE.md = full context. Keep sessions short/focused.
+Claude.ai Sonnet = strategy/prompts. Claude Code Opus = execution. Heath pastes large complete prompts. Reports back via Telegram. Keep sessions short/focused.
 
 ---
 
-## 29. CONTENT ENGINE DAILY WORKFLOW
+## 25. REFERENCE DOCS (Read on-demand)
 
-1. 9AM CST weekdays: Claudy sends daily brief (platform/hook/script/demo account/filename) to Telegram.
-2. Heath records ~10min, saves to `Media\screen-recordings\` with exact filename.
-3. Heath replies **DONE** to Claudy.
-4. Claude Code runs `generate-creatomate-video.py`: upload to Supabase Storage → Creatomate template `791117d0-665c-4cd0-ba5f-a767f8921f9b` (voiceover/URL/persona/caption) → poll → URL.
-5. Video → DossieMarketingBot for approval → social posts.
+Topic depth lives here. Read before working in that area — don't carry the whole repo in your head.
 
-Separately: DossieMarketingBot sends draft social posts all day for Approve/Reject.
-
----
-
-## 30. MEDIA FOLDER STRUCTURE
-
-```
-MeetDossie\Media\
-├── screen-recordings\   (+ LIBRARY.md — always read before touching recordings)
-├── finished-videos\
-├── voiceovers\
-├── b-roll\[topic]\
-├── instagram-cards\
-├── music\
-└── screen-shots\
-```
-
----
-
-## 31. STRIPE DETAILS
-
-- Founding price: `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo).
-- `FOUNDING` coupon does NOT exist in Stripe — causes errors if referenced. Approval flow uses `noCoupon`.
-- Checkout sessions expire 24h (known bug). **Fix:** permanent Stripe Payment Link → `STRIPE_FOUNDING_PAYMENT_LINK` env var.
-
----
-
-## 32. IMPROVMX EMAIL SETUP
-
-- `heath@`, `heathshepard@`, `info@meetdossie.com` → all forward to `heath.shepard@gmail.com` (not KW). Free plan.
-- API key in Windows Credential Manager as `ImprovMX_API_Key` (rotate — went through Telegram 2026-05-24).
-
----
-
-## 33. KNOWN TECH DEBT (address before 50 customers)
-
-1. `dossier_milestones` storing `canvas_data_url` in DB → migrate to Supabase Storage.
-2. Stripe checkout sessions expire 24h → create permanent Payment Links.
-3. Zernio `zernio_post_id` not captured (response shape mismatch).
-4. Lifestyle video Zernio post creation not fully wired (upload works, post creation pending).
-5. MCP server not published to npm or registries.
-
----
-
-## 34. CODEBASE RULES
-
-See Section 17 (merged).
-
----
-
-## 35. BRITTNEY CONTEXT (customer #2 — most important early customer)
-
-- Found via FB search "transaction coordinating in Texas". Broker, 80 tx/yr, Southeast Texas, buyer+seller sides.
-- Pain: control freak who can't trust delegation → became the **Control** marketing pillar.
-- Quote: *"the lack of systems I have in place isn't sustainable."*
-- Team-tier upsell at 60-90d ($149/mo for her agents). Ask for 1-sentence testimonial at 30d.
-- Her insight = Week-5 `control_freak_agent` content calendar entries.
+| File | Use when |
+|---|---|
+| `docs/CUSTOMERS.md` | Working with any named customer, MRR math, onboarding history, Brittney context. Update on every onboard/cancel. |
+| `docs/VIDEO-RULES.md` | Screen recording naming, video pipeline rules, content calendar, voiceover rules, posting schedule, media folder layout. |
+| `docs/PIPELINE.md` | Social posting crons, content rules (third-person, ASCII, field caps), social accounts + Zernio account IDs. |
+| `docs/GOLD-HISTORY.md` | Recovering from broken state — find a known-good GOLD tag to check out. |
+| `docs/TECH-DEBT.md` | Picking what to ship next, active blockers, deferred items, urgent personal action items (LLC, ToS). |
+| `docs/PRICING-HISTORY.md` | Pricing history + rationale + add-on prices. Current pricing stays in Section 5 of this file. |
+| `docs/ENV.md` | Env var values, Zernio account IDs, Stripe + ImprovMX details. |
+| `docs/INCIDENT-LOG.md` | Past incidents and their prevention rules — Brittney 2026-05-08, Stripe webhook gap. |
+| `docs/DEMO-ACCOUNTS.md` | Demo passwords, persona mapping, analytics exclusion rule. |
