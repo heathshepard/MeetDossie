@@ -33,6 +33,7 @@ module.exports = {
   earnest_money_form: 'Earnest Money in the form of',
 
   // SECTION 5: OPTION PERIOD (Page 2)
+  option_period_days: 'Within',
   option_fee: 'Option Fee in the form of',
 
   // SECTION 6A: TITLE POLICY (Page 2)
@@ -56,10 +57,10 @@ module.exports = {
   earnest_money_phone: 'Phone_6',
   earnest_money_fax: 'Fax',
 
-  // SECTION 15: SALES PRICE / FINANCING (Page 2)
-  // "will not be credited" = checkbox for earnest money credit
-  // "acknowledged by Seller" = sales price field
-  sales_price: 'will not be credited to the Sales Price at closing Time is of the',
+  // SECTION 15: SALES PRICE / FINANCING (Page 6)
+  // "will not be credited" = checkbox for earnest money credit (section 3.C)
+  // "acknowledged by Seller and Buyers agreement to pay Seller" = sales price text field (section 15)
+  sales_price: 'acknowledged by Seller and Buyers agreement to pay Seller',
   sales_price_acknowledged: 'acknowledged by Seller and Buyers agreement to pay Seller',
 
   // BROKER INFORMATION (Page 10-11)
@@ -154,9 +155,12 @@ module.exports = {
   // EARNEST MONEY RECEIVED (Page 9)
   earnest_money_received_date: 'DateTime',
 
-  // Option period within days
-  option_period_days: 'Within one', // This is a checkbox typically; refactor as needed
-
   // SERVICE CONTRACT
   service_contract_amount: 'service contract in an amount not exceeding',
+
+  // ALIASES (canonical names map to same fields as primary names)
+  sale_price: 'acknowledged by Seller and Buyers agreement to pay Seller', // alias for sales_price
+  earnest_money_amount: 'earnest money of', // alias for earnest_money
+  option_days: 'Within', // alias for option_period_days
+  title_company_name: 'insurance Title Policy issued by', // alias for title_company
 };
