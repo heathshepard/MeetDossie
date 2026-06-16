@@ -64,8 +64,8 @@ const TREC_FIXTURE_LEASES_B64 = require('./_assets/trec-fixture-leases-base64.js
 const TREC_LOAN_ASSUMPTION_B64 = require('./_assets/trec-loan-assumption-base64.js');
 const TREC_IMPROVEMENT_DISTRICT_B64 = require('./_assets/trec-improvement-district-base64.js');
 
-// DocuSeal-based field map for resale contract
-const FIELD_MAP_DOCUSEAL = require('./_assets/field-map-resale-docuseal.js');
+// AcroForm-based field map for resale contract (semantics → PDF field names)
+const FIELD_MAP_RESALE_ACROFORM = require('./_assets/field-map-resale-acroform.js');
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -505,149 +505,55 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
 //   4. If no: leave blank (no auto-defaults, no guesses)
 // This ensures ALL 176 fields are available to fill, not just the ones we hand-picked.
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// FIELD TRANSLATION LAYER
-// Translate canonical field names from extract-form-fields.js to DocuSeal names.
-// extract-form-fields emits: sale_price, earnest_money, option_days, title_company
-// DocuSeal template expects: sales_price, earnest_money_amount, option_period_days, title_company_name
-// ---------------------------------------------------------------------------
-function translateCanonicalToDocuSeal(fieldValues) {
-  const docusealFields = { ...fieldValues };
-
-  // Special case translations
-  const translations = {
-    'sale_price': 'sales_price',
-    'earnest_money': 'earnest_money_amount',
-    'option_days': 'option_period_days',
-    'title_company': 'title_company_name',
-  };
-
-  for (const [canonical, docuseal] of Object.entries(translations)) {
-    if (canonical in fieldValues && fieldValues[canonical] != null && fieldValues[canonical] !== '') {
-      docusealFields[docuseal] = fieldValues[canonical];
-      delete docusealFields[canonical];
-    }
-  }
-
-  // If title_company is present, also fill escrow_agent_name with the same value
-  if ('title_company_name' in docusealFields && docusealFields.title_company_name) {
-    docusealFields['escrow_agent_name'] = docusealFields['title_company_name'];
-  }
-
-  return docusealFields;
-}
-// F4a calibration: per-field x-axis offsets (in points)
-const X_OVERRIDES = {
-  'seller_name': 10,  // placeholder — Heath will tune
-};
 
 async function fillResaleContractDocuSeal(pdfDoc, fv) {
-  const { PDFPage, StandardFonts } = require('pdf-lib');
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  // Apply field translation layer
-  const translatedFv = translateCanonicalToDocuSeal(fv);
-
-  // Helper: draw text on page at normalized coordinates
-  function drawTextOnPage(page, fieldName, value) {
-    if (!value || value === '') return;
-
-    const coord = FIELD_MAP_DOCUSEAL[fieldName];
-    if (!coord) {
-      console.warn(`Field ${fieldName} has no coordinate mapping, skipping`);
-      return;
-    }
-
-    const pageHeight = page.getHeight();
-    const pageWidth = page.getWidth();
-
-    // F4a calibration formula (2026-06-16)
-    // Shifts fields +5pt right, +3pt up from baseline
-    const fontSize = 10;
-    const xOverride = X_OVERRIDES[fieldName] || 0;
-    const x = (coord.x * pageWidth) + 5 + xOverride;
-    const y_from_bottom = pageHeight - ((coord.y + coord.h / 2) * pageHeight) - fontSize / 4 + 3;
-
-    page.drawText(String(value), { x, y: y_from_bottom,
-      size: fontSize,
-      color: require('pdf-lib').rgb(0, 0, 0),
-      font: helvetica,
-    });
-  }
-
-  // Helper: draw checkbox at coordinates
-  function drawCheckmark(page, fieldName) {
-    const coord = FIELD_MAP_DOCUSEAL[fieldName];
-    if (!coord) {
-      console.warn(`Checkbox field ${fieldName} has no coordinate mapping, skipping`);
-      return;
-    }
-
-    const pageHeight = page.getHeight();
-    const pageWidth = page.getWidth();
-
-    // F4a calibration formula for checkboxes
-    const fontSize = 10;
-    const xOverride = X_OVERRIDES[fieldName] || 0;
-    const x = (coord.x * pageWidth) + 5 + xOverride;
-    const y_from_bottom = pageHeight - ((coord.y + coord.h / 2) * pageHeight) - fontSize / 4 + 3;
-    const size = 10;
-
-    // Draw a simple X (unicode not supported in standard PDF fonts)
-    page.drawText('X', {
-      x: x - 1, y: y_from_bottom,
-      size,
-      color: require('pdf-lib').rgb(0, 0, 0),
-      font: helvetica,
-    });
-  }
-
-  const pages = pdfDoc.getPages();
+  const form = pdfDoc.getForm();
 
   // CRITICAL: Only fill fields that have explicit values in fv.
   // Do NOT invent defaults, do NOT auto-check boxes, do NOT guess.
-  // Iterate through ALL fields in the field map.
+  // Use the AcroForm field map: semantic name → actual PDF field name.
 
-  Object.entries(FIELD_MAP_DOCUSEAL).forEach(([fieldName, coord]) => {
-    const pageIndex = coord.page;
-    const page = pages[pageIndex];
+  for (const [semanticName, acroformName] of Object.entries(FIELD_MAP_RESALE_ACROFORM)) {
+    const value = fv[semanticName];
 
-    if (!page) {
-      // Page doesn't exist in PDF, skip this field
-      return;
-    }
+    // Skip empty values
+    if (value === undefined || value === null || value === '') continue;
 
-    // Get the value from fv
-    const value = translatedFv[fieldName];
-
-    if (!value && value !== 0 && value !== false) {
-      // No value provided, leave field blank
-      return;
-    }
-
-    // Handle formatting for specific field types
-    let displayValue = value;
-    if (fieldName.includes('money') || fieldName.includes('amount') || fieldName.includes('price') || fieldName.includes('payment')) {
-      // Currency fields: format as money
-      displayValue = formatMoney(value);
-    } else if (fieldName.includes('date')) {
-      // Date fields: format date
-      displayValue = formatDate(value);
-    } else if (fieldName.includes('days') || fieldName.includes('period')) {
-      // Day fields: keep as-is (likely numeric)
-      displayValue = String(value).trim();
-    }
-
-    // Draw field based on type
-    if (coord.type === 'checkbox') {
-      // Checkbox: only mark if value is explicitly true
-      if (value === true || value === 'true' || value === 1 || value === '1' || value === 'yes' || value === 'Yes') {
-        drawCheckmark(page, fieldName);
+    try {
+      const field = form.getField(acroformName);
+      if (!field) {
+        console.warn(`[fill-form] AcroForm field not found: ${acroformName} (semantic: ${semanticName})`);
+        continue;
       }
-    } else {
-      // Text field (including date, text, initials, etc.)
-      drawTextOnPage(page, fieldName, displayValue);
+
+      // Determine field type by inspecting the field constructor
+      const fieldType = field.constructor.name;
+
+      if (fieldType === 'PDFCheckBox') {
+        // Checkbox: only check if value is explicitly true
+        if (value === true || value === 'true' || value === 1 || value === '1' || value === 'yes' || value === 'Yes') {
+          field.check();
+        }
+        // else: leave unchecked (never auto-uncheck)
+      } else if (fieldType === 'PDFTextField') {
+        // Text field: format based on semantic name, then fill
+        let displayValue = String(value);
+
+        if (semanticName.includes('money') || semanticName.includes('amount') || semanticName.includes('price') || semanticName.includes('payment')) {
+          displayValue = formatMoney(value);
+        } else if (semanticName.includes('date')) {
+          displayValue = formatDate(value);
+        }
+
+        field.setText(displayValue);
+      } else {
+        // Signature or other field type: store as text
+        field.setText(String(value));
+      }
+    } catch (e) {
+      console.warn(`[fill-form] Could not fill ${semanticName} → ${acroformName}:`, e.message);
     }
-  });
+  }
 
   return pdfDoc;
 }
