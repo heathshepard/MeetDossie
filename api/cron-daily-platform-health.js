@@ -11,7 +11,9 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+// Health alerts route through Claudy bot (TELEGRAM_BOT_TOKEN) so Cole's plugin sees them.
+// Approve/reject callbacks for individual posts still use TELEGRAM_MARKETING_BOT_TOKEN elsewhere.
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'];
@@ -34,13 +36,16 @@ async function supabaseFetch(path, init = {}) {
 
 async function sendTelegram(text) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  // Label the message so Heath (and Cole) recognize that the alert originates
+  // from the marketing-bot health system even though it's delivered via Claudy.
+  const labeled = `📊 <b>DossieMarketingBot — Platform Health</b>\n\n${text}`;
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: TELEGRAM_CHAT_ID,
-        text,
+        text: labeled,
         parse_mode: 'HTML',
         disable_web_page_preview: true,
       }),
