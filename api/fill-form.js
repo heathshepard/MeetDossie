@@ -64,6 +64,9 @@ const TREC_FIXTURE_LEASES_B64 = require('./_assets/trec-fixture-leases-base64.js
 const TREC_LOAN_ASSUMPTION_B64 = require('./_assets/trec-loan-assumption-base64.js');
 const TREC_IMPROVEMENT_DISTRICT_B64 = require('./_assets/trec-improvement-district-base64.js');
 
+// DocuSeal-based field map for resale contract
+const FIELD_MAP_DOCUSEAL = require('./_assets/field-map-resale-docuseal.js');
+
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
   'https://www.meetdossie.com',
@@ -492,10 +495,129 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
 }
 
 // ---------------------------------------------------------------------------
+// RESALE CONTRACT via DOCUSEAL SCHEMA (NEW)
+// Uses DocuSeal template 4018208 field map as single source of truth.
+// Only fills fields with explicit values from extract-form-fields.
+// No auto-defaults on checkboxes. No wrong-default bugs.
+// ---------------------------------------------------------------------------
+async function fillResaleContractDocuSeal(pdfDoc, fv) {
+  const { PDFPage } = require('pdf-lib');
+
+  // Helper: draw text on page at normalized coordinates
+  function drawTextOnPage(page, fieldName, value) {
+    if (!value || value === '') return;
+
+    const coord = FIELD_MAP_DOCUSEAL[fieldName];
+    if (!coord) {
+      console.warn(`Field ${fieldName} has no coordinate mapping, skipping`);
+      return;
+    }
+
+    const pageHeight = page.getHeight();
+    const pageWidth = page.getWidth();
+
+    // Convert normalized coordinates (0-1) to PDF points
+    const x = coord.x * pageWidth;
+    const y = pageHeight - (coord.y * pageHeight); // PDF Y is bottom-up
+    const fontSize = 10;
+
+    page.drawText(String(value), {
+      x,
+      y,
+      size: fontSize,
+      color: require('pdf-lib').rgb(0, 0, 0),
+      font: page.doc.embedFont(require('pdf-lib').StandardFonts.Helvetica),
+    });
+  }
+
+  // Helper: draw checkbox at coordinates
+  function drawCheckmark(page, fieldName) {
+    const coord = FIELD_MAP_DOCUSEAL[fieldName];
+    if (!coord) {
+      console.warn(`Checkbox field ${fieldName} has no coordinate mapping, skipping`);
+      return;
+    }
+
+    const pageHeight = page.getHeight();
+    const pageWidth = page.getWidth();
+
+    const x = coord.x * pageWidth;
+    const y = pageHeight - (coord.y * pageHeight);
+    const size = 8;
+
+    // Draw a simple ✓ checkmark
+    page.drawText('✓', {
+      x: x - 2,
+      y: y - 3,
+      size,
+      color: require('pdf-lib').rgb(0, 0, 0),
+      font: page.doc.embedFont(require('pdf-lib').StandardFonts.Helvetica),
+    });
+  }
+
+  const pages = pdfDoc.getPages();
+
+  // CRITICAL: Only fill fields that have explicit values in fv.
+  // Do NOT invent defaults, do NOT auto-check boxes, do NOT guess.
+
+  // PARTIES
+  if (pages[0]) {
+    if (fv.buyer_name) drawTextOnPage(pages[0], 'buyer_name', fv.buyer_name);
+    if (fv.seller_name) drawTextOnPage(pages[0], 'seller_name', fv.seller_name);
+  }
+
+  // PROPERTY
+  if (pages[0]) {
+    if (fv.property_address) drawTextOnPage(pages[0], 'property_address', fv.property_address);
+    if (fv.addition_city) drawTextOnPage(pages[0], 'addition_city', fv.addition_city);
+    if (fv.county) drawTextOnPage(pages[0], 'county', fv.county);
+    if (fv.legal_lot) drawTextOnPage(pages[0], 'legal_lot', fv.legal_lot);
+    if (fv.legal_block) drawTextOnPage(pages[0], 'legal_block', fv.legal_block);
+    if (fv.Legal_Description) drawTextOnPage(pages[0], 'Legal_Description', fv.Legal_Description);
+  }
+
+  // SALES PRICE
+  if (pages[0]) {
+    if (fv.down_payment) drawTextOnPage(pages[0], 'down_payment', formatMoney(fv.down_payment));
+    if (fv.loan_amount) drawTextOnPage(pages[0], 'loan_amount', formatMoney(fv.loan_amount));
+    if (fv.sales_price) drawTextOnPage(pages[0], 'sales_price', formatMoney(fv.sales_price));
+  }
+
+  // LEASES (only check if explicitly true)
+  if (pages[0]) {
+    if (fv.has_residential_leases === true) drawCheckmark(pages[0], 'has_residential_leases');
+    if (fv.has_fixture_leases === true) drawCheckmark(pages[0], 'has_fixture_leases');
+    if (fv.has_natural_resource_leases === true) drawCheckmark(pages[0], 'has_natural_resource_leases');
+  }
+
+  // EARNEST MONEY (page 1 = index 1)
+  if (pages[1]) {
+    if (fv.earnest_money_amount) drawTextOnPage(pages[1], 'earnest_money_amount', formatMoney(fv.earnest_money_amount));
+    if (fv.option_fee) drawTextOnPage(pages[1], 'option_fee', formatMoney(fv.option_fee));
+    if (fv.option_period_days) drawTextOnPage(pages[1], 'option_period_days', fv.option_period_days);
+  }
+
+  // FINANCING (page 1)
+  if (pages[1]) {
+    if (fv.title_company_name) drawTextOnPage(pages[1], 'title_company_name', fv.title_company_name);
+    if (fv.escrow_agent_name) drawTextOnPage(pages[1], 'escrow_agent_name', fv.escrow_agent_name);
+  }
+
+  // CLOSING DATE (page 4 = index 4)
+  if (pages[4] && fv.closing_date) {
+    drawTextOnPage(pages[4], 'closing_date', formatDate(fv.closing_date));
+  }
+
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
 // RESALE CONTRACT (TREC 20-18) — 263 AcroForm fields (mandatory since 01/03/2025)
 // Field map source: scripts/trec-20-18-field-map-readable.txt (all 263 fields with
 // page + x/y coordinates). Legal content source: Shepard-Ventures/Legal/TREC-20-18-
 // Field-Dictionary.md (Hadley, 2026-05-29). Complete rebuild 2026-05-29.
+// NOTE: This function is superseded by fillResaleContractDocuSeal for new flow.
+// Kept for backward compatibility with non-resale forms.
 // ---------------------------------------------------------------------------
 async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
@@ -2898,7 +3020,7 @@ async function fillForm(formType, fieldValues) {
   const fv = fieldValues || {};
 
   switch (formType) {
-    case 'resale-contract':       await fillResaleContract(pdfDoc, fv); break;
+    case 'resale-contract':       await fillResaleContractDocuSeal(pdfDoc, fv); break;
     case 'financing-addendum':    await fillFinancingAddendum(pdfDoc, fv); break;
     case 'termination-notice':    await fillTerminationNotice(pdfDoc, fv); break;
     case 'wire-fraud-warning':    await fillWireFraudWarning(pdfDoc, fv); break;
