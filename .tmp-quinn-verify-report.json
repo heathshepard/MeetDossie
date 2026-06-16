@@ -1,0 +1,356 @@
+[
+  {
+    "name": "TREC 20-17 resale",
+    "formType": "resale-contract",
+    "downloaded": true,
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs\\resale-contract.pdf",
+    "pdfSize": 373243,
+    "pages": 11,
+    "textLen": 44229,
+    "textPreview": "=== PAGE 1 (4694 chars) === Initialed for identification by Buyer and Seller TREC NO. 20-17 Contract Concerning Page of 11 11-07-2022 (Address of Property) PROMULGATED BY THE TEXAS REAL ESTATE COMMISSION (TREC) ONE TO FOUR FAMILY RESIDENTIAL CONTRACT (RESALE) NOTICE: Not For Use For Condominium Transactions 1. PARTIES: The parties to this contract are (Seller) and (Buyer). Seller agrees to sell and convey to Buyer and Buyer agrees to buy from Seller the Property defined below. 2. PROPERTY: The land, improvements and accessories are collectively referred to as the Property (Property). A. LAND: Lot Block , Addition, City of , County of , Texas, known as (address/zip code), or as described on attached exhibit. B. IMPROVEMENTS: The house, garage and all other fixtures and improvements attache",
+    "fieldsTotal": 12,
+    "fieldsFound": 10,
+    "checks": [
+      {
+        "field": "buyer_name",
+        "value": "Jane Doe",
+        "found": true
+      },
+      {
+        "field": "seller_name",
+        "value": "John Smith",
+        "found": true
+      },
+      {
+        "field": "property_address",
+        "value": "1247 Sample Way",
+        "found": true
+      },
+      {
+        "field": "city_state_zip",
+        "value": "San Antonio, TX 78209",
+        "found": false
+      },
+      {
+        "field": "sale_price",
+        "value": "400000",
+        "found": true
+      },
+      {
+        "field": "earnest_money",
+        "value": "5000",
+        "found": true
+      },
+      {
+        "field": "option_fee",
+        "value": "250",
+        "found": true
+      },
+      {
+        "field": "option_days",
+        "value": "7",
+        "found": true
+      },
+      {
+        "field": "closing_date",
+        "value": "2026-07-15",
+        "found": false
+      },
+      {
+        "field": "loan_amount",
+        "value": "320000",
+        "found": true
+      },
+      {
+        "field": "down_payment_amt",
+        "value": "80000",
+        "found": true
+      },
+      {
+        "field": "title_company",
+        "value": "Stewart Title",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 40-11 financing",
+    "formType": "financing-addendum",
+    "downloaded": true,
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs\\financing-addendum.pdf",
+    "pdfSize": 545034,
+    "pages": 2,
+    "textLen": 9354,
+    "textPreview": "=== PAGE 1 (3917 chars) === TREC NO. 40 - 11 11 - 04 - 2024 Page 2 of 2 (Street Address and City) EQUAL HOUSING OPPORTUNITY Initialed for identification by Buyer and Seller 1. TYPE OF FINANCING AND DUTY TO APPLY AND OBTAIN APPROVAL: Buyer shall apply promptly for all financing described below and make every reasonable effort to obtain approval for the financing, including but not limited to furnishing all information and documents required by Buyer’s lender. (Check applicable boxes): q A. CONVENTIONAL FINANCING: q (1) A first mortgage loan in the principal amount of $ (excluding any financed PMI premium), due in full in year(s), with interest not to exceed % per annum for the first year(s) of the loan with Origination Charges as shown on Buyer’s Loan Estimate for the loan not to exceed %",
+    "fieldsTotal": 4,
+    "fieldsFound": 3,
+    "checks": [
+      {
+        "field": "buyer_name",
+        "value": "Jane Doe",
+        "found": false
+      },
+      {
+        "field": "property_address",
+        "value": "1247 Sample Way",
+        "found": true
+      },
+      {
+        "field": "city_state_zip",
+        "value": "San Antonio, TX 78209",
+        "found": true
+      },
+      {
+        "field": "loan_amount",
+        "value": "320000",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 38-7 termination",
+    "formType": "termination-notice",
+    "downloaded": true,
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs\\termination-notice.pdf",
+    "pdfSize": 95358,
+    "pages": 1,
+    "textLen": 2691,
+    "textPreview": "=== PAGE 1 (2661 chars) === TREC No. 38-7 02-19-2021 Buyer notifies Seller that the contract is terminated pursuant to the following:  (1) The unrestricted right of Buyer to terminate the contract under Paragraph 5 of the contract.  (2) Buyer cannot obtain Buyer Approval in accordance with the Third Party Financing Addendum to the contract.  (3) The Property does not satisfy Property Approval in accordance with the Third Party Financing Addendum to the contract. Buyer has delivered to Seller lender’s written statement setting forth the reason(s) for lender’s determination.  (4) Buyer elects to terminate under Paragraph A of the Addendum for Property Subject to Mandatory Membership in a Property Owners' Association.  (5) Buyer elects to terminate under Paragraph 7B(2) of the contract",
+    "fieldsTotal": 6,
+    "fieldsFound": 6,
+    "checks": [
+      {
+        "field": "buyer_name",
+        "value": "Kim Paqueo",
+        "found": true
+      },
+      {
+        "field": "seller_name",
+        "value": "Melinda Sanchez",
+        "found": true
+      },
+      {
+        "field": "property_address",
+        "value": "311 Rilla Vista",
+        "found": true
+      },
+      {
+        "field": "city_state_zip",
+        "value": "San Antonio, TX 78216",
+        "found": true
+      },
+      {
+        "field": "termination_reason",
+        "value": "Buyer terminates pursuant to Paragraph 23 unrestricted right",
+        "found": true
+      },
+      {
+        "field": "contract_effective_date",
+        "value": "2026-05-15",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 23-20 new-home-incomplete",
+    "formType": "new-home-incomplete",
+    "downloaded": true,
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs\\new-home-incomplete.pdf",
+    "pdfSize": 965895,
+    "pages": 11,
+    "textLen": 48041,
+    "textPreview": "=== PAGE 1 (5716 chars) === TREC NO. 23 - 20 Contract Concerning Page of 11 05 - 04 - 2026 (Address of Property) Initialed for identification by Buyer and Seller PROMULGATED BY THE TEXAS REAL ESTATE COMMISSION (TREC) NEW HOME CONTRACT (Incomplete Construction) NOTICE: Not For Use For Condominium Transactions or Closings Prior to Completion of Construction EQUAL HOUSING OPPORTUNITY 1.PARTIES: The parties to this contract are (Seller) and (Buyer). Seller agrees to sell and convey to Buyer and Buyer agrees to buy from Seller the Property defined below. 2.PROPERTY: Lot ,Block , Addition, City of ,County of Texas, known as (address/zip code), or as described on attached exhibit, together with: (i) improvements, fixtures and all other property described in the Construction Documents; and (ii) a",
+    "fieldsTotal": 11,
+    "fieldsFound": 10,
+    "checks": [
+      {
+        "field": "buyer_name",
+        "value": "Brian and Cassie Nguyen",
+        "found": true
+      },
+      {
+        "field": "seller_name",
+        "value": "Sunshine Builders LLC",
+        "found": true
+      },
+      {
+        "field": "property_address",
+        "value": "456 Builder Blvd",
+        "found": true
+      },
+      {
+        "field": "city_state_zip",
+        "value": "Boerne, TX 78006",
+        "found": false
+      },
+      {
+        "field": "sale_price",
+        "value": "525000",
+        "found": true
+      },
+      {
+        "field": "earnest_money",
+        "value": "7500",
+        "found": true
+      },
+      {
+        "field": "option_fee",
+        "value": "300",
+        "found": true
+      },
+      {
+        "field": "option_days",
+        "value": "10",
+        "found": true
+      },
+      {
+        "field": "closing_date",
+        "value": "2026-09-30",
+        "found": true
+      },
+      {
+        "field": "loan_amount",
+        "value": "420000",
+        "found": true
+      },
+      {
+        "field": "down_payment_amt",
+        "value": "105000",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 24-20 new-home-complete",
+    "formType": "new-home-complete",
+    "downloaded": true,
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs\\new-home-complete.pdf",
+    "pdfSize": 920364,
+    "pages": 11,
+    "textLen": 49411,
+    "textPreview": "=== PAGE 1 (5327 chars) === TREC NO. 24 - 20 Contract Concerning Page of 11 05 - 04 - 2026 (Address of Property) Initialed for identification by Buyer and Seller PROMULGATED BY THE TEXAS REAL ESTATE COMMISSION (TREC) NEW HOME CONTRACT (Completed Construction) NOTICE: Not For Use For Condominium Transactions or Closings Prior to Completion of Construction EQUAL HOUSING OPPORTUNITY 1. PARTIES: The parties to this contract are (Seller) and (Buyer). Seller agrees to sell and convey to Buyer and Buyer agrees to buy from Seller the Property defined below. 2. PROPERTY: Lot ,Block , Addition, City of ,County of , Texas, known as (address/zip code), or as described on attached exhibit, together with: (i) improvements, fixtures and all other property located thereon; and (ii) all rights, privileges",
+    "fieldsTotal": 11,
+    "fieldsFound": 5,
+    "checks": [
+      {
+        "field": "buyer_name",
+        "value": "Mark and Deborah Castillo",
+        "found": true
+      },
+      {
+        "field": "seller_name",
+        "value": "Hill Country Homes Inc.",
+        "found": true
+      },
+      {
+        "field": "property_address",
+        "value": "789 Ranch Rd",
+        "found": false
+      },
+      {
+        "field": "city_state_zip",
+        "value": "Boerne, TX 78006",
+        "found": false
+      },
+      {
+        "field": "sale_price",
+        "value": "625000",
+        "found": false
+      },
+      {
+        "field": "earnest_money",
+        "value": "10000",
+        "found": false
+      },
+      {
+        "field": "option_fee",
+        "value": "500",
+        "found": false
+      },
+      {
+        "field": "option_days",
+        "value": "7",
+        "found": true
+      },
+      {
+        "field": "closing_date",
+        "value": "2026-08-15",
+        "found": true
+      },
+      {
+        "field": "loan_amount",
+        "value": "500000",
+        "found": false
+      },
+      {
+        "field": "builder_name",
+        "value": "Hill Country Homes Inc.",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 25-17 farm-and-ranch",
+    "formType": "farm-ranch",
+    "downloaded": true,
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs\\farm-ranch.pdf",
+    "pdfSize": 971768,
+    "pages": 12,
+    "textLen": 55147,
+    "textPreview": "=== PAGE 1 (6058 chars) === TREC NO. 25 - 17 Contract Concerning Page 1 of 12 05 - 04 - 2026 (Address of Property) Initialed for identification by Buyer and Seller EQUAL HOUSING OPPORTUNITY PROMULGATED BY THE TEXAS REAL ESTATE COMMISSION (TREC) FARM AND RANCH CONTRACT NOTICE: Designed For Use In Sales Of Existing Farms Or Ranches Of Any Size. Not For Use In Complex Transactions. 1. PARTIES: The parties to this contract are (Seller) and (Buyer). Seller agrees to sell and convey to Buyer and Buyer agrees to buy from Seller the Property defined below. 2. PROPERTY: The land, improvements, accessories and crops except for the exclusions and reservations, are collectively referred to as the Property (Property). A. LAND: The land situated in the County (or Counties) of , Texas, described as foll",
+    "fieldsTotal": 10,
+    "fieldsFound": 4,
+    "checks": [
+      {
+        "field": "buyer_name",
+        "value": "Kevin and Tamara Holt",
+        "found": true
+      },
+      {
+        "field": "seller_name",
+        "value": "Texas Land Holdings LLC",
+        "found": true
+      },
+      {
+        "field": "property_address",
+        "value": "5402 Sample Park",
+        "found": false
+      },
+      {
+        "field": "city_state_zip",
+        "value": "Comfort, TX 78013",
+        "found": false
+      },
+      {
+        "field": "sale_price",
+        "value": "850000",
+        "found": false
+      },
+      {
+        "field": "earnest_money",
+        "value": "15000",
+        "found": false
+      },
+      {
+        "field": "option_fee",
+        "value": "750",
+        "found": false
+      },
+      {
+        "field": "option_days",
+        "value": "14",
+        "found": true
+      },
+      {
+        "field": "closing_date",
+        "value": "2026-10-01",
+        "found": true
+      },
+      {
+        "field": "land_acreage",
+        "value": "47.5",
+        "found": false
+      }
+    ]
+  }
+]

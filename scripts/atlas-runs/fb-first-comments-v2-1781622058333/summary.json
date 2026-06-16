@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "id": "49c536df-4f52-406e-b8e4-f8e81b9cf8fe",
+      "registryId": "9ff8be90-f53d-4ae9-8cf1-397f221f2a83",
+      "label": "all-about-real-estate-houston-49c536df",
+      "groupName": "All about Real Estate Houston",
+      "groupUrl": "https://www.facebook.com/groups/1649764785300053/",
+      "category": "texas_agent_networking",
+      "needle": "buyer's agent call my client last week",
+      "commentBody": "For me - Dossie pings me on every pending document so nothing sits in my inbox longer than I realize. I get a morning brief each day on what actually needs attention, which sounds simple but it's been huge for staying visible to my clients when things are moving.",
+      "lastBlitzedAt": null,
+      "outcome": "unknown"
+    },
+    {
+      "id": "95a0aa5a-b25c-4209-8536-95760a1b768d",
+      "registryId": "1eb59842-040a-492f-b655-4186458b1dc2",
+      "label": "real-estate-in-austin-tx-95a0aa5a",
+      "groupName": "Real Estate in Austin TX",
+      "groupUrl": "https://www.facebook.com/groups/372807789483649/",
+      "category": "texas_agent_networking",
+      "needle": "for the Texas agent crew - How",
+      "commentBody": "Love the replies - really interesting spread. I built Dossie because I was stuck in the B and C camp for way too long. It auto-calculates every TREC deadline from your contract date, which sounds simple until you realize you've been manually tracking them and definitely missed one.",
+      "lastBlitzedAt": null,
+      "outcome": "unknown"
+    },
+    {
+      "id": "3368fd37-1062-4326-b44f-be3690e7ca29",
+      "registryId": "ba4edfc6-36f4-4e44-9af6-61417704f10d",
+      "label": "boerne-real-estate-3368fd37",
+      "groupName": "Boerne Real Estate",
+      "groupUrl": "https://www.facebook.com/groups/236047010341691/",
+      "category": "hyperlocal",
+      "needle": "noticing buyer's agents getting a lot bolder",
+      "commentBody": "Been tracking patterns across my closed deals more carefully lately - Dossie maps every transaction to a pipeline view so I can actually see what's working and what isn't. Makes it way easier to spot when the market's shifting under your feet instead of just feeling it happen.",
+      "lastBlitzedAt": null,
+      "outcome": "unknown"
+    }
+  ]
+}
