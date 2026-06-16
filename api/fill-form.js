@@ -1,4 +1,4 @@
-ï»¿// Vercel Serverless Function: /api/fill-form
+// Vercel Serverless Function: /api/fill-form
 // Fills a TREC form PDF with field values and uploads to Supabase Storage.
 // PDF source: embedded base64 assets (same pattern as draft-amendment.js).
 // Field names verified against actual AcroForm field inspection of each PDF.
@@ -30,7 +30,7 @@ const DOCUSEAL_BASE = 'https://api.docuseal.com';
 // 22 fields: buyer/seller initials pages 1-8 + signatures page 9
 const DOCUSEAL_TREC_20_19_TEMPLATE_ID = Number(process.env.DOCUSEAL_TREC_20_19_TEMPLATE_ID) || 4111319;
 
-// Module-scope requires â€” loaded at cold-start, not per-request.
+// Module-scope requires — loaded at cold-start, not per-request.
 // Prevents 500 errors on first request to a cold Vercel instance.
 const TREC_RESALE_B64 = require('./_assets/trec-resale-20-19-base64.js');
 const TREC_FINANCING_B64 = require('./_assets/trec-financing-base64.js');
@@ -102,14 +102,14 @@ const FORM_CONFIGS = {
     getBase64: () => TAR_WIRE_FRAUD_B64,
     documentType: 'wire_fraud_warning',
   },
-  // Block 9B â€” HOA Addendum (TREC 36-10)
+  // Block 9B — HOA Addendum (TREC 36-10)
   'hoa-addendum': {
     name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-10)',
     shortName: 'TREC-HOA-Addendum',
     getBase64: () => TREC_HOA_ADDENDUM_B64,
     documentType: 'hoa_addendum',
   },
-  // Block 9C â€” Lead-Based Paint Addendum (OP-L)
+  // Block 9C — Lead-Based Paint Addendum (OP-L)
   'lead-paint-addendum': {
     name: 'Addendum for Sellers Disclosure of Information on Lead-Based Paint',
     shortName: 'OP-L-Lead-Paint',
@@ -130,7 +130,7 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_39_10_B64,
     documentType: 'amendment',
   },
-  // Block 9E â€” Buyer Representation Agreement (TAR 1501)
+  // Block 9E — Buyer Representation Agreement (TAR 1501)
   // NOTE: Replace api/_assets/tar-buyer-rep-base64.js with the real TAR 1501 PDF.
   'buyer-rep-agreement': {
     name: 'Residential Buyer Representation Agreement (TAR 1501)',
@@ -138,7 +138,7 @@ const FORM_CONFIGS = {
     getBase64: () => TAR_BUYER_REP_B64,
     documentType: 'buyer_rep_agreement',
   },
-  // Block 10 â€” TREC 49-1 Appraisal Termination
+  // Block 10 — TREC 49-1 Appraisal Termination
   // NOTE: Replace api/_assets/trec-49-1-base64.js with the real TREC 49-1 PDF.
   'appraisal-termination': {
     name: 'Right to Terminate Due to Lenders Appraisal (TREC 49-1)',
@@ -146,7 +146,7 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_49_1_B64,
     documentType: 'appraisal_termination',
   },
-  // Block 12 â€” T-47 Affidavit
+  // Block 12 — T-47 Affidavit
   // NOTE: Replace api/_assets/t47-affidavit-base64.js with the real T-47 PDF.
   't47-affidavit': {
     name: 'T-47 Residential Real Property Affidavit',
@@ -154,7 +154,7 @@ const FORM_CONFIGS = {
     getBase64: () => T47_AFFIDAVIT_B64,
     documentType: 't47_affidavit',
   },
-  // TREC 9-17 â€” Unimproved Property Contract (land purchase)
+  // TREC 9-17 — Unimproved Property Contract (land purchase)
   // PDF has 270 AcroForm fields. Field names verified against AcroForm inspection of 9-17.pdf.
   'unimproved-property': {
     name: 'Unimproved Property Contract (TREC 9-17)',
@@ -162,8 +162,8 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_UNIMPROVED_PROPERTY_B64,
     documentType: 'unimproved_property_contract',
   },
-  // TREC 23-18 â€” New Home Contract (Incomplete Construction)
-  // PDF has AcroForm dict but 0 named fields â€” flat PDF, no AcroForm widget names.
+  // TREC 23-18 — New Home Contract (Incomplete Construction)
+  // PDF has AcroForm dict but 0 named fields — flat PDF, no AcroForm widget names.
   // Handler fills what it can; layout-based text overlay not implemented yet.
   'new-home-incomplete': {
     name: 'New Home Contract - Incomplete Construction (TREC 23-18)',
@@ -171,8 +171,8 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_NEW_HOME_INCOMPLETE_B64,
     documentType: 'new_home_contract_incomplete',
   },
-  // TREC 24-18 â€” New Home Contract (Completed Construction)
-  // PDF has AcroForm dict but 0 named fields â€” flat PDF, no AcroForm widget names.
+  // TREC 24-18 — New Home Contract (Completed Construction)
+  // PDF has AcroForm dict but 0 named fields — flat PDF, no AcroForm widget names.
   // Handler fills what it can; layout-based text overlay not implemented yet.
   'new-home-complete': {
     name: 'New Home Contract - Completed Construction (TREC 24-18)',
@@ -180,8 +180,8 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_NEW_HOME_COMPLETE_B64,
     documentType: 'new_home_contract_complete',
   },
-  // TREC 25-14 â€” Farm and Ranch Contract (land with improvements)
-  // PDF has AcroForm dict but 0 named fields â€” flat PDF, no AcroForm widget names.
+  // TREC 25-14 — Farm and Ranch Contract (land with improvements)
+  // PDF has AcroForm dict but 0 named fields — flat PDF, no AcroForm widget names.
   // Handler fills what it can via shared field names with TREC 9-17.
   'farm-ranch': {
     name: 'Farm and Ranch Contract (TREC 25-14)',
@@ -190,7 +190,7 @@ const FORM_CONFIGS = {
     documentType: 'farm_ranch_contract',
   },
   // ---------------------------------------------------------------------------
-  // PARAGRAPH 22 ADDENDA â€” field names verified against AcroForm inspection.
+  // PARAGRAPH 22 ADDENDA — field names verified against AcroForm inspection.
   // ---------------------------------------------------------------------------
   'seller-financing': {
     name: 'Seller Financing Addendum (TREC 26-8)',
@@ -426,7 +426,7 @@ function formatMoney(value) {
 }
 
 // ---------------------------------------------------------------------------
-// RESALE CONTRACT (TREC 20-18) â€” DocuSeal template path
+// RESALE CONTRACT (TREC 20-18) — DocuSeal template path
 // Creates a DocuSeal submission from template 4018208 with pre-filled values.
 // Returns { submissionId, signers: [{role, name, email, signingUrl}] }.
 // Template fields use semantic names we control (buyer_name, seller_name, etc.)
@@ -434,7 +434,7 @@ function formatMoney(value) {
 // ---------------------------------------------------------------------------
 async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName, sellerEmail) {
   if (!DOCUSEAL_API_KEY) {
-    throw new Error('DOCUSEAL_API_KEY not configured â€” cannot create DocuSeal submission for resale contract.');
+    throw new Error('DOCUSEAL_API_KEY not configured — cannot create DocuSeal submission for resale contract.');
   }
 
   const isFinanced = fv.loan_amount && Number(String(fv.loan_amount).replace(/[^0-9.]/g, '')) > 0;
@@ -450,7 +450,7 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
   // NOTE: DocuSeal template 4111319 currently only has signature/date/initial fields.
   // Prefilled data fields (buyer_name, property_address, etc.) do not exist in the template.
   // Phase 2 will add these fields to the template via the DocuSeal UI.
-  // For Phase 1, we submit without prefill fields â€” just signatures.
+  // For Phase 1, we submit without prefill fields — just signatures.
   const buyerFields = [];
   const sellerFields = [];
 
@@ -501,7 +501,8 @@ async function fillResaleContractDocuSeal(fv, buyerName, buyerEmail, sellerName,
 // No auto-defaults on checkboxes. No wrong-default bugs.
 // ---------------------------------------------------------------------------
 async function fillResaleContractDocuSeal(pdfDoc, fv) {
-  const { PDFPage } = require('pdf-lib');
+  const { PDFPage, StandardFonts } = require('pdf-lib');
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   // Helper: draw text on page at normalized coordinates
   function drawTextOnPage(page, fieldName, value) {
@@ -526,7 +527,7 @@ async function fillResaleContractDocuSeal(pdfDoc, fv) {
       y,
       size: fontSize,
       color: require('pdf-lib').rgb(0, 0, 0),
-      font: page.doc.embedFont(require('pdf-lib').StandardFonts.Helvetica),
+      font: helvetica,
     });
   }
 
@@ -545,13 +546,13 @@ async function fillResaleContractDocuSeal(pdfDoc, fv) {
     const y = pageHeight - (coord.y * pageHeight);
     const size = 8;
 
-    // Draw a simple âœ“ checkmark
-    page.drawText('âœ“', {
+    // Draw a simple ? checkmark
+    page.drawText('?', {
       x: x - 2,
       y: y - 3,
       size,
       color: require('pdf-lib').rgb(0, 0, 0),
-      font: page.doc.embedFont(require('pdf-lib').StandardFonts.Helvetica),
+      font: helvetica,
     });
   }
 
@@ -612,7 +613,7 @@ async function fillResaleContractDocuSeal(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// RESALE CONTRACT (TREC 20-18) â€” 263 AcroForm fields (mandatory since 01/03/2025)
+// RESALE CONTRACT (TREC 20-18) — 263 AcroForm fields (mandatory since 01/03/2025)
 // Field map source: scripts/trec-20-18-field-map-readable.txt (all 263 fields with
 // page + x/y coordinates). Legal content source: Shepard-Ventures/Legal/TREC-20-18-
 // Field-Dictionary.md (Hadley, 2026-05-29). Complete rebuild 2026-05-29.
@@ -622,7 +623,7 @@ async function fillResaleContractDocuSeal(pdfDoc, fv) {
 async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // SECTION 1 â€” PARTIES
+  // SECTION 1 — PARTIES
   // Page 1: The form text reads "The parties to this contract are ___ (Seller) and ___ (Buyer)"
   // However, the PDF field names are backwards:
   //   '1 PARTIES The parties to this contract are' = Seller blank (despite its name)
@@ -631,7 +632,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, '1 PARTIES The parties to this contract are', fv.seller_name || '');
   safeSetText(form, 'Seller and', fv.buyer_name || '');
 
-  // SECTION 2 â€” PROPERTY
+  // SECTION 2 — PROPERTY
   // Page 1 "Texas known as" (y=0.2392) = street address line
   // Page 9 "Address of Property" + Page 11 "Address of Property_2" = address repeats
   // Page 10 "Addr of Prop" = address repeat on broker info page
@@ -647,15 +648,15 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Contract Concerning_4', addr);
 
   // Section 2A legal description fields (Page 1)
-  // "A LAND Lot" (y=0.2131) = lot number (legal_lot column not in transactions â€” leave blank)
-  // "Block" (y=0.2115) = block number (legal_block column not in transactions â€” leave blank)
-  // "undefined" (y=0.2107) = lot number repeat field (AcroForm quirk â€” leave blank)
+  // "A LAND Lot" (y=0.2131) = lot number (legal_lot column not in transactions — leave blank)
+  // "Block" (y=0.2115) = block number (legal_block column not in transactions — leave blank)
+  // "undefined" (y=0.2107) = lot number repeat field (AcroForm quirk — leave blank)
   // "Addition City of" (y=0.2250) = subdivision/addition name (NOT city_state_zip)
   // "County of" (y=0.2258) = county name only (e.g. "Bexar")
-  // CRITICAL (2026-06-15): TREC 20-17 Â§2A has NO SEPARATE "City of ___" blank.
+  // CRITICAL (2026-06-15): TREC 20-17 §2A has NO SEPARATE "City of ___" blank.
   // The city is embedded in the full property_address that fills "Texas known as".
   // The "Addition City of" field is ONLY for the subdivision name; city fills via property_address.
-  // Do NOT try to fill property_city separately â€” no field exists. Quinn visual QA Round 5 confirmed.
+  // Do NOT try to fill property_city separately — no field exists. Quinn visual QA Round 5 confirmed.
   safeSetText(form, 'A LAND Lot', '');
   safeSetText(form, 'Block', '');
   safeSetText(form, 'undefined', '');
@@ -666,17 +667,17 @@ async function fillResaleContract(pdfDoc, fv) {
   // "be removed prior to delivery of possession" (Page 1 y=0.5082) = exclusions/items removed
   safeSetText(form, 'be removed prior to delivery of possession', fv.exclusions || fv.items_removed || '');
 
-  // SECTION 3 â€” SALES PRICE
+  // SECTION 3 — SALES PRICE
   // Coordinate map positions on Page 1:
-  //   "undefined_2"  y=0.5209 â€” Section 2 accessories area, NOT a sales price field; leave blank
-  //   "undefined_3"  y=0.5880 â€” 3A: buyer's cash down payment (purchase_price - loan_amount)
-  //   "undefined_4"  y=0.6508 â€” 3B: loan amount (sum of all financing)
-  //   "undefined_5"  y=0.6656 â€” 3C: total sales price (3A + 3B must equal 3C)
+  //   "undefined_2"  y=0.5209 — Section 2 accessories area, NOT a sales price field; leave blank
+  //   "undefined_3"  y=0.5880 — 3A: buyer's cash down payment (purchase_price - loan_amount)
+  //   "undefined_4"  y=0.6508 — 3B: loan amount (sum of all financing)
+  //   "undefined_5"  y=0.6656 — 3C: total sales price (3A + 3B must equal 3C)
   // Per Hadley: 3A is down payment ONLY, NOT closing costs. 3A + 3B = 3C exactly.
   const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
   if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
 
-  // 3A cash/down payment â€” accept both field names as aliases (2026-06-15)
+  // 3A cash/down payment — accept both field names as aliases (2026-06-15)
   // Callers may pass either down_payment_amt or cash_amount; both refer to the same blank
   const cashAmountToFill = fv.down_payment_amt != null && fv.down_payment_amt !== ''
     ? fv.down_payment_amt
@@ -688,7 +689,7 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // Section 3 option fee credit checkbox (Page 1 y=0.6309 and Page 6 y=0.6046/0.6050)
   // Per Hadley: "will not be credited" is the overwhelming TX default for sale price.
-  // Option fee itself IS credited per 2021 change â€” that is the Page 6 checkbox.
+  // Option fee itself IS credited per 2021 change — that is the Page 6 checkbox.
   if (fv.sale_price_credited === true) {
     safeCheck(form, 'will');
   } else {
@@ -701,15 +702,15 @@ async function fillResaleContract(pdfDoc, fv) {
   // "will not be credited to the Sales Price at closing Time is of the 1" = not credited (leave unchecked)
   safeCheck(form, 'will 1.1');
 
-  // SECTION 4 â€” LEASES
+  // SECTION 4 — LEASES
   // Coordinate-verified (2026-05-30) against actual AcroForm widget positions on Page 2:
-  //   "is"     x=0.7101 yâ‰ˆ0.78 = Section 4A: property IS subject to a residential lease
-  //   "is not" x=0.8160 yâ‰ˆ0.78 = Section 4A: property is NOT subject to a residential lease
-  //   "2Within" x=0.1242 yâ‰ˆ0.77 = Section 4C.1: seller has delivered NRL copies within ___ days
-  //   "3Within" x=0.1231 yâ‰ˆ0.78 = Section 4C.2: seller has NOT delivered NRL copies
+  //   "is"     x=0.7101 y˜0.78 = Section 4A: property IS subject to a residential lease
+  //   "is not" x=0.8160 y˜0.78 = Section 4A: property is NOT subject to a residential lease
+  //   "2Within" x=0.1242 y˜0.77 = Section 4C.1: seller has delivered NRL copies within ___ days
+  //   "3Within" x=0.1231 y˜0.78 = Section 4C.2: seller has NOT delivered NRL copies
   //
   // NOTE: "is" and "is not" were previously (incorrectly) checked based on hoa_exists. The HOA
-  // Section 2 disclosure in TREC 20-18 has no AcroForm checkbox â€” it uses only a text field.
+  // Section 2 disclosure in TREC 20-18 has no AcroForm checkbox — it uses only a text field.
   // Checking "is" for HOA was checking Section 4A, making it appear that the property has a
   // residential lease on every HOA transaction. Fixed 2026-05-30.
   //
@@ -730,17 +731,17 @@ async function fillResaleContract(pdfDoc, fv) {
     }
   }
 
-  // SECTION 5A â€” EARNEST MONEY
+  // SECTION 5A — EARNEST MONEY
   // Page 2 coordinate map (verified 2026-05-30 against actual widget annotations):
-  //   "undefined_6"          nx=0.249 ny=0.111 â€” Section 5A earnest delivery days (3 calendar days TX standard)
-  //   "other party in..."    nx=0.659 ny=0.111 â€” Section 8A license holder disclosure name; leave blank
-  //   "as earnest money to"  nx=0.478 ny=0.124 â€” Section 5A earnest money DOLLAR amount
-  //   "as earnest money to 2" nx=0.798 ny=0.124 â€” Section 5B option fee DOLLAR amount
-  //   "earnest money of"     nx=0.558 ny=0.164 â€” additional earnest money amount
-  //   "to escrow agent within" nx=0.154 ny=0.179 â€” Section 5A earnest delivery days (alternate field)
+  //   "undefined_6"          nx=0.249 ny=0.111 — Section 5A earnest delivery days (3 calendar days TX standard)
+  //   "other party in..."    nx=0.659 ny=0.111 — Section 8A license holder disclosure name; leave blank
+  //   "as earnest money to"  nx=0.478 ny=0.124 — Section 5A earnest money DOLLAR amount
+  //   "as earnest money to 2" nx=0.798 ny=0.124 — Section 5B option fee DOLLAR amount
+  //   "earnest money of"     nx=0.558 ny=0.164 — additional earnest money amount
+  //   "to escrow agent within" nx=0.154 ny=0.179 — Section 5A earnest delivery days (alternate field)
   //
   // Page 1:
-  //   "to escrow agent within 1" x=0.5505 y=0.9123 â€” earnest delivery days on page 1 footer
+  //   "to escrow agent within 1" x=0.5505 y=0.9123 — earnest delivery days on page 1 footer
   //
   // Per Hadley: earnest money goes to escrow agent (title company). 3 days is TX standard.
   const earnestDays = fv.earnest_delivery_days != null && fv.earnest_delivery_days !== '' ? String(fv.earnest_delivery_days) : '';
@@ -750,22 +751,22 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'as earnest money to', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
   safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
-  // NOTE: "Earnest Money in the form of" is a Page 11 receipts field filled by escrow agent â€” do not pre-fill.
+  // NOTE: "Earnest Money in the form of" is a Page 11 receipts field filled by escrow agent — do not pre-fill.
 
-  // SECTION 5A â€” ESCROW AGENT NAME (undefined_7 visual position confirmed Round 8 + 11)
-  // undefined_7 is NOT for option_period_days. It's the escrow agent name field in Â§5A.
+  // SECTION 5A — ESCROW AGENT NAME (undefined_7 visual position confirmed Round 8 + 11)
+  // undefined_7 is NOT for option_period_days. It's the escrow agent name field in §5A.
   // Round 8 identified this after visual QA found "10" landing in the wrong spot.
   safeSetText(form, 'undefined_7', fv.escrow_agent || fv.title_company || '');
-  // Â§5B option_period_days â€” DEFERRED (no AcroForm field; pdf-lib coord overlay offsets wrong on this PDF).
+  // §5B option_period_days — DEFERRED (no AcroForm field; pdf-lib coord overlay offsets wrong on this PDF).
 
   // "Seller or Listing Broker" (Page 11 y=0.1668) = option fee receipt "Seller or Listing Broker" line
   // Per Hadley (post-Apr 2021): option fee goes to ESCROW AGENT (title company), not seller.
-  // This field is the receipts section on Page 11 â€” leave blank (title company fills at receipt).
+  // This field is the receipts section on Page 11 — leave blank (title company fills at receipt).
   // However current usage maps listing_agent_name here. Per Hadley this field on Page 11
-  // is the "Seller or Listing Broker" signature line for option fee receipt â€” NOT agent-filled.
+  // is the "Seller or Listing Broker" signature line for option fee receipt — NOT agent-filled.
   // Leave blank. The title company fills Page 11.
 
-  // SECTION 6A â€” TITLE POLICY
+  // SECTION 6A — TITLE POLICY
   // "A TITLE POLICY Seller shall furnish to Buyer at" (Page 1 y=0.8180) = Seller pays title (DEFAULT)
   // "Sellers" (Page 2 y=0.5442) = Seller pays title (repeat checkbox on page 2)
   // "Buyers expense no later" (Page 2 y=0.5442) = Buyer pays title (override)
@@ -781,7 +782,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // "insurance Title Policy issued by" (Page 2 y=0.5589) = title company name
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
 
-  // Section 6A.8 â€” Survey amendment to title policy
+  // Section 6A.8 — Survey amendment to title policy
   // "i will not be amended or deleted from the title policy or" (Page 1 y=0.7421) = NOT amended
   // "ii will be amended to read shortages in area at the expense of" (Page 1 y=0.7736) = AMENDED (default)
   // Per Hadley: check 6A.8 amended (protects buyer from survey discrepancies). DEFAULT: CHECKED.
@@ -792,25 +793,25 @@ async function fillResaleContract(pdfDoc, fv) {
   }
 
   // Title objection days: "receipt or the date specified in this paragraph whichever is earlier"
-  // (Page 3 y=0.3287) â€” days buyer has to object to title commitment. Standard: 5 days.
+  // (Page 3 y=0.3287) — days buyer has to object to title commitment. Standard: 5 days.
   safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days != null && fv.title_objection_days !== '' ? fv.title_objection_days : '');
 
   // Exception document objection days: "the Commitment Exception Documents and the survey..."
-  // (Page 3 y=0.3411) â€” days buyer has to object to exception documents. Standard: 5 days.
+  // (Page 3 y=0.3411) — days buyer has to object to exception documents. Standard: 5 days.
   safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days != null && fv.exception_objection_days !== '' ? fv.exception_objection_days : '');
 
-  // SECTION 6C â€” SURVEY OPTIONS (Page 3 y=0.5899/0.5908)
+  // SECTION 6C — SURVEY OPTIONS (Page 3 y=0.5899/0.5908)
   // "1Within" (y=0.5899) = C.1: seller provides existing survey + T-47/T-47.1 (DEFAULT)
   // "2 Within" (y=0.5908) = C.2: new survey at buyer's expense
   // Per Hadley: C.1 is the most common option in San Antonio.
   // When C.1 is selected, sub-checkboxes handle who pays for new survey if existing is unacceptable:
-  //   "Sellers" (Page 2 y=0.5442 â€” note: same field name used in 6A!) â€” this is ambiguous in the PDF
+  //   "Sellers" (Page 2 y=0.5442 — note: same field name used in 6A!) — this is ambiguous in the PDF
   //   "Buyer" (Page 3 y=0.0957) = buyer pays if existing survey unacceptable
   const surveyOption = fv.survey_option != null && fv.survey_option !== '' ? fv.survey_option : '';
   if (surveyOption === 'c2' || fv.survey_buyer_new === true) {
     safeCheck(form, '2 Within');
   } else if (surveyOption === 'c3' || fv.survey_seller_new === true) {
-    // C.3 not a distinct checkbox â€” TREC 20-18 PDF has no separate "Sellers" checkbox in survey section.
+    // C.3 not a distinct checkbox — TREC 20-18 PDF has no separate "Sellers" checkbox in survey section.
     // "Sellers" on Page 1 (y=0.8641) is in the title expense area, NOT the survey section.
     // Use 1Within (C.1) as the closest match; the seller-provides sub-option has no AcroForm widget.
     safeCheck(form, '1Within');
@@ -820,7 +821,7 @@ async function fillResaleContract(pdfDoc, fv) {
     safeCheck(form, '1Within');
     // Sub-checkbox: if existing survey is unacceptable, who pays for new one?
     // "Buyer" (Page 3 y=0.0957) is the only survey sub-checkbox in the PDF.
-    // "Sellers" checkbox exists only on Page 1 (title area) ï¿½ do NOT check it for survey purposes.
+    // "Sellers" checkbox exists only on Page 1 (title area) ? do NOT check it for survey purposes.
     // Only check "Buyer" if explicitly specified AND seller_provides_survey is true
     if (fv.survey_sellers_expense !== true && fv.seller_provides_survey === true) {
       safeCheck(form, 'Buyer');
@@ -830,22 +831,22 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // Section 6C survey delivery days (Page 3 y=0.0971)
   // Actual field name verified against 20-18 map: "than 3 days prior to Closing Date"
-  // ("3 days prior" does not exist in the PDF â€” would silently fail).
+  // ("3 days prior" does not exist in the PDF — would silently fail).
   safeSetText(form, 'than 3 days prior to Closing Date', fv.survey_delivery_days != null ? String(fv.survey_delivery_days) : '');
 
-  // Section 6D â€” Permitted use and property use objection days
+  // Section 6D — Permitted use and property use objection days
   // "Commitment other than items 6A1 through 9 above or which prohibit the following use"
   // (Page 3 y=0.3287) = permitted use text field
   safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use != null && fv.permitted_use !== '' ? fv.permitted_use : '');
 
-  // SECTION 7B â€” SELLER'S DISCLOSURE NOTICE
+  // SECTION 7B — SELLER'S DISCLOSURE NOTICE
   // "Within one" (Page 3 y=0.1811) / "Within two" (y=0.1807) / "Within three" (y=0.1934) /
   // "Within four" (y=0.2574) = SDN delivery option checkboxes
   // "receipt or the date specified..." (y=0.2566 on Page 3) = SDN delivery days
-  // When sdn_received === true: SDN already delivered â€” check the SDN received option
-  // For simplicity: leave these SDN checkbox options to agent; only check Â§22 addendum checkbox.
+  // When sdn_received === true: SDN already delivered — check the SDN received option
+  // For simplicity: leave these SDN checkbox options to agent; only check §22 addendum checkbox.
 
-  // SECTION 7D â€” PROPERTY CONDITION
+  // SECTION 7D — PROPERTY CONDITION
   // "1 Buyer accepts the Property As Is" (Page 4 y=0.7998) = As-Is (DEFAULT)
   // "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the"
   //   (Page 4 y=0.8136) = As-Is with specific required repairs
@@ -869,16 +870,16 @@ async function fillResaleContract(pdfDoc, fv) {
   // "Within" (Page 4 y=0.8134) = number of days before closing repairs must be complete
   safeSetText(form, 'Within', fv.repair_completion_days != null ? String(fv.repair_completion_days) : '');
 
-  // SECTION 7H â€” HOME WARRANTY (Residential Service Contract)
+  // SECTION 7H — HOME WARRANTY (Residential Service Contract)
   // "service contract in an amount not exceeding" (Page 5 y=0.5361) = seller-paid warranty amount
   // Per Hadley: only fill if seller agreed to provide warranty. Default: blank.
-  // (2026-06-15) Added home_warranty_amount alias â€” callers may pass either service_contract_amount or home_warranty_amount
+  // (2026-06-15) Added home_warranty_amount alias — callers may pass either service_contract_amount or home_warranty_amount
   const warrantyAmountToFill = fv.service_contract_amount != null && fv.service_contract_amount !== ''
     ? fv.service_contract_amount
     : (fv.home_warranty_amount != null && fv.home_warranty_amount !== '' ? fv.home_warranty_amount : null);
   safeSetText(form, 'service contract in an amount not exceeding', warrantyAmountToFill != null ? formatMoney(warrantyAmountToFill) : '');
 
-  // SECTION 9 â€” CLOSING DATE
+  // SECTION 9 — CLOSING DATE
   // "A The closing of the sale will be on or before" (Page 5 y=0.7416) = "Month Day" (no year)
   // "20" (Page 5 y=0.7416) = 2-digit year
   if (fv.closing_date) {
@@ -891,12 +892,12 @@ async function fillResaleContract(pdfDoc, fv) {
     }
   }
 
-  // SECTION 10 â€” POSSESSION
+  // SECTION 10 — POSSESSION
   // "upon" = possession upon closing and funding (DEFAULT per Hadley)
   // Already checked above (Page 4 y=0.8890 is the same "upon" field)
   // The "upon closing and funding" checkbox is the Page 4 "upon" field already checked.
 
-  // SECTION 11 â€” SPECIAL PROVISIONS (Page 6, 3-line free text block)
+  // SECTION 11 — SPECIAL PROVISIONS (Page 6, 3-line free text block)
   // "Text3" (y=0.4420) = line 1, "Text3 2" (y=0.4554) = line 2, "Text3 3" (y=0.4687) = line 3
   // Per Hadley: usually blank. Only factual statements/business details, never new legal obligations.
   if (fv.special_provisions) {
@@ -906,7 +907,7 @@ async function fillResaleContract(pdfDoc, fv) {
     safeSetText(form, 'Text3 3', lines[2] || '');
   }
 
-  // SECTION 12 â€” SETTLEMENT AND OTHER EXPENSES
+  // SECTION 12 — SETTLEMENT AND OTHER EXPENSES
   // Section 12A(1)(b): Seller contribution to buyer's broker fee
   // "Brokers and Sales" (Page 5 y=0.6706) and "Brokers and Sales 2" (y=0.6843) = broker fee contribution fields
   safeSetText(form, 'Brokers and Sales', fv.seller_buyer_broker_contribution != null && fv.seller_buyer_broker_contribution !== '' ? formatMoney(fv.seller_buyer_broker_contribution) : '');
@@ -914,7 +915,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // Section 12A(1)(c): Seller closing cost credit to buyer.
   // NOTE: "Buyers Expenses as allowed by the lender" (Page 5 x=0.4133 y=0.9605) is one of four footer
   // initials fields at the bottom of Page 5, NOT a closing cost credit field.
-  // TREC 20-18 has no dedicated AcroForm field for Section 12 closing cost credit â€” agents enter it
+  // TREC 20-18 has no dedicated AcroForm field for Section 12 closing cost credit — agents enter it
   // in Special Provisions (Text3/Text3 2/Text3 3 on Page 6) or leave it for manual entry.
   // Do not write buyer_closing_cost_credit into the initials footer.
 
@@ -924,13 +925,13 @@ async function fillResaleContract(pdfDoc, fv) {
   // "acknowledged by Seller and Buyers agreement to pay Seller" (y=0.6173) = third field
   safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller 1', fv.listing_commission_total != null && fv.listing_commission_total !== '' ? formatMoney(fv.listing_commission_total) : '');
 
-  // SECTION 18 â€” ATTORNEYS
+  // SECTION 18 — ATTORNEYS
   // "Attorney is" (Page 8 y=0.7283) = buyer's attorney name
   // "Attorney is_2" (Page 8 y=0.7284) = seller's attorney name
   safeSetText(form, 'Attorney is', fv.buyer_attorney || '');
   safeSetText(form, 'Attorney is_2', fv.seller_attorney || '');
 
-  // SECTION 21 â€” NOTICES (Page 8)
+  // SECTION 21 — NOTICES (Page 8)
   // "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows"
   //   (Page 8 y=0.1034 x=0.2181) = buyer's notice contact info
   // "undefined_19" (Page 8 y=0.1024 x=0.6307) = seller's notice contact info
@@ -945,15 +946,15 @@ async function fillResaleContract(pdfDoc, fv) {
   // HOA MEMBERSHIP (Page 2, Section 2 membership disclosure)
   // TREC 20-18 Section 2 does not have AcroForm checkboxes for HOA "is/is not" membership.
   // The "is" and "is not" fields in this PDF are Section 4A lease checkboxes (already handled above).
-  // Section 2 only has a text field for HOA description â€” filled here.
+  // Section 2 only has a text field for HOA description — filled here.
   safeSetText(form, '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property', fv.hoa_description || '');
 
-  // SECTION 20 â€” FEDERAL REQUIREMENTS (FIRPTA)
+  // SECTION 20 — FEDERAL REQUIREMENTS (FIRPTA)
   // Per Hadley: "Seller is not a foreign person" is the default for virtually all TX sellers.
   // The checkbox name in the PDF matches the pre-printed text at Page 8 area.
-  // Not a named checkbox in the coordinate map â€” skip (TREC pre-prints this area).
+  // Not a named checkbox in the coordinate map — skip (TREC pre-prints this area).
 
-  // SECTION 22 â€” AGREEMENT OF PARTIES (addendum checkboxes, Page 8)
+  // SECTION 22 — AGREEMENT OF PARTIES (addendum checkboxes, Page 8)
   // Coordinates verified against field map. Check only when condition is true.
   // Per Hadley: never auto-check propane or other specialty addenda without explicit flag.
   // (2026-06-15) Added third_party_financing alias and explicit isFinanced check
@@ -967,7 +968,7 @@ async function fillResaleContract(pdfDoc, fv) {
   if (fv.seller_leaseback_addendum === true)         safeCheck(form, 'Sellers Temporary Residential Lease');
   if (fv.short_sale_addendum === true)               safeCheck(form, 'Short Sale Addendum');
   if (fv.buyer_leaseback_addendum === true)          safeCheck(form, 'Buyers Temporary Residential Lease');
-  // "Loan Assumption Addendum" (Page 1 y=0.6483) is in the Section 3B financing area â€” do NOT check for Section 22.
+  // "Loan Assumption Addendum" (Page 1 y=0.6483) is in the Section 3B financing area — do NOT check for Section 22.
   // "Loan Assumption Addendum_2" (Page 8 y=0.4326) is the correct Section 22 addendum checkbox.
   if (fv.loan_assumption_addendum === true)          safeCheck(form, 'Loan Assumption Addendum_2');
   if (fv.coastal_addendum === true)                  safeCheck(form, 'Addendum for Property Located Seaward');
@@ -1015,7 +1016,7 @@ async function fillResaleContract(pdfDoc, fv) {
   }
 
   // Effective date field: "Date" (Page 9 y=0.2617 area via Page 11 "Date" field)
-  // Per Hadley: leave blank at contract creation â€” filled when last party accepts.
+  // Per Hadley: leave blank at contract creation — filled when last party accepts.
   if (fv.contract_effective_date) {
     safeSetText(form, 'Date', fv.contract_effective_date);
   }
@@ -1025,7 +1026,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Email', fv.buyer_email || '');
   safeSetText(form, 'Email_2', fv.seller_email || '');
 
-  // PAGE 10 â€” BROKER INFORMATION
+  // PAGE 10 — BROKER INFORMATION
   // Listing broker = agent representing the seller
   safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
   safeSetText(form, 'License No_4', fv.listing_broker_license || '');
@@ -1050,7 +1051,7 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // Other/selling broker = agent representing the buyer (cooperating agent)
   // STRICT MODE ROUTING (2026-06-14): If other_broker_firm is specified, the
-  // selling_agent_name goes in the LEFT column (Other Broker â†’ Associates Name),
+  // selling_agent_name goes in the LEFT column (Other Broker ? Associates Name),
   // NOT the RIGHT column (Selling Associates). This follows TREC 20-18 convention
   // for separate brokerages: buy-side cooperating agent is under "Other Broker".
   const otherBrokerFirmProvided = fv.other_broker_firm && String(fv.other_broker_firm).trim();
@@ -1059,10 +1060,10 @@ async function fillResaleContract(pdfDoc, fv) {
 
   safeSetText(form, 'Other Broker Firm', fv.other_broker_firm || '');
   safeSetText(form, 'License No', fv.other_broker_license || '');
-  // LEFT COLUMN â€” Other Broker Associate's Name
+  // LEFT COLUMN — Other Broker Associate's Name
   // If routing to other broker, use selling_agent_name here; otherwise use other_broker_assoc_name
   safeSetText(form, 'Associates Name numb 1', routeToOtherBroker ? fv.selling_agent_name : (fv.other_broker_assoc_name || ''));
-  // RIGHT COLUMN â€” Selling Associates (intra-firm agent)
+  // RIGHT COLUMN — Selling Associates (intra-firm agent)
   // Only fill if NOT routing to other broker (i.e., same brokerage scenario)
   safeSetText(form, 'Selling Associates Name', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
   safeSetText(form, 'Selling Associates Name-1', routeToOtherBroker ? '' : (fv.selling_agent_name || ''));
@@ -1095,7 +1096,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // "when mailed to" (Page 10 y=0.8023) = BAC dollar/pct amount field in broker compensation disclosure
   // "Percentage" checkbox (y=0.8027) = check if expressing BAC as percentage
   // Per Hadley: leave commission amounts blank unless agent explicitly provides them.
-  // AC numb 1 through AC numb 4 are phone area code fields â€” do NOT use for commission.
+  // AC numb 1 through AC numb 4 are phone area code fields — do NOT use for commission.
   const bac = fv.buyer_agent_commission || fv.buyers_agent_commission_pct || '';
   if (bac) {
     const commStr = String(bac).replace('%', '').trim();
@@ -1103,7 +1104,7 @@ async function fillResaleContract(pdfDoc, fv) {
     safeCheck(form, 'Percentage');
   }
 
-  // PAGE 11 â€” RECEIPTS (DO NOT PRE-FILL â€” title company fills when funds arrive)
+  // PAGE 11 — RECEIPTS (DO NOT PRE-FILL — title company fills when funds arrive)
   // Per Hadley: all Page 11 fields are post-execution, filled by escrow agent.
   // Option Fee Receipt: "is acknowledged" (Page 11 y=0.1205), "Seller or Listing Broker" (y=0.1668)
   // Earnest Money Receipt: "is acknowledged_2" (y=0.2290), "Escrow Agent" (y=0.2617)
@@ -1114,7 +1115,7 @@ async function fillResaleContract(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// THIRD PARTY FINANCING ADDENDUM (TREC 40-9/40-11) â€” 64 AcroForm fields
+// THIRD PARTY FINANCING ADDENDUM (TREC 40-9/40-11) — 64 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 // Every field wired; agent can override via field_values.
 //
@@ -1213,7 +1214,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeCheck(form, 'b A second mortgage loan in the principal amount of');
   }
 
-  // LOAN TYPE â€” wire each type's fields
+  // LOAN TYPE — wire each type's fields
   if (ft === 'conventional' || fv.financing_conventional === true) {
     safeCheck(form, '1 Conventional Financing');
     safeCheck(form, 'a A first mortgage loan in the principal amount of');
@@ -1243,15 +1244,15 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'fha' || fv.financing_fha === true) {
     safeCheck(form, '3 FHA Insured Financing A Section');
-    // FHA loan amount (principal) â€” Field verified from PDF: 'excluding any financed MIP amortizable monthly for not less'
+    // FHA loan amount (principal) — Field verified from PDF: 'excluding any financed MIP amortizable monthly for not less'
     safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', loanAmt);
-    // FHA amortization years â€” Field verified from PDF: 'than'
+    // FHA amortization years — Field verified from PDF: 'than'
     const fhaYears = fv.loan_term_years || fv.fha_amortization_years || 30;
     safeSetText(form, 'than', String(fhaYears));
-    // FHA interest rate cap â€” Field verified from PDF: 'years with interest not to exceed_2'
+    // FHA interest rate cap — Field verified from PDF: 'years with interest not to exceed_2'
     const fhaRate = fv.interest_rate_max || fv.fha_interest_rate_cap || '';
     safeSetText(form, 'years with interest not to exceed_2', fhaRate);
-    // FHA origination charges â€” Field verified from PDF: 'Charges as shown on Buyers Loan Estimate for the loan not to exceed'
+    // FHA origination charges — Field verified from PDF: 'Charges as shown on Buyers Loan Estimate for the loan not to exceed'
     safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '');
     if (fv.fha_conversion_amount) {
       safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
@@ -1261,17 +1262,17 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'va' || fv.financing_va === true) {
     safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
-    // VA loan amount â€” Field verified from PDF: 'excluding any financed Funding Fee amortizable monthly for not less than'
+    // VA loan amount — Field verified from PDF: 'excluding any financed Funding Fee amortizable monthly for not less than'
     safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', loanAmt);
-    // VA amortization years â€” Field verified from PDF: 'years'
+    // VA amortization years — Field verified from PDF: 'years'
     const vaYears = fv.loan_term_years || fv.va_amortization_years || 30;
     safeSetText(form, 'years', String(vaYears));
-    // VA interest rate â€” Field verified from PDF: 'with interest not to exceed'
+    // VA interest rate — Field verified from PDF: 'with interest not to exceed'
     const vaRate = fv.interest_rate_max || fv.va_interest_rate_cap || '';
     safeSetText(form, 'with interest not to exceed', vaRate);
-    // VA per annum first â€” Field verified from PDF: 'per annum for the first_4'
+    // VA per annum first — Field verified from PDF: 'per annum for the first_4'
     safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '');
-    // VA origination charges â€” Field verified from PDF: 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed'
+    // VA origination charges — Field verified from PDF: 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed'
     safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '');
     // VA appraised value
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : '');
@@ -1279,7 +1280,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'usda' || fv.financing_usda === true) {
     safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
-    // USDA loan amount â€” Field verified from PDF: 'any financed PMI premium or other costs with interest not to exceed'
+    // USDA loan amount — Field verified from PDF: 'any financed PMI premium or other costs with interest not to exceed'
     // NOTE: This field was incorrectly holding interest_rate_max in tests; ensure only loan amount is set here
     safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', loanAmt);
     // TODO: Add USDA amortization years and interest rate fields once PDF structure is fully audited
@@ -1287,7 +1288,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'reverse' || fv.financing_reverse === true) {
     safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
-    // Reverse mortgage fields â€” verified from PDF inspection
+    // Reverse mortgage fields — verified from PDF inspection
     safeSetText(form, 'excluding_2', fv.reverse_exclusion || '');
     safeSetText(form, 'not to exceed_2', fv.reverse_not_exceed || '');
     safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
@@ -1301,7 +1302,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// NOTICE OF SELLERS TERMINATION OF CONTRACT â€” 14 AcroForm fields
+// NOTICE OF SELLERS TERMINATION OF CONTRACT — 14 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 //
 // [TextField] "Street Address and City" -> property_full
@@ -1315,7 +1316,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 // [TextField] "Date_2" -> termination_notice_date (defaults to today)
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// BUYER TERMINATION NOTICE (TREC 38-7) â€” FLAT PDF, COORDINATE-BASED
+// BUYER TERMINATION NOTICE (TREC 38-7) — FLAT PDF, COORDINATE-BASED
 // Uses field map from api/_assets/field-maps/trec-38-7-coords.json
 // ---------------------------------------------------------------------------
 async function fillTerminationNotice(pdfDoc, fv) {
@@ -1398,13 +1399,13 @@ async function fillTerminationNotice(pdfDoc, fv) {
 // WIRE FRAUD WARNING (TAR 2517)
 // Fields: buyer_name, buyer_email, property_address, agent_name, agent_license, delivery_date
 // Note: TAR 2517 base64 PDF must be populated in _assets/tar-wire-fraud-base64.js
-// before this form will produce output. The field names below are best-guess â€”
+// before this form will produce output. The field names below are best-guess —
 // adjust after inspecting the actual AcroForm fields in TAR 2517 if needed.
 // ---------------------------------------------------------------------------
 async function fillWireFraudWarning(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // Best-effort field fills â€” TAR 2517 AcroForm fields may differ from these names.
+  // Best-effort field fills — TAR 2517 AcroForm fields may differ from these names.
   // After obtaining the real PDF, run scripts/inspect_resale_fields.py to get exact names.
   const today = fv.delivery_date || new Date().toISOString().slice(0, 10);
 
@@ -1419,7 +1420,7 @@ async function fillWireFraudWarning(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// HOA ADDENDUM (TREC 36-10) â€” 17 AcroForm fields
+// HOA ADDENDUM (TREC 36-10) — 17 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 //
 // [TextField] "Street Address and City" -> property_full
@@ -1472,7 +1473,7 @@ async function fillHoaAddendum(pdfDoc, fv) {
   safeSetText(form, 'the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate',
     fv.subdivision_info_days != null ? String(fv.subdivision_info_days) : '10');
 
-  // Days for buyer to provide copy to seller (Para A â€” Buyer obtains option)
+  // Days for buyer to provide copy to seller (Para A — Buyer obtains option)
   safeSetText(form, 'copy of the Subdivision Information to the Seller',
     fv.subdivision_info_copy_days != null ? String(fv.subdivision_info_copy_days) : '3');
 
@@ -1487,7 +1488,7 @@ async function fillHoaAddendum(pdfDoc, fv) {
   safeSetText(form, 'D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association',
     fv.hoa_transfer_fee != null && fv.hoa_transfer_fee !== '' ? formatMoney(fv.hoa_transfer_fee) : '');
 
-  // WHO PAYS FOR SUBDIVISION INFO (Para D â€” title company cost)
+  // WHO PAYS FOR SUBDIVISION INFO (Para D — title company cost)
   if (fv.seller_pays_title_info === true) {
     safeCheck(form, 'Seller shall pay the Title Company the cost of obtaining the');
   } else {
@@ -1498,30 +1499,30 @@ async function fillHoaAddendum(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// LEAD-BASED PAINT ADDENDUM (OP-L) â€” 25 AcroForm fields
+// LEAD-BASED PAINT ADDENDUM (OP-L) — 25 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 // Required for pre-1978 homes (year_built < 1978).
 //
 // [TextField] "Street Address and City" -> property_full
-// SECTION B â€” SELLER'S DISCLOSURE
-// B1 â€” Knowledge of lead-based paint/hazards:
+// SECTION B — SELLER'S DISCLOSURE
+// B1 — Knowledge of lead-based paint/hazards:
 //   [CheckBox] "Check Box7" -> seller_aware_of_hazards (B1a: seller IS aware)
-//   [CheckBox] "Check Box8" -> seller_no_knowledge (B1b: seller has no knowledge â€” default)
+//   [CheckBox] "Check Box8" -> seller_no_knowledge (B1b: seller has no knowledge — default)
 //   [TextField] "undefined" -> hazard_explanation (if seller aware, explain known hazards)
 //   [TextField] "b Seller has no actual knowledge of leadbased paint andor leadbased paint
 //     hazards in the Property" -> no_knowledge_statement (auto-filled if no knowledge)
-// B2 â€” Records/reports:
+// B2 — Records/reports:
 //   [CheckBox] "Check Box9" -> seller_has_records (B2a: seller HAS records/reports)
-//   [CheckBox] "Check Box10" -> seller_no_records (B2b: seller has no records â€” default)
+//   [CheckBox] "Check Box10" -> seller_no_records (B2b: seller has no records — default)
 //   [TextField] "undefined_2" -> documents_list (if seller has records, list them)
 //   [TextField] "b Seller has no reports or records pertaining to leadbased paint andor
 //     leadbased paint hazards in the" -> no_records_statement (auto-filled if no records)
-// SECTION C â€” BUYER'S RIGHTS
+// SECTION C — BUYER'S RIGHTS
 //   [CheckBox] "Check Box11" -> buyer_waives_inspection (C1: buyer WAIVES 10-day right)
-//   [CheckBox] "Check Box12" -> buyer_retains_inspection (C2: buyer RETAINS â€” default)
-// SECTION D â€” AGENT ACKNOWLEDGMENTS
-//   [CheckBox] "Check Box13" -> agent_acknowledges_receipt (D1: agent acknowledges â€” default)
-//   [CheckBox] "Check Box14" -> agent_acknowledges_pamphlet (D2: EPA pamphlet â€” default)
+//   [CheckBox] "Check Box12" -> buyer_retains_inspection (C2: buyer RETAINS — default)
+// SECTION D — AGENT ACKNOWLEDGMENTS
+//   [CheckBox] "Check Box13" -> agent_acknowledges_receipt (D1: agent acknowledges — default)
+//   [CheckBox] "Check Box14" -> agent_acknowledges_pamphlet (D2: EPA pamphlet — default)
 // SIGNATURE DATE FIELDS (all 6 filled with today or lead_paint_date)
 //   [TextField] "Date","Date_2","Date_3","Date_4","Date_5","Date_6" -> lead_paint_date
 // ---------------------------------------------------------------------------
@@ -1532,7 +1533,7 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   safeSetText(form, 'Street Address and City', addr);
 
-  // DATE FIELDS â€” all six signature date slots
+  // DATE FIELDS — all six signature date slots
   const signDate = fv.lead_paint_date
     ? formatDate(fv.lead_paint_date)
     : formatDate(new Date().toISOString().slice(0, 10));
@@ -1540,7 +1541,7 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
     safeSetText(form, f, signDate);
   });
 
-  // SECTION B1 â€” SELLER KNOWLEDGE OF HAZARDS
+  // SECTION B1 — SELLER KNOWLEDGE OF HAZARDS
   if (fv.seller_aware_of_hazards === true) {
     safeCheck(form, 'Check Box7');
     safeSetText(form, 'undefined', fv.hazard_explanation || '');
@@ -1549,7 +1550,7 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
     safeSetText(form, 'b Seller has no actual knowledge of leadbased paint andor leadbased paint hazards in the Property', '');
   }
 
-  // SECTION B2 â€” SELLER RECORDS/REPORTS
+  // SECTION B2 — SELLER RECORDS/REPORTS
   if (fv.seller_has_records === true) {
     safeCheck(form, 'Check Box9');
     safeSetText(form, 'undefined_2', fv.documents_list || '');
@@ -1558,14 +1559,14 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
     safeSetText(form, 'b Seller has no reports or records pertaining to leadbased paint andor leadbased paint hazards in the', '');
   }
 
-  // SECTION C â€” BUYER'S INSPECTION RIGHTS
+  // SECTION C — BUYER'S INSPECTION RIGHTS
   if (fv.buyer_waives_inspection === true) {
     safeCheck(form, 'Check Box11');
   } else {
     safeCheck(form, 'Check Box12');
   }
 
-  // SECTION D â€” AGENT ACKNOWLEDGMENTS (default: both checked)
+  // SECTION D — AGENT ACKNOWLEDGMENTS (default: both checked)
   if (fv.agent_acknowledges_receipt !== false) safeCheck(form, 'Check Box13');
   if (fv.agent_acknowledges_pamphlet !== false) safeCheck(form, 'Check Box14');
 
@@ -1573,7 +1574,7 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// SELLER'S DISCLOSURE NOTICE (TREC 55-0) â€” 179 AcroForm fields (XFA stripped)
+// SELLER'S DISCLOSURE NOTICE (TREC 55-0) — 179 AcroForm fields (XFA stripped)
 // Field map verified via scripts/inspect_all_fields.js.
 //
 // This form is an Adobe XFA dynamic PDF. pdf-lib strips XFA and writes the AcroForm
@@ -1612,7 +1613,7 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 async function fillSellersDisclosure(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // PROPERTY ADDRESS â€” all page headers
+  // PROPERTY ADDRESS — all page headers
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   if (addr) {
     safeSetText(form, 'form1[0].#subform[0].TextField1[0]', addr);
@@ -1642,7 +1643,7 @@ async function fillSellersDisclosure(pdfDoc, fv) {
   safeSetText(form, 'form1[0].#subform[0].TextField3[31]', fv.seller_notes || '');
   safeSetText(form, 'form1[0].#subform[0].TextField3[32]', fv.seller_notes_2 || '');
 
-  // Y/N RESPONSES â€” TextField3[0..110]
+  // Y/N RESPONSES — TextField3[0..110]
   // Index range -> subform mapping:
   //   0-59   -> subform[0].TextField3[i]
   //   60-94  -> subform[1].TextField3[i]
@@ -1674,7 +1675,7 @@ async function fillSellersDisclosure(pdfDoc, fv) {
     }
   }
 
-  // EXPLANATION TEXT BOXES â€” TextField5[0..28]
+  // EXPLANATION TEXT BOXES — TextField5[0..28]
   // subform[0]: indices 0..3
   // subform[1]: indices 4..16
   // subform[2]: indices 17..25
@@ -1728,7 +1729,7 @@ async function fillSellersDisclosure(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// AMENDMENT TO CONTRACT (TREC 39-10) â€” 45 AcroForm fields
+// AMENDMENT TO CONTRACT (TREC 39-10) — 45 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 // Every field wired. Agent selects amendment type(s) via boolean flags or
 // amendment_type shorthand, and passes specific values via field_values.
@@ -1740,40 +1741,40 @@ async function fillSellersDisclosure(pdfDoc, fv) {
 //   [TextField] "Date_2" -> amendment_date (defaults to today)
 //   [TextField] "DATE OF FINAL ACCEPTANCE" -> date_of_final_acceptance
 //   [TextField] "20_4" -> date_of_final_acceptance year (2-digit)
-// PARAGRAPH 1 â€” SALES PRICE CHANGE
+// PARAGRAPH 1 — SALES PRICE CHANGE
 //   [CheckBox] "1 The Sales Price in Paragraph 3 of the contract is" -> amend_sales_price
 //   [CheckBox] "will" -> sales_price_will_be_credited
 //   [CheckBox] "will not" -> sales_price_will_not_be_credited (default if amend_sales_price)
 //   [TextField] "be credited to the Sales Price" -> new_sales_price (money)
 //   [TextField] "20_2" -> price_change_year_2digit
-// PARAGRAPH 2 â€” REPAIRS
+// PARAGRAPH 2 — REPAIRS
 //   [CheckBox] "2 In addition to any repairs..." -> amend_repairs
 //   [TextField] "as follows" -> repairs_description
-// PARAGRAPH 3 â€” CLOSING DATE CHANGE
+// PARAGRAPH 3 — CLOSING DATE CHANGE
 //   [CheckBox] "3 The date in Paragraph 9 of the contract is changed to" -> amend_closing_date
 //   [TextField] "undefined" -> closing_day (day of month, numeric string)
 //   [TextField] "undefined_2" -> closing_month (month name)
 //   [TextField] "undefined_3" -> closing_year (4-digit year)
 //   [TextField] "20" -> closing_year_2digit
-// PARAGRAPH 4 â€” SELLER CONCESSIONS
+// PARAGRAPH 4 — SELLER CONCESSIONS
 //   [CheckBox] "4 The amount in Paragraph 12A1b of the contract is changed to" -> amend_seller_concession
 //   [TextField] "undefined_5" -> new_seller_concession_amount (money)
-// PARAGRAPH 5 â€” LENDER REPAIRS
+// PARAGRAPH 5 — LENDER REPAIRS
 //   [CheckBox] "5 The cost of lender required repairs..." -> amend_lender_repairs
 //   [TextField] "undefined_4" -> lender_repairs_amount (money)
-// PARAGRAPH 6 â€” ADDITIONAL OPTION FEE / OPTION EXTENSION
+// PARAGRAPH 6 — ADDITIONAL OPTION FEE / OPTION EXTENSION
 //   [CheckBox] "6 Buyer has paid Seller an additional Option Fee of" -> amend_option_fee
 //   [TextField] "for an extension of the" -> additional_option_fee_amount (money)
 //   [TextField] "contract" -> option_period_days
 //   [CheckBox] "Fee" -> option_fee_form_check
 //   [CheckBox] "Fee 2" -> option_fee_form_check_2
-// PARAGRAPH 7 â€” WAIVE OPTION RIGHT
+// PARAGRAPH 7 — WAIVE OPTION RIGHT
 //   [CheckBox] "7 Buyer waives the unrestricted right to terminate..." -> amend_waive_option
-// PARAGRAPH 8 â€” BUYER APPROVAL DATE CHANGE
+// PARAGRAPH 8 — BUYER APPROVAL DATE CHANGE
 //   [CheckBox] "8 The date for Buyer to give written notice..." -> amend_buyer_approval_date
 //   [TextField] "Text6" -> new_buyer_approval_date_text
 //   [TextField] "20_3" -> new_buyer_approval_year_2digit (2-digit)
-// PARAGRAPH 9 â€” OTHER MODIFICATIONS (up to 8 text lines)
+// PARAGRAPH 9 — OTHER MODIFICATIONS (up to 8 text lines)
 //   [CheckBox] "9 Other Modifications..." -> amend_other
 //   [TextField] "Text3.1" -> other_mod_1
 //   [TextField] "Text4.1" -> other_mod_2
@@ -1783,7 +1784,7 @@ async function fillSellersDisclosure(pdfDoc, fv) {
 //   [TextField] "Text 8" -> other_mod_6
 //   [TextField] "Text 9" -> other_mod_7
 //   [TextField] "Text 10" -> other_mod_8
-// PARAGRAPH 10 â€” ADDENDA
+// PARAGRAPH 10 — ADDENDA
 //   [CheckBox] "10" -> amend_addenda
 // TERMINATION DEADLINE
 //   [TextField] "date 5" -> termination_deadline_date
@@ -1806,7 +1807,7 @@ async function fillAmendment(pdfDoc, fv) {
     safeSetText(form, '20_4', formatTwoDigitYear(fv.date_of_final_acceptance));
   }
 
-  // PARAGRAPH 1 â€” SALES PRICE CHANGE
+  // PARAGRAPH 1 — SALES PRICE CHANGE
   if (fv.amend_sales_price === true || fv.amendment_type === 'price_change') {
     safeCheck(form, '1 The Sales Price in Paragraph 3 of the contract is');
     if (fv.new_sales_price != null && fv.new_sales_price !== '') {
@@ -1817,13 +1818,13 @@ async function fillAmendment(pdfDoc, fv) {
     else safeCheck(form, 'will not');
   }
 
-  // PARAGRAPH 2 â€” REPAIRS
+  // PARAGRAPH 2 — REPAIRS
   if (fv.amend_repairs === true) {
     safeCheck(form, '2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers');
     safeSetText(form, 'as follows', fv.repairs_description || '');
   }
 
-  // PARAGRAPH 3 â€” CLOSING DATE CHANGE
+  // PARAGRAPH 3 — CLOSING DATE CHANGE
   if (fv.amend_closing_date === true || fv.amendment_type === 'closing_date') {
     safeCheck(form, '3 The date in Paragraph 9 of the contract is changed to');
     var ncd = fv.new_closing_date || '';
@@ -1844,7 +1845,7 @@ async function fillAmendment(pdfDoc, fv) {
     }
   }
 
-  // PARAGRAPH 4 â€” SELLER CONCESSIONS
+  // PARAGRAPH 4 — SELLER CONCESSIONS
   if (fv.amend_seller_concession === true) {
     safeCheck(form, '4 The amount in Paragraph 12A1b of the contract is changed to');
     if (fv.new_seller_concession_amount != null && fv.new_seller_concession_amount !== '') {
@@ -1852,7 +1853,7 @@ async function fillAmendment(pdfDoc, fv) {
     }
   }
 
-  // PARAGRAPH 5 â€” LENDER REPAIRS
+  // PARAGRAPH 5 — LENDER REPAIRS
   if (fv.amend_lender_repairs === true) {
     safeCheck(form, '5 The cost of lender required repairs and treatment as itemized on the attached list will be paid');
     if (fv.lender_repairs_amount != null && fv.lender_repairs_amount !== '') {
@@ -1860,7 +1861,7 @@ async function fillAmendment(pdfDoc, fv) {
     }
   }
 
-  // PARAGRAPH 6 â€” ADDITIONAL OPTION FEE / OPTION EXTENSION
+  // PARAGRAPH 6 — ADDITIONAL OPTION FEE / OPTION EXTENSION
   if (fv.amend_option_fee === true || fv.amendment_type === 'option_extension') {
     safeCheck(form, '6 Buyer has paid Seller an additional Option Fee of');
     if (fv.additional_option_fee_amount != null && fv.additional_option_fee_amount !== '') {
@@ -1871,19 +1872,19 @@ async function fillAmendment(pdfDoc, fv) {
     if (fv.option_fee_form_check_2 === true) safeCheck(form, 'Fee 2');
   }
 
-  // PARAGRAPH 7 â€” WAIVE OPTION
+  // PARAGRAPH 7 — WAIVE OPTION
   if (fv.amend_waive_option === true) {
     safeCheck(form, '7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid');
   }
 
-  // PARAGRAPH 8 â€” BUYER APPROVAL DATE
+  // PARAGRAPH 8 — BUYER APPROVAL DATE
   if (fv.amend_buyer_approval_date === true) {
     safeCheck(form, '8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as');
     safeSetText(form, 'Text6', fv.new_buyer_approval_date_text || '');
     safeSetText(form, '20_3', fv.new_buyer_approval_year_2digit || '');
   }
 
-  // PARAGRAPH 9 â€” OTHER MODIFICATIONS (up to 8 lines)
+  // PARAGRAPH 9 — OTHER MODIFICATIONS (up to 8 lines)
   var hasOther = fv.amend_other === true || fv.other_mod_1 || (Array.isArray(fv.other_modifications) && fv.other_modifications.length);
   if (hasOther) {
     safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
@@ -1896,7 +1897,7 @@ async function fillAmendment(pdfDoc, fv) {
     });
   }
 
-  // PARAGRAPH 10 â€” ADDENDA
+  // PARAGRAPH 10 — ADDENDA
   if (fv.amend_addenda === true) safeCheck(form, '10');
 
   // TERMINATION DEADLINE
@@ -1910,7 +1911,7 @@ async function fillAmendment(pdfDoc, fv) {
 
 // ---------------------------------------------------------------------------
 // BUYER REPRESENTATION AGREEMENT (TAR 1501)
-// Block 9E â€” pre-fills agent/brokerage info from profile
+// Block 9E — pre-fills agent/brokerage info from profile
 // NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
 // ---------------------------------------------------------------------------
 async function fillBuyerRepAgreement(pdfDoc, fv) {
@@ -1933,7 +1934,7 @@ async function fillBuyerRepAgreement(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// TREC 49-1 â€” Right to Terminate Due to Lender's Appraisal â€” 11 AcroForm fields
+// TREC 49-1 — Right to Terminate Due to Lender's Appraisal — 11 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js against embedded PDF.
 //
 // [TextField] "Street Address and City" -> property_full
@@ -1942,7 +1943,7 @@ async function fillBuyerRepAgreement(pdfDoc, fv) {
 // [CheckBox] "2 PARTIAL WAIVER Buyer waives Buyers right to terminate the contract under Paragraph 2B"
 //   -> appraisal_partial_waiver (Buyer waives if appraised value >= threshold)
 // [CheckBox] "3 ADDITIONAL" -> appraisal_additional (additional terms)
-// [TextField] "ii the opinion of value is" -> appraised_value (money â€” minimum acceptable value)
+// [TextField] "ii the opinion of value is" -> appraised_value (money — minimum acceptable value)
 // [TextField] "days after the Effective Date if" -> appraisal_days_after_effective
 // [TextField] "than" -> appraisal_price_threshold (sales price threshold for partial waiver)
 // ---------------------------------------------------------------------------
@@ -1988,8 +1989,8 @@ async function fillAppraisalTermination(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// T-47 AFFIDAVIT â€” Residential Real Property Affidavit
-// Block 12 â€” pre-fills seller names and property address
+// T-47 AFFIDAVIT — Residential Real Property Affidavit
+// Block 12 — pre-fills seller names and property address
 // NOTE: Field names are best-guess. Verify against actual AcroForm after PDF is installed.
 // ---------------------------------------------------------------------------
 async function fillT47Affidavit(pdfDoc, fv) {
@@ -2005,14 +2006,14 @@ async function fillT47Affidavit(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// UNIMPROVED PROPERTY CONTRACT (TREC 9-17) â€” 270 AcroForm fields
+// UNIMPROVED PROPERTY CONTRACT (TREC 9-17) — 270 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js against embedded PDF.
 // Shares many field names with TREC 20 resale (same TREC template family).
 //
-// SECTION 1 â€” PARTIES
+// SECTION 1 — PARTIES
 //   [TextField] "1 PARTIES The parties to this contract are" -> buyer_name
 //   [TextField] "and" -> seller_name
-// SECTION 2 â€” PROPERTY
+// SECTION 2 — PROPERTY
 //   [TextField] "Texas known as" -> property_address (street line)
 //   [TextField] "Address of Property" -> property_address (repeat)
 //   [TextField] "Address of Property_2" -> property_address (repeat)
@@ -2029,7 +2030,7 @@ async function fillT47Affidavit(pdfDoc, fv) {
 //   [TextField] "undefined_4" -> sale_price (total price)
 //   [TextField] "within days" -> title_objection_days
 //   [TextField] "undefined_8" -> mineral_rights_notes
-// SECTION 5 â€” EARNEST MONEY
+// SECTION 5 — EARNEST MONEY
 //   [TextField] "earnest money of" -> earnest_money
 //   [TextField] "as earnest money to" -> escrow_agent_name
 //   [TextField] "agent at" -> escrow_agent_address
@@ -2040,7 +2041,7 @@ async function fillT47Affidavit(pdfDoc, fv) {
 //   [TextField] "is acknowledged_2" -> earnest_acknowledged_date
 //   [TextField] "is acknowledged_3" -> add_earnest_acknowledged_date
 //   [TextField] "additional Earnest Money in the form of" -> additional_earnest_form
-// SECTION 6 â€” TITLE
+// SECTION 6 — TITLE
 //   [TextField] "title insurance Title Policy issued by" -> title_company
 //   [TextField] "Escrow Agent" -> title_company (repeat)
 //   [TextField] "Escrow Agent_2" -> title_company
@@ -2052,15 +2053,15 @@ async function fillT47Affidavit(pdfDoc, fv) {
 //   [TextField] "3 days" -> funding_notice_days
 //   [TextField] "Buyer must object the earlier of i the Closing Date or ii" -> title_objection_deadline
 //   [TextField] "4 days" -> closing_statement_days
-// SECTION 8 â€” PROPERTY CONDITION
+// SECTION 8 — PROPERTY CONDITION
 //   [CheckBox] "1 Buyer accepts the Property As Is" -> as_is (default)
 //   [CheckBox] "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the" -> as_is_with_repairs
 //   [TextField] "following specific repairs and treatments" -> required_repairs
 //   [TextField] "undefined_12" -> repairs_additional
-// SECTION 9 â€” CLOSING DATE
+// SECTION 9 — CLOSING DATE
 //   [TextField] "A The closing of the sale will be on or before" -> closing_date (month+day)
 //   [TextField] "20" -> closing_date (2-digit year)
-// SECTION 22 â€” ADDENDUM CHECKBOXES
+// SECTION 22 — ADDENDUM CHECKBOXES
 //   [CheckBox] "Third Party Financing Addendum" -> financing_addendum
 //   [CheckBox] "Third Party Financing Addendum_2" -> financing_addendum (repeat)
 //   [CheckBox] "Seller Financing Addendum" -> seller_financing_addendum
@@ -2180,7 +2181,7 @@ async function fillT47Affidavit(pdfDoc, fv) {
 async function fillUnimprovedProperty(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // Load base64 â€” asset exports { base64Pdf }
+  // Load base64 — asset exports { base64Pdf }
   // (Already loaded by fillForm; pdfDoc is passed in)
 
   // PARTIES
@@ -2440,7 +2441,7 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// NEW HOME CONTRACT â€” INCOMPLETE CONSTRUCTION (TREC 23-18)
+// NEW HOME CONTRACT — INCOMPLETE CONSTRUCTION (TREC 23-18)
 // PDF is a flat file with AcroForm dict but 0 named widget fields.
 // safeSetText calls will silently warn but produce no fills.
 // TREC 23 covers new construction where the home is not yet complete.
@@ -2449,7 +2450,7 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
 // below by running: node -e "require('pdf-lib').PDFDocument.load(...)"
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// NEW HOME CONTRACT â€” INCOMPLETE CONSTRUCTION (TREC 23-20) â€” FLAT PDF, COORDINATE-BASED
+// NEW HOME CONTRACT — INCOMPLETE CONSTRUCTION (TREC 23-20) — FLAT PDF, COORDINATE-BASED
 // Uses field map from api/_assets/field-maps/trec-23-20-coords.json
 // ---------------------------------------------------------------------------
 async function fillNewHomeIncomplete(pdfDoc, fv) {
@@ -2609,7 +2610,7 @@ async function fillNewHomeComplete(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// FARM AND RANCH CONTRACT (TREC 25-17) â€” FLAT PDF, COORDINATE-BASED
+// FARM AND RANCH CONTRACT (TREC 25-17) — FLAT PDF, COORDINATE-BASED
 // Uses field map from api/_assets/field-maps/trec-25-17-coords.json
 // TREC 25 covers land (acreage) with or without improvements.
 // Includes mineral/water rights sections; mineral/oil/gas lease options.
@@ -2769,7 +2770,7 @@ async function fillSellersTempLease(pdfDoc, fv) {
 
 // ---------------------------------------------------------------------------
 // ADDENDUM FOR SALE OF OTHER PROPERTY BY BUYER (TREC 10-6)
-// Contingency addendum â€” buyer cannot close unless their existing property sells.
+// Contingency addendum — buyer cannot close unless their existing property sells.
 // ---------------------------------------------------------------------------
 async function fillSaleOtherProperty(pdfDoc, fv) {
   const form = pdfDoc.getForm();
@@ -3120,7 +3121,7 @@ module.exports = async function handler(req, res) {
       if (nonEmptyKeys.length < 2) {
         return res.status(400).json({
           ok: false,
-          error: 'Not enough contract details â€” please tell me at least the property, the buyer, the seller, and the sale price so I can fill this out for you.',
+          error: 'Not enough contract details — please tell me at least the property, the buyer, the seller, and the sale price so I can fill this out for you.',
           code: 'STRICT_MODE_INSUFFICIENT_FIELDS',
         });
       }
@@ -3205,7 +3206,7 @@ module.exports = async function handler(req, res) {
 
     // Normalize transaction data, mirroring normalize_transaction.py
     const ft = strictMode ? null : (tx && tx.financing_type) || (tx && tx.lender_name ? 'conventional' : null);
-    // Section 3: down payment â€” use explicit column if set, else compute from sale_price - loan_amount.
+    // Section 3: down payment — use explicit column if set, else compute from sale_price - loan_amount.
     const rawSalePrice = !strictMode && tx && tx.sale_price != null ? Number(tx.sale_price) : 0;
     const rawLoanAmount = !strictMode && tx && tx.loan_amount != null ? Number(tx.loan_amount) : 0;
     const computedDownPayment = !strictMode && tx && tx.down_payment != null
@@ -3224,7 +3225,7 @@ module.exports = async function handler(req, res) {
     const txDefaults = {
       buyer_name:              !strictMode && tx && tx.buyer_name ? tx.buyer_name : '',
       seller_name:             !strictMode && tx && tx.seller_name ? tx.seller_name : '',
-      // Section 21 Notices â€” buyer/seller names for notice address block
+      // Section 21 Notices — buyer/seller names for notice address block
       buyer_email:             !strictMode && tx && tx.buyer_email ? tx.buyer_email : '',
       seller_email:            !strictMode && tx && tx.seller_email ? tx.seller_email : '',
       seller_phone:            !strictMode && tx && tx.seller_phone ? tx.seller_phone : '',
@@ -3277,34 +3278,34 @@ module.exports = async function handler(req, res) {
       hoa_name:                tx && tx.hoa_name || '',
       hoa_phone:               tx && tx.hoa_phone || '',
       hoa_management_company:  tx && tx.hoa_management_company || '',
-      // Section 22 â€” HOA addendum checkbox (auto-set when hoa===true)
+      // Section 22 — HOA addendum checkbox (auto-set when hoa===true)
       hoa_addendum:            tx && tx.hoa === true,
-      // Section 22 â€” Propane Gas addendum: only check when explicitly true (Bug 4 fix)
+      // Section 22 — Propane Gas addendum: only check when explicitly true (Bug 4 fix)
       propane_addendum:        tx && tx.propane_gas_addendum === true,
-      // Section 7 â€” Property condition (as-is vs. as-is with repairs)
+      // Section 7 — Property condition (as-is vs. as-is with repairs)
       // Default: as-is unless explicitly false
       as_is_with_repairs:      tx && tx.as_is === false,
-      // Section 6A â€” Title area/boundaries amendment: default checked per Hadley
+      // Section 6A — Title area/boundaries amendment: default checked per Hadley
       title_area_amendment:    true,
-      // Section 6C â€” Survey option: C.1 (seller provides existing) is default
+      // Section 6C — Survey option: C.1 (seller provides existing) is default
       survey_option:           tx && tx.seller_provides_survey === true ? 'c1' : 'c1',
       // Section 6.C sub-checkbox: seller pays when seller_provides_survey===true
       survey_sellers_expense:  tx && tx.seller_provides_survey === true,
       // When seller pays survey, uncheck the default "Buyer pays" checkbox behavior
       survey_buyer_expense:    !tx || tx.seller_provides_survey !== true,
-      // Section 22 â€” Sellers Disclosure Notice (OP-H) received checkbox
+      // Section 22 — Sellers Disclosure Notice (OP-H) received checkbox
       sdn_received:            tx && tx.sdn_received === true,
       sellers_disclosure_addendum: tx && tx.sdn_received === true,
-      // Section 22 â€” Lead paint addendum (OP-L): auto-check for pre-1978 homes
+      // Section 22 — Lead paint addendum (OP-L): auto-check for pre-1978 homes
       lead_paint_addendum:     tx && tx.year_built != null && Number(tx.year_built) < 1978,
-      // Section 22 â€” TREC 49-1 appraisal addendum: auto for conventional/usda/tx-vet financed
+      // Section 22 — TREC 49-1 appraisal addendum: auto for conventional/usda/tx-vet financed
       // (not FHA or VA which have their own appraisal protections)
       appraisal_addendum:      Boolean(rawLoanAmount > 0 && ft && ft !== 'fha' && ft !== 'va'),
-      // Section 5A â€” Earnest delivery days (3 calendar days is TX standard)
+      // Section 5A — Earnest delivery days (3 calendar days is TX standard)
       earnest_delivery_days:   null,
-      // Section 11 â€” Optional residential service contract amount
+      // Section 11 — Optional residential service contract amount
       service_contract_amount: tx && tx.service_contract_amount != null ? String(tx.service_contract_amount) : '',
-      // Section 12.B â€” Other expenses seller pays at closing
+      // Section 12.B — Other expenses seller pays at closing
       buyer_closing_cost_credit: tx && tx.seller_other_expenses != null ? String(tx.seller_other_expenses) : '',
       // Appraisal fields (Block 10)
       appraised_value:         tx && tx.appraisal_value != null ? String(tx.appraisal_value) : '',
@@ -3333,7 +3334,7 @@ module.exports = async function handler(req, res) {
 
     // Agent-supplied field_values override transaction defaults
 
-    // In strict mode, skip txDefaults entirelyâ€”use ONLY caller's field_values
+    // In strict mode, skip txDefaults entirely—use ONLY caller's field_values
     const mergedFields = strictMode ? fieldValues : Object.assign({}, txDefaults, fieldValues);
 
     // STRICT MODE NORMALIZATION (2026-06-14): Combine city + zip into property address if needed
@@ -3361,13 +3362,13 @@ module.exports = async function handler(req, res) {
       if (tx.role === 'buyer' && hasSellerName && !hasBuyerName) {
         return res.status(400).json({
           ok: false,
-          error: 'Buyer name is required for buyer-side contract. The party you named appears to be the seller â€” please re-state which client is the buyer.',
+          error: 'Buyer name is required for buyer-side contract. The party you named appears to be the seller — please re-state which client is the buyer.',
         });
       }
       if (tx.role === 'listing' && hasBuyerName && !hasSellerName) {
         return res.status(400).json({
           ok: false,
-          error: 'Seller name is required for listing-side contract. The party you named appears to be the buyer â€” please re-state which client is the seller.',
+          error: 'Seller name is required for listing-side contract. The party you named appears to be the buyer — please re-state which client is the seller.',
         });
       }
     }
