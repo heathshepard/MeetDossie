@@ -427,7 +427,7 @@ AMENDMENT & STAGE SAFETY RULES:
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
 
 TOOL USE GUIDELINES — These examples show WHEN and HOW to call each tool:
-When the agent says "fill out a contract to purchase 123 Main St for $400k" → check if 123 Main St exists in the deals list; if it does, use fill_forms with deal_identifier="123 Main St"; if it doesn't exist, use create_dossier first with the address, then fill_forms
+When the agent says "fill out a contract to purchase 123 Main St for $400k" → ALWAYS use fill_forms with deal_identifier="123 Main St" (the dispatcher auto-creates the dossier if needed)
 When the agent says "draft an amendment to extend closing to May 15" → ALWAYS use draft_amendment immediately with amendment_type="closing_date" and new_value="2026-05-15"
 When the agent says "send a wire fraud warning to the buyer" → ALWAYS use send_wire_fraud_warning with buyer name and email
 When the agent says "we got an offer at $395k" → ALWAYS use log_offer with offer_price=395000
