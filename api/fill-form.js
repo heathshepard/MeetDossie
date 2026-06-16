@@ -536,6 +536,11 @@ function translateCanonicalToDocuSeal(fieldValues) {
 
   return docusealFields;
 }
+// F4a calibration: per-field x-axis offsets (in points)
+const X_OVERRIDES = {
+  'seller_name': 10,  // placeholder — Heath will tune
+};
+
 async function fillResaleContractDocuSeal(pdfDoc, fv) {
   const { PDFPage, StandardFonts } = require('pdf-lib');
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -555,12 +560,12 @@ async function fillResaleContractDocuSeal(pdfDoc, fv) {
     const pageHeight = page.getHeight();
     const pageWidth = page.getWidth();
 
-    // DocuSeal coord.y is TOP of field box (0=top, 1=bottom) - top-down coordinate
-    // PDF drawText y is BOTTOM of text baseline (bottom-up coordinate)
-    // Convert: y_from_bottom = pageHeight * (1 - coord.y) - (fieldheight / 2)
+    // F4a calibration formula (2026-06-16)
+    // Shifts fields +5pt right, +3pt up from baseline
     const fontSize = 10;
-    const x = coord.x * pageWidth;
-    const y_from_bottom = pageHeight * (1 - coord.y) - (coord.h * pageHeight / 2);
+    const xOverride = X_OVERRIDES[fieldName] || 0;
+    const x = (coord.x * pageWidth) + 5 + xOverride;
+    const y_from_bottom = pageHeight - ((coord.y + coord.h / 2) * pageHeight) - fontSize / 4 + 3;
 
     page.drawText(String(value), { x, y: y_from_bottom,
       size: fontSize,
@@ -580,9 +585,14 @@ async function fillResaleContractDocuSeal(pdfDoc, fv) {
     const pageHeight = page.getHeight();
     const pageWidth = page.getWidth();
 
-    const fontSize = 10; const x = coord.x * pageWidth; const y_from_bottom = pageHeight * (1 - coord.y) - (coord.h * pageHeight / 2); const size = 10;
+    // F4a calibration formula for checkboxes
+    const fontSize = 10;
+    const xOverride = X_OVERRIDES[fieldName] || 0;
+    const x = (coord.x * pageWidth) + 5 + xOverride;
+    const y_from_bottom = pageHeight - ((coord.y + coord.h / 2) * pageHeight) - fontSize / 4 + 3;
+    const size = 10;
 
-    // Draw a simple X (âœ“ unicode not supported in standard PDF fonts)
+    // Draw a simple X (unicode not supported in standard PDF fonts)
     page.drawText('X', {
       x: x - 1, y: y_from_bottom,
       size,

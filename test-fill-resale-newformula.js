@@ -54,25 +54,30 @@ async function main() {
     const { StandardFonts } = require('pdf-lib');
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
+    const X_OVERRIDES = {
+      'seller_name': 10,  // placeholder — Heath will tune
+    };
+
     const fieldsToTest = ['sales_price', 'earnest_money_amount', 'option_period_days', 'title_company_name', 'buyer_name', 'seller_name'];
-    
+
     for (const fieldName of fieldsToTest) {
       const coord = FIELD_MAP_DOCUSEAL[fieldName];
       const value = translatedFv[fieldName];
-      
+
       if (!coord || !value) {
         console.log(`SKIP: ${fieldName}`);
         continue;
       }
-      
+
       const pageHeight = page0.getHeight();
       const pageWidth = page0.getWidth();
-      
-      // NEW FORMULA from fill-form.js:
+
+      // F4a calibration formula (2026-06-16)
       const fontSize = 10;
-      const y_from_bottom = pageHeight * (1 - coord.y) - (coord.h * pageHeight / 2);
-      const x = coord.x * pageWidth;
-      
+      const xOverride = X_OVERRIDES[fieldName] || 0;
+      const x = (coord.x * pageWidth) + 5 + xOverride;
+      const y_from_bottom = pageHeight - ((coord.y + coord.h / 2) * pageHeight) - fontSize / 4 + 3;
+
       page0.drawText(String(value), {
         x,
         y: y_from_bottom,
@@ -80,7 +85,7 @@ async function main() {
         color: require('pdf-lib').rgb(0, 0, 0),
         font: helvetica,
       });
-      
+
       const y_normalized_pdf = y_from_bottom / pageHeight;
       console.log(`DREW: ${fieldName} = "${value}" at x=${(x/pageWidth).toFixed(3)}, docuseal_y=${coord.y.toFixed(3)}, pdf_y=${y_normalized_pdf.toFixed(3)}`);
     }
