@@ -443,7 +443,7 @@ function postProcess(formType, fields, message) {
     fv.closing_date = cd.toISOString().slice(0, 10);
   }
 
-  // Default earnest_money = 1% of sale_price (use sale_price key to match fill-form.js)
+  // Default earnest_money = 1% of sale_price
   if (!fv.earnest_money && fv.sale_price) {
     fv.earnest_money = Math.round(Number(fv.sale_price) * 0.01);
   }
@@ -452,6 +452,11 @@ function postProcess(formType, fields, message) {
   const purchaseForms = new Set(['resale-contract', 'unimproved-property', 'new-home-incomplete', 'new-home-complete', 'farm-ranch']);
   if (!fv.option_fee && purchaseForms.has(formType)) {
     fv.option_fee = 100;
+  }
+
+  // Default option_days = 10
+  if (!fv.option_days && purchaseForms.has(formType)) {
+    fv.option_days = 10;
   }
 
   // Calculate loan_amount from down_payment
@@ -480,6 +485,56 @@ function postProcess(formType, fields, message) {
   // Default hoa_exists = false
   if (fv.hoa_exists === undefined) {
     fv.hoa_exists = false;
+  }
+
+  // ===================================================================
+  // FIELD NAME NORMALIZATION FOR DOCUSEAL SCHEMA
+  // Resale contract uses DocuSeal field names. Normalize here.
+  // ===================================================================
+  if (formType === 'resale-contract') {
+    // sale_price → sales_price
+    if (fv.sale_price !== undefined) {
+      fv.sales_price = fv.sale_price;
+      delete fv.sale_price;
+    }
+
+    // earnest_money → earnest_money_amount
+    if (fv.earnest_money !== undefined) {
+      fv.earnest_money_amount = fv.earnest_money;
+      delete fv.earnest_money;
+    }
+
+    // option_days → option_period_days
+    if (fv.option_days !== undefined) {
+      fv.option_period_days = fv.option_days;
+      delete fv.option_days;
+    }
+
+    // title_company → title_company_name
+    if (fv.title_company !== undefined) {
+      fv.title_company_name = fv.title_company;
+      delete fv.title_company;
+    }
+
+    // legal_description → Legal_Description (DocuSeal uses capital L/D)
+    if (fv.legal_description !== undefined) {
+      fv.Legal_Description = fv.legal_description;
+      delete fv.legal_description;
+    }
+
+    // For down_payment field in DocuSeal: prefer down_payment_amt if available
+    // (the resale contract uses a single "down_payment" field, not amt vs pct)
+    if (fv.down_payment_amt !== undefined) {
+      fv.down_payment = fv.down_payment_amt;
+      delete fv.down_payment_amt;
+      delete fv.down_payment_pct;
+    }
+
+    // Rename lease fields to match DocuSeal schema
+    if (fv.has_tenant_lease !== undefined) {
+      fv.has_residential_leases = fv.has_tenant_lease;
+      delete fv.has_tenant_lease;
+    }
   }
 
   return fv;
