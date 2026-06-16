@@ -161,30 +161,31 @@ async function docusealGetSubmissionPdf(submissionId) {
 }
 
 // Map incoming field_values keys to DocuSeal template field names
-function mapFieldsToDocuSeal(fieldValues, formType) {
-  // For now, only resale-contract is supported
-  if (formType !== 'resale-contract') {
-    throw new ValidationError(`Form type ${formType} not yet supported via DocuSeal`, 400);
-  }
 
-  // Direct 1:1 mapping -- fields from extract-form-fields match DocuSeal field names
-  // CRITICAL: only include fields that were explicitly provided. Leave others blank.
+// Translate extract-form-fields output keys to DocuSeal template field names
+function mapExtractedFieldsToDocuSeal(fieldValues) {
+  // extract-form-fields emits canonical keys like sale_price, earnest_money, option_days, title_company
+  // DocuSeal template expects different names: sales_price, earnest_money_amount, option_period_days, title_company_name + escrow_agent_name
+  // This layer bridges them and handles special cases.
+
   const docusealFields = {};
 
-  const fieldMap = {
+  // Direct 1:1 mappings
+  const directMap = {
     'buyer_name': 'buyer_name',
     'seller_name': 'seller_name',
     'property_address': 'property_address',
-    'sales_price': 'sales_price',
+    'city_state_zip': 'city_state_zip',
+    'county': 'county',
+    'legal_description': 'Legal_Description',
+    'legal_lot': 'legal_lot',
+    'legal_block': 'legal_block',
+    'addition_city': 'addition_city',
     'loan_amount': 'loan_amount',
     'down_payment': 'down_payment',
-    'closing_date': 'closing_date',
-    'option_period_days': 'option_period_days',
     'option_fee': 'option_fee',
-    'earnest_money_amount': 'earnest_money_amount',
-    'escrow_agent_name': 'escrow_agent_name',
+    'closing_date': 'closing_date',
     'escrow_agent_address': 'escrow_agent_address',
-    'title_company_name': 'title_company_name',
     'buyer_phone': 'buyer_phone',
     'buyer_email': 'buyer_email',
     'buyer_notice_address': 'buyer_notice_address',
@@ -197,11 +198,6 @@ function mapFieldsToDocuSeal(fieldValues, formType) {
     'listing_agent_name': 'listing_agent_name',
     'other_broker_firm': 'other_broker_firm',
     'other_agent_name': 'other_agent_name',
-    'legal_description': 'Legal_Description',
-    'legal_lot': 'legal_lot',
-    'legal_block': 'legal_block',
-    'county': 'county',
-    'addition_city': 'addition_city',
     'permitted_use': 'permitted_use',
     'property_repairs_list': 'property_repairs_list',
     'special_provisions': 'special_provisions',
@@ -223,8 +219,6 @@ function mapFieldsToDocuSeal(fieldValues, formType) {
     'has_residential_leases': 'has_residential_leases',
     'has_fixture_leases': 'has_fixture_leases',
     'has_natural_resource_leases': 'has_natural_resource_leases',
-    'possession_closing': 'possession_closing',
-    'possession_leaseback': 'possession_leaseback',
     'as_is': 'as_is',
     'as_is_with_repairs': 'as_is_with_repairs',
     'exclusions': 'exclusions',
@@ -250,10 +244,44 @@ function mapFieldsToDocuSeal(fieldValues, formType) {
     'closing_year': 'closing_year',
   };
 
-  // Only include keys that are explicitly in fieldValues
-  for (const [inKey, docKey] of Object.entries(fieldMap)) {
-    if (inKey in fieldValues && fieldValues[inKey] != null && fieldValues[inKey] !== '') {
-      docusealFields[docKey] = String(fieldValues[inKey]).trim();
+  // Apply direct mappings (only if field has a real value)
+  for (const [extractKey, docKey] of Object.entries(directMap)) {
+    if (extractKey in fieldValues && fieldValues[extractKey] != null && fieldValues[extractKey] !== '') {
+      docusealFields[docKey] = String(fieldValues[extractKey]).trim();
+    }
+  }
+
+  // Special case: sale_price (from extract) → sales_price (DocuSeal)
+  if ('sale_price' in fieldValues && fieldValues.sale_price != null && fieldValues.sale_price !== '') {
+    docusealFields['sales_price'] = String(fieldValues.sale_price).trim();
+  }
+
+  // Special case: earnest_money (from extract) → earnest_money_amount (DocuSeal)
+  if ('earnest_money' in fieldValues && fieldValues.earnest_money != null && fieldValues.earnest_money !== '') {
+    docusealFields['earnest_money_amount'] = String(fieldValues.earnest_money).trim();
+  }
+
+  // Special case: option_days (from extract) → option_period_days (DocuSeal)
+  if ('option_days' in fieldValues && fieldValues.option_days != null && fieldValues.option_days !== '') {
+    docusealFields['option_period_days'] = String(fieldValues.option_days).trim();
+  }
+
+  // Special case: title_company (from extract) → title_company_name + escrow_agent_name (DocuSeal)
+  // One extracted field becomes two DocuSeal fields (same company often plays both roles)
+  if ('title_company' in fieldValues && fieldValues.title_company != null && fieldValues.title_company !== '') {
+    const companyName = String(fieldValues.title_company).trim();
+    docusealFields['title_company_name'] = companyName;
+    docusealFields['escrow_agent_name'] = companyName;
+  }
+
+  // Special case: possession (from extract) is a string like "closing" or "leaseback"
+  // DocuSeal template uses boolean checkboxes: possession_closing, possession_leaseback
+  if ('possession' in fieldValues && fieldValues.possession != null && fieldValues.possession !== '') {
+    const possessionType = String(fieldValues.possession).toLowerCase().trim();
+    if (possessionType === 'closing') {
+      docusealFields['possession_closing'] = true;
+    } else if (possessionType === 'leaseback') {
+      docusealFields['possession_leaseback'] = true;
     }
   }
 
@@ -287,8 +315,7 @@ module.exports = async (req, res) => {
       throw new AuthError('Missing authorization token', 401);
     }
 
-    const decoded = await verifySupabaseToken(token);
-    userId = decoded.sub;
+    const { userId } = await verifySupabaseToken(req);
 
     // Rate limit
     const clientIp = clientIpFromReq(req);
@@ -317,7 +344,7 @@ module.exports = async (req, res) => {
     }
 
     // Map and sanitize fields
-    const docusealFields = mapFieldsToDocuSeal(fieldValues, formType);
+    const docusealFields = mapExtractedFieldsToDocuSeal(fieldValues);
 
     // Create DocuSeal submission
     // Use placeholder emails for now; DocuSeal doesn't send emails anyway (send_email: false)
