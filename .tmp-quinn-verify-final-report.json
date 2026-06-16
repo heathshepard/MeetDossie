@@ -1,0 +1,250 @@
+[
+  {
+    "name": "TREC 20-17 resale",
+    "formType": "resale-contract",
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs-final\\resale-contract.pdf",
+    "pass": 9,
+    "total": 10,
+    "allOk": false,
+    "detail": [
+      {
+        "label": "buyer Jane Doe",
+        "found": true
+      },
+      {
+        "label": "seller John Smith",
+        "found": true
+      },
+      {
+        "label": "property 1247 Sample Way",
+        "found": true
+      },
+      {
+        "label": "sale price $400,000",
+        "found": true
+      },
+      {
+        "label": "earnest $5,000",
+        "found": true
+      },
+      {
+        "label": "option fee $250",
+        "found": true
+      },
+      {
+        "label": "option days 7",
+        "found": true
+      },
+      {
+        "label": "closing 2026-07-15",
+        "found": false
+      },
+      {
+        "label": "loan $320,000",
+        "found": true
+      },
+      {
+        "label": "title Stewart Title",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 40-11 financing",
+    "formType": "financing-addendum",
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs-final\\financing-addendum.pdf",
+    "pass": 3,
+    "total": 4,
+    "allOk": false,
+    "detail": [
+      {
+        "label": "buyer Jane Doe",
+        "found": false
+      },
+      {
+        "label": "property 1247 Sample",
+        "found": true
+      },
+      {
+        "label": "loan amount $320,000",
+        "found": true
+      },
+      {
+        "label": "interest rate 7.5",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 38-7 termination",
+    "formType": "termination-notice",
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs-final\\termination-notice.pdf",
+    "pass": 4,
+    "total": 5,
+    "allOk": false,
+    "detail": [
+      {
+        "label": "buyer Kim Paqueo",
+        "found": true
+      },
+      {
+        "label": "seller Melinda Sanchez",
+        "found": true
+      },
+      {
+        "label": "property 311 Rilla Vista",
+        "found": true
+      },
+      {
+        "label": "contract effective 2026-05-15",
+        "found": true
+      },
+      {
+        "label": "termination reason Paragraph 23",
+        "found": false
+      }
+    ]
+  },
+  {
+    "name": "TREC 23-20 new-home-incomplete",
+    "formType": "new-home-incomplete",
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs-final\\new-home-incomplete.pdf",
+    "pass": 9,
+    "total": 9,
+    "allOk": true,
+    "detail": [
+      {
+        "label": "buyer Brian Nguyen",
+        "found": true
+      },
+      {
+        "label": "seller Sunshine Builders",
+        "found": true
+      },
+      {
+        "label": "property 456 Builder Blvd",
+        "found": true
+      },
+      {
+        "label": "sale price $525,000",
+        "found": true
+      },
+      {
+        "label": "earnest $7,500",
+        "found": true
+      },
+      {
+        "label": "option fee $300",
+        "found": true
+      },
+      {
+        "label": "option days 10",
+        "found": true
+      },
+      {
+        "label": "closing 2026-09-30",
+        "found": true
+      },
+      {
+        "label": "loan $420,000",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 24-20 new-home-complete",
+    "formType": "new-home-complete",
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs-final\\new-home-complete.pdf",
+    "pass": 9,
+    "total": 9,
+    "allOk": true,
+    "detail": [
+      {
+        "label": "buyer Mark Castillo",
+        "found": true
+      },
+      {
+        "label": "seller Hill Country Homes",
+        "found": true
+      },
+      {
+        "label": "property 789 Ranch Rd",
+        "found": true
+      },
+      {
+        "label": "sale price $625,000",
+        "found": true
+      },
+      {
+        "label": "earnest $10,000",
+        "found": true
+      },
+      {
+        "label": "option fee $500",
+        "found": true
+      },
+      {
+        "label": "option days 7",
+        "found": true
+      },
+      {
+        "label": "closing 2026-08-15",
+        "found": true
+      },
+      {
+        "label": "loan $500,000",
+        "found": true
+      }
+    ]
+  },
+  {
+    "name": "TREC 25-17 farm-and-ranch",
+    "formType": "farm-ranch",
+    "pdfPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-pdfs-final\\farm-ranch.pdf",
+    "pass": 10,
+    "total": 10,
+    "allOk": true,
+    "detail": [
+      {
+        "label": "buyer Kevin Holt",
+        "found": true
+      },
+      {
+        "label": "seller Texas Land Holdings",
+        "found": true
+      },
+      {
+        "label": "county Blanco",
+        "found": true
+      },
+      {
+        "label": "sale price $850,000",
+        "found": true
+      },
+      {
+        "label": "earnest $15,000",
+        "found": true
+      },
+      {
+        "label": "option fee $750",
+        "found": true
+      },
+      {
+        "label": "option days 14",
+        "found": true
+      },
+      {
+        "label": "closing 2026-10-01",
+        "found": true
+      },
+      {
+        "label": "acreage 47.5",
+        "found": true
+      },
+      {
+        "label": "property 5402 Sample Park",
+        "found": true
+      }
+    ]
+  }
+]
