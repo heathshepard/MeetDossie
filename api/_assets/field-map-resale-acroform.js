@@ -30,9 +30,9 @@ module.exports = {
   escrow_agent_name: 'undefined_6',  // alias
   escrow_address: 'undefined_7',
 
-  // Page 2 §5.B option period (the field has a misleading OCR'd name)
-  option_period_days: 'uyers lenders',
-  option_days: 'uyers lenders',  // alias
+  // Page 2 §5.B option period — CORRECTED field name
+  option_period_days: 'Within',
+  option_days: 'Within',  // alias
 
   // Page 2 §6 TITLE POLICY
   title_company: 'insurance Title Policy issued by',
