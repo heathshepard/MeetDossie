@@ -7,11 +7,12 @@ const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 
 // Template ID mapping — TREC forms Heath pre-mapped in DocuSeal
+// Role names MUST match exactly what's in each DocuSeal template definition.
 const DOCUSEAL_TEMPLATES = {
   'resale-contract': {
     templateId: 4018208,
     formName: 'One to Four Family Residential Contract (Resale)',
-    roles: ['Buyer', 'Seller'],
+    roles: ['Buyer 1', 'Seller 2'], // actual submitter names from template
   },
   'financing-addendum': {
     templateId: 4023463,
@@ -26,12 +27,12 @@ const DOCUSEAL_TEMPLATES = {
   'sellers-disclosure': {
     templateId: 4023470,
     formName: 'Seller\'s Disclosure Notice (TREC OP-H)',
-    roles: ['Seller'],
+    roles: ['Seller 1'],
   },
   'hoa-addendum': {
     templateId: 4111321,
     formName: 'HOA Addendum (TREC 36-11)',
-    roles: ['Buyer', 'Seller'],
+    roles: ['Buyer 1', 'Seller 1'],
   },
   'amendment': {
     templateId: 4111320,
@@ -46,7 +47,7 @@ const DOCUSEAL_TEMPLATES = {
   'lead-paint-addendum': {
     templateId: 4023469,
     formName: 'Lead-Based Paint Addendum (OP-L)',
-    roles: ['Buyer', 'Seller'],
+    roles: ['Buyer 1', 'Seller 1'],
   },
 };
 
