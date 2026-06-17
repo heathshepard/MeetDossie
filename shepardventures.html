@@ -916,11 +916,19 @@
 
       container.appendChild(svg);
 
-      // Tap handler
+      // Tap handler — wire to voice loop
       container.style.cursor = 'pointer';
-      container.addEventListener('click', () => {
-        toast('Voice coming soon', 'ok');
-      });
+      container.addEventListener('click', (e) => voiceLoop.onOrbTap(e));
+
+      // Add listening state class support
+      window.setOrbState = (state) => {
+        container.classList.remove('listening', 'recording', 'thinking', 'speaking');
+        if (state) container.classList.add(state);
+      };
+      window.setOrbIntensity = (v) => {
+        // SVG rings don't pulse like the video orb, but we can scale the whole container
+        svg.style.opacity = 0.6 + v * 0.4;
+      };
     }
 
     // Create KPI badges around orb
@@ -978,6 +986,310 @@
       document.getElementById('auth-gate').classList.add('visible');
       document.getElementById('app').classList.remove('visible');
     }
+
+    // ---- Voice loop (from orb-web.html) ----
+    const voiceLoop = (() => {
+      const container = null; // set in bootstrap after initOrb
+      const statusEl = document.getElementById('orb-status');
+      let state = 'idle';
+      const STATE_LABELS = {
+        idle:      'STANDING BY',
+        recording: 'LISTENING…',
+        thinking:  'THINKING…',
+        speaking:  'SPEAKING…',
+        error:     'ERROR — TAP TO RETRY',
+      };
+      function setState(next, errorMsg) {
+        if (state === next) return;
+        state = next;
+        if (window.setOrbState) window.setOrbState(next);
+        if (statusEl) {
+          statusEl.className = '';
+          statusEl.textContent = errorMsg || STATE_LABELS[next] || '';
+        }
+      }
+      setState('idle');
+
+      const history = [];
+      const MAX_HISTORY = 20;
+      function rememberTurn(role, content) {
+        history.push({ role, content });
+        while (history.length > MAX_HISTORY) history.shift();
+      }
+
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SPEECH_SUPPORTED = !!SpeechRecognitionCtor;
+      let recognition = null;
+      let lastTranscript = '';
+      if (SPEECH_SUPPORTED) {
+        recognition = new SpeechRecognitionCtor();
+        recognition.interimResults = false;
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+      }
+
+      let mediaStream = null;
+      let micAnalyser = null;
+      let micDataArray = null;
+      let micRaf = 0;
+      let smoothedMic = 0;
+      const MIC_ALPHA = 0.35;
+      const MAX_RECORD_MS = 30000;
+
+      function setIntensity(v) {
+        if (window.setOrbIntensity) window.setOrbIntensity(v);
+      }
+
+      async function startRecording() {
+        if (state !== 'idle') return;
+        if (!SPEECH_SUPPORTED) {
+          setState('error', 'VOICE NOT SUPPORTED — TRY CHROME OR SAFARI');
+          setTimeout(() => setState('idle'), 4000);
+          return;
+        }
+        if (window.coleAudio && window.coleAudio.cancelPreview) {
+          window.coleAudio.cancelPreview();
+        }
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+        } catch (err) {
+          console.warn('[voice] mic permission denied:', err);
+          setState('error', 'MIC BLOCKED — ALLOW ACCESS THEN TAP');
+          setTimeout(() => setState('idle'), 3000);
+          return;
+        }
+
+        try {
+          const ctx = window.coleAudio && window.coleAudio.ensureContext && window.coleAudio.ensureContext();
+          if (ctx) {
+            const src = ctx.createMediaStreamSource(mediaStream);
+            micAnalyser = ctx.createAnalyser();
+            micAnalyser.fftSize = 256;
+            micDataArray = new Uint8Array(micAnalyser.fftSize);
+            src.connect(micAnalyser);
+          }
+        } catch (err) {
+          console.warn('[voice] mic analyser setup failed:', err);
+        }
+
+        lastTranscript = '';
+        recognition.onresult = (event) => {
+          try {
+            const r = event.results && event.results[0] && event.results[0][0];
+            if (r && r.transcript) lastTranscript = r.transcript.trim();
+          } catch (_) {}
+        };
+        recognition.onerror = (event) => {
+          const errType = event && event.error;
+          console.warn('[voice] SpeechRecognition error:', errType);
+          cleanupStream();
+          let msg = 'DIDN\'T CATCH THAT — TAP TO TRY AGAIN';
+          if (errType === 'not-allowed' || errType === 'service-not-allowed') msg = 'MIC BLOCKED — ALLOW ACCESS THEN TAP';
+          else if (errType === 'audio-capture') msg = 'NO MIC DETECTED';
+          else if (errType === 'network') msg = 'CONNECTION HICCUP — TAP TO RETRY';
+          setState('error', msg);
+          setTimeout(() => setState('idle'), 2800);
+        };
+        recognition.onend = () => {
+          if (state !== 'recording' && state !== 'thinking') return;
+          handleRecognitionEnd();
+        };
+
+        try {
+          recognition.start();
+        } catch (err) {
+          console.warn('[voice] SpeechRecognition start failed:', err);
+          cleanupStream();
+          setState('error', 'VOICE UNAVAILABLE — TAP TO RETRY');
+          setTimeout(() => setState('idle'), 3000);
+          return;
+        }
+        setState('recording');
+        micRaf = requestAnimationFrame(micTick);
+        setTimeout(() => {
+          if (state === 'recording') stopRecording();
+        }, MAX_RECORD_MS);
+      }
+
+      function micTick() {
+        if (state !== 'recording') {
+          micRaf = 0;
+          return;
+        }
+        let rms = 0;
+        if (micAnalyser) {
+          micAnalyser.getByteTimeDomainData(micDataArray);
+          let sum = 0;
+          for (let i = 0; i < micDataArray.length; i++) {
+            const v = (micDataArray[i] - 128) / 128;
+            sum += v * v;
+          }
+          rms = Math.sqrt(sum / micDataArray.length);
+        }
+        smoothedMic = MIC_ALPHA * Math.min(1, rms * 4.0) + (1 - MIC_ALPHA) * smoothedMic;
+        setIntensity(smoothedMic);
+        micRaf = requestAnimationFrame(micTick);
+      }
+
+      function stopRecording() {
+        if (!recognition) return;
+        try { recognition.stop(); } catch (_) {}
+      }
+
+      function cleanupStream() {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((t) => t.stop());
+          mediaStream = null;
+        }
+        micAnalyser = null;
+        micDataArray = null;
+        if (micRaf) { cancelAnimationFrame(micRaf); micRaf = 0; }
+        smoothedMic = 0;
+        setIntensity(0);
+      }
+
+      async function handleRecognitionEnd() {
+        setState('thinking');
+        cleanupStream();
+        const transcript = (lastTranscript || '').trim();
+        lastTranscript = '';
+
+        if (!transcript) {
+          setState('error', 'DIDN\'T CATCH THAT — TAP TO TRY AGAIN');
+          setTimeout(() => setState('idle'), 2500);
+          return;
+        }
+
+        try {
+          rememberTurn('user', transcript);
+          const reply = await sendForReply(transcript);
+          if (!reply) {
+            setState('error', 'COLE COULDN\'T ANSWER — TRY AGAIN');
+            setTimeout(() => setState('idle'), 2500);
+            return;
+          }
+          rememberTurn('assistant', reply);
+          setState('speaking');
+          await speakResponse(reply);
+          setState('idle');
+        } catch (err) {
+          console.error('[voice] conversation error:', err);
+          setState('error', err && err.userMessage ? err.userMessage : 'CONNECTION HICCUP — TAP TO RETRY');
+          setTimeout(() => setState('idle'), 3500);
+        }
+      }
+
+      async function sendForReply(message) {
+        const res = await authFetch('/api/cole-voice?op=chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, history: history.slice(0, -1) }),
+        });
+        if (!res.ok) {
+          const err = new Error('Chat failed');
+          err.userMessage = res.status === 429 ? 'SLOW DOWN — TOO MANY REQUESTS' : 'COLE COULDN\'T ANSWER';
+          throw err;
+        }
+        const data = await res.json();
+        return (data && data.response || '').trim();
+      }
+
+      async function speakResponse(text) {
+        const res = await authFetch('/api/cole-voice?op=speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) {
+          const err = new Error('TTS failed');
+          err.userMessage = 'VOICE UNAVAILABLE';
+          throw err;
+        }
+        const audioBlob = await res.blob();
+        const url = URL.createObjectURL(audioBlob);
+        if (window.coleAudio && window.coleAudio.playUrl) {
+          await window.coleAudio.playUrl(url);
+        } else {
+          const audio = new Audio(url);
+          await audio.play();
+          await new Promise((r) => audio.addEventListener('ended', r, { once: true }));
+        }
+        URL.revokeObjectURL(url);
+      }
+
+      function onOrbTap(e) {
+        if (e && e.cancelable) e.preventDefault();
+        if (state === 'idle')      { startRecording(); return; }
+        if (state === 'recording') { stopRecording(); return; }
+        if (state === 'error')     { setState('idle'); return; }
+      }
+
+      return { onOrbTap, setState };
+    })();
+
+    // ---- Web Audio pulse helper (for TTS playback amplitude) ----
+    window.coleAudio = window.coleAudio || {};
+    window.coleAudio.ensureContext = function () {
+      if (!window.coleAudio._ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) window.coleAudio._ctx = new AC();
+      }
+      const c = window.coleAudio._ctx;
+      if (c && c.state === 'suspended') c.resume().catch(() => {});
+      return c;
+    };
+    window.coleAudio.playUrl = async function (url) {
+      window.coleAudio.ensureContext();
+      const ctx = window.coleAudio._ctx;
+      if (ctx && ctx.state === 'suspended') await ctx.resume().catch(() => {});
+
+      const audio = new Audio(url);
+      voiceLoop.setState('speaking');
+
+      // Amplitude tracking via Web Audio
+      if (ctx) {
+        const source = ctx.createMediaElementAudioSource(audio);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        const dataArray = new Uint8Array(analyser.fftSize);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+
+        let rafId = 0;
+        const tick = () => {
+          if (!audio.paused && !audio.ended) {
+            analyser.getByteTimeDomainData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              const v = (dataArray[i] - 128) / 128;
+              sum += v * v;
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            const intensity = Math.min(1, rms * 4.0);
+            if (window.setOrbIntensity) window.setOrbIntensity(intensity);
+            rafId = requestAnimationFrame(tick);
+          }
+        };
+        rafId = requestAnimationFrame(tick);
+      }
+
+      try {
+        await audio.play();
+        await new Promise((resolve) => {
+          audio.addEventListener('ended', resolve, { once: true });
+          audio.addEventListener('pause', resolve, { once: true });
+        });
+      } finally {
+        voiceLoop.setState('idle');
+      }
+    };
 
     function revealApp(token) {
       _token = token;
