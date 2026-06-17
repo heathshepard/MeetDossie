@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Today — Shepard Ventures</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --navy-mid: #20203a;
+      --coral: #E8836B;
+      --coral-deep: #d96d52;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
+      --border: rgba(245, 230, 224, 0.10);
+      --border-hover: rgba(245, 230, 224, 0.22);
+      --text-dim: rgba(245, 230, 224, 0.55);
+      --text-faint: rgba(245, 230, 224, 0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100vh;
+      background: var(--navy);
+      background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--blush);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ---- Auth gate ---- */
+    #auth-gate {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+    }
+    #auth-gate.visible { display: flex; }
+    #auth-gate h1 { font-family: "Cormorant Garamond", serif; color: var(--gold); font-weight: 600; font-size: 2rem; }
+    #auth-gate p { color: var(--text-dim); font-size: 0.95rem; max-width: 320px; }
+    #auth-gate input {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--navy-mid);
+      color: var(--blush);
+      width: min(320px, 90vw);
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    #auth-gate input:focus { outline: 1px solid var(--gold); border-color: var(--gold); }
+    #auth-gate button {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      background: var(--coral);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      width: min(320px, 90vw);
+    }
+    #auth-gate button:hover { background: var(--coral-deep); }
+    #auth-gate .err { color: var(--coral); font-size: 0.85rem; min-height: 1em; }
+
+    #app { display: none; }
+    #app.visible { display: block; }
+
+    /* ---- Layout ---- */
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 20px 16px 80px;
+    }
+
+    /* ---- Hero ---- */
+    .hero {
+      padding: 4px 0 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .hero-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      color: var(--blush);
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+    .hero-sub {
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+      color: var(--gold);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+    .hero-meta {
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      text-align: right;
+      letter-spacing: 0.04em;
+    }
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-top: 6px;
+      font-family: inherit;
+    }
+    .refresh-btn:hover { color: var(--blush); border-color: var(--border-hover); }
+    .refresh-btn.spinning { color: var(--gold); }
+
+    /* ---- Section ---- */
+    .section {
+      margin-bottom: 26px;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 1.4rem;
+      color: var(--blush);
+      letter-spacing: 0.02em;
+    }
+    .section-count {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      background: var(--surface);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .section-count.urgent { color: var(--coral); border-color: rgba(232,131,107,0.35); background: rgba(232,131,107,0.08); }
+    .section-count.active { color: var(--sage); border-color: rgba(139,168,136,0.35); background: rgba(139,168,136,0.08); }
+
+    .empty {
+      color: var(--text-faint);
+      font-style: italic;
+      padding: 18px 14px;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px dashed var(--border);
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    /* ---- Pending Merge cards ---- */
+    .merge-list { display: flex; flex-direction: column; gap: 10px; }
+    .merge-card {
+      background: linear-gradient(180deg, rgba(245,230,224,0.06), rgba(245,230,224,0.02));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .merge-card:hover { border-color: var(--border-hover); background: var(--surface-hover); }
+    .merge-card.merging { opacity: 0.5; pointer-events: none; }
+    .merge-card.merged { background: rgba(139,168,136,0.08); border-color: rgba(139,168,136,0.3); }
+    .merge-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .merge-msg {
+      color: var(--blush);
+      font-weight: 500;
+      font-size: 0.92rem;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+    .merge-meta {
+      color: var(--text-dim);
+      font-size: 0.74rem;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .merge-sha {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--gold);
+      font-size: 0.74rem;
+    }
+    .merge-btn {
+      background: var(--coral);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-width: 78px;
+      min-height: 44px;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .merge-btn:hover { background: var(--coral-deep); }
+    .merge-btn:active { transform: scale(0.96); }
+    .merge-btn.confirming {
+      background: var(--gold);
+      color: var(--navy);
+    }
+    .merge-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- Agent activity cards ---- */
+    .inflight-list { display: flex; flex-direction: column; gap: 8px; }
+    .inflight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .inflight-card .agent-tag {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--blush);
+      min-width: 64px;
+      letter-spacing: 0.02em;
+    }
+    .inflight-card .task {
+      flex: 1;
+      color: var(--blush);
+      font-size: 0.88rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .inflight-card .meta {
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      margin-top: 3px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .status-dot.working { background: var(--sage); box-shadow: 0 0 6px rgba(139,168,136,0.6); animation: pulse 1.6s ease-in-out infinite; }
+    .status-dot.waiting { background: var(--gold); }
+    .status-dot.blocked { background: var(--coral); }
+    .status-dot.idle { background: var(--text-faint); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.85); }
+    }
+
+    /* ---- Done today ---- */
+    .done-list { display: flex; flex-direction: column; gap: 6px; }
+    .done-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .done-row .kind {
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .done-row .kind.commit { background: rgba(201,169,110,0.15); color: var(--gold); }
+    .done-row .kind.ticket { background: rgba(232,131,107,0.15); color: var(--coral); }
+    .done-row .kind.agent  { background: rgba(139,168,136,0.15); color: var(--sage); }
+    .done-row .body {
+      flex: 1;
+      color: var(--blush);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .done-row .when { color: var(--text-dim); font-size: 0.7rem; flex-shrink: 0; }
+
+    /* ---- Toast ---- */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--navy-mid);
+      color: var(--blush);
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hover);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      font-size: 0.88rem;
+      transition: transform 0.25s ease-out;
+      z-index: 50;
+      max-width: 88vw;
+      text-align: center;
+    }
+    #toast.visible { transform: translateX(-50%) translateY(0); }
+    #toast.err { border-color: var(--coral); color: var(--coral); }
+    #toast.ok { border-color: var(--sage); color: var(--sage); }
+
+    /* ---- Footer nav ---- */
+    .nav-back {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.78rem;
+    }
+    .nav-back a { color: var(--text-dim); text-decoration: none; padding: 8px 12px; border-radius: 6px; }
+    .nav-back a:hover { color: var(--gold); }
+
+    @media (max-width: 480px) {
+      .merge-card { padding: 11px 12px; gap: 10px; }
+      .merge-btn { padding: 10px 14px; min-width: 70px; font-size: 0.82rem; }
+      .merge-msg { font-size: 0.88rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth gate -->
+  <div id="auth-gate">
+    <h1>Today</h1>
+    <p>Mission control — sign in as heath.</p>
+    <input id="email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
+    <input id="password" type="password" placeholder="password" autocomplete="current-password">
+    <button id="signin-btn">Sign in</button>
+    <div class="err" id="auth-err"></div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app">
+    <div class="page">
+      <div class="hero">
+        <div>
+          <div class="hero-title">Today</div>
+          <div class="hero-sub">mission control</div>
+        </div>
+        <div>
+          <div class="hero-meta" id="last-updated">—</div>
+          <button class="refresh-btn" id="refresh-btn">refresh</button>
+        </div>
+      </div>
+
+      <!-- Pending Merge -->
+      <div class="section" id="section-pending">
+        <div class="section-head">
+          <div class="section-title">Pending merge</div>
+          <div class="section-count" id="pending-count">0</div>
+        </div>
+        <div id="pending-list" class="merge-list"></div>
+      </div>
+
+      <!-- In Flight -->
+      <div class="section" id="section-inflight">
+        <div class="section-head">
+          <div class="section-title">In flight</div>
+          <div class="section-count" id="inflight-count">0</div>
+        </div>
+        <div id="inflight-list" class="inflight-list"></div>
+      </div>
+
+      <!-- Done Today -->
+      <div class="section" id="section-done">
+        <div class="section-head">
+          <div class="section-title">Done today</div>
+          <div class="section-count" id="done-count">0</div>
+        </div>
+        <div id="done-list" class="done-list"></div>
+      </div>
+
+      <div class="nav-back">
+        <a href="/ventures">&larr; ventures dashboard</a>
+        &nbsp;&middot;&nbsp;
+        <a href="#" id="signout-link">sign out</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    let supabase = null;
+    let _token = null;
+    let _pollTimer = null;
+    const POLL_MS = 30_000;
+    // Track pending merges by SHA → button confirm state
+    const _confirming = new Set();
+
+    async function bootstrap() {
+      let config;
+      try {
+        config = await fetch('/api/config').then(r => r.json());
+      } catch {
+        showError('Could not load config.');
+        document.getElementById('auth-gate').classList.add('visible');
+        return;
+      }
+      if (!config.supabaseUrl || !config.supabaseKey) {
+        showError('Supabase env missing.');
+        document.getElementById('auth-gate').classList.add('visible');
+        return;
+      }
+      supabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+          storage: window.localStorage,
+          storageKey: 'ventures.auth.token',
+          flowType: 'pkce',
+        },
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showLogin(); return; }
+      revealApp(session.access_token);
+    }
+
+    function showLogin() {
+      document.getElementById('auth-gate').classList.add('visible');
+      document.getElementById('app').classList.remove('visible');
+    }
+
+    function revealApp(token) {
+      _token = token;
+      document.getElementById('auth-gate').classList.remove('visible');
+      document.getElementById('app').classList.add('visible');
+      refresh();
+      _pollTimer = setInterval(refresh, POLL_MS);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('auth-err');
+      if (el) el.textContent = msg || '';
+    }
+
+    function toast(msg, kind = '') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = '';
+      el.classList.add('visible');
+      if (kind) el.classList.add(kind);
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.classList.remove('visible'); }, 3500);
+    }
+
+    async function authFetch(url, init = {}) {
+      return fetch(url, {
+        ...init,
+        headers: {
+          'Authorization': `Bearer ${_token}`,
+          'Content-Type': 'application/json',
+          ...(init.headers || {}),
+        },
+      });
+    }
+
+    async function refresh() {
+      const btn = document.getElementById('refresh-btn');
+      btn.classList.add('spinning');
+      try {
+        const res = await authFetch('/api/today-feed-state');
+        if (res.status === 401) {
+          await supabase.auth.signOut();
+          showLogin();
+          return;
+        }
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+          toast(`refresh failed: ${j.error || res.status}`, 'err');
+          return;
+        }
+        const data = await res.json();
+        render(data);
+      } catch (err) {
+        toast(`network: ${err.message}`, 'err');
+      } finally {
+        btn.classList.remove('spinning');
+      }
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '';
+      try {
+        return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      } catch { return ''; }
+    }
+
+    function render(data) {
+      document.getElementById('last-updated').textContent =
+        'updated ' + fmtTime(data.generatedAt);
+
+      // Pending merges
+      const pendingCommits = data.pendingMerges?.commits || [];
+      const pendingCount = pendingCommits.length;
+      const pCountEl = document.getElementById('pending-count');
+      pCountEl.textContent = pendingCount;
+      pCountEl.classList.toggle('urgent', pendingCount > 0);
+      const pList = document.getElementById('pending-list');
+      if (pendingCount === 0) {
+        pList.innerHTML = '<div class="empty">main is up to date with staging</div>';
+      } else {
+        pList.innerHTML = pendingCommits.map(c => `
+          <div class="merge-card" data-sha="${escapeHtml(c.sha)}">
+            <div class="merge-info">
+              <div class="merge-msg">${escapeHtml(c.message)}</div>
+              <div class="merge-meta">
+                <span class="merge-sha">${escapeHtml(c.shortSha)}</span>
+                <span>${escapeHtml(c.author)}</span>
+                <span>${escapeHtml(c.age)}</span>
+              </div>
+            </div>
+            <button class="merge-btn" data-sha="${escapeHtml(c.sha)}" data-msg="${escapeHtml(c.message)}">Merge</button>
+          </div>
+        `).join('');
+        pList.querySelectorAll('.merge-btn').forEach(btn => {
+          btn.addEventListener('click', () => onMergeClick(btn));
+        });
+      }
+
+      // In Flight
+      const inflight = data.inFlight?.rows || [];
+      const ifCountEl = document.getElementById('inflight-count');
+      ifCountEl.textContent = inflight.length;
+      ifCountEl.classList.toggle('active', inflight.length > 0);
+      const ifList = document.getElementById('inflight-list');
+      if (inflight.length === 0) {
+        ifList.innerHTML = '<div class="empty">no active agents</div>';
+      } else {
+        ifList.innerHTML = inflight.map(r => `
+          <div class="inflight-card">
+            <div class="agent-tag">${escapeHtml(capitalize(r.agent))}</div>
+            <div style="flex:1;min-width:0">
+              <div class="task">${escapeHtml(r.task)}</div>
+              <div class="meta">
+                <span><span class="status-dot ${escapeHtml(r.status)}"></span>${escapeHtml(r.status)}</span>
+                <span>started ${escapeHtml(r.age)}</span>
+                <span>heartbeat ${escapeHtml(r.heartbeatAge)}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Done today
+      const done = data.doneToday || {};
+      const doneRows = [];
+      (done.commits || []).forEach(c => {
+        if (c.type === 'error') return;
+        doneRows.push({
+          kind: 'commit',
+          body: `${c.shortSha} ${c.message}`,
+          age: c.age,
+          when: c.timestamp,
+        });
+      });
+      (done.tickets || []).forEach(t => {
+        doneRows.push({
+          kind: 'ticket',
+          body: `${t.ticketType || 'ticket'}: ${t.preview}`,
+          age: t.age,
+          when: t.timestamp,
+        });
+      });
+      (done.agentDone || []).forEach(a => {
+        doneRows.push({
+          kind: 'agent',
+          body: `${capitalize(a.agent)}: ${a.task}`,
+          age: a.age,
+          when: a.timestamp,
+        });
+      });
+      doneRows.sort((a, b) => (new Date(b.when || 0)) - (new Date(a.when || 0)));
+      document.getElementById('done-count').textContent = doneRows.length;
+      const dList = document.getElementById('done-list');
+      if (doneRows.length === 0) {
+        dList.innerHTML = '<div class="empty">nothing shipped in the last 24h</div>';
+      } else {
+        dList.innerHTML = doneRows.slice(0, 30).map(r => `
+          <div class="done-row">
+            <span class="kind ${escapeHtml(r.kind)}">${escapeHtml(r.kind)}</span>
+            <span class="body" title="${escapeHtml(r.body)}">${escapeHtml(r.body)}</span>
+            <span class="when">${escapeHtml(r.age)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function onMergeClick(btn) {
+      const sha = btn.dataset.sha;
+      const msg = btn.dataset.msg || '';
+      // Two-tap confirm pattern — first tap arms, second tap fires.
+      if (!_confirming.has(sha)) {
+        _confirming.add(sha);
+        btn.textContent = 'Tap to confirm';
+        btn.classList.add('confirming');
+        setTimeout(() => {
+          if (_confirming.has(sha)) {
+            _confirming.delete(sha);
+            btn.textContent = 'Merge';
+            btn.classList.remove('confirming');
+          }
+        }, 4000);
+        return;
+      }
+      _confirming.delete(sha);
+      const card = btn.closest('.merge-card');
+      card.classList.add('merging');
+      btn.textContent = 'Merging...';
+      btn.disabled = true;
+      try {
+        const res = await authFetch('/api/merge-to-main', {
+          method: 'POST',
+          body: JSON.stringify({ sha }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          card.classList.remove('merging');
+          btn.disabled = false;
+          btn.textContent = 'Merge';
+          btn.classList.remove('confirming');
+          const code = j.code ? `[${j.code}] ` : '';
+          toast(`${code}${j.error || 'merge failed'}`, 'err');
+          return;
+        }
+        card.classList.add('merged');
+        btn.textContent = j.noop ? 'Already on main' : 'Merged ✓';
+        toast(`Shipped ${j.shortSha || sha.slice(0,7)} to main`, 'ok');
+        setTimeout(refresh, 1500);
+      } catch (err) {
+        card.classList.remove('merging');
+        btn.disabled = false;
+        btn.textContent = 'Merge';
+        toast(`network: ${err.message}`, 'err');
+      }
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function capitalize(s) {
+      if (!s) return '';
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    // ---- Auth wire-up ----
+    document.getElementById('signin-btn').addEventListener('click', async () => {
+      showError('');
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) { showError('email + password required'); return; }
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { showError(error.message); return; }
+      if (!data?.session) { showError('no session'); return; }
+      if (data.session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        showError('this page is for heath only.');
+        return;
+      }
+      revealApp(data.session.access_token);
+    });
+    document.getElementById('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('signin-btn').click();
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', refresh);
+    document.getElementById('signout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (_pollTimer) clearInterval(_pollTimer);
+      if (supabase) await supabase.auth.signOut();
+      showLogin();
+    });
+
+    bootstrap();
+  </script>
+</body>
+</html>

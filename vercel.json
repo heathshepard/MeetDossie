@@ -51,6 +51,10 @@
                          "destination":  "/ventures.html"
                      },
                      {
+                         "source":  "/today",
+                         "destination":  "/today.html"
+                     },
+                     {
                          "source":  "/studio",
                          "destination":  "/ventures.html"
                      },
