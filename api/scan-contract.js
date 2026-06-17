@@ -1147,15 +1147,38 @@ async function handler(req, res) {
     await checkRateLimit(ip, 'scan-contract', 10, 60 * 60 * 1000);
 
     const body = req.body || {};
-    const { pdfBase64 } = body;
+    const { pdfBase64, storagePath } = body;
     // userId comes from the verified JWT, not the request body.
     const userId = jwtUserId;
 
-    if (!pdfBase64 || typeof pdfBase64 !== 'string') {
-      return res.status(400).json({ ok: false, error: 'pdfBase64 (string) is required in JSON body.' });
+    let pdfData = pdfBase64;
+    if (!pdfData && storagePath) {
+      // Fetch from Supabase Storage
+      try {
+        const storageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/${storagePath}`;
+        const storageResp = await fetch(storageUrl, {
+          method: 'GET',
+          headers: {
+            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        });
+        if (!storageResp.ok) {
+          return res.status(400).json({ ok: false, error: `Could not retrieve document from storage (${storageResp.status})` });
+        }
+        const buffer = await storageResp.arrayBuffer();
+        pdfData = Buffer.from(buffer).toString('base64');
+      } catch (err) {
+        console.error('[scan-contract] Storage fetch error:', err && err.message);
+        return res.status(502).json({ ok: false, error: 'Failed to retrieve document from storage' });
+      }
     }
 
-    const result = await runFullScan(pdfBase64);
+    if (!pdfData || typeof pdfData !== 'string') {
+      return res.status(400).json({ ok: false, error: 'pdfBase64 (string) or storagePath (string) is required in JSON body.' });
+    }
+
+    const result = await runFullScan(pdfData);
 
     // Log usage (fire-and-forget, non-blocking)
     // Scan makes 2-3 Anthropic calls: identify (Haiku), audit (Sonnet), optional extract (Sonnet)
