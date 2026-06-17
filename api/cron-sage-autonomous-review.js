@@ -38,7 +38,28 @@ async function supabaseFetch(path, init = {}) {
 
 // Sage's review rules — simplified for speed (Haiku model)
 async function sageReview(post) {
-  const systemPrompt = `You are Sage, Head of Social Media at Dossie. You review draft social posts against brand strategy rules.
+  const isGroupPost = !!post.post_body && !!post.first_comment_body !== undefined;
+
+  const systemPrompt = isGroupPost
+    ? `You are Sage, Head of Social Media at Dossie. You review Facebook group posts against brand strategy rules.
+
+## Facebook Group Post Rules
+
+1. **Brand Voice Fit**: Is the tone warm, casual, genuine, first-person? Never corporate.
+2. **No Dossie in Main Body**: Post body must NEVER mention Dossie. Zero mentions.
+3. **Dossie in First Comment**: If post has a first comment, it MUST contain the literal word "Dossie" and name ONE specific capability (deadline calc, morning brief, document tracking, etc).
+4. **No Fabricated Specifics**: Zero invented details, timestamps, member numbers. Only verified claims.
+5. **Hook Quality**: Opening must be punchy and agent-relatable. Real problem or genuine question.
+6. **Pillar Alignment**: Does it touch one of: Cost, Control, Visibility, Speed?
+
+## Verdict Scale
+
+- **APPROVE** (score 8-10): Ship it now.
+- **REGENERATE** (score 4-7): Fixable issue — re-run generation with feedback.
+- **REJECT** (score 1-3): Off-strategy or hard blocker — drop it.
+
+Return JSON: {"verdict": "approve|regenerate|reject", "score": N, "feedback": "reason"}`
+    : `You are Sage, Head of Social Media at Dossie. You review draft social posts against brand strategy rules.
 
 ## Review Rules
 
@@ -57,7 +78,21 @@ async function sageReview(post) {
 
 Return JSON: {"verdict": "approve|regenerate|reject", "score": N, "feedback": "reason"}`;
 
-  const userPrompt = `Review this social media post:
+  const userPrompt = isGroupPost
+    ? `Review this Facebook group post:
+
+Group: ${post.group_name || 'unknown'}
+Category: ${post.category || 'general'}
+Pillar: ${post.pillar || 'unspecified'}
+
+POST BODY:
+${post.post_body}
+
+FIRST COMMENT:
+${post.first_comment_body || '(no first comment)'}
+
+Apply the rules above. Return JSON only.`
+    : `Review this social media post:
 
 Platform: ${post.platform}
 Persona: ${post.persona || 'brand'}
@@ -173,18 +208,30 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
     const postId = inboxRow.post_id;
     if (!postId) continue;
 
-    // Load the actual post
+    // Load the actual post — try social_posts first, then group_posts
     const { data: postData, ok: postLoadOk } = await supabaseFetch(
       `/rest/v1/social_posts?id=eq.${encodeURIComponent(postId)}`
     );
 
-    if (!postLoadOk || !Array.isArray(postData) || postData.length === 0) {
-      console.error('[cron-sage-autonomous-review] post not found:', postId);
-      errors.push({ inbox_id: inboxRow.id, post_id: postId, error: 'post not found' });
-      continue;
-    }
+    let post;
+    let postTable = 'social_posts';
 
-    const post = postData[0];
+    if (postLoadOk && Array.isArray(postData) && postData.length > 0) {
+      post = postData[0];
+    } else {
+      // Try group_posts
+      const { data: groupData, ok: groupLoadOk } = await supabaseFetch(
+        `/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`
+      );
+      if (groupLoadOk && Array.isArray(groupData) && groupData.length > 0) {
+        post = groupData[0];
+        postTable = 'group_posts';
+      } else {
+        console.error('[cron-sage-autonomous-review] post not found in either table:', postId);
+        errors.push({ inbox_id: inboxRow.id, post_id: postId, error: 'post not found' });
+        continue;
+      }
+    }
 
     // Run Sage's review
     const review = await sageReview(post);
@@ -198,7 +245,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
     const now = new Date().toISOString();
 
     if (verdict === 'approve') {
-      // Approve: update both sage_inbox and social_posts
+      // Approve: update sage_inbox and the relevant post table
       await supabaseFetch(`/rest/v1/sage_inbox?id=eq.${encodeURIComponent(inboxRow.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
@@ -210,7 +257,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
         }),
       });
 
-      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(postId)}`, {
+      await supabaseFetch(`/rest/v1/${postTable}?id=eq.${encodeURIComponent(postId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
@@ -220,7 +267,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
       });
 
       approved++;
-      console.log('[cron-sage-autonomous-review] approved:', postId, '— score:', review.score);
+      console.log('[cron-sage-autonomous-review] approved:', postId, `(${postTable})`, '— score:', review.score);
     } else if (verdict === 'regenerate') {
       // Soft reject: mark as regenerating, increment attempts counter
       const attempts = (inboxRow.regeneration_attempts || 0) + 1;
@@ -237,7 +284,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
       });
 
       regenerate++;
-      console.log('[cron-sage-autonomous-review] marked for regeneration:', postId, '— attempt', attempts, '— feedback:', review.feedback);
+      console.log('[cron-sage-autonomous-review] marked for regeneration:', postId, `(${postTable})`, '— attempt', attempts, '— feedback:', review.feedback);
     } else {
       // Hard reject: drop it
       await supabaseFetch(`/rest/v1/sage_inbox?id=eq.${encodeURIComponent(inboxRow.id)}`, {
@@ -251,7 +298,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
         }),
       });
 
-      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(postId)}`, {
+      await supabaseFetch(`/rest/v1/${postTable}?id=eq.${encodeURIComponent(postId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
@@ -261,7 +308,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
       });
 
       rejected++;
-      console.log('[cron-sage-autonomous-review] rejected:', postId, '— reason:', review.feedback);
+      console.log('[cron-sage-autonomous-review] rejected:', postId, `(${postTable})`, '— reason:', review.feedback);
     }
   }
 
