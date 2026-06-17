@@ -97,6 +97,10 @@
                      {
                          "source":  "/resources",
                          "destination":  "/learn.html"
+                     },
+                    {
+                         "source":  "/shepardventures",
+                         "destination":  "/shepardventures.html"
                      }
                  ],
     "headers":  [
