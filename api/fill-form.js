@@ -1,11 +1,15 @@
 ﻿// Vercel Serverless Function: /api/fill-form
 // Fills a TREC form PDF with field values and uploads to Supabase Storage.
-// PDF source: embedded base64 assets (same pattern as draft-amendment.js).
-// Field names verified against actual AcroForm field inspection of each PDF.
+//
+// PIVOT (2026-06-17): Uses DocuSeal Prefill API for forms Heath pre-mapped in DocuSeal.
+// - resale-contract (TREC 20-17) → DocuSeal 4018208
+// - financing-addendum (TREC 40-11) → DocuSeal 4023463
+// - hoa-addendum (TREC 36-11) → DocuSeal 4111321
+// - lead-paint-addendum (OP-L) → DocuSeal 4023469
+// Other forms still use pdf-lib AcroForm (legacy).
 //
 // POST { transaction_id, form_type, field_values }
-// form_type: resale-contract | financing-addendum | termination-notice
-// (Amendment is handled by /api/draft-amendment)
+// form_type: resale-contract | financing-addendum | hoa-addendum | lead-paint-addendum | ...
 //
 // Authorization: Bearer <supabase user JWT>
 // Returns: { ok: true, documentId, storagePath, signedUrl, fileName, formName }
@@ -19,6 +23,8 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+
+const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -2707,6 +2713,33 @@ async function fillForm(formType, fieldValues) {
   const config = FORM_CONFIGS[formType];
   if (!config) throw new ValidationError('Unknown form_type: ' + formType);
 
+  const fv = fieldValues || {};
+
+  // DocuSeal Prefill API forms (2026-06-17 pivot)
+  const DOCUSEAL_FORMS = new Set([
+    'resale-contract',
+    'financing-addendum',
+    'hoa-addendum',
+    'lead-paint-addendum',
+  ]);
+
+  if (DOCUSEAL_FORMS.has(formType)) {
+    try {
+      const result = await prefillDocuSealTemplate(formType, fv);
+      console.log('[fill-form] filled via DocuSeal:', formType, 'submission:', result.submissionId);
+      // Fetch the PDF from DocuSeal and return as bytes
+      const pdfRes = await fetch(result.pdfUrl, { timeout: 30000 });
+      if (!pdfRes.ok) {
+        throw new Error('DocuSeal PDF download failed: ' + pdfRes.status);
+      }
+      const buffer = await pdfRes.arrayBuffer();
+      return new Uint8Array(buffer);
+    } catch (err) {
+      throw new Error('DocuSeal prefill failed for ' + formType + ': ' + (err && err.message));
+    }
+  }
+
+  // Legacy pdf-lib forms
   const raw = config.getBase64();
   // Assets may export a raw base64 string OR { base64Pdf: '...' }
   const base64 = (raw && typeof raw === 'object' && raw.base64Pdf) ? raw.base64Pdf : raw;
@@ -2719,15 +2752,9 @@ async function fillForm(formType, fieldValues) {
     throw new Error('Failed to load PDF for ' + formType + ': ' + (e && e.message));
   }
 
-  const fv = fieldValues || {};
-
   switch (formType) {
-    case 'resale-contract':       await fillResaleContract(pdfDoc, fv); break;
-    case 'financing-addendum':    await fillFinancingAddendum(pdfDoc, fv); break;
     case 'termination-notice':    await fillTerminationNotice(pdfDoc, fv); break;
     case 'wire-fraud-warning':    await fillWireFraudWarning(pdfDoc, fv); break;
-    case 'hoa-addendum':          await fillHoaAddendum(pdfDoc, fv); break;
-    case 'lead-paint-addendum':   await fillLeadPaintAddendum(pdfDoc, fv); break;
     case 'sellers-disclosure':    await fillSellersDisclosure(pdfDoc, fv); break;
     case 'amendment':             await fillAmendment(pdfDoc, fv); break;
     case 'buyer-rep-agreement':   await fillBuyerRepAgreement(pdfDoc, fv); break;
