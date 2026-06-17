@@ -12,413 +12,461 @@
     "seller_name": {
       "page": 1,
       "x": 275,
-      "y": 69,
+      "y": 723,
       "width": 290,
       "height": 12,
       "font_size": 11,
       "required": true,
-      "notes": "End of '1.PARTIES: ... are ___' line (y=69) after 'are' at x=272"
+      "notes": "End of '1.PARTIES: ... are ___' line (y=69) after 'are' at x=272",
+      "_original_top_y": 69
     },
     "buyer_name": {
       "page": 1,
       "x": 120,
-      "y": 79,
+      "y": 713,
       "width": 295,
       "height": 12,
       "font_size": 11,
       "required": true,
-      "notes": "On '(Seller) and ___ (Buyer)' line (y=79), between 'and' end x=116 and '(Buyer)' at x=419.8"
+      "notes": "On '(Seller) and ___ (Buyer)' line (y=79), between 'and' end x=116 and '(Buyer)' at x=419.8",
+      "_original_top_y": 79
     },
     "county": {
       "page": 1,
       "x": 365,
-      "y": 121,
+      "y": 671,
       "width": 190,
       "height": 12,
       "font_size": 10,
       "required": true,
-      "notes": "End of 'A. LAND: ... in the County (or Counties) of ___' line at y=121"
+      "notes": "End of 'A. LAND: ... in the County (or Counties) of ___' line at y=121",
+      "_original_top_y": 121
     },
     "property_description": {
       "page": 1,
       "x": 49,
-      "y": 168,
+      "y": 624,
       "width": 510,
       "height": 70,
       "font_size": 10,
       "required": true,
-      "notes": "Multi-line legal description block under 'described as follows:'"
+      "notes": "Multi-line legal description block under 'described as follows:'",
+      "_original_top_y": 168
     },
     "acreage": {
       "page": 1,
       "x": 80,
-      "y": 606,
+      "y": 186,
       "width": 35,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Acreage value \u2014 just left of 'acres' word at (117.3, 606.4)"
+      "notes": "Acreage value — just left of 'acres' word at (117.3, 606.4)",
+      "_original_top_y": 606
     },
     "cash_portion": {
       "page": 1,
       "x": 432,
-      "y": 521,
+      "y": 271,
       "width": 110,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "A. Cash portion \u2014 right of '$' at (420.7, 523.1)"
+      "notes": "A. Cash portion — right of '$' at (420.7, 523.1)",
+      "_original_top_y": 521
     },
     "financing_amount": {
       "page": 1,
       "x": 432,
-      "y": 563,
+      "y": 229,
       "width": 110,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "B. Sum of financing \u2014 right of '$' at (420.7, 565.0)"
+      "notes": "B. Sum of financing — right of '$' at (420.7, 565.0)",
+      "_original_top_y": 563
     },
     "sales_price": {
       "page": 1,
       "x": 432,
-      "y": 574,
+      "y": 218,
       "width": 110,
       "height": 12,
       "font_size": 10,
       "required": true,
-      "notes": "C. Sales Price (Sum A+B) \u2014 right of '$' at (420.7, 576.2)"
+      "notes": "C. Sales Price (Sum A+B) — right of '$' at (420.7, 576.2)",
+      "_original_top_y": 574
     },
     "acreage_adjustment": {
       "page": 1,
       "x": 471,
-      "y": 614,
+      "y": 178,
       "width": 90,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Excess acreage adjustment \u2014 right of '$' at (459.2, 615.9)"
+      "notes": "Excess acreage adjustment — right of '$' at (459.2, 615.9)",
+      "_original_top_y": 614
     },
     "survey_days": {
       "page": 1,
       "x": 260,
-      "y": 644,
+      "y": 148,
       "width": 40,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Before 'days after' (286.8, 644.4)"
+      "notes": "Before 'days after' (286.8, 644.4)",
+      "_original_top_y": 644
     },
     "escrow_agent": {
       "page": 2,
       "x": 200,
-      "y": 297,
+      "y": 495,
       "width": 200,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Before '(Escrow Agent)' at (405.7, 297.2)"
+      "notes": "Before '(Escrow Agent)' at (405.7, 297.2)",
+      "_original_top_y": 297
     },
     "escrow_address": {
       "page": 2,
       "x": 49,
-      "y": 326,
+      "y": 466,
       "width": 125,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Before '(address):' label area"
+      "notes": "Before '(address):' label area",
+      "_original_top_y": 326
     },
     "earnest_money": {
       "page": 2,
       "x": 398,
-      "y": 306,
+      "y": 486,
       "width": 90,
       "height": 12,
       "font_size": 10,
       "required": true,
-      "notes": "Right of '$' at (386.8, 306.8)"
+      "notes": "Right of '$' at (386.8, 306.8)",
+      "_original_top_y": 306
     },
     "option_fee": {
       "page": 2,
       "x": 141,
-      "y": 316,
+      "y": 476,
       "width": 90,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Right of '$' at (129.1, 316.4)"
+      "notes": "Right of '$' at (129.1, 316.4)",
+      "_original_top_y": 316
     },
     "additional_earnest_money": {
       "page": 2,
       "x": 340,
-      "y": 335,
+      "y": 457,
       "width": 90,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Right of '$' at (328.1, 335.8)"
+      "notes": "Right of '$' at (328.1, 335.8)",
+      "_original_top_y": 335
     },
     "option_period_days": {
       "page": 2,
       "x": 90,
-      "y": 480,
+      "y": 312,
       "width": 40,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Before 'days after' at (118.1, 480.6) \u2014 option period"
+      "notes": "Before 'days after' at (118.1, 480.6) — option period",
+      "_original_top_y": 480
     },
     "closing_date": {
       "page": 3,
       "x": 100,
-      "y": 141,
+      "y": 651,
       "width": 140,
       "height": 14,
       "font_size": 11,
       "required": true,
-      "notes": "Main closing date \u2014 'Closing Date' anchor at (123.7, 141.1)"
+      "notes": "Main closing date — 'Closing Date' anchor at (123.7, 141.1)",
+      "_original_top_y": 141
     },
     "closing_date_page3b": {
       "page": 3,
       "x": 235,
-      "y": 414,
+      "y": 378,
       "width": 140,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Page 3 second closing \u2014 anchor at (267.7, 414.5)"
+      "notes": "Page 3 second closing — anchor at (267.7, 414.5)",
+      "_original_top_y": 414
     },
     "closing_date_page5": {
       "page": 5,
       "x": 71,
-      "y": 217,
+      "y": 575,
       "width": 140,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Page 5 closing \u2014 anchor at (99.0, 216.9)"
+      "notes": "Page 5 closing — anchor at (99.0, 216.9)",
+      "_original_top_y": 217
     },
     "closing_date_page6": {
       "page": 6,
       "x": 54,
-      "y": 308,
+      "y": 484,
       "width": 140,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Page 6 closing \u2014 anchor at (82.2, 308.3)"
+      "notes": "Page 6 closing — anchor at (82.2, 308.3)",
+      "_original_top_y": 308
     },
     "closing_date_page7": {
       "page": 7,
       "x": 49,
-      "y": 338,
+      "y": 454,
       "width": 140,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Page 7 closing \u2014 anchor at (76.9, 338.5)"
+      "notes": "Page 7 closing — anchor at (76.9, 338.5)",
+      "_original_top_y": 338
     },
     "closing_date_page8": {
       "page": 8,
       "x": 215,
-      "y": 302,
+      "y": 490,
       "width": 140,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Page 8 closing \u2014 anchor at (381.0, 302.3)"
+      "notes": "Page 8 closing — anchor at (381.0, 302.3)",
+      "_original_top_y": 302
     },
     "reservations_oil_gas": {
       "page": 5,
       "x": 49,
-      "y": 280,
+      "y": 512,
       "width": 510,
       "height": 30,
       "font_size": 10,
       "required": false,
-      "notes": "Oil/gas/minerals reservation text"
+      "notes": "Oil/gas/minerals reservation text",
+      "_original_top_y": 280
     },
     "reservations_water": {
       "page": 5,
       "x": 49,
-      "y": 350,
+      "y": 442,
       "width": 510,
       "height": 30,
       "font_size": 10,
       "required": false,
-      "notes": "Water reservation text"
+      "notes": "Water reservation text",
+      "_original_top_y": 350
     },
     "reservations_timber": {
       "page": 5,
       "x": 49,
-      "y": 420,
+      "y": 372,
       "width": 510,
       "height": 30,
       "font_size": 10,
       "required": false,
-      "notes": "Timber reservation text"
+      "notes": "Timber reservation text",
+      "_original_top_y": 420
     },
     "buyer_address": {
       "page": 7,
       "x": 49,
-      "y": 540,
+      "y": 252,
       "width": 470,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Buyer's notice address"
+      "notes": "Buyer's notice address",
+      "_original_top_y": 540
     },
     "seller_address": {
       "page": 7,
       "x": 49,
-      "y": 610,
+      "y": 182,
       "width": 470,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Seller's notice address"
+      "notes": "Seller's notice address",
+      "_original_top_y": 610
     },
     "effective_date": {
       "page": 10,
       "x": 360,
-      "y": 205,
+      "y": 587,
       "width": 100,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Effective Date \u2014 anchor at (464.9, 205.3)"
+      "notes": "Effective Date — anchor at (464.9, 205.3)",
+      "_original_top_y": 205
     },
     "seller_signature": {
       "page": 10,
       "x": 49,
-      "y": 265,
+      "y": 527,
       "width": 240,
       "height": 14,
       "font_size": 11,
-      "required": true
+      "required": true,
+      "_original_top_y": 265
     },
     "seller_signature_date": {
       "page": 10,
       "x": 49,
-      "y": 290,
+      "y": 502,
       "width": 120,
       "height": 12,
       "font_size": 10,
-      "required": true
+      "required": true,
+      "_original_top_y": 290
     },
     "buyer_signature": {
       "page": 10,
       "x": 320,
-      "y": 265,
+      "y": 527,
       "width": 240,
       "height": 14,
       "font_size": 11,
-      "required": true
+      "required": true,
+      "_original_top_y": 265
     },
     "buyer_signature_date": {
       "page": 10,
       "x": 320,
-      "y": 290,
+      "y": 502,
       "width": 120,
       "height": 12,
       "font_size": 10,
-      "required": true
+      "required": true,
+      "_original_top_y": 290
     },
     "other_broker": {
       "page": 11,
       "x": 49,
-      "y": 130,
+      "y": 662,
       "width": 260,
       "height": 12,
       "font_size": 10,
-      "required": false
+      "required": false,
+      "_original_top_y": 130
     },
     "other_broker_license": {
       "page": 11,
       "x": 49,
-      "y": 150,
+      "y": 642,
       "width": 160,
       "height": 12,
       "font_size": 10,
-      "required": false
+      "required": false,
+      "_original_top_y": 150
     },
     "other_broker_address": {
       "page": 11,
       "x": 49,
-      "y": 175,
+      "y": 617,
       "width": 320,
       "height": 12,
       "font_size": 10,
-      "required": false
+      "required": false,
+      "_original_top_y": 175
     },
     "listing_broker": {
       "page": 11,
       "x": 320,
-      "y": 130,
+      "y": 662,
       "width": 240,
       "height": 12,
       "font_size": 10,
-      "required": false
+      "required": false,
+      "_original_top_y": 130
     },
     "listing_broker_license": {
       "page": 11,
       "x": 320,
-      "y": 150,
+      "y": 642,
       "width": 160,
       "height": 12,
       "font_size": 10,
-      "required": false
+      "required": false,
+      "_original_top_y": 150
     },
     "listing_broker_address": {
       "page": 11,
       "x": 320,
-      "y": 175,
+      "y": 617,
       "width": 240,
       "height": 12,
       "font_size": 10,
-      "required": false
+      "required": false,
+      "_original_top_y": 175
     },
     "escrow_receipt_date_1": {
       "page": 12,
       "x": 60,
-      "y": 115,
+      "y": 677,
       "width": 130,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 1 \u2014 anchor at (52.1, 128.3)"
+      "notes": "Escrow Agent receipt date 1 — anchor at (52.1, 128.3)",
+      "_original_top_y": 115
     },
     "escrow_receipt_date_2": {
       "page": 12,
       "x": 60,
-      "y": 190,
+      "y": 602,
       "width": 130,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 2 \u2014 anchor at (52.1, 204.0)"
+      "notes": "Escrow Agent receipt date 2 — anchor at (52.1, 204.0)",
+      "_original_top_y": 190
     },
     "escrow_receipt_date_3": {
       "page": 12,
       "x": 60,
-      "y": 306,
+      "y": 486,
       "width": 130,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 3 \u2014 anchor at (52.1, 319.7)"
+      "notes": "Escrow Agent receipt date 3 — anchor at (52.1, 319.7)",
+      "_original_top_y": 306
     },
     "escrow_receipt_date_4": {
       "page": 12,
       "x": 60,
-      "y": 437,
+      "y": 355,
       "width": 130,
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 4 \u2014 anchor at (52.1, 450.5)"
+      "notes": "Escrow Agent receipt date 4 — anchor at (52.1, 450.5)",
+      "_original_top_y": 437
     }
   },
-  "field_count": 42
+  "field_count": 42,
+  "_atlas_audit": {
+    "converted_at": "2026-06-17T01:38:48.872Z",
+    "by": "Atlas",
+    "note": "y values converted from TOP-of-page (original JSON) to PDF bottom-left baseline (pdf-lib convention) via pdf_y = 792 - top_y. Page height = 792 (US Letter portrait).",
+    "page_height": 792
+  }
 }
