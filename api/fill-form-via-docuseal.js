@@ -347,16 +347,21 @@ module.exports = async (req, res) => {
     const docusealFields = mapExtractedFieldsToDocuSeal(fieldValues);
 
     // Create DocuSeal submission
-    // Use placeholder emails for now; DocuSeal doesn't send emails anyway (send_email: false)
+    // Use actual emails from field_values if available; fall back to placeholder emails
+    // DocuSeal requires valid email format but doesn't send (send_email: false)
     const submitters = [
       {
         role: 'Buyer',
-        email: 'buyer@placeholder.local',
+        email: fieldValues.buyer_email || 'buyer-placeholder@meetdossie.com',
+        name: fieldValues.buyer_name || 'Buyer',
+        send_email: false,
         values: docusealFields,
       },
       {
         role: 'Seller',
-        email: 'seller@placeholder.local',
+        email: fieldValues.seller_email || 'seller-placeholder@meetdossie.com',
+        name: fieldValues.seller_name || 'Seller',
+        send_email: false,
         values: docusealFields,
       },
     ];
