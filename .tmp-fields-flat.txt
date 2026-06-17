@@ -1,0 +1,193 @@
+idx|name|type|req|page|x|y|w|h
+0|Legal_Description|text|false|0|0.5110|0.2034|0.3777|0.0175
+1|seller_name|text|false|0|0.4400|0.1200|0.4300|0.0140
+2|buyer_name|text|false|0|0.3000|0.1300|0.5200|0.0140
+3|legal_lot|text|false|0|0.2187|0.2087|0.0658|0.0155
+4|legal_block|text|false|0|0.3850|0.2065|0.0854|0.0166
+5|addition_city|text|false|0|0.2700|0.2200|0.2100|0.0140
+6|county|text|false|0|0.6600|0.2200|0.2400|0.0140
+7|property_address|text|false|0|0.2700|0.2335|0.6500|0.0140
+8|exclusions|text|false|0|0.5350|0.5035|0.3700|0.0160
+9|down_payment|text|false|0|0.7600|0.5830|0.1600|0.0160
+10|third_party_financing|checkbox|false|0|0.5090|0.6249|0.0206|0.0204
+11|Loan_Assumption|checkbox|false|0|0.1221|0.6478|0.0140|0.0140
+12|Seller_Financing Addendum|checkbox|false|0|0.4028|0.6467|0.0282|0.0181
+13|loan_amount|text|false|0|0.7600|0.6435|0.1600|0.0160
+14|sales_price|text|false|0|0.7600|0.6600|0.1600|0.0160
+15|has_residential_leases|checkbox|false|0|0.0780|0.7380|0.0140|0.0140
+16|has_fixture_leases|checkbox|false|0|0.0780|0.7700|0.0140|0.0140
+17|has_natural_resource_leases|checkbox|false|0|0.0780|0.8150|0.0140|0.0140
+18|Buyer Initials P1|initials|false|0|0.3400|0.9570|0.0700|0.0220
+19|Buyer Initials P1|initials|false|0|0.6419|0.9533|0.0700|0.0220
+20|Buyer Initials P1|initials|false|0|0.4085|0.9567|0.0700|0.0220
+21|Seller Initials P1|initials|false|0|0.5700|0.9570|0.0700|0.0220
+22|property_address_header_p2|text|false|1|0.2100|0.0380|0.5200|0.0160
+23|escrow_agent_name|text|false|1|0.2950|0.1000|0.1900|0.0160
+24|escrow_agent_address|text|false|1|0.6700|0.1000|0.2500|0.0160
+25|earnest_money_amount|text|false|1|0.4850|0.1140|0.1000|0.0160
+26|option_fee|text|false|1|0.8100|0.1140|0.1100|0.0160
+27|additional_earnest_money|text|false|1|0.5700|0.1545|0.1500|0.0160
+28|additional_em_days|text|false|1|0.1522|0.1680|0.0700|0.0160
+29|option_period_days|text|false|1|0.1230|0.3520|0.0500|0.0160
+30|title_seller_pays|checkbox|false|1|0.5134|0.5446|0.0140|0.0140
+31|title_buyer_pays|checkbox|false|1|0.6041|0.5457|0.0140|0.0140
+32|title_company_name|text|false|1|0.4750|0.5545|0.3000|0.0160
+33|survey_not_amended|checkbox|false|1|0.1212|0.7559|0.0263|0.0210
+34|survey_amend_buyer|checkbox|false|1|0.7082|0.7722|0.0228|0.0232
+35|survey_amend_seller|checkbox|false|1|0.8088|0.7733|0.0278|0.0200
+36|Buyer Initials P1|initials|false|1|0.4110|0.9568|0.0700|0.0220
+37|Survey_Amended|checkbox|false|1|0.1216|0.7741|0.0207|0.0202
+38|Buyer Initials P2|initials|false|1|0.3410|0.9570|0.0700|0.0220
+39|Buyer Initials P1|initials|false|1|0.6434|0.9533|0.0700|0.0220
+40|Seller Initials P2|initials|false|1|0.5700|0.9570|0.0700|0.0220
+41|property_address_header_p3|text|false|2|0.2100|0.0380|0.5200|0.0160
+42|survey_c1|checkbox|false|2|0.0970|0.0913|0.0140|0.0140
+43|survey_c1_days|text|false|2|0.1950|0.0925|0.0500|0.0160
+44|survey_new_expense_seller|checkbox|false|2|0.2263|0.1757|0.0258|0.0202
+45|survey_new_expense_buyer|checkbox|false|2|0.3155|0.1786|0.0282|0.0205
+46|survey_c2|checkbox|false|2|0.0970|0.1903|0.0140|0.0140
+47|survey_c2_days|text|false|2|0.2150|0.1915|0.0500|0.0160
+48|survey_c3|checkbox|false|2|0.0970|0.2535|0.0140|0.0140
+49|survey_c3_days|text|false|2|0.2150|0.2530|0.0500|0.0160
+50|permitted_use|text|false|2|0.2450|0.3235|0.6500|0.0160
+51|title_objection_days|text|false|2|0.6170|0.3358|0.0400|0.0160
+52|poa_is|checkbox|false|2|0.7400|0.5859|0.0248|0.0213
+53|poa_is_not|checkbox|false|2|0.7776|0.5859|0.0238|0.0234
+54|Buyer Initials P1|initials|false|2|0.4131|0.9546|0.0700|0.0220
+55|Buyer Initials P3|initials|false|2|0.3400|0.9570|0.0700|0.0220
+56|Buyer Initials P1|initials|false|2|0.6413|0.9562|0.0700|0.0220
+57|Seller Initials P3|initials|false|2|0.5700|0.9570|0.0700|0.0220
+58|property_address_header_p4|text|false|3|0.2100|0.0380|0.5200|0.0160
+59|required_notices|text|false|3|0.1450|0.6300|0.7600|0.0160
+60|sdn_received|checkbox|false|3|0.1000|0.7965|0.0140|0.0140
+61|sdn_not_received|checkbox|false|3|0.1000|0.8095|0.0140|0.0140
+62|sdn_delivery_days|text|false|3|0.5450|0.8085|0.0400|0.0160
+63|sdn_not_required|checkbox|false|3|0.1000|0.8850|0.0140|0.0140
+64|Buyer Initials P1|initials|false|3|0.6445|0.9573|0.0700|0.0220
+65|Buyer Initials P1|initials|false|3|0.4090|0.9549|0.0700|0.0220
+66|Buyer Initials P4|initials|false|3|0.3400|0.9570|0.0700|0.0220
+67|Seller Initials P4|initials|false|3|0.5700|0.9578|0.0700|0.0220
+68|property_address_header_p5|text|false|4|0.2100|0.0380|0.5200|0.0160
+69|as_is|checkbox|false|4|0.0950|0.1260|0.0140|0.0140
+70|as_is_with_repairs|checkbox|false|4|0.0950|0.1398|0.0140|0.0140
+71|property_repairs_list|text|false|4|0.4977|0.1541|0.4113|0.0160
+72|service_contract_amount|text|false|4|0.6844|0.5330|0.1500|0.0160
+73|broker_disclosure|text|false|4|0.1196|0.6816|0.7804|0.0148
+74|closing_date|text|false|4|0.4728|0.7380|0.2159|0.0161
+75|closing_year|text|false|4|0.7186|0.7369|0.0400|0.0160
+76|Buyer Initials P1|initials|false|4|0.4110|0.9543|0.0700|0.0220
+77|Buyer Initials P5|initials|false|4|0.3400|0.9570|0.0700|0.0220
+78|Buyer Initials P1|initials|false|4|0.6413|0.9592|0.0700|0.0220
+79|Seller Initials P5|initials|false|4|0.5700|0.9570|0.0700|0.0220
+80|property_address_header_p6|text|false|5|0.2100|0.0380|0.5200|0.0160
+81|possession_closing|checkbox|false|5|0.5701|0.1502|0.0299|0.0260
+82|special_provisions|text|false|5|0.0980|0.4525|0.8100|0.0200
+83|seller_buyer_broker_dollar_check|checkbox|false|5|0.1810|0.6005|0.0161|0.0222
+84|seller_buyer_broker_amount|text|false|5|0.2120|0.6000|0.1300|0.0160
+85|seller_buyer_broker_pct_check|checkbox|false|5|0.3828|0.6005|0.0218|0.0205
+86|seller_buyer_broker_pct|text|false|5|0.4100|0.6024|0.0500|0.0160
+87|seller_closing_cost_credit|text|false|5|0.4126|0.6151|0.1000|0.0160
+88|Buyer Initials P1|initials|false|5|0.4110|0.9506|0.0700|0.0220
+89|Buyer Initials P6|initials|false|5|0.3400|0.9570|0.0700|0.0220
+90|Buyer Initials P1|initials|false|5|0.6434|0.9570|0.0700|0.0220
+91|Seller Initials P6|initials|false|5|0.5700|0.9578|0.0700|0.0220
+92|property_address_header_p7|text|false|6|0.2100|0.0380|0.5200|0.0160
+93|Buyer Initials P1|initials|false|6|0.4110|0.9573|0.0700|0.0220
+94|Buyer Initials P7|initials|false|6|0.3400|0.9570|0.0700|0.0220
+95|Buyer Initials P1|initials|false|6|0.6445|0.9540|0.0700|0.0220
+96|Seller Initials P7|initials|false|6|0.5700|0.9570|0.0700|0.0220
+97|property_address_header_p8|text|false|7|0.2100|0.0380|0.5200|0.0160
+98|buyer_notice_address|text|false|7|0.2350|0.0980|0.2200|0.0160
+99|buyer_phone|text|false|7|0.2800|0.1645|0.1500|0.0160
+100|buyer_email|text|false|7|0.2300|0.1935|0.2100|0.0160
+101|seller_notice_address|text|false|7|0.6500|0.0980|0.2200|0.0160
+102|seller_phone|text|false|7|0.7000|0.1653|0.1500|0.0160
+103|seller_email|text|false|7|0.6500|0.1943|0.2100|0.0160
+104|addendum_financing|checkbox|false|7|0.1070|0.3320|0.0140|0.0140
+105|addendum_seller_financing|checkbox|false|7|0.1070|0.3508|0.0140|0.0140
+106|addendum_poa|checkbox|false|7|0.1070|0.3698|0.0140|0.0140
+107|addendum_buyer_lease|checkbox|false|7|0.1070|0.4115|0.0140|0.0140
+108|addendum_loan_assumption|checkbox|false|7|0.1070|0.4305|0.0140|0.0140
+109|addendum_sale_other_property|checkbox|false|7|0.1070|0.4495|0.0140|0.0140
+110|addendum_oil_gas_minerals|checkbox|false|7|0.1070|0.4808|0.0140|0.0140
+111|addendum_backup_contract|checkbox|false|7|0.1070|0.5103|0.0140|0.0140
+112|addendum_coastal|checkbox|false|7|0.1070|0.5295|0.0140|0.0140
+113|addendum_hydrostatic|checkbox|false|7|0.1070|0.5538|0.0140|0.0140
+114|addendum_appraisal_terminate|checkbox|false|7|0.1070|0.5855|0.0140|0.0140
+115|addendum_environmental|checkbox|false|7|0.1070|0.6126|0.0140|0.0140
+116|addendum_seller_lease|checkbox|false|7|0.5170|0.3338|0.0140|0.0140
+117|addendum_short_sale|checkbox|false|7|0.5170|0.3565|0.0140|0.0140
+118|addendum_seaward|checkbox|false|7|0.5170|0.3793|0.0140|0.0140
+119|addendum_lead_paint|checkbox|false|7|0.5170|0.4133|0.0140|0.0140
+120|addendum_propane|checkbox|false|7|0.5170|0.4703|0.0140|0.0140
+121|addendum_residential_leases|checkbox|false|7|0.5170|0.4993|0.0140|0.0140
+122|addendum_fixture_leases|checkbox|false|7|0.5170|0.5155|0.0140|0.0140
+123|addendum_pid|checkbox|false|7|0.5170|0.5460|0.0140|0.0140
+124|addendum_1031_exchange|checkbox|false|7|0.5170|0.5800|0.0140|0.0140
+125|addendum_other|checkbox|false|7|0.5170|0.5948|0.0140|0.0140
+126|addendum_other_text|text|false|7|0.6370|0.6050|0.2800|0.0160
+127|buyer_attorney|text|false|7|0.2250|0.7280|0.2200|0.0160
+128|seller_attorney|text|false|7|0.6450|0.7280|0.2200|0.0160
+129|Buyer Initials P8|initials|false|7|0.3400|0.9570|0.0700|0.0220
+130|Buyer Initials P1|initials|false|7|0.6424|0.9567|0.0700|0.0220
+131|Buyer Initials P1|initials|false|7|0.4100|0.9567|0.0700|0.0220
+132|Seller Initials P8|initials|false|7|0.5700|0.9570|0.0700|0.0220
+133|property_address_header_p9|text|false|8|0.2100|0.0380|0.5200|0.0160
+134|execution_day|text|false|8|0.2400|0.2815|0.0500|0.0160
+135|execution_month|text|false|8|0.3400|0.2815|0.1800|0.0160
+136|execution_year|text|false|8|0.5680|0.2815|0.0400|0.0160
+137|Buyer Signature|signature|false|8|0.1170|0.4750|0.3500|0.0350
+138|Seller Signature|signature|false|8|0.5130|0.4750|0.3500|0.0350
+139|Buyer Signature 2|signature|false|8|0.1170|0.6200|0.3500|0.0350
+140|Seller Signature 2|signature|false|8|0.5130|0.6200|0.3500|0.0350
+141|property_address_header_p10|text|false|9|0.2100|0.0380|0.5200|0.0160
+142|other_broker_firm|text|false|9|0.0758|0.1892|0.2300|0.0160
+143|other_broker_license|text|false|9|0.3623|0.1900|0.1000|0.0160
+144|other_broker_buyer_agent|checkbox|false|9|0.1780|0.2280|0.0140|0.0140
+145|other_broker_subagent|checkbox|false|9|0.1772|0.2490|0.0199|0.0128
+146|listing_broker_sellers_agent|text|false|9|0.5963|0.2510|0.0166|0.0135
+147|other_agent_name|text|false|9|0.0841|0.2766|0.2300|0.0160
+148|other_agent_license|text|false|9|0.3654|0.2750|0.1000|0.0160
+149|other_team_name|text|false|9|0.0817|0.3121|0.2800|0.0160
+150|other_agent_email|text|false|9|0.0841|0.3504|0.2700|0.0160
+151|other_agent_phone|text|false|9|0.3902|0.3512|0.0800|0.0160
+152|listing_broker_firm|text|false|9|0.4959|0.1860|0.3000|0.0160
+153|listing_broker_license|text|false|9|0.8325|0.1868|0.1000|0.0160
+154|listing_broker_seller_agent|checkbox|false|9|0.5996|0.2313|0.0140|0.0140
+155|listing_agent_name|text|false|9|0.4980|0.2742|0.3000|0.0160
+156|listing_agent_license|text|false|9|0.8232|0.2750|0.1000|0.0160
+157|listing_team_name|text|false|9|0.5029|0.3129|0.2800|0.0160
+158|listing_agent_email|text|false|9|0.5000|0.3520|0.3000|0.0160
+159|listing_agent_phone|text|false|9|0.8357|0.3496|0.0800|0.0160
+160|other_broker_supervisor_name|text|false|9|0.0851|0.3920|0.2506|0.0128
+161|other_broker_supervisor_license|text|false|9|0.3838|0.3920|0.0921|0.0115
+162|listing_broker_supervisor_name|text|false|9|0.4992|0.3907|0.2622|0.0135
+163|listing_broker_supervisor_license|text|false|9|0.8226|0.3904|0.0938|0.0147
+164|other_broker_address|text|false|9|0.0805|0.4264|0.2896|0.0154
+165|other_broker_intermediary|checkbox|false|9|0.3448|0.4317|0.0211|0.0195
+166|other_broker_phone|text|false|9|0.3873|0.4273|0.0921|0.0179
+167|listing_broker_office_address|text|false|9|0.5010|0.4279|0.2954|0.0154
+168|listing_broker_phone|text|false|9|0.8353|0.4309|0.0822|0.0135
+169|other_broker_city|text|false|9|0.0809|0.4646|0.1577|0.0154
+170|other_broker_state|text|false|9|0.3046|0.4644|0.0598|0.0167
+171|other_broker_zip|text|false|9|0.3917|0.4639|0.0830|0.0154
+172|listing_broker_city|text|false|9|0.4959|0.4612|0.2191|0.0179
+173|listing_broker_state|text|false|9|0.7564|0.4647|0.0564|0.0154
+174|listing_broker_zip|text|false|9|0.8363|0.4672|0.0813|0.0147
+175|selling_associate_name|text|false|9|0.4975|0.5035|0.2382|0.0167
+176|selling_associate_license|text|false|9|0.8195|0.5029|0.0979|0.0154
+177|selling_associate_team|text|false|9|0.5017|0.5407|0.4191|0.0141
+178|selling_associate_email|text|false|9|0.5019|0.5753|0.2838|0.0160
+179|selling_associate_phone|text|false|9|0.7977|0.5809|0.1245|0.0141
+180|selling_associate_supervisor_name|text|false|9|0.4950|0.6125|0.2905|0.0186
+181|selling_associate_supervisor_license|text|false|9|0.8156|0.6130|0.1012|0.0154
+182|selling_associate_office_address|text|false|9|0.4961|0.6478|0.4199|0.0192
+183|selling_associate_city|text|false|9|0.4950|0.6901|0.1934|0.0173
+184|selling_associate_state|text|false|9|0.7224|0.6862|0.0813|0.0199
+185|selling_associate_zip|text|false|9|0.8332|0.6869|0.0855|0.0199
+186|broker_fee_flat_check|checkbox|false|9|0.0840|0.8002|0.0224|0.0154
+187|broker_fee_flat_amount|text|false|9|0.1268|0.8021|0.1145|0.0135
+188|broker_fee_percent_check|checkbox|false|9|0.2869|0.8002|0.0216|0.0167
+189|broker_fee_percent|text|false|9|0.3127|0.7971|0.0473|0.0194
+190|property_address_header_p11|text|false|10|0.2100|0.0380|0.5200|0.0160
+191|possession_leaseback|checkbox|false|5|0.8127|0.1557|0.0211|0.0195

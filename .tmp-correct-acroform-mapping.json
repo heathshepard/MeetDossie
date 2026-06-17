@@ -1,0 +1,304 @@
+{
+  "_meta": {
+    "form": "TREC 20-17 / 20-18 / 20-19 One to Four Family Residential Contract (Resale)",
+    "source_pdf": "api/_assets/trec-resale-20-19-base64.js",
+    "method": "Self-labeled every AcroForm text field with its own name, rendered all 11 pages at 150dpi (page 2 at 250dpi), visually identified which field name lives at which TREC blank.",
+    "render_dir": ".tmp-self-labeled-resale/",
+    "rendered_pdf": ".tmp-self-labeled-resale.pdf",
+    "total_text_fields": 199,
+    "total_text_fields_labeled": 184,
+    "fields_not_labeled_reason": "maxLength constraint (State=2 chars, Text7=3 chars, AC numb*=3 chars, 20_2=2 chars, etc.) — field names too long to fit; they still exist but appear blank in this render",
+    "generated_by": "Atlas",
+    "generated_at": "2026-06-15",
+    "warning": "Field names in this PDF are semantically MISLEADING — many were inherited from other contract templates during authoring. The mapping below is by VISUAL POSITION ONLY, not by name semantics. Trust the visual position. e.g. 'the Title Company and Buyers lenders Check one box only' physically renders at the §5.B Option Period day-count blank — that's where it goes regardless of how the name reads."
+  },
+
+  "the_three_we_actually_need": {
+    "_note": "Heath's three target fields.",
+    "sale_price__page_1_section_3C": "undefined_5",
+    "option_period_days__page_2_section_5B": "the Title Company and Buyers lenders Check one box only",
+    "closing_date__page_5_section_9A": "A The closing of the sale will be on or before"
+  },
+
+  "page_1": {
+    "section_1_parties": {
+      "_note": "§1. 'The parties to this contract are ___ (Seller) and ___ (Buyer).' Both blanks have AcroForm fields.",
+      "seller_name": "1 PARTIES The parties to this contract are",
+      "_seller_name_continuation_label_blank": "Seller and",
+      "buyer_name": "(LIKELY NO ACROFORM FIELD — buyer-side blank rendered empty even after labeling all 184 text fields. Probable signature-only field or coordinate fill required.)"
+    },
+
+    "section_2_property": {
+      "_note": "§2.A LAND: 'Lot ___ Block ___, ___, Addition, City of ___, County of ___, Texas known as ___ (address/zip code).'",
+      "property_lot": "A LAND Lot",
+      "property_block": "Block",
+      "property_section_or_subdivision": "undefined",
+      "property_addition_and_city": "Addition City of",
+      "property_county": "County of",
+      "property_street_address": "Texas known as",
+      "_excludes_paragraph_intro": "be removed prior to delivery of possession",
+      "_excludes_paragraph_body": "undefined_2"
+    },
+
+    "section_3_sales_price": {
+      "_note": "§3 SALES PRICE. The dollar blanks. CONFIRMED VISUALLY.",
+      "cash_portion": "undefined_3",
+      "financing_amount": "undefined_4",
+      "sale_price": "undefined_5"
+    },
+
+    "footer_initials": {
+      "buyer_initials_p1": "undefined_8",
+      "seller_initials_p1": "undefined_9"
+    }
+  },
+
+  "page_2": {
+    "section_5A_earnest_money_and_option_fee_intro": {
+      "_note": "§5.A: '$ ___ as earnest money to ___, as Escrow Agent, at ___ (address), and $ ___ as the Option Fee to Seller.'",
+      "earnest_money_amount": "as earnest money to",
+      "escrow_agent_name": "undefined_6",
+      "escrow_agent_address": "undefined_7",
+      "option_fee_amount": "as earnest money to 2"
+    },
+
+    "section_5A1_additional_earnest_money": {
+      "_note": "§5.A(1): 'Buyer shall deliver additional earnest money of $ ___ to Escrow Agent within ___ days after the Effective Date.'",
+      "additional_earnest_money_amount": "earnest money of",
+      "additional_earnest_money_days": "to escrow agent within"
+    },
+
+    "section_5B_option_period": {
+      "_note": "§5.B TERMINATION OPTION: '...notice of termination to Seller within ___ days after the Effective Date (Option Period).' The field name is semantically misleading but it physically renders at this blank.",
+      "option_period_days": "the Title Company and Buyers lenders Check one box only"
+    },
+
+    "section_6A_title": {
+      "_note": "§6.A TITLE POLICY: '...Seller's expense an owner policy of title insurance (Title Policy) issued by ___ (Title Company)...'",
+      "title_company_name": "insurance Title Policy issued by"
+    },
+
+    "_other_page_2_fields": {
+      "title_commitment_deadline": "receipt or the date specified in this paragraph whichever is earlier",
+      "title_commitment_acceptable_exceptions": "Commitment other than items 6A1 through 9 above or which prohibit the following use",
+      "title_exception_documents_objection_deadline": "the Commitment Exception Documents and the survey Buyers failure to object within the",
+      "to_escrow_agent_within_1": "to escrow agent within 1",
+      "than_3_days_prior_to_closing_date": "than 3 days prior to Closing Date",
+      "_3_days_prior": "3 days prior"
+    },
+
+    "footer_initials": {
+      "buyer_initials_p2": "OWNEF",
+      "seller_initials_p2": "defined_1"
+    }
+  },
+
+  "page_3": {
+    "_note": "§6 continuation (title, survey, HOA). Self-labeled fields visible: undefined_10, undefined_11, 'The private transfer fee', 'Property Code requires Seller to notify Buyer as follows'.",
+    "p3_unlabeled_undefined_10": "undefined_10",
+    "p3_unlabeled_undefined_11": "undefined_11",
+    "private_transfer_fee_notice": "The private transfer fee",
+    "footer_initials": {
+      "buyer_initials_p3": "Seller to",
+      "seller_initials_p3": "defined_1 vate trans"
+    }
+  },
+
+  "page_4": {
+    "_note": "Page 4 §7 PROPERTY CONDITION. §7.B Seller's Disclosure Notice 'within ___ days' blank labeled 'Within'.",
+    "section_7B_disclosure_notice_days": "Within",
+    "p4_unlabeled_undefined_14": "undefined_14",
+    "p4_unlabeled_undefined_15": "undefined_15",
+    "footer_initials": {
+      "buyer_initials_p4": "ertificatic defined_",
+      "seller_initials_p4": "nd Seller defined_"
+    }
+  },
+
+  "page_5": {
+    "section_9A_closing": {
+      "_note": "§9.A CLOSING: 'The closing of the sale will be on or before ___, 20___, or within 7 days after objections...'",
+      "closing_date": "A The closing of the sale will be on or before",
+      "closing_year_suffix_2digit": "20"
+    },
+    "section_7D_specific_repairs_treatments": {
+      "_note": "§7.D(2): 'Buyer accepts Property As Is provided Seller, at Seller's expense, shall complete the following specific repairs and treatments: ___'",
+      "specific_repairs_and_treatments": "following specific repairs and treatments",
+      "_continuation_blank": "undefined_13"
+    },
+    "footer_initials": {
+      "buyer_initials_p5": "ntificatie s alloy",
+      "seller_initials_p5": "nd Seller defined"
+    }
+  },
+
+  "page_6": {
+    "_note": "Page 6 §11 SPECIAL PROVISIONS uses Text3 and 'Text3 2'.",
+    "special_provisions_line_1": "Text3",
+    "special_provisions_line_2": "Text3 2",
+    "footer_initials": {
+      "buyer_initials_p6": "ertificatic defined_",
+      "seller_initials_p6": "nd Seller defined_"
+    }
+  },
+
+  "page_7": {
+    "_note": "Page 7 §13-§20 — almost entirely text + checkboxes. No self-labeled text fields visible above signature line.",
+    "footer_initials": {
+      "buyer_initials_p7": "(no labeled text field above signature line on this page)",
+      "seller_initials_p7": "(no labeled text field above signature line on this page)"
+    }
+  },
+
+  "page_8": {
+    "section_21_notices": {
+      "_note": "§21 NOTICES: Buyer (left column) and Seller (right column).",
+      "buyer_notice_to_label": "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",
+      "buyer_notice_address": "at",
+      "buyer_phone_areacode": "AC1",
+      "buyer_phone_number": "Phone 51",
+      "buyer_fax_number": "Phone 52",
+      "buyer_email": "undefined_19",
+      "seller_notice_address": "at_2",
+      "seller_phone_areacode": "AC4",
+      "seller_fax_number": "Fax 52",
+      "seller_email": "Email_2",
+      "_with_copy_to_agent_blocks_unlabeled": "(small label blanks below address; tied to Text* fields with short maxLength — names truncated off render)"
+    },
+    "section_22_addenda_other": {
+      "addenda_other_text": "System Service Area"
+    },
+    "section_23_consult_attorney": {
+      "_note": "§23 'CONSULT AN ATTORNEY BEFORE SIGNING': Buyer's Attorney is ___ / Seller's Attorney is ___",
+      "buyer_attorney_name": "Attorney is",
+      "seller_attorney_name": "Attorney is_2",
+      "buyer_attorney_address": "undefined_24",
+      "seller_attorney_address": "undefined_25",
+      "buyer_attorney_phone": "Text6",
+      "buyer_attorney_fax": "Text8",
+      "buyer_attorney_email": "Email",
+      "seller_attorney_phone": "Phone2",
+      "seller_attorney_fax": "Phone 2",
+      "seller_attorney_email": "Email_2"
+    },
+    "footer_initials": {
+      "buyer_initials_p8": "tificate id Seller",
+      "seller_initials_p8": "nd Seller defined_ defined_"
+    }
+  },
+
+  "page_9": {
+    "section_executed": {
+      "_note": "§ EXECUTED block: 'EXECUTED the ___ day of ___, 20___ (Effective Date).'",
+      "executed_day_of_month": "EXECUTED the",
+      "executed_month": "day of",
+      "executed_year_2digit": "20_2"
+    },
+    "_signatures": "Buyer/Seller signature lines are PDFSignature fields, not text fields. Not labeled by this method."
+  },
+
+  "page_10": {
+    "_note": "BROKER INFORMATION block — dual columns.",
+    "other_broker": {
+      "firm_name": "Other Broker Firm",
+      "firm_license_no": "License No",
+      "associate_name": "Associates Name",
+      "associate_license_no": "License No_2",
+      "associate_email": "Associates Email Address",
+      "associate_phone": "Phone",
+      "licensed_supervisor": "Licensed Supervisor of Associate",
+      "supervisor_license_no": "License No_3",
+      "office_address": "Other Brokers Address",
+      "office_phone": "Phone_2",
+      "office_city": "City",
+      "office_state": "State",
+      "office_zip": "Zip"
+    },
+    "listing_broker": {
+      "firm_name": "Listing Broker Firm",
+      "firm_license_no": "License No_4",
+      "associate_name": "Listing Associates Name",
+      "associate_license_no": "License No_5",
+      "associate_email": "Listing Associates Email Address",
+      "associate_phone": "Phone_3",
+      "licensed_supervisor": "Licensed Supervisor of Listing Associate",
+      "supervisor_license_no": "License No_6",
+      "office_address": "Listing Brokers Office Address",
+      "office_phone": "Phone_4",
+      "office_city": "City_2",
+      "office_state": "State_2",
+      "office_zip": "Zip_2"
+    },
+    "selling_associate_block": {
+      "_note": "Below listing broker — selling associate sub-block.",
+      "license_no": "License No_7",
+      "associate_email": "Selling Associates Email Address",
+      "associate_phone": "Phone_5",
+      "licensed_supervisor": "Licensed Supervisor of Selling Associate",
+      "supervisor_license_no": "License No_8",
+      "office_address": "Selling Associates Office Address",
+      "office_city": "City_3",
+      "office_state": "State_3",
+      "office_zip": "Zip_3",
+      "associate_name": "Selling Associates Name",
+      "associate_name_1": "Selling Associates Name-1"
+    },
+    "_brokers_separate_agreement_text": "Brokers and Sales 2"
+  },
+
+  "page_11": {
+    "option_fee_receipt": {
+      "_note": "OPTION FEE RECEIPT: 'Receipt of $ ___ (Option Fee) in the form of ___ is acknowledged.'",
+      "amount_acknowledged": "is acknowledged",
+      "form_of_payment": "Option Fee in the form of",
+      "received_by": "Seller or Listing Broker",
+      "date": "Date"
+    },
+    "earnest_money_receipt": {
+      "amount_acknowledged": "is acknowledged_2",
+      "form_of_payment": "Earnest Money in the form of",
+      "escrow_agent": "Escrow Agent",
+      "received_by": "Received by",
+      "address": "Address",
+      "city": "City_4",
+      "state": "State_4",
+      "zip": "Zip_4",
+      "email": "Email Address",
+      "datetime": "DateTime",
+      "phone": "Phone_6",
+      "fax": "Fax"
+    },
+    "contract_receipt": {
+      "escrow_agent": "Escrow Agent_2",
+      "received_by": "Received by_2",
+      "address": "Address_2",
+      "city": "City_5",
+      "state": "State_5",
+      "zip": "Zip_5",
+      "email": "Email Address_2",
+      "date": "Date_2",
+      "phone": "Phone_7",
+      "fax": "Fax_2"
+    },
+    "additional_earnest_money_receipt": {
+      "amount_acknowledged": "is acknowledged_3",
+      "form_of_payment": "additional Earnest Money in the form of",
+      "escrow_agent": "Escrow Agent_3",
+      "received_by": "Received by_3",
+      "address": "Address_3",
+      "city": "City_6",
+      "state": "State_6",
+      "zip": "Zip_6",
+      "email": "Email Address_3",
+      "datetime": "DateTime_2",
+      "phone": "Phone_8",
+      "fax": "Fax_3"
+    }
+  },
+
+  "blanks_with_no_acroform_field_likely_need_coordinates": [
+    "Page 1 §1 PARTIES — Buyer name blank shows no field label even after self-labeling 184 text fields",
+    "Page 5 §9.A — 2-digit closing year (20___) — maxLength=2 so field name didn't fit on render but field name is likely '20' or '20_*'",
+    "Page 8 §21 — 'with a copy to Buyer's/Seller's agent' label blanks — small fields with short maxLength names not visible"
+  ]
+}

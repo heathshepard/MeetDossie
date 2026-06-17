@@ -1,0 +1,117 @@
+{
+  "timestamp": "2026-06-16T19:10:34.697Z",
+  "staging_url": "https://staging.meetdossie.com",
+  "steps": [
+    {
+      "step": "login-start",
+      "data": {
+        "email": "demo@meetdossie.com"
+      },
+      "ts": "2026-06-16T19:10:34.699Z"
+    },
+    {
+      "step": "login-success",
+      "data": {
+        "userId": "c29ce34c-1434-44e5-a260-8d1a45213ec3",
+        "hasToken": true
+      },
+      "ts": "2026-06-16T19:10:34.869Z"
+    },
+    {
+      "step": "using-transaction",
+      "data": {
+        "transactionId": "807dd591-d589-4019-89cf-3a805e14d421",
+        "address": "987 Magnolia Creek Dr"
+      },
+      "ts": "2026-06-16T19:10:34.869Z"
+    },
+    {
+      "step": "extract-form-fields-start",
+      "data": {
+        "prompt_length": 537
+      },
+      "ts": "2026-06-16T19:10:34.869Z"
+    },
+    {
+      "step": "extract-form-fields-response",
+      "data": {
+        "status": 200,
+        "data": {
+          "ok": true,
+          "field_values": {
+            "buyer_name": "Heath Shepherd",
+            "seller_name": "Josh Sissam",
+            "property_address": "123 Main St",
+            "county": "Kendall",
+            "sale_price": 500000,
+            "earnest_money": 5000,
+            "option_fee": 100,
+            "option_days": 10,
+            "down_payment_pct": 3.5,
+            "down_payment_amt": 17500,
+            "loan_amount": 482500,
+            "closing_date": "2026-07-16",
+            "close_in_days": 30,
+            "title_company": "Kendall County Abstract",
+            "financing_type": "fha",
+            "possession": "closing",
+            "hoa_exists": false
+          }
+        }
+      },
+      "ts": "2026-06-16T19:10:36.973Z"
+    },
+    {
+      "step": "extracted-field-values",
+      "data": {
+        "buyer_name": "Heath Shepherd",
+        "seller_name": "Josh Sissam",
+        "property_address": "123 Main St",
+        "county": "Kendall",
+        "sale_price": 500000,
+        "earnest_money": 5000,
+        "option_fee": 100,
+        "option_days": 10,
+        "down_payment_pct": 3.5,
+        "down_payment_amt": 17500,
+        "loan_amount": 482500,
+        "closing_date": "2026-07-16",
+        "close_in_days": 30,
+        "title_company": "Kendall County Abstract",
+        "financing_type": "fha",
+        "possession": "closing",
+        "hoa_exists": false
+      },
+      "ts": "2026-06-16T19:10:36.973Z"
+    },
+    {
+      "step": "fill-form-via-docuseal-start",
+      "data": {
+        "transactionId": "807dd591-d589-4019-89cf-3a805e14d421",
+        "formType": "resale-contract"
+      },
+      "ts": "2026-06-16T19:10:36.973Z"
+    },
+    {
+      "step": "fill-form-via-docuseal-response",
+      "data": {
+        "status": 422,
+        "data": {
+          "ok": false,
+          "error": "DocuSeal submission creation failed: 500 {\"status\":500}"
+        }
+      },
+      "ts": "2026-06-16T19:10:37.585Z"
+    },
+    {
+      "step": "ERROR",
+      "data": {
+        "message": "fill-form-via-docuseal failed: 422",
+        "stack": "Error: fill-form-via-docuseal failed: 422\n    at main (C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp-quinn-docuseal-pivot-v2\\test-docuseal-e2e.js:115:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+      },
+      "ts": "2026-06-16T19:10:37.585Z"
+    }
+  ],
+  "success": false,
+  "error": "fill-form-via-docuseal failed: 422"
+}
