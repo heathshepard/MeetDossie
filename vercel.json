@@ -216,7 +216,10 @@
                                                            },
                       "api/cron-staging-watcher.js":  {
                                                           "maxDuration":  30
-                                                      }
+                                                      },
+                      "api/cron-send-outbound-emails.js":  {
+                                                               "maxDuration":  30
+                                                           }
                   },
     "crons":  [
                   {
@@ -466,6 +469,10 @@
                   {
                       "path":  "/api/cron-staging-watcher",
                       "schedule":  "*/2 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-send-outbound-emails",
+                      "schedule":  "* * * * *"
                   }
               ]
 }
