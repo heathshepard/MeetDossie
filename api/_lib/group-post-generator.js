@@ -331,63 +331,6 @@ Return STRICT JSON only. No markdown. No commentary.
   return JSON.parse(s.slice(fb, lb + 1));
 }
 
-async function sendToTelegram(token, method, body) {
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  let data = null;
-  try { data = JSON.parse(text); } catch { data = null; }
-  return { ok: res.ok && data?.ok === true, data };
-}
-
-async function sendGroupPostForApproval(group, post, token, chatId) {
-  const previewText = [
-    'GROUP POST DRAFT',
-    '',
-    `Group: ${group.group_name}`,
-    `Category: ${group.category}`,
-    `Template: ${post.template_id}`,
-    `Pillar: ${post.pillar}`,
-    '',
-    post.post_body,
-  ].join('\n').slice(0, 4096);
-
-  await sendToTelegram(token, 'sendMessage', {
-    chat_id: chatId,
-    text: previewText,
-    disable_web_page_preview: true,
-  });
-
-  const commentPreview = post.first_comment_body
-    ? `FIRST COMMENT (post after 3+ replies):\n\n${post.first_comment_body}`
-    : '(No first comment for this template)';
-
-  const buttonText = [
-    commentPreview,
-    '',
-    'Tap Approve to queue for posting.',
-  ].join('\n').slice(0, 4096);
-
-  const buttons = {
-    inline_keyboard: [[
-      { text: 'Approve', callback_data: `group_approve_${post.id}` },
-      { text: 'Reject', callback_data: `group_reject_${post.id}` },
-      { text: 'Skip', callback_data: `group_skip_${post.id}` },
-    ]],
-  };
-
-  const result = await sendToTelegram(token, 'sendMessage', {
-    chat_id: chatId,
-    text: buttonText,
-    reply_markup: buttons,
-    disable_web_page_preview: true,
-  });
-
-  return result.data?.result?.message_id || null;
-}
 
 /**
  * Run the group-post generation pipeline.
@@ -576,7 +519,7 @@ Return STRICT JSON only:
       template_id: template.id,
       post_body: postBody,
       first_comment_body: finalFirstComment,
-      status: 'draft',
+      status: 'pending_sage_review',
       pillar: template.pillar,
     };
 
@@ -594,23 +537,20 @@ Return STRICT JSON only:
     const post = insData[0];
     log(`[group-post-generator] Inserted post ${post.id} for "${group.group_name}"`);
 
-    let messageId = null;
-    try {
-      messageId = await sendGroupPostForApproval(group, post, telegramToken, telegramChatId);
-      log(`[group-post-generator] Sent to Telegram (message_id=${messageId})`);
-    } catch (err) {
-      log(`[group-post-generator] Telegram send failed for "${group.group_name}": ${err.message}`);
-    }
+    // Insert into sage_inbox for Sage's autonomous review
+    const { ok: sageOk } = await supabaseFetch('/rest/v1/sage_inbox', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        post_id: post.id,
+        status: 'pending_sage_review',
+      }),
+    });
 
-    if (messageId) {
-      await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(post.id)}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          telegram_message_id: String(messageId),
-          telegram_sent_at: new Date().toISOString(),
-        }),
-      });
+    if (!sageOk) {
+      log(`[group-post-generator] Failed to insert sage_inbox for "${group.group_name}" post ${post.id}`);
+    } else {
+      log(`[group-post-generator] Queued to Sage review: ${post.id}`);
     }
 
     generated.push({
@@ -618,7 +558,6 @@ Return STRICT JSON only:
       group_name: group.group_name,
       template_id: template.id,
       pillar: template.pillar,
-      telegram_message_id: messageId,
     });
     processed++;
 
