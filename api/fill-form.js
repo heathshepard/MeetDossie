@@ -806,9 +806,39 @@ async function fillSellersDisclosureAcroForm(pdfDoc, fv) {
 }
 
 
+// ---------------------------------------------------------------------------
+// FLAT-PDF FILLERS — use coordinate-based text drawing, not AcroForm
+// ---------------------------------------------------------------------------
+
+const { fillFlatPdfFromMap } = require('./_assets/flat-pdf-filler.js');
+
+async function fillTerminationNotice(pdfDoc, fv) {
+  const fieldMap = require('./_assets/field-maps/trec-38-7-coords.json');
+  return fillFlatPdfFromMap(pdfDoc, fv, fieldMap);
+}
+
+async function fillNewHomeIncomplete(pdfDoc, fv) {
+  const fieldMap = require('./_assets/field-maps/trec-23-20-coords.json');
+  return fillFlatPdfFromMap(pdfDoc, fv, fieldMap);
+}
+
+async function fillNewHomeComplete(pdfDoc, fv) {
+  const fieldMap = require('./_assets/field-maps/trec-24-20-coords.json');
+  return fillFlatPdfFromMap(pdfDoc, fv, fieldMap);
+}
+
+async function fillFarmRanch(pdfDoc, fv) {
+  const fieldMap = require('./_assets/field-maps/trec-25-17-coords.json');
+  return fillFlatPdfFromMap(pdfDoc, fv, fieldMap);
+}
+
 module.exports = {
   fillHOAAddendumAcroForm,
   fillLeadBasedPaintAcroForm,
   fillBackupContractAcroForm,
   fillSellersDisclosureAcroForm,
+  fillTerminationNotice,
+  fillNewHomeIncomplete,
+  fillNewHomeComplete,
+  fillFarmRanch,
 };
