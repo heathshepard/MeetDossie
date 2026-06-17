@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, minimum-scale=1, user-scalable=yes">
+  <meta name="theme-color" content="#0a0a14">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Jarvis — Shepard Ventures Command Center</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><circle cx='96' cy='96' r='80' fill='%230a0a14'/><circle cx='96' cy='96' r='60' fill='%23E8836B'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><circle cx='96' cy='96' r='80' fill='%230a0a14'/><circle cx='96' cy='96' r='60' fill='%23E8836B'/></svg>">
+  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Jarvis%22,%22short_name%22:%22Jarvis%22,%22start_url%22:%22/shepardventures%22,%22display%22:%22standalone%22,%22theme_color%22:%22%230a0a14%22,%22background_color%22:%22%230a0a14%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%20192%20192%27%3E%3Ccircle%20cx=%2796%27%20cy=%2796%27%20r=%2780%27%20fill=%27%230a0a14%27/%3E%3Ccircle%20cx=%2796%27%20cy=%2796%27%20r=%2760%27%20fill=%27%23E8836B%27/%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --navy-dark: #0a0a14;
+      --navy-mid: #20203a;
+      --coral: #E8836B;
+      --coral-deep: #d96d52;
+      --cyan: #5BD9E6;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
+      --border: rgba(245, 230, 224, 0.10);
+      --border-hover: rgba(245, 230, 224, 0.22);
+      --text-dim: rgba(245, 230, 224, 0.55);
+      --text-faint: rgba(245, 230, 224, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--navy-dark);
+      background-image: radial-gradient(circle, #1a1a2a 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--blush);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: env(safe-area-inset-bottom);
+      overflow-x: hidden;
+    }
+
+    /* ---- Auth gate ---- */
+    #auth-gate {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+    }
+    #auth-gate.visible { display: flex; }
+    #auth-gate h1 {
+      font-family: "Cormorant Garamond", serif;
+      color: var(--gold);
+      font-weight: 600;
+      font-size: 2rem;
+    }
+    #auth-gate p { color: var(--text-dim); font-size: 0.95rem; max-width: 320px; }
+    #auth-gate input {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--navy-mid);
+      color: var(--blush);
+      width: min(320px, 90vw);
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    #auth-gate input:focus { outline: 1px solid var(--gold); border-color: var(--gold); }
+    #auth-gate button {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      background: var(--coral);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      width: min(320px, 90vw);
+    }
+    #auth-gate button:hover { background: var(--coral-deep); }
+    #auth-gate .err { color: var(--coral); font-size: 0.85rem; min-height: 1em; }
+
+    #app { display: none; }
+    #app.visible { display: block; }
+
+    /* ---- Main layout ---- */
+    .page {
+      max-width: 390px;
+      margin: 0 auto;
+      padding: 16px 16px 100px;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Top bar ---- */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 1.3rem;
+      color: var(--blush);
+    }
+    .topbar-time {
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    /* ---- Orb hero section ---- */
+    .orb-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding: 24px 0;
+      min-height: 220px;
+      position: relative;
+    }
+
+    #orb-container {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .orb-tap-hint {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      text-align: center;
+      letter-spacing: 0.02em;
+      animation: orbHintBreath 3s ease-in-out infinite;
+    }
+
+    @keyframes orbHintBreath {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.75; }
+    }
+
+    /* ---- Agents working section ---- */
+    .section {
+      margin-bottom: 22px;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: var(--blush);
+      letter-spacing: 0.02em;
+    }
+    .section-count {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      background: var(--surface);
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
+
+    /* ---- Agent activity cards ---- */
+    .agent-list { display: flex; flex-direction: column; gap: 8px; }
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .agent-status {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .agent-status.working { background: var(--sage); box-shadow: 0 0 6px rgba(139,168,136,0.6); animation: pulse 1.6s ease-in-out infinite; }
+    .agent-status.idle { background: var(--text-faint); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.85); }
+    }
+
+    .agent-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .agent-name {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--blush);
+      letter-spacing: 0.01em;
+    }
+    .agent-task {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ---- Company tile section ---- */
+    .company-tile {
+      background: linear-gradient(180deg, rgba(245,230,224,0.06), rgba(245,230,224,0.02));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .company-tile:active { transform: scale(0.98); background: var(--surface-hover); }
+    .company-tile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .company-name {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--blush);
+      letter-spacing: 0.02em;
+    }
+    .company-status {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: capitalize;
+    }
+    .company-stat {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .company-stat-label { color: var(--text-faint); }
+    .company-stat-value { color: var(--gold); font-weight: 600; }
+
+    /* ---- Pending merges ---- */
+    .merge-list { display: flex; flex-direction: column; gap: 10px; }
+    .merge-card {
+      background: linear-gradient(180deg, rgba(245,230,224,0.06), rgba(245,230,224,0.02));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .merge-card:active { border-color: var(--border-hover); background: var(--surface-hover); }
+    .merge-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .merge-msg {
+      color: var(--blush);
+      font-weight: 500;
+      font-size: 0.9rem;
+      line-height: 1.3;
+      word-break: break-word;
+      margin-bottom: 3px;
+    }
+    .merge-meta {
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .merge-sha {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--gold);
+    }
+    .merge-btn {
+      background: var(--coral);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-width: 70px;
+      min-height: 44px;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .merge-btn:active { background: var(--coral-deep); transform: scale(0.96); }
+    .merge-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- Scroll spacer ---- */
+    .spacer { flex-grow: 1; }
+
+    /* ---- Toast ---- */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--navy-mid);
+      color: var(--blush);
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hover);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      font-size: 0.85rem;
+      transition: transform 0.25s ease-out;
+      z-index: 50;
+      max-width: 88vw;
+      text-align: center;
+    }
+    #toast.visible { transform: translateX(-50%) translateY(0); }
+    #toast.err { border-color: var(--coral); color: var(--coral); }
+    #toast.ok { border-color: var(--sage); color: var(--sage); }
+
+    /* ---- Pull to refresh ---- */
+    @media (max-width: 480px) {
+      .page { padding: 14px 14px 90px; }
+      .section-title { font-size: 1.1rem; }
+      .company-tile { padding: 13px; }
+      .company-name { font-size: 1rem; }
+      .merge-btn { padding: 9px 12px; min-width: 65px; font-size: 0.76rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth gate -->
+  <div id="auth-gate">
+    <h1>Jarvis</h1>
+    <p>Shepard Ventures mission control — sign in as heath.</p>
+    <input id="email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
+    <input id="password" type="password" placeholder="password" autocomplete="current-password">
+    <button id="signin-btn">Sign in</button>
+    <div class="err" id="auth-err"></div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app">
+    <div class="page">
+      <!-- Top bar -->
+      <div class="topbar">
+        <div class="topbar-title">SHEPARD VENTURES</div>
+        <div class="topbar-time" id="topbar-time"></div>
+      </div>
+
+      <!-- Orb hero -->
+      <div class="orb-section">
+        <div id="orb-container"></div>
+        <div class="orb-tap-hint" id="orb-hint">Tap to talk</div>
+      </div>
+
+      <!-- Agents working -->
+      <div class="section" id="section-agents">
+        <div class="section-head">
+          <div class="section-title">AGENTS WORKING</div>
+          <div class="section-count" id="agent-count">0</div>
+        </div>
+        <div id="agent-list" class="agent-list"></div>
+      </div>
+
+      <!-- Company KPIs -->
+      <div id="companies-section"></div>
+
+      <!-- Pending merges -->
+      <div class="section" id="section-merges">
+        <div class="section-head">
+          <div class="section-title">PENDING MERGES</div>
+          <div class="section-count" id="merge-count">0</div>
+        </div>
+        <div id="merge-list" class="merge-list"></div>
+      </div>
+
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    let supabase = null;
+    let _token = null;
+    const _confirming = new Set();
+
+    // Time display
+    function updateTime() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hourCycle: 'h12'});
+      const dateStr = now.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+      document.getElementById('topbar-time').textContent = `${timeStr}\n${dateStr}`;
+    }
+    setInterval(updateTime, 30000);
+    updateTime();
+
+    // Orb SVG animation (simple pulsing orb with gradient)
+    function initOrb() {
+      const container = document.getElementById('orb-container');
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 140 140');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svg.style.width = '100%';
+      svg.style.height = '100%';
+
+      // Define gradient
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      linearGradient.setAttribute('id', 'orbGrad');
+      linearGradient.setAttribute('x1', '0%');
+      linearGradient.setAttribute('y1', '0%');
+      linearGradient.setAttribute('x2', '100%');
+      linearGradient.setAttribute('y2', '100%');
+
+      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', '#E8836B');
+      stop1.setAttribute('stop-opacity', '0.9');
+
+      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '50%');
+      stop2.setAttribute('stop-color', '#C9A96E');
+      stop2.setAttribute('stop-opacity', '0.85');
+
+      const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop3.setAttribute('offset', '100%');
+      stop3.setAttribute('stop-color', '#5BD9E6');
+      stop3.setAttribute('stop-opacity', '0.8');
+
+      linearGradient.appendChild(stop1);
+      linearGradient.appendChild(stop2);
+      linearGradient.appendChild(stop3);
+
+      const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+      filter.setAttribute('id', 'orbGlow');
+      const feGaussianBlur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+      feGaussianBlur.setAttribute('stdDeviation', '4');
+      feGaussianBlur.setAttribute('result', 'coloredBlur');
+      const feMerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+      const feMergeNode1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+      feMergeNode1.setAttribute('in', 'coloredBlur');
+      const feMergeNode2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+      feMergeNode2.setAttribute('in', 'SourceGraphic');
+      feMerge.appendChild(feMergeNode1);
+      feMerge.appendChild(feMergeNode2);
+      filter.appendChild(feGaussianBlur);
+      filter.appendChild(feMerge);
+
+      defs.appendChild(linearGradient);
+      defs.appendChild(filter);
+      svg.appendChild(defs);
+
+      // Draw orb
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', '70');
+      circle.setAttribute('cy', '70');
+      circle.setAttribute('r', '50');
+      circle.setAttribute('fill', 'url(#orbGrad)');
+      circle.setAttribute('filter', 'url(#orbGlow)');
+      circle.style.animation = 'orbPulse 2.5s ease-in-out infinite';
+
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes orbPulse {
+          0%, 100% { r: 50px; opacity: 0.85; }
+          50% { r: 55px; opacity: 0.95; }
+        }
+      `;
+      svg.appendChild(style);
+      svg.appendChild(circle);
+      container.appendChild(svg);
+
+      // Tap handler (stub for v1 — just feedback)
+      container.style.cursor = 'pointer';
+      container.addEventListener('click', () => {
+        toast('Voice coming soon — hold for detailed instructions', 'ok');
+      });
+    }
+
+    function toast(msg, kind = '') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = '';
+      el.classList.add('visible');
+      if (kind) el.classList.add(kind);
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.classList.remove('visible'); }, 3500);
+    }
+
+    async function authFetch(url, init = {}) {
+      return fetch(url, {
+        ...init,
+        headers: {
+          'Authorization': `Bearer ${_token}`,
+          'Content-Type': 'application/json',
+          ...(init.headers || {}),
+        },
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('auth-err');
+      if (el) el.textContent = msg || '';
+    }
+
+    function showLogin() {
+      document.getElementById('auth-gate').classList.add('visible');
+      document.getElementById('app').classList.remove('visible');
+    }
+
+    function revealApp(token) {
+      _token = token;
+      document.getElementById('auth-gate').classList.remove('visible');
+      document.getElementById('app').classList.add('visible');
+      initOrb();
+      refresh();
+    }
+
+    async function bootstrap() {
+      let config;
+      try {
+        config = await fetch('/api/config').then(r => r.json());
+      } catch {
+        showError('Could not load config.');
+        showLogin();
+        return;
+      }
+      if (!config.supabaseUrl || !config.supabaseKey) {
+        showError('Supabase env missing.');
+        showLogin();
+        return;
+      }
+      supabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+          storage: window.localStorage,
+          storageKey: 'jarvis.auth.token',
+          flowType: 'pkce',
+        },
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showLogin(); return; }
+      revealApp(session.access_token);
+    }
+
+    async function refresh() {
+      try {
+        await Promise.all([loadAgents(), loadCompanies(), loadMerges()]);
+      } catch (err) {
+        console.error('Refresh error:', err);
+        toast('Refresh failed', 'err');
+      }
+    }
+
+    async function loadAgents() {
+      const { data, error } = await supabase
+        .from('agent_activity')
+        .select('name, status, task')
+        .order('name');
+      if (error) throw error;
+
+      const agentList = document.getElementById('agent-list');
+      agentList.innerHTML = '';
+      document.getElementById('agent-count').textContent = data?.length || 0;
+
+      (data || []).forEach(agent => {
+        const card = document.createElement('div');
+        card.className = 'agent-card';
+        const statusClass = agent.status === 'working' ? 'working' : 'idle';
+        card.innerHTML = `
+          <div class="agent-status ${statusClass}"></div>
+          <div class="agent-info">
+            <div class="agent-name">${agent.name || 'Unknown'}</div>
+            <div class="agent-task">${agent.task || 'idle'}</div>
+          </div>
+        `;
+        agentList.appendChild(card);
+      });
+    }
+
+    async function loadCompanies() {
+      const container = document.getElementById('companies-section');
+      container.innerHTML = '';
+
+      // Dossie KPI
+      const dossieStats = {
+        name: 'DOSSIE',
+        mrr: '$349',
+        founding: '12/50',
+        status: 'Operational',
+        description: 'AI transaction coordinator'
+      };
+
+      const dossieCard = document.createElement('div');
+      dossieCard.className = 'company-tile';
+      dossieCard.innerHTML = `
+        <div class="company-tile-header">
+          <div class="company-name">${dossieStats.name}</div>
+          <div class="company-status">${dossieStats.status}</div>
+        </div>
+        <div class="company-stat">
+          <div class="company-stat-label">MRR</div>
+          <div class="company-stat-value">${dossieStats.mrr}</div>
+        </div>
+        <div class="company-stat">
+          <div class="company-stat-label">Founding</div>
+          <div class="company-stat-value">${dossieStats.founding}</div>
+        </div>
+      `;
+      container.appendChild(dossieCard);
+
+      // Paralegal KPI
+      const paralegalStats = {
+        name: 'PARALEGAL',
+        status: 'Research phase',
+        partner: 'Joshua Sisam'
+      };
+
+      const paralegalCard = document.createElement('div');
+      paralegalCard.className = 'company-tile';
+      paralegalCard.innerHTML = `
+        <div class="company-tile-header">
+          <div class="company-name">${paralegalStats.name}</div>
+          <div class="company-status">${paralegalStats.status}</div>
+        </div>
+        <div class="company-stat">
+          <div class="company-stat-label">Partner</div>
+          <div class="company-stat-value">${paralegalStats.partner}</div>
+        </div>
+      `;
+      container.appendChild(paralegalCard);
+
+      // Personal Agents KPI
+      const agentStats = {
+        name: 'PERSONAL AGENTS',
+        status: 'Pre-launch',
+        beachhead: 'Wife\'s travel agent'
+      };
+
+      const agentCard = document.createElement('div');
+      agentCard.className = 'company-tile';
+      agentCard.innerHTML = `
+        <div class="company-tile-header">
+          <div class="company-name">${agentStats.name}</div>
+          <div class="company-status">${agentStats.status}</div>
+        </div>
+        <div class="company-stat">
+          <div class="company-stat-label">Beachhead</div>
+          <div class="company-stat-value">${agentStats.beachhead}</div>
+        </div>
+      `;
+      container.appendChild(agentCard);
+
+      const section = document.createElement('div');
+      section.className = 'section';
+      const head = document.createElement('div');
+      head.className = 'section-head';
+      head.innerHTML = '<div class="section-title">VENTURES</div>';
+      section.appendChild(head);
+      container.prepend(head);
+    }
+
+    async function loadMerges() {
+      // V1: stub. Would fetch from GitHub API with GITHUB_TOKEN.
+      // For now, show placeholder.
+      const mergeList = document.getElementById('merge-list');
+      mergeList.innerHTML = '';
+      document.getElementById('merge-count').textContent = 0;
+    }
+
+    // Init on load
+    document.addEventListener('DOMContentLoaded', bootstrap);
+    document.getElementById('signin-btn')?.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      if (!email || !password) {
+        showError('Email and password required.');
+        return;
+      }
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        revealApp(data.session.access_token);
+      } catch (err) {
+        showError(err.message || 'Sign in failed.');
+      }
+    });
+  </script>
+</body>
+</html>
