@@ -37,6 +37,8 @@ const ALLOWED_FORM_TYPES = new Set([
   'new-home-incomplete',
   'new-home-complete',
   'farm-ranch',
+  'hoa-addendum',
+  'lead-paint-addendum',
 ]);
 
 function applyCors(req, res) {
@@ -221,6 +223,35 @@ Fields to extract:
 - financing_type (string): One of: "conventional", "fha", "va", "usda", "cash".
 - contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
 `,
+  'hoa-addendum': `
+Extract these fields for the TREC 36 Addendum for Property Subject to Mandatory Membership in HOA.
+Return ONLY fields that are present or can be inferred.
+
+Fields to extract:
+- property_address (string): Street address.
+- city_state_zip (string): City, state, zip.
+- buyer_name (string): Buyer's full name.
+- seller_name (string): Seller's full name.
+- hoa_name (string): Name of the HOA. Required.
+- hoa_phone (string): HOA phone number if stated.
+- hoa_management_company (string): HOA management company name if stated.
+- hoa_monthly_dues (number): Monthly HOA dues amount if stated.
+- hoa_transfer_fee (number): Transfer fee amount if stated.
+- hoa_resale_cert_required (boolean): Whether resale certificate is required.
+`,
+  'lead-paint-addendum': `
+Extract these fields for the OP-L Addendum for Sellers Disclosure of Information on Lead-Based Paint.
+Return ONLY fields that are present or can be inferred.
+
+Fields to extract:
+- property_address (string): Street address.
+- city_state_zip (string): City, state, zip.
+- buyer_name (string): Buyer's full name.
+- seller_name (string): Seller's full name.
+- property_built_year (number): Year property was built. Critical for lead paint determination.
+- seller_disclosure_choice (string): "no_knowledge" (default), "disclosed_hazards", or "not_disclosed".
+- buyer_acknowledgment (boolean): Whether buyer acknowledges lead paint notice.
+`,
 };
 
 // ---------------------------------------------------------------------------
@@ -260,6 +291,15 @@ const CANONICAL_FIELDS = {
     'loan_amount', 'down_payment_pct', 'down_payment_amt', 'closing_date', 'title_company',
     'financing_type', 'builder_name', 'builder_rep_name', 'builder_rep_phone',
     'builder_warranty_company', 'co_received_date', 'co_number', 'contract_effective_date'
+  ],
+  'hoa-addendum': [
+    'property_address', 'city_state_zip', 'buyer_name', 'seller_name',
+    'hoa_name', 'hoa_phone', 'hoa_management_company', 'hoa_monthly_dues',
+    'hoa_transfer_fee', 'hoa_resale_cert_required'
+  ],
+  'lead-paint-addendum': [
+    'property_address', 'city_state_zip', 'buyer_name', 'seller_name',
+    'property_built_year', 'seller_disclosure_choice', 'buyer_acknowledgment'
   ],
   'farm-ranch': [
     'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
