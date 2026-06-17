@@ -168,7 +168,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 // ---------------------------------------------------------------------------
 async function fillAmendmentAcroForm(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  const FIELD_MAP = require('./field-map-trec39-acroform.js');
+  const FIELD_MAP = require('./_assets/field-map-trec39-acroform.js');
 
   const safeSetText = (form, name, value) => {
     if (!value && value !== 0) return;
@@ -395,7 +395,7 @@ async function fillAmendmentAcroForm(pdfDoc, fv) {
 // ---------------------------------------------------------------------------
 async function fillHOAAddendumAcroForm(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  const FIELD_MAP = require("./field-map-trec36-acroform.js");
+  const FIELD_MAP = require("./_assets/field-map-trec36-acroform.js");
 
   const safeSetText = (form, name, value) => {
     if (!value && value !== 0) return;
@@ -493,7 +493,7 @@ async function fillHOAAddendumAcroForm(pdfDoc, fv) {
 // ---------------------------------------------------------------------------
 async function fillLeadBasedPaintAcroForm(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  const FIELD_MAP = require("./field-map-opl-acroform.js");
+  const FIELD_MAP = require("./_assets/field-map-opl-acroform.js");
 
   const safeSetText = (form, name, value) => {
     if (!value && value !== 0) return;
@@ -553,7 +553,7 @@ async function fillLeadBasedPaintAcroForm(pdfDoc, fv) {
 // ---------------------------------------------------------------------------
 async function fillBackupContractAcroForm(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-  const FIELD_MAP = require("./field-map-trec11-acroform.js");
+  const FIELD_MAP = require("./_assets/field-map-trec11-acroform.js");
 
   const safeSetText = (form, name, value) => {
     if (!value && value !== 0) return;
