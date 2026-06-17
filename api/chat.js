@@ -334,6 +334,11 @@ const TOOLS = [
           enum: ['resale-contract', 'unimproved-property', 'farm-ranch', 'new-home-incomplete', 'new-home-complete', 'financing-addendum', 'termination-notice'],
           description: 'Override the auto-selected form type. Use when: agent says "land contract" or "unimproved property" -> unimproved-property; agent says "farm and ranch" or "farm contract" -> farm-ranch; agent says "new construction incomplete" -> new-home-incomplete; agent says "new construction completed" -> new-home-complete; agent says "financing addendum" or "TREC 40" -> financing-addendum; agent says "termination notice" or "TREC 38-7" or "terminate" -> termination-notice. For standard residential resale, omit this field.',
         },
+        forms: {
+          type: 'array',
+          items: { type: 'string', enum: ['resale-contract', 'financing-addendum', 'hoa-addendum', 'lead-paint-addendum'] },
+          description: 'List of additional forms to fill after the main contract form. Auto-detected: if FHA/VA/USDA/Conventional mentioned -> financing-addendum; if HOA mentioned -> hoa-addendum; if property built before 1978 -> lead-paint-addendum.',
+        },
         include_financing_addendum: {
           type: 'boolean',
           description: 'Whether to also fill the Third Party Financing Addendum (40-9). Default true for all non-cash deals.',
@@ -427,6 +432,19 @@ AMENDMENT & STAGE SAFETY RULES:
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
 
 TOOL USE GUIDELINES — These examples show WHEN and HOW to call each tool:
+When the agent says "fill out a contract to purchase 123 Main St for $400k" → ALWAYS use fill_forms with deal_identifier="123 Main St" (the dispatcher auto-creates the dossier if needed)
+
+FORMS AUTO-DETECTION (within fill_forms):
+- ALWAYS analyze the message for keywords to auto-detect required addenda:
+  - If "FHA" or "FHA loan" detected → ADD "financing-addendum" to forms array
+  - If "VA loan" or "VA financing" detected → ADD "financing-addendum" to forms array
+  - If "USDA" or "USDA loan" detected → ADD "financing-addendum" to forms array
+  - If "conventional" mentioned with financing → ADD "financing-addendum" to forms array
+  - If "HOA" or "homeowners association" mentioned → ADD "hoa-addendum" to forms array
+  - If property built 1977 or earlier ("built 1977", "pre-1978", "built before 1978") → ADD "lead-paint-addendum" to forms array
+  - If financing_type = "cash" (no loan) → EXCLUDE financing-addendum
+- Always pass detected forms in the forms array. If none detected, omit the field.
+
 When the agent says "fill out a contract to purchase 123 Main St for $400k" → ALWAYS use fill_forms with deal_identifier="123 Main St" (the dispatcher auto-creates the dossier if needed)
 When the agent says "draft an amendment to extend closing to May 15" → ALWAYS use draft_amendment immediately with amendment_type="closing_date" and new_value="2026-05-15"
 When the agent says "send a wire fraud warning to the buyer" → ALWAYS use send_wire_fraud_warning with buyer name and email
