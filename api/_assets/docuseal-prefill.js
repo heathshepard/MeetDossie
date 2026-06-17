@@ -1,18 +1,14 @@
 // DocuSeal Prefill API Helper
 // Uses Heath's pre-mapped DocuSeal templates to fill forms.
-// Each template has field names already set up in DocuSeal UI.
-// This helper POSTs values to DocuSeal API and returns the filled PDF URL.
 
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 
-// Template ID mapping — TREC forms Heath pre-mapped in DocuSeal
-// Role names MUST match exactly what's in each DocuSeal template definition.
 const DOCUSEAL_TEMPLATES = {
   'resale-contract': {
     templateId: 4018208,
     formName: 'One to Four Family Residential Contract (Resale)',
-    roles: ['Buyer 1', 'Seller 2'], // actual submitter names from template
+    roles: ['Buyer 1', 'Seller 2'],
   },
   'financing-addendum': {
     templateId: 4023463,
@@ -51,21 +47,87 @@ const DOCUSEAL_TEMPLATES = {
   },
 };
 
-/**
- * Generate a valid placeholder email for a DocuSeal role.
- * Converts role names (e.g., 'Buyer 1', 'Seller 2') to valid email addresses.
- */
+// Map our snake_case field names to DocuSeal's actual template field labels.
+const KEY_MAP = {
+  'resale-contract': {
+    buyer_name: 'buyer_name',
+    seller_name: 'seller_name',
+    property_address: 'property_address',
+    sales_price: 'sales_price',
+    closing_date: 'closing_date',
+    closing_year: 'closing_year',
+    earnest_money_amount: 'earnest_money_amount',
+    down_payment: 'down_payment',
+    option_period_days: 'option_period_days',
+    option_fee: 'option_fee',
+    title_company_name: 'title_company_name',
+    escrow_agent_name: 'escrow_agent_name',
+    title_seller_pays: 'title_seller_pays',
+    title_buyer_pays: 'title_buyer_pays',
+    third_party_financing: 'third_party_financing',
+    addendum_financing: 'addendum_financing',
+    addendum_lead_paint: 'addendum_lead_paint',
+  },
+  'financing-addendum': {
+    property_address: 'property_address',
+    first_loan_amount: 'first_loan_amount',
+    first_interest_rate: 'first_interest_rate',
+    first_loan_term_years: 'first_loan_term_years',
+    fha_financing: 'fha_financing',
+    fha_loan_amount: 'fha_loan_amount',
+    fha_amortization_years: 'fha_amortization_years',
+    va_financing: 'va_financing',
+    va_loan_amount: 'va_loan_amount',
+    usda_financing: 'usda_financing',
+    credit_approval_days: 'credit_approval_days',
+    conventional_financing: 'conventional_financing',
+  },
+  'hoa-addendum': {
+    buyer_name: 'buyer_1_name',
+    seller_name: 'Seller_1_name',
+    property_address: 'Street Address and City',
+  },
+  'lead-paint-addendum': {
+    property_address: 'property_address',
+    known_lead_paint: 'known_lead_paint',
+    known_lead_paint_description: 'known_lead_paint_description',
+    no_knowledge_lead_paint: 'no_knowledge_lead_paint',
+    buyer_waives_inspection: 'buyer_waives_inspection',
+  },
+};
+
 function placeholderEmail(role) {
   const normalized = role.toLowerCase().replace(/\s+/g, '-');
-  return `${normalized}-placeholder@meetdossie.com`;
+  return normalized + '-placeholder@meetdossie.com';
 }
 
-/**
- * Prefill a DocuSeal template and get the filled PDF URL
- * @param {string} formType - form type key (e.g. 'resale-contract')
- * @param {object} fieldValues - { field_name: value, ... } from chat extraction
- * @returns {Promise<{pdfUrl: string, submissionId: string}>}
- */
+function sanitizeValue(v) {
+  if (v === null || v === undefined) return undefined;
+  if (typeof v === 'boolean') return v ? 'X' : '';
+  return String(v);
+}
+
+function mapAndSanitizeFields(formType, fieldValues) {
+  const mapping = KEY_MAP[formType];
+  if (!mapping) {
+    throw new Error('No field mapping defined for form type: ' + formType);
+  }
+
+  const mappedValues = {};
+  for (const ourKey in fieldValues) {
+    const ourVal = fieldValues[ourKey];
+    const docusealName = mapping[ourKey];
+    if (!docusealName) continue;
+
+    const sanitized = sanitizeValue(ourVal);
+    if (sanitized !== undefined) {
+      mappedValues[docusealName] = sanitized;
+    }
+  }
+
+  return mappedValues;
+}
+
 async function prefillDocuSealTemplate(formType, fieldValues) {
   if (!DOCUSEAL_API_KEY) {
     throw new Error('DOCUSEAL_API_KEY not set in environment');
@@ -73,56 +135,48 @@ async function prefillDocuSealTemplate(formType, fieldValues) {
 
   const config = DOCUSEAL_TEMPLATES[formType];
   if (!config) {
-    throw new Error(`Unknown form type for DocuSeal: ${formType}`);
+    throw new Error('Unknown form type for DocuSeal: ' + formType);
   }
 
-  // Build submitters array. Each role gets the same field values unless overridden.
-  // For single-role forms (e.g., Seller's Disclosure), only include that role.
-  // Use actual buyer/seller email if provided in fieldValues, otherwise placeholder.
+  const mappedValues = mapAndSanitizeFields(formType, fieldValues);
+
   const submitters = config.roles.map((role) => ({
-    role,
+    role: role,
     email: fieldValues.buyer_email || fieldValues.seller_email || placeholderEmail(role),
     send_email: false,
-    values: fieldValues,
+    values: mappedValues,
   }));
 
-  // POST to DocuSeal /submissions API
   const payload = {
     template_id: config.templateId,
     send_email: false,
-    submitters,
+    submitters: submitters,
   };
 
   let res;
   try {
-    res = await fetch(`${DOCUSEAL_BASE}/submissions`, {
+    res = await fetch(DOCUSEAL_BASE + '/submissions', {
       method: 'POST',
       headers: {
         'X-Auth-Token': DOCUSEAL_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-      timeout: 30000, // 30s timeout for DocuSeal response
+      timeout: 30000,
     });
   } catch (err) {
-    throw new Error(`DocuSeal API fetch failed: ${err.message}`);
+    throw new Error('DocuSeal API fetch failed: ' + err.message);
   }
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(
-      `DocuSeal API error (${res.status}): ${text}`
-    );
+    throw new Error('DocuSeal API error (' + res.status + '): ' + text);
   }
 
   const submission = await res.json();
 
-  // Submission may return immediately with status 'pending' or 'completed'.
-  // In prefill-only mode (no signature flow), the documents are ready right away.
   if (!submission.id || !submission.documents || submission.documents.length === 0) {
-    throw new Error(
-      `DocuSeal submission missing documents: ${JSON.stringify(submission)}`
-    );
+    throw new Error('DocuSeal submission missing documents: ' + JSON.stringify(submission));
   }
 
   const pdfUrl = submission.documents[0].url;
@@ -132,9 +186,9 @@ async function prefillDocuSealTemplate(formType, fieldValues) {
 
   return {
     submissionId: submission.id,
-    pdfUrl,
+    pdfUrl: pdfUrl,
     formName: config.formName,
   };
 }
 
-module.exports = { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES };
+module.exports = { prefillDocuSealTemplate: prefillDocuSealTemplate, DOCUSEAL_TEMPLATES: DOCUSEAL_TEMPLATES };
