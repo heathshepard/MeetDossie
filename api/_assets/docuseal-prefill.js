@@ -52,6 +52,15 @@ const DOCUSEAL_TEMPLATES = {
 };
 
 /**
+ * Generate a valid placeholder email for a DocuSeal role.
+ * Converts role names (e.g., 'Buyer 1', 'Seller 2') to valid email addresses.
+ */
+function placeholderEmail(role) {
+  const normalized = role.toLowerCase().replace(/\s+/g, '-');
+  return `${normalized}-placeholder@meetdossie.com`;
+}
+
+/**
  * Prefill a DocuSeal template and get the filled PDF URL
  * @param {string} formType - form type key (e.g. 'resale-contract')
  * @param {object} fieldValues - { field_name: value, ... } from chat extraction
@@ -69,9 +78,10 @@ async function prefillDocuSealTemplate(formType, fieldValues) {
 
   // Build submitters array. Each role gets the same field values unless overridden.
   // For single-role forms (e.g., Seller's Disclosure), only include that role.
+  // Use actual buyer/seller email if provided in fieldValues, otherwise placeholder.
   const submitters = config.roles.map((role) => ({
     role,
-    email: `${role.toLowerCase()}@dossie.local`,
+    email: fieldValues.buyer_email || fieldValues.seller_email || placeholderEmail(role),
     send_email: false,
     values: fieldValues,
   }));
