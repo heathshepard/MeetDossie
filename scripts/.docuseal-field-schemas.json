@@ -1,0 +1,84 @@
+{
+  "resale-contract": {
+    "template_id": 4018208,
+    "field_count": 192,
+    "fields": [
+      "Legal_Description",
+      "seller_name",
+      "buyer_name",
+      "legal_lot",
+      "legal_block",
+      "addition_city",
+      "county",
+      "property_address",
+      "exclusions",
+      "down_payment",
+      "third_party_financing",
+      "Loan_Assumption",
+      "Seller_Financing Addendum",
+      "loan_amount",
+      "sales_price",
+      "has_residential_leases",
+      "has_fixture_leases",
+      "has_natural_resource_leases",
+      "closing_date",
+      "closing_year",
+      "earnest_money_amount",
+      "option_period_days",
+      "option_fee",
+      "title_company_name",
+      "escrow_agent_name",
+      "title_seller_pays",
+      "title_buyer_pays",
+      "addendum_financing",
+      "addendum_lead_paint"
+    ]
+  },
+  "financing-addendum": {
+    "template_id": 4023463,
+    "field_count": 67,
+    "fields": [
+      "property_address",
+      "conventional_financing",
+      "first_loan_amount",
+      "first_interest_rate",
+      "first_loan_term_years",
+      "fha_financing",
+      "fha_loan_amount",
+      "fha_amortization_years",
+      "va_financing",
+      "va_loan_amount",
+      "usda_financing",
+      "credit_approval_days",
+      "buyer_signature_1",
+      "seller_signature_1"
+    ]
+  },
+  "hoa-addendum": {
+    "template_id": 4111321,
+    "field_count": 17,
+    "fields": [
+      "Street Address and City",
+      "Name of Property Owners Association Association and Phone Number",
+      "buyer_1_name",
+      "buyer_2_name",
+      "Seller_1_name",
+      "Seller_2_name"
+    ]
+  },
+  "lead-paint-addendum": {
+    "template_id": 4023469,
+    "field_count": 23,
+    "fields": [
+      "property_address",
+      "known_lead_paint",
+      "known_lead_paint_description",
+      "no_knowledge_lead_paint",
+      "buyer_waives_inspection",
+      "buyer_signature_1",
+      "buyer_date_1",
+      "seller_signature_1",
+      "seller_date_1"
+    ]
+  }
+}
