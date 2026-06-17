@@ -1,0 +1,106 @@
+=== ACROFORM VERIFICATION REPORT ===
+Date: 2026-06-16
+
+OBJECTIVE:
+Verify that TREC 20-17 (20-19 variant) Resale Contract PDF contains AcroForm fields
+that can be filled by name using pdf-lib WITHOUT coordinate math.
+
+RESULTS: ✓ PASS — AcroForm approach is VIABLE
+
+PDF CHARACTERISTICS:
+- File: api/_assets/trec-resale-20-19-base64.js
+- Size: 274,954 bytes (base64 decoded)
+- Pages: 11
+- AcroForm fields: 256 (PDFTextField + PDFCheckBox)
+- Form type: Embedded AcroForm (NOT flat PDF)
+
+FIELD NAMING PATTERN:
+The TREC 20-19 PDF has AcroForm fields, but they are NOT semantically named:
+- Most fields have auto-generated names: "undefined", "undefined_2", etc.
+- Some have descriptive labels: "Address of Property", "Email", "Text1", etc.
+- Some are form sections: "A LAND Lot", "Block", "Addition", etc.
+- This is typical of PDFs created from TREC form templates
+
+FILL TEST RESULTS:
+Test field fills using actual PDF field names:
+
+✓ Text1 = "123 Main Street" ← SUCCESSFUL
+✓ Email = "buyer@example.com" ← SUCCESSFUL
+✓ Address of Property = "456 Oak Lane, Austin TX 78701" ← SUCCESSFUL
+✓ A LAND Lot = "5" ← SUCCESSFUL
+✗ Text2 = "$350,000" ← NOT FOUND (field name may differ)
+
+VERIFICATION:
+Extracted filled PDF using pypdf to confirm field values were written:
+  - A LAND Lot: 5 ✓
+  - Email: buyer@example.com ✓
+  - Address of Property: 456 Oak Lane, Austin TX 78701 ✓
+  - Text1: 123 Main Street ✓
+
+All filled values confirmed present in the AcroForm.
+
+IMPLICATIONS FOR FILL-FORM REFACTOR:
+
+1. The TREC 20-19 PDF DOES have AcroForm fields (not flat/image PDF)
+2. pdf-lib CAN fill these fields by name
+3. NO COORDINATE MATH required
+4. BUT: Field names are NOT semantic ("Text1" vs "Buyer Name")
+
+NEXT STEPS:
+
+A. Build a field-name mapping:
+   The old `scripts/document_field_maps.py` maps TREC form names to coordinates.
+   Refactor to map TREC semantic names (buyer_name, sale_price, etc.) to PDF field names:
+   - "buyer_name" → "Text1"
+   - "email" → "Email"
+   - "address" → "Address of Property"
+   - etc.
+
+B. Extract the complete field list from the PDF:
+   Use the enumeration in `.tmp-acroform-resale-fields.log` to build a complete
+   semantic name → PDF field name mapping. Some fields are obvious; others may
+   require trial-and-error or visual inspection of the PDF form.
+
+C. Refactor `api/fill-form.js`:
+   Replace the coordinate-based field filling with AcroForm-based filling:
+   ```js
+   // OLD (coordinate math):
+   page.drawText(value, { x: 100, y: 200 });
+   
+   // NEW (AcroForm):
+   form.getField(semanticToPdfName(fieldName)).setText(value);
+   ```
+
+CONCLUSION:
+
+✓ AcroForm approach is PROVEN VIABLE on TREC 20-19 Resale Contract
+✓ No coordinate math needed — pdf-lib handles all positioning
+✓ Field names are not semantic but mappable via a lookup table
+✓ Ready for refactor whenever Health approves the new approach
+
+Demo files:
+- .tmp-acroform-demo.pdf (filled PDF)
+- .tmp-acroform-resale-fields.log (all 256 field names)
+- .tmp-acroform-fill-results.log (first attempt results)
+
+
+ECOSYSTEM IMPLICATIONS:
+
+✓ 12 out of 15 TREC PDFs sampled have AcroForm fields
+✓ This is a SYSTEM-WIDE pattern, not just the Resale Contract
+✓ The refactor will benefit ALL document types once field mappings are built
+
+TREC PDFs WITH CONFIRMED ACROFORM SUPPORT:
+- TREC 39-10 (Amendment): 45 fields
+- TREC 49-1 (Right to Terminate Appraisal): 11 fields
+- TREC 39-11 (Amendment [alt]): 51 fields
+- TREC 11-9 (Backup Contract): 17 fields
+- TREC 40 (Financing Addendum): 64 fields
+- TREC HOA Addendum (36-11): 17 fields
+- And 6 more with 5-43 fields each
+
+PRIORITY FORMS FOR REFACTOR:
+1. TREC 20-19 Resale Contract (256 fields) — PRIMARY
+2. TREC 40 Financing Addendum (64 fields) — Already partially wired
+3. TREC 39-10 Amendment (45 fields) — Already in use
+

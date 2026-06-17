@@ -1,0 +1,3586 @@
+[
+  {
+    "name": "1 PARTIES The parties to this contract are",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 280.182,
+      "y": 688.04,
+      "width": 276.50299999999993,
+      "height": 9.480000000000018,
+      "x2": 556.685,
+      "y2": 697.52
+    }
+  },
+  {
+    "name": "Seller and",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 123.565,
+      "y": 677.36,
+      "width": 390.69699999999995,
+      "height": 9.480000000000018,
+      "x2": 514.262,
+      "y2": 686.84
+    }
+  },
+  {
+    "name": "A LAND Lot",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 126.933,
+      "y": 614.399,
+      "width": 65.96499999999999,
+      "height": 8.856999999999971,
+      "x2": 192.898,
+      "y2": 623.256
+    }
+  },
+  {
+    "name": "Block",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 221.761,
+      "y": 614.399,
+      "width": 83.439,
+      "height": 10.102999999999952,
+      "x2": 305.2,
+      "y2": 624.502
+    }
+  },
+  {
+    "name": "undefined",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 309.326,
+      "y": 615.054,
+      "width": 247.13800000000003,
+      "height": 10.103000000000065,
+      "x2": 556.464,
+      "y2": 625.157
+    }
+  },
+  {
+    "name": "Addition City of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 157.436,
+      "y": 603.719,
+      "width": 170.76399999999998,
+      "height": 10.102999999999952,
+      "x2": 328.2,
+      "y2": 613.822
+    }
+  },
+  {
+    "name": "County of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 387.221,
+      "y": 603.719,
+      "width": 169.39700000000005,
+      "height": 9.479999999999905,
+      "x2": 556.618,
+      "y2": 613.199
+    }
+  },
+  {
+    "name": "Texas known as",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 161.059,
+      "y": 593.103,
+      "width": 394.75,
+      "height": 9.480000000000018,
+      "x2": 555.809,
+      "y2": 602.583
+    }
+  },
+  {
+    "name": "be removed prior to delivery of possession",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 323.209,
+      "y": 380.001,
+      "width": 232.498,
+      "height": 9.480000000000018,
+      "x2": 555.707,
+      "y2": 389.481
+    }
+  },
+  {
+    "name": "undefined_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 73.4205,
+      "y": 369.321,
+      "width": 479.77950000000004,
+      "height": 10.134999999999991,
+      "x2": 553.2,
+      "y2": 379.456
+    }
+  },
+  {
+    "name": "undefined_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 457.08,
+      "y": 316.84,
+      "width": 100.757,
+      "height": 9.480000000000018,
+      "x2": 557.837,
+      "y2": 326.32
+    }
+  },
+  {
+    "name": "B Sum of all financing described in the attached",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 313.522,
+      "y": 283.082,
+      "width": 11.716000000000008,
+      "height": 9.271000000000015,
+      "x2": 325.238,
+      "y2": 292.353
+    }
+  },
+  {
+    "name": "undefined_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 457.08,
+      "y": 267.084,
+      "width": 100.757,
+      "height": 9.480000000000018,
+      "x2": 557.837,
+      "y2": 276.564
+    }
+  },
+  {
+    "name": "undefined_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 457.08,
+      "y": 255.4,
+      "width": 101.38100000000003,
+      "height": 9.47999999999999,
+      "x2": 558.461,
+      "y2": 264.88
+    }
+  },
+  {
+    "name": "Initialed for identification by Buyer",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 210.72,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 9.120000000000001,
+      "x2": 246,
+      "y2": 30.48
+    }
+  },
+  {
+    "name": "undefined_8",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 252.294,
+      "y": 21.36,
+      "width": 36.46399999999997,
+      "height": 9.0887,
+      "x2": 288.758,
+      "y2": 30.4487
+    }
+  },
+  {
+    "name": "and Seller",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 346.56,
+      "y": 21.36,
+      "width": 40.56,
+      "height": 9.120000000000001,
+      "x2": 387.12,
+      "y2": 30.48
+    }
+  },
+  {
+    "name": "undefined_9",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 396,
+      "y": 21.36,
+      "width": 36.120000000000005,
+      "height": 9.120000000000001,
+      "x2": 432.12,
+      "y2": 30.48
+    }
+  },
+  {
+    "name": "Page 2 of 10",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 128.434,
+      "y": 749.88,
+      "width": 325.847,
+      "height": 11.977999999999952,
+      "x2": 454.28099999999995,
+      "y2": 761.858
+    }
+  },
+  {
+    "name": "the Title Company and Buyers lenders Check one box only",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 76.0993,
+      "y": 500.52,
+      "width": 38.380700000000004,
+      "height": 9.600000000000023,
+      "x2": 114.48,
+      "y2": 510.12
+    }
+  },
+  {
+    "name": "2Within",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 76,
+      "y": 178.28,
+      "width": 10.680000000000007,
+      "height": 9.788999999999987,
+      "x2": 86.68,
+      "y2": 188.069
+    }
+  },
+  {
+    "name": "3Within",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 75.3454,
+      "y": 167.28,
+      "width": 11.334600000000009,
+      "height": 9.788999999999987,
+      "x2": 86.68,
+      "y2": 177.069
+    }
+  },
+  {
+    "name": "Sellers_2",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 314.042,
+      "y": 352.24,
+      "width": 11.198000000000036,
+      "height": 8.752999999999986,
+      "x2": 325.24,
+      "y2": 360.993
+    }
+  },
+  {
+    "name": "Buyers expense no later",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 368.44,
+      "y": 352.24,
+      "width": 10.680000000000007,
+      "height": 8.752999999999986,
+      "x2": 379.12,
+      "y2": 360.993
+    }
+  },
+  {
+    "name": "is",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 434.6,
+      "y": 168.04,
+      "width": 10.67999999999995,
+      "height": 8.235000000000014,
+      "x2": 445.28,
+      "y2": 176.275
+    }
+  },
+  {
+    "name": "is not",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 499.398,
+      "y": 168.04,
+      "width": 10.67999999999995,
+      "height": 8.235000000000014,
+      "x2": 510.078,
+      "y2": 176.275
+    }
+  },
+  {
+    "name": "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 210.72,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 11.671100000000003,
+      "x2": 246,
+      "y2": 33.0311
+    }
+  },
+  {
+    "name": "and Seller_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 252.96,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 11.671100000000003,
+      "x2": 288.24,
+      "y2": 33.0311
+    }
+  },
+  {
+    "name": "undefined_10",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 346.56,
+      "y": 21.36,
+      "width": 40.56,
+      "height": 11.153300000000002,
+      "x2": 387.12,
+      "y2": 32.5133
+    }
+  },
+  {
+    "name": "undefined_11",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 396,
+      "y": 21.36,
+      "width": 36.120000000000005,
+      "height": 11.153300000000002,
+      "x2": 432.12,
+      "y2": 32.5133
+    }
+  },
+  {
+    "name": "Page 3 of 10",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 130.153,
+      "y": 748.826,
+      "width": 323.692,
+      "height": 14.254000000000019,
+      "x2": 453.845,
+      "y2": 763.08
+    }
+  },
+  {
+    "name": "Property Code requires Seller to notify Buyer as follows",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 210.72,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 13.200000000000003,
+      "x2": 246,
+      "y2": 34.56
+    }
+  },
+  {
+    "name": "and Seller_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 253.583,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 13.200000000000003,
+      "x2": 288.863,
+      "y2": 34.56
+    }
+  },
+  {
+    "name": "undefined_12",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 346.56,
+      "y": 21.36,
+      "width": 40.56,
+      "height": 13.200000000000003,
+      "x2": 387.12,
+      "y2": 34.56
+    }
+  },
+  {
+    "name": "The private transfer fee",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 396,
+      "y": 21.36,
+      "width": 36.120000000000005,
+      "height": 13.200000000000003,
+      "x2": 432.12,
+      "y2": 34.56
+    }
+  },
+  {
+    "name": "Contract Concerning",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 128.413,
+      "y": 749.353,
+      "width": 325.8,
+      "height": 13.594000000000051,
+      "x2": 454.213,
+      "y2": 762.947
+    }
+  },
+  {
+    "name": "Within",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 319.332,
+      "y": 179.232,
+      "width": 48.809000000000026,
+      "height": 10.582999999999998,
+      "x2": 368.141,
+      "y2": 189.815
+    }
+  },
+  {
+    "name": "1 Buyer accepts the Property As Is",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 62.44,
+      "y": 191.76,
+      "width": 10.680000000000007,
+      "height": 9.789000000000016,
+      "x2": 73.12,
+      "y2": 201.549
+    }
+  },
+  {
+    "name": "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 62.44,
+      "y": 180.84,
+      "width": 10.680000000000007,
+      "height": 9.788999999999987,
+      "x2": 73.12,
+      "y2": 190.629
+    }
+  },
+  {
+    "name": "Initialed for identification by Buyer_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 210.72,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 9.96,
+      "x2": 246,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "undefined_14",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 252.96,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 9.96,
+      "x2": 288.24,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "and Seller_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 346.56,
+      "y": 21.36,
+      "width": 40.56,
+      "height": 9.96,
+      "x2": 387.12,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "undefined_15",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 396.655,
+      "y": 21.36,
+      "width": 35.46500000000003,
+      "height": 9.96,
+      "x2": 432.12,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "Contract Concerning_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 128.413,
+      "y": 748.88,
+      "width": 325.8,
+      "height": 12.673999999999978,
+      "x2": 454.213,
+      "y2": 761.554
+    }
+  },
+  {
+    "name": "service contract in an amount not exceeding",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 421.661,
+      "y": 396.392,
+      "width": 92.21200000000005,
+      "height": 11.01400000000001,
+      "x2": 513.873,
+      "y2": 407.406
+    }
+  },
+  {
+    "name": "A The closing of the sale will be on or before",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 290.83,
+      "y": 232.66,
+      "width": 130.738,
+      "height": 9.960000000000008,
+      "x2": 421.568,
+      "y2": 242.62
+    }
+  },
+  {
+    "name": "20",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 441.608,
+      "y": 232.66,
+      "width": 27,
+      "height": 9.960000000000008,
+      "x2": 468.608,
+      "y2": 242.62
+    }
+  },
+  {
+    "name": "Initialed for identification by Buyer_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 210.72,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 9.96,
+      "x2": 246,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "Buyers Expenses as allowed by the lender",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 252.96,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 9.96,
+      "x2": 288.24,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "and Seller_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 346.56,
+      "y": 21.36,
+      "width": 40.56,
+      "height": 9.96,
+      "x2": 387.12,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "undefined_16",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 396,
+      "y": 21.36,
+      "width": 36.120000000000005,
+      "height": 9.96,
+      "x2": 432.12,
+      "y2": 31.32
+    }
+  },
+  {
+    "name": "Contract Concerning_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 128.701,
+      "y": 748.73,
+      "width": 326.278,
+      "height": 12.364000000000033,
+      "x2": 454.97900000000004,
+      "y2": 761.094
+    }
+  },
+  {
+    "name": "Initialed for identification by Buyer_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 210.72,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 13.4022,
+      "x2": 246,
+      "y2": 34.7622
+    }
+  },
+  {
+    "name": "undefined_17",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 252.96,
+      "y": 21.36,
+      "width": 35.28,
+      "height": 12.779000000000003,
+      "x2": 288.24,
+      "y2": 34.139
+    }
+  },
+  {
+    "name": "and Seller_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 346.56,
+      "y": 21.36,
+      "width": 40.56,
+      "height": 12.715200000000003,
+      "x2": 387.12,
+      "y2": 34.0752
+    }
+  },
+  {
+    "name": "undefined_18",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 396,
+      "y": 21.36,
+      "width": 36.120000000000005,
+      "height": 12.091999999999999,
+      "x2": 432.12,
+      "y2": 33.452
+    }
+  },
+  {
+    "name": "Page 7 of 10",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 6,
+    "rect": {
+      "x": 129.404,
+      "y": 748.934,
+      "width": 325.415,
+      "height": 11.782000000000039,
+      "x2": 454.819,
+      "y2": 760.716
+    }
+  },
+  {
+    "name": "Contract Concerning_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 128.914,
+      "y": 748.88,
+      "width": 325.826,
+      "height": 13.262000000000057,
+      "x2": 454.74,
+      "y2": 762.142
+    }
+  },
+  {
+    "name": "Attorney is",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 130.28,
+      "y": 200.68,
+      "width": 169.44000000000003,
+      "height": 14.507000000000005,
+      "x2": 299.72,
+      "y2": 215.187
+    }
+  },
+  {
+    "name": "Attorney is_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 386.6,
+      "y": 200.68,
+      "width": 174,
+      "height": 14.411000000000001,
+      "x2": 560.6,
+      "y2": 215.091
+    }
+  },
+  {
+    "name": "undefined_24",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 66.68,
+      "y": 166.72,
+      "width": 233.04000000000002,
+      "height": 15.435000000000002,
+      "x2": 299.72,
+      "y2": 182.155
+    }
+  },
+  {
+    "name": "undefined_25",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 322.52,
+      "y": 166.72,
+      "width": 238.08000000000004,
+      "height": 16.089,
+      "x2": 560.6,
+      "y2": 182.809
+    }
+  },
+  {
+    "name": "Email",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 130.28,
+      "y": 42.84,
+      "width": 169.44000000000003,
+      "height": 16.363999999999997,
+      "x2": 299.72,
+      "y2": 59.204
+    }
+  },
+  {
+    "name": "Email_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 386.6,
+      "y": 42.6,
+      "width": 174,
+      "height": 16.363999999999997,
+      "x2": 560.6,
+      "y2": 58.964
+    }
+  },
+  {
+    "name": "Address of Property",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 128.697,
+      "y": 748.88,
+      "width": 325.84,
+      "height": 14.519999999999982,
+      "x2": 454.537,
+      "y2": 763.4
+    }
+  },
+  {
+    "name": "Loan Assumption Addendum",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 249.316,
+      "y": 268.762,
+      "width": 10.679999999999978,
+      "height": 9.788999999999987,
+      "x2": 259.996,
+      "y2": 278.551
+    }
+  },
+  {
+    "name": "Check Box2",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 75.66,
+      "y": 269.136,
+      "width": 8.9957,
+      "height": 9.841999999999985,
+      "x2": 84.6557,
+      "y2": 278.978
+    }
+  },
+  {
+    "name": "Text6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 162.814,
+      "y": 84.722,
+      "width": 137.056,
+      "height": 14.448000000000008,
+      "x2": 299.87,
+      "y2": 99.17
+    }
+  },
+  {
+    "name": "Text7",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 136.164,
+      "y": 84.204,
+      "width": 22.872000000000014,
+      "height": 15.620000000000005,
+      "x2": 159.036,
+      "y2": 99.824
+    }
+  },
+  {
+    "name": "Text1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 162.814,
+      "y": 126.27,
+      "width": 137.056,
+      "height": 14.448999999999998,
+      "x2": 299.87,
+      "y2": 140.719
+    }
+  },
+  {
+    "name": "Text2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 135.89,
+      "y": 125.752,
+      "width": 22.628000000000014,
+      "height": 14.966999999999999,
+      "x2": 158.518,
+      "y2": 140.719
+    }
+  },
+  {
+    "name": "Phone 2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 419.137,
+      "y": 84.382,
+      "width": 141.19800000000004,
+      "height": 15.75699999999999,
+      "x2": 560.335,
+      "y2": 100.139
+    }
+  },
+  {
+    "name": "Phone11",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 419.188,
+      "y": 125.879,
+      "width": 141.19799999999998,
+      "height": 15.102999999999994,
+      "x2": 560.386,
+      "y2": 140.982
+    }
+  },
+  {
+    "name": "Text22",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 393.041,
+      "y": 126.656,
+      "width": 22.627999999999986,
+      "height": 14.067000000000007,
+      "x2": 415.669,
+      "y2": 140.723
+    }
+  },
+  {
+    "name": "Text23",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 392.99,
+      "y": 84.64,
+      "width": 22.627999999999986,
+      "height": 15.239999999999995,
+      "x2": 415.618,
+      "y2": 99.88
+    }
+  },
+  {
+    "name": "undefined_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 152.654,
+      "y": 699.159,
+      "width": 152.62400000000002,
+      "height": 10.007000000000062,
+      "x2": 305.278,
+      "y2": 709.166
+    }
+  },
+  {
+    "name": "undefined_7",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 75.4987,
+      "y": 689.305,
+      "width": 150.9273,
+      "height": 8.953000000000088,
+      "x2": 226.426,
+      "y2": 698.258
+    }
+  },
+  {
+    "name": "earnest money of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 341.615,
+      "y": 656.629,
+      "width": 105.851,
+      "height": 10.725999999999999,
+      "x2": 447.466,
+      "y2": 667.355
+    }
+  },
+  {
+    "name": "insurance Title Policy issued by",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 284.655,
+      "y": 339.875,
+      "width": 199.92000000000002,
+      "height": 9.480000000000018,
+      "x2": 484.575,
+      "y2": 349.355
+    }
+  },
+  {
+    "name": "i will not be amended or deleted from the title policy or",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 48.0423,
+      "y": 195.914,
+      "width": 11.520000000000003,
+      "height": 8.318000000000012,
+      "x2": 59.5623,
+      "y2": 204.232
+    }
+  },
+  {
+    "name": "ii will be amended to read shortages in area at the expense of",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 47.5601,
+      "y": 169.954,
+      "width": 11.002200000000002,
+      "height": 9.35299999999998,
+      "x2": 58.5623,
+      "y2": 179.307
+    }
+  },
+  {
+    "name": "A TITLE POLICY Seller shall furnish to Buyer at",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 47.899,
+      "y": 134.389,
+      "width": 11.198,
+      "height": 9.788999999999987,
+      "x2": 59.097,
+      "y2": 144.178
+    }
+  },
+  {
+    "name": "Sellers",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 60.657,
+      "y": 98.389,
+      "width": 10.680000000000007,
+      "height": 9.271,
+      "x2": 71.337,
+      "y2": 107.66
+    }
+  },
+  {
+    "name": "Seller",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 59.6707,
+      "y": 84.091,
+      "width": 12.037999999999997,
+      "height": 9.353000000000009,
+      "x2": 71.7087,
+      "y2": 93.444
+    }
+  },
+  {
+    "name": "receipt or the date specified in this paragraph whichever is earlier",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 124.29,
+      "y": 583.302,
+      "width": 40.30899999999998,
+      "height": 11.470000000000027,
+      "x2": 164.599,
+      "y2": 594.772
+    }
+  },
+  {
+    "name": "Commitment other than items 6A1 through 9 above or which prohibit the following use",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 117.919,
+      "y": 528.102,
+      "width": 434.60900000000004,
+      "height": 9.600000000000023,
+      "x2": 552.528,
+      "y2": 537.702
+    }
+  },
+  {
+    "name": "the Commitment Exception Documents and the survey Buyers failure to object within the",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 370.809,
+      "y": 519.022,
+      "width": 36.789999999999964,
+      "height": 8.841999999999985,
+      "x2": 407.599,
+      "y2": 527.864
+    }
+  },
+  {
+    "name": "to escrow agent within",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 94.215,
+      "y": 645.875,
+      "width": 35.53899999999999,
+      "height": 9.480000000000018,
+      "x2": 129.754,
+      "y2": 655.355
+    }
+  },
+  {
+    "name": "to escrow agent within 1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 0,
+    "rect": {
+      "x": 336.92,
+      "y": 59.9848,
+      "width": 35.53899999999999,
+      "height": 9.479999999999997,
+      "x2": 372.459,
+      "y2": 69.4648
+    }
+  },
+  {
+    "name": "Buyer",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 58.1001,
+      "y": 706.373,
+      "width": 11.932699999999997,
+      "height": 9.870999999999981,
+      "x2": 70.0328,
+      "y2": 716.244
+    }
+  },
+  {
+    "name": "than 3 days prior to Closing Date",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 125.275,
+      "y": 705.153,
+      "width": 37.198999999999984,
+      "height": 9.95399999999995,
+      "x2": 162.474,
+      "y2": 715.107
+    }
+  },
+  {
+    "name": "1Within",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 453.626,
+      "y": 322.015,
+      "width": 11.198000000000036,
+      "height": 8.752999999999986,
+      "x2": 464.824,
+      "y2": 330.768
+    }
+  },
+  {
+    "name": "2 Within",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 477.556,
+      "y": 321.327,
+      "width": 11.197000000000003,
+      "height": 8.752999999999986,
+      "x2": 488.753,
+      "y2": 330.08
+    }
+  },
+  {
+    "name": "following specific repairs and treatments",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 302.17,
+      "y": 696.36,
+      "width": 251.40299999999996,
+      "height": 9.960000000000036,
+      "x2": 553.573,
+      "y2": 706.32
+    }
+  },
+  {
+    "name": "undefined_13",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 90.0097,
+      "y": 685.32,
+      "width": 463.5133,
+      "height": 10.462999999999965,
+      "x2": 553.523,
+      "y2": 695.783
+    }
+  },
+  {
+    "name": "Other Broker Firm",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.7897,
+      "y": 628.743,
+      "width": 176.7283,
+      "height": 13.538999999999987,
+      "x2": 226.518,
+      "y2": 642.282
+    }
+  },
+  {
+    "name": "Zip_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 494.162,
+      "y": 229.78,
+      "width": 67.42800000000005,
+      "height": 16.691000000000003,
+      "x2": 561.59,
+      "y2": 246.471
+    }
+  },
+  {
+    "name": "License No",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 227.602,
+      "y": 628.743,
+      "width": 58.91,
+      "height": 13.538999999999987,
+      "x2": 286.512,
+      "y2": 642.282
+    }
+  },
+  {
+    "name": "License No_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 228.56,
+      "y": 560.299,
+      "width": 58.46999999999997,
+      "height": 15.216000000000008,
+      "x2": 287.03,
+      "y2": 575.515
+    }
+  },
+  {
+    "name": "Associates Email Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.7897,
+      "y": 500.299,
+      "width": 163.56529999999998,
+      "height": 14.782000000000039,
+      "x2": 213.355,
+      "y2": 515.081
+    }
+  },
+  {
+    "name": "Phone",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 215.516,
+      "y": 500.299,
+      "width": 71.51399999999998,
+      "height": 15.300000000000068,
+      "x2": 287.03,
+      "y2": 515.599
+    }
+  },
+  {
+    "name": "Licensed Supervisor of Associate",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.7897,
+      "y": 470.781,
+      "width": 177.0103,
+      "height": 16.81099999999998,
+      "x2": 226.8,
+      "y2": 487.592
+    }
+  },
+  {
+    "name": "License No_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 228.921,
+      "y": 470.781,
+      "width": 58.62700000000001,
+      "height": 16.81099999999998,
+      "x2": 287.548,
+      "y2": 487.592
+    }
+  },
+  {
+    "name": "Other Brokers Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.7897,
+      "y": 440.299,
+      "width": 164.6453,
+      "height": 15.216000000000008,
+      "x2": 214.435,
+      "y2": 455.515
+    }
+  },
+  {
+    "name": "Phone_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 216.037,
+      "y": 440.299,
+      "width": 70.99299999999997,
+      "height": 15.258000000000038,
+      "x2": 287.03,
+      "y2": 455.557
+    }
+  },
+  {
+    "name": "City",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.7897,
+      "y": 410.419,
+      "width": 127.0523,
+      "height": 16.293000000000006,
+      "x2": 176.842,
+      "y2": 426.712
+    }
+  },
+  {
+    "name": "State",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 177.885,
+      "y": 410.419,
+      "width": 43.554,
+      "height": 16.293000000000006,
+      "x2": 221.439,
+      "y2": 426.712
+    }
+  },
+  {
+    "name": "Zip",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 222.482,
+      "y": 410.419,
+      "width": 64.54799999999997,
+      "height": 16.335000000000036,
+      "x2": 287.03,
+      "y2": 426.754
+    }
+  },
+  {
+    "name": "Listing Broker Firm",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 305.428,
+      "y": 628.743,
+      "width": 197.44799999999998,
+      "height": 14.097999999999956,
+      "x2": 502.876,
+      "y2": 642.841
+    }
+  },
+  {
+    "name": "License No_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 503.96,
+      "y": 628.743,
+      "width": 57.63000000000005,
+      "height": 14.097999999999956,
+      "x2": 561.59,
+      "y2": 642.841
+    }
+  },
+  {
+    "name": "License No_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 497.607,
+      "y": 560.299,
+      "width": 63.983000000000004,
+      "height": 16.335000000000036,
+      "x2": 561.59,
+      "y2": 576.634
+    }
+  },
+  {
+    "name": "Listing Associates Email Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 500.299,
+      "width": 183.08599999999996,
+      "height": 16.894000000000005,
+      "x2": 487.996,
+      "y2": 517.193
+    }
+  },
+  {
+    "name": "Phone_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 489.598,
+      "y": 500.299,
+      "width": 71.99200000000002,
+      "height": 16.853000000000065,
+      "x2": 561.59,
+      "y2": 517.152
+    }
+  },
+  {
+    "name": "Licensed Supervisor of Listing Associate",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 469.781,
+      "width": 191.493,
+      "height": 16.293000000000006,
+      "x2": 496.403,
+      "y2": 486.074
+    }
+  },
+  {
+    "name": "License No_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 498.006,
+      "y": 469.263,
+      "width": 63.58400000000006,
+      "height": 16.811000000000035,
+      "x2": 561.59,
+      "y2": 486.074
+    }
+  },
+  {
+    "name": "Listing Brokers Office Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 440.299,
+      "width": 182.40499999999997,
+      "height": 15.775000000000034,
+      "x2": 487.315,
+      "y2": 456.074
+    }
+  },
+  {
+    "name": "Phone_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 488.917,
+      "y": 440.299,
+      "width": 72.67300000000006,
+      "height": 15.775000000000034,
+      "x2": 561.59,
+      "y2": 456.074
+    }
+  },
+  {
+    "name": "City_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 410.796,
+      "width": 151.69199999999995,
+      "height": 15.257999999999981,
+      "x2": 456.602,
+      "y2": 426.054
+    }
+  },
+  {
+    "name": "State_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 457.645,
+      "y": 410.796,
+      "width": 41.59000000000003,
+      "height": 15.257999999999981,
+      "x2": 499.235,
+      "y2": 426.054
+    }
+  },
+  {
+    "name": "Zip_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 500.278,
+      "y": 410.796,
+      "width": 61.31200000000001,
+      "height": 15.257999999999981,
+      "x2": 561.59,
+      "y2": 426.054
+    }
+  },
+  {
+    "name": "License No_7",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 498.766,
+      "y": 380.419,
+      "width": 62.82400000000001,
+      "height": 15.859000000000037,
+      "x2": 561.59,
+      "y2": 396.278
+    }
+  },
+  {
+    "name": "Selling Associates Email Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 321.619,
+      "width": 181.44799999999998,
+      "height": 15.69399999999996,
+      "x2": 486.358,
+      "y2": 337.313
+    }
+  },
+  {
+    "name": "Phone_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 487.961,
+      "y": 321.619,
+      "width": 73.62900000000002,
+      "height": 15.69399999999996,
+      "x2": 561.59,
+      "y2": 337.313
+    }
+  },
+  {
+    "name": "Licensed Supervisor of Selling Associate",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 291.979,
+      "width": 190.974,
+      "height": 15.374000000000024,
+      "x2": 495.884,
+      "y2": 307.353
+    }
+  },
+  {
+    "name": "License No_8",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 497.487,
+      "y": 291.979,
+      "width": 64.10300000000001,
+      "height": 15.374000000000024,
+      "x2": 561.59,
+      "y2": 307.353
+    }
+  },
+  {
+    "name": "Selling Associates Office Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 262.339,
+      "width": 256.68,
+      "height": 15.213000000000022,
+      "x2": 561.59,
+      "y2": 277.552
+    }
+  },
+  {
+    "name": "City_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 230.339,
+      "width": 140.16299999999995,
+      "height": 15.572000000000003,
+      "x2": 445.073,
+      "y2": 245.911
+    }
+  },
+  {
+    "name": "State_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 445.723,
+      "y": 230.339,
+      "width": 46.83600000000001,
+      "height": 15.614000000000004,
+      "x2": 492.559,
+      "y2": 245.953
+    }
+  },
+  {
+    "name": "EXECUTED the",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 148.843,
+      "y": 555.685,
+      "width": 37.56,
+      "height": 13.66700000000003,
+      "x2": 186.403,
+      "y2": 569.352
+    }
+  },
+  {
+    "name": "Signature11",
+    "type": "PDFSignature",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 313.944,
+      "y": 271.876,
+      "width": 231.80799999999994,
+      "height": 32,
+      "x2": 545.752,
+      "y2": 303.876
+    }
+  },
+  {
+    "name": "day of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 224.443,
+      "y": 555.685,
+      "width": 136.79999999999998,
+      "height": 11.595000000000027,
+      "x2": 361.243,
+      "y2": 567.28
+    }
+  },
+  {
+    "name": "20_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 382.483,
+      "y": 555.685,
+      "width": 27.360000000000014,
+      "height": 12.155000000000086,
+      "x2": 409.843,
+      "y2": 567.84
+    }
+  },
+  {
+    "name": "Signature8",
+    "type": "PDFSignature",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 71.627,
+      "y": 380.704,
+      "width": 225.594,
+      "height": 32,
+      "x2": 297.221,
+      "y2": 412.704
+    }
+  },
+  {
+    "name": "Signature10",
+    "type": "PDFSignature",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 71.627,
+      "y": 272.394,
+      "width": 225.59499999999997,
+      "height": 32,
+      "x2": 297.222,
+      "y2": 304.394
+    }
+  },
+  {
+    "name": "Signature9",
+    "type": "PDFSignature",
+    "widgetIdx": 0,
+    "pageIndex": 8,
+    "rect": {
+      "x": 313.944,
+      "y": 380.704,
+      "width": 231.80799999999994,
+      "height": 32,
+      "x2": 545.752,
+      "y2": 412.704
+    }
+  },
+  {
+    "name": "Third Party Financing Addendum",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 511.381,
+      "width": 11.519999999999996,
+      "height": 9.870999999999981,
+      "x2": 76.7486,
+      "y2": 521.252
+    }
+  },
+  {
+    "name": "Seller Financing Addendum",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 496.501,
+      "width": 11.519999999999996,
+      "height": 9.871000000000038,
+      "x2": 76.7486,
+      "y2": 506.372
+    }
+  },
+  {
+    "name": "Environmental Assessment Threatened or",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.109,
+      "y": 509.581,
+      "width": 11.520000000000039,
+      "height": 9.352999999999952,
+      "x2": 327.629,
+      "y2": 518.934
+    }
+  },
+  {
+    "name": "Addendum for Property Subject to",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 481.501,
+      "width": 11.519999999999996,
+      "height": 9.871000000000038,
+      "x2": 76.7486,
+      "y2": 491.372
+    }
+  },
+  {
+    "name": "Sellers Temporary Residential Lease",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.109,
+      "y": 491.581,
+      "width": 11.520000000000039,
+      "height": 9.353000000000009,
+      "x2": 327.629,
+      "y2": 500.934
+    }
+  },
+  {
+    "name": "Short Sale Addendum",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.109,
+      "y": 473.581,
+      "width": 11.520000000000039,
+      "height": 9.353000000000009,
+      "x2": 327.629,
+      "y2": 482.934
+    }
+  },
+  {
+    "name": "Buyers Temporary Residential Lease",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 448.501,
+      "width": 11.519999999999996,
+      "height": 9.871000000000038,
+      "x2": 76.7486,
+      "y2": 458.372
+    }
+  },
+  {
+    "name": "Loan Assumption Addendum_2",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 64.7108,
+      "y": 433.501,
+      "width": 12.03779999999999,
+      "height": 9.871000000000038,
+      "x2": 76.7486,
+      "y2": 443.372
+    }
+  },
+  {
+    "name": "Addendum for Property Located Seaward",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.109,
+      "y": 446.581,
+      "width": 11.520000000000039,
+      "height": 9.870999999999981,
+      "x2": 327.629,
+      "y2": 456.452
+    }
+  },
+  {
+    "name": "Addendum for Sale of Other Property by",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 418.501,
+      "width": 11.519999999999996,
+      "height": 10.38900000000001,
+      "x2": 76.7486,
+      "y2": 428.89
+    }
+  },
+  {
+    "name": "Addendum for Reservation of Oil Gas",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 393.781,
+      "width": 11.519999999999996,
+      "height": 9.870999999999981,
+      "x2": 76.7486,
+      "y2": 403.652
+    }
+  },
+  {
+    "name": "Addendum for BackUp Contract",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 66.2641,
+      "y": 370.381,
+      "width": 10.484499999999997,
+      "height": 10.38900000000001,
+      "x2": 76.7486,
+      "y2": 380.77
+    }
+  },
+  {
+    "name": "Check Box8",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 66.2843,
+      "y": 355.389,
+      "width": 11.3703,
+      "height": 9.420000000000016,
+      "x2": 77.6546,
+      "y2": 364.809
+    }
+  },
+  {
+    "name": "System Service Area",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 399.152,
+      "y": 314.621,
+      "width": 155.517,
+      "height": 10.080000000000041,
+      "x2": 554.669,
+      "y2": 324.701
+    }
+  },
+  {
+    "name": "Addendum for Property in a Propane Gas",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.109,
+      "y": 362.581,
+      "width": 11.520000000000039,
+      "height": 9.870999999999981,
+      "x2": 327.629,
+      "y2": 372.452
+    }
+  },
+  {
+    "name": "Check Box9",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.7666,
+      "y": 336.899,
+      "width": 11.888000000000005,
+      "height": 10.560999999999979,
+      "x2": 77.6546,
+      "y2": 347.46
+    }
+  },
+  {
+    "name": "Initialed for identification by Buyer_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 211.349,
+      "y": 20.8206,
+      "width": 35.28,
+      "height": 10.080000000000002,
+      "x2": 246.629,
+      "y2": 30.9006
+    }
+  },
+  {
+    "name": "and Seller_7",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 253.589,
+      "y": 20.8206,
+      "width": 35.28000000000003,
+      "height": 10.080000000000002,
+      "x2": 288.869,
+      "y2": 30.9006
+    }
+  },
+  {
+    "name": "undefined_22",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 346.189,
+      "y": 19.8206,
+      "width": 40.56,
+      "height": 10.080000000000002,
+      "x2": 386.749,
+      "y2": 29.9006
+    }
+  },
+  {
+    "name": "undefined_23",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 395.629,
+      "y": 19.8206,
+      "width": 36.120000000000005,
+      "height": 10.080000000000002,
+      "x2": 431.749,
+      "y2": 29.9006
+    }
+  },
+  {
+    "name": "1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 335.432,
+      "y": 303.941,
+      "width": 219.23699999999997,
+      "height": 9.748000000000047,
+      "x2": 554.669,
+      "y2": 313.689
+    }
+  },
+  {
+    "name": "2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 335.432,
+      "y": 292.261,
+      "width": 219.23699999999997,
+      "height": 9.95999999999998,
+      "x2": 554.669,
+      "y2": 302.221
+    }
+  },
+  {
+    "name": "3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 335.432,
+      "y": 281.461,
+      "width": 219.23699999999997,
+      "height": 10.079999999999984,
+      "x2": 554.669,
+      "y2": 291.541
+    }
+  },
+  {
+    "name": "will",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 351.471,
+      "y": 705.347,
+      "width": 12.158000000000015,
+      "height": 9.353000000000065,
+      "x2": 363.629,
+      "y2": 714.7
+    }
+  },
+  {
+    "name": "will not be credited to the Sales Price at closing Time is of the",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 499.138,
+      "y": 705.347,
+      "width": 9.771000000000015,
+      "height": 9.353000000000065,
+      "x2": 508.909,
+      "y2": 714.7
+    }
+  },
+  {
+    "name": "acknowledged by Seller and Buyers agreement to pay Seller",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 351.11,
+      "y": 367.395,
+      "width": 84.82400000000001,
+      "height": 9.658000000000015,
+      "x2": 435.934,
+      "y2": 377.053
+    }
+  },
+  {
+    "name": "at",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 61.8097,
+      "y": 672.48,
+      "width": 232.8613,
+      "height": 13.995999999999981,
+      "x2": 294.671,
+      "y2": 686.476
+    }
+  },
+  {
+    "name": "AC1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 139.256,
+      "y": 647.104,
+      "width": 21.893,
+      "height": 14.727999999999952,
+      "x2": 161.149,
+      "y2": 661.832
+    }
+  },
+  {
+    "name": "Phone 51",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 166.108,
+      "y": 647.622,
+      "width": 128.675,
+      "height": 13.610000000000014,
+      "x2": 294.783,
+      "y2": 661.232
+    }
+  },
+  {
+    "name": "Phone 52",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 134.608,
+      "y": 621.989,
+      "width": 160.41199999999998,
+      "height": 14.04099999999994,
+      "x2": 295.02,
+      "y2": 636.03
+    }
+  },
+  {
+    "name": "undefined_19",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 385.987,
+      "y": 698.419,
+      "width": 162.42000000000002,
+      "height": 14.490000000000009,
+      "x2": 548.407,
+      "y2": 712.909
+    }
+  },
+  {
+    "name": "at_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.536,
+      "y": 673.007,
+      "width": 231.76600000000002,
+      "height": 13.469000000000051,
+      "x2": 548.302,
+      "y2": 686.476
+    }
+  },
+  {
+    "name": "AC4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 394.351,
+      "y": 647.202,
+      "width": 21.375,
+      "height": 15.76400000000001,
+      "x2": 415.726,
+      "y2": 662.966
+    }
+  },
+  {
+    "name": "Fax 52",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 420.964,
+      "y": 647.18,
+      "width": 127.54900000000004,
+      "height": 15.814000000000078,
+      "x2": 548.513,
+      "y2": 662.994
+    }
+  },
+  {
+    "name": "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 51.6413,
+      "y": 139.991,
+      "width": 203.9647,
+      "height": 10.83499999999998,
+      "x2": 255.606,
+      "y2": 150.826
+    }
+  },
+  {
+    "name": "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 133.462,
+      "y": 698.753,
+      "width": 161.486,
+      "height": 13.372999999999934,
+      "x2": 294.948,
+      "y2": 712.126
+    }
+  },
+  {
+    "name": "Associates Name",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.4594,
+      "y": 529.806,
+      "width": 237.62059999999997,
+      "height": 15.216000000000008,
+      "x2": 287.08,
+      "y2": 545.022
+    }
+  },
+  {
+    "name": "Listing Associates Name",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.528,
+      "y": 529.506,
+      "width": 257.84299999999996,
+      "height": 15.194000000000074,
+      "x2": 562.371,
+      "y2": 544.7
+    }
+  },
+  {
+    "name": "Seller only as Sellers agent",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 364.93,
+      "y": 584.2,
+      "width": 11.519999999999982,
+      "height": 9.352999999999952,
+      "x2": 376.45,
+      "y2": 593.553
+    }
+  },
+  {
+    "name": "Seller and Buyer as an intermediary",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 364.671,
+      "y": 597.941,
+      "width": 12.038000000000011,
+      "height": 9.870999999999981,
+      "x2": 376.709,
+      "y2": 607.812
+    }
+  },
+  {
+    "name": "Selling Associates Name",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 380.419,
+      "width": 192.813,
+      "height": 15.859000000000037,
+      "x2": 497.723,
+      "y2": 396.278
+    }
+  },
+  {
+    "name": "Address of Property_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 126.913,
+      "y": 748.88,
+      "width": 325.84,
+      "height": 15.600000000000023,
+      "x2": 452.753,
+      "y2": 764.48
+    }
+  },
+  {
+    "name": "is acknowledged",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 106.92,
+      "y": 680.962,
+      "width": 108.71999999999998,
+      "height": 15.600000000000023,
+      "x2": 215.64,
+      "y2": 696.562
+    }
+  },
+  {
+    "name": "Option Fee in the form of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 344.04,
+      "y": 680.444,
+      "width": 211.68,
+      "height": 15.600000000000023,
+      "x2": 555.72,
+      "y2": 696.044
+    }
+  },
+  {
+    "name": "Seller or Listing Broker",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.32,
+      "y": 644.28,
+      "width": 248.16000000000003,
+      "height": 15.600000000000023,
+      "x2": 300.48,
+      "y2": 659.88
+    }
+  },
+  {
+    "name": "Date",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 313.32,
+      "y": 644.28,
+      "width": 243.12000000000006,
+      "height": 15.600000000000023,
+      "x2": 556.44,
+      "y2": 659.88
+    }
+  },
+  {
+    "name": "is acknowledged_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 106.2,
+      "y": 596.602,
+      "width": 114.83999999999999,
+      "height": 14.047000000000025,
+      "x2": 221.04,
+      "y2": 610.649
+    }
+  },
+  {
+    "name": "Earnest Money in the form of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 358.92,
+      "y": 595.88,
+      "width": 197.87999999999994,
+      "height": 14.047000000000025,
+      "x2": 556.8,
+      "y2": 609.927
+    }
+  },
+  {
+    "name": "Escrow Agent",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.08,
+      "y": 569.16,
+      "width": 130.096,
+      "height": 15.600000000000023,
+      "x2": 182.176,
+      "y2": 584.76
+    }
+  },
+  {
+    "name": "Received by",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 183.187,
+      "y": 569.16,
+      "width": 117.053,
+      "height": 15.600000000000023,
+      "x2": 300.24,
+      "y2": 584.76
+    }
+  },
+  {
+    "name": "Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.08,
+      "y": 543.48,
+      "width": 306.72,
+      "height": 15.600000000000023,
+      "x2": 358.8,
+      "y2": 559.08
+    }
+  },
+  {
+    "name": "City_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 51.84,
+      "y": 519.84,
+      "width": 163.189,
+      "height": 15.600000000000023,
+      "x2": 215.029,
+      "y2": 535.44
+    }
+  },
+  {
+    "name": "State_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 216.558,
+      "y": 519.84,
+      "width": 39.61900000000003,
+      "height": 15.600000000000023,
+      "x2": 256.177,
+      "y2": 535.44
+    }
+  },
+  {
+    "name": "Zip_4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 257.705,
+      "y": 519.84,
+      "width": 101.09500000000003,
+      "height": 15.600000000000023,
+      "x2": 358.8,
+      "y2": 535.44
+    }
+  },
+  {
+    "name": "Email Address",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 313.2,
+      "y": 569.16,
+      "width": 140.18099999999998,
+      "height": 15.600000000000023,
+      "x2": 453.381,
+      "y2": 584.76
+    }
+  },
+  {
+    "name": "DateTime",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 455.945,
+      "y": 569.16,
+      "width": 100.25500000000005,
+      "height": 15.600000000000023,
+      "x2": 556.2,
+      "y2": 584.76
+    }
+  },
+  {
+    "name": "Phone_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 367.68,
+      "y": 543.48,
+      "width": 189.11999999999995,
+      "height": 15.600000000000023,
+      "x2": 556.8,
+      "y2": 559.08
+    }
+  },
+  {
+    "name": "Fax",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 367.68,
+      "y": 519.84,
+      "width": 189.11999999999995,
+      "height": 15.600000000000023,
+      "x2": 556.8,
+      "y2": 535.44
+    }
+  },
+  {
+    "name": "Escrow Agent_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.08,
+      "y": 446,
+      "width": 134.132,
+      "height": 15.600000000000023,
+      "x2": 186.212,
+      "y2": 461.6
+    }
+  },
+  {
+    "name": "Received by_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 188.611,
+      "y": 446,
+      "width": 111.62900000000002,
+      "height": 15.600000000000023,
+      "x2": 300.24,
+      "y2": 461.6
+    }
+  },
+  {
+    "name": "Address_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.08,
+      "y": 421.32,
+      "width": 306.72,
+      "height": 15.600000000000023,
+      "x2": 358.8,
+      "y2": 436.92
+    }
+  },
+  {
+    "name": "City_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 51.84,
+      "y": 397.68,
+      "width": 161.636,
+      "height": 15.599999999999966,
+      "x2": 213.476,
+      "y2": 413.28
+    }
+  },
+  {
+    "name": "State_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 214.796,
+      "y": 397.68,
+      "width": 40.275000000000006,
+      "height": 15.599999999999966,
+      "x2": 255.071,
+      "y2": 413.28
+    }
+  },
+  {
+    "name": "Zip_5",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 257.415,
+      "y": 397.68,
+      "width": 101.38499999999999,
+      "height": 15.599999999999966,
+      "x2": 358.8,
+      "y2": 413.28
+    }
+  },
+  {
+    "name": "Email Address_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 313.2,
+      "y": 446,
+      "width": 147.832,
+      "height": 15.600000000000023,
+      "x2": 461.032,
+      "y2": 461.6
+    }
+  },
+  {
+    "name": "Date_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 463.079,
+      "y": 446,
+      "width": 93.12100000000004,
+      "height": 15.600000000000023,
+      "x2": 556.2,
+      "y2": 461.6
+    }
+  },
+  {
+    "name": "Phone_7",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 367.68,
+      "y": 421.32,
+      "width": 189.11999999999995,
+      "height": 15.600000000000023,
+      "x2": 556.8,
+      "y2": 436.92
+    }
+  },
+  {
+    "name": "Fax_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 367.68,
+      "y": 397.68,
+      "width": 189.11999999999995,
+      "height": 15.599999999999966,
+      "x2": 556.8,
+      "y2": 413.28
+    }
+  },
+  {
+    "name": "is acknowledged_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 109.32,
+      "y": 344.36,
+      "width": 103.56,
+      "height": 13.010999999999967,
+      "x2": 212.88,
+      "y2": 357.371
+    }
+  },
+  {
+    "name": "additional Earnest Money in the form of",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 398.88,
+      "y": 344.36,
+      "width": 160.91999999999996,
+      "height": 12.492999999999995,
+      "x2": 559.8,
+      "y2": 356.853
+    }
+  },
+  {
+    "name": "Escrow Agent_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.08,
+      "y": 317.52,
+      "width": 126.472,
+      "height": 15.600000000000023,
+      "x2": 178.552,
+      "y2": 333.12
+    }
+  },
+  {
+    "name": "Received by_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 180.081,
+      "y": 317.52,
+      "width": 120.15900000000002,
+      "height": 15.600000000000023,
+      "x2": 300.24,
+      "y2": 333.12
+    }
+  },
+  {
+    "name": "Address_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 52.08,
+      "y": 290.84,
+      "width": 306.72,
+      "height": 15.600000000000023,
+      "x2": 358.8,
+      "y2": 306.44
+    }
+  },
+  {
+    "name": "City_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 51.84,
+      "y": 267.2,
+      "width": 159.565,
+      "height": 15.480000000000018,
+      "x2": 211.405,
+      "y2": 282.68
+    }
+  },
+  {
+    "name": "State_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 213.969,
+      "y": 267.2,
+      "width": 41.69,
+      "height": 15.480000000000018,
+      "x2": 255.659,
+      "y2": 282.68
+    }
+  },
+  {
+    "name": "Zip_6",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 258.223,
+      "y": 267.2,
+      "width": 100.577,
+      "height": 15.480000000000018,
+      "x2": 358.8,
+      "y2": 282.68
+    }
+  },
+  {
+    "name": "Email Address_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 313.2,
+      "y": 317.52,
+      "width": 149.50100000000003,
+      "height": 15.600000000000023,
+      "x2": 462.701,
+      "y2": 333.12
+    }
+  },
+  {
+    "name": "DateTime_2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 464.747,
+      "y": 317.52,
+      "width": 91.45300000000003,
+      "height": 15.600000000000023,
+      "x2": 556.2,
+      "y2": 333.12
+    }
+  },
+  {
+    "name": "Phone_8",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 367.68,
+      "y": 290.84,
+      "width": 189.11999999999995,
+      "height": 15.600000000000023,
+      "x2": 556.8,
+      "y2": 306.44
+    }
+  },
+  {
+    "name": "Fax_3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 10,
+    "rect": {
+      "x": 367.68,
+      "y": 266.153,
+      "width": 189.11999999999995,
+      "height": 16.526999999999987,
+      "x2": 556.8,
+      "y2": 282.68
+    }
+  },
+  {
+    "name": "Within one",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 274.626,
+      "y": 640.787,
+      "width": 11.198000000000036,
+      "height": 8.752999999999929,
+      "x2": 285.824,
+      "y2": 649.54
+    }
+  },
+  {
+    "name": "Within two",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 327.556,
+      "y": 640.099,
+      "width": 11.197000000000003,
+      "height": 8.752999999999929,
+      "x2": 338.753,
+      "y2": 648.852
+    }
+  },
+  {
+    "name": "Within three",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 59.1612,
+      "y": 618.102,
+      "width": 11.197799999999994,
+      "height": 8.753000000000043,
+      "x2": 70.359,
+      "y2": 626.855
+    }
+  },
+  {
+    "name": "Within four",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 60.0908,
+      "y": 585.415,
+      "width": 11.1978,
+      "height": 8.753000000000043,
+      "x2": 71.2886,
+      "y2": 594.168
+    }
+  },
+  {
+    "name": "AC numb 1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 6,
+    "rect": {
+      "x": 211.324,
+      "y": 19.7886,
+      "width": 35.603999999999985,
+      "height": 12.857200000000002,
+      "x2": 246.928,
+      "y2": 32.6458
+    }
+  },
+  {
+    "name": "AC numb 2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 6,
+    "rect": {
+      "x": 251.162,
+      "y": 20.0466,
+      "width": 36.849999999999994,
+      "height": 12.794099999999997,
+      "x2": 288.012,
+      "y2": 32.8407
+    }
+  },
+  {
+    "name": "AC numb 3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 6,
+    "rect": {
+      "x": 344.625,
+      "y": 20.1592,
+      "width": 41.83600000000001,
+      "height": 12.857199999999999,
+      "x2": 386.461,
+      "y2": 33.0164
+    }
+  },
+  {
+    "name": "AC numb 4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 6,
+    "rect": {
+      "x": 394.434,
+      "y": 20.4171,
+      "width": 38.09699999999998,
+      "height": 12.7942,
+      "x2": 432.531,
+      "y2": 33.2113
+    }
+  },
+  {
+    "name": "undefined numb 21",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 387.526,
+      "y": 622.261,
+      "width": 161.89299999999997,
+      "height": 12.845000000000027,
+      "x2": 549.419,
+      "y2": 635.106
+    }
+  },
+  {
+    "name": "Associates Name numb 1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 49.7897,
+      "y": 560.299,
+      "width": 177.1683,
+      "height": 15.216000000000008,
+      "x2": 226.958,
+      "y2": 575.515
+    }
+  },
+  {
+    "name": "Addr of Prop",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 125.575,
+      "y": 748.88,
+      "width": 325.839,
+      "height": 15.600000000000023,
+      "x2": 451.414,
+      "y2": 764.48
+    }
+  },
+  {
+    "name": "Buyer only",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 109.31,
+      "y": 598.339,
+      "width": 11.519999999999996,
+      "height": 9.352999999999952,
+      "x2": 120.83,
+      "y2": 607.692
+    }
+  },
+  {
+    "name": "Seller as List Brok Sub agent",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 108.83,
+      "y": 583.939,
+      "width": 11.519999999999996,
+      "height": 9.353000000000065,
+      "x2": 120.35,
+      "y2": 593.292
+    }
+  },
+  {
+    "name": "List Assoc Name",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.91,
+      "y": 560.299,
+      "width": 190.53499999999997,
+      "height": 15.817999999999984,
+      "x2": 495.445,
+      "y2": 576.117
+    }
+  },
+  {
+    "name": "when mailed to",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 432.71,
+      "y": 150.128,
+      "width": 124.911,
+      "height": 10.434000000000026,
+      "x2": 557.621,
+      "y2": 160.562
+    }
+  },
+  {
+    "name": "Sellers Disclos",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.109,
+      "y": 402.581,
+      "width": 11.520000000000039,
+      "height": 10.38900000000001,
+      "x2": 327.629,
+      "y2": 412.97
+    }
+  },
+  {
+    "name": "Addend. for Sellers Disclos",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.93,
+      "y": 379.178,
+      "width": 11.519999999999982,
+      "height": 10.38900000000001,
+      "x2": 328.45,
+      "y2": 389.567
+    }
+  },
+  {
+    "name": "Check box 10",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.2286,
+      "y": 311.221,
+      "width": 11.519999999999996,
+      "height": 9.870999999999981,
+      "x2": 76.7486,
+      "y2": 321.092
+    }
+  },
+  {
+    "name": "Check box 11",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 65.9297,
+      "y": 289.437,
+      "width": 11.52000000000001,
+      "height": 9.870999999999981,
+      "x2": 77.4497,
+      "y2": 299.308
+    }
+  },
+  {
+    "name": "As Is",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 58.9222,
+      "y": 720.92,
+      "width": 11.197800000000008,
+      "height": 9.788999999999987,
+      "x2": 70.12,
+      "y2": 730.709
+    }
+  },
+  {
+    "name": "As Is except",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 59.0908,
+      "y": 708.705,
+      "width": 11.1978,
+      "height": 9.788999999999987,
+      "x2": 70.2886,
+      "y2": 718.494
+    }
+  },
+  {
+    "name": "3 days prior",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 2,
+    "rect": {
+      "x": 124.882,
+      "y": 616.302,
+      "width": 35.859999999999985,
+      "height": 10.84699999999998,
+      "x2": 160.742,
+      "y2": 627.149
+    }
+  },
+  {
+    "name": "upon",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 62.327,
+      "y": 121.626,
+      "width": 10.574700000000007,
+      "height": 9.270999999999987,
+      "x2": 72.9017,
+      "y2": 130.897
+    }
+  },
+  {
+    "name": "Other",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.113,
+      "y": 314.286,
+      "width": 11.00200000000001,
+      "height": 9.870999999999981,
+      "x2": 327.115,
+      "y2": 324.157
+    }
+  },
+  {
+    "name": "PID",
+    "type": "PDFCheckBox",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.627,
+      "y": 342.501,
+      "width": 11.00200000000001,
+      "height": 9.871000000000038,
+      "x2": 327.629,
+      "y2": 352.372
+    }
+  },
+  {
+    "name": "Brokers and Sales 2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 81.574,
+      "y": 277.34,
+      "width": 469.03399999999993,
+      "height": 9.503000000000043,
+      "x2": 550.608,
+      "y2": 286.843
+    }
+  },
+  {
+    "name": "Brokers and Sales",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 4,
+    "rect": {
+      "x": 388.34,
+      "y": 288.737,
+      "width": 163.752,
+      "height": 10.126999999999953,
+      "x2": 552.092,
+      "y2": 298.864
+    }
+  },
+  {
+    "name": "other party in writing before entering into a contract of sale  Disclose if applicable",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 403.513,
+      "y": 698.828,
+      "width": 157.656,
+      "height": 11.254000000000019,
+      "x2": 561.169,
+      "y2": 710.082
+    }
+  },
+  {
+    "name": "as earnest money to",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 292.518,
+      "y": 688.909,
+      "width": 72.12300000000005,
+      "height": 10.102999999999952,
+      "x2": 364.641,
+      "y2": 699.012
+    }
+  },
+  {
+    "name": "as earnest money to 2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 1,
+    "rect": {
+      "x": 488.441,
+      "y": 688.637,
+      "width": 74.75900000000007,
+      "height": 10.103000000000065,
+      "x2": 563.2,
+      "y2": 698.74
+    }
+  },
+  {
+    "name": "Text4 2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 88.413,
+      "y": 302.885,
+      "width": 464.17499999999995,
+      "height": 9.34899999999999,
+      "x2": 552.588,
+      "y2": 312.234
+    }
+  },
+  {
+    "name": "Text4",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 295.198,
+      "y": 311.916,
+      "width": 257.53600000000006,
+      "height": 9.875999999999976,
+      "x2": 552.734,
+      "y2": 321.792
+    }
+  },
+  {
+    "name": "Text4 3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 3,
+    "rect": {
+      "x": 88.0717,
+      "y": 293.738,
+      "width": 464.7013,
+      "height": 9.34899999999999,
+      "x2": 552.773,
+      "y2": 303.087
+    }
+  },
+  {
+    "name": "Text3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 350.172,
+      "y": 479.029,
+      "width": 204.601,
+      "height": 10.920000000000016,
+      "x2": 554.773,
+      "y2": 489.949
+    }
+  },
+  {
+    "name": "Text3 2",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 59.5311,
+      "y": 468.412,
+      "width": 494.5269,
+      "height": 10.920000000000016,
+      "x2": 554.058,
+      "y2": 479.332
+    }
+  },
+  {
+    "name": "Text3 3",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 5,
+    "rect": {
+      "x": 59.5311,
+      "y": 457.342,
+      "width": 495.05490000000003,
+      "height": 11.447000000000003,
+      "x2": 554.586,
+      "y2": 468.789
+    }
+  },
+  {
+    "name": "undefined_20",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 59.9428,
+      "y": 565.825,
+      "width": 234.7372,
+      "height": 13.866999999999962,
+      "x2": 294.68,
+      "y2": 579.692
+    }
+  },
+  {
+    "name": "undefined numb 22",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 316.275,
+      "y": 565.282,
+      "width": 233.264,
+      "height": 14.95399999999995,
+      "x2": 549.539,
+      "y2": 580.236
+    }
+  },
+  {
+    "name": "Selling Associates Name-1",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 9,
+    "rect": {
+      "x": 304.66,
+      "y": 351.947,
+      "width": 257.00499999999994,
+      "height": 15.85899999999998,
+      "x2": 561.665,
+      "y2": 367.806
+    }
+  },
+  {
+    "name": "undefined_20-0",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 133.379,
+      "y": 597.607,
+      "width": 161.58200000000002,
+      "height": 13.867000000000075,
+      "x2": 294.961,
+      "y2": 611.474
+    }
+  },
+  {
+    "name": "undefined numb 22-0",
+    "type": "PDFTextField",
+    "widgetIdx": 0,
+    "pageIndex": 7,
+    "rect": {
+      "x": 387.053,
+      "y": 597.12,
+      "width": 161.89300000000003,
+      "height": 14.95399999999995,
+      "x2": 548.946,
+      "y2": 612.074
+    }
+  }
+]
