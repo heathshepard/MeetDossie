@@ -785,8 +785,7 @@
         padding: 60px 16px 20px;
         gap: 16px;
       }
-
-      .orb-section {
+    }
 
     /* ---- Ticker tape (bottom bar) ---- */
     .ticker-tape {
@@ -986,6 +985,7 @@
     // Orb SVG with insane multi-layered concentric rotating rings
     function initOrb() {
       const container = document.getElementById('orb-container');
+      container.innerHTML = '';
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 400 400');
       svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
@@ -1557,6 +1557,12 @@
       });
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { showLogin(); return; }
+      if (session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        showError('Access denied — Heath only');
+        showLogin();
+        return;
+      }
       revealApp(session.access_token);
     }
 
@@ -1690,6 +1696,11 @@
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (data.user.email !== 'heath.shepard@kw.com') {
+          await supabase.auth.signOut();
+          showError('Access denied — Heath only');
+          return;
+        }
         revealApp(data.session.access_token);
       } catch (err) {
         showError(err.message || 'Sign in failed.');
