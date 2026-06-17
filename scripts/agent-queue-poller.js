@@ -214,6 +214,8 @@ async function spawnAgent(task) {
 
     // No prompt in argv — pipe via stdin so we don't trip Windows cmd.exe
     // quoting rules or argv length limits on long briefs.
+    // Fallback must differ from primary (claude.exe errors otherwise).
+    const fallback = model === 'sonnet' ? 'opus' : 'sonnet';
     const args = [
       '--print',
       '--agent', task.agent_name,
@@ -221,7 +223,7 @@ async function spawnAgent(task) {
       '--dangerously-skip-permissions',
       '--output-format', 'json',
       '--max-budget-usd', String(SPAWN_MAX_BUDGET_USD),
-      '--fallback-model', 'sonnet',
+      '--fallback-model', fallback,
     ];
 
     log(`SPAWN ${task.agent_name} task=${task.id} model=${model} subject="${task.task_subject.slice(0, 60)}"`);
@@ -304,6 +306,11 @@ async function spawnAgent(task) {
       const ok = code === 0 && !blocked && resultSummary.length > 0;
 
       log(`DONE ${task.agent_name} task=${task.id} code=${code} blocked=${blocked} duration=${Math.round(duration_ms / 1000)}s`);
+      // Surface stderr/stdout on non-zero exits — silent failures eat hours.
+      if (code !== 0) {
+        if (stderr) log(`  stderr: ${stderr.replace(/\n/g, ' | ').slice(0, 400)}`, 'WARN');
+        if (stdout && !stderr) log(`  stdout: ${stdout.replace(/\n/g, ' | ').slice(0, 400)}`, 'WARN');
+      }
 
       resolve({
         ok,
