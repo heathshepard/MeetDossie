@@ -107,15 +107,7 @@
                          "destination":  "/shepardventures.html"
                      },
                     {
-                         "source":  "/ShepardVentures",
-                         "destination":  "/shepardventures.html"
-                     },
-                    {
                          "source":  "/jarvis",
-                         "destination":  "/shepardventures.html"
-                     },
-                    {
-                         "source":  "/Jarvis",
                          "destination":  "/shepardventures.html"
                      }
                  ],
