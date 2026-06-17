@@ -140,6 +140,47 @@ async function notifyHeath({ ticketType, message, agentEmail, ticketId }) {
   }
 }
 
+async function notifyTelegram({ ticketType, message, agentEmail, ticketId }) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) {
+    console.warn('[support] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram notification');
+    return;
+  }
+  const EMOJI_MAP = {
+    bug: '🐛',
+    feature: '💡',
+    help: '🙋',
+    other: '📝',
+  };
+  const HEADER_MAP = {
+    bug: 'New Dossie bug report',
+    feature: 'Feature request',
+    help: 'Help needed',
+    other: 'Support ticket',
+  };
+  const emoji = EMOJI_MAP[ticketType] || '📝';
+  const header = HEADER_MAP[ticketType] || 'Support ticket';
+  const text = `${emoji} *${header}*\n\n*Type:* ${ticketType}\n*From:* ${agentEmail || '(unknown)'}\n*Ticket:* ${ticketId || '?'}\n\n${message}\n\n—\nCole: pull this up and triage. Customer is waiting.`;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown',
+      }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      console.error('[support] Telegram notify failed:', res.status, j);
+    }
+  } catch (err) {
+    console.error('[support] Telegram notify threw:', err && err.message);
+  }
+}
+
 module.exports = async function handler(req, res) {
   const corsAllowed = applyCors(req, res);
 
@@ -212,6 +253,13 @@ module.exports = async function handler(req, res) {
   }
 
   await notifyHeath({
+    ticketType: cleanType,
+    message: cleanMessage,
+    agentEmail: cleanAgentEmail,
+    ticketId: ticket && ticket.id,
+  });
+
+  await notifyTelegram({
     ticketType: cleanType,
     message: cleanMessage,
     agentEmail: cleanAgentEmail,
