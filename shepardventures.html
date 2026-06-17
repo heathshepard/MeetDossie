@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#0a0a14">
   <meta name="robots" content="noindex, nofollow">
   <title>Jarvis — Shepard Ventures Command Center</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><circle cx='96' cy='96' r='80' fill='%230a0a14'/><circle cx='96' cy='96' r='60' fill='%23E8836B'/></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><circle cx='96' cy='96' r='80' fill='%230a0a14'/><circle cx='96' cy='96' r='60' fill='%23E8836B'/></svg>">
-  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Jarvis%22,%22short_name%22:%22Jarvis%22,%22start_url%22:%22/shepardventures%22,%22display%22:%22standalone%22,%22theme_color%22:%22%230a0a14%22,%22background_color%22:%22%230a0a14%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%20192%20192%27%3E%3Ccircle%20cx=%2796%27%20cy=%2796%27%20r=%2780%27%20fill=%27%230a0a14%27/%3E%3Ccircle%20cx=%2796%27%20cy=%2796%27%20r=%2760%27%20fill=%27%23E8836B%27/%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+  <link rel="icon" href="/icons/jarvis-192.svg">
+  <link rel="apple-touch-icon" href="/icons/jarvis-192.svg">
+  <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
@@ -1029,8 +1029,8 @@
     async function loadAgents() {
       const { data, error } = await supabase
         .from('agent_activity')
-        .select('name, status, task')
-        .order('name');
+        .select('agent_name, status, task_summary')
+        .order('agent_name');
       if (error) throw error;
 
       const agents = data || [];
@@ -1046,8 +1046,8 @@
         card.innerHTML = `
           <div class="agent-status ${statusClass}"></div>
           <div class="agent-info">
-            <div class="agent-name">${agent.name || 'Unknown'}</div>
-            <div class="agent-task">${agent.task || 'idle'}</div>
+            <div class="agent-name">${agent.agent_name || 'Unknown'}</div>
+            <div class="agent-task">${agent.task_summary || 'idle'}</div>
           </div>
         `;
         agentList.appendChild(card);
@@ -1064,8 +1064,8 @@
           card.innerHTML = `
             <div class="agent-status ${statusClass}"></div>
             <div class="agent-info">
-              <div class="agent-name">${agent.name || 'Unknown'}</div>
-              <div class="agent-task">${agent.task || 'idle'}</div>
+              <div class="agent-name">${agent.agent_name || 'Unknown'}</div>
+              <div class="agent-task">${agent.task_summary || 'idle'}</div>
             </div>
           `;
           activityList.appendChild(card);
