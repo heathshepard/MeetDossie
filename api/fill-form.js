@@ -387,3 +387,212 @@ async function fillAmendmentAcroForm(pdfDoc, fv) {
   return pdfDoc;
 }
 
+
+
+// ---------------------------------------------------------------------------
+// HOA ADDENDUM (TREC 36-11)
+// 17 verified AcroForm fields. Atlas verified 2026-06-15.
+// ---------------------------------------------------------------------------
+async function fillHOAAddendumAcroForm(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const FIELD_MAP = require("./field-map-trec36-acroform.js");
+
+  const safeSetText = (form, name, value) => {
+    if (!value && value !== 0) return;
+    const valueStr = String(value).trim();
+    if (!valueStr) return;
+    try {
+      const field = form.getTextField(name);
+      if (!field) return;
+      const max = field.getMaxLength();
+      let v = valueStr;
+      if (max && v.length > max) v = v.slice(0, max);
+      field.setText(v);
+    } catch (e) {
+      console.warn(`[fillHOAAddendumAcroForm] Could not set text field "${name}":`, e.message);
+    }
+  };
+
+  const safeCheck = (form, name) => {
+    try {
+      const box = form.getCheckBox(name);
+      if (box) box.check();
+    } catch (e) {
+      console.warn(`[fillHOAAddendumAcroForm] Could not check field "${name}":`, e.message);
+    }
+  };
+
+  if (fv.property_address) {
+    const f = FIELD_MAP.fields.find(f => f.key === "property_address");
+    if (f) safeSetText(form, f.acroform_name, fv.property_address);
+  }
+  if (fv.hoa_name_and_phone) {
+    const f = FIELD_MAP.fields.find(f => f.key === "hoa_name_and_phone");
+    if (f) safeSetText(form, f.acroform_name, fv.hoa_name_and_phone);
+  }
+
+  if (fv.section_a_item1_check === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_a_item1_check");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+  if (fv.section_a_item1_days) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_a_item1_days");
+    if (f) safeSetText(form, f.acroform_name, String(fv.section_a_item1_days));
+  }
+
+  if (fv.section_a_item2_check === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_a_item2_check");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+  if (fv.section_a_item2_days) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_a_item2_days");
+    if (f) safeSetText(form, f.acroform_name, String(fv.section_a_item2_days));
+  }
+
+  if (fv.section_a_item3_check === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_a_item3_check");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+
+  if (fv.section_a_item4_check === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_a_item4_check");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+
+  if (fv.section_c_buyer_requires_resale_cert === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_c_buyer_requires_resale_cert");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+  if (fv.section_c_buyer_does_not_require_resale_cert === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_c_buyer_does_not_require_resale_cert");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+
+  if (fv.section_d_reserves_text) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_d_reserves_text");
+    if (f) safeSetText(form, f.acroform_name, fv.section_d_reserves_text);
+  }
+
+  if (fv.section_e_buyer_pays_title_company === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_e_buyer_pays_title_company");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+  if (fv.section_e_seller_pays_title_company === true) {
+    const f = FIELD_MAP.fields.find(f => f.key === "section_e_seller_pays_title_company");
+    if (f) safeCheck(form, f.acroform_name);
+  }
+
+  try { form.updateFieldAppearances(); } catch (e) { console.warn("[fillHOAAddendumAcroForm] updateFieldAppearances failed:", e.message); }
+  return pdfDoc;
+}
+
+
+// ---------------------------------------------------------------------------
+// LEAD-BASED PAINT ADDENDUM (OP-L)
+// 25 verified AcroForm fields. Atlas verified 2026-06-15.
+// ---------------------------------------------------------------------------
+async function fillLeadBasedPaintAcroForm(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const FIELD_MAP = require("./field-map-opl-acroform.js");
+
+  const safeSetText = (form, name, value) => {
+    if (!value && value !== 0) return;
+    const valueStr = String(value).trim();
+    if (!valueStr) return;
+    try {
+      const field = form.getTextField(name);
+      if (!field) return;
+      field.setText(valueStr);
+    } catch (e) {
+      console.warn(`[fillLeadBasedPaintAcroForm] Could not set "${name}":`, e.message);
+    }
+  };
+
+  const safeCheck = (form, name) => {
+    try {
+      const box = form.getCheckBox(name);
+      if (box) box.check();
+    } catch (e) {
+      console.warn(`[fillLeadBasedPaintAcroForm] Could not check "${name}":`, e.message);
+    }
+  };
+
+  if (fv.property_address) safeSetText(form, "Street Address and City", fv.property_address);
+
+  if (fv.seller_knows_lead_paint_present === true) safeCheck(form, "Check Box7");
+  if (fv.seller_known_lead_paint_explanation_line1) safeSetText(form, "undefined", fv.seller_known_lead_paint_explanation_line1);
+  if (fv.seller_known_lead_paint_explanation_line2) safeSetText(form, "b Seller has no actual knowledge of leadbased paint andor leadbased paint hazards in the Property", fv.seller_known_lead_paint_explanation_line2);
+  if (fv.seller_no_knowledge_lead_paint === true) safeCheck(form, "Check Box8");
+
+  if (fv.seller_provided_records === true) safeCheck(form, "Check Box9");
+  if (fv.seller_records_documents_list) safeSetText(form, "undefined_2", fv.seller_records_documents_list);
+  if (fv.seller_records_documents_list_line2) safeSetText(form, "b Seller has no reports or records pertaining to leadbased paint andor leadbased paint hazards in the", fv.seller_records_documents_list_line2);
+  if (fv.seller_no_records === true) safeCheck(form, "Check Box10");
+
+  if (fv.buyer_waives_inspection === true) safeCheck(form, "Check Box11");
+  if (fv.buyer_reserves_inspection === true) safeCheck(form, "Check Box12");
+
+  if (fv.buyer_received_copies === true) safeCheck(form, "Check Box13");
+  if (fv.buyer_received_pamphlet === true) safeCheck(form, "Check Box14");
+
+  if (fv.buyer_1_date) safeSetText(form, "Date", fv.buyer_1_date);
+  if (fv.seller_1_date) safeSetText(form, "Date_2", fv.seller_1_date);
+  if (fv.buyer_2_date) safeSetText(form, "Date_3", fv.buyer_2_date);
+  if (fv.seller_2_date) safeSetText(form, "Date_4", fv.seller_2_date);
+  if (fv.buyer_broker_date) safeSetText(form, "Date_5", fv.buyer_broker_date);
+  if (fv.seller_broker_date) safeSetText(form, "Date_6", fv.seller_broker_date);
+
+  try { form.updateFieldAppearances(); } catch (e) { console.warn("[fillLeadBasedPaintAcroForm] updateFieldAppearances failed:", e.message); }
+  return pdfDoc;
+}
+
+
+// ---------------------------------------------------------------------------
+// BACKUP CONTRACT (TREC 11-9)
+// 13 verified AcroForm fields. Atlas verified 2026-06-15.
+// ---------------------------------------------------------------------------
+async function fillBackupContractAcroForm(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const FIELD_MAP = require("./field-map-trec11-acroform.js");
+
+  const safeSetText = (form, name, value) => {
+    if (!value && value !== 0) return;
+    const valueStr = String(value).trim();
+    if (!valueStr) return;
+    try {
+      const field = form.getTextField(name);
+      if (!field) return;
+      field.setText(valueStr);
+    } catch (e) {
+      console.warn(`[fillBackupContractAcroForm] Could not set "${name}":`, e.message);
+    }
+  };
+
+  if (fv.property_address_page1) safeSetText(form, "Address of Property", fv.property_address_page1);
+  if (fv.property_address_page2) safeSetText(form, "Text2", fv.property_address_page2);
+
+  if (fv.additional_earnest_money_amount) safeSetText(form, "Text1", fv.additional_earnest_money_amount);
+  if (fv.additional_option_fee_amount) safeSetText(form, "Text1 1", fv.additional_option_fee_amount);
+  if (fv.additional_earnest_money_delivery_days) safeSetText(form, "Text1 2", String(fv.additional_earnest_money_delivery_days));
+
+  if (fv.first_contract_termination_deadline_phrase) safeSetText(form, "Except as provided by this Addendum neither party is required to perform under the", fv.first_contract_termination_deadline_phrase);
+  if (fv.first_contract_termination_year_1) safeSetText(form, "20", String(fv.first_contract_termination_year_1));
+
+  if (fv.first_contract_termination_notice_phrase) safeSetText(form, "the BackUp Contract terminates and the earnest money will be refunded to Buyer  Seller must", fv.first_contract_termination_notice_phrase);
+  if (fv.first_contract_termination_year_2) safeSetText(form, "20_2", String(fv.first_contract_termination_year_2));
+
+  if (fv.buyer_initials_1) safeSetText(form, "Text3", fv.buyer_initials_1);
+  if (fv.buyer_initials_2) safeSetText(form, "Text3 3", fv.buyer_initials_2);
+  if (fv.seller_initials_1) safeSetText(form, "Text31", fv.seller_initials_1);
+  if (fv.seller_initials_2) safeSetText(form, "Text31 2", fv.seller_initials_2);
+
+  try { form.updateFieldAppearances(); } catch (e) { console.warn("[fillBackupContractAcroForm] updateFieldAppearances failed:", e.message); }
+  return pdfDoc;
+}
+
+
+module.exports = {
+  fillHOAAddendumAcroForm,
+  fillLeadBasedPaintAcroForm,
+  fillBackupContractAcroForm,
+};
