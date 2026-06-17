@@ -96,36 +96,125 @@
     #app { display: none; }
     #app.visible { display: block; }
 
-    /* ---- Main layout ---- */
+    /* ---- Main layout (3-column desktop, single-column mobile) ---- */
     .page {
-      max-width: 390px;
-      margin: 0 auto;
-      padding: 16px 16px 100px;
       min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 0;
     }
 
-    /* ---- Top bar ---- */
+    /* Desktop: 3-column layout */
+    @media (min-width: 1024px) {
+      .page {
+        grid-template-columns: 280px 1fr 280px;
+        gap: 16px;
+        padding: 16px;
+        overflow-x: hidden;
+      }
+    }
+
+    /* ---- Top bar (fixed, full-width) ---- */
     .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 14px;
+      padding: 12px 16px;
+      background: rgba(10, 10, 20, 0.85);
+      backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border);
+      z-index: 40;
+      height: 52px;
     }
+
     .topbar-title {
       font-family: "Cormorant Garamond", serif;
       font-weight: 600;
-      font-size: 1.3rem;
+      font-size: 1rem;
       color: var(--blush);
+      letter-spacing: 0.04em;
     }
+
+    .topbar-system {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.65rem;
+      color: var(--cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .topbar-system-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: sysOnline 2s ease-in-out infinite;
+    }
+
+    @keyframes sysOnline {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
     .topbar-time {
-      font-size: 0.72rem;
-      color: var(--text-faint);
+      font-size: 0.65rem;
+      color: var(--cyan);
       text-align: right;
-      line-height: 1.2;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.02em;
+    }
+
+    /* ---- Left panel (ventures) ---- */
+    .sidebar-left {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      padding-top: 64px;
+      padding-bottom: 20px;
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar-left {
+        display: flex;
+      }
+    }
+
+    /* ---- Right panel (agent activity) ---- */
+    .sidebar-right {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      padding-top: 64px;
+      padding-bottom: 20px;
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar-right {
+        display: flex;
+      }
+    }
+
+    /* ---- Center column (orb + ventures mobile) ---- */
+    .center-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-top: 64px;
+      padding-bottom: 20px;
+    }
+
+    @media (min-width: 1024px) {
+      .center-column {
+        padding: 64px 0 20px;
+      }
     }
 
     /* ---- Orb hero section ---- */
@@ -134,101 +223,230 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      margin-bottom: 28px;
-      padding: 24px 0;
-      min-height: 220px;
+      gap: 16px;
       position: relative;
+      padding: 20px;
     }
 
     #orb-container {
-      width: 140px;
-      height: 140px;
+      width: 240px;
+      height: 240px;
       position: relative;
+    }
+
+    @media (max-width: 768px) {
+      #orb-container {
+        width: 180px;
+        height: 180px;
+      }
+    }
+
+    /* ---- Orb status indicator ---- */
+    .orb-status {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      color: var(--cyan);
+      text-align: center;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      min-height: 1em;
       margin-bottom: 8px;
     }
 
     .orb-tap-hint {
-      font-family: "Cormorant Garamond", serif;
-      font-size: 0.95rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.7rem;
       color: var(--text-dim);
       text-align: center;
-      letter-spacing: 0.02em;
-      animation: orbHintBreath 3s ease-in-out infinite;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
-    @keyframes orbHintBreath {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 0.75; }
+    /* ---- KPI ring around orb ---- */
+    .orb-kpis {
+      display: none;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      font-size: 0.65rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--cyan);
+    }
+
+    @media (min-width: 1024px) {
+      .orb-kpis {
+        display: block;
+      }
+    }
+
+    .kpi-badge {
+      position: absolute;
+      background: rgba(10, 10, 20, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 0 12px rgba(91, 217, 230, 0.1);
+    }
+
+    .kpi-badge-label {
+      display: block;
+      font-size: 0.6rem;
+      color: var(--text-faint);
+      margin-bottom: 2px;
+    }
+
+    .kpi-badge-value {
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    /* ---- Panel styling (ventures, agents) ---- */
+    .hud-panel {
+      background: rgba(32, 32, 58, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+      box-shadow: 0 0 16px rgba(91, 217, 230, 0.08);
+    }
+
+    .hud-panel::before,
+    .hud-panel::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border: 1px solid var(--cyan);
+    }
+
+    .hud-panel::before {
+      top: 8px;
+      left: 8px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .hud-panel::after {
+      bottom: 8px;
+      right: 8px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .panel-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.7rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ---- Mobile ventures section (below orb on mobile) ---- */
+    .ventures-section-mobile {
+      display: block;
+    }
+
+    @media (min-width: 1024px) {
+      .ventures-section-mobile {
+        display: none;
+      }
     }
 
     /* ---- Agents working section ---- */
     .section {
-      margin-bottom: 22px;
+      margin-bottom: 0;
     }
+
     .section-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 10px;
-      padding: 0 2px;
+      padding: 0;
     }
+
     .section-title {
-      font-family: "Cormorant Garamond", serif;
-      font-weight: 600;
-      font-size: 1.2rem;
-      color: var(--blush);
-      letter-spacing: 0.02em;
-    }
-    .section-count {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
       font-size: 0.7rem;
-      color: var(--text-dim);
-      background: var(--surface);
-      padding: 3px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      font-weight: 600;
+      color: var(--cyan);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-count {
+      font-size: 0.65rem;
+      color: var(--cyan);
+      background: transparent;
+      padding: 0;
+      border: none;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     }
 
     /* ---- Agent activity cards ---- */
-    .agent-list { display: flex; flex-direction: column; gap: 8px; }
+    .agent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     .agent-card {
-      background: var(--surface);
+      background: rgba(32, 32, 58, 0.5);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 11px 13px;
+      border-radius: 6px;
+      padding: 10px 12px;
       display: flex;
       gap: 10px;
       align-items: center;
+      font-size: 0.75rem;
     }
+
     .agent-status {
       display: inline-block;
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       flex-shrink: 0;
     }
-    .agent-status.working { background: var(--sage); box-shadow: 0 0 6px rgba(139,168,136,0.6); animation: pulse 1.6s ease-in-out infinite; }
-    .agent-status.idle { background: var(--text-faint); }
+
+    .agent-status.working {
+      background: var(--sage);
+      box-shadow: 0 0 8px rgba(139, 168, 136, 0.7);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    .agent-status.idle {
+      background: var(--text-faint);
+    }
 
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.55; transform: scale(0.85); }
+      50% { opacity: 0.5; transform: scale(0.8); }
     }
 
     .agent-info {
       flex: 1;
       min-width: 0;
     }
+
     .agent-name {
-      font-family: "Cormorant Garamond", serif;
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+      font-size: 0.75rem;
       color: var(--blush);
       letter-spacing: 0.01em;
+      text-transform: uppercase;
     }
+
     .agent-task {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       color: var(--text-dim);
       margin-top: 2px;
       white-space: nowrap;
@@ -236,101 +454,146 @@
       text-overflow: ellipsis;
     }
 
-    /* ---- Company tile section ---- */
+    /* ---- Company tile section (ventures panel) ---- */
+    .ventures-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
     .company-tile {
-      background: linear-gradient(180deg, rgba(245,230,224,0.06), rgba(245,230,224,0.02));
+      background: rgba(32, 32, 58, 0.5);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+      border-radius: 8px;
+      padding: 12px;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .company-tile:active { transform: scale(0.98); background: var(--surface-hover); }
+
+    .company-tile:active {
+      transform: scale(0.98);
+      background: var(--surface-hover);
+    }
+
     .company-tile-header {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       margin-bottom: 8px;
     }
+
     .company-name {
-      font-family: "Cormorant Garamond", serif;
-      font-weight: 600;
-      font-size: 1.1rem;
-      color: var(--blush);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--cyan);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .company-status {
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
       letter-spacing: 0.02em;
     }
-    .company-status {
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      text-transform: capitalize;
-    }
+
     .company-stat {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       color: var(--text-dim);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       display: flex;
       justify-content: space-between;
+      gap: 8px;
     }
-    .company-stat-label { color: var(--text-faint); }
-    .company-stat-value { color: var(--gold); font-weight: 600; }
+
+    .company-stat-label {
+      color: var(--text-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .company-stat-value {
+      color: var(--cyan);
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
 
     /* ---- Pending merges ---- */
-    .merge-list { display: flex; flex-direction: column; gap: 10px; }
-    .merge-card {
-      background: linear-gradient(180deg, rgba(245,230,224,0.06), rgba(245,230,224,0.02));
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
+    .merge-list {
       display: flex;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .merge-card {
+      background: rgba(32, 32, 58, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 11px 12px;
+      display: flex;
+      gap: 10px;
       align-items: center;
       transition: all 0.15s;
     }
-    .merge-card:active { border-color: var(--border-hover); background: var(--surface-hover); }
+
+    .merge-card:active {
+      border-color: var(--border-hover);
+      background: var(--surface-hover);
+    }
+
     .merge-info {
       flex: 1;
       min-width: 0;
     }
+
     .merge-msg {
       color: var(--blush);
       font-weight: 500;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       line-height: 1.3;
       word-break: break-word;
       margin-bottom: 3px;
     }
+
     .merge-meta {
       color: var(--text-dim);
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
+
     .merge-sha {
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: var(--gold);
+      color: var(--cyan);
     }
+
     .merge-btn {
       background: var(--coral);
       color: #fff;
       border: none;
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-weight: 600;
-      font-size: 0.8rem;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 0.7rem;
       cursor: pointer;
       transition: all 0.15s;
-      min-width: 70px;
-      min-height: 44px;
+      min-width: 60px;
       flex-shrink: 0;
-      font-family: inherit;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
-    .merge-btn:active { background: var(--coral-deep); transform: scale(0.96); }
-    .merge-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-    /* ---- Scroll spacer ---- */
-    .spacer { flex-grow: 1; }
+    .merge-btn:active {
+      background: var(--coral-deep);
+      transform: scale(0.96);
+    }
+
+    .merge-btn[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
 
     /* ---- Toast ---- */
     #toast {
@@ -341,26 +604,78 @@
       background: var(--navy-mid);
       color: var(--blush);
       padding: 12px 18px;
-      border-radius: 10px;
+      border-radius: 6px;
       border: 1px solid var(--border-hover);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      font-size: 0.85rem;
+      box-shadow: 0 0 16px rgba(91, 217, 230, 0.2);
+      font-size: 0.8rem;
       transition: transform 0.25s ease-out;
       z-index: 50;
       max-width: 88vw;
       text-align: center;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     }
-    #toast.visible { transform: translateX(-50%) translateY(0); }
-    #toast.err { border-color: var(--coral); color: var(--coral); }
-    #toast.ok { border-color: var(--sage); color: var(--sage); }
 
-    /* ---- Pull to refresh ---- */
-    @media (max-width: 480px) {
-      .page { padding: 14px 14px 90px; }
-      .section-title { font-size: 1.1rem; }
-      .company-tile { padding: 13px; }
-      .company-name { font-size: 1rem; }
-      .merge-btn { padding: 9px 12px; min-width: 65px; font-size: 0.76rem; }
+    #toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #toast.err {
+      border-color: var(--coral);
+      color: var(--coral);
+    }
+
+    #toast.ok {
+      border-color: var(--sage);
+      color: var(--sage);
+    }
+
+    /* ---- Scan line animation ---- */
+    @keyframes scanLine {
+      0% {
+        transform: translateY(-100%);
+      }
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+
+    .page::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scanLine 20s linear infinite;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* ---- Mobile responsive ---- */
+    @media (max-width: 768px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        padding: 10px 14px;
+        height: 50px;
+      }
+
+      .topbar-title {
+        font-size: 0.95rem;
+      }
+
+      .center-column {
+        padding: 60px 16px 20px;
+        gap: 16px;
+      }
+
+      .orb-section {
+        padding: 16px;
+      }
     }
   </style>
 </head>
@@ -377,41 +692,72 @@
 
   <!-- Main app -->
   <div id="app">
+    <!-- Top bar (fixed, full-width) -->
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="topbar-system">
+          <div class="topbar-system-dot"></div>
+          <span>SYSTEM ONLINE</span>
+        </div>
+      </div>
+      <div class="topbar-title">SHEPARD VENTURES</div>
+      <div class="topbar-time" id="topbar-time"></div>
+    </div>
+
+    <!-- 3-column layout -->
     <div class="page">
-      <!-- Top bar -->
-      <div class="topbar">
-        <div class="topbar-title">SHEPARD VENTURES</div>
-        <div class="topbar-time" id="topbar-time"></div>
-      </div>
-
-      <!-- Orb hero -->
-      <div class="orb-section">
-        <div id="orb-container"></div>
-        <div class="orb-tap-hint" id="orb-hint">Tap to talk</div>
-      </div>
-
-      <!-- Agents working -->
-      <div class="section" id="section-agents">
-        <div class="section-head">
-          <div class="section-title">AGENTS WORKING</div>
-          <div class="section-count" id="agent-count">0</div>
+      <!-- LEFT PANEL: Ventures (desktop only) -->
+      <div class="sidebar-left">
+        <div class="hud-panel" id="ventures-panel-left-outer">
+          <div class="panel-title">VENTURES</div>
+          <div class="ventures-panel" id="ventures-panel-left"></div>
         </div>
-        <div id="agent-list" class="agent-list"></div>
       </div>
 
-      <!-- Company KPIs -->
-      <div id="companies-section"></div>
-
-      <!-- Pending merges -->
-      <div class="section" id="section-merges">
-        <div class="section-head">
-          <div class="section-title">PENDING MERGES</div>
-          <div class="section-count" id="merge-count">0</div>
+      <!-- CENTER: Orb + Ventures mobile -->
+      <div class="center-column">
+        <!-- Orb hero -->
+        <div class="orb-section">
+          <div class="orb-status" id="orb-status">STANDING BY</div>
+          <div id="orb-container"></div>
+          <div class="orb-kpis" id="orb-kpis"></div>
+          <div class="orb-tap-hint" id="orb-hint">ENGAGE — TAP TO TALK</div>
         </div>
-        <div id="merge-list" class="merge-list"></div>
+
+        <!-- Ventures section (mobile only) -->
+        <div class="ventures-section-mobile">
+          <div class="hud-panel" id="ventures-panel-mobile-outer">
+            <div class="panel-title">VENTURES</div>
+            <div class="ventures-panel" id="ventures-panel-mobile"></div>
+          </div>
+        </div>
+
+        <!-- Agents working -->
+        <div class="section hud-panel" id="section-agents">
+          <div class="section-head">
+            <div class="section-title">AGENTS WORKING</div>
+            <div class="section-count" id="agent-count">0</div>
+          </div>
+          <div id="agent-list" class="agent-list"></div>
+        </div>
+
+        <!-- Pending merges -->
+        <div class="section hud-panel" id="section-merges">
+          <div class="section-head">
+            <div class="section-title">PENDING MERGES</div>
+            <div class="section-count" id="merge-count">0</div>
+          </div>
+          <div id="merge-list" class="merge-list"></div>
+        </div>
       </div>
 
-      <div class="spacer"></div>
+      <!-- RIGHT PANEL: Agent activity (desktop only) -->
+      <div class="sidebar-right">
+        <div class="hud-panel" id="activity-panel-right">
+          <div class="panel-title">ACTIVITY LOG</div>
+          <div id="activity-list" class="agent-list"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -424,96 +770,181 @@
     let _token = null;
     const _confirming = new Set();
 
-    // Time display
+    // Time display (24-hour format like Iron Man HUD)
     function updateTime() {
       const now = new Date();
-      const timeStr = now.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hourCycle: 'h12'});
-      const dateStr = now.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
-      document.getElementById('topbar-time').textContent = `${timeStr}\n${dateStr}`;
+      const pad = (n) => String(n).padStart(2, '0');
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const tzStr = 'CDT';
+      document.getElementById('topbar-time').textContent = `${timeStr} ${tzStr}`;
     }
-    setInterval(updateTime, 30000);
+    setInterval(updateTime, 1000);
     updateTime();
 
-    // Orb SVG animation (simple pulsing orb with gradient)
+    // Orb SVG with concentric rotating rings
     function initOrb() {
       const container = document.getElementById('orb-container');
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 140 140');
+      svg.setAttribute('viewBox', '0 0 280 280');
       svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       svg.style.width = '100%';
       svg.style.height = '100%';
 
-      // Define gradient
       const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-      linearGradient.setAttribute('id', 'orbGrad');
-      linearGradient.setAttribute('x1', '0%');
-      linearGradient.setAttribute('y1', '0%');
-      linearGradient.setAttribute('x2', '100%');
-      linearGradient.setAttribute('y2', '100%');
+
+      // Radial gradient for orb
+      const radialGradient = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+      radialGradient.setAttribute('id', 'orbGrad');
+      radialGradient.setAttribute('cx', '50%');
+      radialGradient.setAttribute('cy', '50%');
+      radialGradient.setAttribute('r', '50%');
 
       const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       stop1.setAttribute('offset', '0%');
-      stop1.setAttribute('stop-color', '#E8836B');
-      stop1.setAttribute('stop-opacity', '0.9');
+      stop1.setAttribute('stop-color', '#C9A96E');
+      stop1.setAttribute('stop-opacity', '0.95');
 
       const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stop2.setAttribute('offset', '50%');
-      stop2.setAttribute('stop-color', '#C9A96E');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', '#E8836B');
       stop2.setAttribute('stop-opacity', '0.85');
 
-      const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stop3.setAttribute('offset', '100%');
-      stop3.setAttribute('stop-color', '#5BD9E6');
-      stop3.setAttribute('stop-opacity', '0.8');
+      radialGradient.appendChild(stop1);
+      radialGradient.appendChild(stop2);
 
-      linearGradient.appendChild(stop1);
-      linearGradient.appendChild(stop2);
-      linearGradient.appendChild(stop3);
-
+      // Glow filter
       const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
       filter.setAttribute('id', 'orbGlow');
       const feGaussianBlur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
-      feGaussianBlur.setAttribute('stdDeviation', '4');
-      feGaussianBlur.setAttribute('result', 'coloredBlur');
+      feGaussianBlur.setAttribute('stdDeviation', '8');
       const feMerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
       const feMergeNode1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
-      feMergeNode1.setAttribute('in', 'coloredBlur');
-      const feMergeNode2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
-      feMergeNode2.setAttribute('in', 'SourceGraphic');
+      feMergeNode1.setAttribute('in', 'SourceGraphic');
       feMerge.appendChild(feMergeNode1);
-      feMerge.appendChild(feMergeNode2);
       filter.appendChild(feGaussianBlur);
       filter.appendChild(feMerge);
 
-      defs.appendChild(linearGradient);
+      defs.appendChild(radialGradient);
       defs.appendChild(filter);
       svg.appendChild(defs);
 
-      // Draw orb
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', '70');
-      circle.setAttribute('cy', '70');
-      circle.setAttribute('r', '50');
-      circle.setAttribute('fill', 'url(#orbGrad)');
-      circle.setAttribute('filter', 'url(#orbGlow)');
-      circle.style.animation = 'orbPulse 2.5s ease-in-out infinite';
-
       const style = document.createElement('style');
       style.textContent = `
+        @keyframes ring1Rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes ring2Rotate {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
+        @keyframes ring3Rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
         @keyframes orbPulse {
-          0%, 100% { r: 50px; opacity: 0.85; }
-          50% { r: 55px; opacity: 0.95; }
+          0%, 100% { r: 50px; opacity: 0.9; }
+          50% { r: 53px; opacity: 0.95; }
         }
       `;
       svg.appendChild(style);
-      svg.appendChild(circle);
+
+      // Create a group for rings
+      const ringsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ringsGroup.setAttribute('transform', 'translate(140, 140)');
+
+      // Ring 1 (outer, cyan, slowest, clockwise)
+      const ring1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring1.setAttribute('cx', '0');
+      ring1.setAttribute('cy', '0');
+      ring1.setAttribute('r', '130');
+      ring1.setAttribute('fill', 'none');
+      ring1.setAttribute('stroke', '#5BD9E6');
+      ring1.setAttribute('stroke-width', '1.5');
+      ring1.setAttribute('opacity', '0.3');
+      const ring1Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring1Group.style.animation = 'ring1Rotate 20s linear infinite';
+      ring1Group.setAttribute('transform', 'translate(140, 140)');
+      ring1Group.appendChild(ring1);
+
+      // Ring 2 (middle, cyan, faster, counter-clockwise)
+      const ring2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring2.setAttribute('cx', '0');
+      ring2.setAttribute('cy', '0');
+      ring2.setAttribute('r', '100');
+      ring2.setAttribute('fill', 'none');
+      ring2.setAttribute('stroke', '#5BD9E6');
+      ring2.setAttribute('stroke-width', '1.5');
+      ring2.setAttribute('opacity', '0.5');
+      const ring2Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring2Group.style.animation = 'ring2Rotate 12s linear infinite';
+      ring2Group.setAttribute('transform', 'translate(140, 140)');
+      ring2Group.appendChild(ring2);
+
+      // Ring 3 (inner, cyan, moderate, clockwise)
+      const ring3 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring3.setAttribute('cx', '0');
+      ring3.setAttribute('cy', '0');
+      ring3.setAttribute('r', '70');
+      ring3.setAttribute('fill', 'none');
+      ring3.setAttribute('stroke', '#5BD9E6');
+      ring3.setAttribute('stroke-width', '1');
+      ring3.setAttribute('opacity', '0.4');
+      const ring3Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring3Group.style.animation = 'ring3Rotate 16s linear infinite';
+      ring3Group.setAttribute('transform', 'translate(140, 140)');
+      ring3Group.appendChild(ring3);
+
+      svg.appendChild(ring1Group);
+      svg.appendChild(ring2Group);
+      svg.appendChild(ring3Group);
+
+      // Central orb
+      const orbGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      orbGroup.setAttribute('transform', 'translate(140, 140)');
+
+      const orb = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      orb.setAttribute('cx', '0');
+      orb.setAttribute('cy', '0');
+      orb.setAttribute('r', '50');
+      orb.setAttribute('fill', 'url(#orbGrad)');
+      orb.setAttribute('filter', 'url(#orbGlow)');
+      orb.style.animation = 'orbPulse 2.5s ease-in-out infinite';
+
+      orbGroup.appendChild(orb);
+      svg.appendChild(orbGroup);
+
       container.appendChild(svg);
 
-      // Tap handler (stub for v1 — just feedback)
+      // Tap handler
       container.style.cursor = 'pointer';
       container.addEventListener('click', () => {
-        toast('Voice coming soon — hold for detailed instructions', 'ok');
+        toast('Voice coming soon', 'ok');
+      });
+    }
+
+    // Create KPI badges around orb
+    function initOrbKPIs() {
+      const kpisContainer = document.getElementById('orb-kpis');
+      if (!kpisContainer) return;
+      kpisContainer.innerHTML = '';
+
+      const kpis = [
+        { label: 'AGENTS', value: '0', pos: 'top: -20px; left: 50%; transform: translateX(-50%);' },
+        { label: 'MRR', value: '$349', pos: 'top: 50%; right: -80px; transform: translateY(-50%);' },
+        { label: 'MERGES', value: '0', pos: 'bottom: -20px; left: 50%; transform: translateX(-50%);' },
+        { label: 'BUGS', value: '0', pos: 'top: 50%; left: -80px; transform: translateY(-50%);' }
+      ];
+
+      kpis.forEach(kpi => {
+        const badge = document.createElement('div');
+        badge.className = 'kpi-badge';
+        badge.style.cssText = kpi.pos;
+        badge.innerHTML = `
+          <div class="kpi-badge-label">${kpi.label}</div>
+          <div class="kpi-badge-value">${kpi.value}</div>
+        `;
+        kpisContainer.appendChild(badge);
       });
     }
 
@@ -553,6 +984,7 @@
       document.getElementById('auth-gate').classList.remove('visible');
       document.getElementById('app').classList.add('visible');
       initOrb();
+      initOrbKPIs();
       refresh();
     }
 
@@ -601,11 +1033,13 @@
         .order('name');
       if (error) throw error;
 
+      const agents = data || [];
+      document.getElementById('agent-count').textContent = agents.length;
+
+      // Render center panel
       const agentList = document.getElementById('agent-list');
       agentList.innerHTML = '';
-      document.getElementById('agent-count').textContent = data?.length || 0;
-
-      (data || []).forEach(agent => {
+      agents.forEach(agent => {
         const card = document.createElement('div');
         card.className = 'agent-card';
         const statusClass = agent.status === 'working' ? 'working' : 'idle';
@@ -618,88 +1052,79 @@
         `;
         agentList.appendChild(card);
       });
+
+      // Render right panel (activity log) - show last 5 agents
+      const activityList = document.getElementById('activity-list');
+      if (activityList) {
+        activityList.innerHTML = '';
+        agents.slice(0, 5).forEach(agent => {
+          const card = document.createElement('div');
+          card.className = 'agent-card';
+          const statusClass = agent.status === 'working' ? 'working' : 'idle';
+          card.innerHTML = `
+            <div class="agent-status ${statusClass}"></div>
+            <div class="agent-info">
+              <div class="agent-name">${agent.name || 'Unknown'}</div>
+              <div class="agent-task">${agent.task || 'idle'}</div>
+            </div>
+          `;
+          activityList.appendChild(card);
+        });
+      }
     }
 
     async function loadCompanies() {
-      const container = document.getElementById('companies-section');
-      container.innerHTML = '';
+      const companies = [
+        {
+          name: 'DOSSIE',
+          status: 'Operational',
+          stats: [
+            { label: 'MRR', value: '$349' },
+            { label: 'Founding', value: '12/50' }
+          ]
+        },
+        {
+          name: 'PARALEGAL',
+          status: 'Research',
+          stats: [
+            { label: 'Partner', value: 'Joshua' }
+          ]
+        },
+        {
+          name: 'AGENTS',
+          status: 'Pre-launch',
+          stats: [
+            { label: 'Beachhead', value: 'Travel' }
+          ]
+        }
+      ];
 
-      // Dossie KPI
-      const dossieStats = {
-        name: 'DOSSIE',
-        mrr: '$349',
-        founding: '12/50',
-        status: 'Operational',
-        description: 'AI transaction coordinator'
+      const renderVenturesPanel = (panelId) => {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.innerHTML = '';
+
+        companies.forEach(comp => {
+          const card = document.createElement('div');
+          card.className = 'company-tile';
+          card.innerHTML = `
+            <div class="company-tile-header">
+              <div class="company-name">${comp.name}</div>
+              <div class="company-status">${comp.status}</div>
+            </div>
+            ${comp.stats.map(s => `
+              <div class="company-stat">
+                <div class="company-stat-label">${s.label}</div>
+                <div class="company-stat-value">${s.value}</div>
+              </div>
+            `).join('')}
+          `;
+          panel.appendChild(card);
+        });
       };
 
-      const dossieCard = document.createElement('div');
-      dossieCard.className = 'company-tile';
-      dossieCard.innerHTML = `
-        <div class="company-tile-header">
-          <div class="company-name">${dossieStats.name}</div>
-          <div class="company-status">${dossieStats.status}</div>
-        </div>
-        <div class="company-stat">
-          <div class="company-stat-label">MRR</div>
-          <div class="company-stat-value">${dossieStats.mrr}</div>
-        </div>
-        <div class="company-stat">
-          <div class="company-stat-label">Founding</div>
-          <div class="company-stat-value">${dossieStats.founding}</div>
-        </div>
-      `;
-      container.appendChild(dossieCard);
-
-      // Paralegal KPI
-      const paralegalStats = {
-        name: 'PARALEGAL',
-        status: 'Research phase',
-        partner: 'Joshua Sisam'
-      };
-
-      const paralegalCard = document.createElement('div');
-      paralegalCard.className = 'company-tile';
-      paralegalCard.innerHTML = `
-        <div class="company-tile-header">
-          <div class="company-name">${paralegalStats.name}</div>
-          <div class="company-status">${paralegalStats.status}</div>
-        </div>
-        <div class="company-stat">
-          <div class="company-stat-label">Partner</div>
-          <div class="company-stat-value">${paralegalStats.partner}</div>
-        </div>
-      `;
-      container.appendChild(paralegalCard);
-
-      // Personal Agents KPI
-      const agentStats = {
-        name: 'PERSONAL AGENTS',
-        status: 'Pre-launch',
-        beachhead: 'Wife\'s travel agent'
-      };
-
-      const agentCard = document.createElement('div');
-      agentCard.className = 'company-tile';
-      agentCard.innerHTML = `
-        <div class="company-tile-header">
-          <div class="company-name">${agentStats.name}</div>
-          <div class="company-status">${agentStats.status}</div>
-        </div>
-        <div class="company-stat">
-          <div class="company-stat-label">Beachhead</div>
-          <div class="company-stat-value">${agentStats.beachhead}</div>
-        </div>
-      `;
-      container.appendChild(agentCard);
-
-      const section = document.createElement('div');
-      section.className = 'section';
-      const head = document.createElement('div');
-      head.className = 'section-head';
-      head.innerHTML = '<div class="section-title">VENTURES</div>';
-      section.appendChild(head);
-      container.prepend(head);
+      renderVenturesPanel('ventures-panel-left');
+      renderVenturesPanel('ventures-panel-mobile');
     }
 
     async function loadMerges() {
