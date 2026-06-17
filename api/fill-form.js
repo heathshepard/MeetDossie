@@ -161,3 +161,229 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   return pdfDoc;
 }
 
+// ---------------------------------------------------------------------------
+// AMENDMENT TO CONTRACT (TREC 39-10 / 39-11)
+// 30 verified AcroForm fields + 6 fields needing coordinate overlay.
+// Atlas verified field mapping 2026-06-16. Trust the field names in the map.
+// ---------------------------------------------------------------------------
+async function fillAmendmentAcroForm(pdfDoc, fv) {
+  const form = pdfDoc.getForm();
+  const FIELD_MAP = require('./field-map-trec39-acroform.js');
+
+  const safeSetText = (form, name, value) => {
+    if (!value && value !== 0) return;
+    const valueStr = String(value).trim();
+    if (!valueStr) return;
+
+    try {
+      const field = form.getTextField(name);
+      if (!field) return;
+      const max = field.getMaxLength();
+      let v = valueStr;
+      if (max && v.length > max) v = v.slice(0, max);
+      field.setText(v);
+    } catch (e) {
+      console.warn(`[fillAmendmentAcroForm] Could not set text field "${name}":`, e.message);
+    }
+  };
+
+  const safeCheck = (form, name) => {
+    try {
+      const box = form.getCheckBox(name);
+      if (box) box.check();
+    } catch (e) {
+      console.warn(`[fillAmendmentAcroForm] Could not check field "${name}":`, e.message);
+    }
+  };
+
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+    if (!m) return String(iso);
+    return `${m[2]}/${m[3]}/${m[1]}`;
+  };
+
+  const formatMoney = (v) => {
+    const n = Number(String(v || '').replace(/[^0-9.]/g, ''));
+    if (!Number.isFinite(n)) return String(v || '');
+    return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  };
+
+  // =========================================================================
+  // HEADER: Property Address
+  // =========================================================================
+  if (fv.property_address) {
+    safeSetText(form, FIELD_MAP.property_address, fv.property_address);
+  }
+
+  // =========================================================================
+  // SECTION 1: SALES PRICE CHANGE
+  // =========================================================================
+  if (fv.sales_price_change_active === true) {
+    safeCheck(form, FIELD_MAP.sales_price_change_active);
+  }
+  if (fv.new_cash_portion) {
+    safeSetText(form, FIELD_MAP.new_cash_portion, formatMoney(fv.new_cash_portion));
+  }
+  if (fv.new_financing_amount) {
+    safeSetText(form, FIELD_MAP.new_financing_amount, formatMoney(fv.new_financing_amount));
+  }
+  if (fv.new_sales_price_total) {
+    safeSetText(form, FIELD_MAP.new_sales_price_total, formatMoney(fv.new_sales_price_total));
+  }
+
+  // =========================================================================
+  // SECTION 2: SELLER REPAIRS & TREATMENTS
+  // =========================================================================
+  if (fv.seller_repairs_treatments_active === true) {
+    safeCheck(form, FIELD_MAP.seller_repairs_treatments_active);
+  }
+  if (fv.seller_repairs_treatments_list) {
+    safeSetText(form, FIELD_MAP.seller_repairs_treatments_list, fv.seller_repairs_treatments_list);
+  }
+
+  // =========================================================================
+  // SECTION 3: CLOSING DATE CHANGE
+  // =========================================================================
+  if (fv.closing_date_change_active === true) {
+    safeCheck(form, FIELD_MAP.closing_date_change_active);
+  }
+  if (fv.new_closing_date_month_day) {
+    safeSetText(form, FIELD_MAP.new_closing_date_month_day, fv.new_closing_date_month_day);
+  }
+  if (fv.new_closing_date_year_suffix) {
+    safeSetText(form, FIELD_MAP.new_closing_date_year_suffix, fv.new_closing_date_year_suffix);
+  }
+
+  // =========================================================================
+  // SECTION 4: FINANCING AMOUNT (PARA 12A1b)
+  // =========================================================================
+  if (fv.financing_amount_change_active === true) {
+    safeCheck(form, FIELD_MAP.financing_amount_change_active);
+  }
+  if (fv.new_financing_amount_12A1b) {
+    safeSetText(form, FIELD_MAP.new_financing_amount_12A1b, formatMoney(fv.new_financing_amount_12A1b));
+  }
+  if (fv.buyer_will_deliver_revised_approval === true) {
+    safeCheck(form, FIELD_MAP.buyer_will_deliver_revised_approval);
+  }
+  if (fv.buyer_will_not_deliver_revised_approval === true) {
+    safeCheck(form, FIELD_MAP.buyer_will_not_deliver_revised_approval);
+  }
+  if (fv.revised_approval_notice_days) {
+    safeSetText(form, FIELD_MAP.revised_approval_notice_days, String(fv.revised_approval_notice_days));
+  }
+
+  // =========================================================================
+  // SECTION 5: LENDER REQUIRED REPAIRS
+  // =========================================================================
+  if (fv.lender_required_repairs_active === true) {
+    safeCheck(form, FIELD_MAP.lender_required_repairs_active);
+  }
+  if (fv.lender_repairs_not_to_exceed_amount) {
+    safeSetText(form, FIELD_MAP.lender_repairs_not_to_exceed_amount, formatMoney(fv.lender_repairs_not_to_exceed_amount));
+  }
+  // NOTE: Para 5 Buyer/Seller choice has no AcroForm field — needs overlay or manual entry
+
+  // =========================================================================
+  // SECTION 6: ADDITIONAL OPTION FEE
+  // =========================================================================
+  if (fv.additional_option_fee_active === true) {
+    safeCheck(form, FIELD_MAP.additional_option_fee_active);
+  }
+  if (fv.additional_option_fee_amount) {
+    safeSetText(form, FIELD_MAP.additional_option_fee_amount, formatMoney(fv.additional_option_fee_amount));
+  }
+  if (fv.additional_option_fee_extension_days) {
+    safeSetText(form, FIELD_MAP.additional_option_fee_extension_days, String(fv.additional_option_fee_extension_days));
+  }
+  if (fv.additional_option_fee_new_end_date) {
+    safeSetText(form, FIELD_MAP.additional_option_fee_new_end_date, fv.additional_option_fee_new_end_date);
+  }
+  if (fv.additional_option_fee_credit_yes === true) {
+    safeCheck(form, FIELD_MAP.additional_option_fee_credit_yes);
+  }
+  if (fv.additional_option_fee_credit_no === true) {
+    safeCheck(form, FIELD_MAP.additional_option_fee_credit_no);
+  }
+
+  // =========================================================================
+  // SECTION 7: BUYER WAIVES UNRESTRICTED TERMINATION
+  // =========================================================================
+  if (fv.buyer_waives_unrestricted_termination_active === true) {
+    safeCheck(form, FIELD_MAP.buyer_waives_unrestricted_termination_active);
+  }
+
+  // =========================================================================
+  // SECTION 8: BUYER APPROVAL DATE CHANGE
+  // =========================================================================
+  if (fv.buyer_approval_date_change_active === true) {
+    safeCheck(form, FIELD_MAP.buyer_approval_date_change_active);
+  }
+  if (fv.new_buyer_approval_notice_date_month_day) {
+    safeSetText(form, FIELD_MAP.new_buyer_approval_notice_date_month_day, fv.new_buyer_approval_notice_date_month_day);
+  }
+  if (fv.new_buyer_approval_notice_year_suffix) {
+    safeSetText(form, FIELD_MAP.new_buyer_approval_notice_year_suffix, fv.new_buyer_approval_notice_year_suffix);
+  }
+
+  // =========================================================================
+  // SECTION 9: OTHER MODIFICATIONS
+  // =========================================================================
+  if (fv.other_modifications_active === true) {
+    safeCheck(form, FIELD_MAP.other_modifications_active);
+  }
+  if (fv.other_modifications_line_1) {
+    safeSetText(form, FIELD_MAP.other_modifications_line_1, fv.other_modifications_line_1);
+  }
+  if (fv.other_modifications_line_2) {
+    safeSetText(form, FIELD_MAP.other_modifications_line_2, fv.other_modifications_line_2);
+  }
+  if (fv.other_modifications_line_3) {
+    safeSetText(form, FIELD_MAP.other_modifications_line_3, fv.other_modifications_line_3);
+  }
+  if (fv.other_modifications_overflow_8) {
+    safeSetText(form, FIELD_MAP.other_modifications_overflow_8, fv.other_modifications_overflow_8);
+  }
+  if (fv.other_modifications_overflow_9) {
+    safeSetText(form, FIELD_MAP.other_modifications_overflow_9, fv.other_modifications_overflow_9);
+  }
+  if (fv.other_modifications_overflow_10) {
+    safeSetText(form, FIELD_MAP.other_modifications_overflow_10, fv.other_modifications_overflow_10);
+  }
+
+  // =========================================================================
+  // SECTION 10: CONSULT ATTORNEY
+  // =========================================================================
+  if (fv.consult_attorney_acknowledgement === true) {
+    safeCheck(form, FIELD_MAP.consult_attorney_acknowledgement);
+  }
+
+  // =========================================================================
+  // FOOTER: EXECUTION BLOCK (date of signing)
+  // =========================================================================
+  if (fv.executed_day_of_month) {
+    safeSetText(form, FIELD_MAP.executed_day_of_month, String(fv.executed_day_of_month));
+  }
+  if (fv.executed_month_name) {
+    safeSetText(form, FIELD_MAP.executed_month_name, fv.executed_month_name);
+  }
+  if (fv.executed_year_suffix) {
+    safeSetText(form, FIELD_MAP.executed_year_suffix, String(fv.executed_year_suffix));
+  }
+
+  // =========================================================================
+  // SIGNATURE BLOCK
+  // =========================================================================
+  // NOTE: Signature fields are not auto-populated; they're signed in DocuSeal or by hand.
+  // Printed names, initials, and signature dates are also not in AcroForm fields.
+
+  try {
+    form.updateFieldAppearances();
+  } catch (e) {
+    console.warn('[fillAmendmentAcroForm] updateFieldAppearances failed:', e.message);
+  }
+
+  return pdfDoc;
+}
+
