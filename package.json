@@ -20,7 +20,8 @@
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "resend": "^6.12.3",
-    "stripe": "^22.1.0"
+    "stripe": "^22.1.0",
+    "three": "^r165"
   },
   "engines": {
     "node": ">=18.0.0"
