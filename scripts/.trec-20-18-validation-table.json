@@ -1,0 +1,2378 @@
+{
+  "generated_at": "2026-06-18T15:03:28.891Z",
+  "stats": {
+    "PASS": 176,
+    "FLAGGED": 84,
+    "FAIL": 0,
+    "SKIP": 3
+  },
+  "table": [
+    {
+      "index": 0,
+      "page": 1,
+      "field_name": "1 PARTIES The parties to this contract are",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 1.185,
+      "status": "PASS"
+    },
+    {
+      "index": 1,
+      "page": 1,
+      "field_name": "Seller and",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 1.186,
+      "status": "PASS"
+    },
+    {
+      "index": 2,
+      "page": 1,
+      "field_name": "A LAND Lot",
+      "field_type": "text",
+      "fixture_key": "lot",
+      "confidence_score": 1.191,
+      "status": "PASS"
+    },
+    {
+      "index": 3,
+      "page": 1,
+      "field_name": "Block",
+      "field_type": "text",
+      "fixture_key": "block",
+      "confidence_score": 1.302,
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "page": 1,
+      "field_name": "undefined",
+      "field_type": "text",
+      "fixture_key": "block",
+      "confidence_score": 0.904,
+      "status": "PASS"
+    },
+    {
+      "index": 5,
+      "page": 1,
+      "field_name": "Addition City of",
+      "field_type": "text",
+      "fixture_key": "legal_description",
+      "confidence_score": 0.801,
+      "status": "PASS"
+    },
+    {
+      "index": 6,
+      "page": 1,
+      "field_name": "County of",
+      "field_type": "text",
+      "fixture_key": "county",
+      "confidence_score": 1.183,
+      "status": "PASS"
+    },
+    {
+      "index": 7,
+      "page": 1,
+      "field_name": "Texas known as",
+      "field_type": "text",
+      "fixture_key": "legal_description",
+      "confidence_score": 1.185,
+      "status": "PASS"
+    },
+    {
+      "index": 8,
+      "page": 1,
+      "field_name": "be removed prior to delivery of possession",
+      "field_type": "text",
+      "fixture_key": "possession_date",
+      "confidence_score": 1.196,
+      "status": "PASS"
+    },
+    {
+      "index": 9,
+      "page": 1,
+      "field_name": "undefined_2",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.795,
+      "status": "PASS"
+    },
+    {
+      "index": 10,
+      "page": 1,
+      "field_name": "undefined_3",
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.722,
+      "status": "PASS"
+    },
+    {
+      "index": 11,
+      "page": 1,
+      "field_name": "B Sum of all financing described in the attached",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 12,
+      "page": 1,
+      "field_name": "Check Box2",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 13,
+      "page": 1,
+      "field_name": "Loan Assumption Addendum",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_loan_assumption",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 14,
+      "page": 1,
+      "field_name": "undefined_4",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 15,
+      "page": 1,
+      "field_name": "undefined_5",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 16,
+      "page": 1,
+      "field_name": "i will not be amended or deleted from the title policy or",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 17,
+      "page": 1,
+      "field_name": "ii will be amended to read shortages in area at the expense of",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 18,
+      "page": 1,
+      "field_name": "A TITLE POLICY Seller shall furnish to Buyer at",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 19,
+      "page": 1,
+      "field_name": "Sellers",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 20,
+      "page": 1,
+      "field_name": "Seller",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 21,
+      "page": 1,
+      "field_name": "to escrow agent within 1",
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 22,
+      "page": 1,
+      "field_name": "Initialed for identification by Buyer",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 23,
+      "page": 1,
+      "field_name": "undefined_8",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.111,
+      "status": "PASS"
+    },
+    {
+      "index": 24,
+      "page": 1,
+      "field_name": "and Seller",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "status": "PASS"
+    },
+    {
+      "index": 25,
+      "page": 1,
+      "field_name": "undefined_9",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "status": "PASS"
+    },
+    {
+      "index": 26,
+      "page": 2,
+      "field_name": "Page 2 of 10",
+      "field_type": "page-label",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "SKIP"
+    },
+    {
+      "index": 27,
+      "page": 2,
+      "field_name": "undefined_6",
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 0.651,
+      "status": "PASS"
+    },
+    {
+      "index": 28,
+      "page": 2,
+      "field_name": "other party in writing before entering into a contract of sale  Disclose if applicable",
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.719,
+      "status": "PASS"
+    },
+    {
+      "index": 29,
+      "page": 2,
+      "field_name": "undefined_7",
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 0.673,
+      "status": "PASS"
+    },
+    {
+      "index": 30,
+      "page": 2,
+      "field_name": "as earnest money to",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.793,
+      "status": "PASS"
+    },
+    {
+      "index": 31,
+      "page": 2,
+      "field_name": "as earnest money to 2",
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 1.201,
+      "status": "PASS"
+    },
+    {
+      "index": 32,
+      "page": 2,
+      "field_name": "earnest money of",
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 1.197,
+      "status": "PASS"
+    },
+    {
+      "index": 33,
+      "page": 2,
+      "field_name": "to escrow agent within",
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 34,
+      "page": 2,
+      "field_name": "the Title Company and Buyers lenders Check one box only",
+      "field_type": "text",
+      "fixture_key": "title_company",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 35,
+      "page": 2,
+      "field_name": "Sellers_2",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 36,
+      "page": 2,
+      "field_name": "Buyers expense no later",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 37,
+      "page": 2,
+      "field_name": "insurance Title Policy issued by",
+      "field_type": "text",
+      "fixture_key": "title_company",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 38,
+      "page": 2,
+      "field_name": "2Within",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 39,
+      "page": 2,
+      "field_name": "3Within",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 40,
+      "page": 2,
+      "field_name": "is",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 41,
+      "page": 2,
+      "field_name": "is not",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 42,
+      "page": 2,
+      "field_name": "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 0.9,
+      "status": "PASS"
+    },
+    {
+      "index": 43,
+      "page": 2,
+      "field_name": "and Seller_2",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.108,
+      "status": "PASS"
+    },
+    {
+      "index": 44,
+      "page": 2,
+      "field_name": "undefined_10",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "status": "PASS"
+    },
+    {
+      "index": 45,
+      "page": 2,
+      "field_name": "undefined_11",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "status": "PASS"
+    },
+    {
+      "index": 46,
+      "page": 3,
+      "field_name": "Page 3 of 10",
+      "field_type": "page-label",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "SKIP"
+    },
+    {
+      "index": 47,
+      "page": 3,
+      "field_name": "Buyer",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 48,
+      "page": 3,
+      "field_name": "than 3 days prior to Closing Date",
+      "field_type": "text",
+      "fixture_key": "closing_date",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 49,
+      "page": 3,
+      "field_name": "Within one",
+      "field_type": "checkbox",
+      "fixture_key": "survey_required",
+      "confidence_score": 1.175,
+      "status": "PASS"
+    },
+    {
+      "index": 50,
+      "page": 3,
+      "field_name": "Within two",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 51,
+      "page": 3,
+      "field_name": "Within three",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 52,
+      "page": 3,
+      "field_name": "3 days prior",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 53,
+      "page": 3,
+      "field_name": "Within four",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 54,
+      "page": 3,
+      "field_name": "receipt or the date specified in this paragraph whichever is earlier",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 55,
+      "page": 3,
+      "field_name": "Commitment other than items 6A1 through 9 above or which prohibit the following use",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 56,
+      "page": 3,
+      "field_name": "the Commitment Exception Documents and the survey Buyers failure to object within the",
+      "field_type": "text",
+      "fixture_key": "closing_date",
+      "confidence_score": 1.188,
+      "status": "PASS"
+    },
+    {
+      "index": 57,
+      "page": 3,
+      "field_name": "1Within",
+      "field_type": "checkbox",
+      "fixture_key": "hoa_addendum",
+      "confidence_score": 0.78,
+      "status": "PASS"
+    },
+    {
+      "index": 58,
+      "page": 3,
+      "field_name": "2 Within",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 59,
+      "page": 3,
+      "field_name": "Property Code requires Seller to notify Buyer as follows",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 0.9,
+      "status": "PASS"
+    },
+    {
+      "index": 60,
+      "page": 3,
+      "field_name": "and Seller_3",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.105,
+      "status": "PASS"
+    },
+    {
+      "index": 61,
+      "page": 3,
+      "field_name": "undefined_12",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "status": "PASS"
+    },
+    {
+      "index": 62,
+      "page": 3,
+      "field_name": "The private transfer fee",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 0.657,
+      "status": "PASS"
+    },
+    {
+      "index": 63,
+      "page": 4,
+      "field_name": "Contract Concerning",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 64,
+      "page": 4,
+      "field_name": "Text4",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 65,
+      "page": 4,
+      "field_name": "Text4 2",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 66,
+      "page": 4,
+      "field_name": "Text4 3",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 67,
+      "page": 4,
+      "field_name": "1 Buyer accepts the Property As Is",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 68,
+      "page": 4,
+      "field_name": "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 69,
+      "page": 4,
+      "field_name": "Within",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.99,
+      "status": "PASS"
+    },
+    {
+      "index": 70,
+      "page": 4,
+      "field_name": "upon",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 71,
+      "page": 4,
+      "field_name": "Initialed for identification by Buyer_2",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 72,
+      "page": 4,
+      "field_name": "undefined_14",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.108,
+      "status": "PASS"
+    },
+    {
+      "index": 73,
+      "page": 4,
+      "field_name": "and Seller_4",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "status": "PASS"
+    },
+    {
+      "index": 74,
+      "page": 4,
+      "field_name": "undefined_15",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.054,
+      "status": "PASS"
+    },
+    {
+      "index": 75,
+      "page": 5,
+      "field_name": "Contract Concerning_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 76,
+      "page": 5,
+      "field_name": "As Is",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 77,
+      "page": 5,
+      "field_name": "As Is except",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 78,
+      "page": 5,
+      "field_name": "following specific repairs and treatments",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 79,
+      "page": 5,
+      "field_name": "undefined_13",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.673,
+      "status": "PASS"
+    },
+    {
+      "index": 80,
+      "page": 5,
+      "field_name": "service contract in an amount not exceeding",
+      "field_type": "text",
+      "fixture_key": "homeowners_warranty_limit",
+      "confidence_score": 1.199,
+      "status": "PASS"
+    },
+    {
+      "index": 81,
+      "page": 5,
+      "field_name": "Brokers and Sales",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 82,
+      "page": 5,
+      "field_name": "Brokers and Sales 2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 83,
+      "page": 5,
+      "field_name": "A The closing of the sale will be on or before",
+      "field_type": "text",
+      "fixture_key": "closing_date",
+      "confidence_score": 1.185,
+      "status": "PASS"
+    },
+    {
+      "index": 84,
+      "page": 5,
+      "field_name": "20",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 85,
+      "page": 5,
+      "field_name": "Initialed for identification by Buyer_3",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 86,
+      "page": 5,
+      "field_name": "Buyers Expenses as allowed by the lender",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 0.708,
+      "status": "PASS"
+    },
+    {
+      "index": 87,
+      "page": 5,
+      "field_name": "and Seller_5",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "status": "PASS"
+    },
+    {
+      "index": 88,
+      "page": 5,
+      "field_name": "undefined_16",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "status": "PASS"
+    },
+    {
+      "index": 89,
+      "page": 6,
+      "field_name": "Contract Concerning_3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 90,
+      "page": 6,
+      "field_name": "will",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 91,
+      "page": 6,
+      "field_name": "will not be credited to the Sales Price at closing Time is of the",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 92,
+      "page": 6,
+      "field_name": "Text3",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.657,
+      "status": "PASS"
+    },
+    {
+      "index": 93,
+      "page": 6,
+      "field_name": "Text3 2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 94,
+      "page": 6,
+      "field_name": "Text3 3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 95,
+      "page": 6,
+      "field_name": "will 1.1",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 96,
+      "page": 6,
+      "field_name": "acknowledged by Seller and Buyers agreement to pay Seller 1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 97,
+      "page": 6,
+      "field_name": "will not be credited to the Sales Price at closing Time is of the 1",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 98,
+      "page": 6,
+      "field_name": "acknowledged by Seller and Buyers agreement to pay Seller2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 99,
+      "page": 6,
+      "field_name": "acknowledged by Seller and Buyers agreement to pay Seller",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 100,
+      "page": 6,
+      "field_name": "Initialed for identification by Buyer_4",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 101,
+      "page": 6,
+      "field_name": "undefined_17",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.108,
+      "status": "PASS"
+    },
+    {
+      "index": 102,
+      "page": 6,
+      "field_name": "and Seller_6",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "status": "PASS"
+    },
+    {
+      "index": 103,
+      "page": 6,
+      "field_name": "undefined_18",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "status": "PASS"
+    },
+    {
+      "index": 104,
+      "page": 7,
+      "field_name": "Page 7 of 10",
+      "field_type": "page-label",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "SKIP"
+    },
+    {
+      "index": 105,
+      "page": 7,
+      "field_name": "AC numb 1",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.297,
+      "status": "PASS"
+    },
+    {
+      "index": 106,
+      "page": 7,
+      "field_name": "AC numb 2",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.116,
+      "status": "PASS"
+    },
+    {
+      "index": 107,
+      "page": 7,
+      "field_name": "AC numb 3",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.29,
+      "status": "PASS"
+    },
+    {
+      "index": 108,
+      "page": 7,
+      "field_name": "AC numb 4",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.064,
+      "status": "PASS"
+    },
+    {
+      "index": 109,
+      "page": 8,
+      "field_name": "Contract Concerning_4",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 110,
+      "page": 8,
+      "field_name": "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.794,
+      "status": "PASS"
+    },
+    {
+      "index": 111,
+      "page": 8,
+      "field_name": "at",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.675,
+      "status": "PASS"
+    },
+    {
+      "index": 112,
+      "page": 8,
+      "field_name": "AC1",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.106,
+      "status": "PASS"
+    },
+    {
+      "index": 113,
+      "page": 8,
+      "field_name": "Phone 51",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.984,
+      "status": "PASS"
+    },
+    {
+      "index": 114,
+      "page": 8,
+      "field_name": "Phone 52",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.135,
+      "status": "PASS"
+    },
+    {
+      "index": 115,
+      "page": 8,
+      "field_name": "undefined_20-0",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.14,
+      "status": "PASS"
+    },
+    {
+      "index": 116,
+      "page": 8,
+      "field_name": "undefined_20",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 117,
+      "page": 8,
+      "field_name": "undefined_19",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 1.205,
+      "status": "PASS"
+    },
+    {
+      "index": 118,
+      "page": 8,
+      "field_name": "at_2",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.647,
+      "status": "PASS"
+    },
+    {
+      "index": 119,
+      "page": 8,
+      "field_name": "AC4",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.11,
+      "status": "PASS"
+    },
+    {
+      "index": 120,
+      "page": 8,
+      "field_name": "Fax 52",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.989,
+      "status": "PASS"
+    },
+    {
+      "index": 121,
+      "page": 8,
+      "field_name": "undefined numb 21",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.769,
+      "status": "PASS"
+    },
+    {
+      "index": 122,
+      "page": 8,
+      "field_name": "undefined numb 22-0",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.751,
+      "status": "PASS"
+    },
+    {
+      "index": 123,
+      "page": 8,
+      "field_name": "undefined numb 22",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 124,
+      "page": 8,
+      "field_name": "Third Party Financing Addendum",
+      "field_type": "checkbox",
+      "fixture_key": "third_party_financing_addendum",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 125,
+      "page": 8,
+      "field_name": "Seller Financing Addendum",
+      "field_type": "checkbox",
+      "fixture_key": "seller_financing_addendum",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 126,
+      "page": 8,
+      "field_name": "Addendum for Property Subject to",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 127,
+      "page": 8,
+      "field_name": "Buyers Temporary Residential Lease",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_buyers_lease",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 128,
+      "page": 8,
+      "field_name": "Loan Assumption Addendum_2",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_loan_assumption",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 129,
+      "page": 8,
+      "field_name": "Addendum for Sale of Other Property by",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_other_property_sale",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 130,
+      "page": 8,
+      "field_name": "Addendum for Reservation of Oil Gas",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_oil_gas",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 131,
+      "page": 8,
+      "field_name": "Addendum for BackUp Contract",
+      "field_type": "checkbox",
+      "fixture_key": "backup_contract",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 132,
+      "page": 8,
+      "field_name": "Check Box8",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 133,
+      "page": 8,
+      "field_name": "Check Box9",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 134,
+      "page": 8,
+      "field_name": "Check box 10",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 135,
+      "page": 8,
+      "field_name": "Check box 11",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 136,
+      "page": 8,
+      "field_name": "Environmental Assessment Threatened or",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_environmental",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 137,
+      "page": 8,
+      "field_name": "Sellers Temporary Residential Lease",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_sellers_lease",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 138,
+      "page": 8,
+      "field_name": "Short Sale Addendum",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_short_sale",
+      "confidence_score": 1.3,
+      "status": "PASS"
+    },
+    {
+      "index": 139,
+      "page": 8,
+      "field_name": "Addendum for Property Located Seaward",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_coastal",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 140,
+      "page": 8,
+      "field_name": "Sellers Disclos",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 141,
+      "page": 8,
+      "field_name": "Addend. for Sellers Disclos",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 142,
+      "page": 8,
+      "field_name": "Addendum for Property in a Propane Gas",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_propane",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 143,
+      "page": 8,
+      "field_name": "PID",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 144,
+      "page": 8,
+      "field_name": "Addendum for Section 1031",
+      "field_type": "checkbox",
+      "fixture_key": "addendum_1031",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 145,
+      "page": 8,
+      "field_name": "Other",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 146,
+      "page": 8,
+      "field_name": "System Service Area",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 147,
+      "page": 8,
+      "field_name": "1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 148,
+      "page": 8,
+      "field_name": "2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 149,
+      "page": 8,
+      "field_name": "3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 150,
+      "page": 8,
+      "field_name": "Attorney is",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.679,
+      "status": "PASS"
+    },
+    {
+      "index": 151,
+      "page": 8,
+      "field_name": "undefined_24",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 152,
+      "page": 8,
+      "field_name": "Text2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.058,
+      "status": "PASS"
+    },
+    {
+      "index": 153,
+      "page": 8,
+      "field_name": "Text1",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.936,
+      "status": "PASS"
+    },
+    {
+      "index": 154,
+      "page": 8,
+      "field_name": "Text7",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.077,
+      "status": "PASS"
+    },
+    {
+      "index": 155,
+      "page": 8,
+      "field_name": "Text6",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.956,
+      "status": "PASS"
+    },
+    {
+      "index": 156,
+      "page": 8,
+      "field_name": "Email",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 157,
+      "page": 8,
+      "field_name": "Attorney is_2",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.673,
+      "status": "PASS"
+    },
+    {
+      "index": 158,
+      "page": 8,
+      "field_name": "undefined_25",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 159,
+      "page": 8,
+      "field_name": "Text22",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.052,
+      "status": "PASS"
+    },
+    {
+      "index": 160,
+      "page": 8,
+      "field_name": "Phone11",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 161,
+      "page": 8,
+      "field_name": "Text23",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.072,
+      "status": "PASS"
+    },
+    {
+      "index": 162,
+      "page": 8,
+      "field_name": "Phone 2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.954,
+      "status": "PASS"
+    },
+    {
+      "index": 163,
+      "page": 8,
+      "field_name": "Email_2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 164,
+      "page": 8,
+      "field_name": "Initialed for identification by Buyer_5",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.297,
+      "status": "PASS"
+    },
+    {
+      "index": 165,
+      "page": 8,
+      "field_name": "and Seller_7",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.105,
+      "status": "PASS"
+    },
+    {
+      "index": 166,
+      "page": 8,
+      "field_name": "undefined_22",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.283,
+      "status": "PASS"
+    },
+    {
+      "index": 167,
+      "page": 8,
+      "field_name": "undefined_23",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.058,
+      "status": "PASS"
+    },
+    {
+      "index": 168,
+      "page": 9,
+      "field_name": "Address of Property",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 169,
+      "page": 9,
+      "field_name": "EXECUTED the",
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 1.188,
+      "status": "PASS"
+    },
+    {
+      "index": 170,
+      "page": 9,
+      "field_name": "day of",
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 0.844,
+      "status": "PASS"
+    },
+    {
+      "index": 171,
+      "page": 9,
+      "field_name": "20_2",
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 1.133,
+      "status": "PASS"
+    },
+    {
+      "index": 172,
+      "page": 9,
+      "field_name": "Signature8",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.623,
+      "status": "PASS"
+    },
+    {
+      "index": 173,
+      "page": 9,
+      "field_name": "Signature10",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.623,
+      "status": "PASS"
+    },
+    {
+      "index": 174,
+      "page": 9,
+      "field_name": "Signature9",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 175,
+      "page": 9,
+      "field_name": "Signature11",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 176,
+      "page": 10,
+      "field_name": "Addr of Prop",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 177,
+      "page": 10,
+      "field_name": "Other Broker Firm",
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 178,
+      "page": 10,
+      "field_name": "License No",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 179,
+      "page": 10,
+      "field_name": "Buyer only",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 180,
+      "page": 10,
+      "field_name": "Seller as List Brok Sub agent",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 181,
+      "page": 10,
+      "field_name": "Associates Name numb 1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 182,
+      "page": 10,
+      "field_name": "License No_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 183,
+      "page": 10,
+      "field_name": "Associates Name",
+      "field_type": "text",
+      "fixture_key": "listing_agent_name",
+      "confidence_score": 0.905,
+      "status": "PASS"
+    },
+    {
+      "index": 184,
+      "page": 10,
+      "field_name": "Associates Email Address",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 185,
+      "page": 10,
+      "field_name": "Phone",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.92,
+      "status": "PASS"
+    },
+    {
+      "index": 186,
+      "page": 10,
+      "field_name": "Licensed Supervisor of Associate",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 187,
+      "page": 10,
+      "field_name": "License No_3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 188,
+      "page": 10,
+      "field_name": "Other Brokers Address",
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 189,
+      "page": 10,
+      "field_name": "Phone_2",
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 0.87,
+      "status": "PASS"
+    },
+    {
+      "index": 190,
+      "page": 10,
+      "field_name": "City",
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 191,
+      "page": 10,
+      "field_name": "State",
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 1.044,
+      "status": "PASS"
+    },
+    {
+      "index": 192,
+      "page": 10,
+      "field_name": "Zip",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.261,
+      "status": "PASS"
+    },
+    {
+      "index": 193,
+      "page": 10,
+      "field_name": "Listing Broker Firm",
+      "field_type": "text",
+      "fixture_key": "listing_broker_license",
+      "confidence_score": 1.106,
+      "status": "PASS"
+    },
+    {
+      "index": 194,
+      "page": 10,
+      "field_name": "License No_4",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 195,
+      "page": 10,
+      "field_name": "Seller and Buyer as an intermediary",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 196,
+      "page": 10,
+      "field_name": "Seller only as Sellers agent",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 197,
+      "page": 10,
+      "field_name": "List Assoc Name",
+      "field_type": "text",
+      "fixture_key": "listing_broker_license",
+      "confidence_score": 0.709,
+      "status": "PASS"
+    },
+    {
+      "index": 198,
+      "page": 10,
+      "field_name": "License No_5",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.616,
+      "status": "PASS"
+    },
+    {
+      "index": 199,
+      "page": 10,
+      "field_name": "Listing Associates Name",
+      "field_type": "text",
+      "fixture_key": "listing_agent_name",
+      "confidence_score": 0.896,
+      "status": "PASS"
+    },
+    {
+      "index": 200,
+      "page": 10,
+      "field_name": "Listing Associates Email Address",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.212,
+      "status": "PASS"
+    },
+    {
+      "index": 201,
+      "page": 10,
+      "field_name": "Phone_3",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.966,
+      "status": "PASS"
+    },
+    {
+      "index": 202,
+      "page": 10,
+      "field_name": "Licensed Supervisor of Listing Associate",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.212,
+      "status": "PASS"
+    },
+    {
+      "index": 203,
+      "page": 10,
+      "field_name": "License No_6",
+      "field_type": "text",
+      "fixture_key": "listing_agent_supervisor",
+      "confidence_score": 0.653,
+      "status": "PASS"
+    },
+    {
+      "index": 204,
+      "page": 10,
+      "field_name": "Listing Brokers Office Address",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.215,
+      "status": "PASS"
+    },
+    {
+      "index": 205,
+      "page": 10,
+      "field_name": "Phone_4",
+      "field_type": "text",
+      "fixture_key": "listing_agent_supervisor",
+      "confidence_score": 1.095,
+      "status": "PASS"
+    },
+    {
+      "index": 206,
+      "page": 10,
+      "field_name": "City_2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.215,
+      "status": "PASS"
+    },
+    {
+      "index": 207,
+      "page": 10,
+      "field_name": "State_2",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 1.065,
+      "status": "PASS"
+    },
+    {
+      "index": 208,
+      "page": 10,
+      "field_name": "Zip_2",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.272,
+      "status": "PASS"
+    },
+    {
+      "index": 209,
+      "page": 10,
+      "field_name": "Selling Associates Name",
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 0.812,
+      "status": "PASS"
+    },
+    {
+      "index": 210,
+      "page": 10,
+      "field_name": "License No_7",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.879,
+      "status": "PASS"
+    },
+    {
+      "index": 211,
+      "page": 10,
+      "field_name": "Selling Associates Name-1",
+      "field_type": "text",
+      "fixture_key": "selling_agent_name",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 212,
+      "page": 10,
+      "field_name": "Selling Associates Email Address",
+      "field_type": "text",
+      "fixture_key": "selling_agent_email",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 213,
+      "page": 10,
+      "field_name": "Phone_5",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.976,
+      "status": "PASS"
+    },
+    {
+      "index": 214,
+      "page": 10,
+      "field_name": "Licensed Supervisor of Selling Associate",
+      "field_type": "text",
+      "fixture_key": "selling_agent_supervisor",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 215,
+      "page": 10,
+      "field_name": "License No_8",
+      "field_type": "text",
+      "fixture_key": "selling_agent_name",
+      "confidence_score": 0.659,
+      "status": "PASS"
+    },
+    {
+      "index": 216,
+      "page": 10,
+      "field_name": "Selling Associates Office Address",
+      "field_type": "text",
+      "fixture_key": "selling_agent_phone",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 217,
+      "page": 10,
+      "field_name": "City_3",
+      "field_type": "text",
+      "fixture_key": "selling_agent_name",
+      "confidence_score": 0.867,
+      "status": "PASS"
+    },
+    {
+      "index": 218,
+      "page": 10,
+      "field_name": "State_3",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.768,
+      "status": "PASS"
+    },
+    {
+      "index": 219,
+      "page": 10,
+      "field_name": "Zip_3",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.236,
+      "status": "PASS"
+    },
+    {
+      "index": 220,
+      "page": 10,
+      "field_name": "Dollar Amt",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 221,
+      "page": 10,
+      "field_name": "when mailed to",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 222,
+      "page": 10,
+      "field_name": "Percentage",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 223,
+      "page": 10,
+      "field_name": "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",
+      "field_type": "text",
+      "fixture_key": "listing_broker_compensation",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 224,
+      "page": 11,
+      "field_name": "Address of Property_2",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 225,
+      "page": 11,
+      "field_name": "is acknowledged",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 226,
+      "page": 11,
+      "field_name": "Option Fee in the form of",
+      "field_type": "text",
+      "fixture_key": "option_fee",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 227,
+      "page": 11,
+      "field_name": "Seller or Listing Broker",
+      "field_type": "text",
+      "fixture_key": "listing_broker_firm",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 228,
+      "page": 11,
+      "field_name": "Date",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 229,
+      "page": 11,
+      "field_name": "is acknowledged_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 230,
+      "page": 11,
+      "field_name": "Earnest Money in the form of",
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 1.19,
+      "status": "PASS"
+    },
+    {
+      "index": 231,
+      "page": 11,
+      "field_name": "Escrow Agent",
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 232,
+      "page": 11,
+      "field_name": "Received by",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 233,
+      "page": 11,
+      "field_name": "Address",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 234,
+      "page": 11,
+      "field_name": "City_4",
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 235,
+      "page": 11,
+      "field_name": "State_4",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 236,
+      "page": 11,
+      "field_name": "Zip_4",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.239,
+      "status": "PASS"
+    },
+    {
+      "index": 237,
+      "page": 11,
+      "field_name": "Email Address",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 238,
+      "page": 11,
+      "field_name": "DateTime",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.877,
+      "status": "PASS"
+    },
+    {
+      "index": 239,
+      "page": 11,
+      "field_name": "Phone_6",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 1.278,
+      "status": "PASS"
+    },
+    {
+      "index": 240,
+      "page": 11,
+      "field_name": "Fax",
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 1.259,
+      "status": "PASS"
+    },
+    {
+      "index": 241,
+      "page": 11,
+      "field_name": "Escrow Agent_2",
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 242,
+      "page": 11,
+      "field_name": "Received by_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 243,
+      "page": 11,
+      "field_name": "Address_2",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 244,
+      "page": 11,
+      "field_name": "City_5",
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 245,
+      "page": 11,
+      "field_name": "State_5",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 246,
+      "page": 11,
+      "field_name": "Zip_5",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.24,
+      "status": "PASS"
+    },
+    {
+      "index": 247,
+      "page": 11,
+      "field_name": "Email Address_2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 248,
+      "page": 11,
+      "field_name": "Date_2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.845,
+      "status": "PASS"
+    },
+    {
+      "index": 249,
+      "page": 11,
+      "field_name": "Phone_7",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 1.278,
+      "status": "PASS"
+    },
+    {
+      "index": 250,
+      "page": 11,
+      "field_name": "Fax_2",
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 1.259,
+      "status": "PASS"
+    },
+    {
+      "index": 251,
+      "page": 11,
+      "field_name": "is acknowledged_3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 252,
+      "page": 11,
+      "field_name": "additional Earnest Money in the form of",
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 0.806,
+      "status": "PASS"
+    },
+    {
+      "index": 253,
+      "page": 11,
+      "field_name": "Escrow Agent_3",
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 254,
+      "page": 11,
+      "field_name": "Received by_3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 255,
+      "page": 11,
+      "field_name": "Address_3",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 256,
+      "page": 11,
+      "field_name": "City_6",
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 257,
+      "page": 11,
+      "field_name": "State_6",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 258,
+      "page": 11,
+      "field_name": "Zip_6",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.236,
+      "status": "PASS"
+    },
+    {
+      "index": 259,
+      "page": 11,
+      "field_name": "Email Address_3",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 260,
+      "page": 11,
+      "field_name": "DateTime_2",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.837,
+      "status": "PASS"
+    },
+    {
+      "index": 261,
+      "page": 11,
+      "field_name": "Phone_8",
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 1.278,
+      "status": "PASS"
+    },
+    {
+      "index": 262,
+      "page": 11,
+      "field_name": "Fax_3",
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 1.259,
+      "status": "PASS"
+    }
+  ]
+}
