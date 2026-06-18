@@ -27,10 +27,11 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Activation emails only go to active members**
 - The activation drip now checks that a member's subscription is active before sending. Cancelled accounts no longer receive onboarding emails.
 
-**Testimonial requests - new feature**
-- A "Request Testimonial" button now appears on any closed deal. Click it and Dossie sends an email to the agent with Google and Zillow review links and a copy-paste message they can forward to their client. No more hunting for links or drafting the ask yourself.
+**Testimonial requests - new feature** (APV-passed)
+- A "Request Testimonial" button now appears on any closed deal. One tap sends an email to your client with your Google and Zillow review links already filled in. No more hunting for links or drafting the ask yourself. Tiffany Gill asked for this one.
 - The request also fires automatically 3 days after a deal closes so you never have to remember to ask.
-- You can add your Google and Zillow review profile links in Settings so Dossie always uses the right URLs.
+- Add your Google and Zillow review profile links in Settings once and Dossie uses them on every send going forward.
+- Verified in production 2026-06-18: button click works, URLs persist in Settings, real email delivered to client inbox, 3-day auto-fire cron confirmed running.
 
 ---
 

@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, minimum-scale=1, user-scalable=yes">
+  <meta name="theme-color" content="#0a0a14">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Jarvis — Shepard Ventures Command Center</title>
+  <link rel="icon" href="/icons/jarvis-192.svg">
+  <link rel="apple-touch-icon" href="/icons/jarvis-192.svg">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --navy-dark: #0a0a14;
+      --navy-mid: #20203a;
+      --coral: #E8836B;
+      --coral-deep: #d96d52;
+      --cyan: #5BD9E6;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
+      --border: rgba(245, 230, 224, 0.10);
+      --border-hover: rgba(245, 230, 224, 0.22);
+      --text-dim: rgba(245, 230, 224, 0.55);
+      --text-faint: rgba(245, 230, 224, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @keyframes starfield-drift {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(100%); }
+    }
+
+    @keyframes float-particle {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-100vh); }
+    }
+
+    @keyframes hex-pulse {
+      0%, 100% { opacity: 0.02; }
+      50% { opacity: 0.08; }
+    }
+
+    @keyframes edge-glow-pulse {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0.3; }
+    }
+
+    html, body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: linear-gradient(135deg, #0a0a14 0%, #1a1a3e 50%, #0a0a14 100%);
+      color: var(--blush);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: env(safe-area-inset-bottom);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 60px 70px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 50px 50px, #ddd, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 130px 80px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 90px 10px, #eee, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      animation: starfield-drift 30s linear infinite;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 20px,
+          rgba(91, 217, 230, 0.03) 20px,
+          rgba(91, 217, 230, 0.03) 21px
+        );
+      pointer-events: none;
+      z-index: 1;
+      animation: hex-pulse 8s ease-in-out infinite;
+    }
+
+    /* ---- Auth gate ---- */
+    #auth-gate {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+    }
+    #auth-gate.visible { display: flex; }
+    #auth-gate h1 {
+      font-family: "Cormorant Garamond", serif;
+      color: var(--gold);
+      font-weight: 600;
+      font-size: 2rem;
+    }
+    #auth-gate p { color: var(--text-dim); font-size: 0.95rem; max-width: 320px; }
+    #auth-gate input {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--navy-mid);
+      color: var(--blush);
+      width: min(320px, 90vw);
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    #auth-gate input:focus { outline: 1px solid var(--gold); border-color: var(--gold); }
+    #auth-gate button {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      background: var(--coral);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      width: min(320px, 90vw);
+    }
+    #auth-gate button:hover { background: var(--coral-deep); }
+    #auth-gate .err { color: var(--coral); font-size: 0.85rem; min-height: 1em; }
+
+    #app { display: none; }
+    #app.visible { display: block; }
+
+    /* ---- Main layout (3-column desktop, single-column mobile) ---- */
+    .page {
+      min-height: 100dvh;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Desktop: 3-column layout */
+    @media (min-width: 1024px) {
+      .page {
+        grid-template-columns: 300px 1fr 300px;
+        gap: 20px;
+        padding: 20px;
+        overflow-x: hidden;
+      }
+    }
+
+    /* ---- Top bar (fixed, full-width) ---- */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: linear-gradient(90deg, rgba(10, 10, 20, 0.95) 0%, rgba(26, 26, 62, 0.95) 50%, rgba(10, 10, 20, 0.95) 100%);
+      backdrop-filter: blur(12px);
+      border-bottom: 2px solid rgba(91, 217, 230, 0.2);
+      z-index: 40;
+      height: 60px;
+      box-shadow: 0 4px 20px rgba(91, 217, 230, 0.1);
+    }
+
+    .topbar-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: var(--blush);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .topbar-system {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.7rem;
+      color: var(--cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.05em;
+    }
+
+    .topbar-system-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--sage);
+      border-radius: 50%;
+      animation: sysOnline 2.5s ease-in-out infinite;
+      box-shadow: 0 0 12px var(--sage);
+    }
+
+    @keyframes sysOnline {
+      0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--sage); }
+      50% { opacity: 0.4; box-shadow: 0 0 4px var(--sage); }
+    }
+
+    .topbar-time {
+      font-size: 0.75rem;
+      color: var(--cyan);
+      text-align: right;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ---- Left panel (ventures) ---- */
+    .sidebar-left {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      padding-top: 80px;
+      padding-bottom: 24px;
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar-left {
+        display: flex;
+      }
+    }
+
+    /* ---- Right panel (agent activity) ---- */
+    .sidebar-right {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      padding-top: 80px;
+      padding-bottom: 24px;
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar-right {
+        display: flex;
+      }
+    }
+
+    /* ---- Center column (orb + ventures mobile) ---- */
+    .center-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-top: 64px;
+      padding-bottom: 20px;
+    }
+
+    @media (min-width: 1024px) {
+      .center-column {
+        padding: 64px 0 20px;
+      }
+    }
+
+    /* ---- Orb hero section ---- */
+    .orb-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      position: relative;
+      padding: 40px 20px;
+      margin-top: 20px;
+    }
+
+    #orb-container {
+      width: 400px;
+      height: 400px;
+      position: relative;
+      cursor: pointer;
+      filter: drop-shadow(0 0 60px rgba(91, 217, 230, 0.4)) drop-shadow(0 0 100px rgba(232, 131, 107, 0.2));
+    }
+
+    @media (max-width: 768px) {
+      #orb-container {
+        width: 280px;
+        height: 280px;
+        filter: drop-shadow(0 0 40px rgba(91, 217, 230, 0.3)) drop-shadow(0 0 60px rgba(232, 131, 107, 0.15));
+      }
+    }
+
+    /* ---- Orb status indicator ---- */
+    .orb-status {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9rem;
+      color: var(--cyan);
+      text-align: center;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      min-height: 1.2em;
+      font-weight: 700;
+      text-shadow: 0 0 12px rgba(91, 217, 230, 0.6);
+    }
+
+    .orb-tap-hint {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      animation: hint-pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes hint-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    /* ---- KPI ring around orb ---- */
+    .orb-kpis {
+      display: none;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      font-size: 0.65rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--cyan);
+    }
+
+    @media (min-width: 1024px) {
+      .orb-kpis {
+        display: block;
+      }
+    }
+
+    .kpi-badge {
+      position: absolute;
+      background: linear-gradient(135deg, rgba(10, 10, 20, 0.9) 0%, rgba(26, 26, 62, 0.85) 100%);
+      border: 2px solid rgba(91, 217, 230, 0.4);
+      border-radius: 0;
+      padding: 10px 14px;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow:
+        inset 0 0 12px rgba(91, 217, 230, 0.08),
+        0 0 16px rgba(91, 217, 230, 0.25),
+        0 0 40px rgba(91, 217, 230, 0.1);
+      animation: kpi-float 4s ease-in-out infinite;
+    }
+
+    .kpi-badge:nth-child(1) { animation-delay: 0s; }
+    .kpi-badge:nth-child(2) { animation-delay: 0.3s; }
+    .kpi-badge:nth-child(3) { animation-delay: 0.6s; }
+    .kpi-badge:nth-child(4) { animation-delay: 0.9s; }
+
+    @keyframes kpi-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .kpi-badge-label {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      margin-bottom: 3px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .kpi-badge-value {
+      font-weight: 700;
+      color: var(--cyan);
+      font-size: 1rem;
+      text-shadow: 0 0 8px rgba(91, 217, 230, 0.5);
+    }
+
+    /* ---- Panel styling (ventures, agents) ---- */
+    .hud-panel {
+      background: linear-gradient(135deg, rgba(32, 32, 58, 0.5) 0%, rgba(20, 20, 40, 0.4) 100%);
+      border: 1px solid rgba(91, 217, 230, 0.25);
+      border-radius: 0;
+      padding: 18px;
+      position: relative;
+      box-shadow:
+        inset 0 0 20px rgba(91, 217, 230, 0.05),
+        0 0 24px rgba(91, 217, 230, 0.12),
+        0 0 60px rgba(91, 217, 230, 0.06);
+      overflow: hidden;
+    }
+
+    .hud-panel::before,
+    .hud-panel::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--cyan);
+    }
+
+    .hud-panel::before {
+      top: 12px;
+      left: 12px;
+      border-right: none;
+      border-bottom: none;
+      box-shadow: 0 0 12px rgba(91, 217, 230, 0.5);
+    }
+
+    .hud-panel::after {
+      bottom: 12px;
+      right: 12px;
+      border-left: none;
+      border-top: none;
+      box-shadow: 0 0 12px rgba(91, 217, 230, 0.5);
+    }
+
+    @keyframes panel-scan {
+      0% { top: -100%; }
+      100% { top: 100%; }
+    }
+
+    .hud-panel::before {
+      animation: panel-scan 15s linear infinite;
+    }
+
+    .panel-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.7rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ---- Mobile ventures section (below orb on mobile) ---- */
+    .ventures-section-mobile {
+      display: block;
+    }
+
+    @media (min-width: 1024px) {
+      .ventures-section-mobile {
+        display: none;
+      }
+    }
+
+    /* ---- Agents working section ---- */
+    .section {
+      margin-bottom: 0;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 0;
+    }
+
+    .section-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+      font-size: 0.7rem;
+      color: var(--cyan);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-count {
+      font-size: 0.65rem;
+      color: var(--cyan);
+      background: transparent;
+      padding: 0;
+      border: none;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    /* ---- Agent activity cards ---- */
+    .agent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .agent-card {
+      background: rgba(32, 32, 58, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.75rem;
+    }
+
+    .agent-status {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .agent-status.working {
+      background: var(--sage);
+      box-shadow: 0 0 8px rgba(139, 168, 136, 0.7);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    .agent-status.idle {
+      background: var(--text-faint);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .agent-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .agent-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: var(--blush);
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    .agent-task {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ---- Company tile section (ventures panel) ---- */
+    .ventures-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .company-tile {
+      background: rgba(32, 32, 58, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .company-tile:active {
+      transform: scale(0.98);
+      background: var(--surface-hover);
+    }
+
+    .company-tile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .company-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--cyan);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .company-status {
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .company-stat {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .company-stat-label {
+      color: var(--text-faint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .company-stat-value {
+      color: var(--cyan);
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    /* ---- Pending merges ---- */
+    .merge-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .merge-card {
+      background: rgba(32, 32, 58, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 11px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      transition: all 0.15s;
+    }
+
+    .merge-card:active {
+      border-color: var(--border-hover);
+      background: var(--surface-hover);
+    }
+
+    .merge-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .merge-msg {
+      color: var(--blush);
+      font-weight: 500;
+      font-size: 0.8rem;
+      line-height: 1.3;
+      word-break: break-word;
+      margin-bottom: 3px;
+    }
+
+    .merge-meta {
+      color: var(--text-dim);
+      font-size: 0.65rem;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .merge-sha {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--cyan);
+    }
+
+    .merge-btn {
+      background: var(--coral);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-width: 60px;
+      flex-shrink: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .merge-btn:active {
+      background: var(--coral-deep);
+      transform: scale(0.96);
+    }
+
+    .merge-btn[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ---- Toast ---- */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--navy-mid);
+      color: var(--blush);
+      padding: 12px 18px;
+      border-radius: 6px;
+      border: 1px solid var(--border-hover);
+      box-shadow: 0 0 16px rgba(91, 217, 230, 0.2);
+      font-size: 0.8rem;
+      transition: transform 0.25s ease-out;
+      z-index: 50;
+      max-width: 88vw;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    #toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #toast.err {
+      border-color: var(--coral);
+      color: var(--coral);
+    }
+
+    #toast.ok {
+      border-color: var(--sage);
+      color: var(--sage);
+    }
+
+    /* ---- Scan line animation ---- */
+    @keyframes scanLine {
+      0% {
+        transform: translateY(-100%);
+      }
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+
+    .page::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scanLine 20s linear infinite;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* ---- Mobile responsive ---- */
+    @media (max-width: 768px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        padding: 10px 14px;
+        height: 50px;
+      }
+
+      .topbar-title {
+        font-size: 0.95rem;
+      }
+
+      .center-column {
+        padding: 60px 16px 20px;
+        gap: 16px;
+      }
+    }
+
+    /* ---- Ticker tape (bottom bar) ---- */
+    .ticker-tape {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      background: linear-gradient(90deg, rgba(10, 10, 20, 0.95) 0%, rgba(26, 26, 62, 0.95) 50%, rgba(10, 10, 20, 0.95) 100%);
+      border-top: 2px solid rgba(91, 217, 230, 0.2);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 20px;
+      overflow-x: hidden;
+      z-index: 35;
+      box-shadow: 0 -4px 20px rgba(91, 217, 230, 0.1);
+    }
+
+    .ticker-content {
+      display: flex;
+      gap: 40px;
+      animation: ticker-scroll 45s linear infinite;
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      color: var(--cyan);
+      letter-spacing: 0.03em;
+    }
+
+    @keyframes ticker-scroll {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .ticker-item {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .ticker-divider {
+      width: 1px;
+      height: 12px;
+      background: rgba(91, 217, 230, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .ticker-tape {
+        height: 40px;
+        padding: 0 12px;
+        gap: 16px;
+        font-size: 0.65rem;
+      }
+
+      .ticker-content {
+        gap: 32px;
+        animation: ticker-scroll 50s linear infinite;
+      }
+    }
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth gate -->
+  <div id="auth-gate">
+    <h1>Jarvis</h1>
+    <p>Shepard Ventures mission control — sign in as heath.</p>
+    <input id="email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
+    <input id="password" type="password" placeholder="password" autocomplete="current-password">
+    <button id="signin-btn">Sign in</button>
+    <div class="err" id="auth-err"></div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app">
+    <!-- Top bar (fixed, full-width) -->
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="topbar-system">
+          <div class="topbar-system-dot"></div>
+          <span>SYSTEM ONLINE</span>
+        </div>
+      </div>
+      <div class="topbar-title">SHEPARD VENTURES</div>
+      <div class="topbar-time" id="topbar-time"></div>
+    </div>
+
+    <!-- 3-column layout -->
+    <div class="page">
+      <!-- LEFT PANEL: Ventures (desktop only) -->
+      <div class="sidebar-left">
+        <div class="hud-panel" id="ventures-panel-left-outer">
+          <div class="panel-title">VENTURES</div>
+          <div class="ventures-panel" id="ventures-panel-left"></div>
+        </div>
+      </div>
+
+      <!-- CENTER: Orb + Ventures mobile -->
+      <div class="center-column">
+        <!-- Orb hero -->
+        <div class="orb-section">
+          <div class="orb-status" id="orb-status">STANDING BY</div>
+          <div id="orb-container"></div>
+          <div class="orb-kpis" id="orb-kpis"></div>
+          <div class="orb-tap-hint" id="orb-hint">ENGAGE — TAP TO TALK</div>
+        </div>
+
+        <!-- Ventures section (mobile only) -->
+        <div class="ventures-section-mobile">
+          <div class="hud-panel" id="ventures-panel-mobile-outer">
+            <div class="panel-title">VENTURES</div>
+            <div class="ventures-panel" id="ventures-panel-mobile"></div>
+          </div>
+        </div>
+
+        <!-- Agents working -->
+        <div class="section hud-panel" id="section-agents">
+          <div class="section-head">
+            <div class="section-title">AGENTS WORKING</div>
+            <div class="section-count" id="agent-count">0</div>
+          </div>
+          <div id="agent-list" class="agent-list"></div>
+        </div>
+
+        <!-- Pending merges -->
+        <div class="section hud-panel" id="section-merges">
+          <div class="section-head">
+            <div class="section-title">PENDING MERGES</div>
+            <div class="section-count" id="merge-count">0</div>
+          </div>
+          <div id="merge-list" class="merge-list"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Agent activity (desktop only) -->
+      <div class="sidebar-right">
+        <div class="hud-panel" id="activity-panel-right">
+          <div class="panel-title">ACTIVITY LOG</div>
+          <div id="activity-list" class="agent-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- Ticker tape (bottom bar) -->
+  <div class="ticker-tape">
+    <div class="ticker-content" id="ticker-content">
+      <div class="ticker-item">DOSSIE MRR <span style="color: #C9A96E;">$349</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">FOUNDING <span style="color: #C9A96E;">12/50</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">ACTIVE DOSSIERS <span style="color: #C9A96E;" id="ticker-active-count">0</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">OPEN BUGS <span style="color: #C9A96E;" id="ticker-bugs-count">0</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">AGENTS ONLINE <span style="color: #C9A96E;" id="ticker-agents-count">0</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">SYSTEM STATUS <span style="color: #8BA888;">OPERATIONAL</span></div>
+      <!-- Repeat for continuous scroll -->
+      <div class="ticker-item">DOSSIE MRR <span style="color: #C9A96E;">$349</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">FOUNDING <span style="color: #C9A96E;">12/50</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">ACTIVE DOSSIERS <span style="color: #C9A96E;">0</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">OPEN BUGS <span style="color: #C9A96E;">0</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">AGENTS ONLINE <span style="color: #C9A96E;">0</span></div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">SYSTEM STATUS <span style="color: #8BA888;">OPERATIONAL</span></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    let supabase = null;
+    let _token = null;
+    const _confirming = new Set();
+
+    // Time display (24-hour format like Iron Man HUD)
+    function updateTime() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const tzStr = 'CDT';
+      document.getElementById('topbar-time').textContent = `${timeStr} ${tzStr}`;
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Orb SVG with insane multi-layered concentric rotating rings
+    function initOrb() {
+      const container = document.getElementById('orb-container');
+      container.innerHTML = '';
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 400 400');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svg.style.width = '100%';
+      svg.style.height = '100%';
+
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+      // Radial gradient for central orb
+      const radialGradient = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+      radialGradient.setAttribute('id', 'orbGrad');
+      radialGradient.setAttribute('cx', '50%');
+      radialGradient.setAttribute('cy', '50%');
+      radialGradient.setAttribute('r', '50%');
+
+      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', '#E8A35D');
+      stop1.setAttribute('stop-opacity', '1');
+
+      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '70%');
+      stop2.setAttribute('stop-color', '#C9A96E');
+      stop2.setAttribute('stop-opacity', '0.9');
+
+      const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop3.setAttribute('offset', '100%');
+      stop3.setAttribute('stop-color', '#E8836B');
+      stop3.setAttribute('stop-opacity', '0.8');
+
+      radialGradient.appendChild(stop1);
+      radialGradient.appendChild(stop2);
+      radialGradient.appendChild(stop3);
+
+      // Glow filter with multiple layers
+      const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+      filter.setAttribute('id', 'orbGlow');
+      const feGaussianBlur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+      feGaussianBlur.setAttribute('stdDeviation', '12');
+      const feMerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+      const feMergeNode1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+      feMergeNode1.setAttribute('in', 'SourceGraphic');
+      const feMergeNode2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+      feMergeNode2.setAttribute('in', 'SourceGraphic');
+      feMerge.appendChild(feMergeNode1);
+      feMerge.appendChild(feMergeNode2);
+      filter.appendChild(feGaussianBlur);
+      filter.appendChild(feMerge);
+
+      defs.appendChild(radialGradient);
+      defs.appendChild(filter);
+      svg.appendChild(defs);
+
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes ring1Rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ring2Rotate { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes ring3Rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ring4Rotate { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes ring5Rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes orbPulse { 0%, 100% { r: 60px; opacity: 0.95; } 50% { r: 68px; opacity: 1; } }
+        @keyframes orbGlowPulse { 0%, 100% { filter: drop-shadow(0 0 30px rgba(232, 131, 107, 0.3)); } 50% { filter: drop-shadow(0 0 50px rgba(232, 131, 107, 0.6)); } }
+      `;
+      svg.appendChild(style);
+
+      // Ring 1 (outermost, cyan, slowest, clockwise)
+      const ring1Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring1Group.style.animation = 'ring1Rotate 28s linear infinite';
+      ring1Group.setAttribute('transform', 'translate(200, 200)');
+      const ring1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring1.setAttribute('cx', '0');
+      ring1.setAttribute('cy', '0');
+      ring1.setAttribute('r', '180');
+      ring1.setAttribute('fill', 'none');
+      ring1.setAttribute('stroke', '#5BD9E6');
+      ring1.setAttribute('stroke-width', '2');
+      ring1.setAttribute('opacity', '0.25');
+      ring1Group.appendChild(ring1);
+      svg.appendChild(ring1Group);
+
+      // Ring 2 (counter-clockwise)
+      const ring2Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring2Group.style.animation = 'ring2Rotate 22s linear infinite';
+      ring2Group.setAttribute('transform', 'translate(200, 200)');
+      const ring2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring2.setAttribute('cx', '0');
+      ring2.setAttribute('cy', '0');
+      ring2.setAttribute('r', '150');
+      ring2.setAttribute('fill', 'none');
+      ring2.setAttribute('stroke', '#5BD9E6');
+      ring2.setAttribute('stroke-width', '1.5');
+      ring2.setAttribute('opacity', '0.4');
+      ring2Group.appendChild(ring2);
+      svg.appendChild(ring2Group);
+
+      // Ring 3 (clockwise)
+      const ring3Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring3Group.style.animation = 'ring3Rotate 16s linear infinite';
+      ring3Group.setAttribute('transform', 'translate(200, 200)');
+      const ring3 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring3.setAttribute('cx', '0');
+      ring3.setAttribute('cy', '0');
+      ring3.setAttribute('r', '120');
+      ring3.setAttribute('fill', 'none');
+      ring3.setAttribute('stroke', '#5BD9E6');
+      ring3.setAttribute('stroke-width', '1.5');
+      ring3.setAttribute('opacity', '0.5');
+      ring3Group.appendChild(ring3);
+      svg.appendChild(ring3Group);
+
+      // Ring 4 (counter-clockwise, faster)
+      const ring4Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring4Group.style.animation = 'ring4Rotate 12s linear infinite';
+      ring4Group.setAttribute('transform', 'translate(200, 200)');
+      const ring4 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring4.setAttribute('cx', '0');
+      ring4.setAttribute('cy', '0');
+      ring4.setAttribute('r', '90');
+      ring4.setAttribute('fill', 'none');
+      ring4.setAttribute('stroke', '#E8836B');
+      ring4.setAttribute('stroke-width', '1');
+      ring4.setAttribute('opacity', '0.45');
+      ring4Group.appendChild(ring4);
+      svg.appendChild(ring4Group);
+
+      // Ring 5 (inner, clockwise)
+      const ring5Group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ring5Group.style.animation = 'ring5Rotate 18s linear infinite';
+      ring5Group.setAttribute('transform', 'translate(200, 200)');
+      const ring5 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring5.setAttribute('cx', '0');
+      ring5.setAttribute('cy', '0');
+      ring5.setAttribute('r', '60');
+      ring5.setAttribute('fill', 'none');
+      ring5.setAttribute('stroke', '#5BD9E6');
+      ring5.setAttribute('stroke-width', '1');
+      ring5.setAttribute('opacity', '0.6');
+      ring5Group.appendChild(ring5);
+      svg.appendChild(ring5Group);
+
+      // Central orb (pulsing)
+      const orbGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      orbGroup.setAttribute('transform', 'translate(200, 200)');
+      orbGroup.style.animation = 'orbGlowPulse 3s ease-in-out infinite';
+
+      const orb = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      orb.setAttribute('cx', '0');
+      orb.setAttribute('cy', '0');
+      orb.setAttribute('r', '60');
+      orb.setAttribute('fill', 'url(#orbGrad)');
+      orb.setAttribute('filter', 'url(#orbGlow)');
+      orb.style.animation = 'orbPulse 2.8s ease-in-out infinite';
+
+      orbGroup.appendChild(orb);
+      svg.appendChild(orbGroup);
+
+      container.appendChild(svg);
+
+      // Tap handler
+      container.addEventListener('click', (e) => voiceLoop.onOrbTap(e));
+
+      // State + intensity support
+      window.setOrbState = (state) => {
+        container.classList.remove('listening', 'recording', 'thinking', 'speaking');
+        if (state) container.classList.add(state);
+      };
+      window.setOrbIntensity = (v) => {
+        svg.style.opacity = Math.max(0.5, 0.7 + v * 0.3);
+        const rings = svg.querySelectorAll('circle[r]');
+        rings.forEach((ring, i) => {
+          const base = parseFloat(ring.getAttribute('r'));
+          ring.setAttribute('r', base + v * 3);
+        });
+      };
+    }
+
+    // Create KPI badges around orb
+    function initOrbKPIs() {
+      const kpisContainer = document.getElementById('orb-kpis');
+      if (!kpisContainer) return;
+      kpisContainer.innerHTML = '';
+
+      const kpis = [
+        { label: 'AGENTS', value: '0', pos: 'top: -20px; left: 50%; transform: translateX(-50%);' },
+        { label: 'MRR', value: '$349', pos: 'top: 50%; right: -80px; transform: translateY(-50%);' },
+        { label: 'MERGES', value: '0', pos: 'bottom: -20px; left: 50%; transform: translateX(-50%);' },
+        { label: 'BUGS', value: '0', pos: 'top: 50%; left: -80px; transform: translateY(-50%);' }
+      ];
+
+      kpis.forEach(kpi => {
+        const badge = document.createElement('div');
+        badge.className = 'kpi-badge';
+        badge.style.cssText = kpi.pos;
+        badge.innerHTML = `
+          <div class="kpi-badge-label">${kpi.label}</div>
+          <div class="kpi-badge-value">${kpi.value}</div>
+        `;
+        kpisContainer.appendChild(badge);
+      });
+    }
+
+    function toast(msg, kind = '') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = '';
+      el.classList.add('visible');
+      if (kind) el.classList.add(kind);
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.classList.remove('visible'); }, 3500);
+    }
+
+    async function authFetch(url, init = {}) {
+      return fetch(url, {
+        ...init,
+        headers: {
+          'Authorization': `Bearer ${_token}`,
+          'Content-Type': 'application/json',
+          ...(init.headers || {}),
+        },
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('auth-err');
+      if (el) el.textContent = msg || '';
+    }
+
+    function showLogin() {
+      document.getElementById('auth-gate').classList.add('visible');
+      document.getElementById('app').classList.remove('visible');
+    }
+
+    // ---- Voice loop (from orb-web.html) ----
+    const voiceLoop = (() => {
+      const container = null; // set in bootstrap after initOrb
+      const statusEl = document.getElementById('orb-status');
+      let state = 'idle';
+      const STATE_LABELS = {
+        idle:      'STANDING BY',
+        recording: 'LISTENING…',
+        thinking:  'THINKING…',
+        speaking:  'SPEAKING…',
+        error:     'ERROR — TAP TO RETRY',
+      };
+      function setState(next, errorMsg) {
+        if (state === next) return;
+        state = next;
+        if (window.setOrbState) window.setOrbState(next);
+        if (statusEl) {
+          statusEl.className = '';
+          statusEl.textContent = errorMsg || STATE_LABELS[next] || '';
+        }
+      }
+      setState('idle');
+
+      const history = [];
+      const MAX_HISTORY = 20;
+      function rememberTurn(role, content) {
+        history.push({ role, content });
+        while (history.length > MAX_HISTORY) history.shift();
+      }
+
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SPEECH_SUPPORTED = !!SpeechRecognitionCtor;
+      let recognition = null;
+      let lastTranscript = '';
+      if (SPEECH_SUPPORTED) {
+        recognition = new SpeechRecognitionCtor();
+        recognition.interimResults = false;
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+      }
+
+      let mediaStream = null;
+      let micAnalyser = null;
+      let micDataArray = null;
+      let micRaf = 0;
+      let smoothedMic = 0;
+      const MIC_ALPHA = 0.35;
+      const MAX_RECORD_MS = 30000;
+
+      function setIntensity(v) {
+        if (window.setOrbIntensity) window.setOrbIntensity(v);
+      }
+
+      async function startRecording() {
+        if (state !== 'idle') return;
+        if (!SPEECH_SUPPORTED) {
+          setState('error', 'VOICE NOT SUPPORTED — TRY CHROME OR SAFARI');
+          setTimeout(() => setState('idle'), 4000);
+          return;
+        }
+        if (window.coleAudio && window.coleAudio.cancelPreview) {
+          window.coleAudio.cancelPreview();
+        }
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+        } catch (err) {
+          console.warn('[voice] mic permission denied:', err);
+          setState('error', 'MIC BLOCKED — ALLOW ACCESS THEN TAP');
+          setTimeout(() => setState('idle'), 3000);
+          return;
+        }
+
+        try {
+          const ctx = window.coleAudio && window.coleAudio.ensureContext && window.coleAudio.ensureContext();
+          if (ctx) {
+            const src = ctx.createMediaStreamSource(mediaStream);
+            micAnalyser = ctx.createAnalyser();
+            micAnalyser.fftSize = 256;
+            micDataArray = new Uint8Array(micAnalyser.fftSize);
+            src.connect(micAnalyser);
+          }
+        } catch (err) {
+          console.warn('[voice] mic analyser setup failed:', err);
+        }
+
+        lastTranscript = '';
+        recognition.onresult = (event) => {
+          try {
+            const r = event.results && event.results[0] && event.results[0][0];
+            if (r && r.transcript) lastTranscript = r.transcript.trim();
+          } catch (_) {}
+        };
+        recognition.onerror = (event) => {
+          const errType = event && event.error;
+          console.warn('[voice] SpeechRecognition error:', errType);
+          cleanupStream();
+          let msg = 'DIDN\'T CATCH THAT — TAP TO TRY AGAIN';
+          if (errType === 'not-allowed' || errType === 'service-not-allowed') msg = 'MIC BLOCKED — ALLOW ACCESS THEN TAP';
+          else if (errType === 'audio-capture') msg = 'NO MIC DETECTED';
+          else if (errType === 'network') msg = 'CONNECTION HICCUP — TAP TO RETRY';
+          setState('error', msg);
+          setTimeout(() => setState('idle'), 2800);
+        };
+        recognition.onend = () => {
+          if (state !== 'recording' && state !== 'thinking') return;
+          handleRecognitionEnd();
+        };
+
+        try {
+          recognition.start();
+        } catch (err) {
+          console.warn('[voice] SpeechRecognition start failed:', err);
+          cleanupStream();
+          setState('error', 'VOICE UNAVAILABLE — TAP TO RETRY');
+          setTimeout(() => setState('idle'), 3000);
+          return;
+        }
+        setState('recording');
+        micRaf = requestAnimationFrame(micTick);
+        setTimeout(() => {
+          if (state === 'recording') stopRecording();
+        }, MAX_RECORD_MS);
+      }
+
+      function micTick() {
+        if (state !== 'recording') {
+          micRaf = 0;
+          return;
+        }
+        let rms = 0;
+        if (micAnalyser) {
+          micAnalyser.getByteTimeDomainData(micDataArray);
+          let sum = 0;
+          for (let i = 0; i < micDataArray.length; i++) {
+            const v = (micDataArray[i] - 128) / 128;
+            sum += v * v;
+          }
+          rms = Math.sqrt(sum / micDataArray.length);
+        }
+        smoothedMic = MIC_ALPHA * Math.min(1, rms * 4.0) + (1 - MIC_ALPHA) * smoothedMic;
+        setIntensity(smoothedMic);
+        micRaf = requestAnimationFrame(micTick);
+      }
+
+      function stopRecording() {
+        if (!recognition) return;
+        try { recognition.stop(); } catch (_) {}
+      }
+
+      function cleanupStream() {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((t) => t.stop());
+          mediaStream = null;
+        }
+        micAnalyser = null;
+        micDataArray = null;
+        if (micRaf) { cancelAnimationFrame(micRaf); micRaf = 0; }
+        smoothedMic = 0;
+        setIntensity(0);
+      }
+
+      async function handleRecognitionEnd() {
+        setState('thinking');
+        cleanupStream();
+        const transcript = (lastTranscript || '').trim();
+        lastTranscript = '';
+
+        if (!transcript) {
+          setState('error', 'DIDN\'T CATCH THAT — TAP TO TRY AGAIN');
+          setTimeout(() => setState('idle'), 2500);
+          return;
+        }
+
+        try {
+          rememberTurn('user', transcript);
+          const reply = await sendForReply(transcript);
+          if (!reply) {
+            setState('error', 'COLE COULDN\'T ANSWER — TRY AGAIN');
+            setTimeout(() => setState('idle'), 2500);
+            return;
+          }
+          rememberTurn('assistant', reply);
+          setState('speaking');
+          await speakResponse(reply);
+          setState('idle');
+        } catch (err) {
+          console.error('[voice] conversation error:', err);
+          setState('error', err && err.userMessage ? err.userMessage : 'CONNECTION HICCUP — TAP TO RETRY');
+          setTimeout(() => setState('idle'), 3500);
+        }
+      }
+
+      async function sendForReply(message) {
+        const res = await authFetch('/api/cole-voice?op=chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, history: history.slice(0, -1) }),
+        });
+        if (!res.ok) {
+          const err = new Error('Chat failed');
+          err.userMessage = res.status === 429 ? 'SLOW DOWN — TOO MANY REQUESTS' : 'COLE COULDN\'T ANSWER';
+          throw err;
+        }
+        const data = await res.json();
+        return (data && data.response || '').trim();
+      }
+
+      async function speakResponse(text) {
+        const res = await authFetch('/api/cole-voice?op=speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) {
+          const err = new Error('TTS failed');
+          err.userMessage = 'VOICE UNAVAILABLE';
+          throw err;
+        }
+        const audioBlob = await res.blob();
+        const url = URL.createObjectURL(audioBlob);
+        if (window.coleAudio && window.coleAudio.playUrl) {
+          await window.coleAudio.playUrl(url);
+        } else {
+          const audio = new Audio(url);
+          await audio.play();
+          await new Promise((r) => audio.addEventListener('ended', r, { once: true }));
+        }
+        URL.revokeObjectURL(url);
+      }
+
+      function onOrbTap(e) {
+        if (e && e.cancelable) e.preventDefault();
+        if (state === 'idle')      { startRecording(); return; }
+        if (state === 'recording') { stopRecording(); return; }
+        if (state === 'error')     { setState('idle'); return; }
+      }
+
+      return { onOrbTap, setState };
+    })();
+
+    // ---- Web Audio pulse helper (for TTS playback amplitude) ----
+    window.coleAudio = window.coleAudio || {};
+    window.coleAudio.ensureContext = function () {
+      if (!window.coleAudio._ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) window.coleAudio._ctx = new AC();
+      }
+      const c = window.coleAudio._ctx;
+      if (c && c.state === 'suspended') c.resume().catch(() => {});
+      return c;
+    };
+    window.coleAudio.playUrl = async function (url) {
+      window.coleAudio.ensureContext();
+      const ctx = window.coleAudio._ctx;
+      if (ctx && ctx.state === 'suspended') await ctx.resume().catch(() => {});
+
+      const audio = new Audio(url);
+      voiceLoop.setState('speaking');
+
+      // Amplitude tracking via Web Audio
+      if (ctx) {
+        const source = ctx.createMediaElementAudioSource(audio);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        const dataArray = new Uint8Array(analyser.fftSize);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+
+        let rafId = 0;
+        const tick = () => {
+          if (!audio.paused && !audio.ended) {
+            analyser.getByteTimeDomainData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              const v = (dataArray[i] - 128) / 128;
+              sum += v * v;
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            const intensity = Math.min(1, rms * 4.0);
+            if (window.setOrbIntensity) window.setOrbIntensity(intensity);
+            rafId = requestAnimationFrame(tick);
+          }
+        };
+        rafId = requestAnimationFrame(tick);
+      }
+
+      try {
+        await audio.play();
+        await new Promise((resolve) => {
+          audio.addEventListener('ended', resolve, { once: true });
+          audio.addEventListener('pause', resolve, { once: true });
+        });
+      } finally {
+        voiceLoop.setState('idle');
+      }
+    };
+
+    function revealApp(token) {
+      _token = token;
+      document.getElementById('auth-gate').classList.remove('visible');
+      document.getElementById('app').classList.add('visible');
+      initOrb();
+      initOrbKPIs();
+      refresh();
+    }
+
+    async function bootstrap() {
+      let config;
+      try {
+        config = await fetch('/api/config').then(r => r.json());
+      } catch {
+        showError('Could not load config.');
+        showLogin();
+        return;
+      }
+      if (!config.supabaseUrl || !config.supabaseKey) {
+        showError('Supabase env missing.');
+        showLogin();
+        return;
+      }
+      supabase = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+          storage: window.localStorage,
+          storageKey: 'jarvis.auth.token',
+          flowType: 'pkce',
+        },
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showLogin(); return; }
+      if (session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        showError('Access denied � Heath only');
+        showLogin();
+        return;
+      }
+      revealApp(session.access_token);
+    }
+
+    async function refresh() {
+      try {
+        await Promise.all([loadAgents(), loadCompanies(), loadMerges()]);
+      } catch (err) {
+        console.error('Refresh error:', err);
+        toast('Refresh failed', 'err');
+      }
+    }
+
+    async function loadAgents() {
+      const { data, error } = await supabase
+        .from('agent_activity')
+        .select('agent_name, status, task_summary')
+        .order('agent_name');
+      if (error) throw error;
+
+      const agents = data || [];
+      document.getElementById('agent-count').textContent = agents.length;
+
+      // Render center panel
+      const agentList = document.getElementById('agent-list');
+      agentList.innerHTML = '';
+      agents.forEach(agent => {
+        const card = document.createElement('div');
+        card.className = 'agent-card';
+        const statusClass = agent.status === 'working' ? 'working' : 'idle';
+        card.innerHTML = `
+          <div class="agent-status ${statusClass}"></div>
+          <div class="agent-info">
+            <div class="agent-name">${agent.agent_name || 'Unknown'}</div>
+            <div class="agent-task">${agent.task_summary || 'idle'}</div>
+          </div>
+        `;
+        agentList.appendChild(card);
+      });
+
+      // Render right panel (activity log) - show last 5 agents
+      const activityList = document.getElementById('activity-list');
+      if (activityList) {
+        activityList.innerHTML = '';
+        agents.slice(0, 5).forEach(agent => {
+          const card = document.createElement('div');
+          card.className = 'agent-card';
+          const statusClass = agent.status === 'working' ? 'working' : 'idle';
+          card.innerHTML = `
+            <div class="agent-status ${statusClass}"></div>
+            <div class="agent-info">
+              <div class="agent-name">${agent.agent_name || 'Unknown'}</div>
+              <div class="agent-task">${agent.task_summary || 'idle'}</div>
+            </div>
+          `;
+          activityList.appendChild(card);
+        });
+      }
+    }
+
+    async function loadCompanies() {
+      const companies = [
+        {
+          name: 'DOSSIE',
+          status: 'Operational',
+          stats: [
+            { label: 'MRR', value: '$349' },
+            { label: 'Founding', value: '12/50' }
+          ]
+        },
+        {
+          name: 'PARALEGAL',
+          status: 'Research',
+          stats: [
+            { label: 'Partner', value: 'Joshua' }
+          ]
+        },
+        {
+          name: 'AGENTS',
+          status: 'Pre-launch',
+          stats: [
+            { label: 'Beachhead', value: 'Travel' }
+          ]
+        }
+      ];
+
+      const renderVenturesPanel = (panelId) => {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.innerHTML = '';
+
+        companies.forEach(comp => {
+          const card = document.createElement('div');
+          card.className = 'company-tile';
+          card.innerHTML = `
+            <div class="company-tile-header">
+              <div class="company-name">${comp.name}</div>
+              <div class="company-status">${comp.status}</div>
+            </div>
+            ${comp.stats.map(s => `
+              <div class="company-stat">
+                <div class="company-stat-label">${s.label}</div>
+                <div class="company-stat-value">${s.value}</div>
+              </div>
+            `).join('')}
+          `;
+          panel.appendChild(card);
+        });
+      };
+
+      renderVenturesPanel('ventures-panel-left');
+      renderVenturesPanel('ventures-panel-mobile');
+    }
+
+    async function loadMerges() {
+      // V1: stub. Would fetch from GitHub API with GITHUB_TOKEN.
+      // For now, show placeholder.
+      const mergeList = document.getElementById('merge-list');
+      mergeList.innerHTML = '';
+      document.getElementById('merge-count').textContent = 0;
+    }
+
+    // Init on load
+    document.addEventListener('DOMContentLoaded', bootstrap);
+    document.getElementById('signin-btn')?.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      if (!email || !password) {
+        showError('Email and password required.');
+        return;
+      }
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (data.user.email !== 'heath.shepard@kw.com') {
+          await supabase.auth.signOut();
+          showError('Access denied � Heath only');
+          return;
+        }
+        revealApp(data.session.access_token);
+      } catch (err) {
+        showError(err.message || 'Sign in failed.');
+      }
+    });
+  </script>
+</body>
+</html>
