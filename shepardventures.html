@@ -46,20 +46,6 @@
       100% { opacity: 0; transform: translateY(-100vh); }
     }
 
-    @keyframes ambient-drift {
-      0% {
-        opacity: 0.3;
-        transform: translateY(100vh) translateX(0);
-      }
-      50% {
-        opacity: 0.6;
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-100vh) translateX(20px);
-      }
-    }
-
     @keyframes hex-pulse {
       0%, 100% { opacity: 0.02; }
       50% { opacity: 0.08; }
@@ -117,8 +103,8 @@
           0deg,
           transparent,
           transparent 20px,
-          rgba(91, 217, 230, 0.08) 20px,
-          rgba(91, 217, 230, 0.08) 21px
+          rgba(91, 217, 230, 0.03) 20px,
+          rgba(91, 217, 230, 0.03) 21px
         );
       pointer-events: none;
       z-index: 1;
@@ -313,8 +299,8 @@
     }
 
     #orb-container {
-      width: 350px;
-      height: 350px;
+      width: 400px;
+      height: 400px;
       position: relative;
       cursor: pointer;
       filter: drop-shadow(0 0 60px rgba(91, 217, 230, 0.4)) drop-shadow(0 0 100px rgba(232, 131, 107, 0.2));
@@ -322,8 +308,8 @@
 
     @media (max-width: 768px) {
       #orb-container {
-        width: 240px;
-        height: 240px;
+        width: 280px;
+        height: 280px;
         filter: drop-shadow(0 0 40px rgba(91, 217, 230, 0.3)) drop-shadow(0 0 60px rgba(232, 131, 107, 0.15));
       }
     }
@@ -354,256 +340,6 @@
     @keyframes hint-pulse {
       0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
-    }
-
-    /* ---- Agent roster (V4) ---- */
-    .agent-roster {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-      gap: 16px;
-      padding: 0;
-      margin-bottom: 20px;
-      justify-items: center;
-    }
-
-    .agent-avatar {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .agent-avatar:active {
-      transform: scale(0.95);
-    }
-
-    .agent-hex {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, rgba(32, 32, 58, 0.7) 0%, rgba(26, 26, 62, 0.6) 100%);
-      border: 2px solid rgba(91, 217, 230, 0.3);
-      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-      border-radius: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--cyan);
-      font-family: "Cormorant Garamond", serif;
-      box-shadow: inset 0 0 12px rgba(91, 217, 230, 0.06), 0 0 12px rgba(91, 217, 230, 0.15);
-      transition: all 0.3s;
-    }
-
-    .agent-hex.working {
-      border-color: rgba(91, 217, 230, 0.6);
-      box-shadow: inset 0 0 12px rgba(91, 217, 230, 0.1), 0 0 24px rgba(91, 217, 230, 0.35), 0 0 40px rgba(91, 217, 230, 0.2);
-      animation: agent-glow 1.5s ease-in-out infinite;
-    }
-
-    @keyframes agent-glow {
-      0%, 100% { box-shadow: inset 0 0 12px rgba(91, 217, 230, 0.1), 0 0 24px rgba(91, 217, 230, 0.35), 0 0 40px rgba(91, 217, 230, 0.2); }
-      50% { box-shadow: inset 0 0 16px rgba(91, 217, 230, 0.15), 0 0 32px rgba(91, 217, 230, 0.5), 0 0 60px rgba(91, 217, 230, 0.3); }
-    }
-
-    .agent-name-label {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      text-align: center;
-      min-width: 70px;
-    }
-
-    .agent-status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--text-faint);
-      transition: all 0.3s;
-    }
-
-    .agent-hex.working ~ .agent-status-dot {
-      background: var(--sage);
-      box-shadow: 0 0 12px var(--sage);
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-
-    /* ---- YOUR NEXT MOVE panel (V4) ---- */
-    .next-move-panel {
-      background: linear-gradient(135deg, rgba(232, 131, 107, 0.08) 0%, rgba(91, 217, 230, 0.04) 100%);
-      border: 1px solid rgba(232, 131, 107, 0.3);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 20px;
-      position: relative;
-    }
-
-    .next-move-title {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.7rem;
-      color: var(--coral);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 10px;
-      display: block;
-    }
-
-    .next-move-task {
-      color: var(--blush);
-      font-size: 0.95rem;
-      margin-bottom: 12px;
-      line-height: 1.4;
-    }
-
-    .next-move-empty {
-      color: var(--text-dim);
-      font-size: 0.85rem;
-      font-style: italic;
-    }
-
-    .next-move-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .action-btn {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid rgba(91, 217, 230, 0.3);
-      background: transparent;
-      color: var(--cyan);
-      font-size: 0.7rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    .action-btn:active {
-      background: rgba(91, 217, 230, 0.2);
-      border-color: rgba(91, 217, 230, 0.5);
-    }
-
-    .action-btn.coral {
-      border-color: rgba(232, 131, 107, 0.4);
-      color: var(--coral);
-    }
-
-    .action-btn.coral:active {
-      background: rgba(232, 131, 107, 0.15);
-      border-color: rgba(232, 131, 107, 0.6);
-    }
-
-    /* ---- Dossie KPI modal (V4) ---- */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(10, 10, 20, 0.7);
-      backdrop-filter: blur(4px);
-      z-index: 60;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal-overlay.visible {
-      display: flex;
-    }
-
-    .modal-content {
-      background: linear-gradient(135deg, rgba(32, 32, 58, 0.9) 0%, rgba(20, 20, 40, 0.85) 100%);
-      border: 1px solid rgba(91, 217, 230, 0.3);
-      border-radius: 8px;
-      padding: 20px;
-      max-width: 420px;
-      width: 100%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 0 40px rgba(91, 217, 230, 0.2);
-      animation: modal-slide 0.25s ease-out;
-    }
-
-    @keyframes modal-slide {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(91, 217, 230, 0.2);
-    }
-
-    .modal-title {
-      font-family: "Cormorant Garamond", serif;
-      font-size: 1.2rem;
-      color: var(--gold);
-      font-weight: 600;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-dim);
-      cursor: pointer;
-      font-size: 1.4rem;
-      padding: 0;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-close:active {
-      color: var(--cyan);
-    }
-
-    .kpi-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(91, 217, 230, 0.1);
-      gap: 12px;
-    }
-
-    .kpi-row:last-child {
-      border-bottom: none;
-    }
-
-    .kpi-label {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    .kpi-value {
-      font-weight: 700;
-      font-size: 1rem;
-      color: var(--cyan);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-
-    .kpi-value.gold {
-      color: var(--gold);
     }
 
     /* ---- KPI ring around orb ---- */
@@ -1030,24 +766,6 @@
       opacity: 0.4;
     }
 
-    /* Ambient particles (V4) */
-    .ambient-particle {
-      position: fixed;
-      width: 2px;
-      height: 2px;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 2;
-      will-change: transform;
-    }
-
-    .ambient-particle.type1 { animation: ambient-drift 25s linear infinite; }
-    .ambient-particle.type2 { animation: ambient-drift 30s linear infinite; animation-delay: 3s; }
-    .ambient-particle.type3 { animation: ambient-drift 35s linear infinite; animation-delay: 6s; }
-    .ambient-particle.type4 { animation: ambient-drift 28s linear infinite; animation-delay: 9s; }
-    .ambient-particle.type5 { animation: ambient-drift 32s linear infinite; animation-delay: 12s; }
-
     /* ---- Mobile responsive ---- */
     @media (max-width: 768px) {
       .page {
@@ -1186,29 +904,6 @@
           </div>
         </div>
 
-        <!-- Agent Roster (V4) -->
-        <div class="hud-panel" id="section-roster">
-          <div class="panel-title">AGENT ROSTER</div>
-          <div class="agent-roster" id="agent-roster"></div>
-        </div>
-
-        <!-- YOUR NEXT MOVE (V4) -->
-        <div class="next-move-panel" id="next-move-panel">
-          <span class="next-move-title">YOUR NEXT MOVE</span>
-          <div id="next-move-content">
-            <div class="next-move-empty">Loading…</div>
-          </div>
-        </div>
-
-        <!-- Agents working -->
-        <div class="section hud-panel" id="section-agents">
-          <div class="section-head">
-            <div class="section-title">AGENTS WORKING</div>
-            <div class="section-count" id="agent-count">0</div>
-          </div>
-          <div id="agent-list" class="agent-list"></div>
-        </div>
-
         <!-- Pending merges -->
         <div class="section hud-panel" id="section-merges">
           <div class="section-head">
@@ -1222,40 +917,8 @@
       <!-- RIGHT PANEL: Agent activity (desktop only) -->
       <div class="sidebar-right">
         <div class="hud-panel" id="activity-panel-right">
-          <div class="panel-title">RECENT ACTIVITY</div>
+          <div class="panel-title">ACTIVITY LOG</div>
           <div id="activity-list" class="agent-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dossie KPI Modal (V4) -->
-    <div class="modal-overlay" id="kpi-modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-title">DOSSIE KPIs</div>
-          <button class="modal-close" id="modal-close-btn">&times;</button>
-        </div>
-        <div id="kpi-modal-body">
-          <div class="kpi-row">
-            <div class="kpi-label">Monthly Recurring Revenue</div>
-            <div class="kpi-value gold" id="kpi-mrr">$349</div>
-          </div>
-          <div class="kpi-row">
-            <div class="kpi-label">Founding Spots Used</div>
-            <div class="kpi-value" id="kpi-founding">12/50</div>
-          </div>
-          <div class="kpi-row">
-            <div class="kpi-label">Active Dossiers</div>
-            <div class="kpi-value" id="kpi-dossiers">0</div>
-          </div>
-          <div class="kpi-row">
-            <div class="kpi-label">Logged In (7d)</div>
-            <div class="kpi-value" id="kpi-active-7d">0</div>
-          </div>
-          <div class="kpi-row">
-            <div class="kpi-label">Open Support Tickets</div>
-            <div class="kpi-value" id="kpi-tickets">0</div>
-          </div>
         </div>
       </div>
     </div>
@@ -1576,24 +1239,18 @@
         while (history.length > MAX_HISTORY) history.shift();
       }
 
-      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const SPEECH_SUPPORTED = !!SpeechRecognitionCtor;
-      let recognition = null;
-      let lastTranscript = '';
-      if (SPEECH_SUPPORTED) {
-        recognition = new SpeechRecognitionCtor();
-        recognition.interimResults = false;
-        recognition.continuous = false;
-        recognition.lang = 'en-US';
-        recognition.maxAlternatives = 1;
-      }
-
       let mediaStream = null;
+      let mediaRecorder = null;
+      let recordedChunks = [];
       let micAnalyser = null;
       let micDataArray = null;
       let micRaf = 0;
+      let silenceTimer = null;
+      let recordStartedAt = 0;
       let smoothedMic = 0;
       const MIC_ALPHA = 0.35;
+      const SILENCE_RMS_THRESHOLD = 0.02;
+      const SILENCE_HOLD_MS = 1500;
       const MAX_RECORD_MS = 30000;
 
       function setIntensity(v) {
@@ -1602,11 +1259,6 @@
 
       async function startRecording() {
         if (state !== 'idle') return;
-        if (!SPEECH_SUPPORTED) {
-          setState('error', 'VOICE NOT SUPPORTED — TRY CHROME OR SAFARI');
-          setTimeout(() => setState('idle'), 4000);
-          return;
-        }
         if (window.coleAudio && window.coleAudio.cancelPreview) {
           window.coleAudio.cancelPreview();
         }
@@ -1620,10 +1272,43 @@
           });
         } catch (err) {
           console.warn('[voice] mic permission denied:', err);
-          setState('error', 'MIC BLOCKED — ALLOW ACCESS THEN TAP');
+          setState('error', 'MIC BLOCKED - ALLOW ACCESS THEN TAP');
           setTimeout(() => setState('idle'), 3000);
           return;
         }
+
+        const mimeCandidates = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/mpeg',
+          'audio/ogg;codecs=opus',
+          '',
+        ];
+        let chosenMime = '';
+        for (const m of mimeCandidates) {
+          if (m === '' || (window.MediaRecorder && MediaRecorder.isTypeSupported(m))) {
+            chosenMime = m;
+            break;
+          }
+        }
+        try {
+          mediaRecorder = chosenMime
+            ? new MediaRecorder(mediaStream, { mimeType: chosenMime })
+            : new MediaRecorder(mediaStream);
+        } catch (err) {
+          console.warn('[voice] MediaRecorder init failed:', err);
+          cleanupStream();
+          setState('error', 'Recording unsupported on this browser');
+          setTimeout(() => setState('idle'), 3000);
+          return;
+        }
+
+        recordedChunks = [];
+        mediaRecorder.addEventListener('dataavailable', (e) => {
+          if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        });
+        mediaRecorder.addEventListener('stop', onRecordingStopped);
 
         try {
           const ctx = window.coleAudio && window.coleAudio.ensureContext && window.coleAudio.ensureContext();
@@ -1635,69 +1320,21 @@
             src.connect(micAnalyser);
           }
         } catch (err) {
-          console.warn('[voice] mic analyser setup failed:', err);
+          console.warn('[voice] mic analyser setup failed (non-fatal):', err);
         }
 
-        lastTranscript = '';
-        recognition.onresult = (event) => {
-          try {
-            const r = event.results && event.results[0] && event.results[0][0];
-            if (r && r.transcript) lastTranscript = r.transcript.trim();
-          } catch (_) {}
-        };
-        recognition.onerror = (event) => {
-          const errType = event && event.error;
-          console.warn('[voice] SpeechRecognition error:', errType);
-          cleanupStream();
-          let msg = 'DIDN\'T CATCH THAT — TAP TO TRY AGAIN';
-          if (errType === 'not-allowed' || errType === 'service-not-allowed') msg = 'MIC BLOCKED — ALLOW ACCESS THEN TAP';
-          else if (errType === 'audio-capture') msg = 'NO MIC DETECTED';
-          else if (errType === 'network') msg = 'CONNECTION HICCUP — TAP TO RETRY';
-          setState('error', msg);
-          setTimeout(() => setState('idle'), 2800);
-        };
-        recognition.onend = () => {
-          if (state !== 'recording' && state !== 'thinking') return;
-          handleRecognitionEnd();
-        };
-
-        try {
-          recognition.start();
-        } catch (err) {
-          console.warn('[voice] SpeechRecognition start failed:', err);
-          cleanupStream();
-          setState('error', 'VOICE UNAVAILABLE — TAP TO RETRY');
-          setTimeout(() => setState('idle'), 3000);
-          return;
-        }
+        mediaRecorder.start();
+        recordStartedAt = performance.now();
         setState('recording');
+        if (transcriptEl) transcriptEl.innerHTML = '';
         micRaf = requestAnimationFrame(micTick);
+
         setTimeout(() => {
           if (state === 'recording') stopRecording();
         }, MAX_RECORD_MS);
       }
 
-      function micTick() {
-        if (state !== 'recording') {
-          micRaf = 0;
-          return;
-        }
-        let rms = 0;
-        if (micAnalyser) {
-          micAnalyser.getByteTimeDomainData(micDataArray);
-          let sum = 0;
-          for (let i = 0; i < micDataArray.length; i++) {
-            const v = (micDataArray[i] - 128) / 128;
-            sum += v * v;
-          }
-          rms = Math.sqrt(sum / micDataArray.length);
-        }
-        smoothedMic = MIC_ALPHA * Math.min(1, rms * 4.0) + (1 - MIC_ALPHA) * smoothedMic;
-        setIntensity(smoothedMic);
-        micRaf = requestAnimationFrame(micTick);
-      }
-
-      function stopRecording() {
+            function stopRecording() {
         if (!recognition) return;
         try { recognition.stop(); } catch (_) {}
       }
@@ -1714,46 +1351,81 @@
         setIntensity(0);
       }
 
-      async function handleRecognitionEnd() {
+      async function onRecordingStopped() {
         setState('thinking');
+        const mime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
         cleanupStream();
-        const transcript = (lastTranscript || '').trim();
-        lastTranscript = '';
 
-        if (!transcript) {
-          setState('error', 'DIDN\'T CATCH THAT — TAP TO TRY AGAIN');
+        if (!recordedChunks.length) {
+          setState('error', 'No audio captured - tap to try again');
+          setTimeout(() => setState('idle'), 2500);
+          return;
+        }
+        const blob = new Blob(recordedChunks, { type: mime });
+        recordedChunks = [];
+
+        if (blob.size < 600) {
+          setState('error', 'Too short - hold and speak, then tap');
           setTimeout(() => setState('idle'), 2500);
           return;
         }
 
         try {
+          const transcript = await sendForTranscription(blob, mime);
+          if (!transcript) {
+            setState('error', 'Didn't catch that - try again');
+            setTimeout(() => setState('idle'), 2500);
+            return;
+          }
           rememberTurn('user', transcript);
+          renderTranscript(transcript, '');
+
           const reply = await sendForReply(transcript);
           if (!reply) {
-            setState('error', 'COLE COULDN\'T ANSWER — TRY AGAIN');
+            setState('error', 'Couldn't answer - try again');
             setTimeout(() => setState('idle'), 2500);
             return;
           }
           rememberTurn('assistant', reply);
+          renderTranscript(transcript, reply);
+
           setState('speaking');
           await speakResponse(reply);
           setState('idle');
         } catch (err) {
-          console.error('[voice] conversation error:', err);
-          setState('error', err && err.userMessage ? err.userMessage : 'CONNECTION HICCUP — TAP TO RETRY');
+          console.error('[voice] pipeline error:', err);
+          setState('error', err && err.userMessage ? err.userMessage : 'Connection hiccup - tap to retry');
           setTimeout(() => setState('idle'), 3500);
         }
       }
 
+      async function sendForTranscription(blob, mime) {
+        const res = await fetch('/api/cole-voice?op=listen', {
+          method: 'POST',
+          headers: { 'Content-Type': mime || 'audio/webm' },
+          body: blob,
+        });
+        if (!res.ok) {
+          const err = new Error('STT failed');
+          err.userMessage = res.status === 429 ? 'Slow down - too many requests' : 'Transcription failed';
+          throw err;
+        }
+        const data = await res.json();
+        return (data && data.transcript || '').trim();
+      }
+
       async function sendForReply(message) {
-        const res = await authFetch('/api/cole-voice?op=chat', {
+        const res = await fetch('/api/cole-voice?op=chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, history: history.slice(0, -1) }),
+          body: JSON.stringify({
+            message,
+            history: history.slice(0, -1),
+          }),
         });
         if (!res.ok) {
           const err = new Error('Chat failed');
-          err.userMessage = res.status === 429 ? 'SLOW DOWN — TOO MANY REQUESTS' : 'COLE COULDN\'T ANSWER';
+          err.userMessage = res.status === 429 ? 'Slow down - too many requests' : 'Couldn't answer';
           throw err;
         }
         const data = await res.json();
@@ -1761,14 +1433,14 @@
       }
 
       async function speakResponse(text) {
-        const res = await authFetch('/api/cole-voice?op=speak', {
+        const res = await fetch('/api/cole-voice?op=speak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text }),
         });
         if (!res.ok) {
           const err = new Error('TTS failed');
-          err.userMessage = 'VOICE UNAVAILABLE';
+          err.userMessage = 'Voice unavailable';
           throw err;
         }
         const audioBlob = await res.blob();
@@ -1776,14 +1448,15 @@
         if (window.coleAudio && window.coleAudio.playUrl) {
           await window.coleAudio.playUrl(url);
         } else {
-          const audio = new Audio(url);
+          const audio = document.getElementById('cole-audio');
+          audio.src = url;
           await audio.play();
           await new Promise((r) => audio.addEventListener('ended', r, { once: true }));
         }
         URL.revokeObjectURL(url);
       }
 
-      function onOrbTap(e) {
+            function onOrbTap(e) {
         if (e && e.cancelable) e.preventDefault();
         if (state === 'idle')      { startRecording(); return; }
         if (state === 'recording') { stopRecording(); return; }
@@ -1887,7 +1560,7 @@
       if (!session) { showLogin(); return; }
       if (session.user.email !== 'heath.shepard@kw.com') {
         await supabase.auth.signOut();
-        showError('Access denied � Heath only');
+        showError('Access denied � Heath only');
         showLogin();
         return;
       }
@@ -1896,23 +1569,12 @@
 
     async function refresh() {
       try {
-        await Promise.all([loadAgents(), loadCompanies(), loadMerges(), loadNextMove()]);
+        await Promise.all([loadAgents(), loadCompanies(), loadMerges()]);
       } catch (err) {
         console.error('Refresh error:', err);
         toast('Refresh failed', 'err');
       }
     }
-
-    // Agent names and initials for roster
-    const AGENT_CONFIG = {
-      'Carter': { initials: 'C', order: 0 },
-      'Atlas': { initials: 'A', order: 1 },
-      'Sage': { initials: 'S', order: 2 },
-      'Pierce': { initials: 'P', order: 3 },
-      'Hadley': { initials: 'H', order: 4 },
-      'Quinn': { initials: 'Q', order: 5 },
-      'Sterling': { initials: 'St', order: 6 },
-    };
 
     async function loadAgents() {
       const { data, error } = await supabase
@@ -1924,45 +1586,20 @@
       const agents = data || [];
       document.getElementById('agent-count').textContent = agents.length;
 
-      // Build agent status map
-      const agentStatusMap = {};
-      agents.forEach(a => {
-        agentStatusMap[a.agent_name] = a;
-      });
-
-      // Render roster (V4)
-      const rosterContainer = document.getElementById('agent-roster');
-      if (rosterContainer) {
-        rosterContainer.innerHTML = '';
-        const sortedNames = Object.keys(AGENT_CONFIG).sort((a, b) => AGENT_CONFIG[a].order - AGENT_CONFIG[b].order);
-        sortedNames.forEach(name => {
-          const config = AGENT_CONFIG[name];
-          const agent = agentStatusMap[name.toLowerCase()] || { status: 'idle', task_summary: '' };
-          const isWorking = agent.status === 'working';
-
-          const avatar = document.createElement('div');
-          avatar.className = 'agent-avatar';
-          avatar.innerHTML = `
-            <div class="agent-hex ${isWorking ? 'working' : ''}">
-              ${config.initials}
-            </div>
-            <div class="agent-name-label">${name}</div>
-            <div class="agent-status-dot"></div>
-          `;
-          avatar.addEventListener('click', () => {
-            toast(`${name}: ${agent.task_summary || 'idle'}`, '');
-          });
-          rosterContainer.appendChild(avatar);
-        });
-      }
-
       // Render center panel
       const agentList = document.getElementById('agent-list');
       agentList.innerHTML = '';
       agents.forEach(agent => {
         const card = document.createElement('div');
         card.className = 'agent-card';
-        const statusClass = agent.status === 'working' ? 'working' : 'idle';
+        let statusClass = 'idle';
+        if (agent.status === 'working') {
+          const lastHB = agent.last_heartbeat ? new Date(agent.last_heartbeat) : null;
+          const now = new Date();
+          if (lastHB && (now - lastHB) / 1000 / 60 <= 5) {
+            statusClass = 'working';
+          }
+        }
         card.innerHTML = `
           <div class="agent-status ${statusClass}"></div>
           <div class="agent-info">
@@ -1980,7 +1617,14 @@
         agents.slice(0, 5).forEach(agent => {
           const card = document.createElement('div');
           card.className = 'agent-card';
-          const statusClass = agent.status === 'working' ? 'working' : 'idle';
+          let statusClass = 'idle';
+        if (agent.status === 'working') {
+          const lastHB = agent.last_heartbeat ? new Date(agent.last_heartbeat) : null;
+          const now = new Date();
+          if (lastHB && (now - lastHB) / 1000 / 60 <= 5) {
+            statusClass = 'working';
+          }
+        }
           card.innerHTML = `
             <div class="agent-status ${statusClass}"></div>
             <div class="agent-info">
@@ -2039,9 +1683,6 @@
               </div>
             `).join('')}
           `;
-          if (comp.name === 'DOSSIE') {
-            card.addEventListener('click', openDossieModal);
-          }
           panel.appendChild(card);
         });
       };
@@ -2058,115 +1699,8 @@
       document.getElementById('merge-count').textContent = 0;
     }
 
-    async function loadNextMove() {
-      try {
-        const res = await authFetch('/api/heath-todo-next');
-        if (!res.ok) throw new Error('Failed to load next move');
-        const data = await res.json();
-
-        const content = document.getElementById('next-move-content');
-        if (!data || !data.task) {
-          content.innerHTML = '<div class="next-move-empty">No moves queued — say `hey jarvis` to queue one</div>';
-          return;
-        }
-
-        const task = data.task;
-        const taskText = (task.title || task.detail || '').slice(0, 100);
-        content.innerHTML = `
-          <div class="next-move-task">${taskText}</div>
-          <div class="next-move-actions">
-            <button class="action-btn coral" data-action="done">DONE</button>
-            <button class="action-btn" data-action="skip">SKIP</button>
-            <button class="action-btn" data-action="snooze">SNOOZE 1H</button>
-          </div>
-        `;
-
-        const buttons = content.querySelectorAll('button');
-        buttons.forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            const action = btn.dataset.action;
-            try {
-              const endpoint = `/api/heath-todo-${action}`;
-              const res = await authFetch(endpoint, {
-                method: 'POST',
-                body: JSON.stringify({ id: task.id }),
-              });
-              if (res.ok) {
-                toast(`Task ${action}`, 'ok');
-                await new Promise(r => setTimeout(r, 500));
-                loadNextMove();
-              } else {
-                toast(`Failed to ${action}`, 'err');
-              }
-            } catch (err) {
-              console.error(`Error ${action}:`, err);
-              toast(`Error: ${action}`, 'err');
-            }
-          });
-        });
-      } catch (err) {
-        console.error('Load next move error:', err);
-        const content = document.getElementById('next-move-content');
-        content.innerHTML = '<div class="next-move-empty">Could not load next move</div>';
-      }
-    }
-
-    async function loadDossieKPIs() {
-      try {
-        // For now, use static data from the ticker tape
-        // Later: query Supabase for dynamic counts
-        document.getElementById('kpi-mrr').textContent = '$349';
-        document.getElementById('kpi-founding').textContent = '12/50';
-        document.getElementById('kpi-dossiers').textContent = '0';
-        document.getElementById('kpi-active-7d').textContent = '0';
-        document.getElementById('kpi-tickets').textContent = '0';
-      } catch (err) {
-        console.error('Load KPIs error:', err);
-      }
-    }
-
-    function openDossieModal() {
-      const modal = document.getElementById('kpi-modal');
-      if (modal) {
-        modal.classList.add('visible');
-        loadDossieKPIs();
-      }
-    }
-
-    function closeDossieModal() {
-      const modal = document.getElementById('kpi-modal');
-      if (modal) modal.classList.remove('visible');
-    }
-
-    // Create ambient particles (V4)
-    function createAmbientParticles() {
-      const count = 12;
-      const page = document.querySelector('.page');
-      for (let i = 0; i < count; i++) {
-        const p = document.createElement('div');
-        p.className = `ambient-particle type${(i % 5) + 1}`;
-        p.style.left = Math.random() * 100 + '%';
-        p.style.bottom = Math.random() * 100 + '%';
-        page.appendChild(p);
-      }
-    }
-
     // Init on load
-    document.addEventListener('DOMContentLoaded', () => {
-      createAmbientParticles();
-      bootstrap();
-
-      // Wire modal close
-      const closeBtn = document.getElementById('modal-close-btn');
-      if (closeBtn) closeBtn.addEventListener('click', closeDossieModal);
-
-      const modalOverlay = document.getElementById('kpi-modal');
-      if (modalOverlay) {
-        modalOverlay.addEventListener('click', (e) => {
-          if (e.target === modalOverlay) closeDossieModal();
-        });
-      }
-    });
+    document.addEventListener('DOMContentLoaded', bootstrap);
     document.getElementById('signin-btn')?.addEventListener('click', async () => {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
@@ -2179,7 +1713,7 @@
         if (error) throw error;
         if (data.user.email !== 'heath.shepard@kw.com') {
           await supabase.auth.signOut();
-          showError('Access denied � Heath only');
+          showError('Access denied � Heath only');
           return;
         }
         revealApp(data.session.access_token);

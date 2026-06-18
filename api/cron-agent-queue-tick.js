@@ -133,6 +133,13 @@ async function snapshotQueue(supabase) {
 // >NUDGE_THROTTLE_MIN minutes, which implies the local Cole isn't running.
 
 async function maybeNudge(supabase, snapshot) {
+  // KILL-SWITCH: Heath paused the queue 2026-06-17 for batch triage of parked
+  // tasks. Set WATCHDOG_DISABLED=true in Vercel to silence the nudge alert
+  // without changing schema. Remove the env var to re-enable.
+  if (process.env.WATCHDOG_DISABLED === 'true') {
+    return { nudged: false, disabled: true };
+  }
+
   const idleAgentsWithReadyWork = snapshot.agents.idle > 0 && snapshot.ready > 0;
   if (!idleAgentsWithReadyWork) return { nudged: false };
 
