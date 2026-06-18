@@ -1,5 +1,3 @@
-import { execSync } from 'child_process';
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -12,25 +10,29 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get commits on staging that aren't on main
-    // Format: sha|author|date|message
-    const output = execSync(
-      `git log main..staging --pretty=format:"%h|%an|%ai|%s" --reverse`,
-      { encoding: 'utf-8', cwd: process.cwd() }
-    ).trim();
+    // Use GitHub API to get commits between main and staging
+    const ghResp = await fetch(
+      'https://api.github.com/repos/heathshepard/MeetDossie/compare/main...staging',
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github+json',
+        },
+      }
+    );
 
-    const commits = output
-      .split('\n')
-      .filter(line => line.length > 0)
-      .map(line => {
-        const [hash, author, date, message] = line.split('|');
-        return {
-          hash: hash.trim(),
-          author: author.trim(),
-          date: new Date(date.trim()).toISOString(),
-          message: message.trim(),
-        };
-      });
+    if (!ghResp.ok) {
+      console.error('GitHub API error:', ghResp.status, await ghResp.text());
+      return res.status(200).json([]);
+    }
+
+    const data = await ghResp.json();
+    const commits = (data.commits || []).map(c => ({
+      hash: c.sha.slice(0, 7),
+      author: c.commit.author.name,
+      date: c.commit.author.date,
+      message: c.commit.message.split('\n')[0],
+    }));
 
     return res.status(200).json(commits);
   } catch (err) {
