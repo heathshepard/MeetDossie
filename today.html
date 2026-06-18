@@ -428,6 +428,7 @@
     let _starfield = null;
     const _todoItems = new Map();
     const _todoTouchStarts = new Map();
+    let _atmosphereShell = null;
 
     async function bootstrap() {
       let config;
@@ -572,6 +573,7 @@
 
       // Create the orb
       createOrb();
+      updateOrbPosition();
 
       // Update composer render pass scene reference
       _composer.passes[0].scene = _scene;
@@ -647,7 +649,7 @@
 
       _orb = new THREE.Mesh(geometry, material);
       _orb.scale.set(0.35, 0.35, 0.35);
-      _orb.position.y = -0.5;
+      _orb.position.set(2.3, -0.5, 0);
       _scene.add(_orb);
 
       // Create fresnel atmosphere shell around orb
@@ -682,8 +684,33 @@
         depthWrite: false,
       });
       const shell = new THREE.Mesh(shellGeo, shellMat);
-      shell.position.y = -0.5;
+      _atmosphereShell = shell;
+      shell.position.set(2.3, -0.5, 0);
       _scene.add(shell);
+    }
+
+    
+    function updateOrbPosition() {
+      const w = window.innerWidth;
+      const isMobile = w < 768;
+      
+      if (isMobile) {
+        // Mobile: top-right corner, smaller scale
+        _orb.position.set(1.5, 1.8, 0);
+        _orb.scale.set(0.22, 0.22, 0.22);
+        if (_atmosphereShell) {
+          _atmosphereShell.position.set(1.5, 1.8, 0);
+          _atmosphereShell.scale.set(0.22, 0.22, 0.22);
+        }
+      } else {
+        // Desktop: right gutter (X = 2.3), keep Y at -0.5
+        _orb.position.set(2.3, -0.5, 0);
+        _orb.scale.set(0.35, 0.35, 0.35);
+        if (_atmosphereShell) {
+          _atmosphereShell.position.set(2.3, -0.5, 0);
+          _atmosphereShell.scale.set(0.35, 0.35, 0.35);
+        }
+      }
     }
 
     function onWindowResize() {
@@ -693,6 +720,7 @@
       _camera.updateProjectionMatrix();
       _renderer.setSize(w, h);
       _composer.setSize(w, h);
+      updateOrbPosition();
     }
 
     // ========== DATA FETCHING ==========
