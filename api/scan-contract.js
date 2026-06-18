@@ -1155,7 +1155,7 @@ async function handler(req, res) {
     if (!pdfData && storagePath) {
       // Fetch from Supabase Storage
       try {
-        const storageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/${storagePath}`;
+        const storageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/documents/${storagePath}`;
         const storageResp = await fetch(storageUrl, {
           method: 'GET',
           headers: {
