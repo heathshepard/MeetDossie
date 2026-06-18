@@ -2064,12 +2064,13 @@
         const data = await res.json();
 
         const content = document.getElementById('next-move-content');
-        if (!data || !data.id) {
+        if (!data || !data.task) {
           content.innerHTML = '<div class="next-move-empty">No moves queued — say `hey jarvis` to queue one</div>';
           return;
         }
 
-        const taskText = (data.task || '').slice(0, 100);
+        const task = data.task;
+        const taskText = (task.title || task.detail || '').slice(0, 100);
         content.innerHTML = `
           <div class="next-move-task">${taskText}</div>
           <div class="next-move-actions">
@@ -2087,7 +2088,7 @@
               const endpoint = `/api/heath-todo-${action}`;
               const res = await authFetch(endpoint, {
                 method: 'POST',
-                body: JSON.stringify({ id: data.id }),
+                body: JSON.stringify({ id: task.id }),
               });
               if (res.ok) {
                 toast(`Task ${action}`, 'ok');
