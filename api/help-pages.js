@@ -20,6 +20,7 @@ const HELP_PAGES = {
   index: {
     slug: 'index',
     title: 'Dossie Help',
+    video_url: null,
     intro: 'You\'re paying for it — here\'s how to use every part. Each section is 2 minutes to read. If you can\'t find what you need, reply to the email Heath sent you when you joined and he\'ll answer personally.',
     sections: [
       { title: 'Getting Started', slug: 'getting-started', description: 'Your first dossier, first contract, first morning brief.' },
@@ -36,6 +37,7 @@ const HELP_PAGES = {
   'getting-started': {
     slug: 'getting-started',
     title: 'Getting Started in 5 Minutes',
+    video_url: null,
     sections: [
       {
         heading: 'Set your password and log in',
@@ -63,6 +65,7 @@ const HELP_PAGES = {
   'morning-brief': {
     slug: 'morning-brief',
     title: 'Your 6am Morning Brief',
+    video_url: null,
     sections: [
       {
         heading: 'What\'s in the brief',
@@ -90,6 +93,7 @@ const HELP_PAGES = {
   'talk-to-dossie': {
     slug: 'talk-to-dossie',
     title: 'Talk to Dossie — Voice Commands',
+    video_url: null,
     sections: [
       {
         heading: 'Where to find the mic',
@@ -117,6 +121,7 @@ const HELP_PAGES = {
   'dossiesign': {
     slug: 'dossiesign',
     title: 'DossieSign — Fill, Sign, Send',
+    video_url: null,
     sections: [
       {
         heading: 'How it works',
@@ -148,6 +153,7 @@ const HELP_PAGES = {
   'trec-deadlines': {
     slug: 'trec-deadlines',
     title: 'TREC Deadlines Explained',
+    video_url: null,
     sections: [
       {
         heading: 'Which deadlines she calculates',
@@ -175,6 +181,7 @@ const HELP_PAGES = {
   'compliance-vault': {
     slug: 'compliance-vault',
     title: 'Compliance Vault',
+    video_url: null,
     sections: [
       {
         heading: 'Note: Compliance Vault is in development',
@@ -202,6 +209,7 @@ const HELP_PAGES = {
   'sharing-milestones': {
     slug: 'sharing-milestones',
     title: 'Closing Milestone Cards',
+    video_url: null,
     sections: [
       {
         heading: 'How a card is generated',
@@ -243,9 +251,10 @@ async function handleGet(req, res, userId) {
   const pages = Object.values(HELP_PAGES).map((p) => ({
     slug: p.slug,
     title: p.title,
+    video_url: p.video_url,
   }));
 
-  return res.status(200).json({ ok: true, pages });
+  return res.status(200).json({ ok: true, articles: pages, pages });
 }
 
 async function handlePostFeedback(req, res, userId) {
