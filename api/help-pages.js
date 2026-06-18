@@ -254,7 +254,7 @@ async function handleGet(req, res, userId) {
     video_url: p.video_url,
   }));
 
-  return res.status(200).json({ ok: true, articles: pages, pages });
+  return res.status(200).json({ ok: true, articles: pages });
 }
 
 async function handlePostFeedback(req, res, userId) {
