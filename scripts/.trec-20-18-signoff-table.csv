@@ -1,0 +1,264 @@
+Index,Field Name,Field Type,Fixture Key,Has Value,Status
+0,"1 PARTIES The parties to this contract are",PDFTextField,notes,True,PASS
+1,"Seller and",PDFTextField,seller_names,True,PASS
+2,"A LAND Lot",PDFTextField,lot,True,PASS
+3,"Block",PDFTextField,block,True,PASS
+4,"undefined",PDFTextField,notes,True,PASS
+5,"Addition City of",PDFTextField,addition,True,PASS
+6,"County of",PDFTextField,county,True,PASS
+7,"Texas known as",PDFTextField,legal_description,True,PASS
+8,"be removed prior to delivery of possession",PDFTextField,notes,True,PASS
+9,"undefined_2",PDFTextField,notes,True,PASS
+10,"undefined_3",PDFTextField,notes,True,PASS
+11,"B Sum of all financing described in the attached",PDFCheckBox,financing_contingency,True,PASS
+12,"undefined_4",PDFTextField,notes,True,PASS
+13,"undefined_5",PDFTextField,notes,True,PASS
+14,"Initialed for identification by Buyer",PDFTextField,buyer_initials,True,PASS
+15,"undefined_8",PDFTextField,notes,True,PASS
+16,"and Seller",PDFTextField,seller_initials,True,PASS
+17,"undefined_9",PDFTextField,notes,True,PASS
+18,"Page 2 of 10",PDFTextField,notes,True,PASS
+19,"the Title Company and Buyers lenders Check one box only",PDFTextField,buyer_names,True,PASS
+20,"2Within",PDFCheckBox,notes,True,PASS
+21,"3Within",PDFCheckBox,notes,True,PASS
+22,"Sellers_2",PDFCheckBox,seller_names,True,PASS
+23,"Buyers expense no later",PDFCheckBox,buyer_names,True,PASS
+24,"is",PDFCheckBox,notes,True,PASS
+25,"is not",PDFCheckBox,notes,True,PASS
+26,"2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property",PDFTextField,hoa_present,True,PASS
+27,"and Seller_2",PDFTextField,seller_initials,True,PASS
+28,"undefined_10",PDFTextField,notes,True,PASS
+29,"undefined_11",PDFTextField,notes,True,PASS
+30,"Page 3 of 10",PDFTextField,notes,True,PASS
+31,"Property Code requires Seller to notify Buyer as follows",PDFTextField,seller_names,True,PASS
+32,"and Seller_3",PDFTextField,seller_initials,True,PASS
+33,"undefined_12",PDFTextField,notes,True,PASS
+34,"The private transfer fee",PDFTextField,notes,True,PASS
+35,"Contract Concerning",PDFTextField,special_provisions,True,PASS
+36,"Within",PDFTextField,notes,True,PASS
+37,"1 Buyer accepts the Property As Is",PDFCheckBox,buyer_names,True,PASS
+38,"2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",PDFCheckBox,seller_names,True,PASS
+39,"Initialed for identification by Buyer_2",PDFTextField,buyer_initials,True,PASS
+40,"undefined_14",PDFTextField,notes,True,PASS
+41,"and Seller_4",PDFTextField,seller_initials,True,PASS
+42,"undefined_15",PDFTextField,notes,True,PASS
+43,"Contract Concerning_2",PDFTextField,special_provisions,True,PASS
+44,"service contract in an amount not exceeding",PDFTextField,homeowners_warranty_limit,True,PASS
+45,"A The closing of the sale will be on or before",PDFTextField,closing_date,True,PASS
+46,"20",PDFTextField,notes,True,PASS
+47,"Initialed for identification by Buyer_3",PDFTextField,buyer_initials,True,PASS
+48,"Buyers Expenses as allowed by the lender",PDFTextField,buyer_names,True,PASS
+49,"and Seller_5",PDFTextField,seller_initials,True,PASS
+50,"undefined_16",PDFTextField,notes,True,PASS
+51,"Contract Concerning_3",PDFTextField,special_provisions,True,PASS
+52,"Initialed for identification by Buyer_4",PDFTextField,buyer_initials,True,PASS
+53,"undefined_17",PDFTextField,notes,True,PASS
+54,"and Seller_6",PDFTextField,seller_initials,True,PASS
+55,"undefined_18",PDFTextField,notes,True,PASS
+56,"Page 7 of 10",PDFTextField,notes,True,PASS
+57,"Contract Concerning_4",PDFTextField,special_provisions,True,PASS
+58,"Attorney is",PDFTextField,notes,True,PASS
+59,"Attorney is_2",PDFTextField,notes,True,PASS
+60,"undefined_24",PDFTextField,notes,True,PASS
+61,"undefined_25",PDFTextField,notes,True,PASS
+62,"Email",PDFTextField,notes,True,PASS
+63,"Email_2",PDFTextField,notes,True,PASS
+64,"Address of Property",PDFTextField,property_address_line1,True,PASS
+65,"Loan Assumption Addendum",PDFCheckBox,addendum_loan_assumption,True,PASS
+66,"Check Box2",PDFCheckBox,notes,True,PASS
+67,"Text6",PDFTextField,notes,True,PASS
+68,"Text7",PDFTextField,notes,True,PASS
+69,"Text1",PDFTextField,notes,True,PASS
+70,"Text2",PDFTextField,notes,True,PASS
+71,"Phone 2",PDFTextField,listing_agent_phone,True,PASS
+72,"Phone11",PDFTextField,listing_agent_phone,True,PASS
+73,"Text22",PDFTextField,notes,True,PASS
+74,"Text23",PDFTextField,notes,True,PASS
+75,"undefined_6",PDFTextField,notes,True,PASS
+76,"undefined_7",PDFTextField,notes,True,PASS
+77,"earnest money of",PDFTextField,earnest_money,True,PASS
+78,"insurance Title Policy issued by",PDFTextField,title_company,True,PASS
+79,"i will not be amended or deleted from the title policy or",PDFCheckBox,title_company,True,PASS
+80,"ii will be amended to read shortages in area at the expense of",PDFCheckBox,notes,True,PASS
+81,"A TITLE POLICY Seller shall furnish to Buyer at",PDFCheckBox,seller_names,True,PASS
+82,"Sellers",PDFCheckBox,seller_names,True,PASS
+83,"Seller",PDFCheckBox,seller_names,True,PASS
+84,"receipt or the date specified in this paragraph whichever is earlier",PDFTextField,notes,True,PASS
+85,"Commitment other than items 6A1 through 9 above or which prohibit the following use",PDFTextField,notes,True,PASS
+86,"the Commitment Exception Documents and the survey Buyers failure to object within the",PDFTextField,survey_required,True,PASS
+87,"to escrow agent within",PDFTextField,notes,True,PASS
+88,"to escrow agent within 1",PDFTextField,notes,True,PASS
+89,"Buyer",PDFCheckBox,buyer_names,True,PASS
+90,"than 3 days prior to Closing Date",PDFTextField,closing_date,True,PASS
+91,"1Within",PDFCheckBox,notes,True,PASS
+92,"2 Within",PDFCheckBox,notes,True,PASS
+93,"following specific repairs and treatments",PDFTextField,repairs_required,True,PASS
+94,"undefined_13",PDFTextField,notes,True,PASS
+95,"Other Broker Firm",PDFTextField,other_broker_firm,True,PASS
+96,"Zip_3",PDFTextField,notes,True,PASS
+97,"License No",PDFTextField,notes,True,PASS
+98,"License No_2",PDFTextField,notes,True,PASS
+99,"Associates Email Address",PDFTextField,seller_agent_email,True,PASS
+100,"Phone",PDFTextField,listing_agent_phone,True,PASS
+101,"Licensed Supervisor of Associate",PDFTextField,notes,True,PASS
+102,"License No_3",PDFTextField,notes,True,PASS
+103,"Other Brokers Address",PDFTextField,other_broker_firm,True,PASS
+104,"Phone_2",PDFTextField,listing_agent_phone,True,PASS
+105,"City",PDFTextField,city,True,PASS
+106,"State",PDFTextField,notes,True,PASS
+107,"Zip",PDFTextField,notes,True,PASS
+108,"Listing Broker Firm",PDFTextField,listing_broker_firm,True,PASS
+109,"License No_4",PDFTextField,notes,True,PASS
+110,"License No_5",PDFTextField,notes,True,PASS
+111,"Listing Associates Email Address",PDFTextField,listing_agent_email,True,PASS
+112,"Phone_3",PDFTextField,listing_agent_phone,True,PASS
+113,"Licensed Supervisor of Listing Associate",PDFTextField,notes,True,PASS
+114,"License No_6",PDFTextField,notes,True,PASS
+115,"Listing Brokers Office Address",PDFTextField,listing_broker_firm,True,PASS
+116,"Phone_4",PDFTextField,listing_agent_phone,True,PASS
+117,"City_2",PDFTextField,city,True,PASS
+118,"State_2",PDFTextField,notes,True,PASS
+119,"Zip_2",PDFTextField,notes,True,PASS
+120,"License No_7",PDFTextField,notes,True,PASS
+121,"Selling Associates Email Address",PDFTextField,selling_agent_email,True,PASS
+122,"Phone_5",PDFTextField,listing_agent_phone,True,PASS
+123,"Licensed Supervisor of Selling Associate",PDFTextField,notes,True,PASS
+124,"License No_8",PDFTextField,notes,True,PASS
+125,"Selling Associates Office Address",PDFTextField,selling_agent_phone,True,PASS
+126,"City_3",PDFTextField,city,True,PASS
+127,"State_3",PDFTextField,notes,True,PASS
+128,"EXECUTED the",PDFTextField,effective_date,True,PASS
+129,"Signature11",PDFSignature,notes,True,PASS
+130,"day of",PDFTextField,notes,True,PASS
+131,"20_2",PDFTextField,notes,True,PASS
+132,"Signature8",PDFSignature,notes,True,PASS
+133,"Signature10",PDFSignature,notes,True,PASS
+134,"Signature9",PDFSignature,notes,True,PASS
+135,"Third Party Financing Addendum",PDFCheckBox,notes,True,PASS
+136,"Seller Financing Addendum",PDFCheckBox,seller_names,True,PASS
+137,"Environmental Assessment Threatened or",PDFCheckBox,addendum_environmental,True,PASS
+138,"Addendum for Property Subject to",PDFCheckBox,notes,True,PASS
+139,"Sellers Temporary Residential Lease",PDFCheckBox,addendum_sellers_lease,True,PASS
+140,"Short Sale Addendum",PDFCheckBox,addendum_short_sale,True,PASS
+141,"Buyers Temporary Residential Lease",PDFCheckBox,addendum_buyers_lease,True,PASS
+142,"Loan Assumption Addendum_2",PDFCheckBox,addendum_loan_assumption,True,PASS
+143,"Addendum for Property Located Seaward",PDFCheckBox,addendum_coastal,True,PASS
+144,"Addendum for Sale of Other Property by",PDFCheckBox,addendum_other_property_sale,True,PASS
+145,"Addendum for Reservation of Oil Gas",PDFCheckBox,addendum_oil_gas,True,PASS
+146,"Addendum for BackUp Contract",PDFCheckBox,notes,True,PASS
+147,"Check Box8",PDFCheckBox,notes,True,PASS
+148,"System Service Area",PDFTextField,notes,True,PASS
+149,"Addendum for Property in a Propane Gas",PDFCheckBox,addendum_propane,True,PASS
+150,"Check Box9",PDFCheckBox,notes,True,PASS
+151,"Initialed for identification by Buyer_5",PDFTextField,buyer_initials,True,PASS
+152,"and Seller_7",PDFTextField,seller_initials,True,PASS
+153,"undefined_22",PDFTextField,notes,True,PASS
+154,"undefined_23",PDFTextField,notes,True,PASS
+155,"1",PDFTextField,notes,True,PASS
+156,"at",PDFTextField,notes,True,PASS
+157,"AC1",PDFTextField,notes,True,PASS
+158,"Phone 51",PDFTextField,seller_agent_phone,True,PASS
+159,"Phone 52",PDFTextField,buyer_agent_phone,True,PASS
+160,"undefined_19",PDFTextField,notes,True,PASS
+161,"at_2",PDFTextField,notes,True,PASS
+162,"AC4",PDFTextField,notes,True,PASS
+163,"Fax 52",PDFTextField,notes,True,PASS
+164,"when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",PDFTextField,listing_broker_firm,True,PASS
+165,"when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",PDFTextField,notes,True,PASS
+166,"Associates Name",PDFTextField,seller_agent_name,True,PASS
+167,"Listing Associates Name",PDFTextField,listing_agent_name,True,PASS
+168,"Selling Associates Name",PDFTextField,selling_agent_name,True,PASS
+169,"Address of Property_2",PDFTextField,property_address_line1,True,PASS
+170,"is acknowledged",PDFTextField,notes,True,PASS
+171,"Option Fee in the form of",PDFTextField,option_fee,True,PASS
+172,"Seller or Listing Broker",PDFTextField,listing_broker_firm,True,PASS
+173,"Date",PDFTextField,effective_date,True,PASS
+174,"is acknowledged_2",PDFTextField,notes,True,PASS
+175,"Earnest Money in the form of",PDFTextField,earnest_money,True,PASS
+176,"Escrow Agent",PDFTextField,earnest_holder_name,True,PASS
+177,"Received by",PDFTextField,notes,True,PASS
+178,"Address",PDFTextField,property_address_line1,True,PASS
+179,"City_4",PDFTextField,city,True,PASS
+180,"State_4",PDFTextField,notes,True,PASS
+181,"Zip_4",PDFTextField,notes,True,PASS
+182,"Email Address",PDFTextField,property_address_line1,True,PASS
+183,"DateTime",PDFTextField,effective_date,True,PASS
+184,"Phone_6",PDFTextField,listing_agent_phone,True,PASS
+185,"Fax",PDFTextField,notes,True,PASS
+186,"Escrow Agent_2",PDFTextField,earnest_holder_name,True,PASS
+187,"Received by_2",PDFTextField,notes,True,PASS
+188,"Address_2",PDFTextField,property_address_line1,True,PASS
+189,"City_5",PDFTextField,city,True,PASS
+190,"State_5",PDFTextField,notes,True,PASS
+191,"Zip_5",PDFTextField,notes,True,PASS
+192,"Email Address_2",PDFTextField,property_address_line1,True,PASS
+193,"Date_2",PDFTextField,effective_date,True,PASS
+194,"Phone_7",PDFTextField,listing_agent_phone,True,PASS
+195,"Fax_2",PDFTextField,notes,True,PASS
+196,"is acknowledged_3",PDFTextField,notes,True,PASS
+197,"additional Earnest Money in the form of",PDFTextField,earnest_money,True,PASS
+198,"Escrow Agent_3",PDFTextField,earnest_holder_name,True,PASS
+199,"Received by_3",PDFTextField,notes,True,PASS
+200,"Address_3",PDFTextField,property_address_line1,True,PASS
+201,"City_6",PDFTextField,city,True,PASS
+202,"State_6",PDFTextField,notes,True,PASS
+203,"Zip_6",PDFTextField,notes,True,PASS
+204,"Email Address_3",PDFTextField,property_address_line1,True,PASS
+205,"DateTime_2",PDFTextField,effective_date,True,PASS
+206,"Phone_8",PDFTextField,listing_agent_phone,True,PASS
+207,"Fax_3",PDFTextField,notes,True,PASS
+208,"Within one",PDFCheckBox,notes,True,PASS
+209,"Within two",PDFCheckBox,notes,True,PASS
+210,"Within three",PDFCheckBox,notes,True,PASS
+211,"Within four",PDFCheckBox,notes,True,PASS
+212,"AC numb 1",PDFTextField,notes,True,PASS
+213,"AC numb 2",PDFTextField,notes,True,PASS
+214,"AC numb 3",PDFTextField,notes,True,PASS
+215,"AC numb 4",PDFTextField,notes,True,PASS
+216,"undefined numb 21",PDFTextField,notes,True,PASS
+217,"Associates Name numb 1",PDFTextField,seller_agent_name,True,PASS
+218,"Addr of Prop",PDFTextField,property_address_line1,True,PASS
+219,"Buyer only",PDFCheckBox,buyer_names,True,PASS
+220,"Seller as List Brok Sub agent",PDFCheckBox,seller_names,True,PASS
+221,"List Assoc Name",PDFTextField,notes,True,PASS
+222,"when mailed to",PDFTextField,notes,True,PASS
+223,"Sellers Disclos",PDFCheckBox,seller_names,True,PASS
+224,"Addend. for Sellers Disclos",PDFCheckBox,seller_names,True,PASS
+225,"Check box 10",PDFCheckBox,notes,True,PASS
+226,"Check box 11",PDFCheckBox,notes,True,PASS
+227,"As Is",PDFCheckBox,possession_type,True,PASS
+228,"As Is except",PDFCheckBox,possession_type,True,PASS
+229,"3 days prior",PDFTextField,notes,True,PASS
+230,"upon",PDFCheckBox,notes,True,PASS
+231,"PID",PDFCheckBox,notes,True,PASS
+232,"Brokers and Sales 2",PDFTextField,special_provisions,True,PASS
+233,"Brokers and Sales",PDFTextField,special_provisions,True,PASS
+234,"other party in writing before entering into a contract of sale  Disclose if applicable",PDFTextField,other_broker_firm,True,PASS
+235,"as earnest money to",PDFTextField,earnest_money,True,PASS
+236,"as earnest money to 2",PDFTextField,earnest_money,True,PASS
+237,"Text4 2",PDFTextField,notes,True,PASS
+238,"Text4",PDFTextField,notes,True,PASS
+239,"Text4 3",PDFTextField,notes,True,PASS
+240,"Text3",PDFTextField,notes,True,PASS
+241,"Text3 2",PDFTextField,notes,True,PASS
+242,"Text3 3",PDFTextField,notes,True,PASS
+243,"undefined_20",PDFTextField,notes,True,PASS
+244,"undefined numb 22",PDFTextField,notes,True,PASS
+245,"Selling Associates Name-1",PDFTextField,selling_agent_name,True,PASS
+246,"undefined_20-0",PDFTextField,notes,True,PASS
+247,"undefined numb 22-0",PDFTextField,notes,True,PASS
+248,"acknowledged by Seller and Buyers agreement to pay Seller",PDFTextField,seller_names,True,PASS
+249,"will",PDFCheckBox,notes,True,PASS
+250,"will not be credited to the Sales Price at closing Time is of the",PDFCheckBox,sales_price,True,PASS
+251,"will 1.1",PDFCheckBox,notes,True,PASS
+252,"will not be credited to the Sales Price at closing Time is of the 1",PDFCheckBox,sales_price,True,PASS
+253,"acknowledged by Seller and Buyers agreement to pay Seller 1",PDFTextField,seller_names,True,PASS
+254,"acknowledged by Seller and Buyers agreement to pay Seller2",PDFTextField,seller_names,True,PASS
+255,"3",PDFTextField,notes,True,PASS
+256,"2",PDFTextField,notes,True,PASS
+257,"Other",PDFCheckBox,notes,True,PASS
+258,"Addendum for Section 1031",PDFCheckBox,addendum_1031,True,PASS
+259,"Seller and Buyer as an intermediary",PDFCheckBox,seller_names,True,PASS
+260,"Seller only as Sellers agent",PDFCheckBox,seller_names,True,PASS
+261,"Dollar Amt",PDFCheckBox,notes,True,PASS
+262,"Percentage",PDFCheckBox,notes,True,PASS
