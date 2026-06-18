@@ -101,6 +101,14 @@
                     {
                          "source":  "/shepardventures",
                          "destination":  "/shepardventures.html"
+                     },
+                    {
+                         "source":  "/jarvis",
+                         "destination":  "/shepardventures.html"
+                     },
+                    {
+                         "source":  "/shepardventures/",
+                         "destination":  "/shepardventures.html"
                      }
                  ],
     "headers":  [
