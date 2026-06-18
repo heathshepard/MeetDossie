@@ -245,7 +245,7 @@ async function handleGet(req, res, userId) {
     title: p.title,
   }));
 
-  return res.status(200).json({ ok: true, pages });
+  return res.status(200).json({ ok: true, articles: pages });
 }
 
 async function handlePostFeedback(req, res, userId) {
