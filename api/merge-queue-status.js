@@ -9,6 +9,14 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Fail-fast: GITHUB_TOKEN must be configured
+  if (!process.env.GITHUB_TOKEN) {
+    return res.status(503).json({
+      error: 'github_token_missing',
+      message: 'GITHUB_TOKEN env var not configured in Vercel'
+    });
+  }
+
   try {
     // Use GitHub API to get commits between main and staging
     const ghResp = await fetch(
@@ -21,9 +29,15 @@ export default async function handler(req, res) {
       }
     );
 
+    // Check response status and surface errors instead of silencing
     if (!ghResp.ok) {
-      console.error('GitHub API error:', ghResp.status, await ghResp.text());
-      return res.status(200).json([]);
+      const body = await ghResp.text();
+      console.error('GitHub API error:', ghResp.status, body);
+      return res.status(502).json({
+        error: 'github_upstream_failed',
+        status: ghResp.status,
+        detail: body.slice(0, 200)
+      });
     }
 
     const data = await ghResp.json();
@@ -37,6 +51,9 @@ export default async function handler(req, res) {
     return res.status(200).json(commits);
   } catch (err) {
     console.error('Merge queue error:', err);
-    return res.status(200).json([]);
+    return res.status(500).json({
+      error: 'internal_error',
+      message: err.message
+    });
   }
 }
