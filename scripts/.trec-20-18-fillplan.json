@@ -1,0 +1,148 @@
+{
+  "total_fields": 263,
+  "planned_text_fills": 17,
+  "planned_checkbox_sets": 5,
+  "text_fields": [
+    {
+      "pdf_name": "1 PARTIES The parties to this contract are",
+      "value": "Heath Shepard",
+      "category": "buyer1"
+    },
+    {
+      "pdf_name": "Seller and",
+      "value": "Joshua Sissam",
+      "category": "seller1"
+    },
+    {
+      "pdf_name": "A LAND Lot",
+      "value": "Lot 5",
+      "category": "property"
+    },
+    {
+      "pdf_name": "Block",
+      "value": "Block A",
+      "category": "property"
+    },
+    {
+      "pdf_name": "Addition City of",
+      "value": "Willow Creek Estates",
+      "category": "property"
+    },
+    {
+      "pdf_name": "County of",
+      "value": "Bexar",
+      "category": "property"
+    },
+    {
+      "pdf_name": "Texas known as",
+      "value": "All of Lot 5, Block A, Willow Creek Estates, San Antonio, Texas",
+      "category": "property"
+    },
+    {
+      "pdf_name": "earnest money of",
+      "value": "8500",
+      "category": "earnest"
+    },
+    {
+      "pdf_name": "A The closing of the sale will be on or before",
+      "value": "2026-07-31",
+      "category": "dates"
+    },
+    {
+      "pdf_name": "20",
+      "value": "26",
+      "category": "dates",
+      "note": "year portion"
+    },
+    {
+      "pdf_name": "Address of Property",
+      "value": "123 Oak Ridge Drive",
+      "category": "address"
+    },
+    {
+      "pdf_name": "City",
+      "value": "San Antonio",
+      "category": "address"
+    },
+    {
+      "pdf_name": "State",
+      "value": "TX",
+      "category": "address"
+    },
+    {
+      "pdf_name": "Zip",
+      "value": "78201",
+      "category": "address"
+    },
+    {
+      "pdf_name": "Listing Broker Firm",
+      "value": "Seller Realty Solutions",
+      "category": "broker"
+    },
+    {
+      "pdf_name": "Listing Associates Name",
+      "value": "Robert Chen",
+      "category": "broker"
+    },
+    {
+      "pdf_name": "Selling Associates Name",
+      "value": "Lisa Martinez",
+      "category": "broker"
+    }
+  ],
+  "checkbox_fields": [
+    {
+      "pdf_name": "2Within",
+      "checked": true,
+      "category": "financing"
+    },
+    {
+      "pdf_name": "1 Buyer accepts the Property As Is",
+      "checked": false,
+      "category": "condition",
+      "note": "normally false for repairs"
+    },
+    {
+      "pdf_name": "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+      "checked": true,
+      "category": "condition"
+    },
+    {
+      "pdf_name": "Third Party Financing Addendum",
+      "checked": false,
+      "category": "addenda"
+    },
+    {
+      "pdf_name": "Addendum for Property Subject to",
+      "checked": true,
+      "category": "addenda"
+    }
+  ],
+  "critical_fields": [
+    {
+      "name": "1 PARTIES The parties to this contract are",
+      "reason": "buyer identity",
+      "expected": "Heath Shepard"
+    },
+    {
+      "name": "Seller and",
+      "reason": "seller identity",
+      "expected": "Joshua Sissam"
+    },
+    {
+      "name": "A LAND Lot",
+      "reason": "property location",
+      "expected": "Lot 5"
+    },
+    {
+      "name": "earnest money of",
+      "reason": "consideration",
+      "expected": "8500"
+    },
+    {
+      "name": "A The closing of the sale will be on or before",
+      "reason": "critical date",
+      "expected": "2026-07-31"
+    }
+  ]
+}

@@ -1,0 +1,2632 @@
+[
+  {
+    "index": 0,
+    "page": 1,
+    "field_name": "1 PARTIES The parties to this contract are",
+    "field_type": "PDFTextField",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 1,
+    "page": 1,
+    "field_name": "Seller and",
+    "field_type": "PDFTextField",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 2,
+    "page": 1,
+    "field_name": "A LAND Lot",
+    "field_type": "PDFTextField",
+    "semantic_category": "PROPERTY",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 3,
+    "page": 1,
+    "field_name": "Block",
+    "field_type": "PDFTextField",
+    "semantic_category": "PROPERTY",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 4,
+    "page": 1,
+    "field_name": "undefined",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 5,
+    "page": 1,
+    "field_name": "Addition City of",
+    "field_type": "PDFTextField",
+    "semantic_category": "PROPERTY",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 6,
+    "page": 1,
+    "field_name": "County of",
+    "field_type": "PDFTextField",
+    "semantic_category": "PROPERTY",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 7,
+    "page": 1,
+    "field_name": "Texas known as",
+    "field_type": "PDFTextField",
+    "semantic_category": "PROPERTY",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 8,
+    "page": 1,
+    "field_name": "be removed prior to delivery of possession",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 9,
+    "page": 1,
+    "field_name": "undefined_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 10,
+    "page": 1,
+    "field_name": "undefined_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 11,
+    "page": 1,
+    "field_name": "B Sum of all financing described in the attached",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 12,
+    "page": 1,
+    "field_name": "undefined_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 13,
+    "page": 1,
+    "field_name": "undefined_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 14,
+    "page": 1,
+    "field_name": "Initialed for identification by Buyer",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 15,
+    "page": 1,
+    "field_name": "undefined_8",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 16,
+    "page": 1,
+    "field_name": "and Seller",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 17,
+    "page": 1,
+    "field_name": "undefined_9",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 18,
+    "page": 1,
+    "field_name": "Page 2 of 10",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 19,
+    "page": 1,
+    "field_name": "the Title Company and Buyers lenders Check one box only",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 20,
+    "page": 1,
+    "field_name": "2Within",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 21,
+    "page": 1,
+    "field_name": "3Within",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 22,
+    "page": 1,
+    "field_name": "Sellers_2",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 23,
+    "page": 1,
+    "field_name": "Buyers expense no later",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 24,
+    "page": 1,
+    "field_name": "is",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 25,
+    "page": 1,
+    "field_name": "is not",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 26,
+    "page": 1,
+    "field_name": "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 27,
+    "page": 2,
+    "field_name": "and Seller_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 28,
+    "page": 2,
+    "field_name": "undefined_10",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 29,
+    "page": 2,
+    "field_name": "undefined_11",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 30,
+    "page": 2,
+    "field_name": "Page 3 of 10",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 31,
+    "page": 2,
+    "field_name": "Property Code requires Seller to notify Buyer as follows",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 32,
+    "page": 2,
+    "field_name": "and Seller_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 33,
+    "page": 2,
+    "field_name": "undefined_12",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 34,
+    "page": 2,
+    "field_name": "The private transfer fee",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 35,
+    "page": 2,
+    "field_name": "Contract Concerning",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 36,
+    "page": 2,
+    "field_name": "Within",
+    "field_type": "PDFTextField",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 37,
+    "page": 2,
+    "field_name": "1 Buyer accepts the Property As Is",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 38,
+    "page": 2,
+    "field_name": "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 39,
+    "page": 2,
+    "field_name": "Initialed for identification by Buyer_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 40,
+    "page": 2,
+    "field_name": "undefined_14",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 41,
+    "page": 2,
+    "field_name": "and Seller_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 42,
+    "page": 2,
+    "field_name": "undefined_15",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 43,
+    "page": 2,
+    "field_name": "Contract Concerning_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 44,
+    "page": 2,
+    "field_name": "service contract in an amount not exceeding",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 45,
+    "page": 2,
+    "field_name": "A The closing of the sale will be on or before",
+    "field_type": "PDFTextField",
+    "semantic_category": "DATES",
+    "sample_value": "2026-07-31",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 46,
+    "page": 2,
+    "field_name": "20",
+    "field_type": "PDFTextField",
+    "semantic_category": "DATES",
+    "sample_value": "2026-07-31",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 47,
+    "page": 2,
+    "field_name": "Initialed for identification by Buyer_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 48,
+    "page": 2,
+    "field_name": "Buyers Expenses as allowed by the lender",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 49,
+    "page": 2,
+    "field_name": "and Seller_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 50,
+    "page": 2,
+    "field_name": "undefined_16",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 51,
+    "page": 2,
+    "field_name": "Contract Concerning_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 52,
+    "page": 2,
+    "field_name": "Initialed for identification by Buyer_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 53,
+    "page": 2,
+    "field_name": "undefined_17",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 54,
+    "page": 3,
+    "field_name": "and Seller_6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 55,
+    "page": 3,
+    "field_name": "undefined_18",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 56,
+    "page": 3,
+    "field_name": "Page 7 of 10",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 57,
+    "page": 3,
+    "field_name": "Contract Concerning_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 58,
+    "page": 3,
+    "field_name": "Attorney is",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 59,
+    "page": 3,
+    "field_name": "Attorney is_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 60,
+    "page": 3,
+    "field_name": "undefined_24",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 61,
+    "page": 3,
+    "field_name": "undefined_25",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 62,
+    "page": 3,
+    "field_name": "Email",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 63,
+    "page": 3,
+    "field_name": "Email_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 64,
+    "page": 3,
+    "field_name": "Address of Property",
+    "field_type": "PDFTextField",
+    "semantic_category": "ADDRESS",
+    "sample_value": "123 Oak Ridge Drive",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 65,
+    "page": 3,
+    "field_name": "Loan Assumption Addendum",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 66,
+    "page": 3,
+    "field_name": "Check Box2",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 67,
+    "page": 3,
+    "field_name": "Text6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 68,
+    "page": 3,
+    "field_name": "Text7",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 69,
+    "page": 3,
+    "field_name": "Text1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 70,
+    "page": 3,
+    "field_name": "Text2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 71,
+    "page": 3,
+    "field_name": "Phone 2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 72,
+    "page": 3,
+    "field_name": "Phone11",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 73,
+    "page": 3,
+    "field_name": "Text22",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 74,
+    "page": 3,
+    "field_name": "Text23",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 75,
+    "page": 3,
+    "field_name": "undefined_6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 76,
+    "page": 3,
+    "field_name": "undefined_7",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 77,
+    "page": 3,
+    "field_name": "earnest money of",
+    "field_type": "PDFTextField",
+    "semantic_category": "CONSIDERATION",
+    "sample_value": 8500,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 78,
+    "page": 3,
+    "field_name": "insurance Title Policy issued by",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 79,
+    "page": 3,
+    "field_name": "i will not be amended or deleted from the title policy or",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 80,
+    "page": 3,
+    "field_name": "ii will be amended to read shortages in area at the expense of",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 81,
+    "page": 4,
+    "field_name": "A TITLE POLICY Seller shall furnish to Buyer at",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 82,
+    "page": 4,
+    "field_name": "Sellers",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 83,
+    "page": 4,
+    "field_name": "Seller",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 84,
+    "page": 4,
+    "field_name": "receipt or the date specified in this paragraph whichever is earlier",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 85,
+    "page": 4,
+    "field_name": "Commitment other than items 6A1 through 9 above or which prohibit the following use",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 86,
+    "page": 4,
+    "field_name": "the Commitment Exception Documents and the survey Buyers failure to object within the",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 87,
+    "page": 4,
+    "field_name": "to escrow agent within",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 88,
+    "page": 4,
+    "field_name": "to escrow agent within 1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 89,
+    "page": 4,
+    "field_name": "Buyer",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 90,
+    "page": 4,
+    "field_name": "than 3 days prior to Closing Date",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 91,
+    "page": 4,
+    "field_name": "1Within",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 92,
+    "page": 4,
+    "field_name": "2 Within",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 93,
+    "page": 4,
+    "field_name": "following specific repairs and treatments",
+    "field_type": "PDFTextField",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 94,
+    "page": 4,
+    "field_name": "undefined_13",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 95,
+    "page": 4,
+    "field_name": "Other Broker Firm",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 96,
+    "page": 4,
+    "field_name": "Zip_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 97,
+    "page": 4,
+    "field_name": "License No",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 98,
+    "page": 4,
+    "field_name": "License No_2",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 99,
+    "page": 4,
+    "field_name": "Associates Email Address",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 100,
+    "page": 4,
+    "field_name": "Phone",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 101,
+    "page": 4,
+    "field_name": "Licensed Supervisor of Associate",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 102,
+    "page": 4,
+    "field_name": "License No_3",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 103,
+    "page": 4,
+    "field_name": "Other Brokers Address",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 104,
+    "page": 4,
+    "field_name": "Phone_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 105,
+    "page": 4,
+    "field_name": "City",
+    "field_type": "PDFTextField",
+    "semantic_category": "ADDRESS",
+    "sample_value": "123 Oak Ridge Drive",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 106,
+    "page": 4,
+    "field_name": "State",
+    "field_type": "PDFTextField",
+    "semantic_category": "ADDRESS",
+    "sample_value": "123 Oak Ridge Drive",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 107,
+    "page": 4,
+    "field_name": "Zip",
+    "field_type": "PDFTextField",
+    "semantic_category": "ADDRESS",
+    "sample_value": "123 Oak Ridge Drive",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 108,
+    "page": 5,
+    "field_name": "Listing Broker Firm",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 109,
+    "page": 5,
+    "field_name": "License No_4",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 110,
+    "page": 5,
+    "field_name": "License No_5",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 111,
+    "page": 5,
+    "field_name": "Listing Associates Email Address",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 112,
+    "page": 5,
+    "field_name": "Phone_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 113,
+    "page": 5,
+    "field_name": "Licensed Supervisor of Listing Associate",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 114,
+    "page": 5,
+    "field_name": "License No_6",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 115,
+    "page": 5,
+    "field_name": "Listing Brokers Office Address",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 116,
+    "page": 5,
+    "field_name": "Phone_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 117,
+    "page": 5,
+    "field_name": "City_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 118,
+    "page": 5,
+    "field_name": "State_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 119,
+    "page": 5,
+    "field_name": "Zip_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 120,
+    "page": 5,
+    "field_name": "License No_7",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 121,
+    "page": 5,
+    "field_name": "Selling Associates Email Address",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 122,
+    "page": 5,
+    "field_name": "Phone_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 123,
+    "page": 5,
+    "field_name": "Licensed Supervisor of Selling Associate",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 124,
+    "page": 5,
+    "field_name": "License No_8",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 125,
+    "page": 5,
+    "field_name": "Selling Associates Office Address",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 126,
+    "page": 5,
+    "field_name": "City_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 127,
+    "page": 5,
+    "field_name": "State_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 128,
+    "page": 5,
+    "field_name": "EXECUTED the",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 129,
+    "page": 5,
+    "field_name": "Signature11",
+    "field_type": "PDFSignature",
+    "semantic_category": "SIGNATURE",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 130,
+    "page": 5,
+    "field_name": "day of",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 131,
+    "page": 5,
+    "field_name": "20_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 132,
+    "page": 5,
+    "field_name": "Signature8",
+    "field_type": "PDFSignature",
+    "semantic_category": "SIGNATURE",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 133,
+    "page": 5,
+    "field_name": "Signature10",
+    "field_type": "PDFSignature",
+    "semantic_category": "SIGNATURE",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 134,
+    "page": 5,
+    "field_name": "Signature9",
+    "field_type": "PDFSignature",
+    "semantic_category": "SIGNATURE",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 135,
+    "page": 6,
+    "field_name": "Third Party Financing Addendum",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 136,
+    "page": 6,
+    "field_name": "Seller Financing Addendum",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 137,
+    "page": 6,
+    "field_name": "Environmental Assessment Threatened or",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 138,
+    "page": 6,
+    "field_name": "Addendum for Property Subject to",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 139,
+    "page": 6,
+    "field_name": "Sellers Temporary Residential Lease",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 140,
+    "page": 6,
+    "field_name": "Short Sale Addendum",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 141,
+    "page": 6,
+    "field_name": "Buyers Temporary Residential Lease",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 142,
+    "page": 6,
+    "field_name": "Loan Assumption Addendum_2",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 143,
+    "page": 6,
+    "field_name": "Addendum for Property Located Seaward",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 144,
+    "page": 6,
+    "field_name": "Addendum for Sale of Other Property by",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 145,
+    "page": 6,
+    "field_name": "Addendum for Reservation of Oil Gas",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 146,
+    "page": 6,
+    "field_name": "Addendum for BackUp Contract",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 147,
+    "page": 6,
+    "field_name": "Check Box8",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 148,
+    "page": 6,
+    "field_name": "System Service Area",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 149,
+    "page": 6,
+    "field_name": "Addendum for Property in a Propane Gas",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 150,
+    "page": 6,
+    "field_name": "Check Box9",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 151,
+    "page": 6,
+    "field_name": "Initialed for identification by Buyer_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 152,
+    "page": 6,
+    "field_name": "and Seller_7",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 153,
+    "page": 6,
+    "field_name": "undefined_22",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 154,
+    "page": 6,
+    "field_name": "undefined_23",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 155,
+    "page": 6,
+    "field_name": "1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 156,
+    "page": 6,
+    "field_name": "at",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 157,
+    "page": 6,
+    "field_name": "AC1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 158,
+    "page": 6,
+    "field_name": "Phone 51",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 159,
+    "page": 6,
+    "field_name": "Phone 52",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 160,
+    "page": 6,
+    "field_name": "undefined_19",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 161,
+    "page": 6,
+    "field_name": "at_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 162,
+    "page": 7,
+    "field_name": "AC4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 163,
+    "page": 7,
+    "field_name": "Fax 52",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 164,
+    "page": 7,
+    "field_name": "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 165,
+    "page": 7,
+    "field_name": "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 166,
+    "page": 7,
+    "field_name": "Associates Name",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 167,
+    "page": 7,
+    "field_name": "Listing Associates Name",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 168,
+    "page": 7,
+    "field_name": "Selling Associates Name",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 169,
+    "page": 7,
+    "field_name": "Address of Property_2",
+    "field_type": "PDFTextField",
+    "semantic_category": "ADDRESS",
+    "sample_value": "123 Oak Ridge Drive",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 170,
+    "page": 7,
+    "field_name": "is acknowledged",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 171,
+    "page": 7,
+    "field_name": "Option Fee in the form of",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 172,
+    "page": 7,
+    "field_name": "Seller or Listing Broker",
+    "field_type": "PDFTextField",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 173,
+    "page": 7,
+    "field_name": "Date",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 174,
+    "page": 7,
+    "field_name": "is acknowledged_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 175,
+    "page": 7,
+    "field_name": "Earnest Money in the form of",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 176,
+    "page": 7,
+    "field_name": "Escrow Agent",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 177,
+    "page": 7,
+    "field_name": "Received by",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 178,
+    "page": 7,
+    "field_name": "Address",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 179,
+    "page": 7,
+    "field_name": "City_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 180,
+    "page": 7,
+    "field_name": "State_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 181,
+    "page": 7,
+    "field_name": "Zip_4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 182,
+    "page": 7,
+    "field_name": "Email Address",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 183,
+    "page": 7,
+    "field_name": "DateTime",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 184,
+    "page": 7,
+    "field_name": "Phone_6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 185,
+    "page": 7,
+    "field_name": "Fax",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 186,
+    "page": 7,
+    "field_name": "Escrow Agent_2",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 187,
+    "page": 7,
+    "field_name": "Received by_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 188,
+    "page": 7,
+    "field_name": "Address_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 189,
+    "page": 8,
+    "field_name": "City_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 190,
+    "page": 8,
+    "field_name": "State_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 191,
+    "page": 8,
+    "field_name": "Zip_5",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 192,
+    "page": 8,
+    "field_name": "Email Address_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 193,
+    "page": 8,
+    "field_name": "Date_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 194,
+    "page": 8,
+    "field_name": "Phone_7",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 195,
+    "page": 8,
+    "field_name": "Fax_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 196,
+    "page": 8,
+    "field_name": "is acknowledged_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 197,
+    "page": 8,
+    "field_name": "additional Earnest Money in the form of",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 198,
+    "page": 8,
+    "field_name": "Escrow Agent_3",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 199,
+    "page": 8,
+    "field_name": "Received by_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 200,
+    "page": 8,
+    "field_name": "Address_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 201,
+    "page": 8,
+    "field_name": "City_6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 202,
+    "page": 8,
+    "field_name": "State_6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 203,
+    "page": 8,
+    "field_name": "Zip_6",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 204,
+    "page": 8,
+    "field_name": "Email Address_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 205,
+    "page": 8,
+    "field_name": "DateTime_2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 206,
+    "page": 8,
+    "field_name": "Phone_8",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 207,
+    "page": 8,
+    "field_name": "Fax_3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 208,
+    "page": 8,
+    "field_name": "Within one",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 209,
+    "page": 8,
+    "field_name": "Within two",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 210,
+    "page": 8,
+    "field_name": "Within three",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 211,
+    "page": 8,
+    "field_name": "Within four",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 212,
+    "page": 8,
+    "field_name": "AC numb 1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 213,
+    "page": 8,
+    "field_name": "AC numb 2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 214,
+    "page": 8,
+    "field_name": "AC numb 3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 215,
+    "page": 8,
+    "field_name": "AC numb 4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 216,
+    "page": 9,
+    "field_name": "undefined numb 21",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 217,
+    "page": 9,
+    "field_name": "Associates Name numb 1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 218,
+    "page": 9,
+    "field_name": "Addr of Prop",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 219,
+    "page": 9,
+    "field_name": "Buyer only",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 220,
+    "page": 9,
+    "field_name": "Seller as List Brok Sub agent",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 221,
+    "page": 9,
+    "field_name": "List Assoc Name",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 222,
+    "page": 9,
+    "field_name": "when mailed to",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 223,
+    "page": 9,
+    "field_name": "Sellers Disclos",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 224,
+    "page": 9,
+    "field_name": "Addend. for Sellers Disclos",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 225,
+    "page": 9,
+    "field_name": "Check box 10",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 226,
+    "page": 9,
+    "field_name": "Check box 11",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 227,
+    "page": 9,
+    "field_name": "As Is",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 228,
+    "page": 9,
+    "field_name": "As Is except",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "CONDITIONS",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 229,
+    "page": 9,
+    "field_name": "3 days prior",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 230,
+    "page": 9,
+    "field_name": "upon",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 231,
+    "page": 9,
+    "field_name": "PID",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 232,
+    "page": 9,
+    "field_name": "Brokers and Sales 2",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 233,
+    "page": 9,
+    "field_name": "Brokers and Sales",
+    "field_type": "PDFTextField",
+    "semantic_category": "BROKER_INFO",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 234,
+    "page": 9,
+    "field_name": "other party in writing before entering into a contract of sale  Disclose if applicable",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 235,
+    "page": 9,
+    "field_name": "as earnest money to",
+    "field_type": "PDFTextField",
+    "semantic_category": "CONSIDERATION",
+    "sample_value": 8500,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 236,
+    "page": 9,
+    "field_name": "as earnest money to 2",
+    "field_type": "PDFTextField",
+    "semantic_category": "CONSIDERATION",
+    "sample_value": 8500,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 237,
+    "page": 9,
+    "field_name": "Text4 2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 238,
+    "page": 9,
+    "field_name": "Text4",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 239,
+    "page": 9,
+    "field_name": "Text4 3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 240,
+    "page": 9,
+    "field_name": "Text3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 241,
+    "page": 9,
+    "field_name": "Text3 2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 242,
+    "page": 9,
+    "field_name": "Text3 3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 243,
+    "page": 10,
+    "field_name": "undefined_20",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 244,
+    "page": 10,
+    "field_name": "undefined numb 22",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 245,
+    "page": 10,
+    "field_name": "Selling Associates Name-1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 246,
+    "page": 10,
+    "field_name": "undefined_20-0",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 247,
+    "page": 10,
+    "field_name": "undefined numb 22-0",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 248,
+    "page": 10,
+    "field_name": "acknowledged by Seller and Buyers agreement to pay Seller",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 249,
+    "page": 10,
+    "field_name": "will",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 250,
+    "page": 10,
+    "field_name": "will not be credited to the Sales Price at closing Time is of the",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "DATES",
+    "sample_value": "2026-07-31",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 251,
+    "page": 10,
+    "field_name": "will 1.1",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 252,
+    "page": 10,
+    "field_name": "will not be credited to the Sales Price at closing Time is of the 1",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "DATES",
+    "sample_value": "2026-07-31",
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 253,
+    "page": 10,
+    "field_name": "acknowledged by Seller and Buyers agreement to pay Seller 1",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 254,
+    "page": 10,
+    "field_name": "acknowledged by Seller and Buyers agreement to pay Seller2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 255,
+    "page": 10,
+    "field_name": "3",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 256,
+    "page": 10,
+    "field_name": "2",
+    "field_type": "PDFTextField",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 257,
+    "page": 10,
+    "field_name": "Other",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 258,
+    "page": 10,
+    "field_name": "Addendum for Section 1031",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "ADDENDA",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 259,
+    "page": 10,
+    "field_name": "Seller and Buyer as an intermediary",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 260,
+    "page": 10,
+    "field_name": "Seller only as Sellers agent",
+    "field_type": "PDFCheckBox",
+    "semantic_category": "PARTIES",
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 261,
+    "page": 10,
+    "field_name": "Dollar Amt",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  },
+  {
+    "index": 262,
+    "page": 10,
+    "field_name": "Percentage",
+    "field_type": "PDFCheckBox",
+    "semantic_category": null,
+    "sample_value": null,
+    "verified": false,
+    "notes": ""
+  }
+]

@@ -1,0 +1,49 @@
+{
+  "form_name": "One to Four Family Residential Contract (Resale) - TREC 20-18",
+  "total_pages": 10,
+  "total_fields": 263,
+  "text_fields": 201,
+  "checkbox_fields": 58,
+  "signature_fields": 4,
+  "ground_truth_fixture_file": "scripts/.trec-20-18-fixture.json",
+  "diagnostic_pdf": ".tmp-20-18-diagnostic.pdf",
+  "realistic_pdf": ".tmp-20-18-realistic.pdf",
+  "diagnostic_png_pages": 10,
+  "realistic_png_pages": 10,
+  "signoff_table_file": "scripts/.trec-20-18-signoff-table.json",
+  "field_map_file": "api/_assets/trec-20-18-fieldmap.json",
+  "status": "READY_FOR_VISUAL_VERIFICATION",
+  "notes": "All renders created. Field analysis complete. Ready for manual visual inspection of PNG pages to identify any field mapping discrepancies.",
+  "critical_verification_fields": [
+    {
+      "field": "1 PARTIES The parties to this contract are",
+      "expected": "Heath Shepard",
+      "verify_on_page": 1,
+      "reason": "Primary buyer identification"
+    },
+    {
+      "field": "Seller and",
+      "expected": "Joshua Sissam",
+      "verify_on_page": 1,
+      "reason": "Primary seller identification"
+    },
+    {
+      "field": "A LAND Lot",
+      "expected": "Lot 5",
+      "verify_on_page": 1,
+      "reason": "Property location"
+    },
+    {
+      "field": "earnest money of",
+      "expected": "8500",
+      "verify_on_page": 2,
+      "reason": "Financial consideration"
+    },
+    {
+      "field": "A The closing of the sale will be on or before",
+      "expected": "2026-07-31",
+      "verify_on_page": 3,
+      "reason": "Critical closing date"
+    }
+  ]
+}
