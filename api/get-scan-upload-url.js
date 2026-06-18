@@ -5,8 +5,8 @@
 // POST { fileName }
 // Authorization: Bearer <supabase user JWT>
 //
-// Returns: { ok: true, uploadUrl: "...", storagePath: "..." }
-// Client then: 1. PUT file to uploadUrl
+// Returns: { ok: true, url: "...", token: "...", storagePath: "..." }
+// Client then: 1. PUT file to url with header x-signature: token
 //              2. POST /api/scan-contract with { storagePath }
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
@@ -73,12 +73,20 @@ async function supabaseStorageSignedPutUrl(storagePath, expiresInSeconds = 3600)
     throw new Error(`Failed to generate PUT URL (${response.status}): ${text.slice(0, 300)}`);
   }
   const json = await response.json().catch(() => null);
-  if (!json || !json.signedURL) {
-    throw new Error('No signed URL in response');
+  if (!json) {
+    throw new Error('No response body from Supabase');
+  }
+  // New endpoint returns { url, token, path }; older may return signedURL.
+  const signedPath = json.url || json.signedURL || json.path;
+  if (!signedPath) {
+    throw new Error(`No signed URL in response. Got: ${JSON.stringify(json).slice(0, 200)}`);
   }
   // Storage returns a relative URL like "/object/sign/put/documents/...?token=..."
-  const path = json.signedURL.startsWith('/') ? json.signedURL : `/${json.signedURL}`;
-  return `${SUPABASE_URL}/storage/v1${path}`;
+  const path = signedPath.startsWith('/') ? signedPath : `/${signedPath}`;
+  const fullUrl = `${SUPABASE_URL}/storage/v1${path}`;
+
+  // Return the token so client can send it in x-signature header on PUT
+  return { fullUrl, token: json.token };
 }
 
 module.exports = async function handler(req, res) {
@@ -131,11 +139,12 @@ module.exports = async function handler(req, res) {
     // Pre-deal scans: userId/temp-scans/[timestamp]-[filename]
     const storagePath = `${userId}/temp-scans/${Date.now()}-${fileName}`;
 
-    const uploadUrl = await supabaseStorageSignedPutUrl(storagePath, 3600);
+    const { fullUrl, token } = await supabaseStorageSignedPutUrl(storagePath, 3600);
 
     return res.status(200).json({
       ok: true,
-      uploadUrl,
+      url: fullUrl,
+      token,
       storagePath,
       expiresIn: 3600,
     });
