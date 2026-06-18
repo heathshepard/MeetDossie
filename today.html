@@ -1029,10 +1029,16 @@
     async function refreshMergeQueue() {
       try {
         const res = await authFetch('/api/merge-queue-status');
-        if (!res.ok) throw new Error(`${res.status}`);
-        const commits = await res.json();
-
         const container = document.getElementById('merge-list');
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          document.getElementById('merge-count').textContent = '—';
+          container.innerHTML = `<div class="queue-empty" style="color: var(--coral);">Merge queue unavailable: ${escapeHtml(errorData.message || errorData.error)}</div>`;
+          return;
+        }
+
+        const commits = await res.json();
         const count = commits.length;
         document.getElementById('merge-count').textContent = count;
 
@@ -1065,6 +1071,9 @@
         }
       } catch (err) {
         console.error('Merge queue error:', err);
+        const container = document.getElementById('merge-list');
+        document.getElementById('merge-count').textContent = '—';
+        container.innerHTML = '<div class="queue-empty" style="color: var(--coral);">Merge queue unavailable</div>';
       }
     }
 
