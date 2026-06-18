@@ -15,8 +15,13 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 //      picks it up next tick → Sonnet Quinn responds with test plan + verdict).
 //   2. cron-dossie-qa-loop (the Playwright-driven scenario suite, against
 //      staging URL — already runs hourly; we fire it again on-demand).
-//   3. ONE Telegram to Heath: "Carter shipped [sha]. Quinn auto-dispatched.
-//      QA loop fired. Awaiting your merge."
+//
+// UPDATED 2026-06-18: Telegram ping to Heath REMOVED per
+// feedback_atlas_apv_is_merge_gate.md. Atlas APV is now the merge gate that
+// surfaces to Heath (with embedded evidence). This watcher runs silently —
+// Quinn + QA loop telemetry only. The would-have-notified payload is logged
+// for audit, but Heath no longer gets the "Reply 'merge it'" prompt from
+// this cron.
 //
 // Cole's role on Carter ships: relay-only — wait for Heath's "merge it" and
 // dispatch Carter to merge. Cole no longer in the QA critical path.
@@ -401,32 +406,21 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
   // 8. Fire the QA loop (Playwright suite) against staging
   const qaResult = await fireQaLoop();
 
-  // 9. Telegram Heath — one message, summary only
+  // 9. Telegram ping to Heath — REMOVED 2026-06-18 per feedback_atlas_apv_is_merge_gate.md
+  //
+  // Atlas APV is now the merge gate that surfaces to Heath (with embedded evidence),
+  // NOT this watcher. This cron continues to run silently for Quinn auto-dispatch +
+  // QA loop fire telemetry, but no longer pings Heath. The "would-have-notified"
+  // payload is logged for audit only.
   const shortSha = targetCommit.sha.slice(0, 7);
-  const escapedMsg = String(targetCommit.message || '(no message)').replace(/[<>&]/g, (c) => ({
-    '<': '&lt;', '>': '&gt;', '&': '&amp;',
-  })[c]);
-  const olderNote = olderShas.length > 0
-    ? `\n+ ${olderShas.length} earlier commit${olderShas.length > 1 ? 's' : ''} also new`
-    : '';
   const quinnNote = quinnResult.ok
     ? `Quinn auto-dispatched (req ${String(quinnResult.request_id || '').slice(0, 8)})`
     : `Quinn dispatch FAILED (${quinnResult.error})`;
   const qaNote = qaResult.ok ? 'QA loop fired' : `QA loop fire failed (${qaResult.error})`;
 
-  const tgText = [
-    `<b>Carter shipped to staging</b>`,
-    ``,
-    `${shortSha} — ${escapedMsg}${olderNote}`,
-    `Author: ${targetCommit.author || 'unknown'}`,
-    ``,
-    `${quinnNote}`,
-    `${qaNote}`,
-    ``,
-    `Reply <b>"merge it"</b> to deploy main, or <b>"loop back to Carter"</b> with the fix.`,
-  ].join('\n');
+  console.log(`[${POLL_NAME}] would-have-notified (ping suppressed): sha=${shortSha} author=${targetCommit.author || 'unknown'} | ${quinnNote} | ${qaNote}`);
 
-  const tgResult = await tg(tgText);
+  const tgResult = { ok: false, error: 'ping_suppressed_by_apv_gate', message_id: null };
 
   // 10. Record event + advance state
   const outcome = {
