@@ -58,7 +58,7 @@ function sanitizeFileName(name) {
 // Create a signed PUT URL (not GET). Client will use this to upload the file.
 // Returns the full URL.
 async function supabaseStorageSignedPutUrl(storagePath, expiresInSeconds = 3600) {
-  const url = `${SUPABASE_URL}/storage/v1/object/sign/put/${BUCKET}/${storagePath}`;
+  const url = `${SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${storagePath}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
