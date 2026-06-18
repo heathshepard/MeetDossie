@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Today — Shepard Ventures</title>
+  <title>Jarvis — Shepard Ventures Command Deck</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,7 @@
       --navy-mid: #20203a;
       --coral: #E8836B;
       --coral-deep: #d96d52;
+      --cyan: #00d9ff;
       --surface: rgba(255, 255, 255, 0.04);
       --surface-hover: rgba(255, 255, 255, 0.07);
       --border: rgba(245, 230, 224, 0.10);
@@ -37,6 +38,7 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       padding-bottom: env(safe-area-inset-bottom);
+      overflow-x: hidden;
     }
 
     /* ---- Auth gate ---- */
@@ -79,247 +81,207 @@
     #auth-gate .err { color: var(--coral); font-size: 0.85rem; min-height: 1em; }
 
     #app { display: none; }
-    #app.visible { display: block; }
+    #app.visible { display: flex; flex-direction: column; height: 100vh; }
 
-    /* ---- Layout ---- */
-    .page {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 20px 16px 80px;
+    /* ---- 3D Canvas Scene ---- */
+    #three-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      z-index: 0;
     }
+    canvas { display: block; }
 
-    /* ---- Hero ---- */
-    .hero {
-      padding: 4px 0 14px;
+    /* ---- Mission Banner (top overlay) ---- */
+    .mission-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(180deg, rgba(26, 26, 46, 0.9) 0%, rgba(26, 26, 46, 0.7) 100%);
       border-bottom: 1px solid var(--border);
-      margin-bottom: 22px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 12px;
-    }
-    .hero-title {
-      font-family: "Cormorant Garamond", serif;
-      font-weight: 600;
-      font-size: clamp(2rem, 8vw, 2.8rem);
-      color: var(--blush);
-      letter-spacing: -0.01em;
-      line-height: 1;
-    }
-    .hero-sub {
-      font-family: "Cormorant Garamond", serif;
-      font-style: italic;
-      color: var(--gold);
-      font-size: 0.95rem;
-      margin-top: 4px;
-    }
-    .hero-meta {
-      font-size: 0.72rem;
-      color: var(--text-faint);
-      text-align: right;
-      letter-spacing: 0.04em;
-    }
-    .refresh-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-dim);
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      margin-top: 6px;
-      font-family: inherit;
-    }
-    .refresh-btn:hover { color: var(--blush); border-color: var(--border-hover); }
-    .refresh-btn.spinning { color: var(--gold); }
-
-    /* ---- Section ---- */
-    .section {
-      margin-bottom: 26px;
-    }
-    .section-head {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      padding: 0 2px;
-    }
-    .section-title {
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(8px);
       font-family: "Cormorant Garamond", serif;
+      font-size: 1.1rem;
       font-weight: 600;
-      font-size: 1.4rem;
-      color: var(--blush);
       letter-spacing: 0.02em;
     }
-    .section-count {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      background: var(--surface);
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      font-weight: 600;
-    }
-    .section-count.urgent { color: var(--coral); border-color: rgba(232,131,107,0.35); background: rgba(232,131,107,0.08); }
-    .section-count.active { color: var(--sage); border-color: rgba(139,168,136,0.35); background: rgba(139,168,136,0.08); }
-
-    .empty {
-      color: var(--text-faint);
-      font-style: italic;
-      padding: 18px 14px;
-      background: var(--surface);
-      border-radius: 10px;
-      border: 1px dashed var(--border);
-      text-align: center;
-      font-size: 0.9rem;
-    }
-
-    /* ---- Pending Merge cards ---- */
-    .merge-list { display: flex; flex-direction: column; gap: 10px; }
-    .merge-card {
-      background: linear-gradient(180deg, rgba(245,230,224,0.06), rgba(245,230,224,0.02));
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      transition: all 0.15s;
-    }
-    .merge-card:hover { border-color: var(--border-hover); background: var(--surface-hover); }
-    .merge-card.merging { opacity: 0.5; pointer-events: none; }
-    .merge-card.merged { background: rgba(139,168,136,0.08); border-color: rgba(139,168,136,0.3); }
-    .merge-info {
-      flex: 1;
-      min-width: 0;
-    }
-    .merge-msg {
-      color: var(--blush);
-      font-weight: 500;
-      font-size: 0.92rem;
-      line-height: 1.3;
-      margin-bottom: 4px;
-      word-break: break-word;
-    }
-    .merge-meta {
-      color: var(--text-dim);
-      font-size: 0.74rem;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .merge-sha {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    .mission-text {
       color: var(--gold);
-      font-size: 0.74rem;
-    }
-    .merge-btn {
-      background: var(--coral);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      min-width: 78px;
-      min-height: 44px;
-      flex-shrink: 0;
-      font-family: inherit;
-    }
-    .merge-btn:hover { background: var(--coral-deep); }
-    .merge-btn:active { transform: scale(0.96); }
-    .merge-btn.confirming {
-      background: var(--gold);
-      color: var(--navy);
-    }
-    .merge-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
-
-    /* ---- Agent activity cards ---- */
-    .inflight-list { display: flex; flex-direction: column; gap: 8px; }
-    .inflight-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 11px 13px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-    .inflight-card .agent-tag {
-      font-family: "Cormorant Garamond", serif;
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: var(--blush);
-      min-width: 64px;
-      letter-spacing: 0.02em;
-    }
-    .inflight-card .task {
-      flex: 1;
-      color: var(--blush);
-      font-size: 0.88rem;
-      line-height: 1.35;
-      word-break: break-word;
-    }
-    .inflight-card .meta {
-      color: var(--text-dim);
-      font-size: 0.72rem;
-      margin-top: 3px;
       display: flex;
       gap: 8px;
-      flex-wrap: wrap;
+      align-items: center;
     }
-    .status-dot {
+    .mission-dot {
       display: inline-block;
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      margin-right: 6px;
-      vertical-align: middle;
+      background: var(--sage);
+      box-shadow: 0 0 8px rgba(139,168,136,0.8), 0 0 16px rgba(139,168,136,0.4);
+      animation: pulse-mission 1.4s ease-in-out infinite;
     }
-    .status-dot.working { background: var(--sage); box-shadow: 0 0 6px rgba(139,168,136,0.6); animation: pulse 1.6s ease-in-out infinite; }
-    .status-dot.waiting { background: var(--gold); }
-    .status-dot.blocked { background: var(--coral); }
-    .status-dot.idle { background: var(--text-faint); }
-    @keyframes pulse {
+    @keyframes pulse-mission {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.55; transform: scale(0.85); }
+      50% { opacity: 0.5; transform: scale(0.75); }
     }
 
-    /* ---- Done today ---- */
-    .done-list { display: flex; flex-direction: column; gap: 6px; }
-    .done-row {
+    /* ---- Main content area ---- */
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      overflow-y: auto;
+      padding-top: 80px;
+      padding-bottom: 24px;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      grid-auto-rows: max-content;
+    }
+
+    /* ---- Section styling ---- */
+    .section {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 9px 12px;
+      border-radius: 12px;
+      padding: 16px;
       display: flex;
-      gap: 10px;
-      align-items: center;
-      font-size: 0.85rem;
+      flex-direction: column;
+      gap: 12px;
     }
-    .done-row .kind {
-      font-size: 0.65rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--gold);
+      letter-spacing: 0.02em;
+    }
+    .section-count {
+      background: rgba(201, 169, 110, 0.15);
+      color: var(--gold);
+      font-size: 0.75rem;
       font-weight: 700;
-      padding: 2px 7px;
+      padding: 3px 8px;
       border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ---- Todo List ---- */
+    .todo-item {
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      cursor: grab;
+      transition: all 0.2s;
+      position: relative;
+      touch-action: pan-y;
+    }
+    .todo-item:active { cursor: grabbing; }
+    .todo-item.swiping-out {
+      opacity: 0;
+      transform: translateX(100px) rotate(5deg);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    .todo-item:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+    }
+    .todo-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--gold);
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      transition: all 0.2s;
+    }
+    .todo-checkbox:hover {
+      border-color: var(--coral);
+      background: rgba(232, 131, 107, 0.1);
+    }
+    .todo-checkbox.checked {
+      background: var(--coral);
+      border-color: var(--coral);
+      color: #fff;
+      font-weight: bold;
+    }
+    .todo-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .todo-text {
+      color: var(--blush);
+      font-size: 0.92rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .todo-meta {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .todo-actions {
+      display: flex;
+      gap: 6px;
       flex-shrink: 0;
     }
-    .done-row .kind.commit { background: rgba(201,169,110,0.15); color: var(--gold); }
-    .done-row .kind.ticket { background: rgba(232,131,107,0.15); color: var(--coral); }
-    .done-row .kind.agent  { background: rgba(139,168,136,0.15); color: var(--sage); }
-    .done-row .body {
-      flex: 1;
-      color: var(--blush);
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .todo-action-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
-    .done-row .when { color: var(--text-dim); font-size: 0.7rem; flex-shrink: 0; }
+    .todo-action-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .todo-empty {
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px 12px;
+      font-size: 0.88rem;
+    }
 
     /* ---- Toast ---- */
     #toast {
@@ -345,91 +307,128 @@
 
     /* ---- Footer nav ---- */
     .nav-back {
-      margin-top: 30px;
+      margin-top: 20px;
       text-align: center;
       font-size: 0.78rem;
+      grid-column: 1 / -1;
     }
     .nav-back a { color: var(--text-dim); text-decoration: none; padding: 8px 12px; border-radius: 6px; }
     .nav-back a:hover { color: var(--gold); }
 
-    @media (max-width: 480px) {
-      .merge-card { padding: 11px 12px; gap: 10px; }
-      .merge-btn { padding: 10px 14px; min-width: 70px; font-size: 0.82rem; }
-      .merge-msg { font-size: 0.88rem; }
+    /* ---- Responsive grid ---- */
+    @media (max-width: 768px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+      .mission-banner {
+        font-size: 0.95rem;
+      }
+    }
+
+    /* ---- Scrollbar styling ---- */
+    .content-wrapper::-webkit-scrollbar {
+      width: 8px;
+    }
+    .content-wrapper::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .content-wrapper::-webkit-scrollbar-thumb {
+      background: rgba(245, 230, 224, 0.2);
+      border-radius: 4px;
+    }
+    .content-wrapper::-webkit-scrollbar-thumb:hover {
+      background: rgba(245, 230, 224, 0.4);
     }
   </style>
 </head>
 <body>
   <!-- Auth gate -->
   <div id="auth-gate">
-    <h1>Today</h1>
+    <h1>Jarvis</h1>
     <p>Mission control — sign in as heath.</p>
-    <input id="email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
-    <input id="password" type="password" placeholder="password" autocomplete="current-password">
+    <input id="signin-email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
+    <input id="signin-password" type="password" placeholder="password" autocomplete="current-password">
     <button id="signin-btn">Sign in</button>
-    <div class="err" id="auth-err"></div>
+    <div class="err" id="signin-error"></div>
   </div>
 
   <!-- Main app -->
   <div id="app">
-    <div class="page">
-      <div class="hero">
-        <div>
-          <div class="hero-title">Today</div>
-          <div class="hero-sub">mission control</div>
-        </div>
-        <div>
-          <div class="hero-meta" id="last-updated">—</div>
-          <button class="refresh-btn" id="refresh-btn">refresh</button>
-        </div>
-      </div>
+    <!-- 3D Canvas -->
+    <div id="three-container"></div>
 
-      <!-- Pending Merge -->
-      <div class="section" id="section-pending">
-        <div class="section-head">
-          <div class="section-title">Pending merge</div>
-          <div class="section-count" id="pending-count">0</div>
-        </div>
-        <div id="pending-list" class="merge-list"></div>
+    <!-- Mission Banner -->
+    <div class="mission-banner">
+      <div class="mission-text">
+        <span class="mission-dot"></span>
+        <span id="mission-text">Working on: Jarvis V5 initialization</span>
       </div>
+    </div>
 
-      <!-- In Flight -->
-      <div class="section" id="section-inflight">
-        <div class="section-head">
-          <div class="section-title">In flight</div>
-          <div class="section-count" id="inflight-count">0</div>
+    <!-- Content -->
+    <div class="content-wrapper">
+      <div class="page">
+        <!-- Heath TODO List -->
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">Today's Work</div>
+            <div class="section-count" id="todo-count">0</div>
+          </div>
+          <div id="todo-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
-        <div id="inflight-list" class="inflight-list"></div>
-      </div>
 
-      <!-- Done Today -->
-      <div class="section" id="section-done">
-        <div class="section-head">
-          <div class="section-title">Done today</div>
-          <div class="section-count" id="done-count">0</div>
+        <!-- Placeholder section for Round 2 (merge list) -->
+        <div class="section" style="opacity: 0.5;">
+          <div class="section-head">
+            <div class="section-title">Ready to merge</div>
+            <div class="section-count">—</div>
+          </div>
+          <div style="color: var(--text-dim); text-align: center; padding: 20px 12px; font-size: 0.88rem;">
+            Round 2 coming soon
+          </div>
         </div>
-        <div id="done-list" class="done-list"></div>
-      </div>
 
-      <div class="nav-back">
-        <a href="/ventures">&larr; ventures dashboard</a>
-        &nbsp;&middot;&nbsp;
-        <a href="#" id="signout-link">sign out</a>
+        <div class="nav-back">
+          <a href="/ventures">&larr; ventures dashboard</a>
+          &nbsp;&middot;&nbsp;
+          <a href="#" id="signout-link">sign out</a>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="toast"></div>
 
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      }
+    }
+  </script>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
     let supabase = null;
     let _token = null;
     let _pollTimer = null;
     const POLL_MS = 30_000;
-    // Track pending merges by SHA → button confirm state
-    const _confirming = new Set();
+    let _scene = null;
+    let _orb = null;
+    let _camera = null;
+    let _renderer = null;
+    let _composer = null;
+    let _bloomPass = null;
+    let _starfield = null;
+    const _todoItems = new Map();
+    const _todoTouchStarts = new Map();
+    let _atmosphereShell = null;
 
     async function bootstrap() {
       let config;
@@ -457,20 +456,58 @@
       });
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { showLogin(); return; }
+      if (session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        document.getElementById('signin-error').textContent = 'Access denied — this page is Heath only.';
+        showLogin();
+        return;
+      }
       revealApp(session.access_token);
     }
 
     function showLogin() {
       document.getElementById('auth-gate').classList.add('visible');
       document.getElementById('app').classList.remove('visible');
+      document.getElementById('signin-btn').addEventListener('click', handleSignIn);
+    }
+
+    async function handleSignIn() {
+      const email = document.getElementById('signin-email').value;
+      const password = document.getElementById('signin-password').value;
+      const errorEl = document.getElementById('signin-error');
+      errorEl.textContent = '';
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+        return;
+      }
+      if (data.session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        errorEl.textContent = 'Access denied — this page is Heath only.';
+        return;
+      }
+      revealApp(data.session.access_token);
     }
 
     function revealApp(token) {
       _token = token;
       document.getElementById('auth-gate').classList.remove('visible');
       document.getElementById('app').classList.add('visible');
+      initThreeScene();
       refresh();
       _pollTimer = setInterval(refresh, POLL_MS);
+
+      // Wire up mission banner click to voice command (Round 5)
+      document.querySelector('.mission-text').addEventListener('click', async () => {
+        toast('Voice command not yet available (Round 5)', 'err');
+      });
+
+      // Wire up footer
+      document.getElementById('signout-link').addEventListener('click', async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        showLogin();
+      });
     }
 
     function showError(msg) {
@@ -488,6 +525,215 @@
       toast._t = setTimeout(() => { el.classList.remove('visible'); }, 3500);
     }
 
+    // ========== THREE.JS SCENE ==========
+    function initThreeScene() {
+      const container = document.getElementById('three-container');
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Setup camera
+      _camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 1000);
+      _camera.position.z = 3;
+
+      // Setup renderer
+      _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      _renderer.setSize(w, h);
+      _renderer.setClearColor(0x1a1a2e, 0);
+      _renderer.setPixelRatio(window.devicePixelRatio);
+      _renderer.shadowMap.enabled = true;
+      container.appendChild(_renderer.domElement);
+
+      // Setup post-processing with bloom
+      _composer = new EffectComposer(_renderer);
+      const renderPass = new RenderPass(_scene = new THREE.Scene(), _camera);
+      _composer.addPass(renderPass);
+      _bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(w, h),
+        1.5,    // strength
+        0.4,    // radius
+        0.85    // threshold
+      );
+      _composer.addPass(_bloomPass);
+
+      // Setup scene
+      _scene = new THREE.Scene();
+      _scene.fog = new THREE.Fog(0x1a1a2e, 10, 20);
+
+      // Ambient light
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.3);
+      _scene.add(ambLight);
+
+      // Directional light
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(5, 5, 5);
+      _scene.add(dirLight);
+
+      // Create starfield background
+      createStarfield();
+
+      // Create the orb
+      createOrb();
+      updateOrbPosition();
+
+      // Update composer render pass scene reference
+      _composer.passes[0].scene = _scene;
+
+      // Handle window resize
+      window.addEventListener('resize', onWindowResize);
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        if (_orb) {
+          _orb.rotation.x += 0.0003;
+          _orb.rotation.y += 0.0005;
+        }
+        if (_starfield) {
+          _starfield.rotation.x += 0.00005;
+          _starfield.rotation.y += 0.00008;
+        }
+        _composer.render();
+      }
+      animate();
+    }
+
+    function createStarfield() {
+      const starGeometry = new THREE.BufferGeometry();
+      const starCount = 1500;
+      const positions = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 100;
+        positions[i + 1] = (Math.random() - 0.5) * 100;
+        positions[i + 2] = (Math.random() - 0.5) * 100;
+      }
+      starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const starMaterial = new THREE.PointsMaterial({ color: 0x888899, size: 0.05 });
+      _starfield = new THREE.Points(starGeometry, starMaterial);
+      _scene.add(_starfield);
+    }
+
+    function createOrb() {
+      const geometry = new THREE.IcosahedronGeometry(1, 8);
+
+      // Create shader material for smooth gradient orb with enhanced fresnel
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+          varying float vFresnel;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vPosition = position;
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vec3 viewDir = normalize(-mvPos.xyz);
+            vFresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.8);
+            gl_Position = projectionMatrix * mvPos;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+          varying float vFresnel;
+          uniform float time;
+          void main() {
+            vec3 color = mix(vec3(0.13, 0.85, 1.0), vec3(0.8, 0.4, 0.3), length(vPosition) * 0.3);
+            color += vec3(0.0, 0.9, 1.0) * vFresnel * 0.8;
+            float bloom = vFresnel * 0.6;
+            gl_FragColor = vec4(color, 1.0 - bloom * 0.3);
+          }
+        `,
+      });
+
+      _orb = new THREE.Mesh(geometry, material);
+      _orb.scale.set(0.35, 0.35, 0.35);
+      _orb.position.set(2.3, -0.5, 0);
+      _scene.add(_orb);
+
+      // Create fresnel atmosphere shell around orb
+      const shellGeo = new THREE.SphereGeometry(0.35 * 1.18, 64, 64);
+      const shellMat = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          color: { value: new THREE.Color(0x00d4ff) }
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vViewDir;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vViewDir = normalize(-mvPos.xyz);
+            gl_Position = projectionMatrix * mvPos;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 color;
+          varying vec3 vNormal;
+          varying vec3 vViewDir;
+          void main() {
+            float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.0);
+            gl_FragColor = vec4(color, fresnel * 0.9);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.BackSide,
+        depthWrite: false,
+      });
+      const shell = new THREE.Mesh(shellGeo, shellMat);
+      _atmosphereShell = shell;
+      shell.position.set(2.3, -0.5, 0);
+      _scene.add(shell);
+    }
+
+    
+    function updateOrbPosition() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isMobile = w < 768;
+
+      if (isMobile) {
+        // Mobile: NDC unproject to top-right corner (85% width, 15% height)
+        const screenX = 0.85;
+        const screenY = 0.15;
+        const ndcX = screenX * 2 - 1;
+        const ndcY = -(screenY * 2 - 1);
+        const v = new THREE.Vector3(ndcX, ndcY, 0.5);
+        v.unproject(_camera);
+        const dir = v.sub(_camera.position).normalize();
+        const distance = _camera.position.z;
+        const target = _camera.position.clone().add(dir.multiplyScalar(distance));
+        _orb.position.set(target.x, target.y, 0);
+        _orb.scale.set(0.22, 0.22, 0.22);
+        if (_atmosphereShell) {
+          _atmosphereShell.position.set(target.x, target.y, 0);
+          _atmosphereShell.scale.set(0.22, 0.22, 0.22);
+        }
+      } else {
+        // Desktop: right gutter (X = 2.3), keep Y at -0.5 — LOCKED
+        _orb.position.set(2.3, -0.5, 0);
+        _orb.scale.set(0.35, 0.35, 0.35);
+        if (_atmosphereShell) {
+          _atmosphereShell.position.set(2.3, -0.5, 0);
+          _atmosphereShell.scale.set(0.35, 0.35, 0.35);
+        }
+      }
+    }
+
+    function onWindowResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      _camera.aspect = w / h;
+      _camera.updateProjectionMatrix();
+      _renderer.setSize(w, h);
+      _composer.setSize(w, h);
+      updateOrbPosition();
+    }
+
+    // ========== DATA FETCHING ==========
     async function authFetch(url, init = {}) {
       return fetch(url, {
         ...init,
@@ -500,227 +746,188 @@
     }
 
     async function refresh() {
-      const btn = document.getElementById('refresh-btn');
-      btn.classList.add('spinning');
       try {
-        const res = await authFetch('/api/today-feed-state');
-        if (res.status === 401) {
-          await supabase.auth.signOut();
-          showLogin();
-          return;
-        }
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-          toast(`refresh failed: ${j.error || res.status}`, 'err');
-          return;
-        }
-        const data = await res.json();
-        render(data);
+        await Promise.all([
+          refreshTodoList(),
+        ]);
+        document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
-        toast(`network: ${err.message}`, 'err');
-      } finally {
-        btn.classList.remove('spinning');
+        console.error('Refresh error:', err);
       }
     }
 
-    function fmtTime(iso) {
-      if (!iso) return '';
+    async function refreshTodoList() {
       try {
-        return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      } catch { return ''; }
-    }
+        const { data, error } = await supabase
+          .from('heath_todo')
+          .select('id, title, priority, deadline, snoozed_until, status')
+          .eq('status', 'pending')
+          .order('priority', { ascending: true })
+          .order('deadline', { ascending: true });
 
-    function render(data) {
-      document.getElementById('last-updated').textContent =
-        'updated ' + fmtTime(data.generatedAt);
+        if (error) throw error;
 
-      // Pending merges
-      const pendingCommits = data.pendingMerges?.commits || [];
-      const pendingCount = pendingCommits.length;
-      const pCountEl = document.getElementById('pending-count');
-      pCountEl.textContent = pendingCount;
-      pCountEl.classList.toggle('urgent', pendingCount > 0);
-      const pList = document.getElementById('pending-list');
-      if (pendingCount === 0) {
-        pList.innerHTML = '<div class="empty">main is up to date with staging</div>';
-      } else {
-        pList.innerHTML = pendingCommits.map(c => `
-          <div class="merge-card" data-sha="${escapeHtml(c.sha)}">
-            <div class="merge-info">
-              <div class="merge-msg">${escapeHtml(c.message)}</div>
-              <div class="merge-meta">
-                <span class="merge-sha">${escapeHtml(c.shortSha)}</span>
-                <span>${escapeHtml(c.author)}</span>
-                <span>${escapeHtml(c.age)}</span>
-              </div>
-            </div>
-            <button class="merge-btn" data-sha="${escapeHtml(c.sha)}" data-msg="${escapeHtml(c.message)}">Merge</button>
-          </div>
-        `).join('');
-        pList.querySelectorAll('.merge-btn').forEach(btn => {
-          btn.addEventListener('click', () => onMergeClick(btn));
-        });
-      }
+        const container = document.getElementById('todo-list');
+        const count = data.length;
+        document.getElementById('todo-count').textContent = count;
 
-      // In Flight
-      const inflight = data.inFlight?.rows || [];
-      const ifCountEl = document.getElementById('inflight-count');
-      ifCountEl.textContent = inflight.length;
-      ifCountEl.classList.toggle('active', inflight.length > 0);
-      const ifList = document.getElementById('inflight-list');
-      if (inflight.length === 0) {
-        ifList.innerHTML = '<div class="empty">no active agents</div>';
-      } else {
-        ifList.innerHTML = inflight.map(r => `
-          <div class="inflight-card">
-            <div class="agent-tag">${escapeHtml(capitalize(r.agent))}</div>
-            <div style="flex:1;min-width:0">
-              <div class="task">${escapeHtml(r.task)}</div>
-              <div class="meta">
-                <span><span class="status-dot ${escapeHtml(r.status)}"></span>${escapeHtml(r.status)}</span>
-                <span>started ${escapeHtml(r.age)}</span>
-                <span>heartbeat ${escapeHtml(r.heartbeatAge)}</span>
-              </div>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      // Done today
-      const done = data.doneToday || {};
-      const doneRows = [];
-      (done.commits || []).forEach(c => {
-        if (c.type === 'error') return;
-        doneRows.push({
-          kind: 'commit',
-          body: `${c.shortSha} ${c.message}`,
-          age: c.age,
-          when: c.timestamp,
-        });
-      });
-      (done.tickets || []).forEach(t => {
-        doneRows.push({
-          kind: 'ticket',
-          body: `${t.ticketType || 'ticket'}: ${t.preview}`,
-          age: t.age,
-          when: t.timestamp,
-        });
-      });
-      (done.agentDone || []).forEach(a => {
-        doneRows.push({
-          kind: 'agent',
-          body: `${capitalize(a.agent)}: ${a.task}`,
-          age: a.age,
-          when: a.timestamp,
-        });
-      });
-      doneRows.sort((a, b) => (new Date(b.when || 0)) - (new Date(a.when || 0)));
-      document.getElementById('done-count').textContent = doneRows.length;
-      const dList = document.getElementById('done-list');
-      if (doneRows.length === 0) {
-        dList.innerHTML = '<div class="empty">nothing shipped in the last 24h</div>';
-      } else {
-        dList.innerHTML = doneRows.slice(0, 30).map(r => `
-          <div class="done-row">
-            <span class="kind ${escapeHtml(r.kind)}">${escapeHtml(r.kind)}</span>
-            <span class="body" title="${escapeHtml(r.body)}">${escapeHtml(r.body)}</span>
-            <span class="when">${escapeHtml(r.age)}</span>
-          </div>
-        `).join('');
-      }
-    }
-
-    async function onMergeClick(btn) {
-      const sha = btn.dataset.sha;
-      const msg = btn.dataset.msg || '';
-      // Two-tap confirm pattern — first tap arms, second tap fires.
-      if (!_confirming.has(sha)) {
-        _confirming.add(sha);
-        btn.textContent = 'Tap to confirm';
-        btn.classList.add('confirming');
-        setTimeout(() => {
-          if (_confirming.has(sha)) {
-            _confirming.delete(sha);
-            btn.textContent = 'Merge';
-            btn.classList.remove('confirming');
+        // Diff: remove deleted items
+        const incomingIds = new Set(data.map(t => t.id));
+        for (const id of _todoItems.keys()) {
+          if (!incomingIds.has(id)) {
+            const el = document.getElementById(`todo-${id}`);
+            if (el) el.remove();
+            _todoItems.delete(id);
           }
-        }, 4000);
-        return;
-      }
-      _confirming.delete(sha);
-      const card = btn.closest('.merge-card');
-      card.classList.add('merging');
-      btn.textContent = 'Merging...';
-      btn.disabled = true;
-      try {
-        const res = await authFetch('/api/merge-to-main', {
-          method: 'POST',
-          body: JSON.stringify({ sha }),
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          card.classList.remove('merging');
-          btn.disabled = false;
-          btn.textContent = 'Merge';
-          btn.classList.remove('confirming');
-          const code = j.code ? `[${j.code}] ` : '';
-          toast(`${code}${j.error || 'merge failed'}`, 'err');
-          return;
         }
-        card.classList.add('merged');
-        btn.textContent = j.noop ? 'Already on main' : 'Merged ✓';
-        toast(`Shipped ${j.shortSha || sha.slice(0,7)} to main`, 'ok');
-        setTimeout(refresh, 1500);
+
+        // Add or update items
+        for (const todo of data) {
+          if (!_todoItems.has(todo.id)) {
+            const todoEl = createTodoElement(todo);
+            container.appendChild(todoEl);
+            _todoItems.set(todo.id, todoEl);
+          }
+        }
+
+        if (count === 0) {
+          container.innerHTML = '<div class="todo-empty">No active work. Nice.</div>';
+        }
       } catch (err) {
-        card.classList.remove('merging');
-        btn.disabled = false;
-        btn.textContent = 'Merge';
-        toast(`network: ${err.message}`, 'err');
+        console.error('Todo fetch error:', err);
       }
     }
 
-    function escapeHtml(s) {
-      if (s == null) return '';
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-    function capitalize(s) {
-      if (!s) return '';
-      return s.charAt(0).toUpperCase() + s.slice(1);
+    function createTodoElement(todo) {
+      const el = document.createElement('div');
+      el.id = `todo-${todo.id}`;
+      el.className = 'todo-item';
+
+      const dueText = todo.deadline ? new Date(todo.deadline).toLocaleDateString() : '—';
+      const priorityLabel = ['critical', 'high', 'normal', 'low', 'background'][todo.priority - 1] || 'normal';
+
+      el.innerHTML = `
+        <div class="todo-checkbox" data-id="${todo.id}" data-action="check"></div>
+        <div class="todo-body">
+          <div class="todo-text">${escapeHtml(todo.title)}</div>
+          <div class="todo-meta">
+            <span>${priorityLabel}</span>
+            <span>${dueText}</span>
+          </div>
+        </div>
+        <div class="todo-actions">
+          <button class="todo-action-btn" data-id="${todo.id}" data-action="snooze">Snooze</button>
+          <button class="todo-action-btn" data-id="${todo.id}" data-action="hide">Hide</button>
+        </div>
+      `;
+
+      // Event handlers
+      const checkbox = el.querySelector('.todo-checkbox');
+      checkbox.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await completeTodo(todo.id, el);
+      });
+
+      el.querySelectorAll('.todo-action-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const action = e.target.dataset.action;
+          const id = e.target.dataset.id;
+          if (action === 'snooze') {
+            await snoozeTodo(id, el);
+          } else if (action === 'hide') {
+            await hideTodo(id, el);
+          }
+        });
+      });
+
+      // Touch swipe support
+      let touchStart = 0;
+      el.addEventListener('touchstart', (e) => {
+        touchStart = e.touches[0].clientX;
+      }, false);
+      el.addEventListener('touchmove', (e) => {
+        if (!touchStart) return;
+        const touchEnd = e.touches[0].clientX;
+        const diff = touchStart - touchEnd;
+        if (diff > 80) {
+          el.classList.add('swiping-out');
+          setTimeout(() => completeTodo(todo.id, el), 300);
+          touchStart = 0;
+        }
+      }, false);
+
+      return el;
     }
 
-    // ---- Auth wire-up ----
-    document.getElementById('signin-btn').addEventListener('click', async () => {
-      showError('');
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      if (!email || !password) { showError('email + password required'); return; }
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { showError(error.message); return; }
-      if (!data?.session) { showError('no session'); return; }
-      if (data.session.user.email !== 'heath.shepard@kw.com') {
-        await supabase.auth.signOut();
-        showError('this page is for heath only.');
-        return;
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function completeTodo(id, el) {
+      try {
+        el.classList.add('swiping-out');
+        setTimeout(async () => {
+          const { error } = await supabase
+            .from('heath_todo')
+            .update({ status: 'done', completed_at: new Date().toISOString() })
+            .eq('id', id);
+          if (error) throw error;
+          el.remove();
+          _todoItems.delete(id);
+          toast('Done!', 'ok');
+          await refreshTodoList();
+        }, 200);
+      } catch (err) {
+        console.error('Complete error:', err);
+        el.classList.remove('swiping-out');
+        toast('Error', 'err');
       }
-      revealApp(data.session.access_token);
-    });
-    document.getElementById('password').addEventListener('keydown', e => {
-      if (e.key === 'Enter') document.getElementById('signin-btn').click();
-    });
+    }
 
-    document.getElementById('refresh-btn').addEventListener('click', refresh);
-    document.getElementById('signout-link').addEventListener('click', async (e) => {
-      e.preventDefault();
-      if (_pollTimer) clearInterval(_pollTimer);
-      if (supabase) await supabase.auth.signOut();
-      showLogin();
-    });
+    async function snoozeTodo(id, el) {
+      try {
+        const snoozeUntil = new Date();
+        snoozeUntil.setHours(snoozeUntil.getHours() + 2);
+        const { error } = await supabase
+          .from('heath_todo')
+          .update({ status: 'snoozed', snoozed_until: snoozeUntil.toISOString() })
+          .eq('id', id);
+        if (error) throw error;
+        el.classList.add('swiping-out');
+        setTimeout(() => {
+          el.remove();
+          _todoItems.delete(id);
+          toast('Snoozed 2h', 'ok');
+        }, 200);
+      } catch (err) {
+        console.error('Snooze error:', err);
+        toast('Error', 'err');
+      }
+    }
 
+    async function hideTodo(id, el) {
+      try {
+        const { error } = await supabase
+          .from('heath_todo')
+          .update({ status: 'skipped' })
+          .eq('id', id);
+        if (error) throw error;
+        el.classList.add('swiping-out');
+        setTimeout(() => {
+          el.remove();
+          _todoItems.delete(id);
+          toast('Hidden', 'ok');
+        }, 200);
+      } catch (err) {
+        console.error('Hide error:', err);
+        toast('Error', 'err');
+      }
+    }
+
+    // Initialize
     bootstrap();
   </script>
 </body>
