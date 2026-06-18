@@ -152,7 +152,112 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Helpful guidance when you have nothing yet** (customer)
 - We added smart tips that appear when your pipeline, documents, or task lists are empty, so you know what to do next. We're also building a help center with articles to answer your questions right inside the app.
 
-<!-- applied_shas: 0912a4d,0b0b66a,0e9bdfb,10d193a,13f2c3e,1592e16,230760e,25e1a90,2d7b31a,2e66c98,35aba84,3bec469,42a4e45,42c0fdf,49aac5a,5710ac1,5c017b2,5c25b94,62c58af,631a020,63b8318,65a1d9f,715f06e,831d282,867047d,9383da2,952cafd,b3baa27,b7521b6,bdeca8f,c117288,c663522,c7caf5a,cbb99b1,cc72b79,d75babd,e6d4d69,f3e0f9a,f434745 -->
+**Talk-to-Dossie can now fill and sign forms** (customer)
+- Agents can now ask Talk-to-Dossie to fill out forms, and we'll generate a signed PDF ready to download right in the chat. This saves time on manual form completion.
+
+**Support for HOA and lead paint addendums** (customer)
+- We now automatically extract and fill HOA addendum and lead paint disclosure addendum fields in your dossiers, saving you time on these required Texas real estate forms.
+
+**Faster, more reliable Texas real estate form filling** (customer)
+- We've upgraded how we fill Texas real estate forms to be more accurate and faster. Your resale contracts, financing addendums, HOA addendums, and lead paint disclosures will now fill correctly every time.
+
+**Fix document signing with correct signer names** (customer)
+- We fixed an issue where document signing templates weren't using the correct signer names, which could cause signing errors or confusion. Your documents will now populate with the right names when sent for signature.
+
+**Voice chat now works in Dossie HUD** (customer)
+- We've connected the talking orb in your Dossie interface so you can now speak to Dossie, hear responses, and see real-time feedback as the orb listens and thinks. Tap the orb to start talking — it's the same voice experience that was previously only available in our web demo.
+
+**Fix DocuSeal form submission errors** (customer)
+- We fixed an issue where document signing could fail when customer information wasn't complete. Now forms will submit successfully even when some data is missing.
+
+**Fixed fill-and-sign email handling** (customer)
+- We fixed an issue where placeholder email addresses in fill-and-sign documents weren't being recognized properly. Customers will now see email fields work correctly when pre-filling signing documents.
+
+**Fix document fill errors** (customer)
+- We fixed crashes that happened when agents tried to fill and sign certain documents. Your forms should now load and submit without errors.
+
+**TREC 20-18 form filling now fully supported** (customer)
+- We've completed support for all 263 fields in the TREC 20-18 resale contract form, so you can now fill and sign these documents directly in Dossie without switching to other tools.
+
+**TREC 20-18 forms now fill automatically** (customer)
+- We've built complete support for the TREC 20-18 resale contract form, so your transaction documents now fill in automatically with the right data. This replaces our previous manual routing and gets your paperwork ready faster.
+
+**New help resources and customer reviews section** (customer)
+- We've added a Help FAQ button and a new Reviews Settings tab so you can manage customer testimonials and access support resources directly in Dossie.
+
+**Help, FAQ, and reviews now in settings** (customer)
+- We added a Help section, frequently asked questions, and a way to manage your customer testimonials and reviews all in one place within your account settings.
+
+**New Help and Reviews section in settings** (customer)
+- We've added a Help FAQ, customer testimonials, and a Reviews settings tab so you can easily access answers to common questions and manage your customer feedback in one place.
+
+**Help modals now display correctly with videos** (customer)
+- We fixed a display issue with our help dialogs and added support for instructional videos, so you get better guidance when you need it.
+
+**Help modal now shows relevant articles** (customer)
+- We fixed an issue where the help modal was displaying incorrect information. You'll now see only the articles that actually help answer your question.
+
+**Fixed help modal display issue** (customer)
+- We fixed a bug where the help modal wasn't showing articles correctly. Your help content now loads and displays as intended.
+
+**Fixed app loading issue** (customer)
+- We fixed a critical bug that was preventing the Dossie app from loading. Agents can now access their workspace without any issues.
+
+**Voice commands now work reliably** (customer)
+- We fixed the 'CONNECTION HICCUP' error that was breaking voice input. Your voice commands to Talk-to-Dossie will now process smoothly without dropping the connection.
+
+**Improved testimonial message wording** (customer)
+- We've refined the wording in our testimonial notifications to be clearer and more helpful as you work in Dossie.
+
+**Testimonial request state now persists correctly** (customer)
+- We fixed an issue where the 'Testimonial sent' button would revert after you reload the page. Now the button correctly stays in the sent state, and your client will receive the testimonial request email as expected.
+
+**Fixed blank page on today view** (customer)
+- We fixed a technical issue that was causing the today view to load as a blank page. The view should now display properly for all agents.
+
+**Today page sign-in and visual polish** (customer)
+- We fixed the sign-in button so you can now log in directly from the today page. We also upgraded the visual design with improved graphics and a refreshed look.
+
+**Fixed Orb positioning on mobile and desktop** (customer)
+- We adjusted where the Orb appears on your screen so it no longer blocks important content on mobile phones or desktop computers.
+
+**Fixed mobile orb positioning** (customer)
+- We fixed the animated orb that appears in the Dossie app on mobile devices so it now stays in the correct spot at the top-right corner, no matter what device or screen size you're using.
+
+**Contract scanning now works reliably** (customer)
+- We fixed a bug that was preventing contract scans from uploading. Your scans will now process successfully every time.
+
+**Fixed contract scanning authorization error** (customer)
+- We fixed an issue where contract scans were failing to load. Your contract uploads should now work reliably again.
+
+**Upload file size limit increased to 50MB** (customer)
+- We've increased the maximum file size you can upload to Dossie from 10MB to 50MB, so larger documents and scans won't get rejected during your workflow.
+
+**Scan Contract now handles large PDFs** (customer)
+- We fixed a login issue when scanning contracts and added support for PDFs up to 50MB, so you can upload larger documents without hitting errors.
+
+**Fixed document upload authentication** (customer)
+- We fixed a bug that could prevent you from uploading scanned contracts. Documents now upload reliably without authentication errors.
+
+**Upload large contract scans without errors** (customer)
+- We fixed an issue where scanning large PDFs (over 4.5MB) would fail. Now agents can upload contracts of any size directly from the Dossie app.
+
+**Fixed PDF scanning on preview links** (customer)
+- We fixed an issue that was blocking large PDF uploads when accessing Dossie through preview or staging links. PDF scanning now works smoothly across all access methods.
+
+**Fixed scan contract upload reliability** (customer)
+- We fixed a bug that was preventing contract scans from uploading correctly. Your scanned documents will now upload smoothly every time.
+
+**Fixed document scanning upload errors** (customer)
+- We fixed an issue preventing agents from uploading scanned documents in some cases. Scanning should now work reliably when you need to attach contracts or other files.
+
+**Testimonial button state now saves correctly** (customer)
+- We fixed an issue where the testimonial request button would reset after you reload the page. Your button state now persists properly so you won't accidentally re-request a testimonial you've already asked for.
+
+**Larger file uploads now supported** (customer)
+- We've increased the maximum file size you can upload from 3.3MB to 50MB, so you can now handle larger documents and scans without hitting upload limits.
+
+<!-- applied_shas: 07e825a,0843a3d,0912a4d,0a6ba5c,0b0b66a,0c28c60,0e9bdfb,10d193a,11847dc,13f2c3e,1592e16,230760e,24ebafe,25e1a90,267e81e,2b80e3a,2d2cfea,2d7b31a,2e66c98,35aba84,3bec469,42a4e45,42c0fdf,49aac5a,4ebfaa9,4f0eea3,559db6b,5710ac1,5c017b2,5c25b94,62c58af,631a020,63b8318,65a1d9f,6bcd734,715f06e,72cd2c5,7660e1e,7ad3933,7e38d91,831d282,867047d,87d3679,8b28bf1,9383da2,952cafd,a768edf,ab213c4,abbc2ee,b06ee7b,b3baa27,b7521b6,bdeca8f,bfda8b7,c117288,c159c51,c663522,c76ff90,c7caf5a,cbb99b1,cc72b79,cfcc6e5,d73dcf2,d75babd,e1c47f8,e4a3a1e,e69f203,e6d4d69,e8d46cc,ec9d564,ee5a7d9,f3e0f9a,f41bc7e,f434745 -->
 
 ## Week of May 29, 2026 (fill-and-sign expansion)
 
