@@ -346,10 +346,10 @@
   <div id="auth-gate">
     <h1>Jarvis</h1>
     <p>Mission control — sign in as heath.</p>
-    <input id="email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
-    <input id="password" type="password" placeholder="password" autocomplete="current-password">
+    <input id="signin-email" type="email" placeholder="email" autocomplete="email" value="heath.shepard@kw.com">
+    <input id="signin-password" type="password" placeholder="password" autocomplete="current-password">
     <button id="signin-btn">Sign in</button>
-    <div class="err" id="auth-err"></div>
+    <div class="err" id="signin-error"></div>
   </div>
 
   <!-- Main app -->
@@ -402,7 +402,8 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
       }
     }
   </script>
@@ -410,6 +411,9 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
     let supabase = null;
     let _token = null;
@@ -419,6 +423,9 @@
     let _orb = null;
     let _camera = null;
     let _renderer = null;
+    let _composer = null;
+    let _bloomPass = null;
+    let _starfield = null;
     const _todoItems = new Map();
     const _todoTouchStarts = new Map();
 
@@ -448,12 +455,37 @@
       });
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { showLogin(); return; }
+      if (session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        document.getElementById('signin-error').textContent = 'Access denied — this page is Heath only.';
+        showLogin();
+        return;
+      }
       revealApp(session.access_token);
     }
 
     function showLogin() {
       document.getElementById('auth-gate').classList.add('visible');
       document.getElementById('app').classList.remove('visible');
+      document.getElementById('signin-btn').addEventListener('click', handleSignIn);
+    }
+
+    async function handleSignIn() {
+      const email = document.getElementById('signin-email').value;
+      const password = document.getElementById('signin-password').value;
+      const errorEl = document.getElementById('signin-error');
+      errorEl.textContent = '';
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+        return;
+      }
+      if (data.session.user.email !== 'heath.shepard@kw.com') {
+        await supabase.auth.signOut();
+        errorEl.textContent = 'Access denied — this page is Heath only.';
+        return;
+      }
+      revealApp(data.session.access_token);
     }
 
     function revealApp(token) {
@@ -507,7 +539,20 @@
       _renderer.setSize(w, h);
       _renderer.setClearColor(0x1a1a2e, 0);
       _renderer.setPixelRatio(window.devicePixelRatio);
+      _renderer.shadowMap.enabled = true;
       container.appendChild(_renderer.domElement);
+
+      // Setup post-processing with bloom
+      _composer = new EffectComposer(_renderer);
+      const renderPass = new RenderPass(_scene = new THREE.Scene(), _camera);
+      _composer.addPass(renderPass);
+      _bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(w, h),
+        1.5,    // strength
+        0.4,    // radius
+        0.85    // threshold
+      );
+      _composer.addPass(_bloomPass);
 
       // Setup scene
       _scene = new THREE.Scene();
@@ -522,8 +567,14 @@
       dirLight.position.set(5, 5, 5);
       _scene.add(dirLight);
 
+      // Create starfield background
+      createStarfield();
+
       // Create the orb
       createOrb();
+
+      // Update composer render pass scene reference
+      _composer.passes[0].scene = _scene;
 
       // Handle window resize
       window.addEventListener('resize', onWindowResize);
@@ -535,15 +586,34 @@
           _orb.rotation.x += 0.0003;
           _orb.rotation.y += 0.0005;
         }
-        _renderer.render(_scene, _camera);
+        if (_starfield) {
+          _starfield.rotation.x += 0.00005;
+          _starfield.rotation.y += 0.00008;
+        }
+        _composer.render();
       }
       animate();
+    }
+
+    function createStarfield() {
+      const starGeometry = new THREE.BufferGeometry();
+      const starCount = 1500;
+      const positions = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 100;
+        positions[i + 1] = (Math.random() - 0.5) * 100;
+        positions[i + 2] = (Math.random() - 0.5) * 100;
+      }
+      starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const starMaterial = new THREE.PointsMaterial({ color: 0x888899, size: 0.05 });
+      _starfield = new THREE.Points(starGeometry, starMaterial);
+      _scene.add(_starfield);
     }
 
     function createOrb() {
       const geometry = new THREE.IcosahedronGeometry(1, 8);
 
-      // Create shader material for smooth gradient orb
+      // Create shader material for smooth gradient orb with enhanced fresnel
       const material = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
@@ -551,26 +621,31 @@
         vertexShader: `
           varying vec3 vNormal;
           varying vec3 vPosition;
+          varying float vFresnel;
           void main() {
             vNormal = normalize(normalMatrix * normal);
             vPosition = position;
+            vec3 viewDir = normalize(-cameraPosition + position);
+            vFresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.8);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
         fragmentShader: `
           varying vec3 vNormal;
           varying vec3 vPosition;
+          varying float vFresnel;
           uniform float time;
           void main() {
             vec3 color = mix(vec3(0.13, 0.85, 1.0), vec3(0.8, 0.4, 0.3), length(vPosition) * 0.3);
-            float fresnel = pow(1.0 - abs(dot(normalize(vNormal), normalize(vec3(0, 0, 1)))), 2.0);
-            color += vec3(0.2, 0.9, 1.0) * fresnel * 0.5;
-            gl_FragColor = vec4(color, 1.0);
+            color += vec3(0.0, 0.9, 1.0) * vFresnel * 0.8;
+            float bloom = vFresnel * 0.6;
+            gl_FragColor = vec4(color, 1.0 - bloom * 0.3);
           }
         `,
       });
 
       _orb = new THREE.Mesh(geometry, material);
+      _orb.scale.set(0.35, 0.35, 0.35);
       _scene.add(_orb);
     }
 
@@ -580,6 +655,7 @@
       _camera.aspect = w / h;
       _camera.updateProjectionMatrix();
       _renderer.setSize(w, h);
+      _composer.setSize(w, h);
     }
 
     // ========== DATA FETCHING ==========
@@ -609,10 +685,10 @@
       try {
         const { data, error } = await supabase
           .from('heath_todo')
-          .select('id, title, priority, due_at, snooze_until, status')
-          .eq('status', 'active')
-          .order('priority', { ascending: false })
-          .order('due_at', { ascending: true });
+          .select('id, title, priority, deadline, snoozed_until, status')
+          .eq('status', 'pending')
+          .order('priority', { ascending: true })
+          .order('deadline', { ascending: true });
 
         if (error) throw error;
 
@@ -652,8 +728,8 @@
       el.id = `todo-${todo.id}`;
       el.className = 'todo-item';
 
-      const dueText = todo.due_at ? new Date(todo.due_at).toLocaleDateString() : '—';
-      const priorityLabel = todo.priority || 'normal';
+      const dueText = todo.deadline ? new Date(todo.deadline).toLocaleDateString() : '—';
+      const priorityLabel = ['critical', 'high', 'normal', 'low', 'background'][todo.priority - 1] || 'normal';
 
       el.innerHTML = `
         <div class="todo-checkbox" data-id="${todo.id}" data-action="check"></div>
@@ -727,6 +803,7 @@
           el.remove();
           _todoItems.delete(id);
           toast('Done!', 'ok');
+          await refreshTodoList();
         }, 200);
       } catch (err) {
         console.error('Complete error:', err);
@@ -741,7 +818,7 @@
         snoozeUntil.setHours(snoozeUntil.getHours() + 2);
         const { error } = await supabase
           .from('heath_todo')
-          .update({ snooze_until: snoozeUntil.toISOString() })
+          .update({ status: 'snoozed', snoozed_until: snoozeUntil.toISOString() })
           .eq('id', id);
         if (error) throw error;
         el.classList.add('swiping-out');
