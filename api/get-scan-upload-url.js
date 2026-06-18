@@ -27,7 +27,12 @@ function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
   let allowOrigin = null;
   if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin)) {
+    if (
+      ALLOWED_ORIGINS.has(origin) ||
+      LOCALHOST_ORIGIN_RE.test(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.meetdossie.com')
+    ) {
       allowOrigin = origin;
     }
   }
