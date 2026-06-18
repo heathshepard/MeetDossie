@@ -46,6 +46,20 @@
       100% { opacity: 0; transform: translateY(-100vh); }
     }
 
+    @keyframes ambient-drift {
+      0% {
+        opacity: 0.3;
+        transform: translateY(100vh) translateX(0);
+      }
+      50% {
+        opacity: 0.6;
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-100vh) translateX(20px);
+      }
+    }
+
     @keyframes hex-pulse {
       0%, 100% { opacity: 0.02; }
       50% { opacity: 0.08; }
@@ -103,8 +117,8 @@
           0deg,
           transparent,
           transparent 20px,
-          rgba(91, 217, 230, 0.03) 20px,
-          rgba(91, 217, 230, 0.03) 21px
+          rgba(91, 217, 230, 0.08) 20px,
+          rgba(91, 217, 230, 0.08) 21px
         );
       pointer-events: none;
       z-index: 1;
@@ -299,8 +313,8 @@
     }
 
     #orb-container {
-      width: 400px;
-      height: 400px;
+      width: 350px;
+      height: 350px;
       position: relative;
       cursor: pointer;
       filter: drop-shadow(0 0 60px rgba(91, 217, 230, 0.4)) drop-shadow(0 0 100px rgba(232, 131, 107, 0.2));
@@ -308,8 +322,8 @@
 
     @media (max-width: 768px) {
       #orb-container {
-        width: 280px;
-        height: 280px;
+        width: 240px;
+        height: 240px;
         filter: drop-shadow(0 0 40px rgba(91, 217, 230, 0.3)) drop-shadow(0 0 60px rgba(232, 131, 107, 0.15));
       }
     }
@@ -340,6 +354,255 @@
     @keyframes hint-pulse {
       0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
+    }
+
+    /* ---- Agent roster (V4) ---- */
+    .agent-roster {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 16px;
+      padding: 0;
+      margin-bottom: 20px;
+      justify-items: center;
+    }
+
+    .agent-avatar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .agent-avatar:active {
+      transform: scale(0.95);
+    }
+
+    .agent-hex {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(32, 32, 58, 0.7) 0%, rgba(26, 26, 62, 0.6) 100%);
+      border: 2px solid rgba(91, 217, 230, 0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--cyan);
+      font-family: "Cormorant Garamond", serif;
+      box-shadow: inset 0 0 12px rgba(91, 217, 230, 0.06), 0 0 12px rgba(91, 217, 230, 0.15);
+      transition: all 0.3s;
+    }
+
+    .agent-hex.working {
+      border-color: rgba(91, 217, 230, 0.6);
+      box-shadow: inset 0 0 12px rgba(91, 217, 230, 0.1), 0 0 24px rgba(91, 217, 230, 0.35), 0 0 40px rgba(91, 217, 230, 0.2);
+      animation: agent-glow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes agent-glow {
+      0%, 100% { box-shadow: inset 0 0 12px rgba(91, 217, 230, 0.1), 0 0 24px rgba(91, 217, 230, 0.35), 0 0 40px rgba(91, 217, 230, 0.2); }
+      50% { box-shadow: inset 0 0 16px rgba(91, 217, 230, 0.15), 0 0 32px rgba(91, 217, 230, 0.5), 0 0 60px rgba(91, 217, 230, 0.3); }
+    }
+
+    .agent-name-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: center;
+      min-width: 70px;
+    }
+
+    .agent-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-faint);
+      transition: all 0.3s;
+    }
+
+    .agent-hex.working ~ .agent-status-dot {
+      background: var(--sage);
+      box-shadow: 0 0 12px var(--sage);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ---- YOUR NEXT MOVE panel (V4) ---- */
+    .next-move-panel {
+      background: linear-gradient(135deg, rgba(232, 131, 107, 0.08) 0%, rgba(91, 217, 230, 0.04) 100%);
+      border: 1px solid rgba(232, 131, 107, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .next-move-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.7rem;
+      color: var(--coral);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .next-move-task {
+      color: var(--blush);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .next-move-empty {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+
+    .next-move-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(91, 217, 230, 0.3);
+      background: transparent;
+      color: var(--cyan);
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .action-btn:active {
+      background: rgba(91, 217, 230, 0.2);
+      border-color: rgba(91, 217, 230, 0.5);
+    }
+
+    .action-btn.coral {
+      border-color: rgba(232, 131, 107, 0.4);
+      color: var(--coral);
+    }
+
+    .action-btn.coral:active {
+      background: rgba(232, 131, 107, 0.15);
+      border-color: rgba(232, 131, 107, 0.6);
+    }
+
+    /* ---- Dossie KPI modal (V4) ---- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 10, 20, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 60;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, rgba(32, 32, 58, 0.9) 0%, rgba(20, 20, 40, 0.85) 100%);
+      border: 1px solid rgba(91, 217, 230, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 420px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 0 40px rgba(91, 217, 230, 0.2);
+      animation: modal-slide 0.25s ease-out;
+    }
+
+    @keyframes modal-slide {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(91, 217, 230, 0.2);
+    }
+
+    .modal-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.2rem;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1.4rem;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:active {
+      color: var(--cyan);
+    }
+
+    .kpi-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(91, 217, 230, 0.1);
+      gap: 12px;
+    }
+
+    .kpi-row:last-child {
+      border-bottom: none;
+    }
+
+    .kpi-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .kpi-value {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .kpi-value.gold {
+      color: var(--gold);
     }
 
     /* ---- KPI ring around orb ---- */
@@ -766,6 +1029,24 @@
       opacity: 0.4;
     }
 
+    /* Ambient particles (V4) */
+    .ambient-particle {
+      position: fixed;
+      width: 2px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 2;
+      will-change: transform;
+    }
+
+    .ambient-particle.type1 { animation: ambient-drift 25s linear infinite; }
+    .ambient-particle.type2 { animation: ambient-drift 30s linear infinite; animation-delay: 3s; }
+    .ambient-particle.type3 { animation: ambient-drift 35s linear infinite; animation-delay: 6s; }
+    .ambient-particle.type4 { animation: ambient-drift 28s linear infinite; animation-delay: 9s; }
+    .ambient-particle.type5 { animation: ambient-drift 32s linear infinite; animation-delay: 12s; }
+
     /* ---- Mobile responsive ---- */
     @media (max-width: 768px) {
       .page {
@@ -904,6 +1185,20 @@
           </div>
         </div>
 
+        <!-- Agent Roster (V4) -->
+        <div class="hud-panel" id="section-roster">
+          <div class="panel-title">AGENT ROSTER</div>
+          <div class="agent-roster" id="agent-roster"></div>
+        </div>
+
+        <!-- YOUR NEXT MOVE (V4) -->
+        <div class="next-move-panel" id="next-move-panel">
+          <span class="next-move-title">YOUR NEXT MOVE</span>
+          <div id="next-move-content">
+            <div class="next-move-empty">Loadingâ€¦</div>
+          </div>
+        </div>
+
         <!-- Agents working -->
         <div class="section hud-panel" id="section-agents">
           <div class="section-head">
@@ -926,8 +1221,40 @@
       <!-- RIGHT PANEL: Agent activity (desktop only) -->
       <div class="sidebar-right">
         <div class="hud-panel" id="activity-panel-right">
-          <div class="panel-title">ACTIVITY LOG</div>
+          <div class="panel-title">RECENT ACTIVITY</div>
           <div id="activity-list" class="agent-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dossie KPI Modal (V4) -->
+    <div class="modal-overlay" id="kpi-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">DOSSIE KPIs</div>
+          <button class="modal-close" id="modal-close-btn">&times;</button>
+        </div>
+        <div id="kpi-modal-body">
+          <div class="kpi-row">
+            <div class="kpi-label">Monthly Recurring Revenue</div>
+            <div class="kpi-value gold" id="kpi-mrr">$349</div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-label">Founding Spots Used</div>
+            <div class="kpi-value" id="kpi-founding">12/50</div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-label">Active Dossiers</div>
+            <div class="kpi-value" id="kpi-dossiers">0</div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-label">Logged In (7d)</div>
+            <div class="kpi-value" id="kpi-active-7d">0</div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-label">Open Support Tickets</div>
+            <div class="kpi-value" id="kpi-tickets">0</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1559,7 +1886,7 @@
       if (!session) { showLogin(); return; }
       if (session.user.email !== 'heath.shepard@kw.com') {
         await supabase.auth.signOut();
-        showError('Access denied — Heath only');
+        showError('Access denied ï¿½ Heath only');
         showLogin();
         return;
       }
@@ -1568,12 +1895,23 @@
 
     async function refresh() {
       try {
-        await Promise.all([loadAgents(), loadCompanies(), loadMerges()]);
+        await Promise.all([loadAgents(), loadCompanies(), loadMerges(), loadNextMove()]);
       } catch (err) {
         console.error('Refresh error:', err);
         toast('Refresh failed', 'err');
       }
     }
+
+    // Agent names and initials for roster
+    const AGENT_CONFIG = {
+      'Carter': { initials: 'C', order: 0 },
+      'Atlas': { initials: 'A', order: 1 },
+      'Sage': { initials: 'S', order: 2 },
+      'Pierce': { initials: 'P', order: 3 },
+      'Hadley': { initials: 'H', order: 4 },
+      'Quinn': { initials: 'Q', order: 5 },
+      'Sterling': { initials: 'St', order: 6 },
+    };
 
     async function loadAgents() {
       const { data, error } = await supabase
@@ -1584,6 +1922,38 @@
 
       const agents = data || [];
       document.getElementById('agent-count').textContent = agents.length;
+
+      // Build agent status map
+      const agentStatusMap = {};
+      agents.forEach(a => {
+        agentStatusMap[a.agent_name] = a;
+      });
+
+      // Render roster (V4)
+      const rosterContainer = document.getElementById('agent-roster');
+      if (rosterContainer) {
+        rosterContainer.innerHTML = '';
+        const sortedNames = Object.keys(AGENT_CONFIG).sort((a, b) => AGENT_CONFIG[a].order - AGENT_CONFIG[b].order);
+        sortedNames.forEach(name => {
+          const config = AGENT_CONFIG[name];
+          const agent = agentStatusMap[name] || { status: 'idle', task_summary: '' };
+          const isWorking = agent.status === 'working';
+
+          const avatar = document.createElement('div');
+          avatar.className = 'agent-avatar';
+          avatar.innerHTML = `
+            <div class="agent-hex ${isWorking ? 'working' : ''}">
+              ${config.initials}
+            </div>
+            <div class="agent-name-label">${name}</div>
+            <div class="agent-status-dot"></div>
+          `;
+          avatar.addEventListener('click', () => {
+            toast(`${name}: ${agent.task_summary || 'idle'}`, '');
+          });
+          rosterContainer.appendChild(avatar);
+        });
+      }
 
       // Render center panel
       const agentList = document.getElementById('agent-list');
@@ -1668,6 +2038,9 @@
               </div>
             `).join('')}
           `;
+          if (comp.name === 'DOSSIE') {
+            card.addEventListener('click', openDossieModal);
+          }
           panel.appendChild(card);
         });
       };
@@ -1684,8 +2057,114 @@
       document.getElementById('merge-count').textContent = 0;
     }
 
+    async function loadNextMove() {
+      try {
+        const res = await authFetch('/api/heath-todo-next');
+        if (!res.ok) throw new Error('Failed to load next move');
+        const data = await res.json();
+
+        const content = document.getElementById('next-move-content');
+        if (!data || !data.id) {
+          content.innerHTML = '<div class="next-move-empty">No moves queued â€” say `hey jarvis` to queue one</div>';
+          return;
+        }
+
+        const taskText = (data.task || '').slice(0, 100);
+        content.innerHTML = `
+          <div class="next-move-task">${taskText}</div>
+          <div class="next-move-actions">
+            <button class="action-btn coral" data-action="done">DONE</button>
+            <button class="action-btn" data-action="skip">SKIP</button>
+            <button class="action-btn" data-action="snooze">SNOOZE 1H</button>
+          </div>
+        `;
+
+        const buttons = content.querySelectorAll('button');
+        buttons.forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const action = btn.dataset.action;
+            try {
+              const endpoint = `/api/heath-todo-${action}`;
+              const res = await authFetch(endpoint, {
+                method: 'POST',
+                body: JSON.stringify({ id: data.id }),
+              });
+              if (res.ok) {
+                toast(`Task ${action}`, 'ok');
+                await new Promise(r => setTimeout(r, 500));
+                loadNextMove();
+              } else {
+                toast(`Failed to ${action}`, 'err');
+              }
+            } catch (err) {
+              console.error(`Error ${action}:`, err);
+              toast(`Error: ${action}`, 'err');
+            }
+          });
+        });
+      } catch (err) {
+        console.error('Load next move error:', err);
+        const content = document.getElementById('next-move-content');
+        content.innerHTML = '<div class="next-move-empty">Could not load next move</div>';
+      }
+    }
+
+    async function loadDossieKPIs() {
+      try {
+        // For now, use static data from the ticker tape
+        // Later: query Supabase for dynamic counts
+        document.getElementById('kpi-mrr').textContent = '$349';
+        document.getElementById('kpi-founding').textContent = '12/50';
+        document.getElementById('kpi-dossiers').textContent = '0';
+        document.getElementById('kpi-active-7d').textContent = '0';
+        document.getElementById('kpi-tickets').textContent = '0';
+      } catch (err) {
+        console.error('Load KPIs error:', err);
+      }
+    }
+
+    function openDossieModal() {
+      const modal = document.getElementById('kpi-modal');
+      if (modal) {
+        modal.classList.add('visible');
+        loadDossieKPIs();
+      }
+    }
+
+    function closeDossieModal() {
+      const modal = document.getElementById('kpi-modal');
+      if (modal) modal.classList.remove('visible');
+    }
+
+    // Create ambient particles (V4)
+    function createAmbientParticles() {
+      const count = 12;
+      const page = document.querySelector('.page');
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = `ambient-particle type${(i % 5) + 1}`;
+        p.style.left = Math.random() * 100 + '%';
+        p.style.bottom = Math.random() * 100 + '%';
+        page.appendChild(p);
+      }
+    }
+
     // Init on load
-    document.addEventListener('DOMContentLoaded', bootstrap);
+    document.addEventListener('DOMContentLoaded', () => {
+      createAmbientParticles();
+      bootstrap();
+
+      // Wire modal close
+      const closeBtn = document.getElementById('modal-close-btn');
+      if (closeBtn) closeBtn.addEventListener('click', closeDossieModal);
+
+      const modalOverlay = document.getElementById('kpi-modal');
+      if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+          if (e.target === modalOverlay) closeDossieModal();
+        });
+      }
+    });
     document.getElementById('signin-btn')?.addEventListener('click', async () => {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
@@ -1698,7 +2177,7 @@
         if (error) throw error;
         if (data.user.email !== 'heath.shepard@kw.com') {
           await supabase.auth.signOut();
-          showError('Access denied — Heath only');
+          showError('Access denied ï¿½ Heath only');
           return;
         }
         revealApp(data.session.access_token);
