@@ -339,6 +339,85 @@
     .content-wrapper::-webkit-scrollbar-thumb:hover {
       background: rgba(245, 230, 224, 0.4);
     }
+
+    /* ---- Merge/Agent/Decision items ---- */
+    .queue-item {
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .queue-item:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+    }
+    .queue-item-head {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .queue-item-title {
+      color: var(--blush);
+      font-size: 0.92rem;
+      font-weight: 500;
+      word-break: break-word;
+    }
+    .queue-item-meta {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .queue-item-status {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: rgba(139, 168, 136, 0.15);
+      color: var(--sage);
+    }
+    .queue-item-status.pending {
+      background: rgba(201, 169, 110, 0.15);
+      color: var(--gold);
+    }
+    .queue-item-status.error {
+      background: rgba(232, 131, 107, 0.15);
+      color: var(--coral);
+    }
+    .queue-item-action {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+    }
+    .queue-item-action:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .queue-empty {
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px 12px;
+      font-size: 0.88rem;
+    }
   </style>
 </head>
 <body>
@@ -377,15 +456,31 @@
           <div id="todo-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
 
-        <!-- Placeholder section for Round 2 (merge list) -->
-        <div class="section" style="opacity: 0.5;">
+        <!-- Merge Queue -->
+        <div class="section">
           <div class="section-head">
-            <div class="section-title">Ready to merge</div>
-            <div class="section-count">—</div>
+            <div class="section-title">Merge Queue</div>
+            <div class="section-count" id="merge-count">0</div>
           </div>
-          <div style="color: var(--text-dim); text-align: center; padding: 20px 12px; font-size: 0.88rem;">
-            Round 2 coming soon
+          <div id="merge-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- Agent Activity -->
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">Agent Activity</div>
+            <div class="section-count" id="agent-count">0</div>
           </div>
+          <div id="agent-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- Decision Queue -->
+        <div class="section" style="grid-column: 1 / -1;">
+          <div class="section-head">
+            <div class="section-title">Decisions Awaiting</div>
+            <div class="section-count" id="decision-count">0</div>
+          </div>
+          <div id="decision-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
 
         <div class="nav-back">
@@ -749,6 +844,9 @@
       try {
         await Promise.all([
           refreshTodoList(),
+          refreshMergeQueue(),
+          refreshAgentActivity(),
+          refreshDecisionQueue(),
         ]);
         document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
@@ -925,6 +1023,158 @@
         console.error('Hide error:', err);
         toast('Error', 'err');
       }
+    }
+
+    // ========== MERGE QUEUE ==========
+    async function refreshMergeQueue() {
+      try {
+        const res = await authFetch('/api/merge-queue-status');
+        const container = document.getElementById('merge-list');
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          document.getElementById('merge-count').textContent = '—';
+          container.innerHTML = `<div class="queue-empty" style="color: var(--coral);">Merge queue unavailable: ${escapeHtml(errorData.message || errorData.error)}</div>`;
+          return;
+        }
+
+        const commits = await res.json();
+        const count = commits.length;
+        document.getElementById('merge-count').textContent = count;
+
+        if (count === 0) {
+          container.innerHTML = '<div class="queue-empty">No commits pending merge</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        for (const commit of commits) {
+          const el = document.createElement('div');
+          el.className = 'queue-item';
+          const date = new Date(commit.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          el.innerHTML = `
+            <div class="queue-item-head">
+              <div class="queue-item-title">${escapeHtml(commit.message.split('\n')[0])}</div>
+              <div class="queue-item-meta">
+                <span class="queue-item-status pending">APV PASS</span>
+                <span>${escapeHtml(commit.author)}</span>
+                <span>${date}</span>
+              </div>
+            </div>
+            <button class="queue-item-action" data-hash="${commit.hash}" data-action="merge">Merge</button>
+          `;
+          el.querySelector('button').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toast('Merge triggered — check git log', 'ok');
+          });
+          container.appendChild(el);
+        }
+      } catch (err) {
+        console.error('Merge queue error:', err);
+        const container = document.getElementById('merge-list');
+        document.getElementById('merge-count').textContent = '—';
+        container.innerHTML = '<div class="queue-empty" style="color: var(--coral);">Merge queue unavailable</div>';
+      }
+    }
+
+    // ========== AGENT ACTIVITY ==========
+    async function refreshAgentActivity() {
+      try {
+        const { data, error } = await supabase
+          .from('agent_state')
+          .select('agent_name, status, last_heartbeat_at')
+          .order('last_heartbeat_at', { ascending: false });
+
+        if (error) throw error;
+
+        const container = document.getElementById('agent-list');
+        const count = data ? data.length : 0;
+        document.getElementById('agent-count').textContent = count;
+
+        if (count === 0) {
+          container.innerHTML = '<div class="queue-empty">No agents active</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        for (const agent of data) {
+          const el = document.createElement('div');
+          el.className = 'queue-item';
+          const lastSeen = agent.last_heartbeat_at ? getTimeAgo(agent.last_heartbeat_at) : '—';
+          const statusClass = agent.status === 'working' ? '' : agent.status === 'error' ? 'error' : 'pending';
+          el.innerHTML = `
+            <div class="queue-item-head">
+              <div class="queue-item-title">${escapeHtml(agent.agent_name)}</div>
+              <div class="queue-item-meta">
+                <span class="queue-item-status ${statusClass}">${agent.status}</span>
+                <span>Last seen ${lastSeen}</span>
+              </div>
+            </div>
+          `;
+          container.appendChild(el);
+        }
+      } catch (err) {
+        console.error('Agent activity error:', err);
+      }
+    }
+
+    // ========== DECISION QUEUE ==========
+    async function refreshDecisionQueue() {
+      try {
+        const { data, error } = await supabase
+          .from('decision_queue')
+          .select('id, decision_type, title, status, created_at')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        const container = document.getElementById('decision-list');
+        const count = data ? data.length : 0;
+        document.getElementById('decision-count').textContent = count;
+
+        if (count === 0) {
+          container.innerHTML = '<div class="queue-empty">No decisions pending</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        for (const decision of data) {
+          const el = document.createElement('div');
+          el.className = 'queue-item';
+          const date = new Date(decision.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          el.innerHTML = `
+            <div class="queue-item-head">
+              <div class="queue-item-title">${escapeHtml(decision.title)}</div>
+              <div class="queue-item-meta">
+                <span class="queue-item-status pending">${decision.decision_type.toUpperCase()}</span>
+                <span>${date}</span>
+              </div>
+            </div>
+            <button class="queue-item-action" data-id="${decision.id}" data-action="view">View</button>
+          `;
+          el.querySelector('button').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toast('Decision details coming in Round 3', 'ok');
+          });
+          container.appendChild(el);
+        }
+      } catch (err) {
+        console.error('Decision queue error:', err);
+      }
+    }
+
+    function getTimeAgo(timestamp) {
+      const now = new Date();
+      const then = new Date(timestamp);
+      const diffMs = now - then;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
     }
 
     // Initialize
