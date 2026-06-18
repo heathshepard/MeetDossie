@@ -692,18 +692,28 @@
     
     function updateOrbPosition() {
       const w = window.innerWidth;
+      const h = window.innerHeight;
       const isMobile = w < 768;
-      
+
       if (isMobile) {
-        // Mobile: top-right corner, smaller scale
-        _orb.position.set(1.5, 1.8, 0);
+        // Mobile: NDC unproject to top-right corner (85% width, 15% height)
+        const screenX = 0.85;
+        const screenY = 0.15;
+        const ndcX = screenX * 2 - 1;
+        const ndcY = -(screenY * 2 - 1);
+        const v = new THREE.Vector3(ndcX, ndcY, 0.5);
+        v.unproject(_camera);
+        const dir = v.sub(_camera.position).normalize();
+        const distance = _camera.position.z;
+        const target = _camera.position.clone().add(dir.multiplyScalar(distance));
+        _orb.position.set(target.x, target.y, 0);
         _orb.scale.set(0.22, 0.22, 0.22);
         if (_atmosphereShell) {
-          _atmosphereShell.position.set(1.5, 1.8, 0);
+          _atmosphereShell.position.set(target.x, target.y, 0);
           _atmosphereShell.scale.set(0.22, 0.22, 0.22);
         }
       } else {
-        // Desktop: right gutter (X = 2.3), keep Y at -0.5
+        // Desktop: right gutter (X = 2.3), keep Y at -0.5 — LOCKED
         _orb.position.set(2.3, -0.5, 0);
         _orb.scale.set(0.35, 0.35, 0.35);
         if (_atmosphereShell) {
