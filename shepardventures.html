@@ -1579,52 +1579,27 @@
     async function loadAgents() {
       const { data, error } = await supabase
         .from('agent_activity')
-        .select('agent_name, status, task_summary')
+        .select('agent_name, status, task_summary, last_heartbeat')
         .order('agent_name');
       if (error) throw error;
 
       const agents = data || [];
-      document.getElementById('agent-count').textContent = agents.length;
 
-      // Render center panel
-      const agentList = document.getElementById('agent-list');
-      agentList.innerHTML = '';
-      agents.forEach(agent => {
-        const card = document.createElement('div');
-        card.className = 'agent-card';
-        let statusClass = 'idle';
-        if (agent.status === 'working') {
-          const lastHB = agent.last_heartbeat ? new Date(agent.last_heartbeat) : null;
-          const now = new Date();
-          if (lastHB && (now - lastHB) / 1000 / 60 <= 5) {
-            statusClass = 'working';
-          }
-        }
-        card.innerHTML = `
-          <div class="agent-status ${statusClass}"></div>
-          <div class="agent-info">
-            <div class="agent-name">${agent.agent_name || 'Unknown'}</div>
-            <div class="agent-task">${agent.task_summary || 'idle'}</div>
-          </div>
-        `;
-        agentList.appendChild(card);
-      });
-
-      // Render right panel (activity log) - show last 5 agents
+      // Render right panel (activity log) - show all agents
       const activityList = document.getElementById('activity-list');
       if (activityList) {
         activityList.innerHTML = '';
-        agents.slice(0, 5).forEach(agent => {
+        agents.forEach(agent => {
           const card = document.createElement('div');
           card.className = 'agent-card';
           let statusClass = 'idle';
-        if (agent.status === 'working') {
-          const lastHB = agent.last_heartbeat ? new Date(agent.last_heartbeat) : null;
-          const now = new Date();
-          if (lastHB && (now - lastHB) / 1000 / 60 <= 5) {
-            statusClass = 'working';
+          if (agent.status === 'working') {
+            const lastHB = agent.last_heartbeat ? new Date(agent.last_heartbeat) : null;
+            const now = new Date();
+            if (lastHB && (now - lastHB) / 1000 / 60 <= 5) {
+              statusClass = 'working';
+            }
           }
-        }
           card.innerHTML = `
             <div class="agent-status ${statusClass}"></div>
             <div class="agent-info">
