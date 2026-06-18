@@ -1,0 +1,5281 @@
+{
+  "generated_at": "2026-06-18T15:03:28.889Z",
+  "form": "TREC 20-18",
+  "algorithm": {
+    "proximity_radius_pt": 100,
+    "same_baseline_tol_pt": 8,
+    "left_label_max_gap_pt": 220,
+    "above_label_max_gap_pt": 30,
+    "confident_min_score": 0.55,
+    "score_weights": {
+      "same_baseline_left": 1,
+      "directly_above": 0.85,
+      "same_baseline_right": 0.35,
+      "general_proximity": 0.25,
+      "keyword_hit_bonus": 0.2,
+      "exact_keyword_phrase": 0.3
+    }
+  },
+  "stats": {
+    "total_widgets": 263,
+    "confident_match": 176,
+    "unmatched": 84,
+    "skip": 3,
+    "pct_confident": 66.9,
+    "pct_unmatched": 31.9
+  },
+  "confident_matches": [
+    {
+      "index": 0,
+      "field_name": "1 PARTIES The parties to this contract are",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 1.185,
+      "evidence": {
+        "label": "The parties to this contract are",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.4,
+        "matched_phrase": "parties to this contract",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 1,
+      "field_name": "Seller and",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 1.186,
+      "evidence": {
+        "label": "(Seller) and",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.1,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 2,
+      "field_name": "A LAND Lot",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "lot",
+      "confidence_score": 1.191,
+      "evidence": {
+        "label": "LAND: Lot",
+        "relation": "same_baseline_left",
+        "gap_pt": 2,
+        "matched_phrase": "lot",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 3,
+      "field_name": "Block",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "block",
+      "confidence_score": 1.302,
+      "evidence": {
+        "label": "Block",
+        "relation": "same_baseline_left",
+        "gap_pt": -0.4,
+        "matched_phrase": "block",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 4,
+      "field_name": "undefined",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "block",
+      "confidence_score": 0.904,
+      "evidence": {
+        "label": "Block",
+        "relation": "same_baseline_left",
+        "gap_pt": 87.2,
+        "matched_phrase": "block",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 5,
+      "field_name": "Addition City of",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "legal_description",
+      "confidence_score": 0.801,
+      "evidence": {
+        "label": "Texas, known as",
+        "relation": "same_baseline_left",
+        "gap_pt": -0.3,
+        "matched_phrase": "known as",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 6,
+      "field_name": "County of",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "county",
+      "confidence_score": 1.183,
+      "evidence": {
+        "label": ", County of",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.7,
+        "matched_phrase": "county of",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 7,
+      "field_name": "Texas known as",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "legal_description",
+      "confidence_score": 1.185,
+      "evidence": {
+        "label": "Texas, known as",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.3,
+        "matched_phrase": "known as",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 8,
+      "field_name": "be removed prior to delivery of possession",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "possession_date",
+      "confidence_score": 1.196,
+      "evidence": {
+        "label": "must be removed prior to delivery of possession:",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.9,
+        "matched_phrase": "possession",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 9,
+      "field_name": "undefined_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.795,
+      "evidence": {
+        "label": "Seller",
+        "relation": "directly_above",
+        "gap_pt": 12.5,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 10,
+      "field_name": "undefined_3",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.722,
+      "evidence": {
+        "label": "Cash portion of Sales Price payable by Buyer at closing",
+        "relation": "same_baseline_left",
+        "gap_pt": 105.1,
+        "matched_phrase": "cash portion",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 13,
+      "field_name": "Loan Assumption Addendum",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_loan_assumption",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "[field-name] Loan Assumption Addendum",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "loan assumption addendum",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 21,
+      "field_name": "to escrow agent within 1",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] to escrow agent within 1",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "escrow agent",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 22,
+      "field_name": "Initialed for identification by Buyer",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 23,
+      "field_name": "undefined_8",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.111,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 41.5,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 24,
+      "field_name": "and Seller",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.1,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 25,
+      "field_name": "undefined_9",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 53.5,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 27,
+      "field_name": "undefined_6",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 0.651,
+      "evidence": {
+        "label": "EARNEST MONEY AND TERMINATION OPTION:",
+        "relation": "directly_above",
+        "gap_pt": 14.1,
+        "matched_phrase": "earnest money",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 28,
+      "field_name": "other party in writing before entering into a contract of sale  Disclose if applicable",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.719,
+      "evidence": {
+        "label": "(Escrow Agent)",
+        "relation": "same_baseline_left",
+        "gap_pt": 17.8,
+        "matched_phrase": "escrow agent",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 29,
+      "field_name": "undefined_7",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 0.673,
+      "evidence": {
+        "label": "DELIVERY OF EARNEST MONEY AND OPTION FEE: Within 3 days after the Effective",
+        "relation": "directly_above",
+        "gap_pt": 13.3,
+        "matched_phrase": "earnest money",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 30,
+      "field_name": "as earnest money to",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.793,
+      "evidence": {
+        "label": "(address): $",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.5,
+        "matched_phrase": "address",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 31,
+      "field_name": "as earnest money to 2",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 1.201,
+      "evidence": {
+        "label": "as earnest money and $",
+        "relation": "same_baseline_left",
+        "gap_pt": -0.2,
+        "matched_phrase": "earnest money",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 32,
+      "field_name": "earnest money of",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 1.197,
+      "evidence": {
+        "label": "Buyer shall deliver additional earnest money of $",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.6,
+        "matched_phrase": "earnest money",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 33,
+      "field_name": "to escrow agent within",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] to escrow agent within",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "escrow agent",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 34,
+      "field_name": "the Title Company and Buyers lenders Check one box only",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "title_company",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] the Title Company and Buyers lenders Check one box only",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "title company",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 37,
+      "field_name": "insurance Title Policy issued by",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "title_company",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] insurance Title Policy issued by",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "insurance title policy",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 42,
+      "field_name": "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 0.9,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 43,
+      "field_name": "and Seller_2",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.108,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.2,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 44,
+      "field_name": "undefined_10",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.1,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 45,
+      "field_name": "undefined_11",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 53.5,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 48,
+      "field_name": "than 3 days prior to Closing Date",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "closing_date",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] than 3 days prior to Closing Date",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "closing date",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 49,
+      "field_name": "Within one",
+      "page": 3,
+      "field_type": "checkbox",
+      "fixture_key": "survey_required",
+      "confidence_score": 1.175,
+      "evidence": {
+        "label": "survey at",
+        "relation": "same_baseline_left",
+        "gap_pt": 5.4,
+        "matched_phrase": "survey",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 56,
+      "field_name": "the Commitment Exception Documents and the survey Buyers failure to object within the",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "closing_date",
+      "confidence_score": 1.188,
+      "evidence": {
+        "label": "Buyer must object the earlier of (i) the Closing Date or (ii)",
+        "relation": "same_baseline_left",
+        "gap_pt": 2.5,
+        "matched_phrase": "closing date",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 57,
+      "field_name": "1Within",
+      "page": 3,
+      "field_type": "checkbox",
+      "fixture_key": "hoa_addendum",
+      "confidence_score": 0.78,
+      "evidence": {
+        "label": "PROPERTY OWNERS ASSOCIATION(S): The Property",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.3,
+        "matched_phrase": "property owners association",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 59,
+      "field_name": "Property Code requires Seller to notify Buyer as follows",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 0.9,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 60,
+      "field_name": "and Seller_3",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.105,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.8,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 61,
+      "field_name": "undefined_12",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.1,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 62,
+      "field_name": "The private transfer fee",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 0.657,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 53.5,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 65,
+      "field_name": "Text4 2",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 66,
+      "field_name": "Text4 3",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 69,
+      "field_name": "Within",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.99,
+      "evidence": {
+        "label": "Buyer has not received the Notice.",
+        "relation": "same_baseline_left",
+        "gap_pt": 46.2,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 71,
+      "field_name": "Initialed for identification by Buyer_2",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 72,
+      "field_name": "undefined_14",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.108,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.2,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 73,
+      "field_name": "and Seller_4",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.1,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 74,
+      "field_name": "undefined_15",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.054,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 54.2,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 79,
+      "field_name": "undefined_13",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.673,
+      "evidence": {
+        "label": "Buyer accepts the Property",
+        "relation": "directly_above",
+        "gap_pt": 13.3,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 80,
+      "field_name": "service contract in an amount not exceeding",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "homeowners_warranty_limit",
+      "confidence_score": 1.199,
+      "evidence": {
+        "label": "cost of the residential service contract in an amount not exceeding $",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.2,
+        "matched_phrase": "residential service contract",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 83,
+      "field_name": "A The closing of the sale will be on or before",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "closing_date",
+      "confidence_score": 1.185,
+      "evidence": {
+        "label": "The closing of the sale will be on or before",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.4,
+        "matched_phrase": "closing of the sale",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 85,
+      "field_name": "Initialed for identification by Buyer_3",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 86,
+      "field_name": "Buyers Expenses as allowed by the lender",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 0.708,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.2,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 87,
+      "field_name": "and Seller_5",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.1,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 88,
+      "field_name": "undefined_16",
+      "page": 5,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 53.5,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 92,
+      "field_name": "Text3",
+      "page": 6,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.657,
+      "evidence": {
+        "label": "factual information, or provides instructions. Real estate brokers and sales agents are prohibited",
+        "relation": "directly_above",
+        "gap_pt": 13.9,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 100,
+      "field_name": "Initialed for identification by Buyer_4",
+      "page": 6,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 101,
+      "field_name": "undefined_17",
+      "page": 6,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.108,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.2,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 102,
+      "field_name": "and Seller_6",
+      "page": 6,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.281,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.1,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 103,
+      "field_name": "undefined_18",
+      "page": 6,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.057,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 53.5,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 105,
+      "field_name": "AC numb 1",
+      "page": 7,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.297,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.6,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 106,
+      "field_name": "AC numb 2",
+      "page": 7,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.116,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 40.4,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 107,
+      "field_name": "AC numb 3",
+      "page": 7,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.29,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 2.2,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 108,
+      "field_name": "AC numb 4",
+      "page": 7,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.064,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 52,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 110,
+      "field_name": "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.794,
+      "evidence": {
+        "label": "To Buyer at:",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.4,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 111,
+      "field_name": "at",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.675,
+      "evidence": {
+        "label": "To Buyer at:",
+        "relation": "directly_above",
+        "gap_pt": 13.2,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 112,
+      "field_name": "AC1",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.106,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.7,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 113,
+      "field_name": "Phone 51",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.984,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 69.6,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 114,
+      "field_name": "Phone 52",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.135,
+      "evidence": {
+        "label": "mail/Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 14.3,
+        "matched_phrase": "fax",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 115,
+      "field_name": "undefined_20-0",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.14,
+      "evidence": {
+        "label": "mail/Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 13.1,
+        "matched_phrase": "fax",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 117,
+      "field_name": "undefined_19",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 1.205,
+      "evidence": {
+        "label": "To Seller at:",
+        "relation": "same_baseline_left",
+        "gap_pt": -1,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 118,
+      "field_name": "at_2",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.647,
+      "evidence": {
+        "label": "To Seller at:",
+        "relation": "directly_above",
+        "gap_pt": 14.2,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 119,
+      "field_name": "AC4",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.11,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 41.8,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 120,
+      "field_name": "Fax 52",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.989,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 68.4,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 121,
+      "field_name": "undefined numb 21",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.769,
+      "evidence": {
+        "label": "mail/Fax:",
+        "relation": "same_baseline_left",
+        "gap_pt": 6.7,
+        "matched_phrase": "fax",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 122,
+      "field_name": "undefined numb 22-0",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.751,
+      "evidence": {
+        "label": "mail/Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 10.8,
+        "matched_phrase": "fax",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 124,
+      "field_name": "Third Party Financing Addendum",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "third_party_financing_addendum",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "[field-name] Third Party Financing Addendum",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "third party financing addendum",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 125,
+      "field_name": "Seller Financing Addendum",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "seller_financing_addendum",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "[field-name] Seller Financing Addendum",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "seller financing addendum",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 127,
+      "field_name": "Buyers Temporary Residential Lease",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_buyers_lease",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "[field-name] Buyers Temporary Residential Lease",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "buyers temporary residential lease",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 128,
+      "field_name": "Loan Assumption Addendum_2",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_loan_assumption",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Loan Assumption Addendum_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "loan assumption addendum",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 129,
+      "field_name": "Addendum for Sale of Other Property by",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_other_property_sale",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Addendum for Sale of Other Property by",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "sale of other property by",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 130,
+      "field_name": "Addendum for Reservation of Oil Gas",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_oil_gas",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Addendum for Reservation of Oil Gas",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "reservation of oil",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 131,
+      "field_name": "Addendum for BackUp Contract",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "backup_contract",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Addendum for BackUp Contract",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "addendum for backup",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 136,
+      "field_name": "Environmental Assessment Threatened or",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_environmental",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Environmental Assessment Threatened or",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "environmental assessment",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 137,
+      "field_name": "Sellers Temporary Residential Lease",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_sellers_lease",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "[field-name] Sellers Temporary Residential Lease",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "sellers temporary residential lease",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 138,
+      "field_name": "Short Sale Addendum",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_short_sale",
+      "confidence_score": 1.3,
+      "evidence": {
+        "label": "[field-name] Short Sale Addendum",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "short sale addendum",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 139,
+      "field_name": "Addendum for Property Located Seaward",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_coastal",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Addendum for Property Located Seaward",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "property located seaward",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 142,
+      "field_name": "Addendum for Property in a Propane Gas",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_propane",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Addendum for Property in a Propane Gas",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "propane gas",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 144,
+      "field_name": "Addendum for Section 1031",
+      "page": 8,
+      "field_type": "checkbox",
+      "fixture_key": "addendum_1031",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] Addendum for Section 1031",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "section 1031",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 150,
+      "field_name": "Attorney is",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.679,
+      "evidence": {
+        "label": "Buyer's",
+        "relation": "same_baseline_left",
+        "gap_pt": 26.5,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 152,
+      "field_name": "Text2",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.058,
+      "evidence": {
+        "label": "Phone:",
+        "relation": "same_baseline_left",
+        "gap_pt": 31.3,
+        "matched_phrase": "phone",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 153,
+      "field_name": "Text1",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.936,
+      "evidence": {
+        "label": "Phone:",
+        "relation": "same_baseline_left",
+        "gap_pt": 58.2,
+        "matched_phrase": "phone",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 154,
+      "field_name": "Text7",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.077,
+      "evidence": {
+        "label": "Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 49,
+        "matched_phrase": "fax",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 155,
+      "field_name": "Text6",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.956,
+      "evidence": {
+        "label": "Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 75.7,
+        "matched_phrase": "fax",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 156,
+      "field_name": "Email",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Email",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "email",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 157,
+      "field_name": "Attorney is_2",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.673,
+      "evidence": {
+        "label": "Seller's",
+        "relation": "same_baseline_left",
+        "gap_pt": 27.9,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 159,
+      "field_name": "Text22",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.052,
+      "evidence": {
+        "label": "Phone:",
+        "relation": "same_baseline_left",
+        "gap_pt": 32.7,
+        "matched_phrase": "phone",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 161,
+      "field_name": "Text23",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.072,
+      "evidence": {
+        "label": "Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 50.1,
+        "matched_phrase": "fax",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 162,
+      "field_name": "Phone 2",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 0.954,
+      "evidence": {
+        "label": "Fax",
+        "relation": "same_baseline_left",
+        "gap_pt": 76.2,
+        "matched_phrase": "fax",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 163,
+      "field_name": "Email_2",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Email_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "email",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 164,
+      "field_name": "Initialed for identification by Buyer_5",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.297,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.6,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 165,
+      "field_name": "and Seller_7",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.105,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 42.8,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 166,
+      "field_name": "undefined_22",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.283,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.7,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 167,
+      "field_name": "undefined_23",
+      "page": 8,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.058,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 53.2,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 168,
+      "field_name": "Address of Property",
+      "page": 9,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Address of Property",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "address of property",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 169,
+      "field_name": "EXECUTED the",
+      "page": 9,
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 1.188,
+      "evidence": {
+        "label": "EXECUTED",
+        "relation": "same_baseline_left",
+        "gap_pt": 24.7,
+        "matched_phrase": "executed",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 170,
+      "field_name": "day of",
+      "page": 9,
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 0.844,
+      "evidence": {
+        "label": "EXECUTED",
+        "relation": "same_baseline_left",
+        "gap_pt": 100.3,
+        "matched_phrase": "executed",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 171,
+      "field_name": "20_2",
+      "page": 9,
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 1.133,
+      "evidence": {
+        "label": "(BROKER: FILL IN THE DATE OF FINAL ACCEPTANCE.)",
+        "relation": "same_baseline_left",
+        "gap_pt": 14.7,
+        "matched_phrase": "date of final acceptance",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 172,
+      "field_name": "Signature8",
+      "page": 9,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.623,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 17.2,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 173,
+      "field_name": "Signature10",
+      "page": 9,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.623,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 17.2,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 174,
+      "field_name": "Signature9",
+      "page": 9,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 175,
+      "field_name": "Signature11",
+      "page": 9,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 176,
+      "field_name": "Addr of Prop",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Addr of Prop",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "addr of prop",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 177,
+      "field_name": "Other Broker Firm",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Other Broker Firm",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "other broker firm",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 183,
+      "field_name": "Associates Name",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_name",
+      "confidence_score": 0.905,
+      "evidence": {
+        "label": "Listing Associate",
+        "relation": "directly_above",
+        "gap_pt": 8.6,
+        "matched_phrase": "listing associate",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 184,
+      "field_name": "Associates Email Address",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Associates Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "email address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 185,
+      "field_name": "Phone",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.92,
+      "evidence": {
+        "label": "s Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 61.6,
+        "matched_phrase": "email address",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 188,
+      "field_name": "Other Brokers Address",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Other Brokers Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "other brokers address",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 189,
+      "field_name": "Phone_2",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 0.87,
+      "evidence": {
+        "label": "Other Broker's Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 72.5,
+        "matched_phrase": "other broker",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 190,
+      "field_name": "City",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] City",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "city",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 191,
+      "field_name": "State",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "other_broker_firm",
+      "confidence_score": 1.044,
+      "evidence": {
+        "label": "Other Broker's Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 34.4,
+        "matched_phrase": "other broker",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 192,
+      "field_name": "Zip",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.261,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 8.7,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 193,
+      "field_name": "Listing Broker Firm",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_broker_license",
+      "confidence_score": 1.106,
+      "evidence": {
+        "label": "License No.",
+        "relation": "same_baseline_left",
+        "gap_pt": 20.6,
+        "matched_phrase": "license no",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 197,
+      "field_name": "List Assoc Name",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_broker_license",
+      "confidence_score": 0.709,
+      "evidence": {
+        "label": "License No.",
+        "relation": "same_baseline_left",
+        "gap_pt": 20.1,
+        "matched_phrase": "license no",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 198,
+      "field_name": "License No_5",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.616,
+      "evidence": {
+        "label": "Seller only as Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 40.4,
+        "matched_phrase": "as seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 199,
+      "field_name": "Listing Associates Name",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_name",
+      "confidence_score": 0.896,
+      "evidence": {
+        "label": "Listing Associate",
+        "relation": "directly_above",
+        "gap_pt": 9,
+        "matched_phrase": "listing associate",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 200,
+      "field_name": "Listing Associates Email Address",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.212,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 19.4,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 201,
+      "field_name": "Phone_3",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.966,
+      "evidence": {
+        "label": "s Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 51.5,
+        "matched_phrase": "email address",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 202,
+      "field_name": "Licensed Supervisor of Listing Associate",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.212,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 19.4,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 203,
+      "field_name": "License No_6",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_supervisor",
+      "confidence_score": 0.653,
+      "evidence": {
+        "label": "Licensed Supervisor of Listing Associate",
+        "relation": "same_baseline_left",
+        "gap_pt": 32.3,
+        "matched_phrase": "licensed supervisor of listing",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 204,
+      "field_name": "Listing Brokers Office Address",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.215,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 18.6,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 205,
+      "field_name": "Phone_4",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_supervisor",
+      "confidence_score": 1.095,
+      "evidence": {
+        "label": "Licensed Supervisor of Listing Associate",
+        "relation": "same_baseline_left",
+        "gap_pt": 23.2,
+        "matched_phrase": "licensed supervisor of listing",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 206,
+      "field_name": "City_2",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_phone",
+      "confidence_score": 1.215,
+      "evidence": {
+        "label": "Phone",
+        "relation": "same_baseline_left",
+        "gap_pt": 18.6,
+        "matched_phrase": "phone",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 207,
+      "field_name": "State_2",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 1.065,
+      "evidence": {
+        "label": "s Office Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 29.7,
+        "matched_phrase": "address",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 208,
+      "field_name": "Zip_2",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.272,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 6.1,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 209,
+      "field_name": "Selling Associates Name",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 0.812,
+      "evidence": {
+        "label": "Zip",
+        "relation": "same_baseline_left",
+        "gap_pt": 19.3,
+        "matched_phrase": "zip",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 210,
+      "field_name": "License No_7",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.879,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.6,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 211,
+      "field_name": "Selling Associates Name-1",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "selling_agent_name",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Selling Associates Name-1",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "selling associates name",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 212,
+      "field_name": "Selling Associates Email Address",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "selling_agent_email",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Selling Associates Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "selling associates email",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 213,
+      "field_name": "Phone_5",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.976,
+      "evidence": {
+        "label": "s Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 49.3,
+        "matched_phrase": "email address",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 214,
+      "field_name": "Licensed Supervisor of Selling Associate",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "selling_agent_supervisor",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Licensed Supervisor of Selling Associate",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "licensed supervisor of selling",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 215,
+      "field_name": "License No_8",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "selling_agent_name",
+      "confidence_score": 0.659,
+      "evidence": {
+        "label": "of Selling Associate",
+        "relation": "same_baseline_left",
+        "gap_pt": 31,
+        "matched_phrase": "selling associate",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 216,
+      "field_name": "Selling Associates Office Address",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "selling_agent_phone",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Selling Associates Office Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "selling associates office",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 217,
+      "field_name": "City_3",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "selling_agent_name",
+      "confidence_score": 0.867,
+      "evidence": {
+        "label": "Selling Associate",
+        "relation": "directly_above",
+        "gap_pt": 10,
+        "matched_phrase": "selling associate",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 218,
+      "field_name": "State_3",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.768,
+      "evidence": {
+        "label": "s Office Address",
+        "relation": "directly_above",
+        "gap_pt": 9.9,
+        "matched_phrase": "address",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 219,
+      "field_name": "Zip_3",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.236,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 14.1,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 223,
+      "field_name": "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",
+      "page": 10,
+      "field_type": "text",
+      "fixture_key": "listing_broker_compensation",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "listing brokers fee",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 224,
+      "field_name": "Address of Property_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Address of Property_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "address of property",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 226,
+      "field_name": "Option Fee in the form of",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "option_fee",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Option Fee in the form of",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "option fee",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 227,
+      "field_name": "Seller or Listing Broker",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_broker_firm",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Seller or Listing Broker",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "listing broker",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 230,
+      "field_name": "Earnest Money in the form of",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 1.19,
+      "evidence": {
+        "label": "Receipt of $____________________ Earnest Money in the form of",
+        "relation": "same_baseline_left",
+        "gap_pt": 2.2,
+        "matched_phrase": "earnest money",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 231,
+      "field_name": "Escrow Agent",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Escrow Agent",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "escrow agent",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 233,
+      "field_name": "Address",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "address",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 234,
+      "field_name": "City_4",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] City_4",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "city",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 235,
+      "field_name": "State_4",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] State_4",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 236,
+      "field_name": "Zip_4",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.239,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 13.5,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 237,
+      "field_name": "Email Address",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 238,
+      "field_name": "DateTime",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.877,
+      "evidence": {
+        "label": "Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 93.1,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 239,
+      "field_name": "Phone_6",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 1.278,
+      "evidence": {
+        "label": "Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.8,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 240,
+      "field_name": "Fax",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 1.259,
+      "evidence": {
+        "label": "Zip",
+        "relation": "same_baseline_left",
+        "gap_pt": 9,
+        "matched_phrase": "zip",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 241,
+      "field_name": "Escrow Agent_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Escrow Agent_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "escrow agent",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 243,
+      "field_name": "Address_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Address_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 244,
+      "field_name": "City_5",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] City_5",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "city",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 245,
+      "field_name": "State_5",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] State_5",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 246,
+      "field_name": "Zip_5",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.24,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 13.2,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 247,
+      "field_name": "Email Address_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Email Address_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "email address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 248,
+      "field_name": "Date_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.845,
+      "evidence": {
+        "label": "Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 100.2,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 249,
+      "field_name": "Phone_7",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 1.278,
+      "evidence": {
+        "label": "Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.8,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 250,
+      "field_name": "Fax_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 1.259,
+      "evidence": {
+        "label": "Zip",
+        "relation": "same_baseline_left",
+        "gap_pt": 8.9,
+        "matched_phrase": "zip",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 252,
+      "field_name": "additional Earnest Money in the form of",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "earnest_money",
+      "confidence_score": 0.806,
+      "evidence": {
+        "label": "ADDITIONAL EARNEST MONEY RECEIPT",
+        "relation": "directly_above",
+        "gap_pt": 8.6,
+        "matched_phrase": "earnest money",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 253,
+      "field_name": "Escrow Agent_3",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "earnest_holder_name",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Escrow Agent_3",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "escrow agent",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 255,
+      "field_name": "Address_3",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Address_3",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 256,
+      "field_name": "City_6",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] City_6",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "city",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 257,
+      "field_name": "State_6",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] State_6",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 258,
+      "field_name": "Zip_6",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.236,
+      "evidence": {
+        "label": "State",
+        "relation": "same_baseline_left",
+        "gap_pt": 14,
+        "matched_phrase": "state",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 259,
+      "field_name": "Email Address_3",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Email Address_3",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "email address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 260,
+      "field_name": "DateTime_2",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 0.837,
+      "evidence": {
+        "label": "Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 101.9,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 261,
+      "field_name": "Phone_8",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "listing_agent_email",
+      "confidence_score": 1.278,
+      "evidence": {
+        "label": "Email Address",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.8,
+        "matched_phrase": "email address",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 262,
+      "field_name": "Fax_3",
+      "page": 11,
+      "field_type": "text",
+      "fixture_key": "property_zip",
+      "confidence_score": 1.259,
+      "evidence": {
+        "label": "Zip",
+        "relation": "same_baseline_left",
+        "gap_pt": 9,
+        "matched_phrase": "zip",
+        "exact": true,
+        "from_field_name": false
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "index": 11,
+      "field_name": "B Sum of all financing described in the attached",
+      "page": 1,
+      "x": 314,
+      "y": 283,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] B Sum of all financing described in the attached",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "loan_amount",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "Seller Financing Addendum",
+          "distance": 25.4,
+          "direction": "right"
+        },
+        {
+          "text": "”",
+          "distance": 34.5,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'loan_amount' -- need a boolean fixture key"
+    },
+    {
+      "index": 12,
+      "field_name": "Check Box2",
+      "page": 1,
+      "x": 76,
+      "y": 269,
+      "width": 9,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.4,
+          "direction": "above"
+        },
+        {
+          "text": "C.",
+          "distance": 18.1,
+          "direction": "left"
+        },
+        {
+          "text": "B.",
+          "distance": 19.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box2' but no matching fixture key exists for it"
+    },
+    {
+      "index": 14,
+      "field_name": "undefined_4",
+      "page": 1,
+      "x": 457,
+      "y": 267,
+      "width": 101,
+      "height": 9,
+      "field_type": "text",
+      "best_label_guess": "Seller Financing Addendum",
+      "best_label_score": 1.083,
+      "best_label_fixture_key": "seller_financing_addendum",
+      "nearest_labels_within_100px": [
+        {
+          "text": "any leases affecting the",
+          "distance": 28.3,
+          "direction": "below"
+        },
+        {
+          "text": "$",
+          "distance": 53.3,
+          "direction": "left"
+        },
+        {
+          "text": "$",
+          "distance": 54,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'seller_financing_addendum' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 15,
+      "field_name": "undefined_5",
+      "page": 1,
+      "x": 457,
+      "y": 255,
+      "width": 101,
+      "height": 9,
+      "field_type": "text",
+      "best_label_guess": "Seller Financing Addendum",
+      "best_label_score": 1.083,
+      "best_label_fixture_key": "seller_financing_addendum",
+      "nearest_labels_within_100px": [
+        {
+          "text": "any leases affecting the",
+          "distance": 18.4,
+          "direction": "below"
+        },
+        {
+          "text": "$",
+          "distance": 53.6,
+          "direction": "left"
+        },
+        {
+          "text": "$",
+          "distance": 55.3,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'seller_financing_addendum' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 16,
+      "field_name": "i will not be amended or deleted from the title policy or",
+      "page": 1,
+      "x": 48,
+      "y": 196,
+      "width": 12,
+      "height": 8,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] i will not be amended or deleted from the title policy or",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "title_company",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.4,
+          "direction": "above"
+        },
+        {
+          "text": "A.",
+          "distance": 12.3,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 23.8,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'title_company' -- need a boolean fixture key"
+    },
+    {
+      "index": 17,
+      "field_name": "ii will be amended to read shortages in area at the expense of",
+      "page": 1,
+      "x": 48,
+      "y": 170,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.8,
+          "direction": "above"
+        },
+        {
+          "text": "B.",
+          "distance": 13,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 26.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] ii will be amended to read shortages in area at the expense of' but no matching fixture key exists for it"
+    },
+    {
+      "index": 18,
+      "field_name": "A TITLE POLICY Seller shall furnish to Buyer at",
+      "page": 1,
+      "x": 48,
+      "y": 134,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] A TITLE POLICY Seller shall furnish to Buyer at",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "title_company",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.3,
+          "direction": "above"
+        },
+        {
+          "text": "C.",
+          "distance": 12.7,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 37,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'title_company' -- need a boolean fixture key"
+    },
+    {
+      "index": 19,
+      "field_name": "Sellers",
+      "page": 1,
+      "x": 61,
+      "y": 98,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Sellers",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.8,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 12.8,
+          "direction": "below"
+        },
+        {
+          "text": "(2)",
+          "distance": 21.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 20,
+      "field_name": "Seller",
+      "page": 1,
+      "x": 60,
+      "y": 84,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Seller",
+      "best_label_score": 1.3,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.8,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 15.9,
+          "direction": "above"
+        },
+        {
+          "text": "(2)",
+          "distance": 16.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 35,
+      "field_name": "Sellers_2",
+      "page": 2,
+      "x": 314,
+      "y": 352,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Sellers_2",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.7,
+          "direction": "left"
+        },
+        {
+          "text": "in the amount of the Sales Price, dated at or after closing, insuring Buyer against loss under the",
+          "distance": 20.5,
+          "direction": "below"
+        },
+        {
+          "text": "Seller",
+          "distance": 22.3,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 36,
+      "field_name": "Buyers expense no later",
+      "page": 2,
+      "x": 368,
+      "y": 352,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "Seller",
+      "best_label_score": 0.845,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.1,
+          "direction": "above"
+        },
+        {
+          "text": "s",
+          "distance": 12.3,
+          "direction": "left"
+        },
+        {
+          "text": "’",
+          "distance": 16.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 38,
+      "field_name": "2Within",
+      "page": 2,
+      "x": 76,
+      "y": 178,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.8,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 9.6,
+          "direction": "below"
+        },
+        {
+          "text": "(8)",
+          "distance": 19.8,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 2Within' but no matching fixture key exists for it"
+    },
+    {
+      "index": 39,
+      "field_name": "3Within",
+      "page": 2,
+      "x": 75,
+      "y": 167,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.4,
+          "direction": "above"
+        },
+        {
+          "text": "(9)",
+          "distance": 10.5,
+          "direction": "below"
+        },
+        {
+          "text": "q",
+          "distance": 11.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 3Within' but no matching fixture key exists for it"
+    },
+    {
+      "index": 40,
+      "field_name": "is",
+      "page": 2,
+      "x": 435,
+      "y": 168,
+      "width": 11,
+      "height": 8,
+      "field_type": "checkbox",
+      "best_label_guess": "Buyer",
+      "best_label_score": 0.637,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.6,
+          "direction": "above"
+        },
+        {
+          "text": "the",
+          "distance": 11.9,
+          "direction": "below"
+        },
+        {
+          "text": ":",
+          "distance": 22.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 41,
+      "field_name": "is not",
+      "page": 2,
+      "x": 499,
+      "y": 168,
+      "width": 11,
+      "height": 8,
+      "field_type": "checkbox",
+      "best_label_guess": "Buyer",
+      "best_label_score": 1.225,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.4,
+          "direction": "above"
+        },
+        {
+          "text": "Department",
+          "distance": 15.3,
+          "direction": "right"
+        },
+        {
+          "text": "Seller.",
+          "distance": 28.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 47,
+      "field_name": "Buyer",
+      "page": 3,
+      "x": 58,
+      "y": 706,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Buyer",
+      "best_label_score": 1.3,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.8,
+          "direction": "above"
+        },
+        {
+          "text": "(1)",
+          "distance": 16.5,
+          "direction": "right"
+        },
+        {
+          "text": "C.",
+          "distance": 21.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 50,
+      "field_name": "Within two",
+      "page": 3,
+      "x": 198,
+      "y": 640,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "Seller's",
+      "best_label_score": 1.181,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.7,
+          "direction": "above"
+        },
+        {
+          "text": "existing survey; and (ii) affidavit or declaration",
+          "distance": 23.2,
+          "direction": "above"
+        },
+        {
+          "text": "Seller's",
+          "distance": 28,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 51,
+      "field_name": "Within three",
+      "page": 3,
+      "x": 59,
+      "y": 630,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.1,
+          "direction": "above"
+        },
+        {
+          "text": "(2)",
+          "distance": 15.8,
+          "direction": "right"
+        },
+        {
+          "text": "Within",
+          "distance": 42.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Within three' but no matching fixture key exists for it"
+    },
+    {
+      "index": 52,
+      "field_name": "3 days prior",
+      "page": 3,
+      "x": 125,
+      "y": 627,
+      "width": 36,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 13.3,
+          "direction": "above"
+        },
+        {
+          "text": "does not accept the",
+          "distance": 20.8,
+          "direction": "above"
+        },
+        {
+          "text": "survey at",
+          "distance": 30.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Within' but no matching fixture key exists for it"
+    },
+    {
+      "index": 53,
+      "field_name": "Within four",
+      "page": 3,
+      "x": 60,
+      "y": 579,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.7,
+          "direction": "above"
+        },
+        {
+          "text": "(3)",
+          "distance": 13.3,
+          "direction": "right"
+        },
+        {
+          "text": "D.",
+          "distance": 21.6,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Within four' but no matching fixture key exists for it"
+    },
+    {
+      "index": 54,
+      "field_name": "receipt or the date specified in this paragraph whichever is earlier",
+      "page": 3,
+      "x": 124,
+      "y": 577,
+      "width": 40,
+      "height": 11,
+      "field_type": "text",
+      "best_label_guess": "Buyer may not terminate the contract under Paragraph 2B of the Third Party Financing",
+      "best_label_score": 0.746,
+      "best_label_fixture_key": "third_party_financing_addendum",
+      "nearest_labels_within_100px": [
+        {
+          "text": "furnish a new survey to Buyer.",
+          "distance": 26.4,
+          "direction": "right"
+        },
+        {
+          "text": "on",
+          "distance": 33.6,
+          "direction": "below"
+        },
+        {
+          "text": "the",
+          "distance": 34.1,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'third_party_financing_addendum' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 55,
+      "field_name": "Commitment other than items 6A1 through 9 above or which prohibit the following use",
+      "page": 3,
+      "x": 118,
+      "y": 522,
+      "width": 435,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(9)",
+          "distance": 23,
+          "direction": "left"
+        },
+        {
+          "text": "6A(1)",
+          "distance": 24.4,
+          "direction": "above"
+        },
+        {
+          "text": "waived by Buyer",
+          "distance": 36.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'activity:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 58,
+      "field_name": "2 Within",
+      "page": 3,
+      "x": 478,
+      "y": 315,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.9,
+          "direction": "above"
+        },
+        {
+          "text": "is",
+          "distance": 13.4,
+          "direction": "left"
+        },
+        {
+          "text": "q",
+          "distance": 23.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 2 Within' but no matching fixture key exists for it"
+    },
+    {
+      "index": 63,
+      "field_name": "Contract Concerning",
+      "page": 4,
+      "x": 128,
+      "y": 749,
+      "width": 326,
+      "height": 14,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Address of Property)",
+          "distance": 17.9,
+          "direction": "right"
+        },
+        {
+          "text": "requires",
+          "distance": 33,
+          "direction": "below"
+        },
+        {
+          "text": "a",
+          "distance": 36.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'Contract Concerning' but no matching fixture key exists for it"
+    },
+    {
+      "index": 64,
+      "field_name": "Text4",
+      "page": 4,
+      "x": 501,
+      "y": 289,
+      "width": 53,
+      "height": 9,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "to",
+          "distance": 12.1,
+          "direction": "above"
+        },
+        {
+          "text": "this",
+          "distance": 23.8,
+          "direction": "right"
+        },
+        {
+          "text": ".",
+          "distance": 32.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'contract (for example, utility, water, drainage, and public improvement districts):' but no matching fixture key exists for it"
+    },
+    {
+      "index": 67,
+      "field_name": "1 Buyer accepts the Property As Is",
+      "page": 4,
+      "x": 62,
+      "y": 149,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 1 Buyer accepts the Property As Is",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.8,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 8.4,
+          "direction": "below"
+        },
+        {
+          "text": "(1)",
+          "distance": 15.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 68,
+      "field_name": "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+      "page": 4,
+      "x": 62,
+      "y": 138,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.5,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 12.7,
+          "direction": "above"
+        },
+        {
+          "text": "(2)",
+          "distance": 15.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 70,
+      "field_name": "upon",
+      "page": 4,
+      "x": 62,
+      "y": 79,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2,
+          "direction": "above"
+        },
+        {
+          "text": "C.",
+          "distance": 9.6,
+          "direction": "below"
+        },
+        {
+          "text": "(3)",
+          "distance": 15.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] upon' but no matching fixture key exists for it"
+    },
+    {
+      "index": 75,
+      "field_name": "Contract Concerning_2",
+      "page": 5,
+      "x": 128,
+      "y": 749,
+      "width": 326,
+      "height": 13,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Address of Property)",
+          "distance": 17.4,
+          "direction": "right"
+        },
+        {
+          "text": "7D(1) or (2) does not preclude Buyer from inspecting the Property under Paragraph 7A, from",
+          "distance": 36,
+          "direction": "below"
+        },
+        {
+          "text": "a",
+          "distance": 41,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'Contract Concerning' but no matching fixture key exists for it"
+    },
+    {
+      "index": 76,
+      "field_name": "As Is",
+      "page": 5,
+      "x": 59,
+      "y": 681,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.9,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 10.2,
+          "direction": "below"
+        },
+        {
+          "text": "(1)",
+          "distance": 16.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] As Is' but no matching fixture key exists for it"
+    },
+    {
+      "index": 77,
+      "field_name": "As Is except",
+      "page": 5,
+      "x": 59,
+      "y": 669,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 12.9,
+          "direction": "above"
+        },
+        {
+          "text": "(2)",
+          "distance": 16,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] As Is except' but no matching fixture key exists for it"
+    },
+    {
+      "index": 78,
+      "field_name": "following specific repairs and treatments",
+      "page": 5,
+      "x": 302,
+      "y": 656,
+      "width": 251,
+      "height": 10,
+      "field_type": "text",
+      "best_label_guess": "following specific repairs and treatments:",
+      "best_label_score": 1.186,
+      "best_label_fixture_key": "repairs_required",
+      "nearest_labels_within_100px": [
+        {
+          "text": "”",
+          "distance": 26.6,
+          "direction": "below"
+        },
+        {
+          "text": "’",
+          "distance": 32.5,
+          "direction": "left"
+        },
+        {
+          "text": "s expense, shall complete the",
+          "distance": 50.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'repairs_required' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 81,
+      "field_name": "Brokers and Sales",
+      "page": 5,
+      "x": 343,
+      "y": 251,
+      "width": 209,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "’",
+          "distance": 23.3,
+          "direction": "below"
+        },
+        {
+          "text": "Texas law requires a real estate broker or sales",
+          "distance": 56.4,
+          "direction": "above"
+        },
+        {
+          "text": "fees are contained in",
+          "distance": 56.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'entering into a contract of sale. Disclose if applicable:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 82,
+      "field_name": "Brokers and Sales 2",
+      "page": 5,
+      "x": 73,
+      "y": 239,
+      "width": 478,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "All obligations of the parties for payment of brokers",
+          "distance": 14.6,
+          "direction": "below"
+        },
+        {
+          "text": "s spouse, parent or child is a beneficiary, to notify the other party in writing before",
+          "distance": 28.5,
+          "direction": "above"
+        },
+        {
+          "text": "or sales agent acts as a trustee or of which the broker or sales agent or the broker or sales",
+          "distance": 32.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'B.' but no matching fixture key exists for it"
+    },
+    {
+      "index": 84,
+      "field_name": "20",
+      "page": 5,
+      "x": 442,
+      "y": 195,
+      "width": 27,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ", 20",
+          "distance": 24.2,
+          "direction": "left"
+        },
+        {
+          "text": "’",
+          "distance": 38.2,
+          "direction": "above"
+        },
+        {
+          "text": "-",
+          "distance": 51,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found ', 20' but no matching fixture key exists for it"
+    },
+    {
+      "index": 89,
+      "field_name": "Contract Concerning_3",
+      "page": 6,
+      "x": 129,
+      "y": 749,
+      "width": 326,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Address of Property)",
+          "distance": 16.8,
+          "direction": "right"
+        },
+        {
+          "text": "will be the obligation of Seller unless provided otherwise in this contract. Transfer fees",
+          "distance": 48.4,
+          "direction": "below"
+        },
+        {
+          "text": "’",
+          "distance": 57.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'Contract Concerning' but no matching fixture key exists for it"
+    },
+    {
+      "index": 90,
+      "field_name": "will",
+      "page": 6,
+      "x": 351,
+      "y": 657,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.7,
+          "direction": "above"
+        },
+        {
+          "text": "Seller shall deliver to Buyer possession of the Property in its present or",
+          "distance": 23.5,
+          "direction": "right"
+        },
+        {
+          "text": "to a temporary residential lease form promulgated by TREC or other written lease required by",
+          "distance": 42.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] will' but no matching fixture key exists for it"
+    },
+    {
+      "index": 91,
+      "field_name": "will not be credited to the Sales Price at closing Time is of the",
+      "page": 6,
+      "x": 499,
+      "y": 657,
+      "width": 10,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] will not be credited to the Sales Price at closing Time is of the",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "sales_price",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.4,
+          "direction": "above"
+        },
+        {
+          "text": "according",
+          "distance": 30.4,
+          "direction": "right"
+        },
+        {
+          "text": "to closing or by Seller after closing which is not",
+          "distance": 74.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'sales_price' -- need a boolean fixture key"
+    },
+    {
+      "index": 93,
+      "field_name": "Text3 2",
+      "page": 6,
+      "x": 60,
+      "y": 420,
+      "width": 495,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "from practicing law and shall not add to, delete, or modify any provision of this contract unless",
+          "distance": 24,
+          "direction": "above"
+        },
+        {
+          "text": "factual information, or provides instructions. Real estate brokers and sales agents are prohibited",
+          "distance": 35,
+          "direction": "above"
+        },
+        {
+          "text": "items. An informational item is a statement that completes a blank in a contract form, discloses",
+          "distance": 46,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Text3 2' but no matching fixture key exists for it"
+    },
+    {
+      "index": 94,
+      "field_name": "Text3 3",
+      "page": 6,
+      "x": 60,
+      "y": 409,
+      "width": 495,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "from practicing law and shall not add to, delete, or modify any provision of this contract unless",
+          "distance": 34.8,
+          "direction": "above"
+        },
+        {
+          "text": "factual information, or provides instructions. Real estate brokers and sales agents are prohibited",
+          "distance": 45.8,
+          "direction": "above"
+        },
+        {
+          "text": "(Seller's Expenses):",
+          "distance": 52.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Text3 3' but no matching fixture key exists for it"
+    },
+    {
+      "index": 95,
+      "field_name": "will 1.1",
+      "page": 6,
+      "x": 109,
+      "y": 304,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.6,
+          "direction": "above"
+        },
+        {
+          "text": "$",
+          "distance": 10.7,
+          "direction": "right"
+        },
+        {
+          "text": "(c) an",
+          "distance": 11.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] will 1.1' but no matching fixture key exists for it"
+    },
+    {
+      "index": 96,
+      "field_name": "acknowledged by Seller and Buyers agreement to pay Seller 1",
+      "page": 6,
+      "x": 129,
+      "y": 303,
+      "width": 92,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "amount not to exceed $",
+          "distance": 14.1,
+          "direction": "right"
+        },
+        {
+          "text": "by Seller under this contract",
+          "distance": 21.4,
+          "direction": "above"
+        },
+        {
+          "text": "Buyer shall pay the following expenses",
+          "distance": 25,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '$' but no matching fixture key exists for it"
+    },
+    {
+      "index": 97,
+      "field_name": "will not be credited to the Sales Price at closing Time is of the 1",
+      "page": 6,
+      "x": 237,
+      "y": 304,
+      "width": 10,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] will not be credited to the Sales Price at closing Time is of the 1",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "sales_price",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "or",
+          "distance": 14,
+          "direction": "left"
+        },
+        {
+          "text": ";",
+          "distance": 24.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'sales_price' -- need a boolean fixture key"
+    },
+    {
+      "index": 98,
+      "field_name": "acknowledged by Seller and Buyers agreement to pay Seller2",
+      "page": 6,
+      "x": 250,
+      "y": 304,
+      "width": 31,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ";",
+          "distance": 21.6,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 23.4,
+          "direction": "left"
+        },
+        {
+          "text": "or",
+          "distance": 37.9,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'q' but no matching fixture key exists for it"
+    },
+    {
+      "index": 99,
+      "field_name": "acknowledged by Seller and Buyers agreement to pay Seller",
+      "page": 6,
+      "x": 250,
+      "y": 293,
+      "width": 79,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "_____% of the Sales Price",
+          "distance": 30.7,
+          "direction": "right"
+        },
+        {
+          "text": "brokerage fees that Seller has agreed to pay;",
+          "distance": 41.7,
+          "direction": "above"
+        },
+        {
+          "text": "fees; origination charges; credit reports; preparation of loan documents; interest on the",
+          "distance": 41.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'q' but no matching fixture key exists for it"
+    },
+    {
+      "index": 109,
+      "field_name": "Contract Concerning_4",
+      "page": 8,
+      "x": 129,
+      "y": 749,
+      "width": 326,
+      "height": 13,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Address of Property)",
+          "distance": 17.1,
+          "direction": "right"
+        },
+        {
+          "text": "fax",
+          "distance": 40.2,
+          "direction": "below"
+        },
+        {
+          "text": "All notices from one party to the other must be in writing and are effective when",
+          "distance": 56,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'Contract Concerning' but no matching fixture key exists for it"
+    },
+    {
+      "index": 116,
+      "field_name": "undefined_20",
+      "page": 8,
+      "x": 60,
+      "y": 570,
+      "width": 235,
+      "height": 14,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "’",
+          "distance": 18.4,
+          "direction": "above"
+        },
+        {
+          "text": "PARTIES:",
+          "distance": 21,
+          "direction": "below"
+        },
+        {
+          "text": "s agent at:",
+          "distance": 30.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '22.' but no matching fixture key exists for it"
+    },
+    {
+      "index": 123,
+      "field_name": "undefined numb 22",
+      "page": 8,
+      "x": 316,
+      "y": 569,
+      "width": 233,
+      "height": 15,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "’",
+          "distance": 18.5,
+          "direction": "above"
+        },
+        {
+          "text": "s agent at:",
+          "distance": 30,
+          "direction": "right"
+        },
+        {
+          "text": "Addenda which are a part of this contract",
+          "distance": 35.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 's agent at:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 126,
+      "field_name": "Addendum for Property Subject to",
+      "page": 8,
+      "x": 65,
+      "y": 488,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.2,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 16,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 30.8,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Addendum for Property Subject to' but no matching fixture key exists for it"
+    },
+    {
+      "index": 132,
+      "field_name": "Check Box8",
+      "page": 8,
+      "x": 66,
+      "y": 361,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 16.2,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 18.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box8' but no matching fixture key exists for it"
+    },
+    {
+      "index": 133,
+      "field_name": "Check Box9",
+      "page": 8,
+      "x": 66,
+      "y": 343,
+      "width": 12,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.4,
+          "direction": "below"
+        },
+        {
+          "text": "q",
+          "distance": 18.8,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 25.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box9' but no matching fixture key exists for it"
+    },
+    {
+      "index": 134,
+      "field_name": "Check box 10",
+      "page": 8,
+      "x": 65,
+      "y": 317,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.9,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 20.9,
+          "direction": "below"
+        },
+        {
+          "text": "q",
+          "distance": 25.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check box 10' but no matching fixture key exists for it"
+    },
+    {
+      "index": 135,
+      "field_name": "Check box 11",
+      "page": 8,
+      "x": 66,
+      "y": 295,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.9,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 22.4,
+          "direction": "above"
+        },
+        {
+          "text": "Addendum",
+          "distance": 41,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check box 11' but no matching fixture key exists for it"
+    },
+    {
+      "index": 140,
+      "field_name": "Sellers Disclos",
+      "page": 8,
+      "x": 316,
+      "y": 409,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Sellers Disclos",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.4,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 22.9,
+          "direction": "below"
+        },
+        {
+          "text": "Lead",
+          "distance": 37,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 141,
+      "field_name": "Addend. for Sellers Disclos",
+      "page": 8,
+      "x": 317,
+      "y": 385,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Addend. for Sellers Disclos",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.7,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 14.5,
+          "direction": "below"
+        },
+        {
+          "text": "q",
+          "distance": 23.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 143,
+      "field_name": "PID",
+      "page": 8,
+      "x": 317,
+      "y": 349,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 0.5,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 22.5,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 26.5,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] PID' but no matching fixture key exists for it"
+    },
+    {
+      "index": 145,
+      "field_name": "Other",
+      "page": 8,
+      "x": 316,
+      "y": 303,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.3,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 19.2,
+          "direction": "above"
+        },
+        {
+          "text": "Other (list):",
+          "distance": 43.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Other' but no matching fixture key exists for it"
+    },
+    {
+      "index": 146,
+      "field_name": "System Service Area",
+      "page": 8,
+      "x": 397,
+      "y": 301,
+      "width": 146,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Addendum for Section 1031 Exchange",
+          "distance": 45,
+          "direction": "left"
+        },
+        {
+          "text": "to Pay Improvement District Assessment",
+          "distance": 50.5,
+          "direction": "above"
+        },
+        {
+          "text": "Addendum containing Notice of Obligation",
+          "distance": 57.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'Other (list):' but no matching fixture key exists for it"
+    },
+    {
+      "index": 147,
+      "field_name": "1",
+      "page": 8,
+      "x": 333,
+      "y": 290,
+      "width": 211,
+      "height": 11,
+      "field_type": "text",
+      "best_label_guess": "Environmental Assessment, Threatened",
+      "best_label_score": 0.97,
+      "best_label_fixture_key": "addendum_environmental",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Addendum for Section 1031 Exchange",
+          "distance": 33.2,
+          "direction": "above"
+        },
+        {
+          "text": "to Pay Improvement District Assessment",
+          "distance": 49,
+          "direction": "above"
+        },
+        {
+          "text": "TREC rules prohibit real estate",
+          "distance": 56,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'addendum_environmental' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 148,
+      "field_name": "2",
+      "page": 8,
+      "x": 333,
+      "y": 278,
+      "width": 211,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Addendum for Section 1031 Exchange",
+          "distance": 44.3,
+          "direction": "above"
+        },
+        {
+          "text": "TREC rules prohibit real estate",
+          "distance": 49.8,
+          "direction": "left"
+        },
+        {
+          "text": "to Pay Improvement District Assessment",
+          "distance": 60.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'or Endangered Species and Wetlands' but no matching fixture key exists for it"
+    },
+    {
+      "index": 149,
+      "field_name": "3",
+      "page": 8,
+      "x": 333,
+      "y": 269,
+      "width": 211,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "TREC rules prohibit real estate",
+          "distance": 46,
+          "direction": "left"
+        },
+        {
+          "text": "Addendum for Section 1031 Exchange",
+          "distance": 54.3,
+          "direction": "above"
+        },
+        {
+          "text": "to Pay Improvement District Assessment",
+          "distance": 70.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'BEFORE SIGNING:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 151,
+      "field_name": "undefined_24",
+      "page": 8,
+      "x": 67,
+      "y": 167,
+      "width": 233,
+      "height": 15,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ")",
+          "distance": 46.8,
+          "direction": "below"
+        },
+        {
+          "text": "(",
+          "distance": 63.5,
+          "direction": "left"
+        },
+        {
+          "text": ")",
+          "distance": 85.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] undefined_24' but no matching fixture key exists for it"
+    },
+    {
+      "index": 158,
+      "field_name": "undefined_25",
+      "page": 8,
+      "x": 323,
+      "y": 167,
+      "width": 238,
+      "height": 16,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ")",
+          "distance": 48,
+          "direction": "below"
+        },
+        {
+          "text": "(",
+          "distance": 65.2,
+          "direction": "left"
+        },
+        {
+          "text": ")",
+          "distance": 86.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] undefined_25' but no matching fixture key exists for it"
+    },
+    {
+      "index": 160,
+      "field_name": "Phone11",
+      "page": 8,
+      "x": 419,
+      "y": 126,
+      "width": 141,
+      "height": 15,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ")",
+          "distance": 72.9,
+          "direction": "left"
+        },
+        {
+          "text": ")",
+          "distance": 83.8,
+          "direction": "left"
+        },
+        {
+          "text": "(",
+          "distance": 98.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found ')' but no matching fixture key exists for it"
+    },
+    {
+      "index": 178,
+      "field_name": "License No",
+      "page": 10,
+      "x": 228,
+      "y": 629,
+      "width": 59,
+      "height": 14,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "License No.",
+          "distance": 9.7,
+          "direction": "below"
+        },
+        {
+          "text": "s agent",
+          "distance": 47.6,
+          "direction": "left"
+        },
+        {
+          "text": "s subagent",
+          "distance": 50.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Other Broker Firm' would map to 'other_broker_firm' but score 0.426 < threshold 0.55"
+    },
+    {
+      "index": 179,
+      "field_name": "Buyer only",
+      "page": 10,
+      "x": 109,
+      "y": 598,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Buyer only",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.4,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 12,
+          "direction": "below"
+        },
+        {
+          "text": "Other Broker Firm",
+          "distance": 37.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 180,
+      "field_name": "Seller as List Brok Sub agent",
+      "page": 10,
+      "x": 109,
+      "y": 584,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Seller as List Brok Sub agent",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.4,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 16.8,
+          "direction": "above"
+        },
+        {
+          "text": "s Name",
+          "distance": 32.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 181,
+      "field_name": "Associates Name numb 1",
+      "page": 10,
+      "x": 50,
+      "y": 560,
+      "width": 177,
+      "height": 15,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 32.8,
+          "direction": "left"
+        },
+        {
+          "text": "s Name",
+          "distance": 34.6,
+          "direction": "left"
+        },
+        {
+          "text": "Seller as Listing Broker",
+          "distance": 36.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Seller as Listing Broker' would map to 'listing_broker_firm' but score 0.395 < threshold 0.55"
+    },
+    {
+      "index": 182,
+      "field_name": "License No_2",
+      "page": 10,
+      "x": 229,
+      "y": 560,
+      "width": 58,
+      "height": 15,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "License No.",
+          "distance": 11,
+          "direction": "below"
+        },
+        {
+          "text": "s subagent",
+          "distance": 27.6,
+          "direction": "above"
+        },
+        {
+          "text": "’",
+          "distance": 46.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Seller as Listing Broker' would map to 'listing_broker_firm' but score 0.395 < threshold 0.55"
+    },
+    {
+      "index": 186,
+      "field_name": "Licensed Supervisor of Associate",
+      "page": 10,
+      "x": 50,
+      "y": 471,
+      "width": 177,
+      "height": 17,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "s Email Address",
+          "distance": 24.6,
+          "direction": "above"
+        },
+        {
+          "text": "Licensed Supervisor of Associate",
+          "distance": 25.2,
+          "direction": "left"
+        },
+        {
+          "text": "’",
+          "distance": 52.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Phone' would map to 'listing_agent_phone' but score 0.196 < threshold 0.55"
+    },
+    {
+      "index": 187,
+      "field_name": "License No_3",
+      "page": 10,
+      "x": 229,
+      "y": 471,
+      "width": 59,
+      "height": 17,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "License No.",
+          "distance": 12.9,
+          "direction": "below"
+        },
+        {
+          "text": "Phone",
+          "distance": 23.8,
+          "direction": "above"
+        },
+        {
+          "text": "Phone",
+          "distance": 44.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 's Email Address' would map to 'listing_agent_email' but score 0.459 < threshold 0.55"
+    },
+    {
+      "index": 194,
+      "field_name": "License No_4",
+      "page": 10,
+      "x": 504,
+      "y": 629,
+      "width": 58,
+      "height": 14,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "License No.",
+          "distance": 9.8,
+          "direction": "below"
+        },
+        {
+          "text": "s agent",
+          "distance": 75.2,
+          "direction": "left"
+        },
+        {
+          "text": "License No.",
+          "distance": 78.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Listing Broker Firm' would map to 'listing_broker_firm' but score 0.345 < threshold 0.55"
+    },
+    {
+      "index": 195,
+      "field_name": "Seller and Buyer as an intermediary",
+      "page": 10,
+      "x": 365,
+      "y": 598,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Seller and Buyer as an intermediary",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.5,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 11.9,
+          "direction": "below"
+        },
+        {
+          "text": "Listing Broker Firm",
+          "distance": 36.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 196,
+      "field_name": "Seller only as Sellers agent",
+      "page": 10,
+      "x": 365,
+      "y": 584,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Seller only as Sellers agent",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.2,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 16.5,
+          "direction": "above"
+        },
+        {
+          "text": "’",
+          "distance": 31.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 220,
+      "field_name": "Dollar Amt",
+      "page": 10,
+      "x": 55,
+      "y": 148,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.9,
+          "direction": "above"
+        },
+        {
+          "text": "(",
+          "distance": 6.6,
+          "direction": "left"
+        },
+        {
+          "text": "$______________ or",
+          "distance": 59.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '(' but no matching fixture key exists for it"
+    },
+    {
+      "index": 221,
+      "field_name": "when mailed to",
+      "page": 10,
+      "x": 78,
+      "y": 146,
+      "width": 81,
+      "height": 10,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "$______________ or",
+          "distance": 2.1,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 56.4,
+          "direction": "left"
+        },
+        {
+          "text": "(",
+          "distance": 64.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'q' but no matching fixture key exists for it"
+    },
+    {
+      "index": 222,
+      "field_name": "Percentage",
+      "page": 10,
+      "x": 177,
+      "y": 147,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.4,
+          "direction": "above"
+        },
+        {
+          "text": "$______________ or",
+          "distance": 61.7,
+          "direction": "left"
+        },
+        {
+          "text": "not change the previous agreement between brokers to pay or share a commission.",
+          "distance": 62,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Percentage' but no matching fixture key exists for it"
+    },
+    {
+      "index": 225,
+      "field_name": "is acknowledged",
+      "page": 11,
+      "x": 107,
+      "y": 681,
+      "width": 109,
+      "height": 16,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "is acknowledged.",
+          "distance": 70.3,
+          "direction": "left"
+        },
+        {
+          "text": "Receipt of $____________________ Earnest Money in the form of",
+          "distance": 96.7,
+          "direction": "below"
+        },
+        {
+          "text": "Escrow Agent",
+          "distance": 97.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] is acknowledged' but no matching fixture key exists for it"
+    },
+    {
+      "index": 228,
+      "field_name": "Date",
+      "page": 11,
+      "x": 313,
+      "y": 644,
+      "width": 243,
+      "height": 16,
+      "field_type": "text",
+      "nearest_labels_within_100px": [],
+      "reason_no_match": "no labels within 100px"
+    },
+    {
+      "index": 229,
+      "field_name": "is acknowledged_2",
+      "page": 11,
+      "x": 106,
+      "y": 597,
+      "width": 115,
+      "height": 14,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Receipt of $____________________ Earnest Money in the form of",
+          "distance": 40.8,
+          "direction": "right"
+        },
+        {
+          "text": "is acknowledged.",
+          "distance": 73.3,
+          "direction": "left"
+        },
+        {
+          "text": "Escrow Agent",
+          "distance": 95.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "weak match: label 'EARNEST MONEY RECEIPT' would map to 'earnest_money' but score 0.12 < threshold 0.55"
+    },
+    {
+      "index": 232,
+      "field_name": "Received by",
+      "page": 11,
+      "x": 183,
+      "y": 569,
+      "width": 117,
+      "height": 16,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Received by",
+          "distance": 36.2,
+          "direction": "right"
+        },
+        {
+          "text": "Receipt of $____________________ Earnest Money in the form of",
+          "distance": 45,
+          "direction": "left"
+        },
+        {
+          "text": "State",
+          "distance": 60.8,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Escrow Agent' would map to 'earnest_holder_name' but score 0.521 < threshold 0.55"
+    },
+    {
+      "index": 242,
+      "field_name": "Received by_2",
+      "page": 11,
+      "x": 189,
+      "y": 446,
+      "width": 112,
+      "height": 16,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Received by",
+          "distance": 33.3,
+          "direction": "right"
+        },
+        {
+          "text": "State",
+          "distance": 60.2,
+          "direction": "below"
+        },
+        {
+          "text": "State",
+          "distance": 63.5,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Escrow Agent' would map to 'earnest_holder_name' but score 0.496 < threshold 0.55"
+    },
+    {
+      "index": 251,
+      "field_name": "is acknowledged_3",
+      "page": 11,
+      "x": 109,
+      "y": 344,
+      "width": 104,
+      "height": 13,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "is acknowledged.",
+          "distance": 70.7,
+          "direction": "left"
+        },
+        {
+          "text": "State",
+          "distance": 85.7,
+          "direction": "right"
+        },
+        {
+          "text": "Receipt of",
+          "distance": 86.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Receipt of' but no matching fixture key exists for it"
+    },
+    {
+      "index": 254,
+      "field_name": "Received by_3",
+      "page": 11,
+      "x": 180,
+      "y": 318,
+      "width": 120,
+      "height": 16,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Received by",
+          "distance": 37.7,
+          "direction": "right"
+        },
+        {
+          "text": "State",
+          "distance": 60.7,
+          "direction": "below"
+        },
+        {
+          "text": "State",
+          "distance": 69.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Escrow Agent' would map to 'earnest_holder_name' but score 0.535 < threshold 0.55"
+    }
+  ],
+  "skipped": [
+    {
+      "index": 26,
+      "field_name": "Page 2 of 10",
+      "page": 2,
+      "reason": "page_number_field"
+    },
+    {
+      "index": 46,
+      "field_name": "Page 3 of 10",
+      "page": 3,
+      "reason": "page_number_field"
+    },
+    {
+      "index": 104,
+      "field_name": "Page 7 of 10",
+      "page": 7,
+      "reason": "page_number_field"
+    }
+  ]
+}
