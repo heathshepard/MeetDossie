@@ -2209,7 +2209,8 @@
     }
 
     // V5 R7 #7 — Panel-bottom data-feed strips. Last 3 events per source.
-    // Sources: agent_activity, decision_queue, incidents, money_pulse_snapshots.
+    // Sources: agent_activity, decision_queue, cron_runs (incidents proxy), money_pulse_snapshots.
+    // Each source soft-fails independently so a missing table can't blank the others.
     async function refreshPanelFeeds() {
       const setFeed = (id, lines) => {
         const el = document.getElementById(id);
@@ -2222,35 +2223,38 @@
           `<div class="panel-feed-line">${escapeHtml(line)}</div>`
         ).join('');
       };
-      try {
-        const [agents, decisions, incidents, money] = await Promise.all([
-          supabase.from('agent_activity').select('agent_name, task_summary, created_at').order('created_at', { ascending: false }).limit(3),
-          supabase.from('decision_queue').select('title, status, updated_at').order('updated_at', { ascending: false }).limit(3),
-          supabase.from('incidents').select('title, severity, created_at').order('created_at', { ascending: false }).limit(3),
-          supabase.from('money_pulse_snapshots').select('mtd_revenue_usd, mtd_spend_usd, alert_state, captured_at').order('captured_at', { ascending: false }).limit(3),
-        ]);
-        const fmtTime = (ts) => {
-          if (!ts) return '—';
+      const fmtTime = (ts) => {
+        if (!ts) return '—';
+        try {
           const d = new Date(ts);
           return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        };
-        setFeed('feed-agents', (agents.data || []).map(a =>
-          `${fmtTime(a.created_at)}  ${a.agent_name || '?'} :: ${a.task_summary || ''}`
-        ));
-        setFeed('feed-decisions', (decisions.data || []).map(d =>
-          `${fmtTime(d.updated_at)}  [${(d.status || '?').toUpperCase()}] ${d.title || ''}`
-        ));
-        setFeed('feed-incidents', (incidents.data || []).map(i =>
-          `${fmtTime(i.created_at)}  ${(i.severity || 'info').toUpperCase()} :: ${i.title || ''}`
-        ));
-        setFeed('feed-money', (money.data || []).map(m => {
-          const rev = Number(m.mtd_revenue_usd || 0).toFixed(0);
-          const spd = Number(m.mtd_spend_usd || 0).toFixed(0);
-          return `${fmtTime(m.captured_at)}  rev $${rev} / spd $${spd} [${(m.alert_state || 'green').toUpperCase()}]`;
-        }));
-      } catch (err) {
-        console.warn('refreshPanelFeeds soft-fail:', err?.message || err);
-      }
+        } catch { return '—'; }
+      };
+      const safe = async (fn) => { try { return await fn(); } catch (e) { return null; } };
+
+      const [agents, decisions, incidents, money] = await Promise.all([
+        safe(() => supabase.from('agent_activity').select('agent_name, task_summary, created_at').order('created_at', { ascending: false }).limit(3)),
+        // decision_queue has no updated_at — sort by created_at instead
+        safe(() => supabase.from('decision_queue').select('title, status, created_at').order('created_at', { ascending: false }).limit(3)),
+        // No 'incidents' table — use cron_runs with non-ok status as the incident proxy
+        safe(() => supabase.from('cron_runs').select('cron_name, last_status, last_run').neq('last_status', 'ok').order('last_run', { ascending: false }).limit(3)),
+        safe(() => supabase.from('money_pulse_snapshots').select('mtd_revenue_usd, mtd_spend_usd, alert_state, captured_at').order('captured_at', { ascending: false }).limit(3)),
+      ]);
+
+      if (agents?.data) setFeed('feed-agents', agents.data.map(a =>
+        `${fmtTime(a.created_at)}  ${a.agent_name || '?'} :: ${a.task_summary || ''}`
+      ));
+      if (decisions?.data) setFeed('feed-decisions', decisions.data.map(d =>
+        `${fmtTime(d.created_at)}  [${(d.status || '?').toUpperCase()}] ${d.title || ''}`
+      ));
+      if (incidents?.data) setFeed('feed-incidents', incidents.data.map(i =>
+        `${fmtTime(i.last_run)}  ${(i.last_status || 'unknown').toUpperCase()} :: ${i.cron_name || ''}`
+      ));
+      if (money?.data) setFeed('feed-money', money.data.map(m => {
+        const rev = Number(m.mtd_revenue_usd || 0).toFixed(0);
+        const spd = Number(m.mtd_spend_usd || 0).toFixed(0);
+        return `${fmtTime(m.captured_at)}  rev $${rev} / spd $${spd} [${(m.alert_state || 'green').toUpperCase()}]`;
+      }));
     }
 
     // ========== V5 R4 — MONEY PULSE ==========
