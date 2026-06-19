@@ -30,35 +30,48 @@ export default async function handler(req, res) {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    // Generate a magic link, then verify the hashed_token to mint a session
+    // Generate a magic link, then use the OTP from the action_link to verify via verifyOtp.
+    // We use the "magiclink" type because it issues a single-use OTP token we can immediately
+    // exchange for a session.
     const { data, error } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email: 'heath.shepard@kw.com',
     });
     if (error) return res.status(500).json({ error: 'generate_failed', detail: error.message });
 
-    const hashed = data?.properties?.hashed_token;
-    if (!hashed) return res.status(500).json({ error: 'no_hashed_token' });
-
-    const verifyRes = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ type: 'magiclink', token: hashed, email: 'heath.shepard@kw.com' }),
-    });
-    const verified = await verifyRes.json();
-    if (!verifyRes.ok) {
-      return res.status(502).json({ error: 'verify_failed', detail: verified });
+    const properties = data?.properties || {};
+    // The raw email-OTP token is `email_otp` — that's the 6-digit code, but verifyOtp also
+    // accepts the unhashed token_hash extracted from the action_link.
+    const actionLink = properties.action_link;
+    let tokenHash = null;
+    try {
+      const u = new URL(actionLink);
+      tokenHash = u.searchParams.get('token');
+    } catch {}
+    if (!tokenHash) {
+      return res.status(500).json({ error: 'no_token_hash', detail: { actionLink, properties } });
     }
 
+    // Now exchange the token for a session via verifyOtp using a USER-context client.
+    // (verifyOtp needs an anon-context client, not the service-role one.)
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+    if (!SUPABASE_ANON_KEY) {
+      return res.status(503).json({ error: 'anon_key_missing' });
+    }
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: vData, error: vErr } = await userClient.auth.verifyOtp({
+      type: 'magiclink',
+      token_hash: tokenHash,
+    });
+    if (vErr) return res.status(502).json({ error: 'verify_failed', detail: vErr.message });
+
     return res.status(200).json({
-      access_token: verified.access_token,
-      refresh_token: verified.refresh_token,
-      expires_at: verified.expires_at,
-      user: verified.user?.email,
+      access_token: vData.session?.access_token,
+      refresh_token: vData.session?.refresh_token,
+      expires_at: vData.session?.expires_at,
+      user: vData.user?.email,
     });
   } catch (err) {
     return res.status(500).json({ error: 'internal', detail: String(err?.message || err) });
