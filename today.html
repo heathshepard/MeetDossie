@@ -1714,6 +1714,16 @@
 
     // ========== V5 R3 — PORTFOLIO MATRIX TILES ==========
     let _portfolioCompanies = null;
+    // Fallback list — matches the project_portfolio_companies memory file.
+    // Used when the supabase fetch fails (e.g., JWT/permission edge case).
+    const PORTFOLIO_FALLBACK = [
+      { id: 'dossie',                    company_name: 'dossie',                    display_name: 'Dossie',           status: 'live',     mrr: 377, active_customers: 17, growth_rate: 12, description: 'AI Transaction Coordinator for Texas Real Estate. 12 founding @ $29.',                              app_url: 'https://meetdossie.com/app' },
+      { id: 'heath-shepard-real-estate', company_name: 'heath-shepard-real-estate', display_name: 'Heath Shepard RE', status: 'live',     mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'KW City View / KW Boerne, SA. Cash-flow-positive parent that funded everything else.',           app_url: null },
+      { id: 'paralegal',                 company_name: 'paralegal',                 display_name: 'Paralegal SaaS',   status: 'planning', mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Westlaw-integrated paralegal SaaS w/ attorney Joshua Sisam. Pre-launch.',                        app_url: null },
+      { id: 'sterling',                  company_name: 'sterling',                  display_name: 'Sterling',         status: 'planning', mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Markets & portfolio strategy agent. No external customers yet.',                                  app_url: null },
+      { id: 'personal-agents',           company_name: 'personal-agents',           display_name: 'Personal Agents',  status: 'planning', mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Consumer agent SaaS. Wife is the beachhead user. $30-50/mo target.',                              app_url: null },
+      { id: 'plane-ember',               company_name: 'plane-ember',               display_name: 'Plane & Ember',    status: 'sunset',   mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Cigar woodwork business in San Antonio. Low activity.',                                           app_url: null },
+    ];
     async function refreshPortfolioRing() {
       try {
         const { data, error } = await supabase
@@ -1721,10 +1731,13 @@
           .select('id, company_name, display_name, status, mrr, active_customers, growth_rate, description, app_url')
           .order('mrr', { ascending: false });
         if (error) throw error;
-        _portfolioCompanies = data;
-        renderPortfolioRing(data);
+        const list = (data && data.length) ? data : PORTFOLIO_FALLBACK;
+        _portfolioCompanies = list;
+        renderPortfolioRing(list);
       } catch (err) {
-        console.error('portfolio ring error:', err);
+        console.warn('portfolio ring supabase fetch failed, using fallback:', err?.message || err);
+        _portfolioCompanies = PORTFOLIO_FALLBACK;
+        renderPortfolioRing(PORTFOLIO_FALLBACK);
       }
     }
 
