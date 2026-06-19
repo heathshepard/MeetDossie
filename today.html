@@ -2147,12 +2147,11 @@
         _orb.position.set(target.x, target.y, 0);
         _orb.scale.set(0.55, 0.55, 0.55);
       } else {
-        // Desktop V5 R2.3: orb dominates the CENTER column.
-        // Left rail 340px + 14px gutter, right rail 340px + 14px gutter, so center
-        // column center is at (W - 340 - 340) / 2 + 340 + 14 ≈ exactly W/2.
-        // We compute the center column's mid-X in screen coords and unproject.
+        // Desktop V5 R7: orb scaled up to 40-50% viewport (per Heath cut 6).
+        // FOV 60° at z=4.5 → half-height ≈ 2.6 world units. Scale 2.1 → diameter
+        // ≈ 4.2 / 5.2 ≈ 81% viewport height, ≈ 50% viewport width on 1280x800.
         const cx = w / 2;
-        const cy = h / 2 + 14; // tiny nudge down for header tape balance
+        const cy = h / 2 + 14;
         const ndcX = (cx / w) * 2 - 1;
         const ndcY = -((cy / h) * 2 - 1);
         const v = new THREE.Vector3(ndcX, ndcY, 0.5);
@@ -2161,11 +2160,7 @@
         const distance = _camera.position.z;
         const target = _camera.position.clone().add(dir.multiplyScalar(distance));
         _orb.position.set(target.x, target.y, 0);
-        // Spec: orb is the visual anchor at 50-60% viewport width.
-        // FOV 60° at z=4.5 → half-height in world units ≈ 2.6. Orb radius scale = ~1.5
-        // gives diameter ≈ 60% of viewport HEIGHT, which on 1280x800 corresponds to
-        // ~38% viewport width — close enough to dominant. Scale up for emphasis.
-        _orb.scale.set(1.7, 1.7, 1.7);
+        _orb.scale.set(2.1, 2.1, 2.1);
       }
       // Atmosphere shell is a child of _orb (V5 R2.2) — no separate update needed
     }
@@ -2919,12 +2914,19 @@
           el.className = 'queue-item';
           const lastSeen = agent.last_heartbeat_at ? getTimeAgo(agent.last_heartbeat_at) : '—';
           const statusClass = agent.status === 'working' ? '' : agent.status === 'error' ? 'error' : 'pending';
+          // V5 R7 #10 — less text, more icon. Status dot + time only.
+          const dotColor = agent.status === 'working' ? '#8BA888'
+                         : agent.status === 'error' ? '#ff5a5a'
+                         : '#C9A96E';
           el.innerHTML = `
             <div class="queue-item-head">
-              <div class="queue-item-title">${escapeHtml(agent.agent_name)}</div>
+              <div class="queue-item-title" style="display:flex;align-items:center;gap:6px;">
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${dotColor};box-shadow:0 0 6px ${dotColor};"></span>
+                ${escapeHtml(agent.agent_name)}
+              </div>
               <div class="queue-item-meta">
                 <span class="queue-item-status ${statusClass}">${agent.status}</span>
-                <span>Last seen ${lastSeen}</span>
+                <span style="opacity:0.65;">${lastSeen}</span>
               </div>
             </div>
           `;
@@ -3157,7 +3159,7 @@
     let _audioAnalyser = null;
     let _audioSource = null;
     let _audioRAF = null;
-    let _audioReactiveOrbBase = 1.4;
+    let _audioReactiveOrbBase = 2.1;
     function startAudioReactive(audioEl) {
       try {
         if (!_audioCtx) {
