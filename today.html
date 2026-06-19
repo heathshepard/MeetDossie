@@ -93,6 +93,52 @@
     #auth-gate button:hover { background: var(--coral-deep); }
     #auth-gate .err { color: var(--coral); font-size: 0.85rem; min-height: 1em; }
 
+    /* V5 R7 #5 — Boot sequence overlay (terminal cascade ~2.5s before UI reveals) */
+    #boot-seq {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(ellipse at center, #02101a 0%, #020817 60%, #000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.6s ease-out;
+    }
+    #boot-seq.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #boot-seq .boot-inner {
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+      color: #00d4ff;
+      text-shadow: 0 0 8px rgba(0, 212, 255, 0.55), 0 0 22px rgba(0, 212, 255, 0.18);
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      line-height: 1.55;
+      max-width: 560px;
+      padding: 0 18px;
+    }
+    #boot-seq pre {
+      margin: 0;
+      font-family: inherit;
+      white-space: pre-wrap;
+    }
+    #boot-cursor {
+      display: inline-block;
+      color: #00d4ff;
+      animation: boot-blink 0.65s steps(2, end) infinite;
+      margin-left: 2px;
+    }
+    @keyframes boot-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    @media (max-width: 600px) {
+      #boot-seq .boot-inner { font-size: 0.82rem; }
+    }
+
     #app { display: none; }
     #app.visible { display: flex; flex-direction: column; height: 100vh; }
 
@@ -239,22 +285,34 @@
       height: 100%;
     }
 
-    /* ---- Glassmorphic panel (Iron Man BLOCKED CALLER UI feel) ---- */
+    /* ---- Glassmorphic panel (Iron Man BLOCKED CALLER UI feel) ----
+       V5 R7 #4: true frosted glass — blur(20px) + saturate(1.5) + layered top-to-bottom gradient.
+       Panels now read with depth, not flat translucence. */
     .panel {
       background:
-        linear-gradient(180deg, rgba(0, 212, 255, 0.04) 0%, rgba(2, 8, 23, 0.55) 100%);
+        linear-gradient(180deg,
+          rgba(0, 212, 255, 0.07) 0%,
+          rgba(0, 212, 255, 0.025) 35%,
+          rgba(2, 8, 23, 0.55) 100%);
       border: 1px solid rgba(0, 212, 255, 0.22);
       border-radius: 10px;
       box-shadow:
         0 0 18px rgba(0, 212, 255, 0.10),
+        0 8px 32px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(0, 212, 255, 0.30);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
       display: flex;
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
       position: relative;
+      /* V5 R7 #11: stagger entrance — driven inline via animation-delay on each panel */
+      animation: panel-rise 0.55s cubic-bezier(0.20, 0.65, 0.30, 1.0) both;
+    }
+    @keyframes panel-rise {
+      0%   { opacity: 0; transform: translateY(18px) scale(0.985); }
+      100% { opacity: 1; transform: translateY(0)    scale(1); }
     }
     .panel::before {
       /* corner brackets — Stark HUD touch */
@@ -313,6 +371,114 @@
     /* legacy section/-title/-count aliases for any code path I missed */
     .section { background: transparent; border: 0; padding: 0; }
     .section-head { display: none; }
+
+    /* V5 R7 #11 — staggered panel rise: per-position animation-delay. */
+    .rail.left  .panel:nth-child(1) { animation-delay: 0.10s; }
+    .rail.left  .panel:nth-child(2) { animation-delay: 0.20s; }
+    .rail.left  .panel:nth-child(3) { animation-delay: 0.30s; }
+    .rail.right .panel:nth-child(1) { animation-delay: 0.15s; }
+    .rail.right .panel:nth-child(2) { animation-delay: 0.25s; }
+    .rail.right .panel:nth-child(3) { animation-delay: 0.35s; }
+    .rail.right .panel:nth-child(4) { animation-delay: 0.45s; }
+    .header-tape { animation: panel-rise 0.55s cubic-bezier(0.20, 0.65, 0.30, 1.0) both; animation-delay: 0.05s; }
+
+    /* V5 R7 #6 — Tracker reticles. Corner brackets appear on hover on interactive elements.
+       Implemented as a wrapper class .reticle-target. Cyan glow + subtle scale lift.
+       Panels, portfolio tiles, agent cards, todo items, kpi cards, buttons. */
+    .reticle-target {
+      position: relative;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    }
+    .reticle-target::before,
+    .reticle-target::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      width: 12px; height: 12px;
+      opacity: 0;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.85));
+    }
+    .reticle-target::before {
+      top: -3px; left: -3px;
+      border-top: 2px solid #00d4ff;
+      border-left: 2px solid #00d4ff;
+      transform: translate(4px, 4px);
+    }
+    .reticle-target::after {
+      bottom: -3px; right: -3px;
+      border-bottom: 2px solid #00d4ff;
+      border-right: 2px solid #00d4ff;
+      transform: translate(-4px, -4px);
+    }
+    .reticle-target:hover::before,
+    .reticle-target:hover::after,
+    .reticle-target.is-targeted::before,
+    .reticle-target.is-targeted::after {
+      opacity: 0.95;
+      transform: translate(0, 0);
+    }
+    .reticle-target:hover,
+    .reticle-target.is-targeted {
+      box-shadow: 0 0 22px rgba(0, 212, 255, 0.22), 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(0, 212, 255, 0.30);
+    }
+
+    /* V5 R7 #8 — Audio-reactive panels. --aud-level is set in JS 0..1 each frame
+       while Jarvis is speaking. Panels softly inflate their glow + border.
+       Disabled when body.audio-reactive is absent. */
+    body { --aud-level: 0; --mx: 0; --my: 0; }
+    body.audio-reactive .panel {
+      box-shadow:
+        0 0 calc(18px + (var(--aud-level) * 26px)) rgba(0, 212, 255, calc(0.10 + var(--aud-level) * 0.30)),
+        0 8px 32px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(0, 212, 255, calc(0.30 + var(--aud-level) * 0.25));
+      border-color: rgba(0, 212, 255, calc(0.22 + var(--aud-level) * 0.35));
+    }
+
+    /* V5 R7 #9 — 3D parallax on mouse move. --mx/--my are -1..1 set in JS.
+       Per-layer multiplier var(--depth) (1 = closest, smallest motion = furthest).
+       Foreground panels move more than background. */
+    .parallax-layer {
+      transform: translate3d(
+        calc(var(--mx) * var(--depth, 8px) * -1),
+        calc(var(--my) * var(--depth, 8px) * -1),
+        0
+      );
+      transition: transform 0.18s cubic-bezier(0.25, 0.7, 0.30, 1.0);
+      will-change: transform;
+    }
+    .rail.left { --depth: 9px; }
+    .rail.right { --depth: 9px; }
+    .header-tape { --depth: 4px; }
+    .deck-center { --depth: 2px; }
+
+    /* V5 R7 #7 — Data feed mono log inside select panels (bottom 2-line strip). */
+    .panel-feed {
+      flex: 0 0 auto;
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+      font-size: 0.62rem;
+      color: rgba(0, 212, 255, 0.55);
+      letter-spacing: 0.04em;
+      padding: 5px 12px 7px;
+      border-top: 1px solid rgba(0, 212, 255, 0.12);
+      background: linear-gradient(180deg, transparent, rgba(0, 212, 255, 0.04));
+      max-height: 36px;
+      overflow: hidden;
+      position: relative;
+    }
+    .panel-feed-line {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.5;
+      opacity: 0;
+      animation: feed-line-in 0.45s ease forwards;
+    }
+    .panel-feed-line:first-child { color: rgba(0, 212, 255, 0.85); }
+    @keyframes feed-line-in {
+      0%   { opacity: 0; transform: translateX(-6px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
 
     /* ---- Bottom scrolling ticker marquee ---- */
     .ticker-tape {
@@ -1073,6 +1239,14 @@
     <div class="err" id="signin-error"></div>
   </div>
 
+  <!-- V5 R7 #5 — Boot sequence overlay (terminal cascade before UI reveals) -->
+  <div id="boot-seq">
+    <div class="boot-inner">
+      <pre id="boot-lines"></pre>
+      <span id="boot-cursor">█</span>
+    </div>
+  </div>
+
   <!-- Main app -->
   <div id="app">
     <!-- 3D Canvas (z-index 0) -->
@@ -1115,23 +1289,25 @@
         <!-- LEFT RAIL -->
         <div class="rail left">
           <!-- Agent Activity -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Agent Activity</div>
               <div class="panel-count" id="agent-count">0</div>
             </div>
             <div class="panel-body" id="agent-list"></div>
+            <div class="panel-feed" id="feed-agents"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
           <!-- Decision Queue -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Decision Queue</div>
               <div class="panel-count" id="decision-count">0</div>
             </div>
             <div class="panel-body" id="decision-list"></div>
+            <div class="panel-feed" id="feed-decisions"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
           <!-- Incidents -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Incidents</div>
               <div class="panel-count" id="incident-count">0</div>
@@ -1139,6 +1315,7 @@
             <div class="panel-body" id="incident-list">
               <div class="incident-empty">// SYSTEMS NOMINAL</div>
             </div>
+            <div class="panel-feed" id="feed-incidents"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
         </div>
 
@@ -1154,7 +1331,7 @@
         <!-- RIGHT RAIL -->
         <div class="rail right">
           <!-- Heath TODO -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Heath TODO</div>
               <div class="panel-count" id="todo-count">0</div>
@@ -1162,7 +1339,7 @@
             <div class="panel-body" id="todo-list"></div>
           </div>
           <!-- Merge Queue -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Merge Queue</div>
               <div class="panel-count" id="merge-count">0</div>
@@ -1170,7 +1347,7 @@
             <div class="panel-body" id="merge-list"></div>
           </div>
           <!-- KPI Mini-Charts -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">KPI Vitals</div>
               <div class="panel-count">LIVE</div>
@@ -1206,7 +1383,7 @@
             </div>
           </div>
           <!-- Money Pulse (V5 R4) -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Money Pulse</div>
               <div class="panel-count" id="mp-state">—</div>
@@ -1226,9 +1403,10 @@
                 <div class="mp-bank">Bank balance — manual (no API)</div>
               </div>
             </div>
+            <div class="panel-feed" id="feed-money"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
           <!-- Daily Debrief (V5 R5) -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Daily Debrief</div>
               <div class="panel-count" id="debrief-date">—</div>
@@ -1243,7 +1421,7 @@
             </div>
           </div>
           <!-- Calendar slice (V5 R5) -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Calendar</div>
               <div class="panel-count" id="cal-count">0</div>
@@ -1317,6 +1495,8 @@
     const _todoItems = new Map();
     const _todoTouchStarts = new Map();
     let _atmosphereShell = null;
+    let _cameraBase = { x: 0, y: 0, z: 4.5 };  // V5 R7: lissajous parallax origin
+    let _lensFlares = [];  // V5 R7: additive sprite flares for cinematic light leaks
 
     async function bootstrap() {
       let config;
@@ -1384,6 +1564,8 @@
       initThreeScene();
       startHexDataLines();
       wirePortfolioDrilldownChrome();
+      // V5 R7 #9 — apply parallax-layer class + mousemove handler (desktop only)
+      wireParallax();
       refresh();
       _pollTimer = setInterval(refresh, POLL_MS);
       window.addEventListener('resize', () => {
@@ -1426,8 +1608,10 @@
       const h = window.innerHeight;
 
       // Setup camera — V5 R2.3: pulled back so the big centerpiece orb has breathing room
+      // V5 R7: base position captured for lissajous parallax drift in animate()
       _camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
       _camera.position.z = 4.5;
+      _cameraBase = { x: _camera.position.x, y: _camera.position.y, z: _camera.position.z };
 
       // Setup renderer
       _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -1479,6 +1663,9 @@
       // Handle window resize
       window.addEventListener('resize', onWindowResize);
 
+      // V5 R7: Create lens flares around the orb (additive sprites for cinematic light leaks)
+      createLensFlares();
+
       // Animation loop — time-based for seamless infinite rotation
       function animate() {
         requestAnimationFrame(animate);
@@ -1497,9 +1684,77 @@
         if (_customerDotsMaterial) {
           _customerDotsMaterial.opacity = 0.55 + (Math.sin(elapsed * 1.8) + 1) * 0.225;
         }
+        // V5 R7 #2 — Cinematic lissajous camera drift (~40s cycle).
+        // Slow + small amplitude so it reads "alive" not "motion sick".
+        if (_camera && _cameraBase) {
+          _camera.position.x = _cameraBase.x + Math.sin(elapsed * 0.05) * 0.30;
+          _camera.position.y = _cameraBase.y + Math.sin(elapsed * 0.03) * 0.20;
+          _camera.lookAt(0, 0, 0);
+        }
+        // V5 R7 #3 — Lens flare breathing (subtle scale + opacity shimmer)
+        if (_lensFlares && _lensFlares.length) {
+          for (let i = 0; i < _lensFlares.length; i++) {
+            const f = _lensFlares[i];
+            const phase = elapsed * f.userData.speed + f.userData.phase;
+            const baseScale = f.userData.baseScale;
+            const s = baseScale * (0.85 + 0.25 * Math.sin(phase));
+            f.scale.set(s, s, s);
+            if (f.material) {
+              f.material.opacity = f.userData.baseOpacity * (0.65 + 0.35 * Math.sin(phase * 1.3));
+            }
+          }
+        }
         _composer.render();
       }
       animate();
+    }
+
+    // V5 R7 #3 — Procedural lens-flare sprites.
+    // Drawn into canvas → CanvasTexture → SpriteMaterial (additive). No external assets.
+    function createLensFlares() {
+      function makeFlareTexture(coreAlpha = 0.95, falloff = 1.0) {
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 256;
+        const g = c.getContext('2d');
+        const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+        grad.addColorStop(0.0,  `rgba(220, 245, 255, ${coreAlpha})`);
+        grad.addColorStop(0.12, `rgba(0, 212, 255, ${coreAlpha * 0.75})`);
+        grad.addColorStop(0.40, `rgba(0, 212, 255, ${0.18 * falloff})`);
+        grad.addColorStop(1.0,  'rgba(0, 212, 255, 0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 256, 256);
+        return new THREE.CanvasTexture(c);
+      }
+      const tex = makeFlareTexture(0.95, 1.0);
+
+      // Three flares: one big bloom behind the orb top-right, two smaller leaks at edges.
+      const specs = [
+        { pos: [ 1.6,  1.1, -0.5], scale: 2.2, opacity: 0.55, speed: 0.4, phase: 0.0 },
+        { pos: [-1.9, -0.7, -0.3], scale: 1.3, opacity: 0.38, speed: 0.55, phase: 1.7 },
+        { pos: [ 0.0,  1.7, -0.8], scale: 1.0, opacity: 0.30, speed: 0.7, phase: 3.1 },
+      ];
+      for (const s of specs) {
+        const mat = new THREE.SpriteMaterial({
+          map: tex,
+          color: 0x9be8ff,
+          transparent: true,
+          opacity: s.opacity,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          depthTest: false,
+        });
+        const sprite = new THREE.Sprite(mat);
+        sprite.position.set(s.pos[0], s.pos[1], s.pos[2]);
+        sprite.scale.set(s.scale, s.scale, s.scale);
+        sprite.userData = {
+          baseScale: s.scale,
+          baseOpacity: s.opacity,
+          speed: s.speed,
+          phase: s.phase,
+        };
+        _scene.add(sprite);
+        _lensFlares.push(sprite);
+      }
     }
 
     function createStarfield() {
@@ -1566,11 +1821,10 @@
         }
       );
 
-      // ---- Layer 2: Cyan globe wireframe (parallels + meridians) ----
-      // Drawn as discrete lat/lon lines for a clean Pinterest-Earth aesthetic
-      // (not WireframeGeometry's triangulated mesh — that reads as noise).
-      _earthWire = makeGlobeWireframe(1.008, 16, 24);
-      _orb.add(_earthWire);
+      // ---- Layer 2: REMOVED V5 R7 — cyan lat/lon grid was distracting.
+      // Earth reads cleaner with just texture + night-lights + atmosphere + lanes + customer dots.
+      // (makeGlobeWireframe function kept below in case we want to re-enable.)
+      _earthWire = null;
 
       // ---- Layer 3: Atmosphere fresnel shell (BackSide) ----
       // Tighter fresnel power + lower max alpha so the halo reads as atmosphere,
@@ -1893,12 +2147,11 @@
         _orb.position.set(target.x, target.y, 0);
         _orb.scale.set(0.55, 0.55, 0.55);
       } else {
-        // Desktop V5 R2.3: orb dominates the CENTER column.
-        // Left rail 340px + 14px gutter, right rail 340px + 14px gutter, so center
-        // column center is at (W - 340 - 340) / 2 + 340 + 14 ≈ exactly W/2.
-        // We compute the center column's mid-X in screen coords and unproject.
+        // Desktop V5 R7: orb scaled up to 40-50% viewport (per Heath cut 6).
+        // FOV 60° at z=4.5 → half-height ≈ 2.6 world units. Scale 2.1 → diameter
+        // ≈ 4.2 / 5.2 ≈ 81% viewport height, ≈ 50% viewport width on 1280x800.
         const cx = w / 2;
-        const cy = h / 2 + 14; // tiny nudge down for header tape balance
+        const cy = h / 2 + 14;
         const ndcX = (cx / w) * 2 - 1;
         const ndcY = -((cy / h) * 2 - 1);
         const v = new THREE.Vector3(ndcX, ndcY, 0.5);
@@ -1907,11 +2160,7 @@
         const distance = _camera.position.z;
         const target = _camera.position.clone().add(dir.multiplyScalar(distance));
         _orb.position.set(target.x, target.y, 0);
-        // Spec: orb is the visual anchor at 50-60% viewport width.
-        // FOV 60° at z=4.5 → half-height in world units ≈ 2.6. Orb radius scale = ~1.5
-        // gives diameter ≈ 60% of viewport HEIGHT, which on 1280x800 corresponds to
-        // ~38% viewport width — close enough to dominant. Scale up for emphasis.
-        _orb.scale.set(1.7, 1.7, 1.7);
+        _orb.scale.set(2.1, 2.1, 2.1);
       }
       // Atmosphere shell is a child of _orb (V5 R2.2) — no separate update needed
     }
@@ -1951,11 +2200,61 @@
           refreshDailyDebrief(),
           refreshCalendar(),
           refreshKpiDrift(),
+          refreshPanelFeeds(),  // V5 R7 #7
         ]);
         document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Refresh error:', err);
       }
+    }
+
+    // V5 R7 #7 — Panel-bottom data-feed strips. Last 3 events per source.
+    // Sources: agent_activity, decision_queue, cron_runs (incidents proxy), money_pulse_snapshots.
+    // Each source soft-fails independently so a missing table can't blank the others.
+    async function refreshPanelFeeds() {
+      const setFeed = (id, lines) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!lines || !lines.length) {
+          el.innerHTML = '<div class="panel-feed-line">// no events</div>';
+          return;
+        }
+        el.innerHTML = lines.slice(0, 3).map(line =>
+          `<div class="panel-feed-line">${escapeHtml(line)}</div>`
+        ).join('');
+      };
+      const fmtTime = (ts) => {
+        if (!ts) return '—';
+        try {
+          const d = new Date(ts);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch { return '—'; }
+      };
+      const safe = async (fn) => { try { return await fn(); } catch (e) { return null; } };
+
+      const [agents, decisions, incidents, money] = await Promise.all([
+        safe(() => supabase.from('agent_activity').select('agent_name, task_summary, created_at').order('created_at', { ascending: false }).limit(3)),
+        // decision_queue has no updated_at — sort by created_at instead
+        safe(() => supabase.from('decision_queue').select('title, status, created_at').order('created_at', { ascending: false }).limit(3)),
+        // No 'incidents' table — use cron_runs with non-ok status as the incident proxy
+        safe(() => supabase.from('cron_runs').select('cron_name, last_status, last_run').neq('last_status', 'ok').order('last_run', { ascending: false }).limit(3)),
+        safe(() => supabase.from('money_pulse_snapshots').select('mtd_revenue_usd, mtd_spend_usd, alert_state, captured_at').order('captured_at', { ascending: false }).limit(3)),
+      ]);
+
+      if (agents?.data) setFeed('feed-agents', agents.data.map(a =>
+        `${fmtTime(a.created_at)}  ${a.agent_name || '?'} :: ${a.task_summary || ''}`
+      ));
+      if (decisions?.data) setFeed('feed-decisions', decisions.data.map(d =>
+        `${fmtTime(d.created_at)}  [${(d.status || '?').toUpperCase()}] ${d.title || ''}`
+      ));
+      if (incidents?.data) setFeed('feed-incidents', incidents.data.map(i =>
+        `${fmtTime(i.last_run)}  ${(i.last_status || 'unknown').toUpperCase()} :: ${i.cron_name || ''}`
+      ));
+      if (money?.data) setFeed('feed-money', money.data.map(m => {
+        const rev = Number(m.mtd_revenue_usd || 0).toFixed(0);
+        const spd = Number(m.mtd_spend_usd || 0).toFixed(0);
+        return `${fmtTime(m.captured_at)}  rev $${rev} / spd $${spd} [${(m.alert_state || 'green').toUpperCase()}]`;
+      }));
     }
 
     // ========== V5 R4 — MONEY PULSE ==========
@@ -2218,7 +2517,7 @@
         ring.style.height = 'auto';
         for (const c of companies) {
           const tile = document.createElement('div');
-          tile.className = `portfolio-tile status-${c.status || 'planning'}`;
+          tile.className = `portfolio-tile reticle-target status-${c.status || 'planning'}`;
           tile.style.position = 'static';
           tile.style.transform = 'none';
           tile.style.minWidth = '0';
@@ -2619,12 +2918,19 @@
           el.className = 'queue-item';
           const lastSeen = agent.last_heartbeat_at ? getTimeAgo(agent.last_heartbeat_at) : '—';
           const statusClass = agent.status === 'working' ? '' : agent.status === 'error' ? 'error' : 'pending';
+          // V5 R7 #10 — less text, more icon. Status dot + time only.
+          const dotColor = agent.status === 'working' ? '#8BA888'
+                         : agent.status === 'error' ? '#ff5a5a'
+                         : '#C9A96E';
           el.innerHTML = `
             <div class="queue-item-head">
-              <div class="queue-item-title">${escapeHtml(agent.agent_name)}</div>
+              <div class="queue-item-title" style="display:flex;align-items:center;gap:6px;">
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${dotColor};box-shadow:0 0 6px ${dotColor};"></span>
+                ${escapeHtml(agent.agent_name)}
+              </div>
               <div class="queue-item-meta">
                 <span class="queue-item-status ${statusClass}">${agent.status}</span>
-                <span>Last seen ${lastSeen}</span>
+                <span style="opacity:0.65;">${lastSeen}</span>
               </div>
             </div>
           `;
@@ -2802,6 +3108,7 @@
           _voiceAudio.pause();
           _voiceAudio.currentTime = 0;
           missionEl.classList.remove('voice-listening');
+          stopAudioReactive();
           return;
         }
         missionEl.classList.add('voice-listening');
@@ -2829,18 +3136,103 @@
         _voiceAudio = new Audio(url);
         _voiceAudio.addEventListener('ended', () => {
           missionEl.classList.remove('voice-listening');
+          stopAudioReactive();
           URL.revokeObjectURL(url);
         });
         _voiceAudio.addEventListener('error', () => {
           missionEl.classList.remove('voice-listening');
+          stopAudioReactive();
           toast('Audio playback error', 'err');
         });
         await _voiceAudio.play();
+        // V5 R7 #8 — Hook audio analyzer once playback starts
+        startAudioReactive(_voiceAudio);
       } catch (err) {
         missionEl.classList.remove('voice-listening');
+        stopAudioReactive();
         console.error('wakeJarvis error:', err);
         toast('Voice err: ' + (err?.message || err), 'err');
       }
+    }
+
+    // V5 R7 #8 — Audio-reactive panels + orb breathing.
+    // Web Audio AnalyzerNode on the playing <audio>; RMS drives:
+    //   - body.audio-reactive class (panels soft-pulse via CSS var --aud-level)
+    //   - orb.scale.y breathes 1.0 → 1.05 with waveform
+    let _audioCtx = null;
+    let _audioAnalyser = null;
+    let _audioSource = null;
+    let _audioRAF = null;
+    let _audioReactiveOrbBase = 2.1;
+    function startAudioReactive(audioEl) {
+      try {
+        if (!_audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          _audioCtx = new AC();
+        }
+        // Re-attach: each new Audio el needs a new MediaElementSource.
+        if (_audioSource) {
+          try { _audioSource.disconnect(); } catch {}
+        }
+        _audioSource = _audioCtx.createMediaElementSource(audioEl);
+        _audioAnalyser = _audioCtx.createAnalyser();
+        _audioAnalyser.fftSize = 256;
+        _audioSource.connect(_audioAnalyser);
+        _audioAnalyser.connect(_audioCtx.destination);
+
+        document.body.classList.add('audio-reactive');
+        if (_orb) _audioReactiveOrbBase = _orb.scale.x || 1.4;
+
+        const buf = new Uint8Array(_audioAnalyser.frequencyBinCount);
+        function tick() {
+          _audioAnalyser.getByteFrequencyData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) sum += buf[i];
+          const avg = sum / buf.length / 255;  // 0..1
+          const level = Math.min(1, avg * 1.6);
+          document.body.style.setProperty('--aud-level', level.toFixed(3));
+          if (_orb) {
+            const b = _audioReactiveOrbBase;
+            _orb.scale.y = b * (1 + level * 0.06);
+          }
+          _audioRAF = requestAnimationFrame(tick);
+        }
+        tick();
+      } catch (err) {
+        console.warn('[audio-react] init failed:', err);
+      }
+    }
+    // V5 R7 #9 — 3D mouse-move parallax. Tags layers, listens once.
+    function wireParallax() {
+      // Skip on touch / coarse-pointer devices — useless effect + jitter.
+      if (window.matchMedia('(pointer: coarse)').matches) return;
+      const layers = [
+        document.querySelector('.rail.left'),
+        document.querySelector('.rail.right'),
+        document.querySelector('.header-tape'),
+        document.querySelector('.deck-center'),
+      ].filter(Boolean);
+      layers.forEach(el => el.classList.add('parallax-layer'));
+      let raf = null;
+      window.addEventListener('mousemove', (ev) => {
+        const mx = (ev.clientX / window.innerWidth)  * 2 - 1;  // -1..1
+        const my = (ev.clientY / window.innerHeight) * 2 - 1;
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          document.body.style.setProperty('--mx', mx.toFixed(3));
+          document.body.style.setProperty('--my', my.toFixed(3));
+          raf = null;
+        });
+      }, { passive: true });
+    }
+
+    function stopAudioReactive() {
+      if (_audioRAF) cancelAnimationFrame(_audioRAF);
+      _audioRAF = null;
+      document.body.classList.remove('audio-reactive');
+      document.body.style.setProperty('--aud-level', '0');
+      if (_orb) _orb.scale.y = _audioReactiveOrbBase;
     }
 
     function tryStartHotword() {
@@ -2890,8 +3282,58 @@
       }
     }
 
-    // Initialize
-    bootstrap();
+    // V5 R7 #5 — Boot sequence: type the cascade, then fade to UI and bootstrap.
+    // Skip if URL has ?noboot=1 (for fast iteration / Atlas APV).
+    function runBootSequence() {
+      const bootEl = document.getElementById('boot-seq');
+      const linesEl = document.getElementById('boot-lines');
+      const cursorEl = document.getElementById('boot-cursor');
+      const skip = new URLSearchParams(window.location.search).get('noboot') === '1';
+      if (skip || !bootEl) {
+        if (bootEl) bootEl.classList.add('hidden');
+        bootstrap();
+        return;
+      }
+      const script = [
+        { text: '> SYSTEM ONLINE',                              pause: 240 },
+        { text: '> LINKING AGENT NETWORK ... 9/9 OK',           pause: 320 },
+        { text: '> MEMORY CORE READY ... 205 FILES INDEXED',    pause: 280 },
+        { text: '> COMMAND DECK INITIALIZED',                   pause: 320 },
+      ];
+      let lineIdx = 0;
+      let charIdx = 0;
+      let buffer = '';
+      const charDelay = 18;
+
+      function step() {
+        if (lineIdx >= script.length) {
+          // Fade out boot, fade in app via bootstrap()
+          setTimeout(() => {
+            bootEl.classList.add('hidden');
+            setTimeout(() => { bootEl.style.display = 'none'; }, 700);
+            bootstrap();
+          }, 380);
+          return;
+        }
+        const cur = script[lineIdx];
+        if (charIdx < cur.text.length) {
+          buffer += cur.text[charIdx];
+          linesEl.textContent = buffer;
+          charIdx++;
+          setTimeout(step, charDelay);
+        } else {
+          buffer += '\n';
+          linesEl.textContent = buffer;
+          lineIdx++;
+          charIdx = 0;
+          setTimeout(step, cur.pause);
+        }
+      }
+      step();
+    }
+
+    // Initialize — boot sequence first, then bootstrap()
+    runBootSequence();
   </script>
 </body>
 </html>
