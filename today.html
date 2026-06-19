@@ -372,6 +372,85 @@
     .section { background: transparent; border: 0; padding: 0; }
     .section-head { display: none; }
 
+    /* V5 R7 #11 — staggered panel rise: per-position animation-delay. */
+    .rail.left  .panel:nth-child(1) { animation-delay: 0.10s; }
+    .rail.left  .panel:nth-child(2) { animation-delay: 0.20s; }
+    .rail.left  .panel:nth-child(3) { animation-delay: 0.30s; }
+    .rail.right .panel:nth-child(1) { animation-delay: 0.15s; }
+    .rail.right .panel:nth-child(2) { animation-delay: 0.25s; }
+    .rail.right .panel:nth-child(3) { animation-delay: 0.35s; }
+    .rail.right .panel:nth-child(4) { animation-delay: 0.45s; }
+    .header-tape { animation: panel-rise 0.55s cubic-bezier(0.20, 0.65, 0.30, 1.0) both; animation-delay: 0.05s; }
+
+    /* V5 R7 #6 — Tracker reticles. Corner brackets appear on hover on interactive elements.
+       Implemented as a wrapper class .reticle-target. Cyan glow + subtle scale lift.
+       Panels, portfolio tiles, agent cards, todo items, kpi cards, buttons. */
+    .reticle-target {
+      position: relative;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    }
+    .reticle-target::before,
+    .reticle-target::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      width: 12px; height: 12px;
+      opacity: 0;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.85));
+    }
+    .reticle-target::before {
+      top: -3px; left: -3px;
+      border-top: 2px solid #00d4ff;
+      border-left: 2px solid #00d4ff;
+      transform: translate(4px, 4px);
+    }
+    .reticle-target::after {
+      bottom: -3px; right: -3px;
+      border-bottom: 2px solid #00d4ff;
+      border-right: 2px solid #00d4ff;
+      transform: translate(-4px, -4px);
+    }
+    .reticle-target:hover::before,
+    .reticle-target:hover::after,
+    .reticle-target.is-targeted::before,
+    .reticle-target.is-targeted::after {
+      opacity: 0.95;
+      transform: translate(0, 0);
+    }
+    .reticle-target:hover,
+    .reticle-target.is-targeted {
+      box-shadow: 0 0 22px rgba(0, 212, 255, 0.22), 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(0, 212, 255, 0.30);
+    }
+
+    /* V5 R7 #7 — Data feed mono log inside select panels (bottom 2-line strip). */
+    .panel-feed {
+      flex: 0 0 auto;
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+      font-size: 0.62rem;
+      color: rgba(0, 212, 255, 0.55);
+      letter-spacing: 0.04em;
+      padding: 5px 12px 7px;
+      border-top: 1px solid rgba(0, 212, 255, 0.12);
+      background: linear-gradient(180deg, transparent, rgba(0, 212, 255, 0.04));
+      max-height: 36px;
+      overflow: hidden;
+      position: relative;
+    }
+    .panel-feed-line {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.5;
+      opacity: 0;
+      animation: feed-line-in 0.45s ease forwards;
+    }
+    .panel-feed-line:first-child { color: rgba(0, 212, 255, 0.85); }
+    @keyframes feed-line-in {
+      0%   { opacity: 0; transform: translateX(-6px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
     /* ---- Bottom scrolling ticker marquee ---- */
     .ticker-tape {
       position: fixed;
@@ -1181,23 +1260,25 @@
         <!-- LEFT RAIL -->
         <div class="rail left">
           <!-- Agent Activity -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Agent Activity</div>
               <div class="panel-count" id="agent-count">0</div>
             </div>
             <div class="panel-body" id="agent-list"></div>
+            <div class="panel-feed" id="feed-agents"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
           <!-- Decision Queue -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Decision Queue</div>
               <div class="panel-count" id="decision-count">0</div>
             </div>
             <div class="panel-body" id="decision-list"></div>
+            <div class="panel-feed" id="feed-decisions"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
           <!-- Incidents -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Incidents</div>
               <div class="panel-count" id="incident-count">0</div>
@@ -1205,6 +1286,7 @@
             <div class="panel-body" id="incident-list">
               <div class="incident-empty">// SYSTEMS NOMINAL</div>
             </div>
+            <div class="panel-feed" id="feed-incidents"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
         </div>
 
@@ -1220,7 +1302,7 @@
         <!-- RIGHT RAIL -->
         <div class="rail right">
           <!-- Heath TODO -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Heath TODO</div>
               <div class="panel-count" id="todo-count">0</div>
@@ -1228,7 +1310,7 @@
             <div class="panel-body" id="todo-list"></div>
           </div>
           <!-- Merge Queue -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Merge Queue</div>
               <div class="panel-count" id="merge-count">0</div>
@@ -1236,7 +1318,7 @@
             <div class="panel-body" id="merge-list"></div>
           </div>
           <!-- KPI Mini-Charts -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">KPI Vitals</div>
               <div class="panel-count">LIVE</div>
@@ -1272,7 +1354,7 @@
             </div>
           </div>
           <!-- Money Pulse (V5 R4) -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Money Pulse</div>
               <div class="panel-count" id="mp-state">—</div>
@@ -1292,9 +1374,10 @@
                 <div class="mp-bank">Bank balance — manual (no API)</div>
               </div>
             </div>
+            <div class="panel-feed" id="feed-money"><div class="panel-feed-line">// initializing feed...</div></div>
           </div>
           <!-- Daily Debrief (V5 R5) -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Daily Debrief</div>
               <div class="panel-count" id="debrief-date">—</div>
@@ -1309,7 +1392,7 @@
             </div>
           </div>
           <!-- Calendar slice (V5 R5) -->
-          <div class="panel">
+          <div class="panel reticle-target">
             <div class="panel-head">
               <div class="panel-title">Calendar</div>
               <div class="panel-count" id="cal-count">0</div>
@@ -2091,10 +2174,56 @@
           refreshDailyDebrief(),
           refreshCalendar(),
           refreshKpiDrift(),
+          refreshPanelFeeds(),  // V5 R7 #7
         ]);
         document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Refresh error:', err);
+      }
+    }
+
+    // V5 R7 #7 — Panel-bottom data-feed strips. Last 3 events per source.
+    // Sources: agent_activity, decision_queue, incidents, money_pulse_snapshots.
+    async function refreshPanelFeeds() {
+      const setFeed = (id, lines) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!lines || !lines.length) {
+          el.innerHTML = '<div class="panel-feed-line">// no events</div>';
+          return;
+        }
+        el.innerHTML = lines.slice(0, 3).map(line =>
+          `<div class="panel-feed-line">${escapeHtml(line)}</div>`
+        ).join('');
+      };
+      try {
+        const [agents, decisions, incidents, money] = await Promise.all([
+          supabase.from('agent_activity').select('agent_name, task_summary, created_at').order('created_at', { ascending: false }).limit(3),
+          supabase.from('decision_queue').select('title, status, updated_at').order('updated_at', { ascending: false }).limit(3),
+          supabase.from('incidents').select('title, severity, created_at').order('created_at', { ascending: false }).limit(3),
+          supabase.from('money_pulse_snapshots').select('mtd_revenue_usd, mtd_spend_usd, alert_state, captured_at').order('captured_at', { ascending: false }).limit(3),
+        ]);
+        const fmtTime = (ts) => {
+          if (!ts) return '—';
+          const d = new Date(ts);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+        setFeed('feed-agents', (agents.data || []).map(a =>
+          `${fmtTime(a.created_at)}  ${a.agent_name || '?'} :: ${a.task_summary || ''}`
+        ));
+        setFeed('feed-decisions', (decisions.data || []).map(d =>
+          `${fmtTime(d.updated_at)}  [${(d.status || '?').toUpperCase()}] ${d.title || ''}`
+        ));
+        setFeed('feed-incidents', (incidents.data || []).map(i =>
+          `${fmtTime(i.created_at)}  ${(i.severity || 'info').toUpperCase()} :: ${i.title || ''}`
+        ));
+        setFeed('feed-money', (money.data || []).map(m => {
+          const rev = Number(m.mtd_revenue_usd || 0).toFixed(0);
+          const spd = Number(m.mtd_spend_usd || 0).toFixed(0);
+          return `${fmtTime(m.captured_at)}  rev $${rev} / spd $${spd} [${(m.alert_state || 'green').toUpperCase()}]`;
+        }));
+      } catch (err) {
+        console.warn('refreshPanelFeeds soft-fail:', err?.message || err);
       }
     }
 
@@ -2358,7 +2487,7 @@
         ring.style.height = 'auto';
         for (const c of companies) {
           const tile = document.createElement('div');
-          tile.className = `portfolio-tile status-${c.status || 'planning'}`;
+          tile.className = `portfolio-tile reticle-target status-${c.status || 'planning'}`;
           tile.style.position = 'static';
           tile.style.transform = 'none';
           tile.style.minWidth = '0';
