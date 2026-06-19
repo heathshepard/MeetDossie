@@ -186,6 +186,32 @@ async function sendViaResend(row) {
     bcc: ['heath@meetdossie.com'],
   };
 
+  // Attachment support via metadata.attachments_b64:
+  // [{ filename: 'foo.png', content_b64: '...', content_type: 'image/png' }]
+  // Resend expects { filename, content (base64 string) } per their API.
+  // Keeps the schema flat; no migration needed.
+  try {
+    const attachments = row && row.metadata && Array.isArray(row.metadata.attachments_b64)
+      ? row.metadata.attachments_b64
+      : null;
+    if (attachments && attachments.length > 0) {
+      const cleaned = [];
+      for (const a of attachments) {
+        if (!a || typeof a !== 'object') continue;
+        if (typeof a.filename !== 'string' || !a.filename.trim()) continue;
+        if (typeof a.content_b64 !== 'string' || !a.content_b64.trim()) continue;
+        cleaned.push({
+          filename: a.filename.trim(),
+          content: a.content_b64.trim(),
+          ...(a.content_type ? { content_type: String(a.content_type) } : {}),
+        });
+      }
+      if (cleaned.length > 0) payload.attachments = cleaned;
+    }
+  } catch (e) {
+    console.warn('[outbound-email] attachments parse failed', e && e.message);
+  }
+
   let r;
   try {
     r = await fetch('https://api.resend.com/emails', {
