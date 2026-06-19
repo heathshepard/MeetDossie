@@ -2133,7 +2133,8 @@
       const h = window.innerHeight;
       // V5 R8 (2026-06-19): bumped breakpoint 768→900 so Samsung Z Fold inner display
       // (~768-820px logical) still triggers mobile layout (not crammed desktop scale 2.1).
-      const isMobile = w < 900;
+      // <=900 matches the CSS @media (max-width: 900px) inclusive boundary.
+      const isMobile = w <= 900;
 
       if (!_orb) return;
 
@@ -2507,7 +2508,8 @@
       if (!ring) return;
       ring.innerHTML = '';
       // V5 R8 (2026-06-19): bumped 768→900 to match CSS media query + orb mobile threshold.
-      const isMobile = window.innerWidth < 900;
+      // <=900 matches the CSS @media (max-width: 900px) inclusive boundary.
+      const isMobile = window.innerWidth <= 900;
       const n = companies.length;
       // Ring radius — fraction of available container dimension.
       // Container is the deck-center, which on desktop is the middle column (~600px wide, ~700px tall).
