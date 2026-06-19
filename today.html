@@ -446,7 +446,7 @@
       min-width: 130px;
       max-width: 156px;
       padding: 8px 10px;
-      background: linear-gradient(180deg, rgba(0, 212, 255, 0.06) 0%, rgba(2, 8, 23, 0.78) 100%);
+      background: linear-gradient(180deg, rgba(0, 212, 255, 0.08) 0%, rgba(2, 8, 23, 0.92) 100%);
       border: 1px solid rgba(0, 212, 255, 0.42);
       border-radius: 7px;
       box-shadow:
@@ -774,7 +774,7 @@
       }
       .deck-center {
         order: 0;
-        min-height: 44vh;
+        min-height: 72vh; /* orb 44vh + portfolio tile grid below it */
       }
       .rail.left { order: 1; }
       .rail.right { order: 2; }
@@ -1757,8 +1757,10 @@
         ring.style.display = 'grid';
         ring.style.gridTemplateColumns = '1fr 1fr';
         ring.style.gap = '8px';
-        ring.style.padding = '46vh 6px 0 6px';
+        ring.style.padding = '44vh 6px 12px 6px';
         ring.style.alignContent = 'start';
+        ring.style.boxSizing = 'border-box';
+        ring.style.height = 'auto';
         for (const c of companies) {
           const tile = document.createElement('div');
           tile.className = `portfolio-tile status-${c.status || 'planning'}`;
