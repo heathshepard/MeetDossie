@@ -1,16 +1,18 @@
 // Jarvis V5 R5 — Wake Jarvis morning brief.
-// Returns: spoken text (and optionally an mp3 stream via ElevenLabs Daniel).
+// Returns: spoken text (and optionally an mp3 stream via ElevenLabs George).
 // Heath-only.
 //
-// GET ?speak=1 → returns audio/mpeg from ElevenLabs Daniel (British, articulate — closest to Iron Man Jarvis)
+// GET ?speak=1 → returns audio/mpeg from ElevenLabs George (rich, deep British male — refined AI butler)
 // GET ?speak=0 (default) → returns JSON with text + counts
 //
-// V5 R7 (2026-06-18): swapped from Bill → Daniel per Heath. Daniel = onwK4e9ZLuTAKqWW03F9.
+// V5 R7 (2026-06-18): swapped Bill → Daniel.
+// V5 R8 (2026-06-19): swapped Daniel → George per Heath. George = JBFqnCBsd6RMkjVDRZzb.
+//   Closer to original Iron Man Jarvis (Paul Bettany) — richer, deeper, refined.
 
 import { createClient } from '@supabase/supabase-js';
 
-// Daniel — British, articulate, calm. Closest match to original Iron Man Jarvis.
-const JARVIS_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
+// George — rich, deep British male. Closer to original Iron Man Jarvis (Paul Bettany).
+const JARVIS_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb';
 
 async function buildBriefText(admin) {
   // Pull state in parallel
