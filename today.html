@@ -1566,11 +1566,10 @@
         }
       );
 
-      // ---- Layer 2: Cyan globe wireframe (parallels + meridians) ----
-      // Drawn as discrete lat/lon lines for a clean Pinterest-Earth aesthetic
-      // (not WireframeGeometry's triangulated mesh — that reads as noise).
-      _earthWire = makeGlobeWireframe(1.008, 16, 24);
-      _orb.add(_earthWire);
+      // ---- Layer 2: REMOVED V5 R7 — cyan lat/lon grid was distracting.
+      // Earth reads cleaner with just texture + night-lights + atmosphere + lanes + customer dots.
+      // (makeGlobeWireframe function kept below in case we want to re-enable.)
+      _earthWire = null;
 
       // ---- Layer 3: Atmosphere fresnel shell (BackSide) ----
       // Tighter fresnel power + lower max alpha so the halo reads as atmosphere,

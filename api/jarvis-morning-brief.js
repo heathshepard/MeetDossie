@@ -1,13 +1,16 @@
 // Jarvis V5 R5 — Wake Jarvis morning brief.
-// Returns: spoken text (and optionally an mp3 stream via ElevenLabs Bill).
+// Returns: spoken text (and optionally an mp3 stream via ElevenLabs Daniel).
 // Heath-only.
 //
-// GET ?speak=1 → returns audio/mpeg from ElevenLabs Bill voice
+// GET ?speak=1 → returns audio/mpeg from ElevenLabs Daniel (British, articulate — closest to Iron Man Jarvis)
 // GET ?speak=0 (default) → returns JSON with text + counts
+//
+// V5 R7 (2026-06-18): swapped from Bill → Daniel per Heath. Daniel = onwK4e9ZLuTAKqWW03F9.
 
 import { createClient } from '@supabase/supabase-js';
 
-const BILL_VOICE_ID = 'pqHfZKP75CvOlQylNhV4';
+// Daniel — British, articulate, calm. Closest match to original Iron Man Jarvis.
+const JARVIS_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
 
 async function buildBriefText(admin) {
   // Pull state in parallel
@@ -97,13 +100,13 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, ...brief });
   }
 
-  // ElevenLabs Bill voice
+  // ElevenLabs Daniel voice (Jarvis)
   const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
   if (!ELEVENLABS_API_KEY) {
     return res.status(503).json({ error: 'elevenlabs_env_missing', ...brief });
   }
   try {
-    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${BILL_VOICE_ID}?optimize_streaming_latency=2&output_format=mp3_44100_128`, {
+    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${JARVIS_VOICE_ID}?optimize_streaming_latency=2&output_format=mp3_44100_128`, {
       method: 'POST',
       headers: {
         'xi-api-key': ELEVENLABS_API_KEY,
