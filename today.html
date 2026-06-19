@@ -29,9 +29,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       min-height: 100vh;
-      background: var(--navy);
-      background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
-      background-size: 24px 24px;
+      background-color: #020817;
+      background-image: radial-gradient(ellipse at 50% 0%, #0a1f3a 0%, #020817 65%);
       color: var(--blush);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 16px;
@@ -39,6 +38,20 @@
       -webkit-font-smoothing: antialiased;
       padding-bottom: env(safe-area-inset-bottom);
       overflow-x: hidden;
+    }
+
+    /* V5 R2.2: hex grid overlay layered BETWEEN the three.js canvas and the content.
+       Avoids UnrealBloomPass opaque-alpha issue that hides body backgrounds. */
+    .hex-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='52' viewBox='0 0 60 52'><g fill='none' stroke='%234dd4ff' stroke-opacity='0.18' stroke-width='1'><path d='M15 1 L45 1 L60 26 L45 51 L15 51 L0 26 Z'/><path d='M45 1 L75 1 L90 26 L75 51 L45 51 L60 26 Z'/><path d='M-15 1 L15 1 L30 26 L15 51 L-15 51 L-30 26 Z'/></g></svg>");
+      background-repeat: repeat;
+      background-size: 60px 52px;
+      mix-blend-mode: screen;
+      opacity: 0.85;
     }
 
     /* ---- Auth gate ---- */
@@ -433,8 +446,11 @@
 
   <!-- Main app -->
   <div id="app">
-    <!-- 3D Canvas -->
+    <!-- 3D Canvas (z-index 0) -->
     <div id="three-container"></div>
+
+    <!-- Hex grid overlay (z-index 1) -->
+    <div class="hex-bg"></div>
 
     <!-- Mission Banner -->
     <div class="mission-banner">
@@ -515,7 +531,11 @@
     let _pollTimer = null;
     const POLL_MS = 30_000;
     let _scene = null;
-    let _orb = null;
+    let _orb = null;          // Earth group (sphere + wireframe + lanes)
+    let _earthMesh = null;    // textured sphere (night lights)
+    let _earthWire = null;    // cyan wireframe overlay
+    let _shippingLanes = null;
+    let _clock = null;        // THREE.Clock for time-based, seamless rotation
     let _camera = null;
     let _renderer = null;
     let _composer = null;
@@ -644,29 +664,32 @@
       _composer.addPass(renderPass);
       _bloomPass = new UnrealBloomPass(
         new THREE.Vector2(w, h),
-        1.5,    // strength
-        0.4,    // radius
-        0.85    // threshold
+        0.85,   // strength — reduced so atmosphere doesn't blow out
+        0.55,   // radius
+        0.78    // threshold
       );
       _composer.addPass(_bloomPass);
 
-      // Setup scene
+      // Setup scene — deep navy fog matched to body background
       _scene = new THREE.Scene();
-      _scene.fog = new THREE.Fog(0x1a1a2e, 10, 20);
+      _scene.fog = new THREE.Fog(0x020817, 8, 22);
 
-      // Ambient light
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.3);
+      // Ambient light — kept dim so night-lights emissive map can shine
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.18);
       _scene.add(ambLight);
 
-      // Directional light
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      dirLight.position.set(5, 5, 5);
+      // Directional light — sun, soft and warm
+      const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.55);
+      dirLight.position.set(5, 3, 5);
       _scene.add(dirLight);
+
+      // Clock for seamless time-based animation (V5 R2.2 — no period restart, no += jumps)
+      _clock = new THREE.Clock();
 
       // Create starfield background
       createStarfield();
 
-      // Create the orb
+      // Create the Earth orb (sphere + cyan wireframe + atmosphere + shipping lanes)
       createOrb();
       updateOrbPosition();
 
@@ -676,16 +699,19 @@
       // Handle window resize
       window.addEventListener('resize', onWindowResize);
 
-      // Animation loop
+      // Animation loop — time-based for seamless infinite rotation
       function animate() {
         requestAnimationFrame(animate);
+        const elapsed = _clock.getElapsedTime();
         if (_orb) {
-          _orb.rotation.x += 0.0003;
-          _orb.rotation.y += 0.0005;
+          // Seamless: pure multiplication of elapsed time. No modulo, no +=.
+          _orb.rotation.y = elapsed * 0.05;
+          // Slight axial tilt feel — static, not animated, so no seam
+          _orb.rotation.x = 0.18;
         }
         if (_starfield) {
-          _starfield.rotation.x += 0.00005;
-          _starfield.rotation.y += 0.00008;
+          _starfield.rotation.y = elapsed * 0.005;
+          _starfield.rotation.x = elapsed * 0.003;
         }
         _composer.render();
       }
@@ -707,52 +733,67 @@
       _scene.add(_starfield);
     }
 
+    // ========== V5 R2.2 — EARTH ORB ==========
+    // Replaces the cyan icosahedron. Layers:
+    //   1. Dark sphere with NASA night-lights as emissive map (cities glow)
+    //   2. Cyan wireframe overlay (slightly larger radius)
+    //   3. Atmosphere fresnel shell (BackSide)
+    //   4. Shipping lanes — great-circle arcs across oceans
+    // All children added to _orb (a THREE.Group) so a single rotation.y drives the entire planet.
     function createOrb() {
-      const geometry = new THREE.IcosahedronGeometry(1, 8);
-
-      // Create shader material for smooth gradient orb with enhanced fresnel
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          time: { value: 0 },
-        },
-        vertexShader: `
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-          varying float vFresnel;
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vPosition = position;
-            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-            vec3 viewDir = normalize(-mvPos.xyz);
-            vFresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.8);
-            gl_Position = projectionMatrix * mvPos;
-          }
-        `,
-        fragmentShader: `
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-          varying float vFresnel;
-          uniform float time;
-          void main() {
-            vec3 color = mix(vec3(0.13, 0.85, 1.0), vec3(0.8, 0.4, 0.3), length(vPosition) * 0.3);
-            color += vec3(0.0, 0.9, 1.0) * vFresnel * 0.8;
-            float bloom = vFresnel * 0.6;
-            gl_FragColor = vec4(color, 1.0 - bloom * 0.3);
-          }
-        `,
-      });
-
-      _orb = new THREE.Mesh(geometry, material);
+      // Group is the rotation anchor. Position + scale applied to the group.
+      _orb = new THREE.Group();
       _orb.scale.set(0.35, 0.35, 0.35);
       _orb.position.set(2.3, -0.5, 0);
       _scene.add(_orb);
 
-      // Create fresnel atmosphere shell around orb
-      const shellGeo = new THREE.SphereGeometry(0.35 * 1.18, 64, 64);
+      // ---- Layer 1: Earth sphere with night-lights emissive map ----
+      // Procedural fallback texture renders immediately; NASA texture upgrades it if it loads.
+      const proceduralLights = makeProceduralCityLightsTexture();
+      const earthGeo = new THREE.SphereGeometry(1, 96, 64);
+      const earthMat = new THREE.MeshStandardMaterial({
+        color: 0x0a1428,            // near-black ocean / land base
+        emissive: 0xffd180,          // warm city-light amber
+        emissiveMap: proceduralLights,
+        emissiveIntensity: 1.6,
+        roughness: 0.92,
+        metalness: 0.0,
+      });
+      _earthMesh = new THREE.Mesh(earthGeo, earthMat);
+      _orb.add(_earthMesh);
+
+      // Upgrade to NASA night-lights texture (threejs.org-hosted, CORS-safe).
+      // If it fails, we still have the procedural fallback already rendering.
+      const loader = new THREE.TextureLoader();
+      loader.setCrossOrigin('anonymous');
+      loader.load(
+        'https://threejs.org/examples/textures/planets/earth_lights_2048.png',
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.anisotropy = 8;
+          earthMat.emissiveMap = tex;
+          earthMat.emissiveIntensity = 1.2;
+          earthMat.needsUpdate = true;
+        },
+        undefined,
+        (err) => {
+          console.warn('[earth] night-lights texture failed, keeping procedural', err);
+        }
+      );
+
+      // ---- Layer 2: Cyan globe wireframe (parallels + meridians) ----
+      // Drawn as discrete lat/lon lines for a clean Pinterest-Earth aesthetic
+      // (not WireframeGeometry's triangulated mesh — that reads as noise).
+      _earthWire = makeGlobeWireframe(1.008, 16, 24);
+      _orb.add(_earthWire);
+
+      // ---- Layer 3: Atmosphere fresnel shell (BackSide) ----
+      // Tighter fresnel power + lower max alpha so the halo reads as atmosphere,
+      // not a hard cyan ring overwhelming the city lights.
+      const shellGeo = new THREE.SphereGeometry(1.15, 64, 64);
       const shellMat = new THREE.ShaderMaterial({
         uniforms: {
-          time: { value: 0 },
-          color: { value: new THREE.Color(0x00d4ff) }
+          color: { value: new THREE.Color(0x00d4ff) }, // V5 spec primary cyan
         },
         vertexShader: `
           varying vec3 vNormal;
@@ -769,8 +810,8 @@
           varying vec3 vNormal;
           varying vec3 vViewDir;
           void main() {
-            float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.0);
-            gl_FragColor = vec4(color, fresnel * 0.9);
+            float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.4);
+            gl_FragColor = vec4(color, fresnel * 0.55);
           }
         `,
         transparent: true,
@@ -778,10 +819,204 @@
         side: THREE.BackSide,
         depthWrite: false,
       });
-      const shell = new THREE.Mesh(shellGeo, shellMat);
-      _atmosphereShell = shell;
-      shell.position.set(2.3, -0.5, 0);
-      _scene.add(shell);
+      _atmosphereShell = new THREE.Mesh(shellGeo, shellMat);
+      // Shell goes on the GROUP so it tracks orb position but NOT rotation
+      // (atmosphere should be static so glow doesn't visibly spin)
+      _orb.add(_atmosphereShell);
+
+      // ---- Layer 4: Shipping lanes (great-circle arcs across oceans) ----
+      _shippingLanes = makeShippingLanes();
+      _orb.add(_shippingLanes);
+    }
+
+    // Clean globe wireframe — parallels (lat) + meridians (lon) as separate line loops.
+    // Reads as an Earth grid, not triangulated mesh.
+    function makeGlobeWireframe(radius, parallels, meridians) {
+      const group = new THREE.Group();
+      const mat = new THREE.LineBasicMaterial({
+        color: 0x00d4ff,
+        transparent: true,
+        opacity: 0.32,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+
+      // Parallels (horizontal circles, excluding poles)
+      for (let i = 1; i < parallels; i++) {
+        const lat = (i / parallels) * Math.PI - Math.PI / 2; // -π/2..π/2
+        const y = Math.sin(lat) * radius;
+        const r = Math.cos(lat) * radius;
+        const segs = 96;
+        const pts = [];
+        for (let j = 0; j <= segs; j++) {
+          const a = (j / segs) * Math.PI * 2;
+          pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        group.add(new THREE.Line(geo, mat));
+      }
+
+      // Meridians (vertical half-circles from pole to pole)
+      for (let i = 0; i < meridians; i++) {
+        const lon = (i / meridians) * Math.PI * 2;
+        const segs = 64;
+        const pts = [];
+        for (let j = 0; j <= segs; j++) {
+          const lat = (j / segs) * Math.PI - Math.PI / 2;
+          pts.push(new THREE.Vector3(
+            Math.cos(lat) * Math.cos(lon) * radius,
+            Math.sin(lat) * radius,
+            Math.cos(lat) * Math.sin(lon) * radius
+          ));
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        group.add(new THREE.Line(geo, mat));
+      }
+
+      return group;
+    }
+
+    // Procedural city-lights texture — used immediately + as fallback if NASA texture 404s.
+    // Generates a 1024x512 equirectangular map with bright dots clustered roughly where landmasses sit,
+    // so the orb glows like inhabited Earth at night before the real texture loads.
+    function makeProceduralCityLightsTexture() {
+      const W = 1024, H = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+
+      // Rough landmass centers in equirectangular (lon -180..180 → x 0..W, lat -90..90 → y H..0)
+      // Each entry: [lonDeg, latDeg, spreadDeg, densityWeight]
+      const regions = [
+        // North America east coast (NYC/Boston/DC)
+        [-74, 40, 8, 1.0],
+        // North America Midwest (Chicago/Toronto)
+        [-87, 41, 10, 0.7],
+        // North America west coast (LA/SF/Seattle)
+        [-118, 36, 9, 0.8],
+        // Mexico City
+        [-99, 19, 5, 0.5],
+        // South America (Sao Paulo / Rio / Buenos Aires)
+        [-58, -27, 18, 0.6],
+        // Western Europe (London/Paris/Amsterdam/Frankfurt)
+        [5, 50, 10, 1.0],
+        // Italy / Spain
+        [12, 42, 8, 0.6],
+        // Eastern Europe (Moscow/Warsaw)
+        [35, 53, 14, 0.5],
+        // Middle East (Istanbul/Tel Aviv/Dubai/Riyadh)
+        [38, 32, 12, 0.7],
+        // India (Delhi/Mumbai/Bangalore)
+        [78, 22, 14, 0.9],
+        // Southeast Asia (Bangkok/Jakarta/Singapore)
+        [105, 5, 16, 0.7],
+        // China east coast (Beijing/Shanghai/Guangzhou)
+        [115, 30, 14, 1.0],
+        // Japan/Korea (Tokyo/Seoul/Osaka)
+        [138, 36, 6, 0.9],
+        // Africa west (Lagos/Accra)
+        [3, 7, 8, 0.5],
+        // Africa east (Cairo/Nairobi/Joburg)
+        [32, 5, 18, 0.5],
+        // Australia east coast (Sydney/Melbourne/Brisbane)
+        [148, -32, 8, 0.5],
+      ];
+
+      function lonLatToXY(lonDeg, latDeg) {
+        const x = ((lonDeg + 180) / 360) * W;
+        const y = ((90 - latDeg) / 180) * H;
+        return [x, y];
+      }
+
+      // Draw clustered city dots per region
+      for (const [lon, lat, spread, weight] of regions) {
+        const dotCount = Math.floor(180 * weight);
+        for (let i = 0; i < dotCount; i++) {
+          // Gaussian-ish offset
+          const r = Math.pow(Math.random(), 1.5) * spread;
+          const theta = Math.random() * Math.PI * 2;
+          const dLon = r * Math.cos(theta);
+          const dLat = r * Math.sin(theta) * 0.6; // squash latitudinally
+          const [x, y] = lonLatToXY(lon + dLon, lat + dLat);
+          const size = Math.random() * 1.4 + 0.4;
+          const alpha = 0.55 + Math.random() * 0.45;
+          ctx.fillStyle = `rgba(255, ${200 + Math.floor(Math.random() * 40)}, ${110 + Math.floor(Math.random() * 60)}, ${alpha})`;
+          ctx.fillRect(x | 0, y | 0, size, size);
+          // Soft halo on brighter ones
+          if (Math.random() < 0.18) {
+            ctx.fillStyle = `rgba(255, 210, 140, ${alpha * 0.25})`;
+            ctx.fillRect((x | 0) - 1, (y | 0) - 1, 3, 3);
+          }
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      return tex;
+    }
+
+    // Shipping lanes — curved great-circle arcs across major ocean trade routes.
+    // Drawn as additive cyan lines that sit on the rotation group so they spin WITH the Earth.
+    function makeShippingLanes() {
+      const group = new THREE.Group();
+
+      // Major shipping lanes (lon, lat) endpoint pairs
+      // Endpoints chosen to arc across oceans, not land
+      const lanes = [
+        // Trans-Atlantic: NYC ↔ London
+        [[-74, 40], [0, 51]],
+        // Trans-Pacific: Long Beach ↔ Shanghai
+        [[-118, 33], [121, 31]],
+        // Suez: Rotterdam ↔ Singapore
+        [[4, 51], [103, 1]],
+        // Cape route: Singapore ↔ Cape Town
+        [[103, 1], [18, -33]],
+        // Panama: NYC ↔ Long Beach (via Panama, simplified arc)
+        [[-74, 40], [-118, 33]],
+        // Indian Ocean: Mumbai ↔ Dubai
+        [[72, 18], [55, 25]],
+        // South Atlantic: Sao Paulo ↔ Cape Town
+        [[-46, -23], [18, -33]],
+        // Pacific: Tokyo ↔ Long Beach
+        [[139, 35], [-118, 33]],
+        // North Sea: London ↔ Hamburg ↔ St Petersburg
+        [[0, 51], [30, 59]],
+      ];
+
+      function lonLatToVec3(lon, lat, r) {
+        const phi = (90 - lat) * Math.PI / 180;
+        const theta = (lon + 180) * Math.PI / 180;
+        return new THREE.Vector3(
+          -r * Math.sin(phi) * Math.cos(theta),
+          r * Math.cos(phi),
+          r * Math.sin(phi) * Math.sin(theta)
+        );
+      }
+
+      for (const [a, b] of lanes) {
+        const start = lonLatToVec3(a[0], a[1], 1.015);
+        const end = lonLatToVec3(b[0], b[1], 1.015);
+        // Midpoint pushed outward → curves above surface
+        const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(1.18);
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+        const points = curve.getPoints(60);
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineBasicMaterial({
+          color: 0x4dd4ff,
+          transparent: true,
+          opacity: 0.45,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const line = new THREE.Line(geo, mat);
+        group.add(line);
+      }
+
+      return group;
     }
 
     
@@ -789,6 +1024,8 @@
       const w = window.innerWidth;
       const h = window.innerHeight;
       const isMobile = w < 768;
+
+      if (!_orb) return;
 
       if (isMobile) {
         // Mobile: NDC unproject to top-right corner (85% width, 15% height)
@@ -803,19 +1040,12 @@
         const target = _camera.position.clone().add(dir.multiplyScalar(distance));
         _orb.position.set(target.x, target.y, 0);
         _orb.scale.set(0.22, 0.22, 0.22);
-        if (_atmosphereShell) {
-          _atmosphereShell.position.set(target.x, target.y, 0);
-          _atmosphereShell.scale.set(0.22, 0.22, 0.22);
-        }
       } else {
         // Desktop: right gutter (X = 2.3), keep Y at -0.5 — LOCKED
         _orb.position.set(2.3, -0.5, 0);
         _orb.scale.set(0.35, 0.35, 0.35);
-        if (_atmosphereShell) {
-          _atmosphereShell.position.set(2.3, -0.5, 0);
-          _atmosphereShell.scale.set(0.35, 0.35, 0.35);
-        }
       }
+      // Atmosphere shell is a child of _orb (V5 R2.2) — no separate update needed
     }
 
     function onWindowResize() {
