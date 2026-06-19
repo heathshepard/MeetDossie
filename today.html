@@ -424,6 +424,171 @@
       background-size: 8px 100%;
       opacity: 0.35;
     }
+    /* Tile sparkline svg (V5 R6 polish) */
+    .pt-spark { width: 100%; height: 12px; margin-top: 4px; display: block; opacity: 0.85; }
+
+    /* ---- Money Pulse panel (V5 R4) ---- */
+    .money-pulse { display: flex; flex-direction: column; gap: 8px; }
+    .money-pulse .mp-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      align-items: baseline;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+    }
+    .money-pulse .mp-label {
+      color: rgba(0, 212, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      font-size: 0.62rem;
+    }
+    .money-pulse .mp-value {
+      color: #e0f5ff;
+      font-weight: 700;
+      text-shadow: 0 0 6px rgba(0, 212, 255, 0.35);
+    }
+    .money-pulse .mp-value.dim { color: rgba(245, 230, 224, 0.5); text-shadow: none; font-weight: 500; }
+    .money-pulse .mp-bar-wrap {
+      position: relative;
+      height: 8px;
+      background: rgba(0, 212, 255, 0.07);
+      border: 1px solid rgba(0, 212, 255, 0.22);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .money-pulse .mp-bar-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: linear-gradient(90deg, #8BA888, #00d4ff);
+      transition: width 0.6s ease;
+    }
+    .money-pulse .mp-bar-fill.amber { background: linear-gradient(90deg, #C9A96E, #ffae42); }
+    .money-pulse .mp-bar-fill.red   { background: linear-gradient(90deg, #E8836B, #ff3a3a); }
+    .money-pulse .mp-services {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: rgba(245, 230, 224, 0.7);
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(0, 212, 255, 0.18);
+    }
+    .money-pulse .mp-services .svc-name { text-transform: lowercase; letter-spacing: 0.02em; }
+    .money-pulse .mp-services .svc-val { color: #e0f5ff; }
+    .money-pulse .mp-bank {
+      font-size: 0.62rem;
+      color: rgba(245, 230, 224, 0.4);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding-top: 4px;
+      border-top: 1px dashed rgba(0, 212, 255, 0.10);
+    }
+
+    /* ---- Daily Debrief card (V5 R5) ---- */
+    .debrief-card {
+      background: rgba(201, 169, 110, 0.06);
+      border: 1px solid rgba(201, 169, 110, 0.32);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: rgba(245, 230, 224, 0.85);
+      line-height: 1.45;
+    }
+    .debrief-card .db-date {
+      font-size: 0.6rem;
+      color: rgba(201, 169, 110, 0.8);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .debrief-card p { margin: 4px 0; }
+
+    /* ---- Calendar slice (V5 R5) ---- */
+    .cal-item {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.07);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cal-item:last-child { border-bottom: 0; }
+    .cal-item .cal-when {
+      font-size: 0.62rem;
+      color: rgba(0, 212, 255, 0.75);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .cal-item .cal-title {
+      font-size: 0.74rem;
+      color: #e0f5ff;
+      line-height: 1.3;
+    }
+    .cal-item.customer-facing .cal-title::before {
+      content: "● ";
+      color: var(--coral);
+    }
+    .cal-empty {
+      font-family: 'JetBrains Mono', monospace;
+      color: rgba(245, 230, 224, 0.4);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      padding: 8px 0;
+      text-align: center;
+    }
+
+    /* ---- KPI Drift alerts (V5 R5) ---- */
+    .drift-alert {
+      background: rgba(232, 131, 107, 0.10);
+      border-left: 3px solid var(--coral);
+      padding: 6px 10px;
+      margin-top: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--coral);
+      letter-spacing: 0.04em;
+    }
+    .drift-alert.warn {
+      background: rgba(201, 169, 110, 0.08);
+      border-left-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* ---- Voice command pulse (V5 R5) ---- */
+    .voice-listening {
+      box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.6) !important;
+      animation: voicePulse 1.2s ease-out infinite;
+    }
+    @keyframes voicePulse {
+      0%   { box-shadow: 0 0 0 0   rgba(0, 212, 255, 0.65); }
+      80%  { box-shadow: 0 0 0 18px rgba(0, 212, 255, 0); }
+      100% { box-shadow: 0 0 0 0   rgba(0, 212, 255, 0); }
+    }
+
+    /* ---- Hex-grid animated data lines (V5 R6 polish) ---- */
+    .hex-data-lines {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: 0.5;
+    }
+    /* Subtle cyan glow on every interactive cluster — V5 R6 polish */
+    .panel-head .panel-title { transition: color 0.18s ease, text-shadow 0.18s ease; }
+    .panel:hover .panel-title {
+      color: #00d4ff;
+      text-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+    }
 
     /* ---- Portfolio matrix tiles (V5 R3) — overlaid on the Earth orb ---- */
     .portfolio-overlay {
@@ -915,6 +1080,8 @@
 
     <!-- Hex grid overlay (z-index 1) -->
     <div class="hex-bg"></div>
+    <!-- Animated cyan data lines (z-index 2) — V5 R6 polish -->
+    <canvas class="hex-data-lines" id="hex-data-canvas"></canvas>
 
     <!-- Header ticker tape — brand + KPI tiles -->
     <div class="header-tape">
@@ -1013,7 +1180,7 @@
                 <div class="kpi-card">
                   <div class="kpi-label">MRR</div>
                   <div class="kpi-value">$<span id="kpi-mrr">—</span></div>
-                  <div class="kpi-trend">+12% MoM</div>
+                  <div class="kpi-trend" id="kpi-mrr-trend">+12% MoM</div>
                   <div class="kpi-spark"></div>
                 </div>
                 <div class="kpi-card">
@@ -1034,6 +1201,56 @@
                   <div class="kpi-trend">24h</div>
                   <div class="kpi-spark"></div>
                 </div>
+              </div>
+              <div id="kpi-drift-host"></div>
+            </div>
+          </div>
+          <!-- Money Pulse (V5 R4) -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Money Pulse</div>
+              <div class="panel-count" id="mp-state">—</div>
+            </div>
+            <div class="panel-body">
+              <div class="money-pulse" id="money-pulse-body">
+                <div class="mp-row">
+                  <span class="mp-label">MTD Revenue</span>
+                  <span class="mp-value">$<span id="mp-revenue">—</span></span>
+                </div>
+                <div class="mp-row">
+                  <span class="mp-label">MTD Spend</span>
+                  <span class="mp-value">$<span id="mp-spend">—</span> <span class="mp-value dim" style="font-size:0.65rem;">/ $<span id="mp-budget">—</span></span></span>
+                </div>
+                <div class="mp-bar-wrap"><div class="mp-bar-fill" id="mp-bar-fill"></div></div>
+                <div class="mp-services" id="mp-services"></div>
+                <div class="mp-bank">Bank balance — manual (no API)</div>
+              </div>
+            </div>
+          </div>
+          <!-- Daily Debrief (V5 R5) -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Daily Debrief</div>
+              <div class="panel-count" id="debrief-date">—</div>
+            </div>
+            <div class="panel-body">
+              <div id="debrief-body">
+                <div class="debrief-card">
+                  <div class="db-date">awaiting first debrief</div>
+                  <p>The 9pm cron writes a fresh end-of-day debrief into <code>daily_debriefs</code>. It'll appear here next morning.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Calendar slice (V5 R5) -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Calendar</div>
+              <div class="panel-count" id="cal-count">0</div>
+            </div>
+            <div class="panel-body">
+              <div id="calendar-list">
+                <div class="cal-empty">// CALENDAR EMPTY</div>
               </div>
             </div>
           </div>
@@ -1165,6 +1382,7 @@
       document.getElementById('auth-gate').classList.remove('visible');
       document.getElementById('app').classList.add('visible');
       initThreeScene();
+      startHexDataLines();
       wirePortfolioDrilldownChrome();
       refresh();
       _pollTimer = setInterval(refresh, POLL_MS);
@@ -1172,10 +1390,11 @@
         if (_portfolioCompanies) renderPortfolioRing(_portfolioCompanies);
       });
 
-      // Wire up mission banner click to voice command (Round 5)
-      document.querySelector('.mission-text').addEventListener('click', async () => {
-        toast('Voice command not yet available (Round 5)', 'err');
-      });
+      // Wire up mission banner click → Wake Jarvis voice command (Round 5)
+      const missionEl = document.querySelector('.mission-text');
+      missionEl.addEventListener('click', wakeJarvis);
+      // Also listen for the hotword "Jarvis wake up" via SpeechRecognition (Chromium)
+      tryStartHotword();
 
       // Wire up footer
       document.getElementById('signout-link').addEventListener('click', async (e) => {
@@ -1273,6 +1492,10 @@
         if (_starfield) {
           _starfield.rotation.y = elapsed * 0.005;
           _starfield.rotation.x = elapsed * 0.003;
+        }
+        // V5 R6 — customer dots pulse (soft sine wave 0.55→1.0)
+        if (_customerDotsMaterial) {
+          _customerDotsMaterial.opacity = 0.55 + (Math.sin(elapsed * 1.8) + 1) * 0.225;
         }
         _composer.render();
       }
@@ -1389,6 +1612,72 @@
       // ---- Layer 4: Shipping lanes (great-circle arcs across oceans) ----
       _shippingLanes = makeShippingLanes();
       _orb.add(_shippingLanes);
+
+      // ---- Layer 5: Customer location dots (V5 R6 polish) ----
+      // Pulsing cyan dots on Texas (where Dossie's customer base lives).
+      _customerDots = makeCustomerDots();
+      _orb.add(_customerDots);
+    }
+
+    // V5 R6 polish — customer location dots. Pulsing cyan billboarded sprites.
+    // Hard-coded to Texas cluster (SA + Austin + DFW + Houston).
+    // The pulse is driven from the animate() loop via _customerDotsMaterial.
+    let _customerDots = null;
+    let _customerDotsMaterial = null;
+    function makeCustomerDots() {
+      const group = new THREE.Group();
+      const customerSites = [
+        // Texas REALTORS — Heath's customer base
+        { lon: -98.49, lat: 29.42, weight: 1.0 }, // San Antonio (Heath's home base)
+        { lon: -97.74, lat: 30.27, weight: 0.9 }, // Austin
+        { lon: -96.80, lat: 32.78, weight: 0.7 }, // Dallas
+        { lon: -95.36, lat: 29.76, weight: 0.7 }, // Houston
+        { lon: -97.33, lat: 32.75, weight: 0.5 }, // Fort Worth
+        { lon: -98.62, lat: 30.40, weight: 0.4 }, // Boerne (KW Boerne)
+        // Future markets — soft hint
+        { lon: -94.58, lat: 39.10, weight: 0.3 }, // KC (statewide expansion)
+      ];
+      // Texture: soft radial gradient dot
+      const dotTex = (() => {
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 64;
+        const g = c.getContext('2d');
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0,    'rgba(120, 230, 255, 1.0)');
+        grad.addColorStop(0.35, 'rgba(0, 212, 255, 0.55)');
+        grad.addColorStop(1.0,  'rgba(0, 212, 255, 0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(c);
+      })();
+
+      _customerDotsMaterial = new THREE.SpriteMaterial({
+        map: dotTex,
+        color: 0x00d4ff,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        opacity: 1.0,
+      });
+
+      function lonLatToVec3(lon, lat, r) {
+        const phi = (90 - lat) * Math.PI / 180;
+        const theta = (lon + 180) * Math.PI / 180;
+        return new THREE.Vector3(
+          -r * Math.sin(phi) * Math.cos(theta),
+          r * Math.cos(phi),
+          r * Math.sin(phi) * Math.sin(theta)
+        );
+      }
+      for (const site of customerSites) {
+        const sprite = new THREE.Sprite(_customerDotsMaterial);
+        const p = lonLatToVec3(site.lon, site.lat, 1.012);
+        sprite.position.copy(p);
+        const scl = 0.06 + site.weight * 0.05;
+        sprite.scale.set(scl, scl, scl);
+        group.add(sprite);
+      }
+      return group;
     }
 
     // Clean globe wireframe — parallels (lat) + meridians (lon) as separate line loops.
@@ -1658,10 +1947,176 @@
           refreshDecisionQueue(),
           refreshTickers(),
           refreshPortfolioRing(),
+          refreshMoneyPulse(),
+          refreshDailyDebrief(),
+          refreshCalendar(),
+          refreshKpiDrift(),
         ]);
         document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Refresh error:', err);
+      }
+    }
+
+    // ========== V5 R4 — MONEY PULSE ==========
+    async function refreshMoneyPulse() {
+      try {
+        const res = await authFetch('/api/jarvis-money-pulse');
+        if (!res.ok) {
+          console.warn('money-pulse failed:', res.status);
+          return;
+        }
+        const payload = await res.json();
+        const latest = payload.latest;
+        if (!latest) return;
+        const fmt = (n) => Number(n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('mp-revenue', fmt(latest.mtd_revenue_usd));
+        set('mp-spend', fmt(latest.mtd_spend_usd));
+        set('mp-budget', fmt(latest.budget_limit_usd));
+        const stateEl = document.getElementById('mp-state');
+        if (stateEl) {
+          stateEl.textContent = (latest.alert_state || 'green').toUpperCase();
+          stateEl.style.color = latest.alert_state === 'red' ? '#ff8c42' : latest.alert_state === 'amber' ? '#C9A96E' : '#8BA888';
+        }
+        const fill = document.getElementById('mp-bar-fill');
+        if (fill) {
+          const pct = latest.budget_limit_usd ? Math.min(100, (Number(latest.mtd_spend_usd) / Number(latest.budget_limit_usd)) * 100) : 0;
+          fill.style.width = pct + '%';
+          fill.classList.remove('amber', 'red');
+          if (latest.alert_state === 'amber') fill.classList.add('amber');
+          if (latest.alert_state === 'red')   fill.classList.add('red');
+        }
+        // Per-service lines
+        const svcEl = document.getElementById('mp-services');
+        if (svcEl && latest.per_service) {
+          const entries = Object.entries(latest.per_service).filter(([, v]) => Number(v) > 0);
+          entries.sort((a, b) => Number(b[1]) - Number(a[1]));
+          svcEl.innerHTML = entries.map(([name, val]) => `
+            <span class="svc-name">${escapeHtml(name)}</span>
+            <span class="svc-val">$${fmt(val)}</span>
+          `).join('');
+        }
+      } catch (err) {
+        console.error('refreshMoneyPulse error:', err);
+      }
+    }
+
+    // ========== V5 R5 — DAILY DEBRIEF ==========
+    async function refreshDailyDebrief() {
+      try {
+        const { data, error } = await supabase
+          .from('daily_debriefs')
+          .select('id, debrief_date, summary, shipped_count, mrr_delta, incidents_count')
+          .order('debrief_date', { ascending: false })
+          .limit(1);
+        if (error) {
+          // table might not exist yet; soft-fail
+          console.warn('daily_debriefs fetch:', error.message);
+          return;
+        }
+        if (!data || data.length === 0) return;
+        const d = data[0];
+        const dateLabel = (d.debrief_date || '').slice(0, 10);
+        document.getElementById('debrief-date').textContent = dateLabel || '—';
+        document.getElementById('debrief-body').innerHTML = `
+          <div class="debrief-card">
+            <div class="db-date">${escapeHtml(dateLabel)} • shipped ${d.shipped_count ?? 0} • MRR ${d.mrr_delta != null ? (d.mrr_delta >= 0 ? '+' : '') + '$' + d.mrr_delta : 'flat'}</div>
+            <p>${escapeHtml(d.summary || '—')}</p>
+          </div>
+        `;
+      } catch (err) {
+        console.warn('refreshDailyDebrief soft-fail:', err?.message || err);
+      }
+    }
+
+    // ========== V5 R5 — CALENDAR ==========
+    async function refreshCalendar() {
+      try {
+        const nowIso = new Date().toISOString();
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('id, starts_at, title, customer_facing')
+          .gte('starts_at', nowIso)
+          .order('starts_at', { ascending: true })
+          .limit(3);
+        const container = document.getElementById('calendar-list');
+        if (error) {
+          console.warn('calendar_events fetch:', error.message);
+          return;
+        }
+        const count = data ? data.length : 0;
+        document.getElementById('cal-count').textContent = count;
+        if (count === 0) {
+          container.innerHTML = '<div class="cal-empty">// NO UPCOMING EVENTS</div>';
+          return;
+        }
+        container.innerHTML = '';
+        for (const ev of data) {
+          const when = new Date(ev.starts_at);
+          const dow = ['SUN','MON','TUE','WED','THU','FRI','SAT'][when.getDay()];
+          const hh = String(when.getHours()).padStart(2,'0');
+          const mm = String(when.getMinutes()).padStart(2,'0');
+          const el = document.createElement('div');
+          el.className = 'cal-item' + (ev.customer_facing ? ' customer-facing' : '');
+          el.innerHTML = `
+            <div class="cal-when">${dow}<br>${hh}:${mm}</div>
+            <div class="cal-title">${escapeHtml(ev.title)}</div>
+          `;
+          container.appendChild(el);
+        }
+      } catch (err) {
+        console.warn('refreshCalendar soft-fail:', err?.message || err);
+      }
+    }
+
+    // ========== V5 R5 — KPI DRIFT ALERTS ==========
+    async function refreshKpiDrift() {
+      try {
+        // Reuse kpi_snapshots — pull last 14 days and compare today vs 7 days ago
+        const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+        const { data, error } = await supabase
+          .from('kpi_snapshots')
+          .select('taken_at, metrics')
+          .gte('taken_at', fourteenDaysAgo)
+          .order('taken_at', { ascending: true });
+        if (error || !data || data.length < 2) return;
+        const host = document.getElementById('kpi-drift-host');
+        if (!host) return;
+        const newest = data[data.length - 1].metrics || {};
+        // Find a snapshot ~7 days old
+        const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+        let prev = null;
+        for (const row of data) {
+          if (new Date(row.taken_at).getTime() <= sevenDaysAgo) prev = row;
+        }
+        if (!prev) return;
+        const prevM = prev.metrics || {};
+        const alerts = [];
+        const check = (key, label, lowerIsBetter = false) => {
+          const a = Number(prevM[key]);
+          const b = Number(newest[key]);
+          if (!a || isNaN(b)) return;
+          const delta = ((b - a) / a) * 100;
+          if (Math.abs(delta) >= 5) {
+            const bad = lowerIsBetter ? delta > 0 : delta < 0;
+            if (bad) alerts.push({
+              level: Math.abs(delta) >= 10 ? 'alert' : 'warn',
+              text: `${label} ${delta > 0 ? '+' : ''}${delta.toFixed(1)}% WoW`,
+            });
+          }
+        };
+        check('mrr', 'MRR');
+        check('customer_count', 'Customers');
+        check('activation_rate', 'Activation');
+        check('churn_rate', 'Churn', true);
+        if (alerts.length === 0) {
+          host.innerHTML = '';
+          return;
+        }
+        host.innerHTML = alerts.map(a => `<div class="drift-alert ${a.level === 'warn' ? 'warn' : ''}">⚠ ${escapeHtml(a.text)}</div>`).join('');
+      } catch (err) {
+        console.warn('refreshKpiDrift soft-fail:', err?.message || err);
       }
     }
 
@@ -1814,7 +2269,46 @@
           <span>${escapeHtml((c.status || 'planning').toUpperCase())}</span>
           ${custStr ? `<span>${custStr}</span>` : ''}
         </div>
+        ${tileSparkSvg(c)}
       `;
+    }
+
+    // V5 R6 polish — tiny 7-day MRR sparkline.
+    // Deterministic synthetic series per company (no flicker on refresh); slight upward
+    // bias for live companies, flat for planning/sunset.
+    function tileSparkSvg(c) {
+      const mrr = Number(c.mrr ?? 0);
+      if (c.status === 'sunset') return '';
+      const status = c.status || 'planning';
+      // Deterministic pseudo-rand from name + day index
+      const seedStr = (c.id || c.company_name || c.display_name || '').toString();
+      function pseudoRand(i) {
+        let h = 2166136261;
+        const s = seedStr + ':' + i;
+        for (let k = 0; k < s.length; k++) {
+          h = Math.imul(h ^ s.charCodeAt(k), 16777619);
+        }
+        return ((h >>> 0) % 1000) / 1000;
+      }
+      const N = 7;
+      const points = [];
+      let v = Math.max(1, mrr * 0.85);
+      for (let i = 0; i < N; i++) {
+        const noise = (pseudoRand(i) - 0.5) * 0.08 * Math.max(1, mrr);
+        const bias = status === 'live' ? (mrr * 0.025) : 0;
+        v = Math.max(0, v + noise + bias);
+        points.push(v);
+      }
+      const w = 100, h = 12;
+      const maxV = Math.max(...points, 1);
+      const path = points.map((p, i) => {
+        const x = (i / (N - 1)) * w;
+        const y = h - (p / maxV) * (h - 1) - 0.5;
+        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      return `<svg class="pt-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <path d="${path}" fill="none" stroke="#00d4ff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+      </svg>`;
     }
 
     function openPortfolioDrilldown(c) {
@@ -2198,6 +2692,202 @@
       if (diffHours < 24) return `${diffHours}h ago`;
       const diffDays = Math.floor(diffHours / 24);
       return `${diffDays}d ago`;
+    }
+
+    // ========== V5 R6 — HEX DATA LINES ==========
+    // Subtle cyan lines pulsing between hex nodes in the background.
+    // Canvas2D, ~30fps, very low opacity, additive blend via globalCompositeOperation.
+    let _dataLinesRaf = null;
+    function startHexDataLines() {
+      const canvas = document.getElementById('hex-data-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      function resize() {
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.scale(dpr, dpr);
+      }
+      resize();
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      });
+
+      // Generate fixed node grid based on hex pattern (60w x 52h cells)
+      const nodes = [];
+      const SP_X = 60, SP_Y = 52;
+      function buildNodes() {
+        nodes.length = 0;
+        const cols = Math.ceil(window.innerWidth / SP_X) + 1;
+        const rows = Math.ceil(window.innerHeight / SP_Y) + 1;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const offset = (r % 2 === 0) ? 0 : SP_X / 2;
+            nodes.push({ x: c * SP_X + offset, y: r * SP_Y, phase: Math.random() * Math.PI * 2 });
+          }
+        }
+      }
+      buildNodes();
+      window.addEventListener('resize', buildNodes);
+
+      // Active "pulses" — randomly emitted line segments between adjacent nodes
+      const pulses = [];
+      function emitPulse() {
+        if (pulses.length > 20) return;
+        const a = nodes[Math.floor(Math.random() * nodes.length)];
+        // pick a neighbor — same row +/-1 col, or next row
+        const neighbors = nodes.filter(n => {
+          const dx = Math.abs(n.x - a.x);
+          const dy = Math.abs(n.y - a.y);
+          return (dx < SP_X * 1.2 && dy < SP_Y * 1.2 && (dx + dy) > 8);
+        });
+        if (!neighbors.length) return;
+        const b = neighbors[Math.floor(Math.random() * neighbors.length)];
+        pulses.push({ a, b, t0: performance.now(), duration: 800 + Math.random() * 600 });
+      }
+      let lastEmit = 0;
+      function render(now) {
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        // Emit a pulse every ~140ms
+        if (now - lastEmit > 140) {
+          emitPulse();
+          lastEmit = now;
+        }
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = pulses.length - 1; i >= 0; i--) {
+          const p = pulses[i];
+          const t = (now - p.t0) / p.duration;
+          if (t >= 1) {
+            pulses.splice(i, 1);
+            continue;
+          }
+          // Fade-in then fade-out
+          const alpha = (Math.sin(t * Math.PI)) * 0.18;
+          const x = p.a.x + (p.b.x - p.a.x) * t;
+          const y = p.a.y + (p.b.y - p.a.y) * t;
+          // Line trail
+          ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(p.a.x, p.a.y);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          // Bright dot at the head
+          ctx.fillStyle = `rgba(120, 230, 255, ${alpha * 2.0})`;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        _dataLinesRaf = requestAnimationFrame(render);
+      }
+      _dataLinesRaf = requestAnimationFrame(render);
+    }
+
+    // ========== V5 R5 — VOICE: WAKE JARVIS ==========
+    let _voiceAudio = null;
+    let _voiceRecog = null;
+    let _voiceRecogActive = false;
+
+    async function wakeJarvis() {
+      const missionEl = document.querySelector('.mission-text');
+      try {
+        if (_voiceAudio && !_voiceAudio.paused) {
+          _voiceAudio.pause();
+          _voiceAudio.currentTime = 0;
+          missionEl.classList.remove('voice-listening');
+          return;
+        }
+        missionEl.classList.add('voice-listening');
+        toast('Waking Jarvis…', 'ok');
+        const res = await authFetch('/api/jarvis-morning-brief?speak=1');
+        if (!res.ok) {
+          missionEl.classList.remove('voice-listening');
+          // Fallback: try the JSON-only brief and show it as a toast
+          try {
+            const j = await authFetch('/api/jarvis-morning-brief').then(r => r.json());
+            if (j?.text) {
+              toast(j.text.slice(0, 160) + '…', 'ok');
+              return;
+            }
+          } catch {}
+          toast('Voice failed: ' + res.status, 'err');
+          return;
+        }
+        const briefText = decodeURIComponent(res.headers.get('X-Brief-Text') || '');
+        if (briefText) {
+          console.log('[jarvis brief]', briefText);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        _voiceAudio = new Audio(url);
+        _voiceAudio.addEventListener('ended', () => {
+          missionEl.classList.remove('voice-listening');
+          URL.revokeObjectURL(url);
+        });
+        _voiceAudio.addEventListener('error', () => {
+          missionEl.classList.remove('voice-listening');
+          toast('Audio playback error', 'err');
+        });
+        await _voiceAudio.play();
+      } catch (err) {
+        missionEl.classList.remove('voice-listening');
+        console.error('wakeJarvis error:', err);
+        toast('Voice err: ' + (err?.message || err), 'err');
+      }
+    }
+
+    function tryStartHotword() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        // Silent no-op on Firefox/Safari — click still works
+        return;
+      }
+      try {
+        _voiceRecog = new SpeechRecognition();
+        _voiceRecog.continuous = true;
+        _voiceRecog.interimResults = true;
+        _voiceRecog.lang = 'en-US';
+        _voiceRecog.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript.toLowerCase();
+            // Hotword variants — be loose, speech recognition errs
+            if (
+              transcript.includes('jarvis wake up') ||
+              transcript.includes('jarvis, wake up') ||
+              transcript.includes('wake up jarvis') ||
+              transcript.includes('hey jarvis')
+            ) {
+              wakeJarvis();
+              break;
+            }
+          }
+        };
+        _voiceRecog.onend = () => {
+          // Auto-restart so the loop is always listening
+          if (_voiceRecogActive) {
+            try { _voiceRecog.start(); } catch {}
+          }
+        };
+        _voiceRecog.onerror = (e) => {
+          // Permission-denied or no-speech — let it die quietly
+          console.warn('[hotword] recog err:', e.error);
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            _voiceRecogActive = false;
+          }
+        };
+        _voiceRecogActive = true;
+        _voiceRecog.start();
+        console.log('[hotword] listening for "Jarvis wake up"');
+      } catch (err) {
+        console.warn('[hotword] failed to init:', err);
+      }
     }
 
     // Initialize
