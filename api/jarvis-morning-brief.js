@@ -8,6 +8,8 @@
 // V5 R7 (2026-06-18): swapped Bill → Daniel.
 // V5 R8 (2026-06-19): swapped Daniel → George per Heath. George = JBFqnCBsd6RMkjVDRZzb.
 //   Closer to original Iron Man Jarvis (Paul Bettany) — richer, deeper, refined.
+// V5 R9 (2026-06-19): pronunciation fix — "todo"/"todos" → "to-do"/"to-do items"
+//   so ElevenLabs reads English ("too-doo") instead of Spanish ("toe-doe", = "all").
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -43,7 +45,7 @@ async function buildBriefText(admin) {
   const parts = [];
   parts.push('Good morning Heath.');
   parts.push(`Here's what's on your radar.`);
-  parts.push(`${todoCount} ${todoCount === 1 ? 'todo' : 'todos'} pending.`);
+  parts.push(`${todoCount} ${todoCount === 1 ? 'to-do' : 'to-do items'} pending.`);
   parts.push(`${decisionCount} ${decisionCount === 1 ? 'decision' : 'decisions'} waiting on you.`);
   if (mrr > 0) parts.push(`Month-to-date revenue is ${formatCurrency(mrr)}.`);
   if (incidents) parts.push(`${incidents} incidents in the last 24 hours.`);
