@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TREC Widget Labeler — Offline</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1A2E'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='18' font-weight='600' text-anchor='middle' fill='%23C9A96E'%3ED%3C/text%3E%3C/svg%3E">
+<style>
+  /* Brand tokens — Dossie palette */
+  :root {
+    --blush: #F5E6E0;
+    --blush-deep: #D4A0A0;
+    --sage: #8BA888;
+    --gold: #C9A96E;
+    --navy: #1A1A2E;
+    --coral: #E8836B;
+    --paper: #FBF8F6;
+    --muted: #6B6B7B;
+    --border: #E8DDD7;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--navy);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Pad body bottom so the persistent hotkey footer never obscures content
+     (incl. iOS safe-area / home-indicator). */
+  body { padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px)); }
+
+  .hotkey-footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: rgba(26, 26, 46, 0.92);   /* navy @ 92% */
+    color: var(--blush);
+    border-top: 2px solid var(--gold);
+    padding: 10px 14px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    font-size: 13.5px;
+    line-height: 1.3;
+    text-align: center;
+    z-index: 50;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    pointer-events: none; /* hint only — never blocks taps */
+  }
+  .hotkey-footer .kbd {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--navy);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0 2px;
+  }
+  .topbar {
+    position: sticky; top: 0;
+    background: var(--navy);
+    color: var(--blush);
+    padding: 12px 16px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+  .topbar h1 {
+    font-family: "Cormorant Garamond", "Hoefler Text", "Times New Roman", Georgia, serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin: 0;
+    margin-right: 12px;
+    letter-spacing: 0.5px;
+  }
+  .topbar .build-tag {
+    color: var(--gold);
+    font-size: 11px;
+    opacity: 0.7;
+    margin-left: auto;
+  }
+  .topbar select,
+  .topbar button {
+    background: var(--blush);
+    color: var(--navy);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    min-height: 36px;
+  }
+  .topbar button:hover { background: var(--blush-deep); color: white; }
+  .topbar button.danger { background: #fff3f0; color: #a04030; }
+  .topbar button.danger:hover { background: #d05030; color: white; }
+  .topbar input[type="file"] { display: none; }
+
+  .progress {
+    padding: 10px 16px;
+    background: var(--blush);
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--navy);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .progress.high-remaining { background: #f5d8d2; }
+  .progress.low-remaining { background: #d8e5d6; }
+  .progress .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .progress .badge.sage { background: var(--sage); color: white; }
+  .progress .badge.blush-deep { background: var(--blush-deep); color: white; }
+  .progress .badge.gold { background: var(--gold); color: var(--navy); }
+
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+  .empty-state {
+    background: white;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    color: var(--muted);
+    margin-top: 24px;
+  }
+
+  .done-state {
+    background: white;
+    border: 2px solid var(--sage);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    margin-top: 16px;
+  }
+  .done-state h2 {
+    font-family: "Cormorant Garamond", "Hoefler Text", "Times New Roman", Georgia, serif;
+    color: var(--sage); margin: 0 0 8px 0;
+  }
+  .done-state button {
+    background: var(--gold); color: var(--navy);
+    border: 0; border-radius: 8px;
+    padding: 12px 24px; font-size: 16px; cursor: pointer;
+    min-height: 44px; margin-top: 12px;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .card .breadcrumb {
+    font-family: "Cormorant Garamond", "Hoefler Text", "Times New Roman", Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--navy);
+  }
+
+  .card .field-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .field-name {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--paper);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    word-break: break-all;
+    flex: 1 1 auto;
+  }
+  .type-badge {
+    display: inline-block;
+    background: var(--navy);
+    color: var(--blush);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .type-badge.checkbox { background: var(--coral); color: white; }
+  .type-badge.text { background: var(--sage); color: white; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .meta-row span strong { color: var(--navy); }
+
+  .guess-box {
+    background: var(--blush);
+    border-left: 4px solid var(--gold);
+    padding: 12px 14px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .guess-box .guess-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .guess-box .guess-value {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 15px; font-weight: 600; color: var(--navy);
+    word-break: break-word;
+  }
+  .guess-box .guess-meta {
+    font-size: 12px; color: var(--muted); margin-top: 4px;
+  }
+
+  .nearest {
+    margin: 14px 0;
+  }
+  .nearest h3 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--muted); margin: 0 0 6px 0; font-weight: 600;
+  }
+  .nearest ul {
+    list-style: none; padding: 0; margin: 0;
+    font-size: 13px;
+  }
+  .nearest li {
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--border);
+  }
+  .nearest li:last-child { border-bottom: 0; }
+  .nearest .label-text {
+    background: var(--paper); padding: 1px 6px; border-radius: 3px;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--navy);
+  }
+  .nearest .label-meta { color: var(--muted); margin-left: 6px; }
+
+  .reason {
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+    padding: 8px 12px;
+    background: #fafafa;
+    border-left: 2px solid var(--border);
+    margin: 12px 0;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .actions button {
+    border: 0;
+    padding: 14px 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 48px;
+    transition: transform 0.05s ease, opacity 0.15s ease;
+  }
+  .actions button:active { transform: scale(0.98); }
+  .actions button .kbd {
+    display: inline-block;
+    background: rgba(0,0,0,0.15);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    margin-right: 6px;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .actions .accept { background: var(--sage); color: white; }
+  .actions .correct { background: var(--blush-deep); color: white; }
+  .actions .skip { background: #d8d4cf; color: var(--navy); }
+  .actions .not-fillable { background: var(--navy); color: var(--blush); }
+  .actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .correct-form {
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--blush);
+    border-radius: 8px;
+    border: 1px solid var(--blush-deep);
+  }
+  .correct-form label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--navy); margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .correct-form input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 1px solid var(--blush-deep);
+    border-radius: 6px;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    background: white;
+  }
+  .correct-form input:focus { outline: 2px solid var(--gold); }
+  .correct-form .row {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .correct-form button {
+    flex: 1; padding: 12px; font-size: 14px; font-weight: 600;
+    border: 0; border-radius: 6px; cursor: pointer; min-height: 44px;
+  }
+  .correct-form .save { background: var(--sage); color: white; }
+  .correct-form .cancel { background: #d8d4cf; color: var(--navy); }
+
+  .nav-row {
+    margin-top: 18px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .nav-row button {
+    background: white; color: var(--navy);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; min-height: 40px;
+    font-size: 14px;
+  }
+  .nav-row button:hover { background: var(--blush); }
+  .nav-row .jump {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--muted);
+  }
+  .nav-row .jump input {
+    width: 70px; padding: 6px 8px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 4px;
+  }
+
+  details.help {
+    margin-top: 18px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  details.help summary { cursor: pointer; color: var(--muted); }
+  details.help table { border-collapse: collapse; margin-top: 8px; width: 100%; }
+  details.help td {
+    padding: 4px 8px;
+    border-bottom: 1px dotted var(--border);
+  }
+  details.help td:first-child {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--coral); font-weight: 600;
+    width: 90px;
+  }
+
+  .danger-footer {
+    margin-top: 32px;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .danger-footer button {
+    background: transparent; color: #a04030;
+    border: 1px solid #a04030; border-radius: 6px;
+    padding: 6px 14px; font-size: 12px; cursor: pointer;
+    min-height: 32px;
+  }
+  .danger-footer button:hover { background: #a04030; color: white; }
+
+  .status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 6px;
+  }
+  .status-pill.accepted { background: var(--sage); color: white; }
+  .status-pill.corrected { background: var(--blush-deep); color: white; }
+  .status-pill.skipped { background: #d8d4cf; color: var(--navy); }
+  .status-pill.not_fillable { background: var(--navy); color: var(--blush); }
+
+  @media (max-width: 480px) {
+    main { padding: 10px; }
+    .card { padding: 14px; }
+    .topbar h1 { font-size: 17px; }
+    .topbar .build-tag { display: none; }
+    .actions { grid-template-columns: 1fr; }
+    .actions button { min-height: 52px; font-size: 16px; }
+    .meta-row { gap: 8px; font-size: 12px; }
+    .hotkey-footer { font-size: 12px; padding: 8px 10px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+    body { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>TREC Widget Labeler</h1>
+  <select id="formSelect" aria-label="Form selector">
+    <option value="trec-20-18">TREC 20-18 Resale</option>
+    <option value="trec-40">TREC 40 Third-Party Financing</option>
+    <option value="trec-36-11">TREC 36-11 HOA Addendum</option>
+    <option value="op-l">OP-L Lead-Based Paint</option>
+    <option value="trec-39-10">TREC 39-10 Amendment</option>
+    <option value="trec-38-7">TREC 38-7 Notice of Termination</option>
+    <option value="op-h">OP-H Seller's Disclosure</option>
+  </select>
+  <button id="exportBtn" type="button">Export JSON</button>
+  <button id="importBtn" type="button">Import JSON</button>
+  <input type="file" id="importFile" accept="application/json,.json">
+  <span class="build-tag">build __BUILD_TIME__</span>
+</header>
+
+<div id="progress" class="progress" role="status" aria-live="polite">Loading...</div>
+
+<main>
+  <div id="content"></div>
+
+  <details class="help">
+    <summary>Keyboard shortcuts (tap to expand)</summary>
+    <table>
+      <tr><td>&larr;</td><td>Previous widget</td></tr>
+      <tr><td>&rarr;</td><td>Next widget</td></tr>
+      <tr><td>1</td><td>Accept Atlas's guess</td></tr>
+      <tr><td>2</td><td>Correct (opens editor)</td></tr>
+      <tr><td>3</td><td>Skip (revisit at end)</td></tr>
+      <tr><td>4</td><td>Not a fillable field</td></tr>
+      <tr><td>Enter</td><td>Save (when correcting)</td></tr>
+      <tr><td>Esc</td><td>Cancel correct</td></tr>
+    </table>
+  </details>
+
+  <div class="danger-footer">
+    Offline tool. Every label saves to your browser's local storage instantly.<br>
+    <button id="clearBtn" type="button">Clear all labels for this form</button>
+  </div>
+</main>
+
+<div class="hotkey-footer" role="note" aria-label="Keyboard shortcuts">
+  Press <span class="kbd">1</span>&ndash;<span class="kbd">4</span> to label without mouse &mdash; speeds you through 84 widgets in ~15 min
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------
+   * Embedded dataset (injected at build time by build-labeler.js).
+   * Shape: { "trec-20-18": [widget, ...], "trec-40": [], ... }
+   * Each widget preserves the full schema from .trec-20-18-unmatched-report.json
+   * ---------------------------------------------------------------- */
+  var EMBEDDED_DATA_JSON = /* __EMBEDDED_DATASET__ */"__PLACEHOLDER__";
+  var DATASET = JSON.parse(EMBEDDED_DATA_JSON);
+
+  var FORM_LABELS = {
+    'trec-20-18': 'TREC 20-18 Resale',
+    'trec-40': 'TREC 40 Third-Party Financing',
+    'trec-36-11': 'TREC 36-11 HOA Addendum',
+    'op-l': 'OP-L Lead-Based Paint',
+    'trec-39-10': 'TREC 39-10 Amendment',
+    'trec-38-7': 'TREC 38-7 Notice of Termination',
+    'op-h': "OP-H Seller's Disclosure",
+  };
+
+  /* ------------------------------------------------------------------
+   * State
+   * ---------------------------------------------------------------- */
+  var state = {
+    formId: 'trec-20-18',
+    cursor: 0,            // index into widgets array
+    correcting: false,    // currently in "correct" edit mode
+    secondPass: false,    // true when we've cycled into deferred re-visit
+  };
+
+  function storageKey(formId) { return 'trec-labeler-' + formId; }
+
+  function loadLabels(formId) {
+    try {
+      var raw = localStorage.getItem(storageKey(formId));
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      console.warn('LocalStorage read failed:', e);
+      return {};
+    }
+  }
+
+  function saveLabels(formId, labels) {
+    try {
+      localStorage.setItem(storageKey(formId), JSON.stringify(labels));
+    } catch (e) {
+      console.error('LocalStorage write failed:', e);
+      alert('Could not save label — your browser may have storage disabled. ' + e.message);
+    }
+  }
+
+  function widgetsFor(formId) {
+    return DATASET[formId] || [];
+  }
+
+  /* ------------------------------------------------------------------
+   * Counting / progress
+   * ---------------------------------------------------------------- */
+  function countProgress(formId) {
+    var widgets = widgetsFor(formId);
+    var labels = loadLabels(formId);
+    var total = widgets.length;
+    var labeled = 0;
+    var skipped = 0;
+    var notFillable = 0;
+    widgets.forEach(function (w) {
+      var entry = labels[w.index];
+      if (!entry) return;
+      if (entry.status === 'skipped') skipped++;
+      else if (entry.status === 'not_fillable') { notFillable++; labeled++; }
+      else if (entry.status === 'accepted' || entry.status === 'corrected') labeled++;
+    });
+    var remaining = total - labeled - skipped;
+    return { total: total, labeled: labeled, skipped: skipped, notFillable: notFillable, remaining: remaining };
+  }
+
+  /* ------------------------------------------------------------------
+   * Cursor advancement — find the next unlabeled widget.
+   * Pass 1: walk widgets[cursor..end] looking for any widget with no label.
+   * Pass 2: if all are labeled-or-skipped and skipped > 0, walk for skipped.
+   * Otherwise: done state.
+   * ---------------------------------------------------------------- */
+  function findNextUnlabeled(formId, startCursor) {
+    var widgets = widgetsFor(formId);
+    var labels = loadLabels(formId);
+    for (var i = startCursor; i < widgets.length; i++) {
+      if (!labels[widgets[i].index]) return i;
+    }
+    // wrap to start
+    for (var j = 0; j < startCursor; j++) {
+      if (!labels[widgets[j].index]) return j;
+    }
+    // no unlabeled — try deferred (skipped)
+    for (var k = 0; k < widgets.length; k++) {
+      var e = labels[widgets[k].index];
+      if (e && e.status === 'skipped') return k;
+    }
+    return -1; // all done
+  }
+
+  /* ------------------------------------------------------------------
+   * Rendering
+   * ---------------------------------------------------------------- */
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderProgress() {
+    var p = countProgress(state.formId);
+    var el = document.getElementById('progress');
+    if (p.total === 0) {
+      el.textContent = 'No widgets loaded for this form yet.';
+      el.className = 'progress';
+      return;
+    }
+    el.className = 'progress' +
+      (p.remaining > 50 ? ' high-remaining' :
+       p.remaining < 10 ? ' low-remaining' : '');
+    var labeledBadge = '<span class="badge sage">' + p.labeled + '</span>';
+    var skipBadge = p.skipped > 0
+      ? '<span class="badge blush-deep">' + p.skipped + ' skipped</span>' : '';
+    var midpoint = p.total >= 2 && p.labeled >= Math.floor(p.total / 2)
+      ? '<span class="badge gold">halfway</span>' : '';
+    el.innerHTML =
+      labeledBadge + ' of ' + p.total + ' labeled · ' +
+      skipBadge + ' ' +
+      '<strong>' + p.remaining + '</strong> remaining ' + midpoint;
+  }
+
+  function renderEmpty() {
+    var contentEl = document.getElementById('content');
+    contentEl.innerHTML =
+      '<div class="empty-state">' +
+      '<p><strong>No widgets loaded for ' + escapeHtml(FORM_LABELS[state.formId] || state.formId) + ' yet.</strong></p>' +
+      '<p>Atlas will populate this form once its unmatched report is generated.</p>' +
+      '</div>';
+  }
+
+  function renderDone() {
+    var p = countProgress(state.formId);
+    var contentEl = document.getElementById('content');
+    contentEl.innerHTML =
+      '<div class="done-state">' +
+      '<h2>All ' + p.total + ' widgets labeled</h2>' +
+      '<p>Nice work. Tap Export JSON in the top bar to save your labels.</p>' +
+      '<button type="button" id="exportFromDone">Export JSON</button>' +
+      '</div>';
+    document.getElementById('exportFromDone').addEventListener('click', exportJson);
+  }
+
+  function renderCard() {
+    var widgets = widgetsFor(state.formId);
+    if (widgets.length === 0) { renderEmpty(); return; }
+    var p = countProgress(state.formId);
+    if (p.remaining === 0) { renderDone(); return; }
+
+    if (state.cursor < 0 || state.cursor >= widgets.length) state.cursor = 0;
+    var w = widgets[state.cursor];
+    var labels = loadLabels(state.formId);
+    var existing = labels[w.index];
+
+    var orderPosition = state.cursor + 1;
+    var formName = FORM_LABELS[state.formId] || state.formId;
+
+    var typeBadgeClass = w.field_type === 'checkbox' ? 'checkbox' :
+                         w.field_type === 'text' ? 'text' : '';
+
+    var guessBlock = '';
+    if (w.best_label_guess) {
+      guessBlock =
+        '<div class="guess-box">' +
+        '<div class="guess-label">Atlas\'s best guess</div>' +
+        '<div class="guess-value">' + escapeHtml(w.best_label_guess) + '</div>' +
+        '<div class="guess-meta">' +
+        'maps to <code>' + escapeHtml(w.best_label_fixture_key || '(none)') + '</code>' +
+        (w.best_label_score != null ? ' &middot; confidence ' + (typeof w.best_label_score === 'number' ? w.best_label_score.toFixed(2) : w.best_label_score) : '') +
+        '</div></div>';
+    } else {
+      guessBlock =
+        '<div class="guess-box">' +
+        '<div class="guess-label">Atlas\'s best guess</div>' +
+        '<div class="guess-value" style="color:var(--muted);font-style:italic">(no confident guess)</div>' +
+        '</div>';
+    }
+
+    var nearest = (w.nearest_labels_within_100px || []).slice(0, 3);
+    var nearestBlock = '<div class="nearest"><h3>Top 3 nearby labels</h3><ul>';
+    if (nearest.length === 0) {
+      nearestBlock += '<li><em style="color:var(--muted)">no labels within 100pt</em></li>';
+    } else {
+      nearest.forEach(function (n) {
+        nearestBlock +=
+          '<li>' +
+          '<span class="label-text">' + escapeHtml(n.text) + '</span>' +
+          '<span class="label-meta">' + escapeHtml(n.direction || '') +
+          (n.distance != null ? ' &middot; ' + (typeof n.distance === 'number' ? n.distance.toFixed(1) : n.distance) + 'pt' : '') +
+          '</span></li>';
+      });
+    }
+    nearestBlock += '</ul></div>';
+
+    var statusPill = existing
+      ? '<span class="status-pill ' + existing.status + '">' + existing.status + ': ' + escapeHtml(existing.fixture_key || '—') + '</span>'
+      : '';
+
+    var cardHtml =
+      '<div class="card">' +
+      '<div class="breadcrumb">' + escapeHtml(formName) + ' — widget ' + orderPosition + ' of ' + widgets.length + statusPill + '</div>' +
+      '<div class="field-row">' +
+      '<span class="type-badge ' + typeBadgeClass + '">' + escapeHtml(w.field_type) + '</span>' +
+      '<span class="field-name">' + escapeHtml(w.field_name) + '</span>' +
+      '</div>' +
+      '<div class="meta-row">' +
+      '<span><strong>page</strong> ' + escapeHtml(String(w.page)) + '</span>' +
+      '<span><strong>x</strong> ' + escapeHtml(String(w.x)) + '</span>' +
+      '<span><strong>y</strong> ' + escapeHtml(String(w.y)) + '</span>' +
+      '<span><strong>w</strong> ' + escapeHtml(String(w.width)) + '</span>' +
+      '<span><strong>h</strong> ' + escapeHtml(String(w.height)) + '</span>' +
+      '<span><strong>widget #</strong> ' + escapeHtml(String(w.index)) + '</span>' +
+      '</div>' +
+      guessBlock +
+      nearestBlock +
+      (w.reason_no_match ? '<div class="reason">' + escapeHtml(w.reason_no_match) + '</div>' : '') +
+      '<div class="actions">' +
+      '<button type="button" class="accept" data-action="accept"' + (w.best_label_fixture_key ? '' : ' disabled title="No guess to accept"') + '><span class="kbd">1</span>Accept guess</button>' +
+      '<button type="button" class="correct" data-action="correct"><span class="kbd">2</span>Correct</button>' +
+      '<button type="button" class="skip" data-action="skip"><span class="kbd">3</span>Skip</button>' +
+      '<button type="button" class="not-fillable" data-action="not_fillable"><span class="kbd">4</span>Not a fillable field</button>' +
+      '</div>' +
+      (state.correcting ? renderCorrectForm(w, existing) : '') +
+      '<div class="nav-row">' +
+      '<button type="button" data-action="prev">&larr; Prev</button>' +
+      '<button type="button" data-action="next">Next &rarr;</button>' +
+      '<div class="jump"><label for="jumpInput">Jump to widget #</label>' +
+      '<input type="number" id="jumpInput" min="0" placeholder="' + escapeHtml(String(w.index)) + '"></div>' +
+      '</div>' +
+      '</div>';
+
+    var contentEl = document.getElementById('content');
+    contentEl.innerHTML = cardHtml;
+    wireCardEvents();
+  }
+
+  function renderCorrectForm(w, existing) {
+    var prefill = (existing && existing.fixture_key) || w.best_label_fixture_key || '';
+    return '' +
+      '<div class="correct-form">' +
+      '<label for="correctInput">Enter fixture key for this widget</label>' +
+      '<input type="text" id="correctInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + escapeHtml(prefill) + '" placeholder="e.g. buyer_initials, addendum_propane, ignore">' +
+      '<div class="row">' +
+      '<button type="button" class="save" data-action="save-correct">Save (Enter)</button>' +
+      '<button type="button" class="cancel" data-action="cancel-correct">Cancel (Esc)</button>' +
+      '</div></div>';
+  }
+
+  function wireCardEvents() {
+    var contentEl = document.getElementById('content');
+    contentEl.querySelectorAll('[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        handleAction(btn.getAttribute('data-action'));
+      });
+    });
+    var jump = document.getElementById('jumpInput');
+    if (jump) {
+      jump.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          jumpToWidgetIndex(parseInt(jump.value, 10));
+        }
+      });
+    }
+    var correctInput = document.getElementById('correctInput');
+    if (correctInput) {
+      correctInput.focus();
+      correctInput.select();
+      correctInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveCorrect(); }
+        else if (e.key === 'Escape') { e.preventDefault(); state.correcting = false; render(); }
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * Actions
+   * ---------------------------------------------------------------- */
+  function writeLabel(formId, widgetIndex, fixtureKey, status, originalGuess) {
+    var labels = loadLabels(formId);
+    labels[widgetIndex] = {
+      index: widgetIndex,
+      fixture_key: fixtureKey,
+      status: status,
+      original_guess: originalGuess == null ? null : originalGuess,
+      labeled_at: new Date().toISOString(),
+    };
+    saveLabels(formId, labels);
+  }
+
+  function currentWidget() {
+    var widgets = widgetsFor(state.formId);
+    return widgets[state.cursor];
+  }
+
+  function handleAction(action) {
+    var w = currentWidget();
+    if (!w && action !== 'prev' && action !== 'next') return;
+
+    if (action === 'accept') {
+      if (!w.best_label_fixture_key) return;
+      writeLabel(state.formId, w.index, w.best_label_fixture_key, 'accepted', w.best_label_fixture_key);
+      advance();
+    } else if (action === 'correct') {
+      state.correcting = true;
+      render();
+    } else if (action === 'save-correct') {
+      saveCorrect();
+    } else if (action === 'cancel-correct') {
+      state.correcting = false;
+      render();
+    } else if (action === 'skip') {
+      writeLabel(state.formId, w.index, null, 'skipped', w.best_label_fixture_key || null);
+      advance();
+    } else if (action === 'not_fillable') {
+      writeLabel(state.formId, w.index, null, 'not_fillable', w.best_label_fixture_key || null);
+      advance();
+    } else if (action === 'next') {
+      advanceCursor(1);
+    } else if (action === 'prev') {
+      advanceCursor(-1);
+    }
+  }
+
+  function saveCorrect() {
+    var input = document.getElementById('correctInput');
+    var w = currentWidget();
+    if (!input || !w) return;
+    var value = input.value.trim();
+    if (!value) { input.focus(); return; }
+    writeLabel(state.formId, w.index, value, 'corrected', w.best_label_fixture_key || null);
+    state.correcting = false;
+    advance();
+  }
+
+  function advance() {
+    state.correcting = false;
+    var next = findNextUnlabeled(state.formId, state.cursor + 1);
+    if (next === -1) {
+      renderProgress();
+      renderDone();
+      return;
+    }
+    state.cursor = next;
+    render();
+  }
+
+  function advanceCursor(delta) {
+    state.correcting = false;
+    var widgets = widgetsFor(state.formId);
+    if (widgets.length === 0) return;
+    state.cursor = (state.cursor + delta + widgets.length) % widgets.length;
+    render();
+  }
+
+  function jumpToWidgetIndex(widgetIndex) {
+    if (isNaN(widgetIndex)) return;
+    var widgets = widgetsFor(state.formId);
+    for (var i = 0; i < widgets.length; i++) {
+      if (widgets[i].index === widgetIndex) {
+        state.cursor = i;
+        state.correcting = false;
+        render();
+        return;
+      }
+    }
+    alert('No widget with index ' + widgetIndex + ' in this form.');
+  }
+
+  /* ------------------------------------------------------------------
+   * Export / Import
+   * ---------------------------------------------------------------- */
+  function exportJson() {
+    var widgets = widgetsFor(state.formId);
+    var labels = loadLabels(state.formId);
+    var rows = [];
+    widgets.forEach(function (w) {
+      var entry = labels[w.index];
+      if (!entry) return;
+      rows.push({
+        index: w.index,
+        fixture_key: entry.fixture_key,
+        status: entry.status,
+        original_guess: entry.original_guess != null ? entry.original_guess : (w.best_label_fixture_key || null),
+      });
+    });
+    var payload = {
+      form: state.formId,
+      labeled_at: new Date().toISOString(),
+      labels: rows,
+    };
+    var today = new Date().toISOString().slice(0, 10);
+    // Avoid "trec-trec-20-18-..." when form-id already starts with "trec-".
+    var fnameStem = /^trec-/i.test(state.formId) ? state.formId : 'trec-' + state.formId;
+    var filename = fnameStem + '-labels-' + today + '.json';
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  function importJson(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(reader.result);
+        if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.labels)) {
+          alert('Invalid JSON: must have a "labels" array.');
+          return;
+        }
+        if (parsed.form && parsed.form !== state.formId) {
+          if (!confirm('JSON is for form "' + parsed.form + '" but you are on "' + state.formId + '". Import anyway?')) return;
+        }
+        var labels = loadLabels(state.formId);
+        var merged = 0;
+        parsed.labels.forEach(function (row) {
+          if (typeof row.index !== 'number') return;
+          if (!row.status) return;
+          labels[row.index] = {
+            index: row.index,
+            fixture_key: row.fixture_key || null,
+            status: row.status,
+            original_guess: row.original_guess != null ? row.original_guess : null,
+            labeled_at: row.labeled_at || new Date().toISOString(),
+          };
+          merged++;
+        });
+        saveLabels(state.formId, labels);
+        alert('Imported ' + merged + ' label(s).');
+        render();
+      } catch (e) {
+        alert('Failed to parse JSON: ' + e.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function clearProgress() {
+    var formName = FORM_LABELS[state.formId] || state.formId;
+    if (!confirm('Clear all labels for ' + formName + '? This cannot be undone.')) return;
+    localStorage.removeItem(storageKey(state.formId));
+    state.cursor = 0;
+    state.correcting = false;
+    render();
+  }
+
+  /* ------------------------------------------------------------------
+   * Render entry point
+   * ---------------------------------------------------------------- */
+  function render() {
+    renderProgress();
+    var widgets = widgetsFor(state.formId);
+    if (widgets.length === 0) {
+      renderEmpty();
+      return;
+    }
+    var p = countProgress(state.formId);
+    if (p.remaining === 0 && p.total > 0) {
+      renderDone();
+      return;
+    }
+    renderCard();
+  }
+
+  function switchForm(newFormId) {
+    state.formId = newFormId;
+    state.correcting = false;
+    state.cursor = 0;
+    var widgets = widgetsFor(newFormId);
+    if (widgets.length > 0) {
+      var next = findNextUnlabeled(newFormId, 0);
+      state.cursor = next === -1 ? 0 : next;
+    }
+    render();
+  }
+
+  /* ------------------------------------------------------------------
+   * Wire global controls
+   * ---------------------------------------------------------------- */
+  function wireGlobal() {
+    document.getElementById('formSelect').addEventListener('change', function (e) {
+      switchForm(e.target.value);
+    });
+    document.getElementById('exportBtn').addEventListener('click', exportJson);
+    document.getElementById('importBtn').addEventListener('click', function () {
+      document.getElementById('importFile').click();
+    });
+    document.getElementById('importFile').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) importJson(f);
+      e.target.value = ''; // allow re-import same file
+    });
+    document.getElementById('clearBtn').addEventListener('click', clearProgress);
+
+    document.addEventListener('keydown', function (e) {
+      // Don't intercept keys while typing in inputs (other than the correct form)
+      var t = e.target;
+      var isCorrectInput = t && t.id === 'correctInput';
+      var isJumpInput = t && t.id === 'jumpInput';
+      if (state.correcting || isCorrectInput) return;
+      if (isJumpInput) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+
+      if (e.key === 'ArrowLeft') { e.preventDefault(); handleAction('prev'); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); handleAction('next'); }
+      else if (e.key === '1') { e.preventDefault(); handleAction('accept'); }
+      else if (e.key === '2') { e.preventDefault(); handleAction('correct'); }
+      else if (e.key === '3') { e.preventDefault(); handleAction('skip'); }
+      else if (e.key === '4') { e.preventDefault(); handleAction('not_fillable'); }
+    });
+  }
+
+  /* ------------------------------------------------------------------
+   * Boot
+   * ---------------------------------------------------------------- */
+  wireGlobal();
+  // Resume to first unlabeled on the default form
+  var firstUnlabeled = findNextUnlabeled(state.formId, 0);
+  state.cursor = firstUnlabeled === -1 ? 0 : firstUnlabeled;
+  render();
+})();
+</script>
+</body>
+</html>
