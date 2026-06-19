@@ -29,13 +29,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       min-height: 100vh;
-      /* V5 R2.2: deep-navy gradient base + hex grid overlay (cyan, 15% opacity) */
       background-color: #020817;
-      background-image:
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='48' viewBox='0 0 56 48'><g fill='none' stroke='%2300d4ff' stroke-opacity='0.15' stroke-width='1'><path d='M14 0 L42 0 L56 24 L42 48 L14 48 L0 24 Z'/><path d='M42 0 L70 0 L84 24 L70 48 L42 48 L56 24 Z' transform='translate(-28 0)'/></g></svg>"),
-        radial-gradient(ellipse at 50% 0%, #0a1f3a 0%, #020817 60%);
-      background-repeat: repeat, no-repeat;
-      background-size: 56px 48px, 100% 100%;
+      background-image: radial-gradient(ellipse at 50% 0%, #0a1f3a 0%, #020817 65%);
       color: var(--blush);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 16px;
@@ -43,6 +38,20 @@
       -webkit-font-smoothing: antialiased;
       padding-bottom: env(safe-area-inset-bottom);
       overflow-x: hidden;
+    }
+
+    /* V5 R2.2: hex grid overlay layered BETWEEN the three.js canvas and the content.
+       Avoids UnrealBloomPass opaque-alpha issue that hides body backgrounds. */
+    .hex-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='52' viewBox='0 0 60 52'><g fill='none' stroke='%234dd4ff' stroke-opacity='0.18' stroke-width='1'><path d='M15 1 L45 1 L60 26 L45 51 L15 51 L0 26 Z'/><path d='M45 1 L75 1 L90 26 L75 51 L45 51 L60 26 Z'/><path d='M-15 1 L15 1 L30 26 L15 51 L-15 51 L-30 26 Z'/></g></svg>");
+      background-repeat: repeat;
+      background-size: 60px 52px;
+      mix-blend-mode: screen;
+      opacity: 0.85;
     }
 
     /* ---- Auth gate ---- */
@@ -437,8 +446,11 @@
 
   <!-- Main app -->
   <div id="app">
-    <!-- 3D Canvas -->
+    <!-- 3D Canvas (z-index 0) -->
     <div id="three-container"></div>
+
+    <!-- Hex grid overlay (z-index 1) -->
+    <div class="hex-bg"></div>
 
     <!-- Mission Banner -->
     <div class="mission-banner">
@@ -652,9 +664,9 @@
       _composer.addPass(renderPass);
       _bloomPass = new UnrealBloomPass(
         new THREE.Vector2(w, h),
-        1.5,    // strength
-        0.4,    // radius
-        0.85    // threshold
+        0.85,   // strength — reduced so atmosphere doesn't blow out
+        0.55,   // radius
+        0.78    // threshold
       );
       _composer.addPass(_bloomPass);
 
@@ -776,10 +788,12 @@
       _orb.add(_earthWire);
 
       // ---- Layer 3: Atmosphere fresnel shell (BackSide) ----
-      const shellGeo = new THREE.SphereGeometry(1.18, 64, 64);
+      // Tighter fresnel power + lower max alpha so the halo reads as atmosphere,
+      // not a hard cyan ring overwhelming the city lights.
+      const shellGeo = new THREE.SphereGeometry(1.15, 64, 64);
       const shellMat = new THREE.ShaderMaterial({
         uniforms: {
-          color: { value: new THREE.Color(0x4dd4ff) }, // matches V5 spec secondary cyan
+          color: { value: new THREE.Color(0x00d4ff) }, // V5 spec primary cyan
         },
         vertexShader: `
           varying vec3 vNormal;
@@ -796,8 +810,8 @@
           varying vec3 vNormal;
           varying vec3 vViewDir;
           void main() {
-            float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.6);
-            gl_FragColor = vec4(color, fresnel * 0.85);
+            float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.4);
+            gl_FragColor = vec4(color, fresnel * 0.55);
           }
         `,
         transparent: true,
