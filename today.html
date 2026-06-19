@@ -3134,6 +3134,7 @@
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         _voiceAudio = new Audio(url);
+        _voiceAudio.preload = 'auto';
         _voiceAudio.addEventListener('ended', () => {
           missionEl.classList.remove('voice-listening');
           stopAudioReactive();
@@ -3144,8 +3145,18 @@
           stopAudioReactive();
           toast('Audio playback error', 'err');
         });
+        // V5 R7.1 — Wait for canplaythrough on mobile so we don't hit decoder
+        // stalls; desktop fires it almost immediately for buffered blobs.
+        await new Promise((resolve) => {
+          if (_voiceAudio.readyState >= 4) return resolve();
+          const onReady = () => { _voiceAudio.removeEventListener('canplaythrough', onReady); resolve(); };
+          _voiceAudio.addEventListener('canplaythrough', onReady, { once: true });
+          // Safety net: don't hang forever if event never fires
+          setTimeout(resolve, 1500);
+        });
         await _voiceAudio.play();
-        // V5 R7 #8 — Hook audio analyzer once playback starts
+        // V5 R7.1 — Hook analyzer lazily; skip entirely on touch/coarse-pointer
+        // devices where the per-frame rAF + CSS var writes were stuttering playback.
         startAudioReactive(_voiceAudio);
       } catch (err) {
         missionEl.classList.remove('voice-listening');
@@ -3165,6 +3176,10 @@
     let _audioRAF = null;
     let _audioReactiveOrbBase = 2.1;
     function startAudioReactive(audioEl) {
+      // V5 R7.1 — Skip on touch / coarse-pointer (mobile). MediaElementSource +
+      // 60fps rAF + per-frame CSS var writes were causing audio stutter on
+      // Samsung Z Fold / Android Chrome. Desktop only.
+      if (window.matchMedia('(pointer: coarse)').matches) return;
       try {
         if (!_audioCtx) {
           const AC = window.AudioContext || window.webkitAudioContext;

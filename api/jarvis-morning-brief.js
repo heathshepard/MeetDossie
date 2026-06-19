@@ -106,7 +106,10 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'elevenlabs_env_missing', ...brief });
   }
   try {
-    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${JARVIS_VOICE_ID}?optimize_streaming_latency=2&output_format=mp3_44100_128`, {
+    // V5 R7.1 (2026-06-18): drop streaming-latency optimization (we fully buffer
+    // server-side anyway, so its re-encode just hurts audio quality), bump bitrate
+    // 128→192 for cleaner mobile decode. Stutter fix.
+    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${JARVIS_VOICE_ID}?output_format=mp3_44100_192`, {
       method: 'POST',
       headers: {
         'xi-api-key': ELEVENLABS_API_KEY,
@@ -126,6 +129,8 @@ export default async function handler(req, res) {
     }
     const buf = Buffer.from(await ttsRes.arrayBuffer());
     res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', buf.length);
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('X-Brief-Text', encodeURIComponent(brief.text));
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).send(buf);
