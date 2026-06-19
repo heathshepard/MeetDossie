@@ -142,14 +142,25 @@
     #app { display: none; }
     #app.visible { display: flex; flex-direction: column; height: 100vh; }
 
-    /* ---- 3D Canvas Scene ---- */
+    /* ---- 3D Canvas Scene ----
+       V5 R9 (2026-06-18 — Earth stretch fix): use dynamic viewport height (100dvh)
+       so container box matches window.innerHeight on mobile (URL bar collapse).
+       Fallback to 100vh for older browsers. Canvas itself is forced to fill the
+       container so its CSS px == drawing-buffer px (no vertical stretch). */
     #three-container {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
-      height: 100vh;
+      height: 100vh;            /* fallback */
+      height: 100dvh;           /* dynamic — collapses with mobile URL bar */
       z-index: 0;
+      overflow: hidden;
+    }
+    #three-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
     }
     canvas { display: block; }
 
@@ -1607,8 +1618,12 @@
     // ========== THREE.JS SCENE ==========
     function initThreeScene() {
       const container = document.getElementById('three-container');
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      // V5 R9 (2026-06-18 — Earth stretch fix): size from the CONTAINER, not
+      // window.innerWidth/innerHeight. On mobile, 100dvh container ≠ window.innerHeight
+      // momentarily during URL-bar collapse; reading container.clientWidth/Height
+      // guarantees aspect matches what the user actually sees.
+      const w = container.clientWidth || window.innerWidth;
+      const h = container.clientHeight || window.innerHeight;
 
       // Setup camera — V5 R2.3: pulled back so the big centerpiece orb has breathing room
       // V5 R7: base position captured for lissajous parallax drift in animate()
@@ -1618,9 +1633,13 @@
 
       // Setup renderer
       _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      _renderer.setSize(w, h);
+      // V5 R9: clamp DPR to 2 — Z Fold can report 3+ which murders fillrate
+      // AND amplifies aspect-mismatch artifacts. Clamp before setSize.
+      _renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      // setSize(w, h, false) — pass updateStyle=false so we don't fight our CSS
+      // 100%/100% canvas sizing (CSS controls layout, drawing buffer matches).
+      _renderer.setSize(w, h, false);
       _renderer.setClearColor(0x1a1a2e, 0);
-      _renderer.setPixelRatio(window.devicePixelRatio);
       _renderer.shadowMap.enabled = true;
       container.appendChild(_renderer.domElement);
 
@@ -1665,6 +1684,17 @@
 
       // Handle window resize
       window.addEventListener('resize', onWindowResize);
+      // V5 R9: also listen to visualViewport — mobile URL-bar collapse fires
+      // visualViewport.resize but not always window.resize. Catches dynamic
+      // viewport height (100dvh) changes that would otherwise mismatch aspect.
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', onWindowResize);
+      }
+      // Orientation change (Z Fold unfold, landscape rotate)
+      window.addEventListener('orientationchange', () => {
+        // Wait one frame for the browser to settle innerWidth/Height
+        setTimeout(onWindowResize, 100);
+      });
 
       // V5 R7: Create lens flares around the orb (additive sprites for cinematic light leaks)
       createLensFlares();
@@ -2129,12 +2159,16 @@
 
     
     function updateOrbPosition() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      // V5 R9: read from container, not window — same reason as initThreeScene.
+      // isMobile breakpoint stays driven by window.innerWidth because that's what
+      // the CSS @media query uses.
+      const container = document.getElementById('three-container');
+      const w = (container && container.clientWidth) || window.innerWidth;
+      const h = (container && container.clientHeight) || window.innerHeight;
       // V5 R8 (2026-06-19): bumped breakpoint 768→900 so Samsung Z Fold inner display
       // (~768-820px logical) still triggers mobile layout (not crammed desktop scale 2.1).
       // <=900 matches the CSS @media (max-width: 900px) inclusive boundary.
-      const isMobile = w <= 900;
+      const isMobile = (window.innerWidth || w) <= 900;
 
       if (!_orb) return;
 
@@ -2175,21 +2209,43 @@
     }
 
     function onWindowResize() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      // V5 R9 (2026-06-18 — Earth stretch fix): drive resize off the CONTAINER's
+      // actual rendered box. This handles mobile URL-bar collapse, Z Fold inner
+      // display unfold, and any case where 100dvh ≠ window.innerHeight.
+      const container = document.getElementById('three-container');
+      const w = (container && container.clientWidth) || window.innerWidth;
+      const h = (container && container.clientHeight) || window.innerHeight;
+      if (!w || !h) return;
       _camera.aspect = w / h;
       _camera.updateProjectionMatrix();
-      _renderer.setSize(w, h);
+      // updateStyle=false: CSS owns canvas layout, we only resize the drawing buffer
+      _renderer.setSize(w, h, false);
       _composer.setSize(w, h);
       updateOrbPosition();
     }
 
     // ========== DATA FETCHING ==========
+    // V5 R9.1 (2026-06-19) — Always pull a FRESH session token at fetch time.
+    // Previously cached _token at page load, which expires after ~1 hour and
+    // caused 401s when Heath came back to the tab. Supabase auto-refreshes
+    // when getSession() is called.
     async function authFetch(url, init = {}) {
+      let token = _token;
+      try {
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            token = session.access_token;
+            _token = token; // keep cached copy in sync
+          }
+        }
+      } catch (e) {
+        console.warn('[authFetch] getSession failed, using cached token:', e);
+      }
       return fetch(url, {
         ...init,
         headers: {
-          'Authorization': `Bearer ${_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           ...(init.headers || {}),
         },
