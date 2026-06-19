@@ -2230,19 +2230,35 @@
     // refreshSession(). If refresh fails, do NOT fall back to a stale cached
     // _token (that's what caused the 401 on JARVIS even after R9.1). Bounce
     // the user back to the login gate instead, so they can re-auth cleanly.
+    // V5 R9.3 (2026-06-19) — R9.2 was firing too eagerly: mobile background-tab
+    // throttling can make BOTH getSession() and refreshSession() return null
+    // transiently (localStorage write delay, auto-refresh timer paused). Add a
+    // 1.5s wait + retry getSession() before treating it as a hard auth failure.
+    // Only sign out if all three attempts come back empty.
     async function authFetch(url, init = {}) {
       let token = null;
       try {
         if (supabase) {
+          // Attempt 1: getSession()
           let { data: { session } } = await supabase.auth.getSession();
+          // Attempt 2: refreshSession()
           if (!session?.access_token) {
-            // Try one explicit refresh before giving up. Mobile background
-            // tabs can throttle the auto-refresh timer, so getSession() may
-            // return null even when the refresh_token is still valid.
             console.warn('[authFetch] no session from getSession, attempting refresh');
-            const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
-            if (refreshErr) console.warn('[authFetch] refreshSession err:', refreshErr.message);
-            session = refreshed?.session || null;
+            try {
+              const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+              if (refreshErr) console.warn('[authFetch] refreshSession err:', refreshErr.message);
+              session = refreshed?.session || session;
+            } catch (e) {
+              console.warn('[authFetch] refreshSession threw:', e);
+            }
+          }
+          // Attempt 3: wait 1.5s and retry getSession() — handles transient
+          // mobile-throttling where localStorage hasn't flushed yet.
+          if (!session?.access_token) {
+            console.warn('[authFetch] still no session — waiting 1.5s and retrying');
+            await new Promise(r => setTimeout(r, 1500));
+            const retry = await supabase.auth.getSession();
+            session = retry?.data?.session || null;
           }
           if (session?.access_token) {
             token = session.access_token;
@@ -2253,9 +2269,9 @@
         console.warn('[authFetch] session lookup failed:', e);
       }
       if (!token) {
-        // No live session and no fresh refresh available — surface to user
-        // rather than send a stale Bearer that will 401 anyway.
-        console.error('[authFetch] no live session — forcing re-auth');
+        // No live session after 3 attempts — surface to user rather than send
+        // a stale Bearer that will 401 anyway.
+        console.error('[authFetch] no live session after 3 attempts — forcing re-auth');
         try { await supabase?.auth.signOut(); } catch {}
         showLogin();
         const err = new Error('session_expired');
