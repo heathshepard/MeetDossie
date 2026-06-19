@@ -93,6 +93,52 @@
     #auth-gate button:hover { background: var(--coral-deep); }
     #auth-gate .err { color: var(--coral); font-size: 0.85rem; min-height: 1em; }
 
+    /* V5 R7 #5 — Boot sequence overlay (terminal cascade ~2.5s before UI reveals) */
+    #boot-seq {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(ellipse at center, #02101a 0%, #020817 60%, #000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.6s ease-out;
+    }
+    #boot-seq.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #boot-seq .boot-inner {
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+      color: #00d4ff;
+      text-shadow: 0 0 8px rgba(0, 212, 255, 0.55), 0 0 22px rgba(0, 212, 255, 0.18);
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      line-height: 1.55;
+      max-width: 560px;
+      padding: 0 18px;
+    }
+    #boot-seq pre {
+      margin: 0;
+      font-family: inherit;
+      white-space: pre-wrap;
+    }
+    #boot-cursor {
+      display: inline-block;
+      color: #00d4ff;
+      animation: boot-blink 0.65s steps(2, end) infinite;
+      margin-left: 2px;
+    }
+    @keyframes boot-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    @media (max-width: 600px) {
+      #boot-seq .boot-inner { font-size: 0.82rem; }
+    }
+
     #app { display: none; }
     #app.visible { display: flex; flex-direction: column; height: 100vh; }
 
@@ -239,22 +285,34 @@
       height: 100%;
     }
 
-    /* ---- Glassmorphic panel (Iron Man BLOCKED CALLER UI feel) ---- */
+    /* ---- Glassmorphic panel (Iron Man BLOCKED CALLER UI feel) ----
+       V5 R7 #4: true frosted glass — blur(20px) + saturate(1.5) + layered top-to-bottom gradient.
+       Panels now read with depth, not flat translucence. */
     .panel {
       background:
-        linear-gradient(180deg, rgba(0, 212, 255, 0.04) 0%, rgba(2, 8, 23, 0.55) 100%);
+        linear-gradient(180deg,
+          rgba(0, 212, 255, 0.07) 0%,
+          rgba(0, 212, 255, 0.025) 35%,
+          rgba(2, 8, 23, 0.55) 100%);
       border: 1px solid rgba(0, 212, 255, 0.22);
       border-radius: 10px;
       box-shadow:
         0 0 18px rgba(0, 212, 255, 0.10),
+        0 8px 32px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(0, 212, 255, 0.30);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
       display: flex;
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
       position: relative;
+      /* V5 R7 #11: stagger entrance — driven inline via animation-delay on each panel */
+      animation: panel-rise 0.55s cubic-bezier(0.20, 0.65, 0.30, 1.0) both;
+    }
+    @keyframes panel-rise {
+      0%   { opacity: 0; transform: translateY(18px) scale(0.985); }
+      100% { opacity: 1; transform: translateY(0)    scale(1); }
     }
     .panel::before {
       /* corner brackets — Stark HUD touch */
@@ -1071,6 +1129,14 @@
     <input id="signin-password" type="password" placeholder="password" autocomplete="current-password">
     <button id="signin-btn">Sign in</button>
     <div class="err" id="signin-error"></div>
+  </div>
+
+  <!-- V5 R7 #5 — Boot sequence overlay (terminal cascade before UI reveals) -->
+  <div id="boot-seq">
+    <div class="boot-inner">
+      <pre id="boot-lines"></pre>
+      <span id="boot-cursor">█</span>
+    </div>
   </div>
 
   <!-- Main app -->
@@ -2964,8 +3030,58 @@
       }
     }
 
-    // Initialize
-    bootstrap();
+    // V5 R7 #5 — Boot sequence: type the cascade, then fade to UI and bootstrap.
+    // Skip if URL has ?noboot=1 (for fast iteration / Atlas APV).
+    function runBootSequence() {
+      const bootEl = document.getElementById('boot-seq');
+      const linesEl = document.getElementById('boot-lines');
+      const cursorEl = document.getElementById('boot-cursor');
+      const skip = new URLSearchParams(window.location.search).get('noboot') === '1';
+      if (skip || !bootEl) {
+        if (bootEl) bootEl.classList.add('hidden');
+        bootstrap();
+        return;
+      }
+      const script = [
+        { text: '> SYSTEM ONLINE',                              pause: 240 },
+        { text: '> LINKING AGENT NETWORK ... 9/9 OK',           pause: 320 },
+        { text: '> MEMORY CORE READY ... 205 FILES INDEXED',    pause: 280 },
+        { text: '> COMMAND DECK INITIALIZED',                   pause: 320 },
+      ];
+      let lineIdx = 0;
+      let charIdx = 0;
+      let buffer = '';
+      const charDelay = 18;
+
+      function step() {
+        if (lineIdx >= script.length) {
+          // Fade out boot, fade in app via bootstrap()
+          setTimeout(() => {
+            bootEl.classList.add('hidden');
+            setTimeout(() => { bootEl.style.display = 'none'; }, 700);
+            bootstrap();
+          }, 380);
+          return;
+        }
+        const cur = script[lineIdx];
+        if (charIdx < cur.text.length) {
+          buffer += cur.text[charIdx];
+          linesEl.textContent = buffer;
+          charIdx++;
+          setTimeout(step, charDelay);
+        } else {
+          buffer += '\n';
+          linesEl.textContent = buffer;
+          lineIdx++;
+          charIdx = 0;
+          setTimeout(step, cur.pause);
+        }
+      }
+      step();
+    }
+
+    // Initialize — boot sequence first, then bootstrap()
+    runBootSequence();
   </script>
 </body>
 </html>
