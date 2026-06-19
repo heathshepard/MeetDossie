@@ -1088,7 +1088,10 @@
       .header-tile-label { font-size: 0.54rem; letter-spacing: 0.10em; }
       .header-brand { font-size: 1.1rem; padding: 0 14px; }
     }
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
+      /* V5 R8 (2026-06-19): bumped 768→900 to catch Samsung Z Fold inner display
+         and other mid-width devices that were rendering desktop layout (orb scale 2.1
+         crammed the screen). */
       .content-wrapper {
         height: auto;
         min-height: 100vh;
@@ -1105,7 +1108,7 @@
       }
       .deck-center {
         order: 0;
-        min-height: 72vh; /* orb 44vh + portfolio tile grid below it */
+        min-height: 78vh; /* orb 56vh top band + portfolio tile grid below it */
       }
       .rail.left { order: 1; }
       .rail.right { order: 2; }
@@ -2128,15 +2131,20 @@
     function updateOrbPosition() {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      const isMobile = w < 768;
+      // V5 R8 (2026-06-19): bumped breakpoint 768→900 so Samsung Z Fold inner display
+      // (~768-820px logical) still triggers mobile layout (not crammed desktop scale 2.1).
+      const isMobile = w < 900;
 
       if (!_orb) return;
 
       if (isMobile) {
-        // Mobile: orb centered above the stacked panels. Stack starts ~50vh, so orb
-        // sits ~22-24vh down. Scale is moderate so it's recognizable but doesn't blow out the page.
+        // V5 R8 (2026-06-19): orb sits at top-center, well below 64px header-tape.
+        // Previous screenY 0.22 + scale 0.55 was clipping the top half of the
+        // atmosphere shell behind the header-tape on Z Fold (Heath: "only bottom
+        // edge of atmosphere ring visible"). Moved orb DOWN to 0.30 and bumped
+        // scale 0.55 → 0.70 so the full Earth is visible above the stacked panels.
         const screenX = 0.5;
-        const screenY = 0.22;
+        const screenY = 0.30;
         const ndcX = screenX * 2 - 1;
         const ndcY = -(screenY * 2 - 1);
         const v = new THREE.Vector3(ndcX, ndcY, 0.5);
@@ -2145,7 +2153,7 @@
         const distance = _camera.position.z;
         const target = _camera.position.clone().add(dir.multiplyScalar(distance));
         _orb.position.set(target.x, target.y, 0);
-        _orb.scale.set(0.55, 0.55, 0.55);
+        _orb.scale.set(0.70, 0.70, 0.70);
       } else {
         // Desktop V5 R7: orb scaled up to 40-50% viewport (per Heath cut 6).
         // FOV 60° at z=4.5 → half-height ≈ 2.6 world units. Scale 2.1 → diameter
@@ -2498,19 +2506,20 @@
       const ring = document.getElementById('portfolio-ring');
       if (!ring) return;
       ring.innerHTML = '';
-      const isMobile = window.innerWidth < 768;
+      // V5 R8 (2026-06-19): bumped 768→900 to match CSS media query + orb mobile threshold.
+      const isMobile = window.innerWidth < 900;
       const n = companies.length;
       // Ring radius — fraction of available container dimension.
       // Container is the deck-center, which on desktop is the middle column (~600px wide, ~700px tall).
       // We position tiles around a circle larger than the orb so they hug just outside it.
       // Desktop: ring radius ~ 46% of container's smaller dimension. Mobile: skip ring, fall to grid below stack.
       if (isMobile) {
-        // On mobile, the orb occupies only the top ~44vh band. Render tiles as a
-        // compact 2-col grid BELOW the orb (inside deck-center) so they don't crash into rails.
+        // V5 R8: orb now sits at screenY 0.30 with scale 0.70, occupying top ~56vh band.
+        // Render tiles as a compact 2-col grid BELOW the orb (inside deck-center).
         ring.style.display = 'grid';
         ring.style.gridTemplateColumns = '1fr 1fr';
         ring.style.gap = '8px';
-        ring.style.padding = '44vh 6px 12px 6px';
+        ring.style.padding = '56vh 6px 12px 6px';
         ring.style.alignContent = 'start';
         ring.style.boxSizing = 'border-box';
         ring.style.height = 'auto';
