@@ -2226,21 +2226,41 @@
 
     // ========== DATA FETCHING ==========
     // V5 R9.1 (2026-06-19) — Always pull a FRESH session token at fetch time.
-    // Previously cached _token at page load, which expires after ~1 hour and
-    // caused 401s when Heath came back to the tab. Supabase auto-refreshes
-    // when getSession() is called.
+    // V5 R9.2 (2026-06-19) — When getSession() returns no session, explicitly
+    // refreshSession(). If refresh fails, do NOT fall back to a stale cached
+    // _token (that's what caused the 401 on JARVIS even after R9.1). Bounce
+    // the user back to the login gate instead, so they can re-auth cleanly.
     async function authFetch(url, init = {}) {
-      let token = _token;
+      let token = null;
       try {
         if (supabase) {
-          const { data: { session } } = await supabase.auth.getSession();
+          let { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) {
+            // Try one explicit refresh before giving up. Mobile background
+            // tabs can throttle the auto-refresh timer, so getSession() may
+            // return null even when the refresh_token is still valid.
+            console.warn('[authFetch] no session from getSession, attempting refresh');
+            const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+            if (refreshErr) console.warn('[authFetch] refreshSession err:', refreshErr.message);
+            session = refreshed?.session || null;
+          }
           if (session?.access_token) {
             token = session.access_token;
             _token = token; // keep cached copy in sync
           }
         }
       } catch (e) {
-        console.warn('[authFetch] getSession failed, using cached token:', e);
+        console.warn('[authFetch] session lookup failed:', e);
+      }
+      if (!token) {
+        // No live session and no fresh refresh available — surface to user
+        // rather than send a stale Bearer that will 401 anyway.
+        console.error('[authFetch] no live session — forcing re-auth');
+        try { await supabase?.auth.signOut(); } catch {}
+        showLogin();
+        const err = new Error('session_expired');
+        err.status = 401;
+        throw err;
       }
       return fetch(url, {
         ...init,
@@ -3233,7 +3253,11 @@
         missionEl.classList.remove('voice-listening');
         stopAudioReactive();
         console.error('wakeJarvis error:', err);
-        toast('Voice err: ' + (err?.message || err), 'err');
+        if (err?.message === 'session_expired') {
+          toast('Session expired — sign in again', 'err');
+        } else {
+          toast('Voice err: ' + (err?.message || err), 'err');
+        }
       }
     }
 
