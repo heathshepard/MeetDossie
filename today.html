@@ -2225,11 +2225,27 @@
     }
 
     // ========== DATA FETCHING ==========
+    // V5 R9.1 (2026-06-19) — Always pull a FRESH session token at fetch time.
+    // Previously cached _token at page load, which expires after ~1 hour and
+    // caused 401s when Heath came back to the tab. Supabase auto-refreshes
+    // when getSession() is called.
     async function authFetch(url, init = {}) {
+      let token = _token;
+      try {
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            token = session.access_token;
+            _token = token; // keep cached copy in sync
+          }
+        }
+      } catch (e) {
+        console.warn('[authFetch] getSession failed, using cached token:', e);
+      }
       return fetch(url, {
         ...init,
         headers: {
-          'Authorization': `Bearer ${_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           ...(init.headers || {}),
         },
