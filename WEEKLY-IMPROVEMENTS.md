@@ -11,6 +11,87 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of June 15, 2026
+
+**Smoother Earth visualization and grid overlay** (customer)
+- We refined the look of the Earth globe on your dashboard — the atmosphere glow is now more subtle, the hex grid overlay is crisper and more visible, and the city lights show through better without washing out. The whole globe animates more smoothly as it rotates.
+
+**Earth orb visualization now shows real city lights** (customer)
+- We replaced the simple blue sphere with a detailed Earth showing real city lights at night, shipping lanes, and a rotating grid background. The globe now spins smoothly on both desktop and mobile.
+
+**Portfolio tiles display more consistently** (customer)
+- We improved how your portfolio tiles are sized and positioned so they stay centered and easier to scan on the portfolio page.
+
+**Mobile portfolio grid displays clearly** (customer)
+- We fixed the mobile view so your property portfolio grid no longer overlaps with side panels, and made the tiles more opaque so you can see your listings without distraction.
+
+**Money Pulse, Voice Brief, and Daily Debrief** (customer)
+- We've added Money Pulse to show your month-to-date revenue at a glance, plus a new voice-powered morning briefing that reads your key metrics aloud and alerts you to important changes. You'll also get a daily debrief summary to stay on top of your business.
+
+**Cleaner Earth map and new voice for morning briefings** (customer)
+- We cleaned up the Earth visualization to make city lights easier to see and switched to a new British voice for your morning briefing that sounds more like the original Jarvis assistant.
+
+**Visual indicators and live activity feeds on dashboard panels** (customer)
+- We added subtle corner brackets that highlight when you hover over dashboard sections, making it easier to see what you're interacting with. We also added live activity feeds at the bottom of key panels so you can quickly see the latest updates from your agent activity, decisions, incidents, and money pulse data without scrolling.
+
+**Larger orb and clearer agent status display** (customer)
+- We made the Talk-to-Dossie orb bigger and easier to see on your screen. Agent activity now shows at a glance with color-coded status indicators instead of text, so you can quickly spot who's working, idle, or experiencing issues.
+
+**Fixed audio stuttering on mobile devices** (customer)
+- We fixed an issue where the morning brief audio would skip or stutter on mobile phones like Samsung Z Fold. The audio now plays smoothly on all devices.
+
+**Streamlined portfolio display** (customer)
+- We cleaned up the portfolio section on your dashboard to show only our core products, giving you a cleaner view of what we offer.
+
+**Mobile layout fixes and Jarvis voice upgrade** (customer)
+- We fixed the mobile experience on foldable phones so the interactive globe displays correctly without overlapping your header. We also upgraded Jarvis's voice to a richer, deeper British tone that better matches the original character.
+
+**Fixed mobile layout alignment at 900px width** (customer)
+- We fixed a rare display issue where the app could show desktop and mobile layouts at the same time on devices exactly 900 pixels wide. Now the app consistently shows the correct mobile layout on smaller screens.
+
+**Pre-listing and pre-contract columns restored** (customer)
+- We've fixed a bug that was hiding pre-listing and pre-contract transaction columns in your workspace. Your transaction pipeline should now display all stages correctly.
+
+**Pre-Listing and Pre-Contract stages restored** (customer)
+- We've restored the Pre-Listing and Pre-Contract pipeline stages that were temporarily unavailable. Your transaction workflows now include all stages again.
+
+**Fixed Earth globe stretching on mobile** (customer)
+- We fixed a bug where the Earth globe appeared stretched and oval-shaped on mobile phones and folding devices. The globe now renders with the correct proportions on all screen sizes.
+
+**Fixed session timeout issues in Today panel** (customer)
+- We fixed a bug where the Today panel (money pulse, tickers, morning brief, and merge queue) would stop working after you left the tab idle for an hour. The panel now refreshes your session automatically so everything keeps working smoothly.
+
+**Fixed voice brief loading errors** (customer)
+- We fixed an issue where the voice brief feature would occasionally fail to load. Your voice briefings now work reliably every time.
+
+**Pre-listing emails now include attachments** (customer)
+- We've added support for sending attachments with your pre-listing fix confirmation emails. Your screenshots and documents will now arrive directly in the email, saving you time on follow-ups.
+
+**Fixed voice pronunciation and login stability on mobile** (customer)
+- We fixed how Dossie speaks task reminders so they sound natural in English. We also improved login reliability on mobile phones by adding a brief retry when the app briefly loses connection in the background.
+
+**Fixed unexpected logouts on mobile** (customer)
+- We fixed a bug that was signing agents out unexpectedly on mobile devices. We also improved how the morning brief pronounces task names in Spanish.
+
+**Agents can now change their password** (customer)
+- We've added a secure password change option in your account settings, so you can update your login credentials whenever you need to.
+
+**Fixed production crash on password change** (customer)
+- We fixed a critical bug that caused the app to show a blank screen when agents tried to change their password. The app is now stable again.
+
+**Change your password in Settings** (customer)
+- We added a secure way for you to change your password directly in the Dossie app without logging out. Your new password takes effect immediately on your next sign-in.
+
+**Pre-Listing and Pre-Contract stages restored** (customer)
+- We've fixed a bug that was hiding your pre-listing and pre-contract transactions from view. Your deals in these early stages will now show up correctly in Dossie.
+
+**Change your password in Settings** (customer)
+- You can now update your password directly in the app without logging out. We'll verify your current password and confirm your new one matches before saving.
+
+<!-- applied_shas: 10cf6fb,117949f,2637b00,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,654af68,69f1b2b,79c1023,87f980b,924446f,99ee638,9cfb06f,aaa3f82,b549282,bcd8b18,c7e1138,d5d3ad1,e627144,ea86f86,f98eba4,fafb513 -->
+
+---
+
 ## Week of June 5, 2026
 
 **Auto-post system — social media runs itself now**
