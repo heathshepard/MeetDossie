@@ -231,7 +231,13 @@
                                                       },
                       "api/cron-send-outbound-emails.js":  {
                                                                "maxDuration":  30
-                                                           }
+                                                           },
+                      "api/cron-money-pulse-snapshot.js":  {
+                                                               "maxDuration":  30
+                                                           },
+                      "api/cron-daily-debrief.js":  {
+                                                        "maxDuration":  60
+                                                    }
                   },
     "crons":  [
                   {
@@ -489,6 +495,14 @@
                   {
                       "path":  "/api/cron-agent-queue-tick",
                       "schedule":  "* * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-money-pulse-snapshot",
+                      "schedule":  "*/5 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-daily-debrief",
+                      "schedule":  "0 2 * * *"
                   }
               ]
 }
