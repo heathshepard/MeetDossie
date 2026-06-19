@@ -1141,7 +1141,7 @@
         color: 0x0a1428,            // near-black ocean / land base
         emissive: 0xffd180,          // warm city-light amber
         emissiveMap: proceduralLights,
-        emissiveIntensity: 1.6,
+        emissiveIntensity: 2.6,      // V5 R2.3: cranked at big-orb scale so cities read
         roughness: 0.92,
         metalness: 0.0,
       });
@@ -1158,7 +1158,7 @@
           tex.colorSpace = THREE.SRGBColorSpace;
           tex.anisotropy = 8;
           earthMat.emissiveMap = tex;
-          earthMat.emissiveIntensity = 1.2;
+          earthMat.emissiveIntensity = 2.0;  // V5 R2.3: matched to centerpiece scale
           earthMat.needsUpdate = true;
         },
         undefined,
@@ -1222,7 +1222,7 @@
       const mat = new THREE.LineBasicMaterial({
         color: 0x00d4ff,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.22,  // V5 R2.3: dropped at big scale so wireframe doesn't crowd cities
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
