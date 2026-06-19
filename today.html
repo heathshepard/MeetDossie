@@ -423,6 +423,35 @@
       box-shadow: 0 0 22px rgba(0, 212, 255, 0.22), 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(0, 212, 255, 0.30);
     }
 
+    /* V5 R7 #8 — Audio-reactive panels. --aud-level is set in JS 0..1 each frame
+       while Jarvis is speaking. Panels softly inflate their glow + border.
+       Disabled when body.audio-reactive is absent. */
+    body { --aud-level: 0; --mx: 0; --my: 0; }
+    body.audio-reactive .panel {
+      box-shadow:
+        0 0 calc(18px + (var(--aud-level) * 26px)) rgba(0, 212, 255, calc(0.10 + var(--aud-level) * 0.30)),
+        0 8px 32px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(0, 212, 255, calc(0.30 + var(--aud-level) * 0.25));
+      border-color: rgba(0, 212, 255, calc(0.22 + var(--aud-level) * 0.35));
+    }
+
+    /* V5 R7 #9 — 3D parallax on mouse move. --mx/--my are -1..1 set in JS.
+       Per-layer multiplier var(--depth) (1 = closest, smallest motion = furthest).
+       Foreground panels move more than background. */
+    .parallax-layer {
+      transform: translate3d(
+        calc(var(--mx) * var(--depth, 8px) * -1),
+        calc(var(--my) * var(--depth, 8px) * -1),
+        0
+      );
+      transition: transform 0.18s cubic-bezier(0.25, 0.7, 0.30, 1.0);
+      will-change: transform;
+    }
+    .rail.left { --depth: 9px; }
+    .rail.right { --depth: 9px; }
+    .header-tape { --depth: 4px; }
+    .deck-center { --depth: 2px; }
+
     /* V5 R7 #7 — Data feed mono log inside select panels (bottom 2-line strip). */
     .panel-feed {
       flex: 0 0 auto;
@@ -1535,6 +1564,8 @@
       initThreeScene();
       startHexDataLines();
       wirePortfolioDrilldownChrome();
+      // V5 R7 #9 — apply parallax-layer class + mousemove handler (desktop only)
+      wireParallax();
       refresh();
       _pollTimer = setInterval(refresh, POLL_MS);
       window.addEventListener('resize', () => {
@@ -3071,6 +3102,7 @@
           _voiceAudio.pause();
           _voiceAudio.currentTime = 0;
           missionEl.classList.remove('voice-listening');
+          stopAudioReactive();
           return;
         }
         missionEl.classList.add('voice-listening');
@@ -3098,18 +3130,103 @@
         _voiceAudio = new Audio(url);
         _voiceAudio.addEventListener('ended', () => {
           missionEl.classList.remove('voice-listening');
+          stopAudioReactive();
           URL.revokeObjectURL(url);
         });
         _voiceAudio.addEventListener('error', () => {
           missionEl.classList.remove('voice-listening');
+          stopAudioReactive();
           toast('Audio playback error', 'err');
         });
         await _voiceAudio.play();
+        // V5 R7 #8 — Hook audio analyzer once playback starts
+        startAudioReactive(_voiceAudio);
       } catch (err) {
         missionEl.classList.remove('voice-listening');
+        stopAudioReactive();
         console.error('wakeJarvis error:', err);
         toast('Voice err: ' + (err?.message || err), 'err');
       }
+    }
+
+    // V5 R7 #8 — Audio-reactive panels + orb breathing.
+    // Web Audio AnalyzerNode on the playing <audio>; RMS drives:
+    //   - body.audio-reactive class (panels soft-pulse via CSS var --aud-level)
+    //   - orb.scale.y breathes 1.0 → 1.05 with waveform
+    let _audioCtx = null;
+    let _audioAnalyser = null;
+    let _audioSource = null;
+    let _audioRAF = null;
+    let _audioReactiveOrbBase = 1.4;
+    function startAudioReactive(audioEl) {
+      try {
+        if (!_audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          _audioCtx = new AC();
+        }
+        // Re-attach: each new Audio el needs a new MediaElementSource.
+        if (_audioSource) {
+          try { _audioSource.disconnect(); } catch {}
+        }
+        _audioSource = _audioCtx.createMediaElementSource(audioEl);
+        _audioAnalyser = _audioCtx.createAnalyser();
+        _audioAnalyser.fftSize = 256;
+        _audioSource.connect(_audioAnalyser);
+        _audioAnalyser.connect(_audioCtx.destination);
+
+        document.body.classList.add('audio-reactive');
+        if (_orb) _audioReactiveOrbBase = _orb.scale.x || 1.4;
+
+        const buf = new Uint8Array(_audioAnalyser.frequencyBinCount);
+        function tick() {
+          _audioAnalyser.getByteFrequencyData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) sum += buf[i];
+          const avg = sum / buf.length / 255;  // 0..1
+          const level = Math.min(1, avg * 1.6);
+          document.body.style.setProperty('--aud-level', level.toFixed(3));
+          if (_orb) {
+            const b = _audioReactiveOrbBase;
+            _orb.scale.y = b * (1 + level * 0.06);
+          }
+          _audioRAF = requestAnimationFrame(tick);
+        }
+        tick();
+      } catch (err) {
+        console.warn('[audio-react] init failed:', err);
+      }
+    }
+    // V5 R7 #9 — 3D mouse-move parallax. Tags layers, listens once.
+    function wireParallax() {
+      // Skip on touch / coarse-pointer devices — useless effect + jitter.
+      if (window.matchMedia('(pointer: coarse)').matches) return;
+      const layers = [
+        document.querySelector('.rail.left'),
+        document.querySelector('.rail.right'),
+        document.querySelector('.header-tape'),
+        document.querySelector('.deck-center'),
+      ].filter(Boolean);
+      layers.forEach(el => el.classList.add('parallax-layer'));
+      let raf = null;
+      window.addEventListener('mousemove', (ev) => {
+        const mx = (ev.clientX / window.innerWidth)  * 2 - 1;  // -1..1
+        const my = (ev.clientY / window.innerHeight) * 2 - 1;
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          document.body.style.setProperty('--mx', mx.toFixed(3));
+          document.body.style.setProperty('--my', my.toFixed(3));
+          raf = null;
+        });
+      }, { passive: true });
+    }
+
+    function stopAudioReactive() {
+      if (_audioRAF) cancelAnimationFrame(_audioRAF);
+      _audioRAF = null;
+      document.body.classList.remove('audio-reactive');
+      document.body.style.setProperty('--aud-level', '0');
+      if (_orb) _orb.scale.y = _audioReactiveOrbBase;
     }
 
     function tryStartHotword() {
