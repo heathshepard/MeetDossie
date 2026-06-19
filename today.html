@@ -425,6 +425,166 @@
       opacity: 0.35;
     }
 
+    /* ---- Portfolio matrix tiles (V5 R3) — overlaid on the Earth orb ---- */
+    .portfolio-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .portfolio-ring {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .portfolio-tile {
+      position: absolute;
+      pointer-events: auto;
+      min-width: 154px;
+      max-width: 184px;
+      padding: 9px 11px;
+      background: linear-gradient(180deg, rgba(0, 212, 255, 0.06) 0%, rgba(2, 8, 23, 0.78) 100%);
+      border: 1px solid rgba(0, 212, 255, 0.42);
+      border-radius: 7px;
+      box-shadow:
+        0 0 14px rgba(0, 212, 255, 0.18),
+        inset 0 1px 0 rgba(0, 212, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: 'JetBrains Mono', monospace;
+      transform: translate(-50%, -50%);
+    }
+    .portfolio-tile:hover {
+      border-color: #00d4ff;
+      box-shadow:
+        0 0 22px rgba(0, 212, 255, 0.45),
+        inset 0 1px 0 rgba(0, 212, 255, 0.65);
+      background: linear-gradient(180deg, rgba(0, 212, 255, 0.12) 0%, rgba(2, 8, 23, 0.88) 100%);
+    }
+    .portfolio-tile.status-live { border-color: rgba(139, 168, 136, 0.55); }
+    .portfolio-tile.status-live::before {
+      content: ""; position: absolute; top: 6px; right: 6px;
+      width: 6px; height: 6px; border-radius: 50%; background: #8BA888;
+      box-shadow: 0 0 6px #8BA888;
+    }
+    .portfolio-tile.status-planning::before {
+      content: ""; position: absolute; top: 6px; right: 6px;
+      width: 6px; height: 6px; border-radius: 50%; background: #C9A96E;
+      box-shadow: 0 0 6px rgba(201, 169, 110, 0.7);
+    }
+    .portfolio-tile.status-sunset { opacity: 0.55; }
+    .portfolio-tile.status-sunset::before {
+      content: ""; position: absolute; top: 6px; right: 6px;
+      width: 6px; height: 6px; border-radius: 50%; background: rgba(232, 131, 107, 0.7);
+    }
+    .pt-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #e0f5ff;
+      text-shadow: 0 0 6px rgba(0, 212, 255, 0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      line-height: 1.15;
+      padding-right: 14px;
+    }
+    .pt-meta {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+      font-size: 0.62rem;
+      color: rgba(0, 212, 255, 0.6);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .pt-mrr {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #00d4ff;
+      margin-top: 3px;
+      text-shadow: 0 0 6px rgba(0, 212, 255, 0.55);
+    }
+
+    /* Portfolio drilldown overlay */
+    .portfolio-drilldown {
+      position: fixed;
+      inset: 64px 14px 40px;
+      z-index: 200;
+      background: linear-gradient(180deg, rgba(2, 8, 23, 0.96), rgba(2, 8, 23, 0.92));
+      border: 1px solid rgba(0, 212, 255, 0.40);
+      border-radius: 10px;
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.28), inset 0 1px 0 rgba(0, 212, 255, 0.45);
+      backdrop-filter: blur(20px);
+      padding: 24px 28px;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .portfolio-drilldown.visible { display: flex; }
+    .pd-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.30);
+      padding-bottom: 12px;
+    }
+    .pd-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.7rem;
+      color: #00d4ff;
+      text-shadow: 0 0 14px rgba(0, 212, 255, 0.5);
+      font-weight: 600;
+    }
+    .pd-close {
+      background: transparent;
+      border: 1px solid rgba(0, 212, 255, 0.40);
+      color: #00d4ff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.10em;
+    }
+    .pd-close:hover { border-color: #00d4ff; background: rgba(0, 212, 255, 0.10); }
+    .pd-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .pd-section {
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.20);
+      border-radius: 6px;
+      padding: 14px;
+    }
+    .pd-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: rgba(0, 212, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-bottom: 6px;
+    }
+    .pd-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.2rem;
+      color: #e0f5ff;
+      font-weight: 700;
+    }
+    .pd-desc {
+      color: rgba(224, 245, 255, 0.85);
+      font-size: 0.86rem;
+      line-height: 1.45;
+      grid-column: 1 / -1;
+    }
+
     /* ---- Incidents lane ---- */
     .incident-empty {
       color: rgba(77, 212, 255, 0.45);
@@ -815,10 +975,13 @@
           </div>
         </div>
 
-        <!-- CENTER COLUMN — orb anchors here. Three.js overlays full viewport,
-             so this is mostly a visual gutter / drop zone for portfolio tiles in R3 -->
+        <!-- CENTER COLUMN — orb anchors here. Three.js overlays full viewport.
+             Portfolio matrix tiles (R3) overlay the orb in a ring formation. -->
         <div class="deck-center">
           <div class="deck-center-anchor" id="deck-center-anchor"></div>
+          <div class="portfolio-overlay">
+            <div class="portfolio-ring" id="portfolio-ring"></div>
+          </div>
         </div>
 
         <!-- RIGHT RAIL -->
@@ -882,6 +1045,15 @@
         &middot;
         <a href="#" id="signout-link">sign out</a>
       </div>
+    </div>
+
+    <!-- Portfolio drilldown modal (R3) -->
+    <div class="portfolio-drilldown" id="portfolio-drilldown">
+      <div class="pd-head">
+        <div class="pd-title" id="pd-title">Company</div>
+        <button class="pd-close" id="pd-close">CLOSE [ESC]</button>
+      </div>
+      <div class="pd-body" id="pd-body"></div>
     </div>
 
     <!-- Bottom scrolling ticker marquee -->
@@ -993,8 +1165,12 @@
       document.getElementById('auth-gate').classList.remove('visible');
       document.getElementById('app').classList.add('visible');
       initThreeScene();
+      wirePortfolioDrilldownChrome();
       refresh();
       _pollTimer = setInterval(refresh, POLL_MS);
+      window.addEventListener('resize', () => {
+        if (_portfolioCompanies) renderPortfolioRing(_portfolioCompanies);
+      });
 
       // Wire up mission banner click to voice command (Round 5)
       document.querySelector('.mission-text').addEventListener('click', async () => {
@@ -1481,6 +1657,7 @@
           refreshAgentActivity(),
           refreshDecisionQueue(),
           refreshTickers(),
+          refreshPortfolioRing(),
         ]);
         document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
@@ -1533,6 +1710,145 @@
       // Build one half + duplicate (animation translates -50%, so doubling = seamless loop)
       const half = activity.map(a => tickerItemHtml(a)).join('');
       track.innerHTML = half + half;
+    }
+
+    // ========== V5 R3 — PORTFOLIO MATRIX TILES ==========
+    let _portfolioCompanies = null;
+    async function refreshPortfolioRing() {
+      try {
+        const { data, error } = await supabase
+          .from('ventures_companies')
+          .select('id, company_name, display_name, status, mrr, active_customers, growth_rate, description, app_url')
+          .order('mrr', { ascending: false });
+        if (error) throw error;
+        _portfolioCompanies = data;
+        renderPortfolioRing(data);
+      } catch (err) {
+        console.error('portfolio ring error:', err);
+      }
+    }
+
+    function renderPortfolioRing(companies) {
+      const ring = document.getElementById('portfolio-ring');
+      if (!ring) return;
+      ring.innerHTML = '';
+      const isMobile = window.innerWidth < 768;
+      const n = companies.length;
+      // Ring radius — fraction of available container dimension.
+      // Container is the deck-center, which on desktop is the middle column (~600px wide, ~700px tall).
+      // We position tiles around a circle larger than the orb so they hug just outside it.
+      // Desktop: ring radius ~ 46% of container's smaller dimension. Mobile: skip ring, fall to grid below stack.
+      if (isMobile) {
+        // On mobile, the orb occupies only the top ~44vh band. Render tiles as a
+        // compact 2-col grid BELOW the orb (inside deck-center) so they don't crash into rails.
+        ring.style.display = 'grid';
+        ring.style.gridTemplateColumns = '1fr 1fr';
+        ring.style.gap = '8px';
+        ring.style.padding = '46vh 6px 0 6px';
+        ring.style.alignContent = 'start';
+        for (const c of companies) {
+          const tile = document.createElement('div');
+          tile.className = `portfolio-tile status-${c.status || 'planning'}`;
+          tile.style.position = 'static';
+          tile.style.transform = 'none';
+          tile.style.minWidth = '0';
+          tile.innerHTML = portfolioTileBody(c);
+          tile.addEventListener('click', () => openPortfolioDrilldown(c));
+          ring.appendChild(tile);
+        }
+        return;
+      }
+      // Desktop: position tiles on a ring around the orb's center.
+      ring.style.display = '';
+      ring.style.gridTemplateColumns = '';
+      ring.style.gap = '';
+      ring.style.padding = '';
+      ring.style.alignContent = '';
+      const rect = ring.getBoundingClientRect();
+      const cx = 50;  // percent of ring container
+      const cy = 50;
+      // Use larger radius so tiles sit outside the orb's outer atmosphere.
+      // Orb visually fills ~70% of the container height. Push tiles to ~58-62% radius.
+      const radiusXPct = 64;
+      const radiusYPct = 56;
+      for (let i = 0; i < n; i++) {
+        // Start angle at top (-90deg), step evenly clockwise
+        const angle = (-Math.PI / 2) + (i / n) * Math.PI * 2;
+        const x = cx + Math.cos(angle) * radiusXPct;
+        const y = cy + Math.sin(angle) * radiusYPct;
+        const c = companies[i];
+        const tile = document.createElement('div');
+        tile.className = `portfolio-tile status-${c.status || 'planning'}`;
+        tile.style.left = `${x}%`;
+        tile.style.top = `${y}%`;
+        tile.innerHTML = portfolioTileBody(c);
+        tile.addEventListener('click', () => openPortfolioDrilldown(c));
+        ring.appendChild(tile);
+      }
+    }
+
+    function portfolioTileBody(c) {
+      const mrrNum = Number(c.mrr ?? 0);
+      const mrrStr = mrrNum > 0 ? `$${Math.round(mrrNum).toLocaleString()}/mo` : (c.status === 'planning' ? 'pre-launch' : (c.status === 'sunset' ? 'dormant' : 'live'));
+      const cust = Number(c.active_customers ?? 0);
+      const custStr = cust > 0 ? `${cust} cust` : '';
+      return `
+        <div class="pt-name">${escapeHtml(c.display_name || c.company_name)}</div>
+        <div class="pt-mrr">${escapeHtml(mrrStr)}</div>
+        <div class="pt-meta">
+          <span>${escapeHtml((c.status || 'planning').toUpperCase())}</span>
+          ${custStr ? `<span>${custStr}</span>` : ''}
+        </div>
+      `;
+    }
+
+    function openPortfolioDrilldown(c) {
+      const modal = document.getElementById('portfolio-drilldown');
+      document.getElementById('pd-title').textContent = c.display_name || c.company_name;
+      const mrr = Number(c.mrr ?? 0);
+      const cust = Number(c.active_customers ?? 0);
+      const growth = Number(c.growth_rate ?? 0);
+      document.getElementById('pd-body').innerHTML = `
+        <div class="pd-section">
+          <div class="pd-label">MRR</div>
+          <div class="pd-value">$${Math.round(mrr).toLocaleString()}</div>
+        </div>
+        <div class="pd-section">
+          <div class="pd-label">Active customers</div>
+          <div class="pd-value">${cust}</div>
+        </div>
+        <div class="pd-section">
+          <div class="pd-label">Status</div>
+          <div class="pd-value">${escapeHtml((c.status || 'planning').toUpperCase())}</div>
+        </div>
+        <div class="pd-section">
+          <div class="pd-label">Growth (MoM)</div>
+          <div class="pd-value">${growth > 0 ? '+' : ''}${growth}%</div>
+        </div>
+        <div class="pd-section pd-desc">
+          <div class="pd-label">Description</div>
+          <div>${escapeHtml(c.description || 'No description on file.')}</div>
+        </div>
+        ${c.app_url ? `<div class="pd-section pd-desc"><div class="pd-label">App</div><a href="${escapeHtml(c.app_url)}" target="_blank" style="color:#00d4ff;">${escapeHtml(c.app_url)}</a></div>` : ''}
+      `;
+      modal.classList.add('visible');
+      wirePortfolioDrilldownChrome();
+    }
+
+    function closePortfolioDrilldown() {
+      document.getElementById('portfolio-drilldown').classList.remove('visible');
+    }
+
+    function wirePortfolioDrilldownChrome() {
+      const close = document.getElementById('pd-close');
+      if (close && !close._wired) {
+        close.addEventListener('click', closePortfolioDrilldown);
+        close._wired = true;
+      }
+      if (!window._pdEscWired) {
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePortfolioDrilldown(); });
+        window._pdEscWired = true;
+      }
     }
 
     function tickerItemHtml(a) {
