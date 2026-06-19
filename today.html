@@ -2476,7 +2476,6 @@
       { id: 'paralegal',                 company_name: 'paralegal',                 display_name: 'Paralegal SaaS',   status: 'planning', mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Westlaw-integrated paralegal SaaS w/ attorney Joshua Sisam. Pre-launch.',                        app_url: null },
       { id: 'sterling',                  company_name: 'sterling',                  display_name: 'Sterling',         status: 'planning', mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Markets & portfolio strategy agent. No external customers yet.',                                  app_url: null },
       { id: 'personal-agents',           company_name: 'personal-agents',           display_name: 'Personal Agents',  status: 'planning', mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Consumer agent SaaS. Wife is the beachhead user. $30-50/mo target.',                              app_url: null },
-      { id: 'plane-ember',               company_name: 'plane-ember',               display_name: 'Plane & Ember',    status: 'sunset',   mrr: 0,   active_customers: 0,  growth_rate: 0,  description: 'Cigar woodwork business in San Antonio. Low activity.',                                           app_url: null },
     ];
     async function refreshPortfolioRing() {
       try {
@@ -2515,16 +2514,21 @@
         ring.style.alignContent = 'start';
         ring.style.boxSizing = 'border-box';
         ring.style.height = 'auto';
-        for (const c of companies) {
+        // If odd tile count, the last one spans both columns to avoid an orphan.
+        const oddCount = companies.length % 2 === 1;
+        companies.forEach((c, idx) => {
           const tile = document.createElement('div');
           tile.className = `portfolio-tile reticle-target status-${c.status || 'planning'}`;
           tile.style.position = 'static';
           tile.style.transform = 'none';
           tile.style.minWidth = '0';
+          if (oddCount && idx === companies.length - 1) {
+            tile.style.gridColumn = '1 / -1';
+          }
           tile.innerHTML = portfolioTileBody(c);
           tile.addEventListener('click', () => openPortfolioDrilldown(c));
           ring.appendChild(tile);
-        }
+        });
         return;
       }
       // Desktop: position tiles on a ring around the orb's center.
