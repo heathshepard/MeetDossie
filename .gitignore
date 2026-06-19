@@ -181,3 +181,4 @@ scripts/sessions/
 
 # Pre-merge smoke-test runs (screenshots + summary.json per run) — local only
 .tmp-smoke/
+today-apv-test.html
