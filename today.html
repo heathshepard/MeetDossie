@@ -1317,6 +1317,8 @@
     const _todoItems = new Map();
     const _todoTouchStarts = new Map();
     let _atmosphereShell = null;
+    let _cameraBase = { x: 0, y: 0, z: 4.5 };  // V5 R7: lissajous parallax origin
+    let _lensFlares = [];  // V5 R7: additive sprite flares for cinematic light leaks
 
     async function bootstrap() {
       let config;
@@ -1426,8 +1428,10 @@
       const h = window.innerHeight;
 
       // Setup camera — V5 R2.3: pulled back so the big centerpiece orb has breathing room
+      // V5 R7: base position captured for lissajous parallax drift in animate()
       _camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
       _camera.position.z = 4.5;
+      _cameraBase = { x: _camera.position.x, y: _camera.position.y, z: _camera.position.z };
 
       // Setup renderer
       _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -1479,6 +1483,9 @@
       // Handle window resize
       window.addEventListener('resize', onWindowResize);
 
+      // V5 R7: Create lens flares around the orb (additive sprites for cinematic light leaks)
+      createLensFlares();
+
       // Animation loop — time-based for seamless infinite rotation
       function animate() {
         requestAnimationFrame(animate);
@@ -1497,9 +1504,77 @@
         if (_customerDotsMaterial) {
           _customerDotsMaterial.opacity = 0.55 + (Math.sin(elapsed * 1.8) + 1) * 0.225;
         }
+        // V5 R7 #2 — Cinematic lissajous camera drift (~40s cycle).
+        // Slow + small amplitude so it reads "alive" not "motion sick".
+        if (_camera && _cameraBase) {
+          _camera.position.x = _cameraBase.x + Math.sin(elapsed * 0.05) * 0.30;
+          _camera.position.y = _cameraBase.y + Math.sin(elapsed * 0.03) * 0.20;
+          _camera.lookAt(0, 0, 0);
+        }
+        // V5 R7 #3 — Lens flare breathing (subtle scale + opacity shimmer)
+        if (_lensFlares && _lensFlares.length) {
+          for (let i = 0; i < _lensFlares.length; i++) {
+            const f = _lensFlares[i];
+            const phase = elapsed * f.userData.speed + f.userData.phase;
+            const baseScale = f.userData.baseScale;
+            const s = baseScale * (0.85 + 0.25 * Math.sin(phase));
+            f.scale.set(s, s, s);
+            if (f.material) {
+              f.material.opacity = f.userData.baseOpacity * (0.65 + 0.35 * Math.sin(phase * 1.3));
+            }
+          }
+        }
         _composer.render();
       }
       animate();
+    }
+
+    // V5 R7 #3 — Procedural lens-flare sprites.
+    // Drawn into canvas → CanvasTexture → SpriteMaterial (additive). No external assets.
+    function createLensFlares() {
+      function makeFlareTexture(coreAlpha = 0.95, falloff = 1.0) {
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 256;
+        const g = c.getContext('2d');
+        const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+        grad.addColorStop(0.0,  `rgba(220, 245, 255, ${coreAlpha})`);
+        grad.addColorStop(0.12, `rgba(0, 212, 255, ${coreAlpha * 0.75})`);
+        grad.addColorStop(0.40, `rgba(0, 212, 255, ${0.18 * falloff})`);
+        grad.addColorStop(1.0,  'rgba(0, 212, 255, 0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 256, 256);
+        return new THREE.CanvasTexture(c);
+      }
+      const tex = makeFlareTexture(0.95, 1.0);
+
+      // Three flares: one big bloom behind the orb top-right, two smaller leaks at edges.
+      const specs = [
+        { pos: [ 1.6,  1.1, -0.5], scale: 2.2, opacity: 0.55, speed: 0.4, phase: 0.0 },
+        { pos: [-1.9, -0.7, -0.3], scale: 1.3, opacity: 0.38, speed: 0.55, phase: 1.7 },
+        { pos: [ 0.0,  1.7, -0.8], scale: 1.0, opacity: 0.30, speed: 0.7, phase: 3.1 },
+      ];
+      for (const s of specs) {
+        const mat = new THREE.SpriteMaterial({
+          map: tex,
+          color: 0x9be8ff,
+          transparent: true,
+          opacity: s.opacity,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          depthTest: false,
+        });
+        const sprite = new THREE.Sprite(mat);
+        sprite.position.set(s.pos[0], s.pos[1], s.pos[2]);
+        sprite.scale.set(s.scale, s.scale, s.scale);
+        sprite.userData = {
+          baseScale: s.scale,
+          baseOpacity: s.opacity,
+          speed: s.speed,
+          phase: s.phase,
+        };
+        _scene.add(sprite);
+        _lensFlares.push(sprite);
+      }
     }
 
     function createStarfield() {
