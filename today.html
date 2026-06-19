@@ -107,107 +107,361 @@
     }
     canvas { display: block; }
 
-    /* ---- Mission Banner (top overlay) ---- */
-    .mission-banner {
+    /* ============================================================
+       V5 R2.3 — COMMAND DECK LAYOUT
+       3-column desktop: left rail | center (orb) | right rail
+       Header ticker tape on top, scrolling marquee on bottom.
+       ============================================================ */
+
+    /* ---- Header ticker tape (replaces old mission banner) ---- */
+    .header-tape {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 60px;
-      background: linear-gradient(180deg, rgba(26, 26, 46, 0.9) 0%, rgba(26, 26, 46, 0.7) 100%);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height: 64px;
       z-index: 100;
-      backdrop-filter: blur(8px);
-      font-family: "Cormorant Garamond", serif;
-      font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .mission-text {
-      color: var(--gold);
       display: flex;
-      gap: 8px;
+      align-items: stretch;
+      background: linear-gradient(180deg, rgba(2, 8, 23, 0.86) 0%, rgba(2, 8, 23, 0.62) 100%);
+      border-bottom: 1px solid rgba(0, 212, 255, 0.30);
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.15), inset 0 -1px 0 rgba(0, 212, 255, 0.40);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, Menlo, monospace;
+      letter-spacing: 0.08em;
+    }
+    .header-brand {
+      display: flex;
       align-items: center;
+      gap: 10px;
+      padding: 0 22px;
+      border-right: 1px solid rgba(0, 212, 255, 0.18);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #00d4ff;
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.55);
+      letter-spacing: 0.04em;
+      cursor: pointer;
     }
-    .mission-dot {
+    .header-brand .mission-dot {
       display: inline-block;
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      background: var(--sage);
-      box-shadow: 0 0 8px rgba(139,168,136,0.8), 0 0 16px rgba(139,168,136,0.4);
-      animation: pulse-mission 1.4s ease-in-out infinite;
+      background: #00d4ff;
+      box-shadow: 0 0 8px #00d4ff, 0 0 16px rgba(0, 212, 255, 0.55);
+      animation: pulse-mission 1.6s ease-in-out infinite;
     }
+    .header-tiles {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .header-tile {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 18px;
+      border-right: 1px solid rgba(0, 212, 255, 0.10);
+      min-width: 0;
+    }
+    .header-tile:last-child { border-right: none; }
+    .header-tile-label {
+      font-size: 0.62rem;
+      color: rgba(0, 212, 255, 0.60);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .header-tile-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #e0f5ff;
+      text-shadow: 0 0 6px rgba(0, 212, 255, 0.40);
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-tile-value .accent { color: #00d4ff; }
     @keyframes pulse-mission {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.75); }
+      50% { opacity: 0.45; transform: scale(0.72); }
     }
+
+    /* Old mission-banner / mission-text retained as aliases for the wake voice click */
+    .mission-text { cursor: pointer; }
 
     /* ---- Main content area ---- */
     .content-wrapper {
       position: relative;
       z-index: 10;
       flex: 1;
-      overflow-y: auto;
-      padding-top: 80px;
-      padding-bottom: 24px;
+      overflow: hidden;
+      padding-top: 72px;
+      padding-bottom: 40px;
+      height: 100vh;
     }
 
-    .page {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 16px;
+    /* 3-column command deck */
+    .command-deck {
+      height: calc(100vh - 72px - 40px);
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      grid-auto-rows: max-content;
+      grid-template-columns: 340px 1fr 340px;
+      gap: 14px;
+      padding: 12px 14px;
+      box-sizing: border-box;
+    }
+    .rail {
+      display: grid;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 12px;
+      min-height: 0;
+      min-width: 0;
+    }
+    .deck-center {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Orb gets the whole center column — three.js canvas overlays the page,
+       so we put a tiny anchor here that doubles as a click capture zone */
+    .deck-center-anchor {
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
     }
 
-    /* ---- Section styling ---- */
-    .section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
+    /* ---- Glassmorphic panel (Iron Man BLOCKED CALLER UI feel) ---- */
+    .panel {
+      background:
+        linear-gradient(180deg, rgba(0, 212, 255, 0.04) 0%, rgba(2, 8, 23, 0.55) 100%);
+      border: 1px solid rgba(0, 212, 255, 0.22);
+      border-radius: 10px;
+      box-shadow:
+        0 0 18px rgba(0, 212, 255, 0.10),
+        inset 0 1px 0 rgba(0, 212, 255, 0.30);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
     }
-    .section-head {
+    .panel::before {
+      /* corner brackets — Stark HUD touch */
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(0, 212, 255, 0.55) 0%, transparent 10px) top left/14px 14px no-repeat,
+        linear-gradient(225deg, rgba(0, 212, 255, 0.55) 0%, transparent 10px) top right/14px 14px no-repeat,
+        linear-gradient(45deg,  rgba(0, 212, 255, 0.55) 0%, transparent 10px) bottom left/14px 14px no-repeat,
+        linear-gradient(-45deg, rgba(0, 212, 255, 0.55) 0%, transparent 10px) bottom right/14px 14px no-repeat;
+      opacity: 0.85;
+    }
+    .panel-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
+      padding: 9px 12px 8px;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.18);
+      background: linear-gradient(180deg, rgba(0, 212, 255, 0.06), transparent);
     }
-    .section-title {
-      font-family: "Cormorant Garamond", serif;
-      font-weight: 600;
-      font-size: 1.05rem;
-      color: var(--gold);
-      letter-spacing: 0.02em;
-    }
-    .section-count {
-      background: rgba(201, 169, 110, 0.15);
-      color: var(--gold);
-      font-size: 0.75rem;
+    .panel-title {
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.05em;
+      font-size: 0.72rem;
+      color: #00d4ff;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+    }
+    .panel-count {
+      background: rgba(0, 212, 255, 0.12);
+      color: #00d4ff;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid rgba(0, 212, 255, 0.30);
+    }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-height: 0;
+    }
+    .panel-body::-webkit-scrollbar { width: 5px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.30); border-radius: 3px; }
+
+    /* legacy section/-title/-count aliases for any code path I missed */
+    .section { background: transparent; border: 0; padding: 0; }
+    .section-head { display: none; }
+
+    /* ---- Bottom scrolling ticker marquee ---- */
+    .ticker-tape {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 36px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      background: linear-gradient(0deg, rgba(2, 8, 23, 0.92) 0%, rgba(2, 8, 23, 0.65) 100%);
+      border-top: 1px solid rgba(0, 212, 255, 0.30);
+      box-shadow: inset 0 1px 0 rgba(0, 212, 255, 0.40);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow: hidden;
+      font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+      font-size: 0.78rem;
+      color: #4dd4ff;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .ticker-tape::before {
+      content: "LIVE";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(90deg, rgba(2, 8, 23, 0.96) 70%, transparent 100%);
+      color: #00d4ff;
+      font-weight: 700;
+      letter-spacing: 0.20em;
+      font-size: 0.66rem;
+      z-index: 2;
+      text-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+      border-right: 1px solid rgba(0, 212, 255, 0.30);
+    }
+    .ticker-track {
+      display: inline-block;
+      padding-left: 80px;
+      will-change: transform;
+      animation: ticker-scroll 90s linear infinite;
+    }
+    .ticker-track:hover { animation-play-state: paused; }
+    @keyframes ticker-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .ticker-item {
+      display: inline-block;
+      padding: 0 22px;
+      border-right: 1px solid rgba(0, 212, 255, 0.16);
+    }
+    .ticker-item .t-time { color: rgba(77, 212, 255, 0.55); margin-right: 6px; }
+    .ticker-item .t-agent { color: #00d4ff; font-weight: 700; margin-right: 6px; }
+    .ticker-item .t-summary { color: #e0f5ff; }
+
+    /* ---- KPI mini-charts (placeholders) ---- */
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi-card {
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.18);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      color: rgba(0, 212, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+    .kpi-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #e0f5ff;
+      text-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+      line-height: 1;
+    }
+    .kpi-trend {
+      font-size: 0.66rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: #8BA888;
+    }
+    .kpi-trend.down { color: #ff8c42; }
+    .kpi-spark {
+      height: 18px;
+      margin-top: 2px;
+      background:
+        linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.15), transparent);
+      border-bottom: 1px solid rgba(0, 212, 255, 0.30);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-spark::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(90deg, rgba(0,212,255,0.8) 1px, transparent 1px);
+      background-size: 8px 100%;
+      opacity: 0.35;
+    }
+
+    /* ---- Incidents lane ---- */
+    .incident-empty {
+      color: rgba(77, 212, 255, 0.45);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      text-align: center;
+      padding: 14px 8px;
+      letter-spacing: 0.06em;
+    }
+    .incident-item {
+      background: rgba(255, 140, 66, 0.06);
+      border-left: 2px solid #ff8c42;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .incident-title {
+      color: #ff8c42;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .incident-meta {
+      color: rgba(255, 140, 66, 0.65);
+      font-size: 0.66rem;
+      font-family: 'JetBrains Mono', monospace;
     }
 
     /* ---- Todo List ---- */
     .todo-item {
-      background: var(--surface-hover);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.18);
+      border-radius: 6px;
+      padding: 9px 11px;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: flex-start;
       cursor: grab;
       transition: all 0.2s;
@@ -221,31 +475,31 @@
       transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
     .todo-item:hover {
-      background: var(--surface-hover);
-      border-color: var(--border-hover);
+      background: rgba(0, 212, 255, 0.08);
+      border-color: rgba(0, 212, 255, 0.40);
     }
     .todo-checkbox {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--gold);
-      border-radius: 4px;
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid rgba(0, 212, 255, 0.60);
+      border-radius: 3px;
       background: transparent;
       cursor: pointer;
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 2px;
+      margin-top: 3px;
       transition: all 0.2s;
     }
     .todo-checkbox:hover {
-      border-color: var(--coral);
-      background: rgba(232, 131, 107, 0.1);
+      border-color: #00d4ff;
+      box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
     }
     .todo-checkbox.checked {
-      background: var(--coral);
-      border-color: var(--coral);
-      color: #fff;
+      background: #00d4ff;
+      border-color: #00d4ff;
+      color: #020817;
       font-weight: bold;
     }
     .todo-body {
@@ -255,17 +509,20 @@
       gap: 6px;
     }
     .todo-text {
-      color: var(--blush);
-      font-size: 0.92rem;
-      line-height: 1.4;
+      color: #e0f5ff;
+      font-size: 0.82rem;
+      line-height: 1.35;
       word-break: break-word;
     }
     .todo-meta {
-      color: var(--text-dim);
-      font-size: 0.75rem;
+      color: rgba(0, 212, 255, 0.55);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
     .todo-actions {
       display: flex;
@@ -320,22 +577,63 @@
 
     /* ---- Footer nav ---- */
     .nav-back {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 0.78rem;
-      grid-column: 1 / -1;
+      position: fixed;
+      bottom: 42px;
+      right: 16px;
+      z-index: 99;
+      text-align: right;
+      font-size: 0.66rem;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
     }
-    .nav-back a { color: var(--text-dim); text-decoration: none; padding: 8px 12px; border-radius: 6px; }
-    .nav-back a:hover { color: var(--gold); }
+    .nav-back a { color: rgba(0, 212, 255, 0.50); text-decoration: none; padding: 4px 8px; border-radius: 3px; }
+    .nav-back a:hover { color: #00d4ff; background: rgba(0, 212, 255, 0.10); }
 
-    /* ---- Responsive grid ---- */
+    /* ---- Responsive: mobile collapses to single-column stack ---- */
+    @media (max-width: 900px) {
+      .header-tile-value { font-size: 0.95rem; }
+      .header-tile { padding: 0 10px; }
+      .header-tile-label { font-size: 0.54rem; letter-spacing: 0.10em; }
+      .header-brand { font-size: 1.1rem; padding: 0 14px; }
+    }
     @media (max-width: 768px) {
-      .page {
-        grid-template-columns: 1fr;
+      .content-wrapper {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+        padding-top: 70px;
+        padding-bottom: 50px;
       }
-      .mission-banner {
-        font-size: 0.95rem;
+      .command-deck {
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 10px;
       }
+      .deck-center {
+        order: 0;
+        min-height: 44vh;
+      }
+      .rail.left { order: 1; }
+      .rail.right { order: 2; }
+      .rail {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .panel {
+        max-height: 320px;
+      }
+      .header-tiles {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .header-tile { padding: 0 6px; }
+      .header-tile-label { font-size: 0.50rem; }
+      .header-tile-value { font-size: 0.82rem; }
+      .header-brand { padding: 0 10px; font-size: 1.0rem; }
+      .nav-back { bottom: 46px; right: 10px; }
     }
 
     /* ---- Scrollbar styling ---- */
@@ -355,48 +653,54 @@
 
     /* ---- Merge/Agent/Decision items ---- */
     .queue-item {
-      background: var(--surface-hover);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.18);
+      border-radius: 6px;
+      padding: 8px 11px;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: flex-start;
       transition: all 0.2s;
       position: relative;
     }
     .queue-item:hover {
-      background: var(--surface-hover);
-      border-color: var(--border-hover);
+      background: rgba(0, 212, 255, 0.08);
+      border-color: rgba(0, 212, 255, 0.40);
     }
     .queue-item-head {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
+      min-width: 0;
     }
     .queue-item-title {
-      color: var(--blush);
-      font-size: 0.92rem;
+      color: #e0f5ff;
+      font-size: 0.80rem;
       font-weight: 500;
       word-break: break-word;
+      line-height: 1.30;
     }
     .queue-item-meta {
-      color: var(--text-dim);
-      font-size: 0.75rem;
+      color: rgba(0, 212, 255, 0.55);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.64rem;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .queue-item-status {
       display: inline-block;
-      padding: 2px 6px;
+      padding: 1px 6px;
       border-radius: 3px;
-      font-size: 0.65rem;
+      font-size: 0.60rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
-      background: rgba(139, 168, 136, 0.15);
+      letter-spacing: 0.06em;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0, 212, 255, 0.15);
       color: var(--sage);
     }
     .queue-item-status.pending {
@@ -452,58 +756,138 @@
     <!-- Hex grid overlay (z-index 1) -->
     <div class="hex-bg"></div>
 
-    <!-- Mission Banner -->
-    <div class="mission-banner">
-      <div class="mission-text">
+    <!-- Header ticker tape — brand + KPI tiles -->
+    <div class="header-tape">
+      <div class="header-brand mission-text" title="Wake voice command (Round 5)">
         <span class="mission-dot"></span>
-        <span id="mission-text">Working on: Jarvis V5 initialization</span>
+        <span>JARVIS</span>
+      </div>
+      <div class="header-tiles">
+        <div class="header-tile">
+          <div class="header-tile-label">MRR</div>
+          <div class="header-tile-value"><span class="accent">$</span><span id="tile-mrr">—</span></div>
+        </div>
+        <div class="header-tile">
+          <div class="header-tile-label">Customers</div>
+          <div class="header-tile-value" id="tile-customers">—</div>
+        </div>
+        <div class="header-tile">
+          <div class="header-tile-label">Agents Active</div>
+          <div class="header-tile-value"><span id="tile-agents-active">—</span><span style="color: rgba(0,212,255,0.45);">/<span id="tile-agents-total">—</span></span></div>
+        </div>
+        <div class="header-tile">
+          <div class="header-tile-label" id="tile-date-label">Loading</div>
+          <div class="header-tile-value" style="font-size: 0.95rem;">Shipped <span class="accent" id="tile-shipped">0</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Content -->
+    <!-- Command Deck — 3 columns -->
     <div class="content-wrapper">
-      <div class="page">
-        <!-- Heath TODO List -->
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title">Today's Work</div>
-            <div class="section-count" id="todo-count">0</div>
+      <div class="command-deck">
+        <!-- LEFT RAIL -->
+        <div class="rail left">
+          <!-- Agent Activity -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Agent Activity</div>
+              <div class="panel-count" id="agent-count">0</div>
+            </div>
+            <div class="panel-body" id="agent-list"></div>
           </div>
-          <div id="todo-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          <!-- Decision Queue -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Decision Queue</div>
+              <div class="panel-count" id="decision-count">0</div>
+            </div>
+            <div class="panel-body" id="decision-list"></div>
+          </div>
+          <!-- Incidents -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Incidents</div>
+              <div class="panel-count" id="incident-count">0</div>
+            </div>
+            <div class="panel-body" id="incident-list">
+              <div class="incident-empty">// SYSTEMS NOMINAL</div>
+            </div>
+          </div>
         </div>
 
-        <!-- Merge Queue -->
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title">Merge Queue</div>
-            <div class="section-count" id="merge-count">0</div>
-          </div>
-          <div id="merge-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <!-- CENTER COLUMN — orb anchors here. Three.js overlays full viewport,
+             so this is mostly a visual gutter / drop zone for portfolio tiles in R3 -->
+        <div class="deck-center">
+          <div class="deck-center-anchor" id="deck-center-anchor"></div>
         </div>
 
-        <!-- Agent Activity -->
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title">Agent Activity</div>
-            <div class="section-count" id="agent-count">0</div>
+        <!-- RIGHT RAIL -->
+        <div class="rail right">
+          <!-- Heath TODO -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Heath TODO</div>
+              <div class="panel-count" id="todo-count">0</div>
+            </div>
+            <div class="panel-body" id="todo-list"></div>
           </div>
-          <div id="agent-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
-        </div>
-
-        <!-- Decision Queue -->
-        <div class="section" style="grid-column: 1 / -1;">
-          <div class="section-head">
-            <div class="section-title">Decisions Awaiting</div>
-            <div class="section-count" id="decision-count">0</div>
+          <!-- Merge Queue -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Merge Queue</div>
+              <div class="panel-count" id="merge-count">0</div>
+            </div>
+            <div class="panel-body" id="merge-list"></div>
           </div>
-          <div id="decision-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          <!-- KPI Mini-Charts -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">KPI Vitals</div>
+              <div class="panel-count">LIVE</div>
+            </div>
+            <div class="panel-body">
+              <div class="kpi-grid">
+                <div class="kpi-card">
+                  <div class="kpi-label">MRR</div>
+                  <div class="kpi-value">$<span id="kpi-mrr">—</span></div>
+                  <div class="kpi-trend">+12% MoM</div>
+                  <div class="kpi-spark"></div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Active 7d</div>
+                  <div class="kpi-value" id="kpi-active7d">—</div>
+                  <div class="kpi-trend">+3 wk</div>
+                  <div class="kpi-spark"></div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Churn risk</div>
+                  <div class="kpi-value" id="kpi-churn">0</div>
+                  <div class="kpi-trend">flat</div>
+                  <div class="kpi-spark"></div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Crons OK</div>
+                  <div class="kpi-value" id="kpi-crons">—</div>
+                  <div class="kpi-trend">24h</div>
+                  <div class="kpi-spark"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="nav-back">
-          <a href="/ventures">&larr; ventures dashboard</a>
-          &nbsp;&middot;&nbsp;
-          <a href="#" id="signout-link">sign out</a>
-        </div>
+      <div class="nav-back">
+        <a href="/ventures">&larr; ventures</a>
+        &middot;
+        <a href="#" id="signout-link">sign out</a>
+      </div>
+    </div>
+
+    <!-- Bottom scrolling ticker marquee -->
+    <div class="ticker-tape">
+      <div class="ticker-track" id="ticker-track">
+        <span class="ticker-item"><span class="t-time">--:--</span><span class="t-agent">JARVIS</span><span class="t-summary">command deck online</span></span>
       </div>
     </div>
   </div>
@@ -646,9 +1030,9 @@
       const w = window.innerWidth;
       const h = window.innerHeight;
 
-      // Setup camera
-      _camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 1000);
-      _camera.position.z = 3;
+      // Setup camera — V5 R2.3: pulled back so the big centerpiece orb has breathing room
+      _camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
+      _camera.position.z = 4.5;
 
       // Setup renderer
       _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -690,6 +1074,7 @@
       createStarfield();
 
       // Create the Earth orb (sphere + cyan wireframe + atmosphere + shipping lanes)
+      // V5 R2.3: orb is now the centerpiece of the command deck — large scale, centered
       createOrb();
       updateOrbPosition();
 
@@ -742,9 +1127,10 @@
     // All children added to _orb (a THREE.Group) so a single rotation.y drives the entire planet.
     function createOrb() {
       // Group is the rotation anchor. Position + scale applied to the group.
+      // V5 R2.3: orb dominates the center column — final scale/position set by updateOrbPosition.
       _orb = new THREE.Group();
-      _orb.scale.set(0.35, 0.35, 0.35);
-      _orb.position.set(2.3, -0.5, 0);
+      _orb.scale.set(1.4, 1.4, 1.4);
+      _orb.position.set(0, 0, 0);
       _scene.add(_orb);
 
       // ---- Layer 1: Earth sphere with night-lights emissive map ----
@@ -755,7 +1141,7 @@
         color: 0x0a1428,            // near-black ocean / land base
         emissive: 0xffd180,          // warm city-light amber
         emissiveMap: proceduralLights,
-        emissiveIntensity: 1.6,
+        emissiveIntensity: 2.6,      // V5 R2.3: cranked at big-orb scale so cities read
         roughness: 0.92,
         metalness: 0.0,
       });
@@ -772,7 +1158,7 @@
           tex.colorSpace = THREE.SRGBColorSpace;
           tex.anisotropy = 8;
           earthMat.emissiveMap = tex;
-          earthMat.emissiveIntensity = 1.2;
+          earthMat.emissiveIntensity = 2.0;  // V5 R2.3: matched to centerpiece scale
           earthMat.needsUpdate = true;
         },
         undefined,
@@ -836,7 +1222,7 @@
       const mat = new THREE.LineBasicMaterial({
         color: 0x00d4ff,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.22,  // V5 R2.3: dropped at big scale so wireframe doesn't crowd cities
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
@@ -1028,9 +1414,10 @@
       if (!_orb) return;
 
       if (isMobile) {
-        // Mobile: NDC unproject to top-right corner (85% width, 15% height)
-        const screenX = 0.85;
-        const screenY = 0.15;
+        // Mobile: orb centered above the stacked panels. Stack starts ~50vh, so orb
+        // sits ~22-24vh down. Scale is moderate so it's recognizable but doesn't blow out the page.
+        const screenX = 0.5;
+        const screenY = 0.22;
         const ndcX = screenX * 2 - 1;
         const ndcY = -(screenY * 2 - 1);
         const v = new THREE.Vector3(ndcX, ndcY, 0.5);
@@ -1039,11 +1426,27 @@
         const distance = _camera.position.z;
         const target = _camera.position.clone().add(dir.multiplyScalar(distance));
         _orb.position.set(target.x, target.y, 0);
-        _orb.scale.set(0.22, 0.22, 0.22);
+        _orb.scale.set(0.55, 0.55, 0.55);
       } else {
-        // Desktop: right gutter (X = 2.3), keep Y at -0.5 — LOCKED
-        _orb.position.set(2.3, -0.5, 0);
-        _orb.scale.set(0.35, 0.35, 0.35);
+        // Desktop V5 R2.3: orb dominates the CENTER column.
+        // Left rail 340px + 14px gutter, right rail 340px + 14px gutter, so center
+        // column center is at (W - 340 - 340) / 2 + 340 + 14 ≈ exactly W/2.
+        // We compute the center column's mid-X in screen coords and unproject.
+        const cx = w / 2;
+        const cy = h / 2 + 14; // tiny nudge down for header tape balance
+        const ndcX = (cx / w) * 2 - 1;
+        const ndcY = -((cy / h) * 2 - 1);
+        const v = new THREE.Vector3(ndcX, ndcY, 0.5);
+        v.unproject(_camera);
+        const dir = v.sub(_camera.position).normalize();
+        const distance = _camera.position.z;
+        const target = _camera.position.clone().add(dir.multiplyScalar(distance));
+        _orb.position.set(target.x, target.y, 0);
+        // Spec: orb is the visual anchor at 50-60% viewport width.
+        // FOV 60° at z=4.5 → half-height in world units ≈ 2.6. Orb radius scale = ~1.5
+        // gives diameter ≈ 60% of viewport HEIGHT, which on 1280x800 corresponds to
+        // ~38% viewport width — close enough to dominant. Scale up for emphasis.
+        _orb.scale.set(1.7, 1.7, 1.7);
       }
       // Atmosphere shell is a child of _orb (V5 R2.2) — no separate update needed
     }
@@ -1077,11 +1480,70 @@
           refreshMergeQueue(),
           refreshAgentActivity(),
           refreshDecisionQueue(),
+          refreshTickers(),
         ]);
         document.getElementById('last-updated') && (document.getElementById('last-updated').textContent = new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Refresh error:', err);
       }
+    }
+
+    // ========== V5 R2.3 — HEADER TICKERS + BOTTOM MARQUEE ==========
+    async function refreshTickers() {
+      try {
+        const res = await authFetch('/api/jarvis-tickers');
+        if (!res.ok) {
+          console.warn('jarvis-tickers failed:', res.status);
+          return;
+        }
+        const payload = await res.json();
+        // Header tiles
+        const h = payload.header || {};
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('tile-mrr', formatNumber(h.mrr_usd ?? 0));
+        set('tile-customers', formatNumber(h.customer_count ?? 0));
+        set('tile-agents-active', h.active_agents ?? 0);
+        set('tile-agents-total', h.total_agents ?? 0);
+        set('tile-shipped', h.shipped_today ?? 0);
+        set('tile-date-label', h.date_label || '');
+        // KPI cards (right rail bottom) — share the same MRR for now; placeholders for others
+        set('kpi-mrr', formatNumber(h.mrr_usd ?? 0));
+        set('kpi-active7d', h.customer_count ?? '—');
+        set('kpi-crons', '—');
+
+        // Bottom marquee
+        renderTickerMarquee(payload.activity || []);
+      } catch (err) {
+        console.error('refreshTickers error:', err);
+      }
+    }
+
+    function formatNumber(n) {
+      if (n == null) return '—';
+      return Number(n).toLocaleString('en-US');
+    }
+
+    function renderTickerMarquee(activity) {
+      const track = document.getElementById('ticker-track');
+      if (!track) return;
+      if (!activity || activity.length === 0) {
+        track.innerHTML = '<span class="ticker-item"><span class="t-time">--:--</span><span class="t-agent">JARVIS</span><span class="t-summary">awaiting agent telemetry</span></span>';
+        return;
+      }
+      // Build one half + duplicate (animation translates -50%, so doubling = seamless loop)
+      const half = activity.map(a => tickerItemHtml(a)).join('');
+      track.innerHTML = half + half;
+    }
+
+    function tickerItemHtml(a) {
+      const ts = a.ts ? new Date(a.ts) : null;
+      const timeStr = ts ? `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}` : '--:--';
+      const agent = escapeHtml((a.agent || '?').toUpperCase());
+      const summary = escapeHtml(a.summary || (a.status || ''));
+      const statusBadge = a.status === 'working'
+        ? '<span style="color:#00d4ff;margin-right:6px;">●</span>'
+        : (a.status === 'error' ? '<span style="color:#ff8c42;margin-right:6px;">●</span>' : '');
+      return `<span class="ticker-item">${statusBadge}<span class="t-time">${timeStr}</span><span class="t-agent">${agent}</span><span class="t-summary">${summary || 'idle'}</span></span>`;
     }
 
     async function refreshTodoList() {
