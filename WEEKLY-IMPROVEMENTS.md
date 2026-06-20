@@ -88,9 +88,19 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Change your password in Settings** (customer)
 - You can now update your password directly in the app without logging out. We'll verify your current password and confirm your new one matches before saving.
 
-<!-- applied_shas: 10cf6fb,117949f,2637b00,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,654af68,69f1b2b,79c1023,87f980b,924446f,99ee638,9cfb06f,aaa3f82,b549282,bcd8b18,c7e1138,d5d3ad1,e627144,ea86f86,f98eba4,fafb513 -->
 
 ---
+
+**Teams and brokerage support now available** (customer)
+- Agents can now invite team members to collaborate on transactions and manage permissions within Dossie. We've added secure consent controls so agents can authorize team access to sensitive transaction data.
+
+**Team accounts and consent management** (customer)
+- We've launched team accounts so brokerages can manage multiple agents under one account, with role-based access control and billing by seat. Agents can now accept consent agreements through a secure link before joining a team.
+
+**Talk-to-Dossie now answers TREC questions** (customer)
+- We've added TREC question-and-answer support to Talk-to-Dossie, so you can ask about Texas real estate commission rules and get instant answers with citations to the exact regulations.
+
+<!-- applied_shas: 10cf6fb,117949f,2637b00,29f9aa4,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,654af68,69f1b2b,79c1023,7b61808,87f980b,924446f,99ee638,9cfb06f,aaa3f82,b549282,bcd8b18,c7e1138,d5d3ad1,e36fc31,e627144,ea86f86,f98eba4,fafb513 -->
 
 ## Week of June 5, 2026
 
