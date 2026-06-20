@@ -109,6 +109,18 @@
                     {
                          "source":  "/shepardventures/",
                          "destination":  "/shepardventures.html"
+                     },
+                    {
+                         "source":  "/consent/tc/:token",
+                         "destination":  "/consent-tc.html"
+                     },
+                    {
+                         "source":  "/team",
+                         "destination":  "/team.html"
+                     },
+                    {
+                         "source":  "/team/:path*",
+                         "destination":  "/team.html"
                      }
                  ],
     "headers":  [
@@ -503,6 +515,10 @@
                   {
                       "path":  "/api/cron-daily-debrief",
                       "schedule":  "0 2 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-deletion-reminders",
+                      "schedule":  "30 13 * * *"
                   }
               ]
 }

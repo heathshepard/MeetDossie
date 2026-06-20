@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Team — Dossie</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blush: #F5E6E0; --blush-deep: #D4A0A0; --sage: #8BA888;
+      --gold: #C9A96E; --navy: #1A1A2E; --coral: #E8836B;
+      --bg: #fafaf7; --text: #1A1A2E; --muted: #6b6b6b; --border: #f0e6e0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+    h1 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: 32px; margin: 0; }
+    h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: 22px; margin: 0 0 12px; }
+    .brand { color: var(--blush-deep); letter-spacing: 1.5px; font-size: 14px; font-weight: 600; }
+    nav a { color: var(--muted); text-decoration: none; margin-left: 24px; font-size: 14px; }
+    nav a.active { color: var(--coral); font-weight: 600; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .btn { display: inline-block; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 14px; transition: opacity 0.1s; }
+    .btn:hover { opacity: 0.9; }
+    .btn-primary { background: var(--coral); color: #fff; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid #e0e0e0; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+    .pill-agent { background: var(--blush-deep); color: #fff; }
+    .pill-admin { background: var(--navy); color: #fff; }
+    .pill-tc { background: var(--sage); color: #fff; }
+    .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .err { background: #fdf0ee; border: 1px solid #f5c8be; border-radius: 8px; padding: 12px; margin: 12px 0; color: #b14a37; font-size: 14px; }
+    .ok { background: #f0f8ee; border: 1px solid #c8dcc2; border-radius: 8px; padding: 12px; margin: 12px 0; color: #4a6c43; font-size: 14px; }
+    label { display: block; margin: 12px 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+    input[type="text"], input[type="email"], select { width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+    .check-row { display: flex; gap: 16px; margin: 8px 0; }
+    .check-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; margin: 0; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal { background: #fff; max-width: 480px; width: 100%; border-radius: 12px; padding: 24px; margin: 20px; }
+    .seat-stat { display: flex; gap: 24px; flex-wrap: wrap; margin: 16px 0; }
+    .seat-stat > div { background: var(--blush); padding: 12px 16px; border-radius: 8px; }
+    .seat-stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .seat-stat .value { font-size: 24px; font-weight: 700; font-family: "Cormorant Garamond", serif; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <div class="brand">DOSSIE</div>
+        <h1 id="team-name">Team</h1>
+      </div>
+      <nav>
+        <a href="/team" class="active">Roster</a>
+        <a href="/team#billing">Billing</a>
+        <a href="/team#audit">Audit</a>
+        <a href="/app">Workspace</a>
+      </nav>
+    </div>
+
+    <div id="main">
+      <div class="card empty">Loading…</div>
+    </div>
+  </div>
+
+  <div id="modal-root"></div>
+
+  <script>
+    const SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co";
+    const SUPABASE_ANON = "sb_publishable_bx3yp5_mBxroF1gBzNoZFg_Bp9u8STb";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: window.localStorage, storageKey: 'supabase.auth.token', flowType: 'pkce' },
+    });
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    }
+
+    function pill(role) {
+      return `<span class="pill pill-${role}">${role}</span>`;
+    }
+
+    async function api(path, opts = {}) {
+      const { data: { session } } = await sb.auth.getSession();
+      const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+      if (session && session.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+      const r = await fetch(path, { ...opts, headers });
+      const j = await r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` }));
+      if (!r.ok || !j.ok) {
+        const e = new Error(j.error || `HTTP ${r.status}`);
+        e.status = r.status;
+        throw e;
+      }
+      return j;
+    }
+
+    async function loadContext() {
+      try {
+        return await api('/api/team/me-context');
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
+    }
+
+    async function renderRoster(ctx) {
+      const main = document.getElementById('main');
+      document.getElementById('team-name').textContent = ctx.org_name;
+
+      try {
+        const [roster, billing] = await Promise.all([
+          api(`/api/team/roster?org_id=${encodeURIComponent(ctx.org_id)}`),
+          api(`/api/team/billing?org_id=${encodeURIComponent(ctx.org_id)}`).catch(() => null),
+        ]);
+
+        const members = (roster.members || []).filter((m) => !m.removed_at);
+        const archived = (roster.members || []).filter((m) => m.removed_at);
+
+        const seatHtml = billing ? `
+          <div class="card">
+            <h2>Seats</h2>
+            <div class="seat-stat">
+              <div><div class="label">Paid Agents</div><div class="value">${billing.seats.paid}</div></div>
+              <div><div class="label">Free Seats</div><div class="value">${billing.seats.free}</div></div>
+              <div><div class="label">Monthly</div><div class="value">$${(billing.seats.monthly_cents / 100).toFixed(0)}</div></div>
+              ${billing.vault ? `<div><div class="label">Vault</div><div class="value">${billing.vault.tier}</div></div>` : ''}
+            </div>
+          </div>` : '';
+
+        const rosterHtml = `
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <h2>Roster (${members.length})</h2>
+              <button class="btn btn-primary" onclick="openInviteModal()">+ Invite member</button>
+            </div>
+            ${members.length === 0 ? '<div class="empty">Invite your first agent</div>' : `
+              <table>
+                <thead><tr><th>Email</th><th>Roles</th><th>Joined</th><th></th></tr></thead>
+                <tbody>
+                  ${members.map((m) => `
+                    <tr>
+                      <td>${escapeHtml(m.email || m.user_id)}</td>
+                      <td>${(m.roles || []).map(pill).join('')}</td>
+                      <td>${new Date(m.joined_at).toLocaleDateString()}</td>
+                      <td>
+                        ${(m.roles || []).includes('tc') ? `<button class="btn btn-ghost btn-sm" onclick="openTcRequestModal('${m.user_id}','${escapeHtml(m.email)}')">Request consent</button>` : ''}
+                        <button class="btn btn-ghost btn-sm" onclick="openRolesModal('${m.member_id}', ${JSON.stringify(m.roles || []).replace(/"/g, '&quot;')})">Edit roles</button>
+                        <button class="btn btn-ghost btn-sm" onclick="removeMember('${m.member_id}','${escapeHtml(m.email)}')">Remove</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `}
+          </div>
+          ${archived.length > 0 ? `
+            <div class="card">
+              <h2>Removed (90-day grace)</h2>
+              <table>
+                <thead><tr><th>Email</th><th>Removed</th></tr></thead>
+                <tbody>${archived.map((m) => `<tr><td>${escapeHtml(m.email)}</td><td>${new Date(m.removed_at).toLocaleDateString()}</td></tr>`).join('')}</tbody>
+              </table>
+            </div>` : ''}
+        `;
+
+        main.innerHTML = seatHtml + rosterHtml;
+        window._currentOrg = ctx;
+        window._currentRoster = members;
+      } catch (e) {
+        main.innerHTML = `<div class="card"><div class="err">Failed to load roster: ${escapeHtml(e.message)}</div></div>`;
+      }
+    }
+
+    window.openInviteModal = function () {
+      const root = document.getElementById('modal-root');
+      root.innerHTML = `
+        <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+          <div class="modal">
+            <h2>Invite member</h2>
+            <label>Email</label>
+            <input id="inv-email" type="email" placeholder="agent@example.com" />
+            <label>Roles</label>
+            <div class="check-row">
+              <label><input type="checkbox" id="inv-r-agent" checked /> Agent</label>
+              <label><input type="checkbox" id="inv-r-admin" /> Admin</label>
+              <label><input type="checkbox" id="inv-r-tc" /> TC</label>
+            </div>
+            <div id="inv-err"></div>
+            <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+              <button class="btn btn-primary" onclick="submitInvite()">Send invite</button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    window.submitInvite = async function () {
+      const email = document.getElementById('inv-email').value.trim();
+      const roles = [];
+      if (document.getElementById('inv-r-agent').checked) roles.push('agent');
+      if (document.getElementById('inv-r-admin').checked) roles.push('admin');
+      if (document.getElementById('inv-r-tc').checked) roles.push('tc');
+      const errEl = document.getElementById('inv-err');
+      errEl.innerHTML = '';
+      if (!email || roles.length === 0) {
+        errEl.innerHTML = '<div class="err">Email and at least one role required</div>'; return;
+      }
+      try {
+        await api('/api/team/invite', { method: 'POST', body: JSON.stringify({ org_id: window._currentOrg.org_id, email, roles }) });
+        closeModal();
+        const ctx = (await loadContext()).context;
+        renderRoster(ctx);
+      } catch (e) {
+        errEl.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+      }
+    };
+
+    window.openTcRequestModal = function (tcUserId, tcEmail) {
+      const agents = (window._currentRoster || []).filter((m) => (m.roles || []).includes('agent') && m.user_id !== tcUserId);
+      const root = document.getElementById('modal-root');
+      root.innerHTML = `
+        <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+          <div class="modal">
+            <h2>Request consent for ${escapeHtml(tcEmail)}</h2>
+            <p style="font-size:14px;color:#666;">Ask an agent to authorize this TC to send emails on their behalf. The agent gets a one-tap link.</p>
+            <label>Agent</label>
+            <select id="tc-agent">
+              ${agents.map((a) => `<option value="${a.user_id}">${escapeHtml(a.email)}</option>`).join('')}
+            </select>
+            <label>Delivery</label>
+            <div class="check-row">
+              <label><input type="checkbox" id="tc-ch-email" checked /> Email</label>
+              <label><input type="checkbox" id="tc-ch-tg" checked /> Telegram</label>
+            </div>
+            <div id="tc-err"></div>
+            <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+              <button class="btn btn-primary" onclick="submitTcRequest('${tcUserId}')">Send request</button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    window.submitTcRequest = async function (tcUserId) {
+      const agentUserId = document.getElementById('tc-agent').value;
+      const channels = [];
+      if (document.getElementById('tc-ch-email').checked) channels.push('email');
+      if (document.getElementById('tc-ch-tg').checked) channels.push('telegram');
+      const errEl = document.getElementById('tc-err');
+      errEl.innerHTML = '';
+      if (!agentUserId || channels.length === 0) {
+        errEl.innerHTML = '<div class="err">Agent and at least one delivery channel required</div>'; return;
+      }
+      try {
+        const r = await api('/api/team/tc-request', {
+          method: 'POST',
+          body: JSON.stringify({ org_id: window._currentOrg.org_id, agent_user_id: agentUserId, tc_user_id: tcUserId, channels }),
+        });
+        errEl.innerHTML = `<div class="ok">Request sent. Delivery: ${JSON.stringify(r.delivery)}</div>`;
+        setTimeout(closeModal, 2500);
+      } catch (e) {
+        errEl.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+      }
+    };
+
+    window.openRolesModal = function (memberId, currentRoles) {
+      const roles = currentRoles || [];
+      const root = document.getElementById('modal-root');
+      root.innerHTML = `
+        <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+          <div class="modal">
+            <h2>Edit roles</h2>
+            <div class="check-row">
+              <label><input type="checkbox" id="er-agent" ${roles.includes('agent') ? 'checked' : ''} /> Agent</label>
+              <label><input type="checkbox" id="er-admin" ${roles.includes('admin') ? 'checked' : ''} /> Admin</label>
+              <label><input type="checkbox" id="er-tc" ${roles.includes('tc') ? 'checked' : ''} /> TC</label>
+            </div>
+            <div id="er-err"></div>
+            <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+              <button class="btn btn-primary" onclick="submitRoles('${memberId}',${JSON.stringify(roles).replace(/"/g, '&quot;')})">Save</button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    window.submitRoles = async function (memberId, oldRoles) {
+      const newRoles = [];
+      if (document.getElementById('er-agent').checked) newRoles.push('agent');
+      if (document.getElementById('er-admin').checked) newRoles.push('admin');
+      if (document.getElementById('er-tc').checked) newRoles.push('tc');
+      const add = newRoles.filter((r) => !oldRoles.includes(r));
+      const remove = oldRoles.filter((r) => !newRoles.includes(r));
+      const errEl = document.getElementById('er-err');
+      errEl.innerHTML = '';
+      if (add.length === 0 && remove.length === 0) { closeModal(); return; }
+      try {
+        await api('/api/team/update-roles', { method: 'POST', body: JSON.stringify({ member_id: memberId, add_roles: add, remove_roles: remove }) });
+        closeModal();
+        const ctx = (await loadContext()).context;
+        renderRoster(ctx);
+      } catch (e) {
+        errEl.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+      }
+    };
+
+    window.removeMember = async function (memberId, email) {
+      if (!confirm(`Remove ${email}? They'll keep read-only access for 90 days.`)) return;
+      try {
+        await api('/api/team/remove-member', { method: 'POST', body: JSON.stringify({ member_id: memberId }) });
+        const ctx = (await loadContext()).context;
+        renderRoster(ctx);
+      } catch (e) {
+        alert('Failed to remove: ' + e.message);
+      }
+    };
+
+    window.closeModal = function () { document.getElementById('modal-root').innerHTML = ''; };
+
+    async function showSignupOrLanding(reason) {
+      const main = document.getElementById('main');
+      if (reason === 'not_signed_in') {
+        main.innerHTML = `
+          <div class="card empty">
+            <h2>Sign in to see your team</h2>
+            <p>You need to be signed in to view this page.</p>
+            <a class="btn btn-primary" href="/app">Sign in</a>
+          </div>`;
+        return;
+      }
+      // No org — show team creation prompt
+      main.innerHTML = `
+        <div class="card">
+          <h2>Create a team</h2>
+          <p>You're not on a team yet. Create one and invite your agents.</p>
+          <label>Team name</label>
+          <input id="ct-name" type="text" placeholder="Smith & Associates" />
+          <label>Tier</label>
+          <select id="ct-tier"><option value="team">Team</option><option value="brokerage">Brokerage</option></select>
+          <label>Your roles</label>
+          <div class="check-row">
+            <label><input type="checkbox" id="ct-r-agent" checked /> Agent (you do deals)</label>
+            <label><input type="checkbox" id="ct-r-admin" checked disabled /> Admin (required)</label>
+            <label><input type="checkbox" id="ct-r-tc" /> TC (you also coordinate)</label>
+          </div>
+          <label><input type="checkbox" id="ct-upgrade" /> I'm currently on Solo — move my existing data into this team</label>
+          <div id="ct-err"></div>
+          <div style="margin-top:16px;">
+            <button class="btn btn-primary" onclick="createTeam()">Create team</button>
+          </div>
+        </div>`;
+    }
+
+    window.createTeam = async function () {
+      const name = document.getElementById('ct-name').value.trim();
+      const tier = document.getElementById('ct-tier').value;
+      const roles = ['admin'];
+      if (document.getElementById('ct-r-agent').checked) roles.push('agent');
+      if (document.getElementById('ct-r-tc').checked) roles.push('tc');
+      const upgrade = document.getElementById('ct-upgrade').checked;
+      const errEl = document.getElementById('ct-err');
+      errEl.innerHTML = '';
+      if (!name) { errEl.innerHTML = '<div class="err">Team name required</div>'; return; }
+      try {
+        await api('/api/team/create-org', {
+          method: 'POST',
+          body: JSON.stringify({ name, tier, founder_roles: roles, upgrade_from_solo: upgrade }),
+        });
+        const ctx = (await loadContext()).context;
+        if (ctx) renderRoster(ctx);
+      } catch (e) {
+        errEl.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+      }
+    };
+
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { showSignupOrLanding('not_signed_in'); return; }
+      const ctxResp = await loadContext();
+      if (!ctxResp.ok) {
+        document.getElementById('main').innerHTML = `<div class="card"><div class="err">Failed: ${escapeHtml(ctxResp.error || 'unknown')}</div></div>`;
+        return;
+      }
+      if (!ctxResp.context) {
+        showSignupOrLanding('no_org');
+        return;
+      }
+      const roles = ctxResp.context.roles || [];
+      if (!roles.includes('admin')) {
+        document.getElementById('team-name').textContent = ctxResp.context.org_name;
+        document.getElementById('main').innerHTML = `
+          <div class="card">
+            <h2>You're on ${escapeHtml(ctxResp.context.org_name)}</h2>
+            <p>Your roles: ${roles.map(pill).join('')}</p>
+            <p>The full team management page is admin-only. Use the workspace to do your deals.</p>
+            <a class="btn btn-primary" href="/app">Open Dossie</a>
+          </div>`;
+        return;
+      }
+      renderRoster(ctxResp.context);
+    })();
+  </script>
+</body>
+</html>

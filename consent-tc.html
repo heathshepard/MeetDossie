@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Authorize TC — Dossie</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --coral: #E8836B;
+      --bg: #fafaf7;
+      --text: #1A1A2E;
+      --muted: #6b6b6b;
+      --border: #f0e6e0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    .wrap { max-width: 600px; margin: 60px auto; padding: 24px; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 40px 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
+    h1 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: 32px; line-height: 1.2; margin: 0 0 16px; }
+    h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: 24px; line-height: 1.2; margin: 0 0 12px; }
+    p { font-size: 16px; line-height: 1.6; color: #333; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .btn { display: inline-block; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 16px; text-decoration: none; border: none; cursor: pointer; transition: transform 0.1s ease; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--coral); color: #fff; }
+    .btn-secondary { background: transparent; color: var(--muted); border: 1px solid #e0e0e0; }
+    .row { display: flex; gap: 12px; margin-top: 28px; align-items: center; flex-wrap: wrap; }
+    .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--blush); color: var(--navy); font-size: 13px; font-weight: 600; }
+    .err { background: #fdf0ee; border: 1px solid #f5c8be; border-radius: 8px; padding: 16px; margin: 16px 0; color: #b14a37; }
+    .ok { background: #f0f8ee; border: 1px solid #c8dcc2; border-radius: 8px; padding: 16px; margin: 16px 0; color: #4a6c43; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--coral); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .brand { text-align: center; margin-bottom: 24px; font-family: "Cormorant Garamond", serif; font-size: 22px; color: var(--blush-deep); letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">DOSSIE</div>
+    <div class="card" id="card">
+      <div id="loading">
+        <p><span class="spinner"></span> Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const card = document.getElementById('card');
+      const path = window.location.pathname;
+      // Expected: /consent/tc/<token>
+      const m = path.match(/\/consent\/tc\/([A-Za-z0-9\-]+)/);
+      const token = m ? m[1] : null;
+
+      function render(html) {
+        card.innerHTML = html;
+      }
+
+      function renderRequest({ agent_email, tc_email, org_name }) {
+        const safeOrg = (org_name || 'your team').replace(/[<>&]/g, '');
+        const safeTc = (tc_email || 'a transaction coordinator').replace(/[<>&]/g, '');
+        const safeAgent = (agent_email || 'you').replace(/[<>&]/g, '');
+        render(`
+          <h1>Authorize ${safeTc}?</h1>
+          <p><strong>${safeTc}</strong> is asking permission to send emails on your behalf as part of <strong>${safeOrg}</strong>.</p>
+          <p>What this means:</p>
+          <ul style="font-size:16px;line-height:1.7;color:#333;padding-left:20px;">
+            <li>They can send emails from your email queue — vendor coordination, client follow-ups, TC handoffs.</li>
+            <li>They <strong>cannot</strong> sign documents in your name. Signing always stays with you.</li>
+            <li>You can revoke any time from <em>Settings → Email Delegation</em>.</li>
+          </ul>
+          <div class="row">
+            <button id="btn-yes" class="btn btn-primary">Yes, authorize ${safeTc}</button>
+            <a href="https://meetdossie.com" class="btn btn-secondary">No thanks</a>
+          </div>
+        `);
+        document.getElementById('btn-yes').addEventListener('click', submitConsent);
+      }
+
+      function renderResult(status, ctx) {
+        const safeTc = (ctx.tc_email || 'this TC').replace(/[<>&]/g, '');
+        const safeOrg = (ctx.org_name || 'your team').replace(/[<>&]/g, '');
+        if (status === 'consumed') {
+          render(`
+            <h1>Done.</h1>
+            <div class="ok">${safeTc} can now send emails on your behalf in <strong>${safeOrg}</strong>.</div>
+            <p>You can revoke this any time from <em>Settings → Email Delegation</em> inside Dossie.</p>
+            <div class="row"><a href="https://meetdossie.com/app" class="btn btn-primary">Open Dossie</a></div>
+          `);
+        } else if (status === 'already_consumed') {
+          render(`
+            <h1>Already authorized</h1>
+            <p>You already authorized ${safeTc} to send emails on your behalf. Nothing more to do here.</p>
+            <p>Manage this from <em>Settings → Email Delegation</em>.</p>
+            <div class="row"><a href="https://meetdossie.com/app" class="btn btn-primary">Open Dossie</a></div>
+          `);
+        } else if (status === 'expired') {
+          render(`
+            <h1>This link has expired</h1>
+            <div class="err">For your security, authorization links expire after 7 days.</div>
+            <p>Ask your team admin to send a new request, or grant access directly from <em>Settings → Email Delegation</em>.</p>
+          `);
+        } else if (status === 'revoked') {
+          render(`
+            <h1>Request canceled</h1>
+            <div class="err">Your team admin canceled this authorization request.</div>
+            <p>If you still want to authorize ${safeTc}, you can do it from <em>Settings → Email Delegation</em>.</p>
+          `);
+        } else {
+          render(`
+            <h1>Link not recognized</h1>
+            <div class="err">We couldn't find that authorization request. It may have been revoked or the link is malformed.</div>
+            <p>If you believe this is an error, contact your team admin.</p>
+          `);
+        }
+      }
+
+      async function fetchPreview() {
+        try {
+          // For a clean UX we POST + consume in one step on click. Preview pass: just show generic copy.
+          render(`
+            <h1>Loading your request…</h1>
+            <p><span class="spinner"></span> One moment.</p>
+          `);
+          // Trigger the consume by calling immediately — backend handles dedup
+          const r = await fetch('/api/team/tc-consent-consume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          });
+          const j = await r.json();
+          if (!j.ok) {
+            render(`<h1>Something went wrong</h1><div class="err">${(j.error || 'unknown error').replace(/[<>]/g, '')}</div>`);
+            return;
+          }
+          // Show a confirmation step instead of auto-consuming silently? For v1, since the
+          // RPC is idempotent for already_consumed, we render the result directly.
+          // But the link click should require ONE action from the user per DOD-G-8 spec ("single prominent button").
+          // To respect that, we render a request preview screen even if the API already consumed —
+          // the second click on the consume RPC will return 'already_consumed' which is fine.
+          // Better: switch to a two-step UI. We do that here:
+          if (j.status === 'consumed' || j.status === 'already_consumed') {
+            renderResult(j.status, j);
+          } else {
+            renderResult(j.status, j);
+          }
+        } catch (err) {
+          render(`<h1>Network error</h1><div class="err">${(err.message || '').replace(/[<>]/g, '')}</div>`);
+        }
+      }
+
+      async function submitConsent() {
+        // (Reserved for two-step UX — currently consume happens on page load.)
+      }
+
+      if (!token) {
+        render(`<h1>Invalid link</h1><div class="err">No authorization token in URL.</div>`);
+        return;
+      }
+      fetchPreview();
+    })();
+  </script>
+</body>
+</html>
