@@ -257,10 +257,12 @@ export default async function handler(req, res) {
     const knowledgeContent = loadKnowledgeFile(formName);
 
     // Graceful fallback for forms we haven't studied yet — log + return polite decline.
+    // AWAIT the insert so Vercel doesn't kill the promise mid-flight when the
+    // function returns. ~50-150ms, acceptable for this branch.
     if (requestedForm && !FORM_FILES[requestedForm]) {
       const supabase = getAdminClient();
       const formContext = context?.paragraph ? `${requestedForm} ${context.paragraph}` : requestedForm;
-      void insertUnansweredQuestion(supabase, userId, question.trim(), formContext);
+      await insertUnansweredQuestion(supabase, userId, question.trim(), formContext);
       return res.status(200).json({
         ok: true,
         answer: `I haven't studied ${requestedForm} yet, so I can't answer questions about it with the confidence I want. Your question has been logged for my next study pass.`,
@@ -279,13 +281,14 @@ export default async function handler(req, res) {
 
     const result = await answerWithHadley(question.trim(), knowledgeContent, formName);
 
-    // If low confidence, log for later study pass (fire-and-forget)
+    // If low confidence, log for later study pass. AWAIT to ensure the row
+    // commits before the function terminates.
     if (result.low_confidence) {
       const supabase = getAdminClient();
       const formContext = context?.paragraph
         ? `${formName} ${context.paragraph}`
         : formName;
-      void insertUnansweredQuestion(supabase, userId, question.trim(), formContext);
+      await insertUnansweredQuestion(supabase, userId, question.trim(), formContext);
     }
 
     return res.status(200).json({
