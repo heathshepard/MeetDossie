@@ -490,6 +490,207 @@
     .activity-status-failed { color: var(--fail); }
     .activity-status-working { color: var(--cyan-bright); }
 
+    /* ===== QUICK ACTIONS ROW (Tier 1 Widget #4) ===== */
+    .quick-actions {
+      display: flex; gap: 8px;
+      overflow-x: auto; overflow-y: hidden;
+      padding: 10px 12px;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      scrollbar-width: thin;
+      scrollbar-color: var(--cyan-dim) transparent;
+    }
+    .quick-actions::-webkit-scrollbar { height: 4px; }
+    .quick-actions::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 2px; }
+    .qa-chip {
+      flex-shrink: 0;
+      font-family: inherit;
+      font-size: 12px; font-weight: 500;
+      letter-spacing: 0.1em;
+      padding: 8px 14px;
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      color: var(--txt-primary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .qa-chip:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 12px var(--cyan-dim); }
+    .qa-chip:active { transform: scale(0.97); }
+    .qa-chip:disabled { opacity: 0.5; cursor: wait; }
+    .qa-chip.firing { border-color: var(--gold); color: var(--gold); }
+
+    /* ===== PENDING APPROVALS PANEL (Tier 1 Widget #1) ===== */
+    .pending-list { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+    .pending-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 14px 0; }
+    .pending-card {
+      background: rgba(232, 185, 100, 0.06);
+      border: 1px solid rgba(232, 185, 100, 0.30);
+      border-radius: 10px;
+      padding: 11px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .pending-card.urgent {
+      border-color: var(--fail);
+      background: rgba(232, 94, 94, 0.06);
+    }
+    .pending-meta-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .pending-agent { color: var(--cyan-bright); }
+    .pending-wait { color: var(--warn); }
+    .pending-card.urgent .pending-wait { color: var(--fail); }
+    .pending-title {
+      font-size: 13px; line-height: 1.35;
+      color: var(--txt-primary);
+      font-weight: 500;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .pending-subtitle {
+      font-size: 11px; color: var(--txt-mute);
+      line-height: 1.4;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+    }
+    .pending-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+    .pending-btn {
+      font-family: inherit;
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 8px 4px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--txt-mute);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .pending-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .pending-btn.approve { color: var(--ok); border-color: var(--ok); }
+    .pending-btn.approve:hover { background: rgba(139, 168, 136, 0.12); }
+    .pending-btn:disabled { opacity: 0.5; cursor: wait; }
+    .pending-count-badge {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.16em;
+      color: var(--warn);
+      padding: 2px 7px;
+      border: 1px solid var(--warn);
+      border-radius: 4px;
+    }
+    .pending-count-badge.zero { color: var(--ok); border-color: var(--ok); }
+
+    /* ===== PENDING DETAIL MODAL ===== */
+    .pending-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(5, 8, 16, 0.88);
+      display: grid; place-items: center;
+      z-index: 150;
+      padding: 24px;
+      backdrop-filter: blur(6px);
+    }
+    .pending-modal {
+      max-width: 540px; width: 100%;
+      max-height: 80vh; overflow-y: auto;
+      background: var(--glass-strong);
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6), 0 0 60px var(--cyan-dim);
+    }
+    .pending-modal-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 20px; letter-spacing: 0.12em;
+      color: var(--cyan-bright);
+      margin-bottom: 14px;
+    }
+    .pending-modal-body {
+      font-size: 13px; line-height: 1.55;
+      color: var(--txt-primary);
+      white-space: pre-wrap; word-wrap: break-word;
+      background: rgba(5, 8, 16, 0.5);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+      max-height: 320px; overflow-y: auto;
+    }
+    .pending-modal-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    /* ===== DAILY DEBRIEF PANEL (Tier 1 Widget #2) ===== */
+    .debrief-headline {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 16px; line-height: 1.35;
+      color: var(--gold);
+      text-align: left;
+      padding: 6px 0 10px;
+      border-bottom: 1px solid rgba(201, 169, 110, 0.25);
+      margin-bottom: 8px;
+    }
+    .debrief-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .debrief-cell {
+      padding: 8px 10px;
+      background: rgba(0, 229, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .debrief-cell-val {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 20px; line-height: 1.1;
+      color: var(--cyan-bright);
+    }
+    .debrief-cell-lbl {
+      font-size: 9px; letter-spacing: 0.16em;
+      color: var(--txt-faint);
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+    .debrief-names {
+      font-size: 11px; color: var(--txt-mute);
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* ===== CUSTOMER ACTIVITY PANEL (Tier 1 Widget #3) ===== */
+    .cust-feed { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+    .cust-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 12px 0; }
+    .cust-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: 8px; align-items: start;
+      padding: 7px 4px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
+      font-size: 12px;
+    }
+    .cust-row:last-child { border-bottom: none; }
+    .cust-row.new-event {
+      animation: cust-flash 1.4s ease-out;
+    }
+    @keyframes cust-flash {
+      0%   { background: rgba(0, 229, 255, 0.20); }
+      100% { background: transparent; }
+    }
+    .cust-kind {
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--cyan-bright);
+      min-width: 56px;
+      padding-top: 2px;
+    }
+    .cust-kind.signin { color: var(--ok); }
+    .cust-kind.transaction { color: var(--gold); }
+    .cust-kind.subscription { color: var(--gold); }
+    .cust-kind.founding_application { color: var(--rose); }
+    .cust-kind.milestone { color: var(--gold); }
+    .cust-kind.document { color: var(--cyan); }
+    .cust-text { color: var(--txt-primary); line-height: 1.35; }
+    .cust-ts { font-size: 9px; color: var(--txt-faint); white-space: nowrap; padding-top: 2px; }
+
     /* ===== AUTH GATE ===== */
     .auth-gate {
       position: fixed; inset: 0;
@@ -593,6 +794,18 @@
 
     <main class="main">
       <div class="center-col">
+        <!-- QUICK ACTIONS ROW (Tier 1 Widget #4) — preset voice triggers as horizontal chips. -->
+        <div class="quick-actions" id="quick-actions" role="toolbar" aria-label="Quick actions">
+          <button class="qa-chip" data-prompt="Give me a morning brief.">Morning Brief</button>
+          <button class="qa-chip" data-prompt="What's MRR right now?">What's MRR</button>
+          <button class="qa-chip" data-prompt="Read pending approvals.">Read Pending Approvals</button>
+          <button class="qa-chip" data-prompt="What's on the calendar today?">Calendar Today</button>
+          <button class="qa-chip" data-prompt="Summarize the last hour.">Summarize Last Hour</button>
+          <button class="qa-chip" data-prompt="Show me customer activity.">Customer Activity</button>
+          <button class="qa-chip" data-prompt="Spawn Atlas with this task: ">Spawn Atlas</button>
+          <button class="qa-chip" data-prompt="Set a reminder: ">Set Reminder</button>
+          <button class="qa-chip" data-prompt="Ask Hadley: ">Hadley Q&amp;A</button>
+        </div>
         <div class="orb-wrap">
           <div class="orb-bg">
             <!-- Earth wireframe motif -->
@@ -652,6 +865,32 @@
       </div>
 
       <aside>
+        <!-- PENDING APPROVALS (Tier 1 Widget #1) — items awaiting Heath's yes/no across all systems. -->
+        <div class="panel" id="pending-panel">
+          <div class="panel-title todo-title-row">
+            <span>PENDING APPROVALS</span>
+            <span class="pending-count-badge zero" id="pending-count">0</span>
+          </div>
+          <div id="pending-list" class="pending-list">
+            <div class="pending-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- DAILY DEBRIEF (Tier 1 Widget #2) — glanceable summary of today's activity. -->
+        <div class="panel" id="debrief-panel">
+          <div class="panel-title">DAILY DEBRIEF</div>
+          <div id="debrief-headline" class="debrief-headline">Loading…</div>
+          <div id="debrief-grid" class="debrief-grid"></div>
+        </div>
+
+        <!-- CUSTOMER ACTIVITY FEED (Tier 1 Widget #3) — last 20 customer events. -->
+        <div class="panel" id="customer-panel">
+          <div class="panel-title">CUSTOMER ACTIVITY</div>
+          <div id="cust-feed" class="cust-feed">
+            <div class="cust-empty">Loading…</div>
+          </div>
+        </div>
+
         <!-- TO-DO: highest priority. Single-task focus mode w/ skip/snooze/done. -->
         <div class="panel" id="todo-panel">
           <div class="panel-title todo-title-row">
@@ -1318,9 +1557,22 @@
       // Hydrate side panels (to-do + money + activity). Fire-and-forget — never block UI.
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
-      // Refresh tickers + todo periodically. 30s for tickers, 60s for todo.
+      loadPendingApprovals().catch(() => {});
+      loadDailyDebrief().catch(() => {});
+      loadCustomerActivity().catch(() => {});
+      // Refresh cadences per spec:
+      //   tickers (money/activity log) — 30s
+      //   to-do — 60s
+      //   pending approvals — 30s (high priority)
+      //   daily debrief — 60s
+      //   customer activity — 30s polling + realtime subscription below
       setInterval(() => { loadTickers().catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().catch(() => {}); }, 60000);
+      setInterval(() => { loadPendingApprovals().catch(() => {}); }, 30000);
+      setInterval(() => { loadDailyDebrief().catch(() => {}); }, 60000);
+      setInterval(() => { loadCustomerActivity().catch(() => {}); }, 30000);
+      subscribeCustomerEvents();
+      wireQuickActions();
     }
 
     function getDeviceLabel() {
@@ -2437,6 +2689,362 @@
         row.querySelector('[data-agent]').textContent = (a.agent || '?').toString();
         row.querySelector('[data-task]').textContent = (a.summary || '(idle)').toString();
         row.querySelector('[data-ts]').textContent = fmtAgo(a.ts);
+      });
+    }
+
+    // ===== PENDING APPROVALS (Tier 1 Widget #1) =====
+    // Lists items awaiting Heath's yes/no across social_posts, email_queue,
+    // outbound_email_queue, founding_applications, decision_queue, hadley_unanswered_questions.
+    // Auto-refresh every 30s. APPROVE / DETAILS buttons per row.
+    let pendingCache = []; // latest fetched items, keyed by .id
+    async function loadPendingApprovals() {
+      const list = document.getElementById('pending-list');
+      const badge = document.getElementById('pending-count');
+      if (!list) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-pending-approvals`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          list.innerHTML = `<div class="pending-empty">Couldn't load (${res.status}).</div>`;
+          return;
+        }
+        const data = await res.json();
+        pendingCache = data.items || [];
+        renderPending(pendingCache);
+        if (badge) {
+          badge.textContent = String(data.count || 0);
+          badge.className = 'pending-count-badge' + ((data.count || 0) === 0 ? ' zero' : '');
+        }
+      } catch (err) {
+        console.warn('[jarvis] loadPendingApprovals failed', err);
+        list.innerHTML = `<div class="pending-empty">Offline.</div>`;
+      }
+    }
+
+    function renderPending(items) {
+      const list = document.getElementById('pending-list');
+      if (!list) return;
+      if (!items.length) {
+        list.innerHTML = `<div class="pending-empty">Inbox zero. All clear.</div>`;
+        return;
+      }
+      list.innerHTML = '';
+      for (const it of items) {
+        const card = document.createElement('div');
+        const wait = it.waiting_minutes != null ? it.waiting_minutes : 0;
+        const urgent = wait >= 120; // 2h+ = urgent
+        card.className = 'pending-card' + (urgent ? ' urgent' : '');
+        const waitText = wait < 60 ? `${wait}m waiting` : `${Math.floor(wait/60)}h waiting`;
+        card.innerHTML = `
+          <div class="pending-meta-row">
+            <span class="pending-agent" data-agent></span>
+            <span class="pending-wait" data-wait></span>
+          </div>
+          <div class="pending-title" data-title></div>
+          <div class="pending-subtitle" data-subtitle></div>
+          <div class="pending-actions">
+            <button class="pending-btn approve" data-act="approve">Approve</button>
+            <button class="pending-btn" data-act="details">Details</button>
+          </div>
+        `;
+        card.querySelector('[data-agent]').textContent = it.agent || it.source || '';
+        card.querySelector('[data-wait]').textContent = waitText;
+        card.querySelector('[data-title]').textContent = it.title || '(no title)';
+        card.querySelector('[data-subtitle]').textContent = it.subtitle || '';
+        card.querySelector('[data-act="approve"]').addEventListener('click', () => onPendingAction(it, 'approve'));
+        card.querySelector('[data-act="details"]').addEventListener('click', () => openPendingModal(it));
+        list.appendChild(card);
+      }
+    }
+
+    async function onPendingAction(item, action) {
+      const list = document.getElementById('pending-list');
+      const btns = list ? list.querySelectorAll('.pending-btn') : [];
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-approve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({
+            kind: item.approve_payload?.kind,
+            id: item.approve_payload?.id,
+            action,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          showToast(`Approve failed: ${errBody.error || res.status}`);
+          btns.forEach(b => { b.disabled = false; });
+          return;
+        }
+        const data = await res.json();
+        showToast(`${action === 'approve' ? 'Approved' : 'Rejected'} · ${data.kind}`);
+        // Optimistic: drop from cache so the card disappears immediately.
+        pendingCache = pendingCache.filter(p => p.id !== item.id);
+        renderPending(pendingCache);
+        const badge = document.getElementById('pending-count');
+        if (badge) {
+          const n = pendingCache.length;
+          badge.textContent = String(n);
+          badge.className = 'pending-count-badge' + (n === 0 ? ' zero' : '');
+        }
+        // Background re-sync to catch any new items.
+        setTimeout(() => loadPendingApprovals().catch(() => {}), 1500);
+      } catch (err) {
+        console.warn('[jarvis] pending action failed', err);
+        btns.forEach(b => { b.disabled = false; });
+        showToast('Network error');
+      }
+    }
+
+    let pendingModalOpenItem = null;
+    function openPendingModal(item) {
+      pendingModalOpenItem = item;
+      closePendingModal();
+      const backdrop = document.createElement('div');
+      backdrop.className = 'pending-modal-backdrop';
+      backdrop.id = 'pending-modal-backdrop';
+      const modal = document.createElement('div');
+      modal.className = 'pending-modal';
+      modal.innerHTML = `
+        <div class="pending-modal-title" data-title></div>
+        <div class="pending-modal-body" data-body></div>
+        <div class="pending-modal-actions">
+          <button class="pending-btn approve" data-act="approve">Approve</button>
+          <button class="pending-btn" data-act="reject">Reject</button>
+          <button class="pending-btn" data-act="close">Close</button>
+        </div>
+      `;
+      modal.querySelector('[data-title]').textContent = item.title || '(item)';
+      const body = item.details ? JSON.stringify(item.details, null, 2) : (item.subtitle || '');
+      modal.querySelector('[data-body]').textContent = body;
+      modal.querySelector('[data-act="approve"]').addEventListener('click', async () => {
+        await onPendingAction(item, 'approve');
+        closePendingModal();
+      });
+      modal.querySelector('[data-act="reject"]').addEventListener('click', async () => {
+        await onPendingAction(item, 'reject');
+        closePendingModal();
+      });
+      modal.querySelector('[data-act="close"]').addEventListener('click', closePendingModal);
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closePendingModal(); });
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+    }
+    function closePendingModal() {
+      const el = document.getElementById('pending-modal-backdrop');
+      if (el) el.remove();
+      pendingModalOpenItem = null;
+    }
+
+    // ===== DAILY DEBRIEF (Tier 1 Widget #2) =====
+    async function loadDailyDebrief() {
+      const head = document.getElementById('debrief-headline');
+      const grid = document.getElementById('debrief-grid');
+      if (!head || !grid) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-daily-debrief`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          head.textContent = `Couldn't load (${res.status}).`;
+          grid.innerHTML = '';
+          return;
+        }
+        const data = await res.json();
+        renderDebrief(data);
+      } catch (err) {
+        console.warn('[jarvis] loadDailyDebrief failed', err);
+        head.textContent = 'Offline.';
+      }
+    }
+
+    function renderDebrief(d) {
+      const head = document.getElementById('debrief-headline');
+      const grid = document.getElementById('debrief-grid');
+      if (!head || !grid) return;
+      head.textContent = d.headline || '';
+      const cells = [
+        { val: d.closed_deals?.count || 0,           lbl: 'Closed Deals',     extra: (d.closed_deals?.names || []).slice(0, 3).join(', ') },
+        { val: d.new_signups?.count || 0,            lbl: 'New Signups',      extra: (d.new_signups?.names || []).slice(0, 3).join(', ') },
+        { val: d.customer_activity?.documents_uploaded || 0, lbl: 'Docs Uploaded' },
+        { val: d.customer_activity?.dossiers_created || 0,   lbl: 'Dossiers Created' },
+        { val: d.customer_activity?.milestones_shared || 0,  lbl: 'Cards Shared' },
+        { val: d.agent_completions?.count || 0,      lbl: 'Agent Tasks Done' },
+        { val: d.outbound?.emails_sent || 0,         lbl: 'Emails Sent' },
+        { val: d.outbound?.social_posts_published || 0, lbl: 'Social Posts' },
+      ];
+      grid.innerHTML = '';
+      for (const c of cells) {
+        const el = document.createElement('div');
+        el.className = 'debrief-cell';
+        el.innerHTML = `
+          <div class="debrief-cell-val" data-val></div>
+          <div class="debrief-cell-lbl" data-lbl></div>
+          ${c.extra ? '<div class="debrief-names" data-extra></div>' : ''}
+        `;
+        el.querySelector('[data-val]').textContent = String(c.val);
+        el.querySelector('[data-lbl]').textContent = c.lbl;
+        const ex = el.querySelector('[data-extra]');
+        if (ex) ex.textContent = c.extra;
+        grid.appendChild(el);
+      }
+    }
+
+    // ===== CUSTOMER ACTIVITY FEED (Tier 1 Widget #3) =====
+    let custFeedCache = []; // last rendered events
+    async function loadCustomerActivity() {
+      const feed = document.getElementById('cust-feed');
+      if (!feed) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-customer-activity?limit=20`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          feed.innerHTML = `<div class="cust-empty">Couldn't load (${res.status}).</div>`;
+          return;
+        }
+        const data = await res.json();
+        custFeedCache = data.events || [];
+        renderCustomerFeed(custFeedCache);
+      } catch (err) {
+        console.warn('[jarvis] loadCustomerActivity failed', err);
+        feed.innerHTML = `<div class="cust-empty">Offline.</div>`;
+      }
+    }
+
+    function fmtAgo(iso) {
+      if (!iso) return '';
+      const ms = Date.now() - new Date(iso).getTime();
+      const s = Math.max(1, Math.floor(ms / 1000));
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h`;
+      return `${Math.floor(h / 24)}d`;
+    }
+
+    function renderCustomerFeed(events) {
+      const feed = document.getElementById('cust-feed');
+      if (!feed) return;
+      if (!events.length) {
+        feed.innerHTML = `<div class="cust-empty">No recent customer activity.</div>`;
+        return;
+      }
+      feed.innerHTML = '';
+      for (const ev of events) {
+        const row = document.createElement('div');
+        row.className = 'cust-row';
+        row.innerHTML = `
+          <div class="cust-kind ${ev.kind}" data-kind></div>
+          <div class="cust-text" data-text></div>
+          <div class="cust-ts" data-ts></div>
+        `;
+        row.querySelector('[data-kind]').textContent = ev.kind || '';
+        row.querySelector('[data-text]').textContent = ev.text || '';
+        row.querySelector('[data-ts]').textContent = fmtAgo(ev.ts);
+        feed.appendChild(row);
+      }
+    }
+
+    function prependCustomerEvent(ev) {
+      // Used by realtime subscription. Drops in a row at the top with flash.
+      const feed = document.getElementById('cust-feed');
+      if (!feed) return;
+      // Dedup by ts+kind+actor.
+      const key = `${ev.ts}|${ev.kind}|${ev.actor}`;
+      if (custFeedCache.some(e => `${e.ts}|${e.kind}|${e.actor}` === key)) return;
+      custFeedCache.unshift(ev);
+      custFeedCache = custFeedCache.slice(0, 20);
+      // Render with flash on the new row.
+      renderCustomerFeed(custFeedCache);
+      const firstRow = feed.querySelector('.cust-row');
+      if (firstRow) firstRow.classList.add('new-event');
+    }
+
+    function subscribeCustomerEvents() {
+      // Supabase Realtime: postgres_changes on the tables we care about.
+      // We listen INSERTs on documents, transactions, dossier_milestones,
+      // founding_applications, subscriptions, and last_seen_at UPDATEs on profiles.
+      // Each event triggers a re-fetch (cheap, debounced 2s) so the formatted
+      // row uses the same shape as the polling code.
+      if (!supabase) return;
+      let debounceTimer = null;
+      const debounceRefresh = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          loadCustomerActivity().catch(() => {});
+          debounceTimer = null;
+        }, 2000);
+      };
+      try {
+        const ch = supabase
+          .channel('jarvis-cust-activity')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'documents' },                    debounceRefresh)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' },                 debounceRefresh)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dossier_milestones' },           debounceRefresh)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'founding_applications' },        debounceRefresh)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'subscriptions' },                debounceRefresh)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'last_seen_at=gt.1970-01-01' }, debounceRefresh)
+          .subscribe();
+        // Keep the channel reference for cleanup if we add sign-out flow later.
+        window.__jarvisCustChannel = ch;
+      } catch (err) {
+        console.warn('[jarvis] subscribeCustomerEvents failed', err);
+      }
+    }
+
+    // ===== QUICK ACTIONS (Tier 1 Widget #4) =====
+    // Tap a chip -> fires that prompt through the same voice pipeline that
+    // typed/spoken messages use (runStreamingChatTTS). Skip mic capture.
+    // The chip's data-prompt becomes the user "message" and is rendered into
+    // the scrollback as a user bubble.
+    function wireQuickActions() {
+      const bar = document.getElementById('quick-actions');
+      if (!bar) return;
+      bar.querySelectorAll('.qa-chip').forEach((chip) => {
+        chip.addEventListener('click', async (ev) => {
+          ev.preventDefault();
+          const prompt = chip.dataset.prompt || chip.textContent.trim();
+          if (!prompt) return;
+          // Show user bubble immediately.
+          appendMessage('user', prompt, new Date().toISOString());
+          // Set firing UI state on chip + disable other chips briefly.
+          chip.classList.add('firing');
+          bar.querySelectorAll('.qa-chip').forEach((c) => { c.disabled = true; });
+          // Ensure the PTT state is 'thinking' so the user sees Jarvis is responding.
+          try { setPttState('thinking'); pttStatus.textContent = 'Thinking…'; } catch {}
+          try {
+            const result = await runStreamingChatTTS({
+              conversationId,
+              transcript: prompt,
+            });
+            if (result && result.fallback) {
+              // Legacy fallback path: same as voice loop.
+              try { await runLegacyChatTTS(prompt); } catch (err) {
+                console.warn('[jarvis] quick action legacy fallback failed', err);
+                speakFallback('Connection hiccup, sir.', /*resume*/false);
+              }
+            } else if (result && result.conversationId) {
+              conversationId = result.conversationId;
+              convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+              lsSetLastConv(conversationId);
+            }
+          } catch (err) {
+            console.warn('[jarvis] quick action failed', err);
+            showToast('Quick action failed');
+          } finally {
+            chip.classList.remove('firing');
+            bar.querySelectorAll('.qa-chip').forEach((c) => { c.disabled = false; });
+            // Settle PTT back to idle if not in a conversation loop already.
+            try { if (pttState !== 'listening' && pttState !== 'speaking') setPttState('idle'); } catch {}
+          }
+        });
       });
     }
 
