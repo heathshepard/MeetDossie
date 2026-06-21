@@ -487,7 +487,7 @@
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                 <line x1="12" y1="19" x2="12" y2="22"/>
               </svg>
-              <span class="ptt-label" id="ptt-label">TAP TO TALK</span>
+              <span class="ptt-label" id="ptt-label">TAP TO START</span>
             </span>
           </button>
         </div>
@@ -579,6 +579,38 @@
     let chunks = [];
     let pttState = 'idle'; // idle | listening | thinking | speaking | error
 
+    // ============================================================================
+    // CONVERSATION MODE (continuous, VAD-driven)
+    // ----------------------------------------------------------------------------
+    // UX: TAP 1 = open conversation; mic stays held continuously. Voice Activity
+    //     Detection (VAD) auto-cuts each utterance after ~1.5s of silence,
+    //     submits to STT, runs chat + TTS, then reopens the mic for the next
+    //     utterance — same conversation_id. TAP 2 = close conversation entirely.
+    //
+    // Walkie-talkie (single-turn) code path is preserved behind ?ptt=1 flag.
+    // Default = continuous conversation mode.
+    // ============================================================================
+    const FORCE_PTT = new URLSearchParams(location.search).get('ptt') === '1';
+    const VAD = {
+      silenceMs:    1500,  // ms of below-threshold amplitude that ends an utterance
+      minSpeechMs:   180,  // ms of above-threshold amplitude required to register as speech
+      threshold:   0.020,  // RMS amplitude (0–1) above which we consider audio "voice"
+      pollMs:         50,  // VAD poll interval
+      maxUtteranceMs: 30000, // hard cap per utterance (safety)
+    };
+    let conversationActive = false;     // true once user taps to start
+    let audioCtx = null;
+    let analyser = null;
+    let vadIntervalId = null;
+    let vadState = {
+      speaking: false,
+      speechStartedAt: 0,
+      lastVoiceAt: 0,
+      utteranceStartedAt: 0,
+    };
+    let processingTurn = false;         // true while STT+chat+TTS round-trip runs
+    let pendingEndConversation = false; // set if user taps end mid-turn
+
     // --- elements ---
     const $ = (id) => document.getElementById(id);
     const pttBtn = $('ptt');
@@ -607,7 +639,7 @@
       pttState = s;
       pttBtn.dataset.state = s;
       const labels = {
-        idle: 'TAP TO TALK',
+        idle: 'TAP TO START',
         listening: 'LISTENING',
         thinking: 'THINKING',
         speaking: 'SPEAKING',
@@ -873,7 +905,344 @@
       }
     }
 
+    // ====================================================================
+    // CONTINUOUS CONVERSATION MODE — main click handler
+    // ====================================================================
     async function onPttClick() {
+      if (FORCE_PTT) return onPttClickWalkieTalkie();
+
+      // TAP 2 — end conversation (any active state)
+      if (conversationActive) {
+        await endConversation();
+        return;
+      }
+
+      // TAP 1 — start a conversation
+      if (pttState === 'error') {
+        // recover from prior error
+        setPttState('idle');
+      }
+      const stream = await ensureMic();
+      if (!stream) {
+        setPttState('error', 'MIC BLOCKED');
+        showToast('Microphone blocked. Tap address bar lock icon to allow.');
+        return;
+      }
+      conversationActive = true;
+      pendingEndConversation = false;
+      try {
+        startVadLoop(stream);
+        startUtteranceRecorder(stream);
+        setPttState('listening');
+        pttLabel.textContent = 'TAP TO END';
+        pttStatus.textContent = 'Listening — speak, then pause.';
+      } catch (err) {
+        console.error('[jarvis] start conversation failed', err);
+        stopVadLoop();
+        stopMicStream();
+        conversationActive = false;
+        setPttState('error', 'MIC ERROR');
+        showToast(`Mic error: ${err.message}`);
+      }
+    }
+
+    async function endConversation() {
+      conversationActive = false;
+      pendingEndConversation = false;
+      stopVadLoop();
+      try {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          // Tell the in-flight recorder to stop without triggering a new turn.
+          mediaRecorder._suppressFinalize = true;
+          try { mediaRecorder.stop(); } catch {}
+        }
+      } catch {}
+      stopMicStream();
+      setPttState('idle');
+      pttLabel.textContent = 'TAP TO START';
+      pttStatus.textContent = '';
+      // Inform server the conversation is closed. Best-effort.
+      try {
+        if (conversationId) {
+          await fetch(`${API_BASE}/api/jarvis-voice?op=conversation_end`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ conversation_id: conversationId }),
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // ===== VAD =====
+    function startVadLoop(stream) {
+      stopVadLoop();
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+        const src = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        analyser.smoothingTimeConstant = 0.7;
+        src.connect(analyser);
+      } catch (err) {
+        console.warn('[jarvis] VAD init failed', err);
+        return;
+      }
+      const buf = new Uint8Array(analyser.fftSize);
+      vadState = { speaking: false, speechStartedAt: 0, lastVoiceAt: 0, utteranceStartedAt: Date.now() };
+      vadIntervalId = setInterval(() => {
+        if (!analyser) return;
+        analyser.getByteTimeDomainData(buf);
+        // RMS of normalized (-1,1) signal
+        let sumSq = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = (buf[i] - 128) / 128;
+          sumSq += v * v;
+        }
+        const rms = Math.sqrt(sumSq / buf.length);
+        const now = Date.now();
+        const above = rms > VAD.threshold;
+
+        if (above) {
+          if (!vadState.speaking) {
+            vadState.speechStartedAt = now;
+            vadState.speaking = true;
+          }
+          vadState.lastVoiceAt = now;
+        }
+
+        // Hard utterance cap — finalize even mid-talk to avoid runaway uploads
+        if (vadState.speaking && (now - vadState.utteranceStartedAt) > VAD.maxUtteranceMs) {
+          finalizeUtteranceIfReady(true);
+          return;
+        }
+
+        // Silence-after-speech → finalize this utterance
+        if (vadState.speaking && vadState.lastVoiceAt && (now - vadState.lastVoiceAt) >= VAD.silenceMs) {
+          // require minimum speech duration to avoid clicks/coughs
+          if ((vadState.lastVoiceAt - vadState.speechStartedAt) >= VAD.minSpeechMs) {
+            finalizeUtteranceIfReady(false);
+          } else {
+            // reset and keep listening
+            vadState.speaking = false;
+            vadState.speechStartedAt = 0;
+            vadState.lastVoiceAt = 0;
+            vadState.utteranceStartedAt = now;
+          }
+        }
+      }, VAD.pollMs);
+    }
+
+    function stopVadLoop() {
+      if (vadIntervalId) {
+        clearInterval(vadIntervalId);
+        vadIntervalId = null;
+      }
+      try { if (audioCtx) audioCtx.close(); } catch {}
+      audioCtx = null;
+      analyser = null;
+    }
+
+    function startUtteranceRecorder(stream) {
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 });
+      } catch (err) {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+      chunks = [];
+      const recRef = mediaRecorder;
+      recRef.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      recRef.onstop = async () => {
+        if (recRef._suppressFinalize) {
+          chunks = [];
+          return;
+        }
+        const blob = new Blob(chunks, { type: recRef.mimeType || 'audio/webm' });
+        chunks = [];
+        await handleUtteranceBlob(blob);
+      };
+      recRef.onerror = (e) => {
+        console.error('[jarvis] mediaRecorder error', e);
+      };
+      recRef.start();
+      vadState.utteranceStartedAt = Date.now();
+    }
+
+    function finalizeUtteranceIfReady(hardCap) {
+      if (!conversationActive) return;
+      if (processingTurn) return;
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+      processingTurn = true;
+      try {
+        mediaRecorder.stop(); // triggers handleUtteranceBlob via onstop
+      } catch (err) {
+        console.warn('[jarvis] recorder.stop failed', err);
+        processingTurn = false;
+      }
+      // reset VAD bookkeeping for next utterance
+      vadState.speaking = false;
+      vadState.speechStartedAt = 0;
+      vadState.lastVoiceAt = 0;
+    }
+
+    async function handleUtteranceBlob(blob) {
+      try {
+        if (!conversationActive) { processingTurn = false; return; }
+        if (blob.size < 1000) {
+          // too short, skip — keep mic open
+          processingTurn = false;
+          if (conversationActive && micStream) {
+            startUtteranceRecorder(micStream);
+            setPttState('listening');
+            pttLabel.textContent = 'TAP TO END';
+            pttStatus.textContent = 'Listening — speak, then pause.';
+          }
+          return;
+        }
+        setPttState('thinking');
+        pttLabel.textContent = 'TAP TO END';
+        pttStatus.textContent = 'Transcribing…';
+
+        // STT
+        let transcript = '';
+        try {
+          const sttRes = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': blob.type,
+              Authorization: await getAuthHeader(),
+            },
+            body: blob,
+          });
+          const sttData = await sttRes.json();
+          if (sttRes.ok && sttData.ok) {
+            transcript = (sttData.transcript || '').trim();
+          } else if (sttRes.status === 400 && sttData?.error === 'audio_empty_or_too_short') {
+            transcript = '';
+          } else {
+            throw new Error(sttData?.error || `STT failed (${sttRes.status})`);
+          }
+        } catch (err) {
+          showToast(`STT: ${err.message}`);
+          await resumeListening();
+          return;
+        }
+        if (!transcript) {
+          // ignore noise, keep conversation open
+          await resumeListening();
+          return;
+        }
+
+        appendMessage('user', transcript);
+        pttStatus.textContent = 'Thinking…';
+
+        // Chat
+        let reply = '';
+        try {
+          const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
+          });
+          const chatData = await chatRes.json();
+          if (!chatRes.ok || !chatData.ok) {
+            throw new Error(chatData?.error || `Chat failed (${chatRes.status})`);
+          }
+          reply = chatData.response || '';
+          if (chatData.conversation_id) {
+            conversationId = chatData.conversation_id;
+            convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+            lsSetLastConv(conversationId);
+          }
+        } catch (err) {
+          showToast(`Chat: ${err.message}`);
+          speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
+          return;
+        }
+
+        appendMessage('assistant', reply);
+        setPttState('speaking');
+        pttLabel.textContent = 'TAP TO END';
+        pttStatus.textContent = 'Speaking…';
+
+        // TTS
+        try {
+          const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ text: reply }),
+          });
+          if (!ttsRes.ok) {
+            const errBody = await ttsRes.json().catch(() => ({}));
+            if (errBody.fallback === 'speech-synthesis') {
+              speakFallback(reply, /*resume*/true);
+              return;
+            }
+            throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
+          }
+          const audioBlob = await ttsRes.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audio.onended = async () => {
+            URL.revokeObjectURL(audioUrl);
+            await resumeListening();
+          };
+          audio.onerror = async () => { await resumeListening(); };
+          await audio.play();
+        } catch (err) {
+          showToast(`TTS: ${err.message}`);
+          speakFallback(reply, /*resume*/true);
+        }
+      } catch (outer) {
+        console.error('[jarvis] handleUtteranceBlob outer error', outer);
+        await resumeListening();
+      }
+    }
+
+    async function resumeListening() {
+      processingTurn = false;
+      if (!conversationActive) return;
+      if (pendingEndConversation) {
+        pendingEndConversation = false;
+        await endConversation();
+        return;
+      }
+      // Mic stream is still alive (we never released it during a turn in
+      // continuous mode). Spin up a new recorder for the next utterance.
+      if (!micStream) {
+        const stream = await ensureMic();
+        if (!stream) {
+          conversationActive = false;
+          setPttState('error', 'MIC BLOCKED');
+          showToast('Mic lost. Tap to retry.');
+          return;
+        }
+        startVadLoop(stream);
+      } else if (!vadIntervalId) {
+        startVadLoop(micStream);
+      }
+      startUtteranceRecorder(micStream);
+      setPttState('listening');
+      pttLabel.textContent = 'TAP TO END';
+      pttStatus.textContent = 'Listening — speak, then pause.';
+    }
+
+    // ====================================================================
+    // WALKIE-TALKIE FALLBACK (legacy single-turn, behind ?ptt=1 flag)
+    // ====================================================================
+    async function onPttClickWalkieTalkie() {
       if (pttState === 'idle' || pttState === 'error') {
         // Start — always a fresh getUserMedia, never reused.
         const stream = await ensureMic();
@@ -896,10 +1265,8 @@
         chunks = [];
         mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         mediaRecorder.onstop = async () => {
-          // Release the OS mic IMMEDIATELY so other apps (Telegram dictation, etc.)
-          // can acquire it while we transcribe + think + speak.
           stopMicStream();
-          await processCapturedAudio();
+          await processCapturedAudioPtt();
         };
         mediaRecorder.onerror = (e) => {
           console.error('[jarvis] mediaRecorder error', e);
@@ -911,20 +1278,16 @@
       } else if (pttState === 'listening') {
         pttStatus.textContent = 'Stopping…';
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          mediaRecorder.stop(); // triggers onstop → stopMicStream
+          mediaRecorder.stop();
         } else {
-          // Defensive: recorder gone but we somehow still have a stream.
           stopMicStream();
           setPttState('idle');
         }
       }
     }
 
-    async function processCapturedAudio() {
-      // Capture mime BEFORE releasing the recorder so STT gets the right codec hint.
+    async function processCapturedAudioPtt() {
       const blobMime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
-      // Defensive: mediaRecorder.onstop already released the mic; this is a
-      // safety net for any future code path that reaches here with a live stream.
       stopMicStream();
       const blob = new Blob(chunks, { type: blobMime });
       chunks = [];
@@ -936,7 +1299,6 @@
       setPttState('thinking');
       pttStatus.textContent = 'Transcribing…';
 
-      // STT
       let transcript = '';
       try {
         const sttRes = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
@@ -951,7 +1313,6 @@
         if (sttRes.ok && sttData.ok) {
           transcript = (sttData.transcript || '').trim();
         } else if (sttRes.status === 400 && sttData?.error === 'audio_empty_or_too_short') {
-          // Graceful fall-through: behave like an empty transcript.
           setPttState('idle');
           showToast("I didn't catch that, sir.");
           speakFallback("I didn't catch that, sir.");
@@ -965,18 +1326,15 @@
         showToast(`STT: ${err.message}`);
         return;
       }
-
       if (!transcript) {
         setPttState('idle');
         showToast("I didn't catch that, sir.");
         speakFallback("I didn't catch that, sir.");
         return;
       }
-
       appendMessage('user', transcript);
       pttStatus.textContent = 'Thinking…';
 
-      // Chat
       let reply = '';
       try {
         const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
@@ -1004,12 +1362,9 @@
         speakFallback('Connection hiccup, sir. Try again.');
         return;
       }
-
       appendMessage('assistant', reply);
       setPttState('speaking');
       pttStatus.textContent = 'Speaking…';
-
-      // TTS
       try {
         const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
           method: 'POST',
@@ -1042,17 +1397,25 @@
       setPttState('idle');
     }
 
-    function speakFallback(text) {
+    function speakFallback(text, resumeAfter) {
       try {
-        if (!('speechSynthesis' in window)) return;
+        if (!('speechSynthesis' in window)) {
+          if (resumeAfter && conversationActive) { resumeListening(); }
+          else setPttState('idle');
+          return;
+        }
         const utter = new SpeechSynthesisUtterance(text);
         utter.rate = 1.0;
         utter.pitch = 1.0;
-        utter.onend = () => setPttState('idle');
+        utter.onend = () => {
+          if (resumeAfter && conversationActive) resumeListening();
+          else setPttState('idle');
+        };
         speechSynthesis.speak(utter);
       } catch (err) {
         console.warn(err);
-        setPttState('idle');
+        if (resumeAfter && conversationActive) resumeListening();
+        else setPttState('idle');
       }
     }
 
@@ -1106,13 +1469,21 @@
 
       // Page-lifecycle handlers: release the mic so Telegram dictation / other
       // apps can acquire it whenever the user navigates away or backgrounds the PWA.
-      window.addEventListener('pagehide', stopMicStream);
-      window.addEventListener('beforeunload', stopMicStream);
+      const lifecycleCleanup = () => {
+        try { stopVadLoop(); } catch {}
+        try { stopMicStream(); } catch {}
+        conversationActive = false;
+      };
+      window.addEventListener('pagehide', lifecycleCleanup);
+      window.addEventListener('beforeunload', lifecycleCleanup);
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden' && pttState !== 'listening') {
-          // Hidden + not actively capturing → drop any lingering stream.
-          // (If actively listening, keep recording — user may swipe back.)
-          stopMicStream();
+        if (document.visibilityState === 'hidden') {
+          // Page hidden — end any active conversation so mic LED goes dark.
+          if (conversationActive) {
+            endConversation().catch(() => lifecycleCleanup());
+          } else if (pttState !== 'listening') {
+            stopMicStream();
+          }
         }
       });
 
