@@ -372,7 +372,8 @@
     .chat-reply-toggle[data-mode="voice"] { border-color: rgba(201, 169, 110, 0.5); color: var(--gold, #C9A96E); }
     .chat-reply-toggle[data-mode="text"] { border-color: var(--cyan-dim); color: var(--cyan); }
     .chat-input {
-      flex: 1 1 auto;
+      flex: 1 1 0;
+      min-width: 0;
       min-height: 44px;
       padding: 10px 12px;
       border-radius: 10px;
@@ -1294,6 +1295,18 @@
       .vb-btn { padding: 10px 12px; gap: 10px; }
       .vb-btn .vb-title { font-size: 11px; letter-spacing: 0.12em; }
       .vb-btn .vb-sub { font-size: 9px; }
+      /* Z Fold cover (344w) — chat row was overflowing on a single line.
+         Wrap the VOICE/TEXT reply toggle to its OWN row above the input by
+         giving it flex-basis:100% and order:-1 (CSS-only, no DOM change). */
+      .chat-input-bar { gap: 8px; }
+      .chat-input-row { flex-wrap: wrap; row-gap: 8px; }
+      .chat-reply-toggle {
+        order: -1;
+        flex: 0 0 100%;
+        max-width: max-content;
+        min-height: 32px;
+        padding: 4px 12px;
+      }
     }
   </style>
 </head>
