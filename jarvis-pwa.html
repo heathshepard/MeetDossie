@@ -665,6 +665,40 @@
       return true;
     }
 
+    // Returns a fresh `Bearer <access_token>` Authorization header value.
+    // Refreshes the Supabase session if the access_token is expired or within
+    // the 5-minute pre-expiry window. Safe to call on every fetch — Supabase
+    // dedupes concurrent refresh requests internally.
+    async function getAuthHeader() {
+      let current = session;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data && data.session) current = data.session;
+      } catch (err) {
+        console.warn('[jarvis] getSession failed', err);
+      }
+      if (!current || !current.access_token) {
+        throw new Error('Not signed in');
+      }
+      const expiresAtMs = (current.expires_at || 0) * 1000;
+      const msUntilExpiry = expiresAtMs - Date.now();
+      // Refresh when within 5 minutes of expiry, or already expired.
+      if (!expiresAtMs || msUntilExpiry < 5 * 60 * 1000) {
+        try {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error || !data || !data.session) {
+            throw new Error(error?.message || 'Session refresh failed');
+          }
+          current = data.session;
+        } catch (err) {
+          console.error('[jarvis] refreshSession failed', err);
+          throw new Error('Session refresh failed');
+        }
+      }
+      session = current;
+      return `Bearer ${current.access_token}`;
+    }
+
     async function signIn() {
       const email = authEmail.value.trim();
       const password = authPw.value;
@@ -701,7 +735,7 @@
       const res = await fetch(`${window.__JARVIS_SB_URL}/rest/v1/jarvis_users?select=id,tenant_id,role,tenants(id,slug,display_name,addressing_pref,voice_id,theme)&auth_user_id=eq.${session.user.id}&limit=1`, {
         headers: {
           apikey: window.__JARVIS_SB_KEY,
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: await getAuthHeader(),
         },
       });
       if (res.ok) {
@@ -765,7 +799,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: await getAuthHeader(),
           },
           body: JSON.stringify({
             device_label: getDeviceLabel(),
@@ -862,7 +896,7 @@
           method: 'POST',
           headers: {
             'Content-Type': blob.type,
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: await getAuthHeader(),
           },
           body: blob,
         });
@@ -902,7 +936,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: await getAuthHeader(),
           },
           body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
         });
@@ -934,7 +968,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: await getAuthHeader(),
           },
           body: JSON.stringify({ text: reply }),
         });
