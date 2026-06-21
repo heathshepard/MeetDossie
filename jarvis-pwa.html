@@ -574,6 +574,11 @@
     let jarvisUser = null;
     let conversationId = null;
     let conversation = { messages: [] };
+    // Jarvis Session 2: context federation. Loaded once per session via
+    // /api/jarvis-context-load, passed back to chat as system_prompt_extension.
+    let systemPromptExtension = null;
+    let systemPromptExtensionAt = 0;
+    const CTX_REFRESH_MS = 60 * 1000;
     let mediaRecorder = null;
     let micStream = null; // active MediaStream — MUST be stopped after every use to release mic LED
     let chunks = [];
@@ -850,6 +855,9 @@
             hydrateScrollback(data.messages);
             showToast(`Resumed (${data.messages.length} prior msgs).`, 1800);
           }
+          // Kick off context federation in parallel (fire-and-forget; chat
+          // will await it on first turn if not yet ready).
+          ensureContextLoaded(true).catch(() => {});
         }
       } catch (err) {
         console.warn('[jarvis] startConversation failed', err);
@@ -863,6 +871,44 @@
         if (m.role !== 'user' && m.role !== 'assistant') return;
         appendMessage(m.role, m.content, m.created_at);
       });
+    }
+
+    // ===== Context federation (Session 2) =====
+    // Pulls Heath's full context (memory backbone, live MRR, open todos,
+    // agent status, recent conversation titles, active DoDs) so Jarvis on
+    // the PWA knows what Cole knows on Telegram.
+    //
+    // Cached for CTX_REFRESH_MS so the chat loop doesn't pay the load cost
+    // on every turn.
+    async function ensureContextLoaded(force) {
+      const now = Date.now();
+      if (!force && systemPromptExtension && (now - systemPromptExtensionAt) < CTX_REFRESH_MS) {
+        return systemPromptExtension;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-context-load`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({ conversation_id: conversationId || undefined }),
+        });
+        if (!res.ok) {
+          console.warn('[jarvis] context-load failed', res.status);
+          return null;
+        }
+        const data = await res.json();
+        if (data.ok && data.system_prompt_extension) {
+          systemPromptExtension = data.system_prompt_extension;
+          systemPromptExtensionAt = now;
+          console.log(`[jarvis] context loaded (~${data.token_estimate} tokens)`);
+          return systemPromptExtension;
+        }
+      } catch (err) {
+        console.warn('[jarvis] context-load error', err);
+      }
+      return null;
     }
 
     // ===== Push-to-talk pipeline =====
@@ -1142,6 +1188,24 @@
         appendMessage('user', transcript);
         pttStatus.textContent = 'Thinking…';
 
+        // ===== Route: tool-likely turn -> non-streaming chat (tool_use); else stream =====
+        // Streaming endpoint doesn't support tool_use (yet). If the message
+        // hints at needing a tool, route to the non-streaming /op=chat which
+        // does the full Anthropic tool-use loop. Latency penalty: ~500ms.
+        const TOOL_INTENT_RE = /\b(mrr|customers?|subscribers?|brittney|miki|search|google|browse|telegram|sms|message|email|spawn|atlas|carter|hadley|pierce|sage|quinn|ridge|sterling|jarvis|remind|reminder|todo|calendar|schedule|today|brief|dashboard|status|posts?|pending|approve|approval|how many|how much|what's our|when did|find|look up|check on)\b/i;
+        const isToolIntent = TOOL_INTENT_RE.test(transcript);
+
+        if (isToolIntent) {
+          console.log('[jarvis] tool-intent detected -> non-streaming chat');
+          try {
+            await runLegacyChatTTS(transcript);
+          } catch (err) {
+            console.error('[jarvis] non-streaming chat failed:', err);
+            speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
+          }
+          return;
+        }
+
         // ===== STREAMING chat + TTS pipeline =====
         // Server streams Claude tokens, extracts sentences, fires ElevenLabs
         // TTS per sentence, pipes audio chunks down via SSE. Client appends
@@ -1274,6 +1338,7 @@
       }
 
       try {
+        const ctxExt = await ensureContextLoaded(false);
         const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat_tts_stream`, {
           method: 'POST',
           headers: {
@@ -1281,7 +1346,11 @@
             Authorization: await getAuthHeader(),
             Accept: 'text/event-stream',
           },
-          body: JSON.stringify({ conversation_id: convId, message: transcript }),
+          body: JSON.stringify({
+            conversation_id: convId,
+            message: transcript,
+            system_prompt_extension: ctxExt || undefined,
+          }),
         });
         if (!res.ok || !res.body) {
           return { fallback: true, error: `stream HTTP ${res.status}` };
@@ -1398,13 +1467,18 @@
     // before any audio plays. Mirrors the original code path 1:1.
     async function runLegacyChatTTS(transcript) {
       let reply = '';
+      const ctxExt = await ensureContextLoaded(false);
       const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: await getAuthHeader(),
         },
-        body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          message: transcript,
+          system_prompt_extension: ctxExt || undefined,
+        }),
       });
       const chatData = await chatRes.json();
       if (!chatRes.ok || !chatData.ok) {
@@ -1573,13 +1647,18 @@
 
       let reply = '';
       try {
+        const ctxExt = await ensureContextLoaded(false);
         const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: await getAuthHeader(),
           },
-          body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            message: transcript,
+            system_prompt_extension: ctxExt || undefined,
+          }),
         });
         const chatData = await chatRes.json();
         if (!chatRes.ok || !chatData.ok) {
