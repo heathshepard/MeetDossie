@@ -4,7 +4,7 @@
 //
 //   POST /api/jarvis-voice?op=stt
 //     Body: raw audio (Content-Type: audio/webm | audio/mp4 | audio/wav ...)
-//     -> OpenAI Whisper STT
+//     -> ElevenLabs Speech-to-Text (scribe_v1)
 //     <- 200 { ok:true, transcript }
 //
 //   POST /api/jarvis-voice?op=chat
@@ -27,8 +27,8 @@
 //
 // Auth: REQUIRED. Bearer Supabase JWT. Looked up against jarvis_users to
 //       resolve tenant_id; if no row, 403.
-// Env: OPENAI_API_KEY (STT), ANTHROPIC_API_KEY (chat),
-//      ELEVENLABS_API_KEY (TTS), SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (DB).
+// Env: ELEVENLABS_API_KEY (STT + TTS), ANTHROPIC_API_KEY (chat),
+//      SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (DB).
 // Owner: Atlas (SV-JARVIS-PWA-001)
 
 import { verifySupabaseToken } from './_middleware/auth.js';
@@ -226,7 +226,10 @@ async function resolveTenant(authUserId) {
 // ===== Op handlers =====
 
 async function handleSTT(req, res, requestId) {
-  if (!OPENAI_API_KEY) {
+  // ElevenLabs Speech-to-Text (scribe_v1) — replaced OpenAI Whisper 2026-06-20
+  // after the OpenAI account hit insufficient_quota (429) bouncing every
+  // Heath recording as "Provider error". ElevenLabs key reused from TTS path.
+  if (!ELEVENLABS_API_KEY) {
     return res.status(503).json({ ok: false, error: 'STT not configured' });
   }
   const contentType = (req.headers['content-type'] || '').toLowerCase();
@@ -250,52 +253,57 @@ async function handleSTT(req, res, requestId) {
     // Short audio (~<2KB raw webm) is almost always a stray tap or silence.
     // Surface as 400 with the same error code the client uses for empty
     // transcripts so the UX falls back to "I didn't catch that, sir."
-    console.log(`[jarvis-voice/stt] [${requestId}] short audio ${audioBuffer.length}b — skipping Whisper`);
+    console.log(`[jarvis-voice/stt] [${requestId}] short audio ${audioBuffer.length}b — skipping STT`);
     return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', bytes: audioBuffer.length });
   }
 
   const baseMime = contentType.split(';')[0].trim();
-  console.log(`[jarvis-voice/stt] [${requestId}] ${audioBuffer.length} bytes (${baseMime})`);
+  console.log(`[jarvis-voice/stt] [${requestId}] ${audioBuffer.length} bytes (${baseMime}) -> ElevenLabs scribe_v1`);
 
   const form = new FormData();
-  form.append('model', 'whisper-1');
-  form.append('response_format', 'text');
-  form.append('language', 'en');
+  form.append('model_id', 'scribe_v1');
   const blob = new Blob([audioBuffer], { type: baseMime });
   form.append('file', blob, filenameForMime(baseMime));
 
-  let whisperRes;
+  let sttRes;
   try {
-    whisperRes = await withTimeout(
-      fetch('https://api.openai.com/v1/audio/transcriptions', {
+    sttRes = await withTimeout(
+      fetch('https://api.elevenlabs.io/v1/speech-to-text', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        headers: { 'xi-api-key': ELEVENLABS_API_KEY },
         body: form,
       }),
       STT_TIMEOUT_MS,
-      'Whisper'
+      'ElevenLabsSTT'
     );
   } catch (err) {
     if (err.code === 'TIMEOUT') {
-      console.warn(`[jarvis-voice/stt] [${requestId}] Whisper timeout`);
+      console.warn(`[jarvis-voice/stt] [${requestId}] ElevenLabs STT timeout`);
       return res.status(504).json({ ok: false, error: 'STT timeout', fallback: 'retry' });
     }
     throw err;
   }
 
-  if (!whisperRes.ok) {
-    const errText = await whisperRes.text().catch(() => '');
-    console.error(`[jarvis-voice/stt] [${requestId}] Whisper ${whisperRes.status}: ${errText.slice(0, 300)}`);
-    // Whisper returns 400 for "audio too short" / "decoding failed" / invalid
-    // file. Treat those as client-friendly 400s instead of 502s — the user
-    // didn't catch anything meaningful, not a true API outage.
-    if (whisperRes.status === 400) {
+  if (!sttRes.ok) {
+    const errText = await sttRes.text().catch(() => '');
+    console.error(`[jarvis-voice/stt] [${requestId}] ElevenLabs ${sttRes.status}: ${errText.slice(0, 300)}`);
+    // ElevenLabs returns 400 for "audio too short" / "invalid file" / decoding
+    // failed. Treat those as client-friendly 400s instead of 502s — the user
+    // didn't say anything meaningful, not a true provider outage.
+    if (sttRes.status === 400) {
       return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: errText.slice(0, 200) });
     }
-    return res.status(502).json({ ok: false, error: 'STT provider error', status: whisperRes.status });
+    return res.status(502).json({ ok: false, error: 'STT provider error', status: sttRes.status });
   }
 
-  const transcript = (await whisperRes.text()).trim();
+  let transcript = '';
+  try {
+    const data = await sttRes.json();
+    transcript = String((data && data.text) || '').trim();
+  } catch (err) {
+    console.error(`[jarvis-voice/stt] [${requestId}] failed parsing ElevenLabs response: ${err.message}`);
+    return res.status(502).json({ ok: false, error: 'STT provider error', detail: 'invalid_response_shape' });
+  }
   console.log(`[jarvis-voice/stt] [${requestId}] "${transcript.slice(0, 80)}"`);
   return res.status(200).json({ ok: true, transcript, empty: !transcript });
 }
