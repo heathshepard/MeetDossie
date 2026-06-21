@@ -575,6 +575,7 @@
     let conversationId = null;
     let conversation = { messages: [] };
     let mediaRecorder = null;
+    let micStream = null; // active MediaStream — MUST be stopped after every use to release mic LED
     let chunks = [];
     let pttState = 'idle'; // idle | listening | thinking | speaking | error
 
@@ -833,11 +834,38 @@
     }
 
     // ===== Push-to-talk pipeline =====
+    // Centralized mic release. Safe to call any number of times. Releases the
+    // OS-level microphone (mic LED off, other apps can acquire it).
+    function stopMicStream() {
+      try {
+        if (micStream) {
+          micStream.getTracks().forEach((t) => {
+            try { t.stop(); } catch (e) { /* ignore */ }
+          });
+        }
+      } catch (e) {
+        console.warn('[jarvis] stopMicStream error', e);
+      } finally {
+        micStream = null;
+      }
+      // Also drop the MediaRecorder reference so it can't be reused with a dead stream.
+      if (mediaRecorder) {
+        try {
+          if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        } catch (e) { /* ignore */ }
+        mediaRecorder = null;
+      }
+    }
+
     async function ensureMic() {
+      // ALWAYS release any prior stream before requesting a new one.
+      // Reusing an old stream is what previously held the mic open across conversations.
+      stopMicStream();
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000, channelCount: 1 },
         });
+        micStream = stream;
         return stream;
       } catch (err) {
         console.error('[jarvis] mic error', err);
@@ -847,7 +875,7 @@
 
     async function onPttClick() {
       if (pttState === 'idle' || pttState === 'error') {
-        // Start
+        // Start — always a fresh getUserMedia, never reused.
         const stream = await ensureMic();
         if (!stream) {
           setPttState('error', 'MIC BLOCKED');
@@ -868,18 +896,37 @@
         chunks = [];
         mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         mediaRecorder.onstop = async () => {
-          stream.getTracks().forEach((t) => t.stop());
+          // Release the OS mic IMMEDIATELY so other apps (Telegram dictation, etc.)
+          // can acquire it while we transcribe + think + speak.
+          stopMicStream();
           await processCapturedAudio();
+        };
+        mediaRecorder.onerror = (e) => {
+          console.error('[jarvis] mediaRecorder error', e);
+          stopMicStream();
+          setPttState('error');
+          showToast('Recording error. Tap to retry.');
         };
         mediaRecorder.start();
       } else if (pttState === 'listening') {
         pttStatus.textContent = 'Stopping…';
-        mediaRecorder && mediaRecorder.stop();
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop(); // triggers onstop → stopMicStream
+        } else {
+          // Defensive: recorder gone but we somehow still have a stream.
+          stopMicStream();
+          setPttState('idle');
+        }
       }
     }
 
     async function processCapturedAudio() {
-      const blob = new Blob(chunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+      // Capture mime BEFORE releasing the recorder so STT gets the right codec hint.
+      const blobMime = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
+      // Defensive: mediaRecorder.onstop already released the mic; this is a
+      // safety net for any future code path that reaches here with a live stream.
+      stopMicStream();
+      const blob = new Blob(chunks, { type: blobMime });
       chunks = [];
       if (blob.size < 1000) {
         setPttState('idle');
@@ -1056,6 +1103,18 @@
       authBtn.addEventListener('click', signIn);
       authPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
       pttBtn.addEventListener('click', onPttClick);
+
+      // Page-lifecycle handlers: release the mic so Telegram dictation / other
+      // apps can acquire it whenever the user navigates away or backgrounds the PWA.
+      window.addEventListener('pagehide', stopMicStream);
+      window.addEventListener('beforeunload', stopMicStream);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && pttState !== 'listening') {
+          // Hidden + not actively capturing → drop any lingering stream.
+          // (If actively listening, keep recording — user may swipe back.)
+          stopMicStream();
+        }
+      });
 
       // dev convenience: ?demo=1 prefills demo creds
       const usp = new URLSearchParams(location.search);
