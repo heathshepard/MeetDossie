@@ -129,12 +129,19 @@
     .center-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
     aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-    /* ===== PUSH-TO-TALK ORB ===== */
+    /* ===== PUSH-TO-TALK ORB =====
+       Layout: .orb-wrap is the centering shell. Globe (canvas) + SVG fallback
+       fill it via inset:0. PTT button is ABSOLUTE CENTER on top — dead-center
+       of the Three.js canvas at every breakpoint. */
     .orb-wrap {
       position: relative;
-      display: grid; place-items: center;
-      padding: 36px 0 24px 0;
-      min-height: 300px;
+      width: 100%;
+      /* Square-ish region that scales with viewport. Caps at 460px so the
+         globe never dominates on large screens, never shrinks below 240px
+         (Z Fold cover at 344w still gets a usable orb). */
+      aspect-ratio: 1 / 1;
+      max-width: clamp(240px, 78vw, 460px);
+      margin: 12px auto 8px auto;
     }
     .orb-bg {
       position: absolute; inset: 0;
@@ -143,7 +150,7 @@
       z-index: 0;
     }
     .orb-bg svg {
-      width: 100%; max-width: 360px; height: auto;
+      width: 100%; height: 100%;
       opacity: 0.18;
     }
     /* ===== THREE.JS EARTH (ported from V5 HUD `today.html`, 2026-06-20) ===== */
@@ -156,19 +163,25 @@
     .orb-earth canvas {
       display: block;
       width: 100% !important;
-      max-width: 460px;
+      height: 100% !important;
       aspect-ratio: 1 / 1;
-      height: auto !important;
       /* Drop the cyan halo. Globe stands on its own with city-light brightness. */
       filter: none;
     }
     /* If the Earth canvas mounts, fade the static SVG fallback away. */
     .orb-wrap.has-earth .orb-bg svg { opacity: 0; transition: opacity 0.8s ease; }
-    /* PTT button: FLOATING over the globe. No disc, no solid backdrop.
-       Icon + label are fully opaque; the ring is a hint, not a wall. */
+    /* PTT button: FLOATING DEAD-CENTER over the globe. Absolute-positioned
+       at 50% / 50% so it stays locked to the canvas center regardless of
+       viewport. No disc, no solid backdrop — icon + label fully opaque. */
     .ptt-btn {
-      position: relative; z-index: 2;
-      width: clamp(180px, 40vw, 240px);
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      /* Button caps at 44% of the orb-wrap; never smaller than a 44px tap
+         target. On 344w Z Fold cover (~268px orb) → 118px button. On 1280
+         desktop (460px orb) → 202px button. Tappable everywhere. */
+      width: clamp(132px, 44%, 220px);
       aspect-ratio: 1;
       border-radius: 50%;
       background: transparent;
@@ -180,22 +193,24 @@
       letter-spacing: 0.18em; text-transform: uppercase;
       cursor: pointer;
       display: grid; place-items: center;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      transition: box-shadow 0.18s ease, border-color 0.18s ease;
       user-select: none;
       outline: none;
     }
     .ptt-btn:hover { border-color: var(--cyan-bright); }
-    .ptt-btn:active { transform: scale(0.98); }
+    /* :active scale combined w/ centering translate. Keep both. */
+    .ptt-btn:active { transform: translate(-50%, -50%) scale(0.97); }
     .ptt-btn:focus-visible { box-shadow: 0 0 0 3px var(--cyan-bright), 0 0 36px var(--cyan-glow); }
     .ptt-inner {
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 0 8px;
     }
     .ptt-glyph {
-      width: 48px; height: 48px;
+      width: clamp(32px, 22%, 52px); height: clamp(32px, 22%, 52px);
       stroke: var(--cyan-bright);
       filter: drop-shadow(0 0 6px var(--cyan-glow));
     }
-    .ptt-label { font-size: 11px; }
+    .ptt-label { font-size: clamp(10px, 1.5vw, 12px); white-space: nowrap; }
     /* state: idle */
     .ptt-btn[data-state="idle"]::before {
       content: ''; position: absolute; inset: -12px;
@@ -494,6 +509,8 @@
     .quick-actions {
       display: flex; gap: 8px;
       overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
       padding: 10px 12px;
       background: var(--glass);
       border: 1px solid var(--line);
@@ -502,6 +519,7 @@
       scrollbar-width: thin;
       scrollbar-color: var(--cyan-dim) transparent;
     }
+    .qa-chip { scroll-snap-align: start; }
     .quick-actions::-webkit-scrollbar { height: 4px; }
     .quick-actions::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 2px; }
     .qa-chip {
@@ -509,10 +527,11 @@
       font-family: inherit;
       font-size: 12px; font-weight: 500;
       letter-spacing: 0.1em;
-      padding: 8px 14px;
+      padding: 12px 16px;
+      min-height: 44px;
       background: rgba(0, 229, 255, 0.06);
       border: 1px solid var(--line);
-      border-radius: 18px;
+      border-radius: 22px;
       color: var(--txt-primary);
       cursor: pointer;
       white-space: nowrap;
@@ -790,6 +809,7 @@
       flex: 1;
       display: flex; align-items: center; gap: 12px;
       padding: 12px 16px;
+      min-height: 48px;
       background: rgba(0, 229, 255, 0.06);
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -798,6 +818,7 @@
       font-size: 13px; letter-spacing: 0.1em;
       cursor: pointer;
       transition: all 0.18s ease;
+      text-align: left;
     }
     .vb-btn:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 18px var(--cyan-dim); }
     .vb-btn:active { transform: scale(0.98); }
@@ -894,6 +915,7 @@
     .qa-card {
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       padding: 14px 8px;
+      min-height: 80px;
       background: rgba(0, 229, 255, 0.04);
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -1130,6 +1152,44 @@
     .hidden { display: none !important; }
     .scrollback::-webkit-scrollbar { width: 6px; }
     .scrollback::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
+
+    /* ===== MOBILE RESPONSIVE (portrait under 500px) =====
+       Targets: 390x844 standard mobile, 344x882 Z Fold cover.
+       Goal: no horizontal scroll, tap targets >= 44px, single-column stats. */
+    @media (max-width: 500px) {
+      .header {
+        padding: 10px 12px 8px 12px;
+      }
+      .brand { font-size: 18px; letter-spacing: 0.12em; }
+      .brand-tag { font-size: 9px; letter-spacing: 0.18em; }
+      .header-right { font-size: 10px; }
+      .main {
+        padding: 10px;
+        gap: 12px;
+      }
+      /* Reflow Daily Debrief stat grid to single column on narrow portrait. */
+      .debrief-grid { grid-template-columns: 1fr; }
+      /* Stack Ask-a-Specialist cards 2-wide instead of 3-wide so labels fit. */
+      .quick-ask-row { grid-template-columns: repeat(2, 1fr); }
+      /* Pending modal actions stack on tiny screens (Approve/Snooze/Reject). */
+      .pending-modal-actions { grid-template-columns: 1fr; }
+      /* Tighter panel padding. */
+      .panel { padding: 12px; }
+      /* Scrollback shorter so user can see panels below w/o long scroll. */
+      .scrollback { padding: 10px; }
+    }
+    /* ===== Z FOLD COVER (very narrow, 344w) ===== */
+    @media (max-width: 360px) {
+      .header { padding: 8px 10px 6px 10px; }
+      .brand { font-size: 16px; }
+      .brand-tag { display: none; }
+      .main { padding: 8px; gap: 10px; }
+      .panel { padding: 10px; }
+      .voice-brief-bar { padding: 8px 10px; }
+      .vb-btn { padding: 10px 12px; gap: 10px; }
+      .vb-btn .vb-title { font-size: 11px; letter-spacing: 0.12em; }
+      .vb-btn .vb-sub { font-size: 9px; }
+    }
   </style>
 </head>
 <body>
