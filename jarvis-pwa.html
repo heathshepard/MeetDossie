@@ -127,6 +127,7 @@
     }
 
     .center-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+    aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
     /* ===== PUSH-TO-TALK ORB ===== */
     .orb-wrap {
@@ -143,7 +144,7 @@
     }
     .orb-bg svg {
       width: 100%; max-width: 360px; height: auto;
-      opacity: 0.35;
+      opacity: 0.18;
     }
     /* ===== THREE.JS EARTH (ported from V5 HUD `today.html`, 2026-06-20) ===== */
     .orb-earth {
@@ -158,34 +159,32 @@
       max-width: 460px;
       aspect-ratio: 1 / 1;
       height: auto !important;
-      filter: drop-shadow(0 0 24px rgba(0, 229, 255, 0.18));
+      /* Drop the cyan halo. Globe stands on its own with city-light brightness. */
+      filter: none;
     }
     /* If the Earth canvas mounts, fade the static SVG fallback away. */
     .orb-wrap.has-earth .orb-bg svg { opacity: 0; transition: opacity 0.8s ease; }
+    /* PTT button: FLOATING over the globe. No disc, no solid backdrop.
+       Icon + label are fully opaque; the ring is a hint, not a wall. */
     .ptt-btn {
       position: relative; z-index: 2;
       width: clamp(180px, 40vw, 240px);
       aspect-ratio: 1;
       border-radius: 50%;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(77, 208, 225, 0.18) 0%, rgba(15, 25, 45, 0.65) 60%),
-        radial-gradient(circle, rgba(0, 229, 255, 0.05) 0%, rgba(15, 25, 45, 0.85) 100%);
-      border: 1px solid var(--line-strong);
-      box-shadow:
-        0 0 0 2px var(--cyan-dim),
-        0 0 36px var(--cyan-dim),
-        inset 0 0 32px rgba(0, 229, 255, 0.12);
-      backdrop-filter: blur(12px);
+      background: transparent;
+      border: 1px solid rgba(77, 208, 225, 0.22);
+      box-shadow: none;
       color: var(--cyan-bright);
       font-family: 'Inter', sans-serif;
       font-size: 13px; font-weight: 600;
       letter-spacing: 0.18em; text-transform: uppercase;
       cursor: pointer;
       display: grid; place-items: center;
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
       user-select: none;
       outline: none;
     }
+    .ptt-btn:hover { border-color: var(--cyan-bright); }
     .ptt-btn:active { transform: scale(0.98); }
     .ptt-btn:focus-visible { box-shadow: 0 0 0 3px var(--cyan-bright), 0 0 36px var(--cyan-glow); }
     .ptt-inner {
@@ -210,10 +209,10 @@
     }
     /* state: listening */
     .ptt-btn[data-state="listening"] {
+      border-color: var(--cyan-bright);
       box-shadow:
-        0 0 0 3px var(--cyan-bright),
-        0 0 48px var(--cyan-glow),
-        inset 0 0 40px rgba(0, 229, 255, 0.22);
+        0 0 0 1px var(--cyan-bright),
+        0 0 24px var(--cyan-glow);
     }
     .ptt-btn[data-state="listening"]::before {
       content: ''; position: absolute; inset: -18px;
@@ -246,10 +245,10 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     /* state: speaking */
     .ptt-btn[data-state="speaking"] {
+      border-color: var(--gold);
       box-shadow:
-        0 0 0 2px var(--gold),
-        0 0 40px rgba(201, 169, 110, 0.55),
-        inset 0 0 32px rgba(201, 169, 110, 0.18);
+        0 0 0 1px var(--gold),
+        0 0 24px rgba(201, 169, 110, 0.45);
     }
     .ptt-btn[data-state="speaking"] .ptt-glyph { stroke: var(--gold); }
     .ptt-btn[data-state="speaking"]::before {
@@ -361,6 +360,135 @@
     .agent-status.completed { color: var(--ok); border: 1px solid var(--ok); background: rgba(139, 168, 136, 0.08); }
     .agent-status.failed    { color: var(--fail); border: 1px solid var(--fail); background: rgba(232, 94, 94, 0.08); }
     .agent-status.heartbeat { color: var(--gold); border: 1px solid var(--gold); }
+
+    /* ===== TO-DO PANEL ===== */
+    .panel-title.todo-title-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .todo-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.18em;
+      color: var(--txt-faint);
+      text-transform: uppercase;
+    }
+    .todo-body { display: flex; flex-direction: column; gap: 12px; }
+    .todo-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
+    .todo-card {
+      background: rgba(0, 229, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .todo-priority-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .todo-prio-badge {
+      padding: 2px 7px; border-radius: 4px;
+      border: 1px solid var(--cyan-dim);
+      color: var(--cyan-bright);
+    }
+    .todo-prio-badge.p1 { color: var(--fail); border-color: var(--fail); }
+    .todo-prio-badge.p2 { color: var(--warn); border-color: var(--warn); }
+    .todo-prio-badge.p3 { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .todo-title {
+      font-size: 14px; line-height: 1.4;
+      color: var(--txt-primary);
+      font-weight: 500;
+    }
+    .todo-detail {
+      font-size: 12px; line-height: 1.45;
+      color: var(--txt-mute);
+      white-space: pre-wrap; word-wrap: break-word;
+      max-height: 120px; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .todo-actions {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .todo-btn {
+      font-family: inherit;
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 8px 4px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--txt-mute);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .todo-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .todo-btn.done { color: var(--ok); border-color: var(--ok); }
+    .todo-btn.done:hover { background: rgba(139, 168, 136, 0.10); }
+    .todo-btn:disabled { opacity: 0.5; cursor: wait; }
+
+    /* ===== MONEY PULSE ===== */
+    .money-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .money-cell {
+      text-align: center;
+      padding: 10px 4px;
+      background: rgba(0, 229, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .money-val {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 22px; line-height: 1.1;
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(201, 169, 110, 0.35);
+    }
+    .money-lbl {
+      font-size: 9px; letter-spacing: 0.18em;
+      color: var(--txt-faint);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ===== ACTIVITY FEED ===== */
+    .activity-feed {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 260px; overflow-y: auto;
+    }
+    .activity-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
+    .activity-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: 8px; align-items: center;
+      padding: 6px 4px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
+      font-size: 11px;
+    }
+    .activity-row:last-child { border-bottom: none; }
+    .activity-agent {
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--cyan-bright);
+      min-width: 52px;
+    }
+    .activity-task {
+      color: var(--txt-mute);
+      line-height: 1.35;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .activity-ts {
+      font-size: 9px; letter-spacing: 0.1em;
+      color: var(--txt-faint);
+      white-space: nowrap;
+    }
+    .activity-status-completed { color: var(--ok); }
+    .activity-status-failed { color: var(--fail); }
+    .activity-status-working { color: var(--cyan-bright); }
 
     /* ===== AUTH GATE ===== */
     .auth-gate {
@@ -524,6 +652,36 @@
       </div>
 
       <aside>
+        <!-- TO-DO: highest priority. Single-task focus mode w/ skip/snooze/done. -->
+        <div class="panel" id="todo-panel">
+          <div class="panel-title todo-title-row">
+            <span>TO-DO</span>
+            <span class="todo-meta" id="todo-meta">—</span>
+          </div>
+          <div id="todo-body" class="todo-body">
+            <div class="todo-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- MONEY PULSE: live MRR, customers, ships today. From /api/jarvis-tickers. -->
+        <div class="panel" id="money-panel">
+          <div class="panel-title">MONEY PULSE</div>
+          <div class="money-grid">
+            <div class="money-cell">
+              <div class="money-val" id="money-mrr">—</div>
+              <div class="money-lbl">MRR</div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="money-cust">—</div>
+              <div class="money-lbl">Customers</div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="money-ship">—</div>
+              <div class="money-lbl">Shipped Today</div>
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-title">AGENT STATUS</div>
           <div id="agent-grid">
@@ -552,6 +710,14 @@
               <div class="agent-status idle">IDLE</div>
               <div class="agent-summary">—</div>
             </div>
+          </div>
+        </div>
+
+        <!-- ACTIVITY LOG: chronological feed of agent work (DoD addendum 2026-06-21). -->
+        <div class="panel" id="activity-panel">
+          <div class="panel-title">ACTIVITY LOG</div>
+          <div id="activity-feed" class="activity-feed">
+            <div class="activity-empty">Loading…</div>
           </div>
         </div>
       </aside>
@@ -810,8 +976,9 @@
             varying vec3 vNormal;
             varying vec3 vViewDir;
             void main() {
-              float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.4);
-              gl_FragColor = vec4(color, fresnel * 0.55);
+              // Sharper falloff + much lower intensity. No aggressive cyan halo.
+              float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 5.0);
+              gl_FragColor = vec4(color, fresnel * 0.18);
             }
           `,
           transparent: true,
@@ -1148,6 +1315,12 @@
       // Start conversation
       await startConversation();
       subscribeAgentEvents();
+      // Hydrate side panels (to-do + money + activity). Fire-and-forget — never block UI.
+      loadTodo().catch(() => {});
+      loadTickers().catch(() => {});
+      // Refresh tickers + todo periodically. 30s for tickers, 60s for todo.
+      setInterval(() => { loadTickers().catch(() => {}); }, 30000);
+      setInterval(() => { loadTodo().catch(() => {}); }, 60000);
     }
 
     function getDeviceLabel() {
@@ -2089,6 +2262,182 @@
         if (resumeAfter && conversationActive) resumeListening();
         else setPttState('idle');
       }
+    }
+
+    // ===== TO-DO panel =====
+    // Single-task focus: shows the highest-priority pending item w/ Done/Skip/Snooze.
+    // Calls /api/heath-todo-next, /api/heath-todo-complete, /api/heath-todo-skip, /api/heath-todo-snooze.
+    let currentTodo = null;
+    async function loadTodo() {
+      const body = document.getElementById('todo-body');
+      const meta = document.getElementById('todo-meta');
+      if (!body) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/heath-todo-next`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          body.innerHTML = `<div class="todo-empty">Couldn't load (${res.status}).</div>`;
+          meta.textContent = '';
+          return;
+        }
+        const data = await res.json();
+        renderTodo(data.task);
+        if (typeof data.queue_count === 'number') {
+          meta.textContent = data.queue_count ? `${data.queue_count} queued` : '';
+        }
+      } catch (err) {
+        console.warn('[jarvis] loadTodo failed', err);
+        body.innerHTML = `<div class="todo-empty">Offline.</div>`;
+      }
+    }
+
+    function renderTodo(task) {
+      const body = document.getElementById('todo-body');
+      currentTodo = task;
+      if (!task) {
+        body.innerHTML = `<div class="todo-empty">All clear. No pending tasks.</div>`;
+        return;
+      }
+      const prio = Number(task.priority) || 3;
+      const prioClass = prio <= 2 ? 'p1' : (prio === 3 ? 'p2' : 'p3');
+      const prioLabel = prio <= 2 ? 'URGENT' : (prio === 3 ? 'NORMAL' : 'LATER');
+      const venture = task.venture ? String(task.venture).toUpperCase() : '';
+      const detail = task.detail ? task.detail : '';
+      body.innerHTML = `
+        <div class="todo-card">
+          <div class="todo-priority-row">
+            <span class="todo-prio-badge ${prioClass}">${prioLabel}</span>
+            <span>${venture}</span>
+          </div>
+          <div class="todo-title"></div>
+          ${detail ? '<div class="todo-detail"></div>' : ''}
+          <div class="todo-actions">
+            <button class="todo-btn done" data-act="done">Done</button>
+            <button class="todo-btn" data-act="snooze">Snooze 2h</button>
+            <button class="todo-btn" data-act="skip">Skip</button>
+          </div>
+        </div>
+      `;
+      body.querySelector('.todo-title').textContent = task.title || '(untitled)';
+      const detailEl = body.querySelector('.todo-detail');
+      if (detailEl) detailEl.textContent = detail;
+      body.querySelectorAll('.todo-btn').forEach(btn => {
+        btn.addEventListener('click', () => onTodoAction(btn.dataset.act, btn));
+      });
+    }
+
+    async function onTodoAction(act, btn) {
+      if (!currentTodo) return;
+      const id = currentTodo.id;
+      const endpoint = act === 'done'   ? '/api/heath-todo-complete'
+                     : act === 'skip'   ? '/api/heath-todo-skip'
+                     : act === 'snooze' ? '/api/heath-todo-snooze'
+                     : null;
+      if (!endpoint) return;
+      const btns = document.querySelectorAll('.todo-btn');
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        const payload = { id };
+        if (act === 'snooze') {
+          payload.snooze_until = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+        }
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          showToast(`Todo ${act} failed (${res.status})`);
+          btns.forEach(b => { b.disabled = false; });
+          return;
+        }
+        // Most endpoints return the next task in `next`; fall back to a fresh load.
+        const data = await res.json().catch(() => ({}));
+        if (data && Object.prototype.hasOwnProperty.call(data, 'next')) {
+          renderTodo(data.next || null);
+          const meta = document.getElementById('todo-meta');
+          if (meta && typeof data.queue_count === 'number') {
+            meta.textContent = data.queue_count ? `${data.queue_count} queued` : '';
+          }
+        } else {
+          await loadTodo();
+        }
+      } catch (err) {
+        console.warn('[jarvis] todo action failed', err);
+        btns.forEach(b => { b.disabled = false; });
+      }
+    }
+
+    // ===== MONEY PULSE + ACTIVITY FEED =====
+    // Both come from a single /api/jarvis-tickers round-trip.
+    async function loadTickers() {
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-tickers`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderMoney(data.header || {});
+        renderActivity(data.activity || []);
+      } catch (err) {
+        console.warn('[jarvis] loadTickers failed', err);
+      }
+    }
+
+    function renderMoney(h) {
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('money-mrr',  h.mrr_usd != null ? `$${h.mrr_usd}` : '—');
+      set('money-cust', h.customer_count != null ? String(h.customer_count) : '—');
+      set('money-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
+    }
+
+    function renderActivity(activity) {
+      const feed = document.getElementById('activity-feed');
+      if (!feed) return;
+      if (!activity.length) {
+        feed.innerHTML = `<div class="activity-empty">No recent activity.</div>`;
+        return;
+      }
+      const now = Date.now();
+      const fmtAgo = (iso) => {
+        if (!iso) return '';
+        const ms = now - new Date(iso).getTime();
+        const s = Math.max(1, Math.floor(ms / 1000));
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60);
+        if (m < 60) return `${m}m`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h`;
+        return `${Math.floor(h / 24)}d`;
+      };
+      const rows = activity.slice(0, 30).map(a => {
+        const status = (a.status || '').toLowerCase();
+        const statusClass = status === 'completed' ? 'activity-status-completed'
+                          : status === 'failed'    ? 'activity-status-failed'
+                          : status === 'working'   ? 'activity-status-working'
+                          : '';
+        const agent = (a.agent || '?').toString();
+        const summary = (a.summary || '(idle)').toString();
+        const ago = fmtAgo(a.ts);
+        return `<div class="activity-row">
+          <div class="activity-agent ${statusClass}" data-agent></div>
+          <div class="activity-task" data-task></div>
+          <div class="activity-ts" data-ts></div>
+        </div>`;
+      }).join('');
+      feed.innerHTML = rows;
+      // Set text via textContent for XSS safety.
+      const rowEls = feed.querySelectorAll('.activity-row');
+      rowEls.forEach((row, i) => {
+        const a = activity[i];
+        row.querySelector('[data-agent]').textContent = (a.agent || '?').toString();
+        row.querySelector('[data-task]').textContent = (a.summary || '(idle)').toString();
+        row.querySelector('[data-ts]').textContent = fmtAgo(a.ts);
+      });
     }
 
     // ===== Realtime agent events =====
