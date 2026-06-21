@@ -288,21 +288,29 @@
       min-height: 16px;
     }
 
-    /* ===== SCROLLBACK ===== */
+    /* ===== SCROLLBACK =====
+       Fixed-height panel so it never pushes downstream panels (Pending Approvals,
+       Daily Debrief, etc.) further down the page as the conversation grows.
+       Messages list scrolls INTERNALLY. Newest message inserts at TOP via
+       appendMessage() prepend, so the most recent reply is always visible without
+       scrolling. Chat input docks at the bottom of the panel. */
     .scrollback {
-      flex: 1; min-height: 0;
+      flex: 0 0 auto;
+      max-height: 50vh;
       background: var(--glass);
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 12px;
-      overflow-y: auto;
       backdrop-filter: blur(10px);
+      display: flex; flex-direction: column;
+      min-height: 0;
     }
     .scrollback-header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 0 6px 10px 6px;
       border-bottom: 1px solid var(--line);
       margin-bottom: 10px;
+      flex-shrink: 0;
     }
     .scrollback-title {
       font-family: 'Cormorant Garamond', Georgia, serif;
@@ -310,6 +318,93 @@
       color: var(--cyan);
       text-transform: uppercase;
     }
+    /* The messages list is the only scrolling region inside .scrollback.
+       Newest message appears at TOP (prepend), older messages flow below. */
+    #messages {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      min-height: 0;
+      display: flex; flex-direction: column;
+    }
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
+
+    /* ===== CHAT INPUT (text + attachment) =====
+       Docked at the bottom of the SESSION LOG panel so Heath can type a message
+       or attach a file when voice isn't convenient. Send via Enter or send button.
+       Voice/Text reply toggle controls whether Jarvis speaks the reply aloud. */
+    .chat-input-bar {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .chat-input-row {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chat-attach-btn,
+    .chat-send-btn,
+    .chat-reply-toggle {
+      flex-shrink: 0;
+      min-width: 44px; min-height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--glass);
+      color: var(--cyan);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 0 10px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .chat-attach-btn:hover,
+    .chat-send-btn:hover,
+    .chat-reply-toggle:hover { border-color: var(--cyan); background: rgba(77, 208, 225, 0.08); }
+    .chat-attach-btn svg, .chat-send-btn svg { width: 18px; height: 18px; }
+    .chat-send-btn { background: linear-gradient(135deg, rgba(77, 208, 225, 0.18), rgba(77, 208, 225, 0.06)); }
+    .chat-send-btn:disabled, .chat-attach-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .chat-reply-toggle {
+      min-width: 0;
+      padding: 0 12px;
+      font-size: 10px; letter-spacing: 0.14em;
+    }
+    .chat-reply-toggle[data-mode="voice"] { border-color: rgba(201, 169, 110, 0.5); color: var(--gold, #C9A96E); }
+    .chat-reply-toggle[data-mode="text"] { border-color: var(--cyan-dim); color: var(--cyan); }
+    .chat-input {
+      flex: 1 1 auto;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--txt, #e5f7fa);
+      font: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .chat-input:focus { border-color: var(--cyan); }
+    .chat-input::placeholder { color: var(--txt-faint); }
+    .chat-attachment-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(77, 208, 225, 0.08);
+      border: 1px solid var(--cyan-dim);
+      color: var(--cyan);
+      font-size: 11px;
+      max-width: 100%;
+      align-self: flex-start;
+    }
+    .chat-attachment-chip .chip-name {
+      max-width: 220px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .chat-attachment-chip .chip-clear {
+      cursor: pointer; color: var(--txt-faint);
+      padding: 0 4px; line-height: 1;
+    }
+    .chat-attachment-chip .chip-clear:hover { color: var(--cyan); }
     .msg {
       padding: 8px 10px; margin: 6px 0;
       border-radius: 10px;
@@ -1180,8 +1275,13 @@
       .pending-modal-actions { grid-template-columns: 1fr; }
       /* Tighter panel padding. */
       .panel { padding: 12px; }
-      /* Scrollback shorter so user can see panels below w/o long scroll. */
-      .scrollback { padding: 10px; }
+      /* Scrollback shorter so user can see panels below w/o long scroll.
+         On mobile, 60vh is enough to show ~3-4 messages while keeping the
+         input + downstream panels (Pending Approvals, Debrief) in reach. */
+      .scrollback { padding: 10px; max-height: 60vh; }
+      /* Slightly smaller chat input controls on mobile to fit narrower width
+         while keeping the 44px tap-target minimum. */
+      .chat-reply-toggle { font-size: 9px; padding: 0 8px; }
     }
     /* ===== Z FOLD COVER (very narrow, 344w) ===== */
     @media (max-width: 360px) {
@@ -1295,6 +1395,27 @@
             <span style="font-size:11px;color:var(--txt-faint);" id="conv-id-display">— no session —</span>
           </div>
           <div id="messages"></div>
+          <!-- Text chat dock — Heath can type or attach a file when voice isn't
+               convenient. Voice/Text toggle controls whether Jarvis speaks aloud. -->
+          <div class="chat-input-bar" id="chat-input-bar">
+            <div id="chat-attachment-row" class="hidden"></div>
+            <div class="chat-input-row">
+              <button id="chat-attach-btn" class="chat-attach-btn" aria-label="Attach a file" title="Attach a file">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+              </button>
+              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" />
+              <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
+              <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
+              <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1890,6 +2011,9 @@
       if (s === 'idle') pttStatus.textContent = '';
     }
 
+    // Inserts a message bubble at the TOP of the scrollback. Newest-at-top
+     // gives Heath the latest reply without scrolling. Older messages flow
+     // downward inside the fixed-height, internally-scrollable session log.
     function appendMessage(role, content, createdAt) {
       const el = document.createElement('div');
       el.className = `msg ${role}`;
@@ -1901,8 +2025,10 @@
         <div class="msg-time">${ts}</div>
       `;
       el.querySelector('.msg-content').textContent = content;
-      messages.appendChild(el);
-      messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+      // Prepend so newest is at the top of the visible region.
+      messages.insertBefore(el, messages.firstChild);
+      // Keep the newest message in view (scrollTop=0 = top of the list).
+      messages.scrollTop = 0;
     }
 
     // ===== Supabase boot — fetch publishable key from API to avoid hard-coding =====
@@ -2053,6 +2179,7 @@
       setInterval(() => { loadAgentLedger().catch(() => {}); }, 30000);
       subscribeCustomerEvents();
       wireQuickActions();
+      wireChatInput();
       // Tier 2 wirings
       wireVoiceBrief();
       wireQuickAskCards();
@@ -2596,8 +2723,9 @@
           <div class="msg-content"></div>
           <div class="msg-time">${ts}</div>
         `;
-        messages.appendChild(el);
-        messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+        // Newest-at-top — insert at the start, pin scroll to top.
+        messages.insertBefore(el, messages.firstChild);
+        messages.scrollTop = 0;
         assistantEl = el.querySelector('.msg-content');
         return assistantEl;
       }
@@ -2658,7 +2786,8 @@
               assistantText += payload.delta || '';
               const bubble = ensureAssistantBubble();
               bubble.textContent = assistantText;
-              messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+              // Newest-at-top layout — keep the streaming assistant bubble pinned at top.
+              messages.scrollTop = 0;
             } else if (eventName === 'sentence') {
               // Server says a sentence boundary was hit. UI noop — audio
               // will follow shortly.
@@ -3528,6 +3657,229 @@
             try { if (pttState !== 'listening' && pttState !== 'speaking') setPttState('idle'); } catch {}
           }
         });
+      });
+    }
+
+    // =========================================================================
+    // CHAT INPUT (text + attachment)
+    // =========================================================================
+    // Heath types a message, hits Enter or the send button. Optionally attaches
+    // a file (image, PDF, etc.) which uploads to the jarvis-attachments Supabase
+    // bucket and is referenced in the user message. The Voice/Text toggle
+    // controls whether Jarvis replies with audio (default — same streaming TTS
+    // pipeline as voice loop) or text-only (one /api/jarvis-voice?op=chat call
+    // and a bubble in the scrollback, no TTS).
+    //
+    // Default reply mode is 'voice'. State persists in localStorage so Heath
+    // doesn't have to retoggle every session.
+    const REPLY_MODE_LS_KEY = 'jarvis:replyMode';
+    let pendingAttachment = null; // { file, name, size, publicPath } once uploaded
+
+    function getReplyMode() {
+      try {
+        const v = localStorage.getItem(REPLY_MODE_LS_KEY);
+        return v === 'text' ? 'text' : 'voice';
+      } catch { return 'voice'; }
+    }
+    function setReplyMode(mode) {
+      try { localStorage.setItem(REPLY_MODE_LS_KEY, mode === 'text' ? 'text' : 'voice'); } catch {}
+      const btn = document.getElementById('chat-reply-toggle');
+      if (btn) {
+        btn.dataset.mode = mode;
+        btn.textContent = mode === 'voice' ? 'VOICE' : 'TEXT';
+        btn.title = mode === 'voice' ? 'Jarvis will speak the reply aloud (tap to switch to text-only)' : 'Text-only reply (tap to switch to voice)';
+      }
+    }
+
+    function renderAttachmentChip() {
+      const row = document.getElementById('chat-attachment-row');
+      if (!row) return;
+      if (!pendingAttachment) {
+        row.classList.add('hidden');
+        row.innerHTML = '';
+        return;
+      }
+      row.classList.remove('hidden');
+      const sizeKb = Math.round((pendingAttachment.size || 0) / 1024);
+      row.innerHTML = `
+        <span class="chat-attachment-chip">
+          <span class="chip-name" title="${pendingAttachment.name}">${pendingAttachment.name}</span>
+          <span style="color:var(--txt-faint);font-size:10px;">${sizeKb}KB</span>
+          <span class="chip-clear" data-action="clear-attachment" aria-label="Remove attachment">×</span>
+        </span>
+      `;
+      row.querySelector('[data-action="clear-attachment"]').addEventListener('click', () => {
+        pendingAttachment = null;
+        const fileInput = document.getElementById('chat-attach-input');
+        if (fileInput) fileInput.value = '';
+        renderAttachmentChip();
+      });
+    }
+
+    // Upload the chosen file to the jarvis-attachments bucket under
+    // <auth_user_id>/<ts>-<safeName>. Returns a signed URL (24h) so it can be
+    // dropped into the user message for Jarvis to reference.
+    async function uploadAttachment(file) {
+      if (!supabase || !session?.user?.id) {
+        throw new Error('Not signed in');
+      }
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
+      const objectPath = `${session.user.id}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await supabase.storage
+        .from('jarvis-attachments')
+        .upload(objectPath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+      if (upErr) throw new Error(upErr.message || 'Upload failed');
+      // 24h signed URL for the assistant turn to reference.
+      const { data: sigData, error: sigErr } = await supabase.storage
+        .from('jarvis-attachments')
+        .createSignedUrl(objectPath, 86400);
+      if (sigErr) throw new Error(sigErr.message || 'Sign-URL failed');
+      return { path: objectPath, signedUrl: sigData?.signedUrl || null };
+    }
+
+    // Text-only chat — no TTS. POSTs to /api/jarvis-voice?op=chat and renders
+    // the assistant reply as a bubble. Used when reply mode is 'text'.
+    async function runTextOnlyChat(message) {
+      const ctxExt = await ensureContextLoaded(false).catch(() => null);
+      const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: await getAuthHeader(),
+        },
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          message,
+          system_prompt_extension: ctxExt || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.error || `Chat failed (${res.status})`);
+      }
+      if (data.conversation_id) {
+        conversationId = data.conversation_id;
+        convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+        lsSetLastConv(conversationId);
+      }
+      appendMessage('assistant', data.response || '');
+    }
+
+    function wireChatInput() {
+      const textInput = document.getElementById('chat-text-input');
+      const sendBtn = document.getElementById('chat-send-btn');
+      const attachBtn = document.getElementById('chat-attach-btn');
+      const fileInput = document.getElementById('chat-attach-input');
+      const toggleBtn = document.getElementById('chat-reply-toggle');
+      if (!textInput || !sendBtn) return;
+
+      // Initialize toggle state from localStorage.
+      setReplyMode(getReplyMode());
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          const next = toggleBtn.dataset.mode === 'voice' ? 'text' : 'voice';
+          setReplyMode(next);
+          showToast(next === 'voice' ? 'Jarvis will speak replies aloud.' : 'Text-only replies.', 1400);
+        });
+      }
+
+      // Attach button -> open file picker.
+      if (attachBtn && fileInput) {
+        attachBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          if (file.size > 25 * 1024 * 1024) {
+            showToast('File too large (25MB max).');
+            fileInput.value = '';
+            return;
+          }
+          // Show chip immediately with "uploading…" sizing, then swap to real
+          // chip once upload completes.
+          pendingAttachment = { file, name: file.name, size: file.size, signedUrl: null, path: null };
+          renderAttachmentChip();
+          showToast('Uploading attachment…', 1200);
+          try {
+            const { path, signedUrl } = await uploadAttachment(file);
+            pendingAttachment.path = path;
+            pendingAttachment.signedUrl = signedUrl;
+            showToast('Attachment ready.', 1200);
+          } catch (err) {
+            console.warn('[jarvis] attachment upload failed', err);
+            showToast(`Upload failed: ${err.message}`);
+            pendingAttachment = null;
+            renderAttachmentChip();
+            fileInput.value = '';
+          }
+        });
+      }
+
+      async function sendNow() {
+        const raw = (textInput.value || '').trim();
+        if (!raw && !pendingAttachment) return;
+        // Compose the message: text + attachment marker (so Jarvis sees the
+        // file path / signed URL and can reason about it).
+        let message = raw;
+        if (pendingAttachment && pendingAttachment.signedUrl) {
+          const tag = `\n\n[Attachment: ${pendingAttachment.name} — ${pendingAttachment.signedUrl}]`;
+          message = (raw || `Heath attached ${pendingAttachment.name}.`) + tag;
+        } else if (pendingAttachment) {
+          // Upload didn't finish — block send until it does.
+          showToast('Attachment still uploading…');
+          return;
+        }
+        // Render user bubble (without the noisy signed URL — show name only).
+        const bubbleText = pendingAttachment
+          ? `${raw || `Attached ${pendingAttachment.name}.`}${raw ? '\n' : ''}📎 ${pendingAttachment.name}`
+          : raw;
+        appendMessage('user', bubbleText, new Date().toISOString());
+
+        // Clear input + attachment chip.
+        textInput.value = '';
+        pendingAttachment = null;
+        if (fileInput) fileInput.value = '';
+        renderAttachmentChip();
+
+        // Disable input + send while processing.
+        sendBtn.disabled = true;
+        textInput.disabled = true;
+        try { setPttState('thinking'); pttStatus.textContent = 'Thinking…'; } catch {}
+
+        try {
+          if (getReplyMode() === 'text') {
+            // Text-only — no TTS, no mic resume.
+            await runTextOnlyChat(message);
+          } else {
+            // Voice reply — reuse the streaming TTS pipeline (same as voice loop).
+            const result = await runStreamingChatTTS({ conversationId, transcript: message });
+            if (result && result.fallback) {
+              try { await runLegacyChatTTS(message); } catch (err) {
+                console.warn('[jarvis] chat input legacy fallback failed', err);
+                speakFallback('Connection hiccup, sir.', /*resume*/false);
+              }
+            } else if (result && result.conversationId) {
+              conversationId = result.conversationId;
+              convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+              lsSetLastConv(conversationId);
+            }
+          }
+        } catch (err) {
+          console.warn('[jarvis] chat send failed', err);
+          showToast(`Send failed: ${err.message}`);
+        } finally {
+          sendBtn.disabled = false;
+          textInput.disabled = false;
+          textInput.focus();
+          try { if (pttState !== 'listening' && pttState !== 'speaking') setPttState('idle'); } catch {}
+        }
+      }
+
+      sendBtn.addEventListener('click', sendNow);
+      textInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && !ev.shiftKey) {
+          ev.preventDefault();
+          sendNow();
+        }
       });
     }
 
