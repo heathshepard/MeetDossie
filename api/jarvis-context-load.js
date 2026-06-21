@@ -200,7 +200,7 @@ async function loadLiveContext(tenant, jarvisUser) {
     subRows,
     recentConvs,
   ] = await Promise.all([
-    cachedSbGet('heath_todo?select=id,title,detail,action_type,priority,deadline,status,venture&status=in.(open,pending,in_progress)&order=priority.desc,deadline.asc.nullslast&limit=15').catch(() => []),
+    cachedSbGet('heath_todo?select=id,title,detail,action_type,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast&limit=15').catch(() => []),
     cachedSbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=15`).catch(() => []),
     cachedSbGet('subscriptions?select=id,status,price_id&status=eq.active').catch(() => []),
     sbGet(`jarvis_conversations?select=id,title,started_at,ended_at&tenant_id=${tenant.id ? `eq.${tenant.id}` : ''}&order=started_at.desc&limit=5`).catch(() => []),
