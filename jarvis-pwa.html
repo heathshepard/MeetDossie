@@ -772,6 +772,360 @@
     }
     .toast.show { opacity: 1; }
 
+    /* =========================================================
+       TIER 2 (added 2026-06-21) — Voice Brief, Calendar, Quick-Ask,
+       Agent Ledger upgrade, Detail Modal.
+       ========================================================= */
+
+    /* ===== VOICE BRIEF BUTTON (Tier 2 Widget #1) ===== */
+    .voice-brief-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.08), rgba(0, 229, 255, 0.04));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .vb-btn {
+      flex: 1;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--txt-primary);
+      font-family: inherit;
+      font-size: 13px; letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .vb-btn:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 18px var(--cyan-dim); }
+    .vb-btn:active { transform: scale(0.98); }
+    .vb-btn:disabled { opacity: 0.6; cursor: wait; }
+    .vb-btn .vb-icon {
+      width: 22px; height: 22px;
+      color: var(--gold);
+      filter: drop-shadow(0 0 4px rgba(201, 169, 110, 0.4));
+      flex-shrink: 0;
+    }
+    .vb-btn .vb-text {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+    }
+    .vb-btn .vb-title {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.16em;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+    }
+    .vb-btn .vb-sub {
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.08em;
+    }
+    .vb-btn.playing .vb-icon { color: var(--cyan-bright); filter: drop-shadow(0 0 6px var(--cyan-glow)); }
+    .vb-btn.playing .vb-title { color: var(--gold); }
+    .vb-stop {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--txt-mute);
+      font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .vb-stop:hover { border-color: var(--fail); color: var(--fail); }
+
+    /* ===== CALENDAR PANEL (Tier 2 Widget #2) ===== */
+    .cal-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+    .cal-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 12px 0; }
+    .cal-needs-oauth {
+      font-size: 11px; color: var(--warn);
+      text-align: center; padding: 10px;
+      background: rgba(232, 185, 100, 0.05);
+      border: 1px dashed var(--warn);
+      border-radius: 8px;
+    }
+    .cal-day-header {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 11px; letter-spacing: 0.2em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-top: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(201, 169, 110, 0.18);
+    }
+    .cal-day-header:first-child { margin-top: 0; }
+    .cal-event {
+      display: grid; grid-template-columns: 56px 1fr auto;
+      gap: 8px; align-items: center;
+      padding: 8px 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .cal-event:hover { background: rgba(0, 229, 255, 0.06); }
+    .cal-event-time {
+      font-size: 11px; font-weight: 500;
+      color: var(--cyan-bright);
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+    .cal-event-time.all-day { font-size: 9px; color: var(--gold); letter-spacing: 0.12em; }
+    .cal-event-body {
+      display: flex; flex-direction: column; gap: 2px;
+      min-width: 0;
+    }
+    .cal-event-title {
+      font-size: 12px; color: var(--txt-primary);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cal-event-meta {
+      font-size: 10px; color: var(--txt-faint);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cal-event-icon {
+      width: 14px; height: 14px;
+      color: var(--ok);
+      flex-shrink: 0;
+    }
+
+    /* ===== QUICK-ASK CARDS (Tier 2 Widget #3) ===== */
+    .quick-ask-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .qa-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 8px;
+      background: rgba(0, 229, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--txt-primary);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: center;
+    }
+    .qa-card:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.10); box-shadow: 0 0 14px var(--cyan-dim); transform: translateY(-1px); }
+    .qa-card:active { transform: scale(0.97); }
+    .qa-card.firing { border-color: var(--gold); box-shadow: 0 0 14px rgba(201, 169, 110, 0.4); }
+    .qa-card-icon {
+      width: 22px; height: 22px;
+      color: var(--cyan-bright);
+      filter: drop-shadow(0 0 4px var(--cyan-glow));
+    }
+    .qa-card.firing .qa-card-icon { color: var(--gold); }
+    .qa-card-name {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+    }
+    .qa-card.firing .qa-card-name { color: var(--gold); }
+    .qa-card-sub {
+      font-size: 9px; color: var(--txt-faint);
+      letter-spacing: 0.06em;
+      line-height: 1.2;
+    }
+
+    /* ===== AGENT STATUS UPGRADE (Tier 2 + DoD ADDENDUM) ===== */
+    .agent-row {
+      grid-template-columns: auto 1fr auto !important;
+      cursor: pointer;
+    }
+    .agent-row:hover { background: rgba(0, 229, 255, 0.04); }
+    .agent-status {
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(77, 208, 225, 0.05);
+      color: var(--txt-faint);
+    }
+    .agent-status.idle      { color: var(--txt-faint); }
+    .agent-status.spawned   { color: var(--cyan-bright); background: rgba(0, 229, 255, 0.10); }
+    .agent-status.working,
+    .agent-status.progress,
+    .agent-status.heartbeat { color: var(--cyan-bright); background: rgba(0, 229, 255, 0.15); animation: pulse-status 1.8s ease-in-out infinite; }
+    .agent-status.completed { color: var(--ok); background: rgba(139, 168, 136, 0.10); }
+    .agent-status.failed    { color: var(--fail); background: rgba(232, 94, 94, 0.10); }
+    @keyframes pulse-status {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+    .agent-elapsed {
+      grid-column: 1 / -1;
+      font-size: 9px; color: var(--txt-faint);
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+    }
+    .agent-elapsed.live { color: var(--cyan); }
+
+    /* ===== DETAIL MODAL (Tier 2 + DoD ADDENDUM) ===== */
+    .detail-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(5, 8, 16, 0.88);
+      display: grid; place-items: center;
+      z-index: 160;
+      padding: 20px;
+      backdrop-filter: blur(6px);
+    }
+    .detail-modal {
+      max-width: 620px; width: 100%;
+      max-height: 86vh; overflow-y: auto;
+      background: var(--glass-strong);
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.6), 0 0 60px var(--cyan-dim);
+    }
+    .detail-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .detail-title-block {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .detail-agent-badge {
+      display: inline-block;
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--cyan-bright);
+      padding: 2px 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+    .detail-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px; color: var(--txt-primary);
+    }
+    .detail-close {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--txt-mute);
+      width: 30px; height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .detail-close:hover { border-color: var(--cyan-bright); color: var(--cyan-bright); }
+    .detail-section {
+      margin-bottom: 14px;
+    }
+    .detail-section-label {
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--txt-faint);
+      margin-bottom: 6px;
+    }
+    .detail-section-body {
+      font-size: 12px; line-height: 1.45;
+      color: var(--txt-primary);
+      background: rgba(5, 8, 16, 0.5);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      white-space: pre-wrap;
+      max-height: 240px; overflow-y: auto;
+    }
+    .detail-section-body.muted { color: var(--txt-faint); font-style: italic; }
+    .detail-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    }
+    .detail-cell {
+      background: rgba(5, 8, 16, 0.4);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    .detail-cell-label {
+      font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .detail-cell-val {
+      font-size: 12px; color: var(--txt-primary);
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    .detail-files-list {
+      display: flex; flex-direction: column; gap: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+    .detail-files-list a { color: var(--cyan); text-decoration: none; }
+    .detail-files-list a:hover { color: var(--cyan-bright); text-decoration: underline; }
+    .detail-apv-pass { color: var(--ok); }
+    .detail-apv-fail { color: var(--fail); }
+    .detail-apv-not_run { color: var(--txt-faint); }
+
+    /* Activity row: chevron + clickable */
+    .activity-row { cursor: pointer; transition: background 0.15s; }
+    .activity-row:hover { background: rgba(0, 229, 255, 0.04); }
+    .activity-chevron {
+      color: var(--txt-faint);
+      font-size: 14px; line-height: 1;
+    }
+
+    /* ===== Quick-Ask voice input modal (compact prompt) ===== */
+    .quick-ask-modal {
+      max-width: 500px;
+    }
+    .quick-ask-input {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px 12px;
+      background: rgba(5, 8, 16, 0.6);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--txt-primary);
+      font-family: inherit;
+      font-size: 13px; line-height: 1.45;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .quick-ask-input:focus { outline: none; border-color: var(--cyan-bright); box-shadow: 0 0 0 1px var(--cyan-bright); }
+    .quick-ask-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-top: 10px;
+    }
+    .quick-ask-btn {
+      padding: 10px;
+      font-family: inherit;
+      font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--txt-mute);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quick-ask-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .quick-ask-btn.primary { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .quick-ask-btn.primary:hover { background: rgba(0, 229, 255, 0.10); }
+    .quick-ask-btn:disabled { opacity: 0.5; cursor: wait; }
+    .quick-ask-listening {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid var(--cyan-bright);
+      border-radius: 8px;
+      font-size: 11px; color: var(--cyan-bright);
+      letter-spacing: 0.14em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .quick-ask-listening .live-dot { background: var(--cyan-bright); box-shadow: 0 0 8px var(--cyan-bright); }
+    .quick-ask-answer {
+      font-size: 12px; line-height: 1.5;
+      color: var(--txt-primary);
+      background: rgba(5, 8, 16, 0.5);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      max-height: 280px; overflow-y: auto;
+    }
+    .quick-ask-citations {
+      margin-top: 8px;
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.06em;
+    }
+    .quick-ask-citations a { color: var(--cyan); text-decoration: none; }
+    .quick-ask-citations a:hover { text-decoration: underline; }
+
     /* ===== UTIL ===== */
     .hidden { display: none !important; }
     .scrollback::-webkit-scrollbar { width: 6px; }
@@ -794,6 +1148,21 @@
 
     <main class="main">
       <div class="center-col">
+        <!-- VOICE BRIEF (Tier 2 Widget #1) — tap to play 60s morning brief in George's voice. -->
+        <div class="voice-brief-bar" id="voice-brief-bar">
+          <button class="vb-btn" id="vb-btn" aria-label="Play morning brief">
+            <svg class="vb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span class="vb-text">
+              <span class="vb-title" id="vb-title">Tap to Play Morning Brief</span>
+              <span class="vb-sub" id="vb-sub">~60 seconds · George voice</span>
+            </span>
+          </button>
+          <button class="vb-stop hidden" id="vb-stop" aria-label="Stop brief">STOP</button>
+        </div>
+        <audio id="vb-audio" preload="none" style="display:none"></audio>
+
         <!-- QUICK ACTIONS ROW (Tier 1 Widget #4) — preset voice triggers as horizontal chips. -->
         <div class="quick-actions" id="quick-actions" role="toolbar" aria-label="Quick actions">
           <button class="qa-chip" data-prompt="Give me a morning brief.">Morning Brief</button>
@@ -873,6 +1242,45 @@
           </div>
           <div id="pending-list" class="pending-list">
             <div class="pending-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- CALENDAR (Tier 2 Widget #2) — today + tomorrow events from Google / local. -->
+        <div class="panel" id="calendar-panel">
+          <div class="panel-title">CALENDAR</div>
+          <div id="cal-list" class="cal-list">
+            <div class="cal-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- QUICK-ASK CARDS (Tier 2 Widget #3) — route a quick voice/text question to a specialist. -->
+        <div class="panel" id="quick-ask-panel">
+          <div class="panel-title">ASK A SPECIALIST</div>
+          <div class="quick-ask-row">
+            <button class="qa-card" data-specialist="hadley" aria-label="Ask Hadley">
+              <svg class="qa-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6l9-4 9 4-9 4-9-4z"/>
+                <path d="M3 6v6c0 4 4 7 9 7s9-3 9-7V6"/>
+              </svg>
+              <span class="qa-card-name">Hadley</span>
+              <span class="qa-card-sub">Legal · TREC</span>
+            </button>
+            <button class="qa-card" data-specialist="sterling" aria-label="Ask Sterling">
+              <svg class="qa-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 17 9 11 13 15 21 7"/>
+                <polyline points="14 7 21 7 21 14"/>
+              </svg>
+              <span class="qa-card-name">Sterling</span>
+              <span class="qa-card-sub">Markets · Stocks</span>
+            </button>
+            <button class="qa-card" data-specialist="pierce" aria-label="Ask Pierce">
+              <svg class="qa-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="7" r="3.5"/>
+                <path d="M5 21c0-4 3-7 7-7s7 3 7 7"/>
+              </svg>
+              <span class="qa-card-name">Pierce</span>
+              <span class="qa-card-sub">Growth · CS</span>
+            </button>
           </div>
         </div>
 
@@ -1560,19 +1968,29 @@
       loadPendingApprovals().catch(() => {});
       loadDailyDebrief().catch(() => {});
       loadCustomerActivity().catch(() => {});
+      // Tier 2 hydrations
+      loadCalendar().catch(() => {});
+      loadAgentLedger().catch(() => {});
       // Refresh cadences per spec:
       //   tickers (money/activity log) — 30s
       //   to-do — 60s
       //   pending approvals — 30s (high priority)
       //   daily debrief — 60s
       //   customer activity — 30s polling + realtime subscription below
+      //   calendar — 5m (slow-changing)
+      //   agent ledger — 30s polling backup (realtime is the primary)
       setInterval(() => { loadTickers().catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().catch(() => {}); }, 60000);
       setInterval(() => { loadPendingApprovals().catch(() => {}); }, 30000);
       setInterval(() => { loadDailyDebrief().catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().catch(() => {}); }, 30000);
+      setInterval(() => { loadCalendar().catch(() => {}); }, 300000);
+      setInterval(() => { loadAgentLedger().catch(() => {}); }, 30000);
       subscribeCustomerEvents();
       wireQuickActions();
+      // Tier 2 wirings
+      wireVoiceBrief();
+      wireQuickAskCards();
     }
 
     function getDeviceLabel() {
@@ -3048,6 +3466,643 @@
       });
     }
 
+    // =========================================================================
+    // TIER 2 — VOICE BRIEF (Widget #1)
+    // =========================================================================
+    let vbAudio = null;
+    let vbPlaying = false;
+    async function loadVoiceBriefAndPlay() {
+      const btn = document.getElementById('vb-btn');
+      const stop = document.getElementById('vb-stop');
+      const title = document.getElementById('vb-title');
+      const sub = document.getElementById('vb-sub');
+      const audio = document.getElementById('vb-audio');
+      if (!btn || !audio) return;
+      if (vbPlaying) { stopVoiceBrief(); return; }
+      try {
+        btn.disabled = true;
+        btn.classList.add('playing');
+        title.textContent = 'Loading brief…';
+        sub.textContent = '~60 seconds · George voice';
+        const res = await fetch(`${API_BASE}/api/jarvis-voice-brief`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          const errTxt = await res.text().catch(() => '');
+          console.warn('[jarvis] voice brief failed', res.status, errTxt);
+          title.textContent = 'Brief unavailable';
+          sub.textContent = `Status ${res.status}`;
+          btn.classList.remove('playing');
+          btn.disabled = false;
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        audio.src = url;
+        audio.onended = () => {
+          vbPlaying = false;
+          btn.classList.remove('playing');
+          stop.classList.add('hidden');
+          title.textContent = 'Replay Morning Brief';
+          sub.textContent = '~60 seconds · George voice';
+          URL.revokeObjectURL(url);
+        };
+        await audio.play();
+        vbPlaying = true;
+        btn.disabled = false;
+        stop.classList.remove('hidden');
+        title.textContent = 'Playing morning brief…';
+        const briefDate = res.headers.get('X-Brief-Date') || '';
+        const cached = res.headers.get('X-Brief-Cached') === '1';
+        sub.textContent = `${briefDate}${cached ? ' · cached' : ' · fresh'}`;
+      } catch (err) {
+        console.warn('[jarvis] voice brief play error', err);
+        title.textContent = 'Brief error';
+        sub.textContent = String(err.message || err).slice(0, 60);
+        btn.classList.remove('playing');
+        btn.disabled = false;
+      }
+    }
+    function stopVoiceBrief() {
+      const btn = document.getElementById('vb-btn');
+      const stop = document.getElementById('vb-stop');
+      const title = document.getElementById('vb-title');
+      const sub = document.getElementById('vb-sub');
+      const audio = document.getElementById('vb-audio');
+      if (audio) { try { audio.pause(); audio.currentTime = 0; } catch {} }
+      vbPlaying = false;
+      btn.classList.remove('playing');
+      stop.classList.add('hidden');
+      title.textContent = 'Tap to Play Morning Brief';
+      sub.textContent = '~60 seconds · George voice';
+    }
+    function wireVoiceBrief() {
+      const btn = document.getElementById('vb-btn');
+      const stop = document.getElementById('vb-stop');
+      if (btn) btn.addEventListener('click', loadVoiceBriefAndPlay);
+      if (stop) stop.addEventListener('click', stopVoiceBrief);
+    }
+
+    // =========================================================================
+    // TIER 2 — CALENDAR (Widget #2)
+    // =========================================================================
+    let calLastEvents = [];
+    async function loadCalendar() {
+      const list = document.getElementById('cal-list');
+      if (!list) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-calendar?days=2`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          list.innerHTML = `<div class="cal-empty">Couldn't load (${res.status}).</div>`;
+          return;
+        }
+        const data = await res.json();
+        calLastEvents = data.events || [];
+        renderCalendar(data);
+      } catch (err) {
+        console.warn('[jarvis] loadCalendar failed', err);
+        list.innerHTML = `<div class="cal-empty">Offline.</div>`;
+      }
+    }
+
+    function renderCalendar(data) {
+      const list = document.getElementById('cal-list');
+      if (!list) return;
+      const events = data.events || [];
+      if (!events.length) {
+        if (data.needs_oauth) {
+          list.innerHTML = `<div class="cal-needs-oauth">${escapeHtml(data.message || 'Connect Google Calendar to see events.')}</div>`;
+        } else {
+          list.innerHTML = `<div class="cal-empty">${escapeHtml(data.message || 'No events today or tomorrow.')}</div>`;
+        }
+        return;
+      }
+      list.innerHTML = '';
+      let lastDay = null;
+      events.forEach((ev, idx) => {
+        if (ev.day_label !== lastDay) {
+          const hdr = document.createElement('div');
+          hdr.className = 'cal-day-header';
+          hdr.textContent = ev.day_label === 'today' ? 'Today'
+            : ev.day_label === 'tomorrow' ? 'Tomorrow'
+            : ev.day_label;
+          list.appendChild(hdr);
+          lastDay = ev.day_label;
+        }
+        const row = document.createElement('div');
+        row.className = 'cal-event';
+        row.dataset.idx = idx;
+        const time = document.createElement('div');
+        time.className = 'cal-event-time' + (ev.all_day ? ' all-day' : '');
+        time.textContent = ev.all_day ? 'ALL DAY' : fmtTime(ev.start);
+        const body = document.createElement('div');
+        body.className = 'cal-event-body';
+        const title = document.createElement('div');
+        title.className = 'cal-event-title';
+        title.textContent = ev.title || '(no title)';
+        const meta = document.createElement('div');
+        meta.className = 'cal-event-meta';
+        const metaParts = [];
+        if (ev.location) metaParts.push(ev.location);
+        if (Array.isArray(ev.attendees) && ev.attendees.length > 1) metaParts.push(`${ev.attendees.length} attendees`);
+        meta.textContent = metaParts.join(' · ') || '';
+        body.appendChild(title);
+        if (metaParts.length) body.appendChild(meta);
+        row.appendChild(time);
+        row.appendChild(body);
+        if (ev.conference_url) {
+          const icon = document.createElement('div');
+          icon.innerHTML = `<svg class="cal-event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><polygon points="22 8 16 12 22 16 22 8"/></svg>`;
+          row.appendChild(icon);
+        }
+        row.addEventListener('click', () => openCalendarEventModal(ev));
+        list.appendChild(row);
+      });
+    }
+
+    function fmtTime(iso) {
+      try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      } catch { return ''; }
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    function openCalendarEventModal(ev) {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'detail-modal-backdrop';
+      const dur = ev.all_day ? 'All day' : `${fmtTime(ev.start)}${ev.end ? ' – ' + fmtTime(ev.end) : ''}`;
+      const attendeesHtml = (ev.attendees || []).map(a =>
+        `<div>${escapeHtml(a.name || a.email)}${a.response ? ` <span style="color:var(--txt-faint)">(${a.response})</span>` : ''}</div>`
+      ).join('');
+      backdrop.innerHTML = `
+        <div class="detail-modal">
+          <div class="detail-header">
+            <div class="detail-title-block">
+              <span class="detail-agent-badge">${escapeHtml(ev.day_label)}</span>
+              <div class="detail-title">${escapeHtml(ev.title || '(no title)')}</div>
+            </div>
+            <button class="detail-close" aria-label="Close">×</button>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">When</div><div class="detail-cell-val">${escapeHtml(dur)}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Source</div><div class="detail-cell-val">${escapeHtml(ev.source || '—')}</div></div>
+          </div>
+          ${ev.location ? `<div class="detail-section"><div class="detail-section-label">Location</div><div class="detail-section-body">${escapeHtml(ev.location)}</div></div>` : ''}
+          ${ev.description ? `<div class="detail-section"><div class="detail-section-label">Description</div><div class="detail-section-body">${escapeHtml(ev.description)}</div></div>` : ''}
+          ${attendeesHtml ? `<div class="detail-section"><div class="detail-section-label">Attendees</div><div class="detail-section-body">${attendeesHtml}</div></div>` : ''}
+          <div class="quick-ask-actions">
+            ${ev.conference_url ? `<button class="quick-ask-btn primary" id="cal-start-call">Start Call</button>` : `<button class="quick-ask-btn" disabled>No conference link</button>`}
+            <button class="quick-ask-btn" id="cal-dismiss">Dismiss</button>
+          </div>
+        </div>
+      `;
+      const close = () => backdrop.remove();
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      backdrop.querySelector('.detail-close').addEventListener('click', close);
+      const startBtn = backdrop.querySelector('#cal-start-call');
+      if (startBtn && ev.conference_url) {
+        startBtn.addEventListener('click', () => {
+          window.open(ev.conference_url, '_blank', 'noopener');
+          close();
+        });
+      }
+      backdrop.querySelector('#cal-dismiss').addEventListener('click', close);
+      document.body.appendChild(backdrop);
+    }
+
+    // =========================================================================
+    // TIER 2 — QUICK-ASK CARDS (Widget #3)
+    // =========================================================================
+    function wireQuickAskCards() {
+      const cards = document.querySelectorAll('.qa-card');
+      cards.forEach((card) => {
+        card.addEventListener('click', () => {
+          const specialist = card.dataset.specialist;
+          if (!specialist) return;
+          openQuickAskModal(specialist);
+        });
+      });
+    }
+
+    function openQuickAskModal(specialist) {
+      const titleByAgent = { hadley: 'Ask Hadley', sterling: 'Ask Sterling', pierce: 'Ask Pierce' };
+      const subByAgent = {
+        hadley: 'Legal & TREC questions. Cites her knowledge base.',
+        sterling: 'Markets, stocks, crypto, catalysts. Plain talk.',
+        pierce: 'Growth, customer success, founder outreach.',
+      };
+      const backdrop = document.createElement('div');
+      backdrop.className = 'detail-modal-backdrop';
+      backdrop.innerHTML = `
+        <div class="detail-modal quick-ask-modal">
+          <div class="detail-header">
+            <div class="detail-title-block">
+              <span class="detail-agent-badge">${escapeHtml(specialist)}</span>
+              <div class="detail-title">${escapeHtml(titleByAgent[specialist])}</div>
+              <div style="font-size:11px;color:var(--txt-faint);margin-top:2px;">${escapeHtml(subByAgent[specialist])}</div>
+            </div>
+            <button class="detail-close" aria-label="Close">×</button>
+          </div>
+          <div id="qa-listening" class="quick-ask-listening hidden">
+            <span class="live-dot"></span><span>Listening · tap stop when done</span>
+          </div>
+          <textarea class="quick-ask-input" id="qa-input" placeholder="Type your question or tap the mic..."></textarea>
+          <div class="quick-ask-actions">
+            <button class="quick-ask-btn" id="qa-mic">🎙 Voice</button>
+            <button class="quick-ask-btn primary" id="qa-send">Ask ${escapeHtml(specialist[0].toUpperCase() + specialist.slice(1))}</button>
+          </div>
+          <div id="qa-answer-wrap" class="hidden" style="margin-top:14px;">
+            <div class="detail-section-label">Answer</div>
+            <div class="quick-ask-answer" id="qa-answer"></div>
+            <div class="quick-ask-citations" id="qa-citations"></div>
+          </div>
+        </div>
+      `;
+      const close = () => {
+        try { qaStopRecording(); } catch {}
+        try { if (window.__qaAudio) { window.__qaAudio.pause(); window.__qaAudio = null; } } catch {}
+        backdrop.remove();
+      };
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      backdrop.querySelector('.detail-close').addEventListener('click', close);
+      backdrop.querySelector('#qa-mic').addEventListener('click', () => qaToggleRecording(backdrop));
+      backdrop.querySelector('#qa-send').addEventListener('click', () => qaSend(specialist, backdrop));
+      backdrop.querySelector('#qa-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          qaSend(specialist, backdrop);
+        }
+      });
+      document.body.appendChild(backdrop);
+      backdrop.querySelector('#qa-input').focus();
+    }
+
+    // Mic capture for the quick-ask modal (reuses STT pipeline).
+    let qaMediaRecorder = null;
+    let qaChunks = [];
+    async function qaToggleRecording(modal) {
+      const btn = modal.querySelector('#qa-mic');
+      const listening = modal.querySelector('#qa-listening');
+      const input = modal.querySelector('#qa-input');
+      if (qaMediaRecorder && qaMediaRecorder.state === 'recording') {
+        qaStopRecording();
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        qaChunks = [];
+        qaMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        qaMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) qaChunks.push(e.data); };
+        qaMediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          listening.classList.add('hidden');
+          btn.textContent = '🎙 Voice';
+          if (qaChunks.length === 0) return;
+          const blob = new Blob(qaChunks, { type: 'audio/webm' });
+          input.value = 'Transcribing…';
+          input.disabled = true;
+          try {
+            const form = new FormData();
+            form.append('audio', blob, 'qa.webm');
+            const res = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
+              method: 'POST',
+              headers: { Authorization: await getAuthHeader() },
+              body: form,
+            });
+            if (res.ok) {
+              const data = await res.json();
+              input.value = data.transcript || '';
+            } else {
+              input.value = '';
+              showToast('Transcription failed');
+            }
+          } catch (err) {
+            input.value = '';
+            showToast('Transcription error');
+          } finally {
+            input.disabled = false;
+            input.focus();
+          }
+        };
+        qaMediaRecorder.start();
+        listening.classList.remove('hidden');
+        btn.textContent = '⏹ Stop';
+      } catch (err) {
+        console.warn('[jarvis] qa mic failed', err);
+        showToast('Mic blocked');
+      }
+    }
+    function qaStopRecording() {
+      if (qaMediaRecorder && qaMediaRecorder.state === 'recording') {
+        qaMediaRecorder.stop();
+      }
+      qaMediaRecorder = null;
+    }
+
+    async function qaSend(specialist, modal) {
+      const input = modal.querySelector('#qa-input');
+      const sendBtn = modal.querySelector('#qa-send');
+      const micBtn = modal.querySelector('#qa-mic');
+      const answerWrap = modal.querySelector('#qa-answer-wrap');
+      const answerEl = modal.querySelector('#qa-answer');
+      const citationsEl = modal.querySelector('#qa-citations');
+      const question = (input.value || '').trim();
+      if (!question) { input.focus(); return; }
+      sendBtn.disabled = true; micBtn.disabled = true;
+      sendBtn.textContent = 'Asking…';
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-quick-ask`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({ specialist, question, speak: true }),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          answerWrap.classList.remove('hidden');
+          answerEl.textContent = `Couldn't reach ${specialist} (${res.status}). ${txt.slice(0, 200)}`;
+          return;
+        }
+        const ct = res.headers.get('Content-Type') || '';
+        if (ct.startsWith('audio/')) {
+          const answerText = decodeURIComponent(res.headers.get('X-Answer-Text') || '');
+          const citationsHdr = res.headers.get('X-Citations');
+          answerWrap.classList.remove('hidden');
+          answerEl.textContent = answerText || '(answer in audio)';
+          if (citationsHdr) {
+            try {
+              const cites = JSON.parse(decodeURIComponent(citationsHdr));
+              if (Array.isArray(cites) && cites.length) {
+                citationsEl.innerHTML = 'Sources: ' + cites.map(c =>
+                  c.url ? `<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener">${escapeHtml(c.source || c.url)}</a>` : escapeHtml(c.source || '')
+                ).join(' · ');
+              }
+            } catch {}
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          if (window.__qaAudio) { try { window.__qaAudio.pause(); } catch {} }
+          const audio = new Audio(url);
+          window.__qaAudio = audio;
+          audio.onended = () => { URL.revokeObjectURL(url); window.__qaAudio = null; };
+          audio.play().catch(() => {});
+        } else {
+          const data = await res.json();
+          answerWrap.classList.remove('hidden');
+          answerEl.textContent = data.answer || '(no answer)';
+          if (Array.isArray(data.citations) && data.citations.length) {
+            citationsEl.innerHTML = 'Sources: ' + data.citations.map(c =>
+              c.url ? `<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener">${escapeHtml(c.source || c.url)}</a>` : escapeHtml(c.source || '')
+            ).join(' · ');
+          }
+        }
+      } catch (err) {
+        answerWrap.classList.remove('hidden');
+        answerEl.textContent = `Error: ${err.message}`;
+      } finally {
+        sendBtn.disabled = false; micBtn.disabled = false;
+        sendBtn.textContent = `Ask ${specialist[0].toUpperCase() + specialist.slice(1)}`;
+      }
+    }
+
+    // =========================================================================
+    // TIER 2 — AGENT LEDGER UPGRADE (per DoD ADDENDUM 2026-06-21)
+    // =========================================================================
+    // Live state per agent — keyed by agent_name.
+    const agentLedger = new Map(); // agent_name -> { status, summary, started_at, completed_at, task_title, prompt, result_summary, commit_sha, files_touched, screenshot_paths, apv_status, token_cost_cents }
+
+    async function loadAgentLedger() {
+      if (!tenant) return;
+      try {
+        // Pull last 50 events for the activity feed + current state.
+        const sbUrl = window.__JARVIS_SB_URL;
+        const sbKey = window.__JARVIS_SB_KEY;
+        if (!sbUrl || !sbKey) return;
+        const url = `${sbUrl}/rest/v1/jarvis_agent_events?select=*&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=50`;
+        const res = await fetch(url, {
+          headers: {
+            apikey: sbKey,
+            Authorization: `Bearer ${session?.access_token || sbKey}`,
+          },
+        });
+        if (!res.ok) return;
+        const events = await res.json();
+        // Walk from oldest to newest so latest overwrites in the map.
+        const sorted = [...events].reverse();
+        sorted.forEach((e) => mergeLedgerEvent(e));
+        renderAgentRows();
+        renderActivityLog(events);
+        wireAgentRowClicks();
+      } catch (err) {
+        console.warn('[jarvis] loadAgentLedger failed', err);
+      }
+    }
+
+    function mergeLedgerEvent(event) {
+      const name = event.agent_name;
+      if (!name) return;
+      const prev = agentLedger.get(name) || {};
+      const merged = { ...prev };
+      // Fields that overwrite only when present:
+      ['status', 'task_title', 'prompt', 'result_summary', 'commit_sha',
+       'apv_status', 'token_cost_cents', 'started_at', 'completed_at',
+       'summary'].forEach((k) => {
+        if (event[k] !== undefined && event[k] !== null) merged[k] = event[k];
+      });
+      if (Array.isArray(event.files_touched)) merged.files_touched = event.files_touched;
+      if (Array.isArray(event.screenshot_paths)) merged.screenshot_paths = event.screenshot_paths;
+      // Derive status from event_type if no explicit status.
+      if (!event.status && event.event_type) {
+        if (event.event_type === 'spawned') merged.status = 'spawned';
+        else if (event.event_type === 'progress' || event.event_type === 'heartbeat') merged.status = 'working';
+        else if (event.event_type === 'completed') merged.status = 'completed';
+        else if (event.event_type === 'failed') merged.status = 'failed';
+      }
+      merged.last_event_type = event.event_type;
+      merged.last_event_at = event.created_at;
+      agentLedger.set(name, merged);
+    }
+
+    function renderAgentRows() {
+      document.querySelectorAll('.agent-row').forEach((row) => {
+        const name = row.dataset.agent;
+        const state = agentLedger.get(name);
+        const statusEl = row.querySelector('.agent-status');
+        const summaryEl = row.querySelector('.agent-summary');
+        let elapsedEl = row.querySelector('.agent-elapsed');
+        if (!elapsedEl) {
+          elapsedEl = document.createElement('div');
+          elapsedEl.className = 'agent-elapsed';
+          row.appendChild(elapsedEl);
+        }
+        if (!state) {
+          statusEl.className = 'agent-status idle';
+          statusEl.textContent = 'IDLE';
+          summaryEl.textContent = '—';
+          elapsedEl.textContent = '';
+          return;
+        }
+        const status = (state.status || state.last_event_type || 'idle').toLowerCase();
+        statusEl.className = `agent-status ${status}`;
+        statusEl.textContent = status.toUpperCase();
+        summaryEl.textContent = (state.task_title || state.summary || '—').slice(0, 80);
+        // Elapsed time
+        if (state.started_at && (status === 'working' || status === 'spawned' || status === 'progress' || status === 'heartbeat')) {
+          elapsedEl.classList.add('live');
+          elapsedEl.textContent = `running · ${fmtElapsed(state.started_at)}`;
+        } else if (state.completed_at) {
+          elapsedEl.classList.remove('live');
+          elapsedEl.textContent = `last ${state.status || 'event'} · ${fmtAgo(state.completed_at)} ago`;
+        } else {
+          elapsedEl.classList.remove('live');
+          elapsedEl.textContent = state.last_event_at ? `last activity · ${fmtAgo(state.last_event_at)} ago` : '';
+        }
+      });
+    }
+
+    function fmtElapsed(iso) {
+      const ms = Date.now() - new Date(iso).getTime();
+      const s = Math.max(0, Math.floor(ms / 1000));
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      const rs = s % 60;
+      if (m < 60) return `${m}m ${rs}s`;
+      const h = Math.floor(m / 60);
+      const rm = m % 60;
+      return `${h}h ${rm}m`;
+    }
+
+    // Live elapsed-time tick — refresh agent-row elapsed every second.
+    setInterval(() => {
+      document.querySelectorAll('.agent-row .agent-elapsed.live').forEach((el) => {
+        const row = el.closest('.agent-row');
+        const state = agentLedger.get(row?.dataset?.agent);
+        if (state?.started_at) el.textContent = `running · ${fmtElapsed(state.started_at)}`;
+      });
+    }, 1000);
+
+    // Wire agent-row clicks to open detail modal.
+    function wireAgentRowClicks() {
+      document.querySelectorAll('.agent-row').forEach((row) => {
+        row.addEventListener('click', () => {
+          const name = row.dataset.agent;
+          const state = agentLedger.get(name) || {};
+          openAgentDetailModal(name, state);
+        });
+      });
+    }
+
+    function openAgentDetailModal(agentName, state) {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'detail-modal-backdrop';
+      const status = (state.status || 'idle').toLowerCase();
+      const elapsedTxt = state.started_at
+        ? (state.completed_at ? `${Math.max(0, Math.floor((new Date(state.completed_at) - new Date(state.started_at)) / 1000))}s` : `running ${fmtElapsed(state.started_at)}`)
+        : '—';
+      const files = Array.isArray(state.files_touched) ? state.files_touched : [];
+      const screenshots = Array.isArray(state.screenshot_paths) ? state.screenshot_paths : [];
+      const apvClass = `detail-apv-${state.apv_status || 'not_run'}`;
+      const tokens = (state.token_cost_cents != null) ? `$${(state.token_cost_cents / 100).toFixed(2)}` : '—';
+      backdrop.innerHTML = `
+        <div class="detail-modal">
+          <div class="detail-header">
+            <div class="detail-title-block">
+              <span class="detail-agent-badge">${escapeHtml(agentName)}</span>
+              <div class="detail-title">${escapeHtml(state.task_title || state.summary || '(no current task)')}</div>
+              <div style="font-size:10px;letter-spacing:0.16em;color:var(--txt-faint);text-transform:uppercase;margin-top:4px;">${escapeHtml(status)}</div>
+            </div>
+            <button class="detail-close" aria-label="Close">×</button>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Duration</div><div class="detail-cell-val">${escapeHtml(elapsedTxt)}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">APV</div><div class="detail-cell-val ${apvClass}">${escapeHtml(state.apv_status || 'not_run')}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Commit</div><div class="detail-cell-val">${state.commit_sha ? `<code>${escapeHtml(state.commit_sha.slice(0, 12))}</code>` : '—'}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Token cost</div><div class="detail-cell-val">${escapeHtml(tokens)}</div></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">Prompt</div>
+            <div class="detail-section-body ${state.prompt ? '' : 'muted'}">${escapeHtml(state.prompt || '(no prompt logged)')}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">Result</div>
+            <div class="detail-section-body ${state.result_summary ? '' : 'muted'}">${escapeHtml(state.result_summary || '(still working or no summary)')}</div>
+          </div>
+          ${files.length ? `<div class="detail-section">
+            <div class="detail-section-label">Files Touched (${files.length})</div>
+            <div class="detail-section-body"><div class="detail-files-list">${files.map(f => `<div>${escapeHtml(f)}</div>`).join('')}</div></div>
+          </div>` : ''}
+          ${screenshots.length ? `<div class="detail-section">
+            <div class="detail-section-label">Screenshots (${screenshots.length})</div>
+            <div class="detail-section-body"><div class="detail-files-list">${screenshots.map(p => `<div>${escapeHtml(p)}</div>`).join('')}</div></div>
+          </div>` : ''}
+        </div>
+      `;
+      const close = () => backdrop.remove();
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      backdrop.querySelector('.detail-close').addEventListener('click', close);
+      document.body.appendChild(backdrop);
+    }
+
+    // ===== Activity log render upgrade =====
+    function renderActivityLog(events) {
+      const feed = document.getElementById('activity-feed');
+      if (!feed) return;
+      if (!events.length) {
+        feed.innerHTML = `<div class="activity-empty">No recent activity.</div>`;
+        return;
+      }
+      feed.innerHTML = '';
+      events.slice(0, 50).forEach((e) => {
+        const status = (e.status || e.event_type || '').toLowerCase();
+        const statusClass = status === 'completed' ? 'activity-status-completed'
+                          : status === 'failed'    ? 'activity-status-failed'
+                          : 'activity-status-working';
+        const icon = status === 'completed' ? '✓'
+                   : status === 'failed'    ? '✗'
+                   : '•';
+        const row = document.createElement('div');
+        row.className = 'activity-row';
+        row.innerHTML = `
+          <div class="activity-agent ${statusClass}" data-agent></div>
+          <div class="activity-task" data-task></div>
+          <div class="activity-ts" data-ts></div>
+        `;
+        row.querySelector('[data-agent]').textContent = `${icon} ${e.agent_name || '?'}`;
+        row.querySelector('[data-task]').textContent = e.task_title || e.summary || '(no detail)';
+        row.querySelector('[data-ts]').textContent = fmtAgo(e.created_at);
+        row.addEventListener('click', () => openActivityEventModal(e));
+        feed.appendChild(row);
+      });
+    }
+
+    function openActivityEventModal(e) {
+      const state = {
+        status: e.status || e.event_type,
+        task_title: e.task_title,
+        summary: e.summary,
+        prompt: e.prompt,
+        result_summary: e.result_summary,
+        commit_sha: e.commit_sha,
+        files_touched: e.files_touched,
+        screenshot_paths: e.screenshot_paths,
+        apv_status: e.apv_status,
+        token_cost_cents: e.token_cost_cents,
+        started_at: e.started_at,
+        completed_at: e.completed_at,
+      };
+      openAgentDetailModal(e.agent_name || '?', state);
+    }
+
     // ===== Realtime agent events =====
     function subscribeAgentEvents() {
       if (!tenant) return;
@@ -3056,7 +4111,7 @@
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'jarvis_agent_events', filter: `tenant_id=eq.${tenant.id}` },
-          (payload) => updateAgentRow(payload.new),
+          (payload) => onAgentEvent(payload.new),
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') connState.textContent = 'CONNECTED';
@@ -3064,14 +4119,43 @@
         });
     }
 
+    function onAgentEvent(event) {
+      mergeLedgerEvent(event);
+      renderAgentRows();
+      // Re-render the activity feed by prepending this event to the rendered list.
+      const feed = document.getElementById('activity-feed');
+      if (!feed) return;
+      const status = (event.status || event.event_type || '').toLowerCase();
+      const statusClass = status === 'completed' ? 'activity-status-completed'
+                        : status === 'failed'    ? 'activity-status-failed'
+                        : 'activity-status-working';
+      const icon = status === 'completed' ? '✓'
+                 : status === 'failed'    ? '✗'
+                 : '•';
+      const row = document.createElement('div');
+      row.className = 'activity-row';
+      row.innerHTML = `
+        <div class="activity-agent ${statusClass}" data-agent></div>
+        <div class="activity-task" data-task></div>
+        <div class="activity-ts" data-ts></div>
+      `;
+      row.querySelector('[data-agent]').textContent = `${icon} ${event.agent_name || '?'}`;
+      row.querySelector('[data-task]').textContent = event.task_title || event.summary || '(no detail)';
+      row.querySelector('[data-ts]').textContent = fmtAgo(event.created_at);
+      row.addEventListener('click', () => openActivityEventModal(event));
+      // Clear empty state, then prepend.
+      const empty = feed.querySelector('.activity-empty');
+      if (empty) empty.remove();
+      feed.prepend(row);
+      // Trim to 50.
+      while (feed.querySelectorAll('.activity-row').length > 50) {
+        feed.lastElementChild.remove();
+      }
+    }
+
+    // Back-compat alias used by some boot paths.
     function updateAgentRow(event) {
-      const row = document.querySelector(`.agent-row[data-agent="${event.agent_name}"]`);
-      if (!row) return;
-      const statusEl = row.querySelector('.agent-status');
-      const summaryEl = row.querySelector('.agent-summary');
-      statusEl.className = `agent-status ${event.event_type}`;
-      statusEl.textContent = event.event_type.toUpperCase();
-      summaryEl.textContent = event.summary || '—';
+      onAgentEvent(event);
     }
 
     // ===== PWA: service worker =====
