@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en" data-theme="iron-man">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e1a" />
+  <title>Jarvis</title>
+  <link rel="manifest" href="/jarvis-pwa-manifest.json" />
+  <link rel="icon" href="/jarvis-pwa-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/jarvis-pwa-icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <style>
+    :root {
+      --bg-deep:      #050810;
+      --bg-mid:       #0a0e1a;
+      --cyan:         #4dd0e1;
+      --cyan-bright:  #00e5ff;
+      --cyan-dim:     rgba(77, 208, 225, 0.25);
+      --cyan-glow:    rgba(77, 208, 225, 0.55);
+      --gold:         #c9a96e;
+      --rose:         #E8836B;
+      --ok:           #8BA888;
+      --warn:         #e8b964;
+      --fail:         #e85e5e;
+      --glass:        rgba(15, 25, 45, 0.55);
+      --glass-strong: rgba(15, 25, 45, 0.82);
+      --line:         rgba(77, 208, 225, 0.18);
+      --line-strong:  rgba(77, 208, 225, 0.45);
+      --txt-primary:  #e2f4fb;
+      --txt-mute:     rgba(226, 244, 251, 0.62);
+      --txt-faint:    rgba(226, 244, 251, 0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg-deep);
+      color: var(--txt-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px; line-height: 1.45;
+      min-height: 100vh; min-height: 100dvh;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background:
+        radial-gradient(ellipse at top, rgba(77, 208, 225, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at bottom, rgba(201, 169, 110, 0.05) 0%, transparent 65%),
+        var(--bg-deep);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+    /* HEX-GRID BACKGROUND */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(60deg, transparent 24%, rgba(77, 208, 225, 0.04) 25%, rgba(77, 208, 225, 0.04) 26%, transparent 27%, transparent 74%, rgba(77, 208, 225, 0.04) 75%, rgba(77, 208, 225, 0.04) 76%, transparent 77%),
+        linear-gradient(-60deg, transparent 24%, rgba(77, 208, 225, 0.04) 25%, rgba(77, 208, 225, 0.04) 26%, transparent 27%, transparent 74%, rgba(77, 208, 225, 0.04) 75%, rgba(77, 208, 225, 0.04) 76%, transparent 77%);
+      background-size: 60px 104px;
+      animation: hex-drift 80s linear infinite;
+      z-index: 0;
+    }
+    @keyframes hex-drift {
+      0%   { background-position: 0 0, 0 0; }
+      100% { background-position: 240px 416px, -240px 416px; }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh; min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      padding: 14px 18px 8px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(5, 8, 16, 0.85) 0%, rgba(5, 8, 16, 0.4) 100%);
+    }
+    .brand {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 22px; font-weight: 600;
+      letter-spacing: 0.15em;
+      color: var(--cyan-bright);
+      text-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .brand-tag {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.25em;
+      color: var(--txt-faint);
+      margin-left: 8px;
+      text-transform: uppercase;
+    }
+    .header-right {
+      display: flex; gap: 12px; align-items: center;
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--txt-mute);
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 8px var(--ok);
+      animation: pulse-dot 2.2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.55; transform: scale(1.25); }
+    }
+
+    /* ===== MAIN ===== */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px; padding: 16px;
+      min-height: 0;
+    }
+    @media (min-width: 900px) {
+      .main { grid-template-columns: 1fr 320px; }
+    }
+
+    .center-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+
+    /* ===== PUSH-TO-TALK ORB ===== */
+    .orb-wrap {
+      position: relative;
+      display: grid; place-items: center;
+      padding: 36px 0 24px 0;
+      min-height: 300px;
+    }
+    .orb-bg {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-bg svg {
+      width: 100%; max-width: 360px; height: auto;
+      opacity: 0.35;
+    }
+    .ptt-btn {
+      position: relative; z-index: 2;
+      width: clamp(180px, 40vw, 240px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(77, 208, 225, 0.18) 0%, rgba(15, 25, 45, 0.65) 60%),
+        radial-gradient(circle, rgba(0, 229, 255, 0.05) 0%, rgba(15, 25, 45, 0.85) 100%);
+      border: 1px solid var(--line-strong);
+      box-shadow:
+        0 0 0 2px var(--cyan-dim),
+        0 0 36px var(--cyan-dim),
+        inset 0 0 32px rgba(0, 229, 255, 0.12);
+      backdrop-filter: blur(12px);
+      color: var(--cyan-bright);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      cursor: pointer;
+      display: grid; place-items: center;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      user-select: none;
+      outline: none;
+    }
+    .ptt-btn:active { transform: scale(0.98); }
+    .ptt-btn:focus-visible { box-shadow: 0 0 0 3px var(--cyan-bright), 0 0 36px var(--cyan-glow); }
+    .ptt-inner {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .ptt-glyph {
+      width: 48px; height: 48px;
+      stroke: var(--cyan-bright);
+      filter: drop-shadow(0 0 6px var(--cyan-glow));
+    }
+    .ptt-label { font-size: 11px; }
+    /* state: idle */
+    .ptt-btn[data-state="idle"]::before {
+      content: ''; position: absolute; inset: -12px;
+      border-radius: 50%;
+      border: 1px solid var(--cyan-dim);
+      animation: ring-breathe 3s ease-in-out infinite;
+    }
+    @keyframes ring-breathe {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50%      { transform: scale(1.06); opacity: 0.3; }
+    }
+    /* state: listening */
+    .ptt-btn[data-state="listening"] {
+      box-shadow:
+        0 0 0 3px var(--cyan-bright),
+        0 0 48px var(--cyan-glow),
+        inset 0 0 40px rgba(0, 229, 255, 0.22);
+    }
+    .ptt-btn[data-state="listening"]::before {
+      content: ''; position: absolute; inset: -18px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan-bright);
+      animation: ring-pulse 1.1s ease-out infinite;
+    }
+    .ptt-btn[data-state="listening"]::after {
+      content: ''; position: absolute; inset: -30px;
+      border-radius: 50%;
+      border: 1px solid var(--cyan-glow);
+      animation: ring-pulse 1.1s ease-out infinite 0.5s;
+    }
+    @keyframes ring-pulse {
+      0%   { transform: scale(0.95); opacity: 0.9; }
+      100% { transform: scale(1.25); opacity: 0; }
+    }
+    /* state: thinking */
+    .ptt-btn[data-state="thinking"] { color: var(--gold); }
+    .ptt-btn[data-state="thinking"] .ptt-glyph { stroke: var(--gold); filter: drop-shadow(0 0 6px var(--gold)); }
+    .ptt-btn[data-state="thinking"]::before {
+      content: ''; position: absolute; inset: -8px;
+      border-radius: 50%;
+      border-top: 2px solid var(--gold);
+      border-left: 2px solid transparent;
+      border-right: 2px solid transparent;
+      border-bottom: 2px solid transparent;
+      animation: spin 1.2s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* state: speaking */
+    .ptt-btn[data-state="speaking"] {
+      box-shadow:
+        0 0 0 2px var(--gold),
+        0 0 40px rgba(201, 169, 110, 0.55),
+        inset 0 0 32px rgba(201, 169, 110, 0.18);
+    }
+    .ptt-btn[data-state="speaking"] .ptt-glyph { stroke: var(--gold); }
+    .ptt-btn[data-state="speaking"]::before {
+      content: ''; position: absolute; inset: -12px;
+      border-radius: 50%;
+      border: 1px solid var(--gold);
+      animation: ring-breathe 0.9s ease-in-out infinite;
+    }
+    /* state: error / blocked */
+    .ptt-btn[data-state="error"] { color: var(--fail); }
+    .ptt-btn[data-state="error"] .ptt-glyph { stroke: var(--fail); filter: drop-shadow(0 0 6px var(--fail)); }
+
+    .ptt-status {
+      margin-top: 16px;
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--txt-mute);
+      min-height: 16px;
+    }
+
+    /* ===== SCROLLBACK ===== */
+    .scrollback {
+      flex: 1; min-height: 0;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+    }
+    .scrollback-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 6px 10px 6px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 10px;
+    }
+    .scrollback-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 16px; letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .msg {
+      padding: 8px 10px; margin: 6px 0;
+      border-radius: 10px;
+      display: flex; flex-direction: column; gap: 4px;
+      animation: msg-in 0.25s ease-out;
+    }
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user {
+      background: linear-gradient(135deg, rgba(77, 208, 225, 0.10), rgba(77, 208, 225, 0.04));
+      border: 1px solid rgba(77, 208, 225, 0.20);
+      align-self: flex-end; max-width: 80%; margin-left: auto;
+    }
+    .msg.assistant {
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.08), rgba(201, 169, 110, 0.02));
+      border: 1px solid rgba(201, 169, 110, 0.18);
+      max-width: 80%;
+    }
+    .msg-role {
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .msg-content { font-size: 14px; line-height: 1.5; }
+    .msg-time { font-size: 10px; color: var(--txt-faint); }
+
+    /* ===== RIGHT PANEL ===== */
+    .panel {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .panel-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 14px; letter-spacing: 0.18em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+    .agent-row {
+      display: grid; grid-template-columns: 1fr auto;
+      gap: 4px 10px; padding: 8px 4px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.08);
+      align-items: center;
+    }
+    .agent-row:last-child { border-bottom: none; }
+    .agent-name {
+      font-size: 13px; font-weight: 500;
+      color: var(--txt-primary);
+      text-transform: capitalize;
+    }
+    .agent-summary {
+      grid-column: 1 / -1;
+      font-size: 11px; color: var(--txt-mute);
+      line-height: 1.4;
+    }
+    .agent-status {
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 4px;
+    }
+    .agent-status.idle      { color: var(--txt-faint); border: 1px solid var(--line); }
+    .agent-status.active    { color: var(--cyan-bright); border: 1px solid var(--cyan-bright); background: rgba(0, 229, 255, 0.08); box-shadow: 0 0 8px var(--cyan-dim); }
+    .agent-status.completed { color: var(--ok); border: 1px solid var(--ok); background: rgba(139, 168, 136, 0.08); }
+    .agent-status.failed    { color: var(--fail); border: 1px solid var(--fail); background: rgba(232, 94, 94, 0.08); }
+    .agent-status.heartbeat { color: var(--gold); border: 1px solid var(--gold); }
+
+    /* ===== AUTH GATE ===== */
+    .auth-gate {
+      position: fixed; inset: 0;
+      background: var(--bg-deep);
+      display: grid; place-items: center;
+      z-index: 100;
+      padding: 24px;
+    }
+    .auth-card {
+      max-width: 380px; width: 100%;
+      background: var(--glass-strong);
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6), 0 0 60px var(--cyan-dim);
+      backdrop-filter: blur(20px);
+    }
+    .auth-brand {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 36px; letter-spacing: 0.2em;
+      color: var(--cyan-bright);
+      text-shadow: 0 0 18px var(--cyan-glow);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .auth-sub {
+      text-align: center; font-size: 11px; letter-spacing: 0.25em;
+      color: var(--txt-mute); text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    .auth-label {
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--txt-mute);
+      margin-bottom: 6px; display: block;
+    }
+    .auth-input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(5, 8, 16, 0.6);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--txt-primary);
+      font-size: 14px;
+      font-family: inherit;
+      margin-bottom: 18px;
+    }
+    .auth-input:focus { outline: none; border-color: var(--cyan-bright); box-shadow: 0 0 0 1px var(--cyan-bright); }
+    .auth-btn {
+      width: 100%; padding: 12px;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan-bright));
+      color: var(--bg-deep);
+      border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .auth-btn:hover { box-shadow: 0 0 24px var(--cyan-glow); }
+    .auth-btn:active { transform: translateY(1px); }
+    .auth-msg {
+      margin-top: 14px; font-size: 12px; color: var(--txt-mute);
+      text-align: center; min-height: 16px;
+    }
+    .auth-msg.ok { color: var(--ok); }
+    .auth-msg.err { color: var(--fail); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-strong);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 12px; letter-spacing: 0.1em;
+      color: var(--txt-primary);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ===== UTIL ===== */
+    .hidden { display: none !important; }
+    .scrollback::-webkit-scrollbar { width: 6px; }
+    .scrollback::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="app" class="app">
+
+    <header class="header">
+      <div>
+        <span class="brand">JARVIS</span>
+        <span class="brand-tag">v1 · Iron Man HUD</span>
+      </div>
+      <div class="header-right">
+        <span class="live-dot"></span>
+        <span id="conn-state">CONNECTED</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="center-col">
+        <div class="orb-wrap">
+          <div class="orb-bg">
+            <!-- Earth wireframe motif -->
+            <svg viewBox="0 0 400 400" aria-hidden="true">
+              <defs>
+                <radialGradient id="earthGrad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(77, 208, 225, 0.18)"/>
+                  <stop offset="100%" stop-color="rgba(77, 208, 225, 0)"/>
+                </radialGradient>
+              </defs>
+              <circle cx="200" cy="200" r="160" fill="url(#earthGrad)" />
+              <g stroke="rgba(77, 208, 225, 0.35)" stroke-width="0.8" fill="none">
+                <circle cx="200" cy="200" r="160"/>
+                <ellipse cx="200" cy="200" rx="160" ry="40"/>
+                <ellipse cx="200" cy="200" rx="160" ry="80"/>
+                <ellipse cx="200" cy="200" rx="160" ry="120"/>
+                <ellipse cx="200" cy="200" rx="40" ry="160"/>
+                <ellipse cx="200" cy="200" rx="80" ry="160"/>
+                <ellipse cx="200" cy="200" rx="120" ry="160"/>
+              </g>
+              <g fill="rgba(0, 229, 255, 0.65)">
+                <circle cx="125" cy="180" r="1.4"/>
+                <circle cx="240" cy="160" r="1.4"/>
+                <circle cx="285" cy="220" r="1.4"/>
+                <circle cx="170" cy="245" r="1.4"/>
+                <circle cx="220" cy="195" r="1.6"/>
+                <circle cx="195" cy="140" r="1.2"/>
+                <circle cx="155" cy="220" r="1.2"/>
+              </g>
+            </svg>
+          </div>
+
+          <button id="ptt" class="ptt-btn" data-state="idle" aria-label="Push to talk">
+            <span class="ptt-inner">
+              <svg class="ptt-glyph" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+              </svg>
+              <span class="ptt-label" id="ptt-label">TAP TO TALK</span>
+            </span>
+          </button>
+        </div>
+        <div class="ptt-status" id="ptt-status"></div>
+
+        <div class="scrollback" id="scrollback">
+          <div class="scrollback-header">
+            <span class="scrollback-title">SESSION LOG</span>
+            <span style="font-size:11px;color:var(--txt-faint);" id="conv-id-display">— no session —</span>
+          </div>
+          <div id="messages"></div>
+        </div>
+      </div>
+
+      <aside>
+        <div class="panel">
+          <div class="panel-title">AGENT STATUS</div>
+          <div id="agent-grid">
+            <div class="agent-row" data-agent="atlas">
+              <div class="agent-name">Atlas</div>
+              <div class="agent-status idle">IDLE</div>
+              <div class="agent-summary">—</div>
+            </div>
+            <div class="agent-row" data-agent="carter">
+              <div class="agent-name">Carter</div>
+              <div class="agent-status idle">IDLE</div>
+              <div class="agent-summary">—</div>
+            </div>
+            <div class="agent-row" data-agent="hadley">
+              <div class="agent-name">Hadley</div>
+              <div class="agent-status idle">IDLE</div>
+              <div class="agent-summary">—</div>
+            </div>
+            <div class="agent-row" data-agent="pierce">
+              <div class="agent-name">Pierce</div>
+              <div class="agent-status idle">IDLE</div>
+              <div class="agent-summary">—</div>
+            </div>
+            <div class="agent-row" data-agent="sage">
+              <div class="agent-name">Sage</div>
+              <div class="agent-status idle">IDLE</div>
+              <div class="agent-summary">—</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer style="padding:10px 18px;text-align:center;font-size:10px;letter-spacing:0.2em;color:var(--txt-faint);text-transform:uppercase;border-top:1px solid var(--line);">
+      <span id="tenant-display">— signed out —</span> · <span id="device-display">—</span>
+    </footer>
+
+  </div>
+
+  <!-- AUTH GATE -->
+  <div id="auth-gate" class="auth-gate">
+    <div class="auth-card">
+      <div class="auth-brand">JARVIS</div>
+      <div class="auth-sub">PERSONAL · TENANT · HEATH</div>
+      <label class="auth-label" for="auth-email">Email</label>
+      <input id="auth-email" class="auth-input" type="email" placeholder="heath@meetdossie.com" autocomplete="email" />
+      <label class="auth-label" for="auth-pw">Password</label>
+      <input id="auth-pw" class="auth-input" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <button id="auth-btn" class="auth-btn">SIGN IN</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module">
+    // ============================================================================
+    // Jarvis PWA v1 — Session 1 client
+    // ============================================================================
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+
+    // --- config: loaded from /api/config at boot ---
+    const API_BASE = ''; // same-origin
+
+    // --- state ---
+    let supabase = null;
+    let session = null;
+    let tenant = null;
+    let jarvisUser = null;
+    let conversationId = null;
+    let conversation = { messages: [] };
+    let mediaRecorder = null;
+    let chunks = [];
+    let pttState = 'idle'; // idle | listening | thinking | speaking | error
+
+    // --- elements ---
+    const $ = (id) => document.getElementById(id);
+    const pttBtn = $('ptt');
+    const pttLabel = $('ptt-label');
+    const pttStatus = $('ptt-status');
+    const authGate = $('auth-gate');
+    const authBtn = $('auth-btn');
+    const authMsg = $('auth-msg');
+    const authEmail = $('auth-email');
+    const authPw = $('auth-pw');
+    const messages = $('messages');
+    const tenantDisplay = $('tenant-display');
+    const deviceDisplay = $('device-display');
+    const connState = $('conn-state');
+    const convIdDisp = $('conv-id-display');
+    const toast = $('toast');
+
+    function showToast(text, ms = 2400) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove('show'), ms);
+    }
+
+    function setPttState(s, label) {
+      pttState = s;
+      pttBtn.dataset.state = s;
+      const labels = {
+        idle: 'TAP TO TALK',
+        listening: 'LISTENING',
+        thinking: 'THINKING',
+        speaking: 'SPEAKING',
+        error: 'TAP TO RETRY',
+      };
+      pttLabel.textContent = label || labels[s] || 'TAP';
+      if (s === 'idle') pttStatus.textContent = '';
+    }
+
+    function appendMessage(role, content) {
+      const el = document.createElement('div');
+      el.className = `msg ${role}`;
+      el.innerHTML = `
+        <div class="msg-role">${role === 'user' ? 'YOU' : 'JARVIS'}</div>
+        <div class="msg-content"></div>
+        <div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      `;
+      el.querySelector('.msg-content').textContent = content;
+      messages.appendChild(el);
+      messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+    }
+
+    // ===== Supabase boot — fetch publishable key from API to avoid hard-coding =====
+    async function bootSupabase() {
+      // Pull publishable key from a safe-to-expose endpoint. The /config API on
+      // MeetDossie already exposes the publishable Supabase URL + anon key.
+      try {
+        const res = await fetch(`${API_BASE}/api/config`);
+        if (res.ok) {
+          const data = await res.json();
+          const url = data?.supabaseUrl || data?.supabase?.url;
+          const key = data?.supabaseKey || data?.supabase?.anonKey;
+          if (url && key) {
+            supabase = createClient(url, key, {
+              auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+            });
+            window.__JARVIS_SB_URL = url;
+            window.__JARVIS_SB_KEY = key;
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[jarvis] config fetch failed', err);
+      }
+      throw new Error('Unable to load Supabase config from /api/config');
+    }
+
+    // ===== Auth =====
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) { console.error(error); return false; }
+      if (!data.session) return false;
+      session = data.session;
+      return true;
+    }
+
+    async function signIn() {
+      const email = authEmail.value.trim();
+      const password = authPw.value;
+      if (!email || !password) {
+        authMsg.textContent = 'Email and password required.';
+        authMsg.className = 'auth-msg err';
+        return;
+      }
+      authMsg.textContent = 'Signing in…';
+      authMsg.className = 'auth-msg';
+      authBtn.disabled = true;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          authMsg.textContent = error.message || 'Sign-in failed.';
+          authMsg.className = 'auth-msg err';
+          return;
+        }
+        session = data.session;
+        authMsg.textContent = 'Signed in.';
+        authMsg.className = 'auth-msg ok';
+        await afterSignIn();
+      } catch (err) {
+        authMsg.textContent = err.message || 'Sign-in error.';
+        authMsg.className = 'auth-msg err';
+      } finally {
+        authBtn.disabled = false;
+      }
+    }
+
+    async function afterSignIn() {
+      authGate.classList.add('hidden');
+      // Pull tenant via REST (RLS will scope to this user)
+      const res = await fetch(`${window.__JARVIS_SB_URL}/rest/v1/jarvis_users?select=id,tenant_id,role,tenants(id,slug,display_name,addressing_pref,voice_id,theme)&auth_user_id=eq.${session.user.id}&limit=1`, {
+        headers: {
+          apikey: window.__JARVIS_SB_KEY,
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows.length) {
+          jarvisUser = rows[0];
+          tenant = rows[0].tenants;
+          tenantDisplay.textContent = `tenant · ${tenant.slug}`;
+          deviceDisplay.textContent = `device · ${getDeviceLabel()}`;
+        } else {
+          tenantDisplay.textContent = 'tenant · UNASSIGNED';
+          showToast('No tenant assigned to this account. Heath only for now.');
+        }
+      }
+      // Start conversation
+      await startConversation();
+      subscribeAgentEvents();
+    }
+
+    function getDeviceLabel() {
+      const ua = navigator.userAgent;
+      if (/SM-F|Fold/i.test(ua)) return 'Z Fold';
+      if (/iPad/i.test(ua)) return 'iPad';
+      if (/Mac/i.test(ua) && !/iPad/i.test(ua)) return 'MacBook';
+      if (/iPhone/i.test(ua)) return 'iPhone';
+      if (/Android/i.test(ua)) return 'Android';
+      return 'Browser';
+    }
+
+    async function startConversation() {
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-voice?op=conversation_start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            device_label: getDeviceLabel(),
+            user_agent: navigator.userAgent.slice(0, 256),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          conversationId = data.conversation_id;
+          convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+        }
+      } catch (err) {
+        console.warn('[jarvis] startConversation failed', err);
+      }
+    }
+
+    // ===== Push-to-talk pipeline =====
+    async function ensureMic() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000, channelCount: 1 },
+        });
+        return stream;
+      } catch (err) {
+        console.error('[jarvis] mic error', err);
+        return null;
+      }
+    }
+
+    async function onPttClick() {
+      if (pttState === 'idle' || pttState === 'error') {
+        // Start
+        const stream = await ensureMic();
+        if (!stream) {
+          setPttState('error', 'MIC BLOCKED');
+          showToast('Microphone blocked. Tap address bar lock icon to allow.');
+          return;
+        }
+        setPttState('listening');
+        pttStatus.textContent = 'Listening…';
+
+        const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm';
+        try {
+          mediaRecorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 });
+        } catch (err) {
+          mediaRecorder = new MediaRecorder(stream);
+        }
+        chunks = [];
+        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          await processCapturedAudio();
+        };
+        mediaRecorder.start();
+      } else if (pttState === 'listening') {
+        pttStatus.textContent = 'Stopping…';
+        mediaRecorder && mediaRecorder.stop();
+      }
+    }
+
+    async function processCapturedAudio() {
+      const blob = new Blob(chunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+      chunks = [];
+      if (blob.size < 1000) {
+        setPttState('idle');
+        showToast('Too short. Try again.');
+        return;
+      }
+      setPttState('thinking');
+      pttStatus.textContent = 'Transcribing…';
+
+      // STT
+      let transcript = '';
+      try {
+        const sttRes = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': blob.type,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: blob,
+        });
+        const sttData = await sttRes.json();
+        if (sttRes.ok && sttData.ok) {
+          transcript = (sttData.transcript || '').trim();
+        } else {
+          throw new Error(sttData?.error || `STT failed (${sttRes.status})`);
+        }
+      } catch (err) {
+        setPttState('error');
+        pttStatus.textContent = err.message;
+        showToast(`STT: ${err.message}`);
+        return;
+      }
+
+      if (!transcript) {
+        setPttState('idle');
+        showToast("I didn't catch that, sir.");
+        speakFallback("I didn't catch that, sir.");
+        return;
+      }
+
+      appendMessage('user', transcript);
+      pttStatus.textContent = 'Thinking…';
+
+      // Chat
+      let reply = '';
+      try {
+        const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
+        });
+        const chatData = await chatRes.json();
+        if (!chatRes.ok || !chatData.ok) {
+          throw new Error(chatData?.error || `Chat failed (${chatRes.status})`);
+        }
+        reply = chatData.response || '';
+        if (chatData.conversation_id) {
+          conversationId = chatData.conversation_id;
+          convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+        }
+      } catch (err) {
+        setPttState('error');
+        pttStatus.textContent = err.message;
+        showToast(`Chat: ${err.message}`);
+        speakFallback('Connection hiccup, sir. Try again.');
+        return;
+      }
+
+      appendMessage('assistant', reply);
+      setPttState('speaking');
+      pttStatus.textContent = 'Speaking…';
+
+      // TTS
+      try {
+        const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ text: reply }),
+        });
+        if (!ttsRes.ok) {
+          const errBody = await ttsRes.json().catch(() => ({}));
+          if (errBody.fallback === 'speech-synthesis') {
+            speakFallback(reply);
+          } else {
+            throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
+          }
+        } else {
+          const audioBlob = await ttsRes.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audio.onended = () => { URL.revokeObjectURL(audioUrl); setPttState('idle'); };
+          audio.onerror = () => { setPttState('idle'); };
+          await audio.play();
+          return;
+        }
+      } catch (err) {
+        showToast(`TTS: ${err.message}`);
+        speakFallback(reply);
+      }
+      setPttState('idle');
+    }
+
+    function speakFallback(text) {
+      try {
+        if (!('speechSynthesis' in window)) return;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+        utter.onend = () => setPttState('idle');
+        speechSynthesis.speak(utter);
+      } catch (err) {
+        console.warn(err);
+        setPttState('idle');
+      }
+    }
+
+    // ===== Realtime agent events =====
+    function subscribeAgentEvents() {
+      if (!tenant) return;
+      const ch = supabase
+        .channel(`jarvis_agent_events:${tenant.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'jarvis_agent_events', filter: `tenant_id=eq.${tenant.id}` },
+          (payload) => updateAgentRow(payload.new),
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') connState.textContent = 'CONNECTED';
+          else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') connState.textContent = 'OFFLINE';
+        });
+    }
+
+    function updateAgentRow(event) {
+      const row = document.querySelector(`.agent-row[data-agent="${event.agent_name}"]`);
+      if (!row) return;
+      const statusEl = row.querySelector('.agent-status');
+      const summaryEl = row.querySelector('.agent-summary');
+      statusEl.className = `agent-status ${event.event_type}`;
+      statusEl.textContent = event.event_type.toUpperCase();
+      summaryEl.textContent = event.summary || '—';
+    }
+
+    // ===== PWA: service worker =====
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js').catch((err) => {
+          console.warn('[jarvis] SW register failed', err);
+        });
+      });
+    }
+
+    // ===== Boot =====
+    (async function boot() {
+      await bootSupabase();
+      const signedIn = await checkSession();
+      if (signedIn) {
+        await afterSignIn();
+      } else {
+        authGate.classList.remove('hidden');
+      }
+      authBtn.addEventListener('click', signIn);
+      authPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
+      pttBtn.addEventListener('click', onPttClick);
+
+      // dev convenience: ?demo=1 prefills demo creds
+      const usp = new URLSearchParams(location.search);
+      if (usp.get('demo') === '1') {
+        authEmail.value = 'demo@meetdossie.com';
+      }
+    })();
+  </script>
+</body>
+</html>
