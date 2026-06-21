@@ -592,7 +592,7 @@
     // ============================================================================
     const FORCE_PTT = new URLSearchParams(location.search).get('ptt') === '1';
     const VAD = {
-      silenceMs:    1500,  // ms of below-threshold amplitude that ends an utterance
+      silenceMs:     800,  // ms of below-threshold amplitude that ends an utterance
       minSpeechMs:   180,  // ms of above-threshold amplitude required to register as speech
       threshold:   0.020,  // RMS amplitude (0–1) above which we consider audio "voice"
       pollMs:         50,  // VAD poll interval
