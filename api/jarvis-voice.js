@@ -32,6 +32,7 @@
 // Owner: Atlas (SV-JARVIS-PWA-001)
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+import { buildToolSpecs, dispatchTool, logToolInvocation } from './_jarvis_tools.js';
 
 // ===== Config =====
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -308,6 +309,69 @@ async function handleSTT(req, res, requestId) {
   return res.status(200).json({ ok: true, transcript, empty: !transcript });
 }
 
+// Per-instance cache of context extensions (TTL 60s) to avoid re-loading on
+// every turn within a conversation.
+const _contextExtensionCache = new Map();
+const CTX_TTL_MS = 60 * 1000;
+
+async function fetchEnabledToolNames(tenantId) {
+  try {
+    const rows = await sbGet(
+      `jarvis_tools?select=tool_name,enabled&tenant_id=eq.${tenantId}&enabled=eq.true`
+    );
+    return (rows || []).map((r) => r.tool_name);
+  } catch (err) {
+    console.warn(`[jarvis-voice/chat] enabled-tools lookup failed: ${err.message}`);
+    return [];
+  }
+}
+
+async function getContextExtension(tenant) {
+  const key = `ctx:${tenant.id}`;
+  const hit = _contextExtensionCache.get(key);
+  if (hit && (Date.now() - hit.at) < CTX_TTL_MS) return hit.text;
+  // Inline call to the context-load logic via a local fetch is wasteful;
+  // instead we lazy-load the same generator. For now, simply build a compact
+  // live block inline (full backbone lives in /api/jarvis-context-load which
+  // the client can call separately at conversation_start). For chat turns we
+  // only need the live, fast-moving state.
+  try {
+    const [todoRows, agentEvents, subRows] = await Promise.all([
+      sbGet('heath_todo?select=title,priority,deadline,status,venture&status=in.(open,pending,in_progress)&order=priority.desc.nullslast&limit=10').catch(() => []),
+      sbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=8`).catch(() => []),
+      sbGet('subscriptions?select=id&status=eq.active').catch(() => []),
+    ]);
+    const lines = [
+      '=== LIVE STATE (refreshed) ===',
+      `Active subscribers: ${subRows.length}. Estimated MRR: $${subRows.length * 29}/mo.`,
+    ];
+    if (todoRows.length) {
+      lines.push('Open todo (top 10):');
+      for (const t of todoRows) {
+        const p = t.priority != null ? `[P${t.priority}]` : '';
+        const d = t.deadline ? ` due ${String(t.deadline).slice(0, 10)}` : '';
+        const v = t.venture ? ` (${t.venture})` : '';
+        lines.push(`  - ${p} ${t.title}${d}${v}`);
+      }
+    }
+    if (agentEvents.length) {
+      const latest = {};
+      for (const ev of agentEvents) { if (!latest[ev.agent_name]) latest[ev.agent_name] = ev; }
+      lines.push('Agent latest status:');
+      for (const [agent, ev] of Object.entries(latest)) {
+        lines.push(`  - ${agent}: ${ev.event_type} — ${(ev.summary || '').slice(0, 100)}`);
+      }
+    }
+    lines.push('=== END LIVE STATE ===');
+    const text = lines.join('\n');
+    _contextExtensionCache.set(key, { at: Date.now(), text });
+    return text;
+  } catch (err) {
+    console.warn(`[jarvis-voice/chat] context build failed: ${err.message}`);
+    return '';
+  }
+}
+
 async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   if (!ANTHROPIC_API_KEY) {
     return res.status(503).json({ ok: false, error: 'Chat not configured' });
@@ -323,7 +387,7 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     throw err;
   }
 
-  const { conversation_id, message } = body || {};
+  const { conversation_id, message, system_prompt_extension, approve_tool } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ ok: false, error: 'message is required' });
   }
@@ -353,77 +417,160 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     content: message.slice(0, 4000),
   }, { prefer: 'return=minimal' });
 
-  const finalMessages = [
+  // Build system prompt with live + (optionally) client-provided extension
+  const liveCtx = await getContextExtension(tenant);
+  const systemPromptParts = [buildSystemPrompt(tenant)];
+  if (system_prompt_extension && typeof system_prompt_extension === 'string') {
+    systemPromptParts.push(system_prompt_extension.slice(0, 100000));
+  }
+  if (liveCtx) systemPromptParts.push(liveCtx);
+  const systemPrompt = systemPromptParts.join('\n\n');
+
+  // Load enabled tools for this tenant
+  const enabledToolNames = await fetchEnabledToolNames(tenant.id);
+  const toolSpecs = buildToolSpecs(enabledToolNames);
+
+  console.log(`[jarvis-voice/chat] [${requestId}] tenant=${tenant.slug} msg="${message.slice(0, 80)}" tools=${enabledToolNames.length}`);
+
+  // Build messages array. Start with prior history + the new user message.
+  let messages = [
     ...history
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 4000) })),
     { role: 'user', content: message.slice(0, 4000) },
   ];
 
-  const systemPrompt = buildSystemPrompt(tenant);
-  console.log(`[jarvis-voice/chat] [${requestId}] tenant=${tenant.slug} msg="${message.slice(0, 80)}"`);
+  // ===== Tool-use loop =====
+  // Iterate up to MAX_TOOL_ITERATIONS times: send to Claude, if Claude
+  // requests a tool, dispatch it, append the result, and loop again.
+  const MAX_TOOL_ITERATIONS = 4;
+  const toolAudit = [];
+  let finalText = '';
+  let usageIn = 0, usageOut = 0;
 
-  let claudeRes;
-  try {
-    claudeRes = await withTimeout(
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 500,
-          system: systemPrompt,
-          messages: finalMessages,
+  for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+    let claudeRes;
+    try {
+      const reqBody = {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 800,
+        system: systemPrompt,
+        messages,
+      };
+      if (toolSpecs.length) reqBody.tools = toolSpecs;
+
+      claudeRes = await withTimeout(
+        fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify(reqBody),
         }),
-      }),
-      CHAT_TIMEOUT_MS,
-      'Claude'
-    );
-  } catch (err) {
-    if (err.code === 'TIMEOUT') {
-      return res.status(504).json({ ok: false, error: 'Chat timeout', fallback: 'retry' });
+        CHAT_TIMEOUT_MS,
+        'Claude'
+      );
+    } catch (err) {
+      if (err.code === 'TIMEOUT') {
+        return res.status(504).json({ ok: false, error: 'Chat timeout', fallback: 'retry' });
+      }
+      throw err;
     }
-    throw err;
+
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text().catch(() => '');
+      console.error(`[jarvis-voice/chat] [${requestId}] Claude ${claudeRes.status}: ${errText.slice(0, 300)}`);
+      return res.status(502).json({ ok: false, error: 'Claude API error', status: claudeRes.status });
+    }
+
+    const data = await claudeRes.json();
+    if (data.usage) {
+      usageIn += data.usage.input_tokens || 0;
+      usageOut += data.usage.output_tokens || 0;
+    }
+    const blocks = Array.isArray(data.content) ? data.content : [];
+
+    // Collect text and tool_use blocks separately
+    const textBlocks = blocks.filter((b) => b && b.type === 'text');
+    const toolUseBlocks = blocks.filter((b) => b && b.type === 'tool_use');
+
+    const iterText = textBlocks.map((b) => b.text || '').join('').trim();
+
+    if (data.stop_reason === 'tool_use' && toolUseBlocks.length) {
+      // Append Claude's turn (assistant role) carrying the tool_use blocks back
+      messages.push({ role: 'assistant', content: blocks });
+
+      // Dispatch each tool_use block and append tool_result blocks
+      const toolResults = [];
+      for (const tu of toolUseBlocks) {
+        console.log(`[jarvis-voice/chat] [${requestId}] tool_use ${tu.name} id=${tu.id}`);
+        const ctx = {
+          tenant,
+          jarvisUser,
+          conversationId: convId,
+          requestId,
+          approved: approve_tool === tu.name,
+        };
+        const out = await dispatchTool(tu.name, tu.input || {}, ctx);
+        toolAudit.push({ name: tu.name, ...out.audit });
+
+        const resultPayload = out.error
+          ? `ERROR: ${out.error}`
+          : JSON.stringify(out.result || {}, null, 2).slice(0, 6000);
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: tu.id,
+          content: resultPayload,
+          is_error: !!out.error,
+        });
+      }
+      messages.push({ role: 'user', content: toolResults });
+      // Loop again — Claude will now formulate a reply using tool results
+      continue;
+    }
+
+    // No tool_use — final reply
+    finalText = iterText;
+    break;
   }
 
-  if (!claudeRes.ok) {
-    const errText = await claudeRes.text().catch(() => '');
-    console.error(`[jarvis-voice/chat] [${requestId}] Claude ${claudeRes.status}: ${errText.slice(0, 300)}`);
-    return res.status(502).json({ ok: false, error: 'Claude API error', status: claudeRes.status });
-  }
-
-  const data = await claudeRes.json();
-  const blocks = Array.isArray(data && data.content) ? data.content : [];
-  const text = blocks
-    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
-    .map((b) => b.text)
-    .join('')
-    .trim();
-
-  if (!text) {
-    return res.status(502).json({ ok: false, error: 'Empty Claude response' });
+  if (!finalText) {
+    finalText = "Sorry sir, I came up empty on that one.";
   }
 
   // Persist the assistant message
-  const usage = data.usage || {};
   const assistantRow = await sbPost('jarvis_messages', {
     conversation_id: convId,
     tenant_id: tenant.id,
     role: 'assistant',
-    content: text,
-    tokens_in: usage.input_tokens || null,
-    tokens_out: usage.output_tokens || null,
+    content: finalText,
+    tokens_in: usageIn || null,
+    tokens_out: usageOut || null,
+    tool_call: toolAudit.length ? { audit: toolAudit } : null,
   });
+
+  // Best-effort log each tool invocation against the assistant message
+  if (toolAudit.length) {
+    const assistantMessageId = assistantRow[0].id;
+    for (const a of toolAudit) {
+      logToolInvocation({
+        tenant,
+        jarvisUser,
+        conversationId: convId,
+        assistantMessageId,
+      }, a.name, null, null, a).catch(() => {});
+    }
+  }
 
   return res.status(200).json({
     ok: true,
     conversation_id: convId,
     message_id: assistantRow[0].id,
-    response: text,
+    response: finalText,
+    tool_calls: toolAudit,
   });
 }
 
@@ -540,7 +687,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     }
     throw err;
   }
-  const { conversation_id, message } = body || {};
+  const { conversation_id, message, system_prompt_extension } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ ok: false, error: 'message is required' });
   }
@@ -556,15 +703,15 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     convId = created[0].id;
   }
 
-  // Load history + persist user message in parallel
-  const [history] = await Promise.all([
+  // Load history + persist user message + load live ctx in parallel
+  const [history, liveCtx] = await Promise.all([
     sbGet(`jarvis_messages?select=role,content&conversation_id=eq.${convId}&order=created_at.asc&limit=20`),
     sbPost('jarvis_messages', {
       conversation_id: convId,
       tenant_id: tenant.id,
       role: 'user',
       content: message.slice(0, 4000),
-    }, { prefer: 'return=minimal' }),
+    }, { prefer: 'return=minimal' }).then(() => getContextExtension(tenant)),
   ]);
 
   const finalMessages = [
@@ -574,7 +721,12 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     { role: 'user', content: message.slice(0, 4000) },
   ];
 
-  const systemPrompt = buildSystemPrompt(tenant);
+  const systemPromptParts = [buildSystemPrompt(tenant)];
+  if (system_prompt_extension && typeof system_prompt_extension === 'string') {
+    systemPromptParts.push(system_prompt_extension.slice(0, 100000));
+  }
+  if (liveCtx) systemPromptParts.push(liveCtx);
+  const systemPrompt = systemPromptParts.join('\n\n');
   const voiceId = tenant?.voice_id || GEORGE_VOICE_ID;
   const settings = tenant?.voice_settings || GEORGE_SETTINGS;
   const modelId = settings.model || GEORGE_MODEL;
