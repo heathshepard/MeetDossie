@@ -337,7 +337,7 @@ async function getContextExtension(tenant) {
   // only need the live, fast-moving state.
   try {
     const [todoRows, agentEvents, subRows] = await Promise.all([
-      sbGet('heath_todo?select=title,priority,deadline,status,venture&status=in.(open,pending,in_progress)&order=priority.desc.nullslast&limit=10').catch(() => []),
+      sbGet('heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast&limit=10').catch(() => []),
       sbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=8`).catch(() => []),
       sbGet('subscriptions?select=id&status=eq.active').catch(() => []),
     ]);

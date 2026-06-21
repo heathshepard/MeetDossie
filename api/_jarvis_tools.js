@@ -162,11 +162,12 @@ const ALL_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: 'Short title for the item.' },
+        title: { type: 'string', description: 'Short title for the item (1-200 chars).' },
         detail: { type: 'string', description: 'Optional detail / context.' },
         deadline: { type: 'string', description: 'Optional ISO deadline.' },
-        priority: { type: 'integer', description: 'Priority 1-10, default 5.', default: 5 },
-        venture: { type: 'string', description: 'Optional: dossie, paralegal, plane-and-ember, kw, personal.' },
+        priority: { type: 'integer', description: 'Priority 1-5 (5 highest), default 3.', default: 3 },
+        action_type: { type: 'string', enum: ['sms', 'email', 'approve', 'decision', 'install', 'other'], default: 'other' },
+        venture: { type: 'string', enum: ['dossie', 'paralegal', 'personal-agents', 'shepard-ventures', 'general'], default: 'general' },
       },
       required: ['title'],
     },
@@ -393,17 +394,22 @@ async function tool_read_calendar(input) {
 }
 
 async function tool_set_reminder(input, ctx) {
-  const { title, detail = '', deadline = null, priority = 5, venture = 'personal' } = input || {};
+  const { title, detail = '', deadline = null, priority = 3, venture = 'general', action_type = 'other' } = input || {};
   if (!title) return { error: 'title is required' };
+  const allowedActions = new Set(['sms', 'email', 'approve', 'decision', 'install', 'other']);
+  const allowedVentures = new Set(['dossie', 'paralegal', 'personal-agents', 'shepard-ventures', 'general']);
   try {
+    const safeAction = allowedActions.has(action_type) ? action_type : 'other';
+    const safeVenture = allowedVentures.has(venture) ? venture : 'general';
+    const safePriority = Math.max(1, Math.min(5, Number(priority) || 3));
     const row = await sbPost('heath_todo', {
       title: String(title).slice(0, 200),
       detail: String(detail).slice(0, 1000),
-      action_type: 'jarvis_set_reminder',
-      priority: Math.max(1, Math.min(10, Number(priority) || 5)),
+      action_type: safeAction,
+      priority: safePriority,
       deadline: deadline || null,
-      status: 'open',
-      venture: String(venture).slice(0, 40),
+      status: 'pending',
+      venture: safeVenture,
       created_by: 'jarvis',
       metadata: { conversation_id: ctx?.conversationId || null, tenant_slug: ctx?.tenant?.slug || null },
     });
