@@ -126,8 +126,13 @@
       .main { grid-template-columns: 1fr 320px; }
     }
 
-    .center-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+    /* Grid items: explicit min-width:0 prevents intrinsic min-content from
+       blowing past the column width (Chrome's default min-width:auto trap). */
+    .center-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; min-width: 0; }
     aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    /* .main itself is a grid — same protection so the column does not stretch. */
+    .main { min-width: 0; }
+    .main > * { min-width: 0; }
 
     /* ===== PUSH-TO-TALK ORB =====
        Layout: .orb-wrap is the centering shell. Globe (canvas) + SVG fallback
