@@ -145,6 +145,23 @@
       width: 100%; max-width: 360px; height: auto;
       opacity: 0.35;
     }
+    /* ===== THREE.JS EARTH (ported from V5 HUD `today.html`, 2026-06-20) ===== */
+    .orb-earth {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      pointer-events: none;
+      z-index: 1; /* above static svg fallback, below ptt button (z-index:2) */
+    }
+    .orb-earth canvas {
+      display: block;
+      width: 100% !important;
+      max-width: 460px;
+      aspect-ratio: 1 / 1;
+      height: auto !important;
+      filter: drop-shadow(0 0 24px rgba(0, 229, 255, 0.18));
+    }
+    /* If the Earth canvas mounts, fade the static SVG fallback away. */
+    .orb-wrap.has-earth .orb-bg svg { opacity: 0; transition: opacity 0.8s ease; }
     .ptt-btn {
       position: relative; z-index: 2;
       width: clamp(180px, 40vw, 240px);
@@ -480,6 +497,10 @@
             </svg>
           </div>
 
+          <!-- V5 HUD Earth — three.js canvas mounts here. Rotates behind the PTT button.
+               If three.js fails to load (mobile, slow network), the SVG fallback above shows. -->
+          <div class="orb-earth" id="orb-earth" aria-hidden="true"></div>
+
           <button id="ptt" class="ptt-btn" data-state="idle" aria-label="Push to talk">
             <span class="ptt-inner">
               <svg class="ptt-glyph" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -557,6 +578,342 @@
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- Three.js importmap (used by the Earth orb below). MUST come before any module script. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <!-- ============================================================================
+       JARVIS HUD V5 EARTH ORB — ported from today.html (V5 HUD), 2026-06-20.
+       Rotating wireframe Earth with city lights (procedural fallback + NASA night-lights
+       upgrade if available), atmosphere fresnel shell, shipping lanes, customer dots,
+       starfield. Lives BEHIND the push-to-talk button (z-index:1; PTT is z-index:2).
+       Mobile-friendly: clamped DPR, no post-processing bloom, lower sphere segment count.
+       If three.js fails to load, the SVG fallback already in the DOM remains visible.
+       ============================================================================ -->
+  <script type="module">
+    (async () => {
+      const mount = document.getElementById('orb-earth');
+      const orbWrap = document.querySelector('.orb-wrap');
+      if (!mount) return;
+      let THREE;
+      try {
+        THREE = await import('three');
+      } catch (e) {
+        console.warn('[jarvis-earth] three.js failed to load — keeping SVG fallback', e);
+        return;
+      }
+
+      // ----- Renderer / Scene / Camera -----
+      const isMobile = (window.innerWidth || 0) <= 900;
+      const sphereWidthSegs  = isMobile ? 64 : 96;
+      const sphereHeightSegs = isMobile ? 42 : 64;
+
+      function getSize() {
+        // Square canvas — match the parent's smaller dimension so the globe stays round.
+        const w = mount.clientWidth || 360;
+        const h = mount.clientHeight || w;
+        const s = Math.max(140, Math.min(w, h));
+        return { w: s, h: s };
+      }
+
+      const { w: w0, h: h0 } = getSize();
+      const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w0, h0, false);
+      renderer.setClearColor(0x000000, 0);
+      mount.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+      camera.position.z = 3.2;
+
+      // Lighting — dim ambient so emissive city-lights pop.
+      scene.add(new THREE.AmbientLight(0xffffff, 0.20));
+      const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.55);
+      dirLight.position.set(5, 3, 5);
+      scene.add(dirLight);
+
+      // ----- Starfield (subtle, fewer points on mobile) -----
+      (function createStarfield() {
+        const count = isMobile ? 400 : 900;
+        const geo = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        for (let i = 0; i < count * 3; i += 3) {
+          positions[i]   = (Math.random() - 0.5) * 80;
+          positions[i+1] = (Math.random() - 0.5) * 80;
+          positions[i+2] = (Math.random() - 0.5) * 80;
+        }
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const mat = new THREE.PointsMaterial({ color: 0x888899, size: 0.05, transparent: true, opacity: 0.55 });
+        const stars = new THREE.Points(geo, mat);
+        scene.add(stars);
+        scene.userData.stars = stars;
+      })();
+
+      // ----- Procedural city-lights texture (immediate; NASA texture upgrades it if it loads) -----
+      function makeProceduralCityLightsTexture() {
+        const W = 1024, H = 512;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        const regions = [
+          [-74, 40, 8, 1.0],   // NYC/Boston
+          [-87, 41, 10, 0.7],  // Chicago
+          [-118, 36, 9, 0.8],  // LA/SF/Seattle
+          [-99, 19, 5, 0.5],   // Mexico City
+          [-58, -27, 18, 0.6], // S. America
+          [5, 50, 10, 1.0],    // W. Europe
+          [12, 42, 8, 0.6],    // Italy/Spain
+          [35, 53, 14, 0.5],   // Moscow/Warsaw
+          [38, 32, 12, 0.7],   // Middle East
+          [78, 22, 14, 0.9],   // India
+          [105, 5, 16, 0.7],   // SE Asia
+          [115, 30, 14, 1.0],  // China east coast
+          [138, 36, 6, 0.9],   // Japan/Korea
+          [3, 7, 8, 0.5],      // Africa west
+          [32, 5, 18, 0.5],    // Africa east
+          [148, -32, 8, 0.5],  // Australia east
+        ];
+        function lonLatToXY(lon, lat) {
+          return [((lon + 180) / 360) * W, ((90 - lat) / 180) * H];
+        }
+        for (const [lon, lat, spread, weight] of regions) {
+          const dotCount = Math.floor((isMobile ? 110 : 180) * weight);
+          for (let i = 0; i < dotCount; i++) {
+            const r = Math.pow(Math.random(), 1.5) * spread;
+            const theta = Math.random() * Math.PI * 2;
+            const dLon = r * Math.cos(theta);
+            const dLat = r * Math.sin(theta) * 0.6;
+            const [x, y] = lonLatToXY(lon + dLon, lat + dLat);
+            const size = Math.random() * 1.4 + 0.4;
+            const alpha = 0.55 + Math.random() * 0.45;
+            ctx.fillStyle = `rgba(255, ${200 + Math.floor(Math.random()*40)}, ${110 + Math.floor(Math.random()*60)}, ${alpha})`;
+            ctx.fillRect(x | 0, y | 0, size, size);
+            if (Math.random() < 0.18) {
+              ctx.fillStyle = `rgba(255, 210, 140, ${alpha * 0.25})`;
+              ctx.fillRect((x|0)-1, (y|0)-1, 3, 3);
+            }
+          }
+        }
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 4;
+        return tex;
+      }
+
+      // ----- Earth group: sphere + wireframe + atmosphere + customer dots -----
+      const orb = new THREE.Group();
+      orb.rotation.x = 0.18; // axial tilt for visual interest
+      scene.add(orb);
+
+      // Layer 1 — Earth sphere with night-lights emissive map.
+      const proceduralLights = makeProceduralCityLightsTexture();
+      const earthGeo = new THREE.SphereGeometry(1, sphereWidthSegs, sphereHeightSegs);
+      const earthMat = new THREE.MeshStandardMaterial({
+        color:           0x0a1428,
+        emissive:        0xffd180,
+        emissiveMap:     proceduralLights,
+        emissiveIntensity: 2.4,
+        roughness:       0.92,
+        metalness:       0.0,
+      });
+      const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+      orb.add(earthMesh);
+
+      // Upgrade to NASA night-lights texture if reachable (CORS-safe via threejs.org).
+      try {
+        const loader = new THREE.TextureLoader();
+        loader.setCrossOrigin('anonymous');
+        loader.load(
+          'https://threejs.org/examples/textures/planets/earth_lights_2048.png',
+          (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.anisotropy = 8;
+            earthMat.emissiveMap = tex;
+            earthMat.emissiveIntensity = 1.9;
+            earthMat.needsUpdate = true;
+          },
+          undefined,
+          () => { /* keep procedural fallback */ }
+        );
+      } catch {}
+
+      // Layer 2 — Cyan wireframe (parallels + meridians) — V5 spec calls for this on the Earth.
+      (function addWireframe() {
+        const mat = new THREE.LineBasicMaterial({
+          color: 0x00d4ff,
+          transparent: true,
+          opacity: 0.28,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const radius = 1.005;
+        const parallels = isMobile ? 8 : 10;
+        const meridians = isMobile ? 12 : 16;
+        // Parallels
+        for (let i = 1; i < parallels; i++) {
+          const lat = (i / parallels) * Math.PI - Math.PI / 2;
+          const y = Math.sin(lat) * radius;
+          const r = Math.cos(lat) * radius;
+          const segs = 64;
+          const pts = [];
+          for (let j = 0; j <= segs; j++) {
+            const a = (j / segs) * Math.PI * 2;
+            pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
+          }
+          const geo = new THREE.BufferGeometry().setFromPoints(pts);
+          orb.add(new THREE.Line(geo, mat));
+        }
+        // Meridians
+        for (let i = 0; i < meridians; i++) {
+          const lon = (i / meridians) * Math.PI * 2;
+          const segs = 48;
+          const pts = [];
+          for (let j = 0; j <= segs; j++) {
+            const lat = (j / segs) * Math.PI - Math.PI / 2;
+            pts.push(new THREE.Vector3(
+              Math.cos(lat) * Math.cos(lon) * radius,
+              Math.sin(lat) * radius,
+              Math.cos(lat) * Math.sin(lon) * radius
+            ));
+          }
+          const geo = new THREE.BufferGeometry().setFromPoints(pts);
+          orb.add(new THREE.Line(geo, mat));
+        }
+      })();
+
+      // Layer 3 — Atmosphere fresnel shell (BackSide additive cyan halo).
+      (function addAtmosphere() {
+        const shellGeo = new THREE.SphereGeometry(1.15, isMobile ? 48 : 64, isMobile ? 48 : 64);
+        const shellMat = new THREE.ShaderMaterial({
+          uniforms: { color: { value: new THREE.Color(0x00d4ff) } },
+          vertexShader: `
+            varying vec3 vNormal;
+            varying vec3 vViewDir;
+            void main() {
+              vNormal = normalize(normalMatrix * normal);
+              vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+              vViewDir = normalize(-mvPos.xyz);
+              gl_Position = projectionMatrix * mvPos;
+            }
+          `,
+          fragmentShader: `
+            uniform vec3 color;
+            varying vec3 vNormal;
+            varying vec3 vViewDir;
+            void main() {
+              float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 3.4);
+              gl_FragColor = vec4(color, fresnel * 0.55);
+            }
+          `,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide,
+          depthWrite: false,
+        });
+        orb.add(new THREE.Mesh(shellGeo, shellMat));
+      })();
+
+      // Layer 4 — Customer dots (Texas cluster) — V5 R6 polish.
+      let customerDotsMat = null;
+      (function addCustomerDots() {
+        const sites = [
+          { lon: -98.49, lat: 29.42, weight: 1.0 }, // San Antonio
+          { lon: -97.74, lat: 30.27, weight: 0.9 }, // Austin
+          { lon: -96.80, lat: 32.78, weight: 0.7 }, // Dallas
+          { lon: -95.36, lat: 29.76, weight: 0.7 }, // Houston
+          { lon: -97.33, lat: 32.75, weight: 0.5 }, // Fort Worth
+          { lon: -98.62, lat: 30.40, weight: 0.4 }, // Boerne
+        ];
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 64;
+        const g = c.getContext('2d');
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0,    'rgba(120, 230, 255, 1.0)');
+        grad.addColorStop(0.35, 'rgba(0, 212, 255, 0.55)');
+        grad.addColorStop(1.0,  'rgba(0, 212, 255, 0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 64);
+        const dotTex = new THREE.CanvasTexture(c);
+        customerDotsMat = new THREE.SpriteMaterial({
+          map: dotTex,
+          color: 0x00d4ff,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          opacity: 1.0,
+        });
+        function lonLatToVec3(lon, lat, r) {
+          const phi = (90 - lat) * Math.PI / 180;
+          const theta = (lon + 180) * Math.PI / 180;
+          return new THREE.Vector3(
+            -r * Math.sin(phi) * Math.cos(theta),
+             r * Math.cos(phi),
+             r * Math.sin(phi) * Math.sin(theta)
+          );
+        }
+        for (const site of sites) {
+          const sprite = new THREE.Sprite(customerDotsMat);
+          sprite.position.copy(lonLatToVec3(site.lon, site.lat, 1.012));
+          const s = 0.05 + site.weight * 0.045;
+          sprite.scale.set(s, s, s);
+          orb.add(sprite);
+        }
+      })();
+
+      // Earth ready — fade out the static SVG fallback.
+      if (orbWrap) orbWrap.classList.add('has-earth');
+
+      // ----- Resize handling — canvas square, matches container -----
+      function onResize() {
+        const { w, h } = getSize();
+        renderer.setSize(w, h, false);
+        camera.aspect = 1;
+        camera.updateProjectionMatrix();
+      }
+      window.addEventListener('resize', onResize);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+      window.addEventListener('orientationchange', () => setTimeout(onResize, 100));
+
+      // ----- Animation loop — time-based, seamless infinite rotation (~30s per revolution) -----
+      const clock = new THREE.Clock();
+      let rafId = 0;
+      let lastVisible = true;
+      function animate() {
+        rafId = requestAnimationFrame(animate);
+        // Pause render when tab hidden — saves battery, mic, everything.
+        if (document.hidden) { lastVisible = false; return; }
+        if (!lastVisible) { clock.getDelta(); lastVisible = true; } // discard accumulated dt on resume
+        const t = clock.getElapsedTime();
+        // ~30s per revolution = 2π/30 ≈ 0.21 rad/s. V5 used 0.05; we boost slightly so
+        // the rotation reads on first glance instead of feeling frozen.
+        orb.rotation.y = t * 0.21;
+        if (scene.userData.stars) {
+          scene.userData.stars.rotation.y = t * 0.005;
+          scene.userData.stars.rotation.x = t * 0.003;
+        }
+        if (customerDotsMat) {
+          customerDotsMat.opacity = 0.55 + (Math.sin(t * 1.8) + 1) * 0.225;
+        }
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Release WebGL context on pagehide (PWA lifecycle hygiene).
+      window.addEventListener('pagehide', () => {
+        try { cancelAnimationFrame(rafId); } catch {}
+        try { renderer.dispose(); } catch {}
+      });
+    })();
+  </script>
 
   <script type="module">
     // ============================================================================
