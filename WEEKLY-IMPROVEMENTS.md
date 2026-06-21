@@ -100,7 +100,43 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Talk-to-Dossie now answers TREC questions** (customer)
 - We've added TREC question-and-answer support to Talk-to-Dossie, so you can ask about Texas real estate commission rules and get instant answers with citations to the exact regulations.
 
-<!-- applied_shas: 10cf6fb,117949f,2637b00,29f9aa4,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,654af68,69f1b2b,79c1023,7b61808,87f980b,924446f,99ee638,9cfb06f,aaa3f82,b549282,bcd8b18,c7e1138,d5d3ad1,e36fc31,e627144,ea86f86,f98eba4,fafb513 -->
+**Jarvis voice chat now remembers conversations** (customer)
+- We fixed critical issues with Jarvis, our AI voice assistant. Your conversations now pick up where you left off, the app loads faster on mobile, and it handles poor audio gracefully instead of showing errors.
+
+**Talk-to-Dossie voice sessions stay connected longer** (customer)
+- We fixed an issue where long voice conversations with Dossie would disconnect and require you to sign back in. Your session now automatically refreshes in the background so you can keep talking without interruption.
+
+**Microphone now properly releases after voice messages** (customer)
+- We fixed a bug where the microphone stayed active in the background even after you finished recording a voice message, which could interfere with other apps on your phone. The mic will now cleanly turn off every time, whether you send the message, close the app, or switch tabs.
+
+**Talk-to-Dossie voice recognition now more reliable** (customer)
+- We've upgraded the speech-to-text technology powering Talk-to-Dossie to reduce service interruptions and improve accuracy when you dictate information into your dossiers.
+
+**Talk-to-Dossie now feels like natural conversation** (customer)
+- We fixed Talk-to-Dossie to work like a real conversation — tap once to start talking, the app listens continuously and automatically detects when you finish speaking, then responds. Tap again when you're done. No more awkward press-and-release for every single sentence.
+
+**Talk-to-Dossie responds faster** (customer)
+- We reduced the wait time after you stop talking, so Talk-to-Dossie now responds about 0.7 seconds quicker. You'll experience less latency when having conversations with Dossie.
+
+**Faster responses in Talk-to-Dossie** (customer)
+- We've made Jarvis respond more quickly after you finish speaking, cutting the wait time by about a fifth of a second for snappier conversations.
+
+**Faster voice responses in Talk-to-Dossie** (customer)
+- We've sped up Talk-to-Dossie's voice replies by streaming audio as it's generated, so you hear Dossie's answer roughly 2.5 seconds faster. The app now plays audio sentence-by-sentence as soon as each one is ready, instead of waiting for the full response.
+
+**Animated Earth globe now in Jarvis PWA** (customer)
+- We've added the same rotating Earth visualization to the Jarvis PWA that was in the web app, giving you a more polished and engaging interface when you open Talk-to-Dossie on mobile or desktop.
+
+**Jarvis voice brief, calendar, and quick-ask features** (customer)
+- We've added a morning voice brief that reads you key information, integrated your calendar so you can see today's and tomorrow's events, and built a quick-ask feature so you can ask Jarvis questions and get answers back as audio. These tools help you stay on top of your business without leaving the app.
+
+**Talk-to-Dossie button now centers perfectly on all phones** (customer)
+- We fixed the microphone button to stay centered on your screen no matter what device you use, and made sure all the buttons and text are easy to tap on smaller phones like foldables.
+
+**Fixed mobile layout overflow issue** (customer)
+- We fixed a bug where content on mobile phones was stretching way too wide and forcing horizontal scrolling. Your app now displays properly on smaller screens without unwanted scrolling.
+
+<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1a6e9a1,2637b00,29f9aa4,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,654af68,69f1b2b,70ae540,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,e36fc31,e627144,ea86f86,f393f86,f98eba4,fafb513 -->
 
 ## Week of June 5, 2026
 
