@@ -1142,73 +1142,309 @@
         appendMessage('user', transcript);
         pttStatus.textContent = 'Thinking…';
 
-        // Chat
-        let reply = '';
-        try {
-          const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: await getAuthHeader(),
-            },
-            body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
+        // ===== STREAMING chat + TTS pipeline =====
+        // Server streams Claude tokens, extracts sentences, fires ElevenLabs
+        // TTS per sentence, pipes audio chunks down via SSE. Client appends
+        // text live + plays each sentence's audio sequentially. First audio
+        // typically starts ~1.0-1.5s after the user finishes speaking.
+        const streamResult = await runStreamingChatTTS({
+          conversationId,
+          transcript,
+        });
+
+        if (streamResult.fallback) {
+          // Stream broke before any audio — fall back to legacy chat+tts path
+          console.warn('[jarvis] streaming failed, using legacy path:', streamResult.error);
+          await runLegacyChatTTS(transcript).catch(async (err) => {
+            console.error('[jarvis] legacy fallback also failed:', err);
+            speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
           });
-          const chatData = await chatRes.json();
-          if (!chatRes.ok || !chatData.ok) {
-            throw new Error(chatData?.error || `Chat failed (${chatRes.status})`);
-          }
-          reply = chatData.response || '';
-          if (chatData.conversation_id) {
-            conversationId = chatData.conversation_id;
-            convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
-            lsSetLastConv(conversationId);
-          }
-        } catch (err) {
-          showToast(`Chat: ${err.message}`);
-          speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
           return;
         }
-
-        appendMessage('assistant', reply);
-        setPttState('speaking');
-        pttLabel.textContent = 'TAP TO END';
-        pttStatus.textContent = 'Speaking…';
-
-        // TTS
-        try {
-          const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: await getAuthHeader(),
-            },
-            body: JSON.stringify({ text: reply }),
-          });
-          if (!ttsRes.ok) {
-            const errBody = await ttsRes.json().catch(() => ({}));
-            if (errBody.fallback === 'speech-synthesis') {
-              speakFallback(reply, /*resume*/true);
-              return;
-            }
-            throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
-          }
-          const audioBlob = await ttsRes.blob();
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
-          audio.onended = async () => {
-            URL.revokeObjectURL(audioUrl);
-            await resumeListening();
-          };
-          audio.onerror = async () => { await resumeListening(); };
-          await audio.play();
-        } catch (err) {
-          showToast(`TTS: ${err.message}`);
-          speakFallback(reply, /*resume*/true);
+        if (streamResult.conversationId) {
+          conversationId = streamResult.conversationId;
+          convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+          lsSetLastConv(conversationId);
         }
+        // Audio playback chain handles resumeListening() onended of last clip.
       } catch (outer) {
         console.error('[jarvis] handleUtteranceBlob outer error', outer);
         await resumeListening();
       }
+    }
+
+    // ====================================================================
+    // STREAMING CHAT + TTS pipeline
+    // ====================================================================
+    // Calls /api/jarvis-voice?op=chat_tts_stream and consumes SSE events:
+    //   meta     -> { conversation_id }
+    //   text     -> { delta }   (token-level text for UI)
+    //   sentence -> { seq, text }
+    //   audio    -> { seq, base64 }  (MP3 bytes for that sentence)
+    //   done     -> { conversation_id, full, sentences }
+    //   error    -> { error, fallback? }
+    //
+    // Audio playback strategy: a queue of {seq, audioElement}. Sequential
+    // playback via .onended chaining. First audio plays as soon as it lands.
+    // When the queue runs dry AND the SSE stream is done, resumeListening().
+    //
+    // Returns { fallback: bool, error?, conversationId? }. fallback=true
+    // when the stream broke before any audio played — caller should retry
+    // via the legacy chat+tts path.
+    async function runStreamingChatTTS({ conversationId: convIdIn, transcript }) {
+      let convId = convIdIn || null;
+      let assistantEl = null;
+      let assistantText = '';
+      let streamDone = false;
+      let anyAudioPlayed = false;
+      let playbackCompletedResolve;
+      const playbackCompleted = new Promise((r) => { playbackCompletedResolve = r; });
+
+      // Audio queue — items are { seq, audio, ready, playPromiseResolve }
+      const audioQueue = [];
+      let currentlyPlayingSeq = -1;
+      let nextPlaySeq = 0;
+
+      // When an audio MP3 arrives, build an <audio> element and queue it.
+      // If nothing is currently playing AND this is the next-expected seq,
+      // start it. Otherwise wait for chain.
+      function enqueueAudio(seq, base64) {
+        const byteStr = atob(base64);
+        const bytes = new Uint8Array(byteStr.length);
+        for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.preload = 'auto';
+        audioQueue.push({ seq, url, audio });
+        audioQueue.sort((a, b) => a.seq - b.seq);
+        tryPlayNext();
+      }
+
+      function tryPlayNext() {
+        if (currentlyPlayingSeq !== -1) return; // something playing
+        const idx = audioQueue.findIndex((it) => it.seq === nextPlaySeq);
+        if (idx === -1) return; // next-expected not yet arrived
+        const item = audioQueue.splice(idx, 1)[0];
+        currentlyPlayingSeq = item.seq;
+        item.audio.onended = () => {
+          URL.revokeObjectURL(item.url);
+          currentlyPlayingSeq = -1;
+          nextPlaySeq = item.seq + 1;
+          if (audioQueue.length || !streamDone) {
+            tryPlayNext();
+          } else {
+            // queue dry + stream done -> conversation turn complete
+            playbackCompletedResolve && playbackCompletedResolve();
+          }
+        };
+        item.audio.onerror = () => {
+          URL.revokeObjectURL(item.url);
+          currentlyPlayingSeq = -1;
+          nextPlaySeq = item.seq + 1;
+          if (audioQueue.length || !streamDone) {
+            tryPlayNext();
+          } else {
+            playbackCompletedResolve && playbackCompletedResolve();
+          }
+        };
+        anyAudioPlayed = true;
+        setPttState('speaking');
+        pttLabel.textContent = 'TAP TO END';
+        pttStatus.textContent = 'Speaking…';
+        item.audio.play().catch((err) => {
+          console.warn('[jarvis] audio.play() rejected:', err);
+        });
+      }
+
+      function ensureAssistantBubble() {
+        if (assistantEl) return assistantEl;
+        const el = document.createElement('div');
+        el.className = 'msg assistant';
+        const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        el.innerHTML = `
+          <div class="msg-role">JARVIS</div>
+          <div class="msg-content"></div>
+          <div class="msg-time">${ts}</div>
+        `;
+        messages.appendChild(el);
+        messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+        assistantEl = el.querySelector('.msg-content');
+        return assistantEl;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat_tts_stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+            Accept: 'text/event-stream',
+          },
+          body: JSON.stringify({ conversation_id: convId, message: transcript }),
+        });
+        if (!res.ok || !res.body) {
+          return { fallback: true, error: `stream HTTP ${res.status}` };
+        }
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!ct.includes('text/event-stream')) {
+          // Server returned JSON error
+          let errBody = null;
+          try { errBody = await res.json(); } catch {}
+          return { fallback: true, error: errBody?.error || 'non-SSE response' };
+        }
+
+        // Parse SSE stream
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let leftover = '';
+        let streamError = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          leftover += decoder.decode(value, { stream: true });
+          let nlIdx;
+          while ((nlIdx = leftover.indexOf('\n\n')) !== -1) {
+            const block = leftover.slice(0, nlIdx);
+            leftover = leftover.slice(nlIdx + 2);
+            const lines = block.split('\n');
+            let eventName = 'message';
+            let dataStr = '';
+            for (const line of lines) {
+              if (line.startsWith('event:')) eventName = line.slice(6).trim();
+              else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
+            }
+            if (!dataStr) continue;
+            let payload;
+            try { payload = JSON.parse(dataStr); } catch { continue; }
+            if (eventName === 'meta') {
+              convId = payload.conversation_id || convId;
+            } else if (eventName === 'text') {
+              assistantText += payload.delta || '';
+              const bubble = ensureAssistantBubble();
+              bubble.textContent = assistantText;
+              messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+            } else if (eventName === 'sentence') {
+              // Server says a sentence boundary was hit. UI noop — audio
+              // will follow shortly.
+            } else if (eventName === 'audio') {
+              enqueueAudio(payload.seq, payload.base64);
+            } else if (eventName === 'audio_error') {
+              // One sentence's TTS failed. Skip it in the play sequence.
+              if (nextPlaySeq === payload.seq) {
+                nextPlaySeq = payload.seq + 1;
+                tryPlayNext();
+              }
+            } else if (eventName === 'done') {
+              if (payload.conversation_id) convId = payload.conversation_id;
+              if (!assistantText && payload.full) {
+                ensureAssistantBubble().textContent = payload.full;
+                assistantText = payload.full;
+              }
+              streamDone = true;
+            } else if (eventName === 'error') {
+              streamError = payload.error || 'stream error';
+              streamDone = true;
+            }
+          }
+        }
+        streamDone = true;
+
+        // If no audio EVER played, treat as fallback
+        if (!anyAudioPlayed) {
+          if (assistantText) {
+            // We got text but no audio — speak the text via fallback synth
+            speakFallback(assistantText, /*resume*/true);
+            return { conversationId: convId, fallback: false };
+          }
+          return { fallback: true, error: streamError || 'no audio produced' };
+        }
+
+        // If the last audio's onended already fired before stream ended,
+        // the queue is dry now — resolve immediately so we don't deadlock.
+        if (currentlyPlayingSeq === -1 && audioQueue.length === 0) {
+          playbackCompletedResolve && playbackCompletedResolve();
+        }
+
+        // Wait for the audio queue to drain (last clip's onended fires)
+        // then resume listening.
+        const drainTimeout = setTimeout(() => {
+          // Safety: if onended never fires, force resume after 30s
+          playbackCompletedResolve && playbackCompletedResolve();
+        }, 30000);
+        await playbackCompleted;
+        clearTimeout(drainTimeout);
+
+        await resumeListening();
+        return { conversationId: convId, fallback: false };
+      } catch (err) {
+        console.error('[jarvis] runStreamingChatTTS error:', err);
+        if (anyAudioPlayed) {
+          // We were mid-playback when stream broke — let queue finish, then resume
+          streamDone = true;
+          tryPlayNext();
+          const safety = setTimeout(() => playbackCompletedResolve && playbackCompletedResolve(), 15000);
+          await playbackCompleted;
+          clearTimeout(safety);
+          await resumeListening();
+          return { conversationId: convId, fallback: false };
+        }
+        return { fallback: true, error: err.message };
+      }
+    }
+
+    // Legacy non-streaming chat + tts. Used as fallback when stream breaks
+    // before any audio plays. Mirrors the original code path 1:1.
+    async function runLegacyChatTTS(transcript) {
+      let reply = '';
+      const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: await getAuthHeader(),
+        },
+        body: JSON.stringify({ conversation_id: conversationId, message: transcript }),
+      });
+      const chatData = await chatRes.json();
+      if (!chatRes.ok || !chatData.ok) {
+        throw new Error(chatData?.error || `Chat failed (${chatRes.status})`);
+      }
+      reply = chatData.response || '';
+      if (chatData.conversation_id) {
+        conversationId = chatData.conversation_id;
+        convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+        lsSetLastConv(conversationId);
+      }
+      appendMessage('assistant', reply);
+      setPttState('speaking');
+      pttLabel.textContent = 'TAP TO END';
+      pttStatus.textContent = 'Speaking…';
+      const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: await getAuthHeader(),
+        },
+        body: JSON.stringify({ text: reply }),
+      });
+      if (!ttsRes.ok) {
+        const errBody = await ttsRes.json().catch(() => ({}));
+        if (errBody.fallback === 'speech-synthesis') {
+          speakFallback(reply, /*resume*/true);
+          return;
+        }
+        throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
+      }
+      const audioBlob = await ttsRes.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.onended = async () => {
+        URL.revokeObjectURL(audioUrl);
+        await resumeListening();
+      };
+      audio.onerror = async () => { await resumeListening(); };
+      await audio.play();
     }
 
     async function resumeListening() {

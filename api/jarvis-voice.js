@@ -509,6 +509,318 @@ async function handleTTS(req, res, requestId, { tenant }) {
   res.end();
 }
 
+// ===== Streaming chat + TTS pipeline =====
+// Single SSE response that interleaves:
+//   - text deltas (for UI append)
+//   - sentence boundaries (server-extracted)
+//   - audio chunks (ElevenLabs MP3, base64 per sentence)
+//   - done event with conversation_id + full text + message_id
+//
+// Client plays each sentence's audio as soon as it arrives, chaining via
+// HTMLAudioElement.onended. First-token-to-first-byte-audio is roughly:
+//   Claude TTFT (~250ms) + first sentence (~400ms more for ~10 words) +
+//   ElevenLabs TTFT (~400ms) = ~1.0-1.2s user-perceived response start.
+//
+// Falls back gracefully: if Claude stream fails before any audio, returns
+// error event; client falls back to legacy /op=chat + /op=tts path.
+async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(503).json({ ok: false, error: 'Chat not configured' });
+  }
+  if (!ELEVENLABS_API_KEY) {
+    return res.status(503).json({ ok: false, error: 'TTS not configured', fallback: 'speech-synthesis' });
+  }
+
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch (err) {
+    if (err.code === 'INVALID_JSON') {
+      return res.status(400).json({ ok: false, error: 'Invalid JSON body' });
+    }
+    throw err;
+  }
+  const { conversation_id, message } = body || {};
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ ok: false, error: 'message is required' });
+  }
+
+  // Ensure / create the conversation
+  let convId = conversation_id;
+  if (!convId) {
+    const created = await sbPost('jarvis_conversations', {
+      tenant_id: tenant.id,
+      user_id: jarvisUser.id,
+      started_at: new Date().toISOString(),
+    });
+    convId = created[0].id;
+  }
+
+  // Load history + persist user message in parallel
+  const [history] = await Promise.all([
+    sbGet(`jarvis_messages?select=role,content&conversation_id=eq.${convId}&order=created_at.asc&limit=20`),
+    sbPost('jarvis_messages', {
+      conversation_id: convId,
+      tenant_id: tenant.id,
+      role: 'user',
+      content: message.slice(0, 4000),
+    }, { prefer: 'return=minimal' }),
+  ]);
+
+  const finalMessages = [
+    ...history
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 4000) })),
+    { role: 'user', content: message.slice(0, 4000) },
+  ];
+
+  const systemPrompt = buildSystemPrompt(tenant);
+  const voiceId = tenant?.voice_id || GEORGE_VOICE_ID;
+  const settings = tenant?.voice_settings || GEORGE_SETTINGS;
+  const modelId = settings.model || GEORGE_MODEL;
+
+  console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] conv=${convId} tenant=${tenant.slug} msg="${message.slice(0, 80)}"`);
+
+  // ===== Set up SSE response =====
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx-style buffering on proxies
+  res.setHeader('X-Request-ID', requestId);
+  res.status(200);
+
+  const writeEvent = (event, data) => {
+    try {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch (e) {
+      console.warn(`[jarvis-voice/chat_tts_stream] [${requestId}] write fail: ${e.message}`);
+    }
+  };
+
+  // Send conversation_id immediately so client can persist
+  writeEvent('meta', { conversation_id: convId });
+
+  // ===== Start Claude stream =====
+  let claudeRes;
+  try {
+    claudeRes = await withTimeout(
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          stream: true,
+          system: systemPrompt,
+          messages: finalMessages,
+        }),
+      }),
+      CHAT_TIMEOUT_MS,
+      'ClaudeStream'
+    );
+  } catch (err) {
+    writeEvent('error', { error: err.code === 'TIMEOUT' ? 'Chat timeout' : 'Chat connect failed', fallback: 'retry' });
+    return res.end();
+  }
+
+  if (!claudeRes.ok || !claudeRes.body) {
+    const errText = await claudeRes.text().catch(() => '');
+    console.error(`[jarvis-voice/chat_tts_stream] [${requestId}] Claude ${claudeRes.status}: ${errText.slice(0, 300)}`);
+    writeEvent('error', { error: 'Claude API error', status: claudeRes.status });
+    return res.end();
+  }
+
+  // ===== Sentence extraction state =====
+  let fullText = '';
+  let buffer = '';
+  let sentenceSeq = 0;
+  const ttsPromises = [];     // serialized chain of TTS+send work
+  let ttsChain = Promise.resolve();
+  let usageIn = null, usageOut = null;
+
+  // Splits buffer on sentence boundaries. Returns array of complete sentences
+  // and updates the buffer with the trailing partial.
+  // Sentence boundary = period/!/?/colon followed by whitespace OR end of buffer.
+  // Also break at newline. Minimum sentence length ~25 chars to avoid TTS-ing
+  // "Yes." or "Mr." mid-sentence; if buffer >120 chars without a boundary,
+  // force a flush at the last comma/space.
+  function extractSentences(forceFlush = false) {
+    const out = [];
+    // Match: text ending in . ! ? : followed by space/newline OR end-of-string.
+    // Avoid splitting at decimals (0.5) or abbreviations by requiring whitespace
+    // or end after the punctuation.
+    const sentenceRegex = /([^.!?:\n]+?[.!?:\n])(\s+|$)/g;
+    let lastIdx = 0;
+    let m;
+    while ((m = sentenceRegex.exec(buffer)) !== null) {
+      const candidate = (buffer.slice(lastIdx, sentenceRegex.lastIndex)).trim();
+      if (candidate.length >= 12) {
+        out.push(candidate);
+        lastIdx = sentenceRegex.lastIndex;
+      }
+      // else: too short, keep accumulating (avoid TTSing "Mr." alone)
+    }
+    buffer = buffer.slice(lastIdx);
+
+    // Hard flush if buffer is huge with no boundary
+    if (buffer.length > 160) {
+      // break at last space/comma
+      const breakAt = Math.max(buffer.lastIndexOf(', '), buffer.lastIndexOf(' '));
+      if (breakAt > 40) {
+        out.push(buffer.slice(0, breakAt + 1).trim());
+        buffer = buffer.slice(breakAt + 1);
+      }
+    }
+
+    if (forceFlush && buffer.trim().length > 0) {
+      out.push(buffer.trim());
+      buffer = '';
+    }
+    return out;
+  }
+
+  // TTS a single sentence + send as event. Returns a promise chained to ttsChain.
+  function queueSentenceTTS(sentence) {
+    const seq = sentenceSeq++;
+    const clean = cleanForSpeech(sentence);
+    if (!clean) return;
+    writeEvent('sentence', { seq, text: sentence });
+
+    // Chain: each TTS request fires in order so audio events arrive in order.
+    // Within a chain link, we fire the ElevenLabs request immediately but
+    // serialize the *write* of audio bytes after the previous link to keep
+    // base64 chunks in sequence.
+    const fetchPromise = (async () => {
+      try {
+        const ttsRes = await withTimeout(
+          fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`, {
+            method: 'POST',
+            headers: {
+              'xi-api-key': ELEVENLABS_API_KEY,
+              'Content-Type': 'application/json',
+              Accept: 'audio/mpeg',
+            },
+            body: JSON.stringify({
+              text: clean,
+              model_id: modelId,
+              voice_settings: {
+                stability: settings.stability ?? GEORGE_SETTINGS.stability,
+                similarity_boost: settings.similarity_boost ?? GEORGE_SETTINGS.similarity_boost,
+                style: settings.style ?? GEORGE_SETTINGS.style,
+                use_speaker_boost: settings.use_speaker_boost ?? true,
+              },
+            }),
+          }),
+          TTS_TIMEOUT_MS,
+          'ElevenLabsSentence'
+        );
+        if (!ttsRes.ok) {
+          const t = await ttsRes.text().catch(() => '');
+          console.warn(`[jarvis-voice/chat_tts_stream] [${requestId}] tts ${ttsRes.status} seq=${seq}: ${t.slice(0, 200)}`);
+          return null;
+        }
+        return Buffer.from(await ttsRes.arrayBuffer());
+      } catch (err) {
+        console.warn(`[jarvis-voice/chat_tts_stream] [${requestId}] tts err seq=${seq}: ${err.message}`);
+        return null;
+      }
+    })();
+    ttsPromises.push(fetchPromise);
+
+    ttsChain = ttsChain.then(async () => {
+      const buf = await fetchPromise;
+      if (buf && buf.length) {
+        writeEvent('audio', { seq, base64: buf.toString('base64') });
+      } else {
+        writeEvent('audio_error', { seq });
+      }
+    });
+  }
+
+  // ===== Consume Claude SSE =====
+  try {
+    const reader = claudeRes.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let leftover = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      leftover += decoder.decode(value, { stream: true });
+      // SSE events separated by \n\n; each event has "data: {...}" line(s)
+      let nlIdx;
+      while ((nlIdx = leftover.indexOf('\n\n')) !== -1) {
+        const rawEvent = leftover.slice(0, nlIdx);
+        leftover = leftover.slice(nlIdx + 2);
+        const lines = rawEvent.split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          let evt;
+          try { evt = JSON.parse(payload); } catch { continue; }
+          if (evt.type === 'content_block_delta' && evt.delta && evt.delta.type === 'text_delta') {
+            const delta = evt.delta.text || '';
+            if (!delta) continue;
+            fullText += delta;
+            buffer += delta;
+            writeEvent('text', { delta });
+            const sentences = extractSentences(false);
+            for (const s of sentences) queueSentenceTTS(s);
+          } else if (evt.type === 'message_delta' && evt.usage) {
+            usageOut = evt.usage.output_tokens || null;
+          } else if (evt.type === 'message_start' && evt.message && evt.message.usage) {
+            usageIn = evt.message.usage.input_tokens || null;
+          }
+        }
+      }
+    }
+    // Final flush — any remaining buffer becomes the last sentence
+    const tail = extractSentences(true);
+    for (const s of tail) queueSentenceTTS(s);
+  } catch (err) {
+    console.error(`[jarvis-voice/chat_tts_stream] [${requestId}] stream parse err: ${err.message}`);
+    writeEvent('error', { error: 'Stream parse failed' });
+  }
+
+  // Wait for all TTS writes to complete before sending done
+  try {
+    await ttsChain;
+  } catch (err) {
+    console.warn(`[jarvis-voice/chat_tts_stream] [${requestId}] ttsChain err: ${err.message}`);
+  }
+
+  // Persist assistant message
+  let messageId = null;
+  if (fullText.trim()) {
+    try {
+      const row = await sbPost('jarvis_messages', {
+        conversation_id: convId,
+        tenant_id: tenant.id,
+        role: 'assistant',
+        content: fullText.trim(),
+        tokens_in: usageIn,
+        tokens_out: usageOut,
+      });
+      messageId = row && row[0] && row[0].id;
+    } catch (err) {
+      console.warn(`[jarvis-voice/chat_tts_stream] [${requestId}] persist assistant fail: ${err.message}`);
+    }
+  }
+
+  writeEvent('done', {
+    conversation_id: convId,
+    message_id: messageId,
+    full: fullText.trim(),
+    sentences: sentenceSeq,
+  });
+  console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] done conv=${convId} sentences=${sentenceSeq} chars=${fullText.length}`);
+  res.end();
+}
+
 async function handleConversationStart(req, res, requestId, { tenant, jarvisUser }) {
   let body = {};
   try { body = await readJsonBody(req); } catch { /* allow empty */ }
@@ -633,7 +945,7 @@ export default async function handler(req, res) {
   }
 
   const op = String((req.query && req.query.op) || '').toLowerCase();
-  const validOps = ['stt', 'chat', 'tts', 'conversation_start', 'conversation_end'];
+  const validOps = ['stt', 'chat', 'tts', 'chat_tts_stream', 'conversation_start', 'conversation_end'];
   if (!validOps.includes(op)) {
     return res.status(400).json({ ok: false, error: `Invalid ?op= (one of: ${validOps.join(', ')})` });
   }
@@ -672,6 +984,8 @@ export default async function handler(req, res) {
         return await handleChat(req, res, requestId, context);
       case 'tts':
         return await handleTTS(req, res, requestId, context);
+      case 'chat_tts_stream':
+        return await handleChatTTSStream(req, res, requestId, context);
       case 'conversation_start':
         return await handleConversationStart(req, res, requestId, context);
       case 'conversation_end':
