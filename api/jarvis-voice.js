@@ -41,6 +41,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
+// Min raw bytes we will pass through to Whisper. Anything smaller is almost
+// certainly silence / a stray short tap and Whisper itself rejects it with a
+// 400 ("Audio file is too short"). We catch it client-friendly as a 400 and
+// signal `audio_empty_or_too_short` so the client surfaces "I didn't catch
+// that" instead of treating it as a 5xx provider failure.
+const MIN_AUDIO_BYTES = 2 * 1024;
 const MAX_TTS_CHARS = 1200;
 const STT_TIMEOUT_MS = 5000;     // DoD criterion 26
 const TTS_TIMEOUT_MS = 3000;     // DoD criterion 25
@@ -238,7 +244,14 @@ async function handleSTT(req, res, requestId) {
     throw err;
   }
   if (audioBuffer.length === 0) {
-    return res.status(400).json({ ok: false, error: 'Empty audio payload' });
+    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: 'Empty audio payload' });
+  }
+  if (audioBuffer.length < MIN_AUDIO_BYTES) {
+    // Short audio (~<2KB raw webm) is almost always a stray tap or silence.
+    // Surface as 400 with the same error code the client uses for empty
+    // transcripts so the UX falls back to "I didn't catch that, sir."
+    console.log(`[jarvis-voice/stt] [${requestId}] short audio ${audioBuffer.length}b — skipping Whisper`);
+    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', bytes: audioBuffer.length });
   }
 
   const baseMime = contentType.split(';')[0].trim();
@@ -273,6 +286,12 @@ async function handleSTT(req, res, requestId) {
   if (!whisperRes.ok) {
     const errText = await whisperRes.text().catch(() => '');
     console.error(`[jarvis-voice/stt] [${requestId}] Whisper ${whisperRes.status}: ${errText.slice(0, 300)}`);
+    // Whisper returns 400 for "audio too short" / "decoding failed" / invalid
+    // file. Treat those as client-friendly 400s instead of 502s — the user
+    // didn't catch anything meaningful, not a true API outage.
+    if (whisperRes.status === 400) {
+      return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: errText.slice(0, 200) });
+    }
     return res.status(502).json({ ok: false, error: 'STT provider error', status: whisperRes.status });
   }
 
@@ -498,6 +517,42 @@ async function handleConversationStart(req, res, requestId, { tenant, jarvisUser
     deviceId = dev[0].id;
   }
 
+  // Resume an existing conversation if requested + still open.
+  // DoD #66/#9 (conversation persistence): client passes resume_conversation_id
+  // from localStorage on page load. Server verifies the conversation belongs
+  // to this tenant + user + is not ended/deleted, then returns its messages.
+  const resumeId = body.resume_conversation_id;
+  if (resumeId && typeof resumeId === 'string') {
+    try {
+      const rows = await sbGet(
+        `jarvis_conversations?select=id,tenant_id,user_id,ended_at,deleted_at,started_at,title&id=eq.${resumeId}&tenant_id=eq.${tenant.id}&limit=1`
+      );
+      const existing = rows && rows[0];
+      if (existing && existing.user_id === jarvisUser.id && !existing.ended_at && !existing.deleted_at) {
+        const messages = await sbGet(
+          `jarvis_messages?select=id,role,content,created_at&conversation_id=eq.${existing.id}&order=created_at.asc&limit=200`
+        );
+        console.log(`[jarvis-voice/start] [${requestId}] resumed conv=${existing.id} (${messages.length} msgs)`);
+        return res.status(200).json({
+          ok: true,
+          conversation_id: existing.id,
+          device_id: deviceId,
+          resumed: true,
+          messages: (messages || []).map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content || '',
+            created_at: m.created_at,
+          })),
+        });
+      }
+      // resume requested but not found or already closed — fall through to new
+      console.log(`[jarvis-voice/start] [${requestId}] resume_conversation_id ${resumeId} not resumable; creating new`);
+    } catch (err) {
+      console.warn(`[jarvis-voice/start] [${requestId}] resume lookup failed: ${err.message}`);
+    }
+  }
+
   const conv = await sbPost('jarvis_conversations', {
     tenant_id: tenant.id,
     user_id: jarvisUser.id,
@@ -505,8 +560,8 @@ async function handleConversationStart(req, res, requestId, { tenant, jarvisUser
     started_at: new Date().toISOString(),
   });
 
-  console.log(`[jarvis-voice/start] [${requestId}] conv=${conv[0].id}`);
-  return res.status(200).json({ ok: true, conversation_id: conv[0].id, device_id: deviceId });
+  console.log(`[jarvis-voice/start] [${requestId}] new conv=${conv[0].id}`);
+  return res.status(200).json({ ok: true, conversation_id: conv[0].id, device_id: deviceId, resumed: false, messages: [] });
 }
 
 async function handleConversationEnd(req, res, requestId, { tenant }) {

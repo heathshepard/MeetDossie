@@ -214,6 +214,32 @@
                                             "value":  "public, max-age=86400"
                                         }
                                     ]
+                    },
+                    {
+                        "source":  "/jarvis-pwa-icon-192.png",
+                        "headers":  [
+                                        {
+                                            "key":  "Content-Type",
+                                            "value":  "image/png"
+                                        },
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=86400"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/jarvis-pwa-icon-512.png",
+                        "headers":  [
+                                        {
+                                            "key":  "Content-Type",
+                                            "value":  "image/png"
+                                        },
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=86400"
+                                        }
+                                    ]
                     }
                 ],
     "functions":  {

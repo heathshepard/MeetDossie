@@ -616,13 +616,15 @@
       if (s === 'idle') pttStatus.textContent = '';
     }
 
-    function appendMessage(role, content) {
+    function appendMessage(role, content, createdAt) {
       const el = document.createElement('div');
       el.className = `msg ${role}`;
+      const tsSource = createdAt ? new Date(createdAt) : new Date();
+      const ts = tsSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       el.innerHTML = `
         <div class="msg-role">${role === 'user' ? 'YOU' : 'JARVIS'}</div>
         <div class="msg-content"></div>
-        <div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="msg-time">${ts}</div>
       `;
       el.querySelector('.msg-content').textContent = content;
       messages.appendChild(el);
@@ -729,8 +731,36 @@
       return 'Browser';
     }
 
+    // localStorage key for the most recent open conversation. Scoped by
+    // auth user so a sign-out + different sign-in doesn't surface another
+    // user's history.
+    const CONV_LS_KEY = 'jarvis:lastConversationId';
+    function lsGetLastConv() {
+      try {
+        const raw = localStorage.getItem(CONV_LS_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.userId !== session?.user?.id) return null;
+        return parsed.conversationId || null;
+      } catch { return null; }
+    }
+    function lsSetLastConv(conversationId) {
+      try {
+        if (!session?.user?.id || !conversationId) return;
+        localStorage.setItem(CONV_LS_KEY, JSON.stringify({
+          userId: session.user.id,
+          conversationId,
+          savedAt: Date.now(),
+        }));
+      } catch { /* private mode */ }
+    }
+    function lsClearLastConv() {
+      try { localStorage.removeItem(CONV_LS_KEY); } catch {}
+    }
+
     async function startConversation() {
       try {
+        const resumeId = lsGetLastConv();
         const res = await fetch(`${API_BASE}/api/jarvis-voice?op=conversation_start`, {
           method: 'POST',
           headers: {
@@ -740,16 +770,32 @@
           body: JSON.stringify({
             device_label: getDeviceLabel(),
             user_agent: navigator.userAgent.slice(0, 256),
+            resume_conversation_id: resumeId || undefined,
           }),
         });
         if (res.ok) {
           const data = await res.json();
           conversationId = data.conversation_id;
           convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+          lsSetLastConv(conversationId);
+          // Hydrate scrollback with prior messages on resume.
+          if (data.resumed && Array.isArray(data.messages) && data.messages.length) {
+            hydrateScrollback(data.messages);
+            showToast(`Resumed (${data.messages.length} prior msgs).`, 1800);
+          }
         }
       } catch (err) {
         console.warn('[jarvis] startConversation failed', err);
       }
+    }
+
+    function hydrateScrollback(msgs) {
+      // Clear any placeholder/idle row content, then append in order.
+      msgs.forEach((m) => {
+        if (!m || !m.content) return;
+        if (m.role !== 'user' && m.role !== 'assistant') return;
+        appendMessage(m.role, m.content, m.created_at);
+      });
     }
 
     // ===== Push-to-talk pipeline =====
@@ -823,6 +869,12 @@
         const sttData = await sttRes.json();
         if (sttRes.ok && sttData.ok) {
           transcript = (sttData.transcript || '').trim();
+        } else if (sttRes.status === 400 && sttData?.error === 'audio_empty_or_too_short') {
+          // Graceful fall-through: behave like an empty transcript.
+          setPttState('idle');
+          showToast("I didn't catch that, sir.");
+          speakFallback("I didn't catch that, sir.");
+          return;
         } else {
           throw new Error(sttData?.error || `STT failed (${sttRes.status})`);
         }
@@ -862,6 +914,7 @@
         if (chatData.conversation_id) {
           conversationId = chatData.conversation_id;
           convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
+          lsSetLastConv(conversationId);
         }
       } catch (err) {
         setPttState('error');
