@@ -12,13 +12,17 @@
 //   3. Draft a full social post per headline (Sonnet) using verified facts
 //      from the VERIFIED FACTS block. Pick the best platform (FB/LI/TW)
 //      based on the angle.
-//   4. Insert into social_posts with status='pending_approval' +
-//      source_type='sage_research' + topic=headline.
-//   5. Cron jarvis-pending-approvals already surfaces status='pending_approval'
-//      rows in Heath's HUD. One-tap Approve → flips to 'approved' → next
-//      publish-approved cron picks it up. One-tap Reject → 'rejected' with
-//      Heath's reason; future Sage prompts include rejected-research as a
-//      "do not repeat these angles" hint.
+//   4. Insert into social_posts with status='draft' +
+//      source_type='sage_research' + topic=headline + telegram_sent_at=NOW().
+//      The telegram_sent_at stamp keeps these out of cron-send-to-sage's
+//      reach so research drafts route ONLY to Heath's HUD, not the
+//      autonomous reviewer.
+//   5. jarvis-pending-approvals surfaces status='draft' rows with
+//      source_type='sage_research' tagged as sage_research_draft in Heath's
+//      HUD. One-tap Approve → flips to 'approved' → next publish-approved
+//      cron picks it up. One-tap Reject → 'rejected' with Heath's reason;
+//      future Sage prompts include rejected-research as a "do not repeat
+//      these angles" hint.
 //
 // Auth: Bearer ${CRON_SECRET} (manual) OR x-vercel-cron header.
 // Schedule (vercel.json): "0 12 * * *" (12 UTC = 7am CST in non-DST, 6am DST).
