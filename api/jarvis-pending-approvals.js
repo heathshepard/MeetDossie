@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
   try {
     const [socials, emails, outboundEmails, foundings, decisions, hadleyQs] = await Promise.all([
-      sbGet(`social_posts?select=id,platform,hook,content,persona,topic,created_at,status&status=in.(draft,pending_approval)&order=created_at.asc&limit=25`).catch(() => []),
+      sbGet(`social_posts?select=id,platform,hook,content,persona,topic,created_at,status,source_type,verifier_result&status=in.(draft,pending_approval)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`email_queue?select=id,to_email,to_name,subject,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`outbound_email_queue?select=id,to_email,subject,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`founding_applications?select=id,name,email,brokerage,market,transactions_12mo,why,created_at,status&status=eq.pending&order=created_at.asc&limit=25`).catch(() => []),
@@ -82,18 +82,33 @@ export default async function handler(req, res) {
     const items = [];
 
     for (const r of socials) {
+      const isResearch = r.source_type === 'sage_research';
+      const sourceFeed = isResearch && r.verifier_result?.summary
+        ? String(r.verifier_result.summary).split(':')[0]
+        : null;
       items.push({
         id: `social:${r.id}`,
-        source: 'social_post',
+        source: isResearch ? 'sage_research_draft' : 'social_post',
         source_id: r.id,
         title: r.hook || (r.content || '').slice(0, 80) || `${r.platform} post`,
-        subtitle: `${(r.platform || '').toUpperCase()} · ${r.persona || ''}${r.topic ? ' · ' + r.topic : ''}`,
+        subtitle: isResearch
+          ? `${(r.platform || '').toUpperCase()} · ${sourceFeed || 'Sage research'} · ${r.topic || ''}`
+          : `${(r.platform || '').toUpperCase()} · ${r.persona || ''}${r.topic ? ' · ' + r.topic : ''}`,
         agent: 'Sage',
         waiting_minutes: minutesAgo(r.created_at),
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'social_post', id: r.id },
-        details: { full_content: r.content, platform: r.platform, persona: r.persona, topic: r.topic },
+        details: {
+          full_content: r.content,
+          platform: r.platform,
+          persona: r.persona,
+          topic: r.topic,
+          source_type: r.source_type,
+          source_link: r.verifier_result?.source_link || null,
+          pillar: r.verifier_result?.pillar || null,
+          feature_referenced: r.verifier_result?.feature_referenced || null,
+        },
       });
     }
 
