@@ -339,6 +339,10 @@
                   },
     "crons":  [
                   {
+                      "path":  "/api/cron-agent-worker-tick",
+                      "schedule":  "* * * * *"
+                  },
+                  {
                       "path":  "/api/alert-health",
                       "schedule":  "*/5 * * * *"
                   },

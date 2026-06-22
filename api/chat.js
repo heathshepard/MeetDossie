@@ -10,6 +10,7 @@ const {
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { messagesCreateCached } = require('./_lib/spawn-with-cache');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -156,18 +157,23 @@ No transaction is currently selected. Focus on being genuinely helpful:
 Don't force data entry. Just be a helpful coordinator they can talk to.`;
 }
 
-async function callClaude(model, message, systemPrompt, history) {
+async function callClaude(model, message, systemPrompt, history, metadata = {}) {
   const maxTokens = model === 'claude-sonnet-4-6' ? 400 : 150;
 
   const messagesArray = Array.isArray(history) && history.length > 0
     ? history
     : [{ role: 'user', content: message }];
 
-  const response = await anthropic.messages.create({
+  // Use the cached spawn helper so the large /api/chat system prompt
+  // (the warm-TC persona + how-to facts + name rules) becomes cache-
+  // eligible. Subsequent calls within the 5-min window pay ~10% of
+  // input cost on the prefix.
+  const response = await messagesCreateCached(anthropic, {
     model,
     max_tokens: maxTokens,
-    system: systemPrompt,
+    systemStatic: systemPrompt,
     messages: messagesArray,
+    metadata: { endpoint: 'chat', ...metadata },
   });
 
   return response.content[0].text;
@@ -733,12 +739,20 @@ function compactDealsForAction(deals) {
     }));
 }
 
-async function handleActionMode({ message, deals, messages }) {
+async function handleActionMode({ message, deals, messages, userId }) {
   const today = new Date().toISOString().slice(0, 10);
   const compactDeals = compactDealsForAction(deals);
-  const systemPrompt = buildActionSystemPrompt(compactDeals, today);
+  // Split system into static (persona + rules + tools — cache-eligible) and
+  // variable (today's date + per-user deals snapshot — too unique to cache).
+  // We split on the TODAY: marker which the action prompt uses to anchor
+  // today's date + deals JSON.
+  const fullSystem = buildActionSystemPrompt(compactDeals, today);
+  const variableMarker = `TODAY: ${today}`;
+  const varIdx = fullSystem.indexOf(variableMarker);
+  const systemStatic = varIdx > 0 ? fullSystem.slice(0, varIdx) : fullSystem;
+  const systemVariable = varIdx > 0 ? fullSystem.slice(varIdx) : '';
 
-  console.log('[Chat] prompt first 150 chars:', systemPrompt.slice(0, 150));
+  console.log('[Chat] prompt first 150 chars:', systemStatic.slice(0, 150));
 
   const finalMessages = (Array.isArray(messages) && messages.length > 0)
     ? messages
@@ -746,13 +760,15 @@ async function handleActionMode({ message, deals, messages }) {
 
   console.log('[Chat] messages array len:', finalMessages.length, 'preview:', finalMessages.map((m) => ({ role: m.role, contentLen: typeof m.content === 'string' ? m.content.length : 0, head: typeof m.content === 'string' ? m.content.slice(0, 80) : '<non-string>' })));
 
-  const response = await anthropic.messages.create({
+  const response = await messagesCreateCached(anthropic, {
     model: 'claude-sonnet-4-6',
     max_tokens: 2000,
-    system: systemPrompt,
+    systemStatic,
+    systemVariable,
     tools: TOOLS,
     tool_choice: { type: 'auto' },
     messages: finalMessages,
+    metadata: { endpoint: 'chat:action', user_id: userId },
   });
 
   const content = response.content || [];
@@ -846,7 +862,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const result = await handleActionMode({ message: effectiveMessage, deals, messages });
+      const result = await handleActionMode({ message: effectiveMessage, deals, messages, userId });
       return res.status(200).json({
         ok: true,
         action: result.action,
@@ -882,7 +898,7 @@ export default async function handler(req, res) {
     const systemPrompt = buildSystemPrompt(hasTransaction);
 
     // Call Claude
-    const reply = await callClaude(model, effectiveMessage, systemPrompt, messages);
+    const reply = await callClaude(model, effectiveMessage, systemPrompt, messages, { user_id: userId });
 
     // Return response
     return res.status(200).json({

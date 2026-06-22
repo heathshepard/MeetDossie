@@ -958,6 +958,71 @@
     .activity-status-failed { color: var(--fail); }
     .activity-status-working { color: var(--cyan-bright); }
 
+    /* ===== AGENT THROUGHPUT PANEL (Speed Unlock, atlas_5, 2026-06-20) ===== */
+    .throughput-totals {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 12px; padding-bottom: 12px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.08);
+      font-size: 10px;
+    }
+    .throughput-totals-cell {
+      display: flex; flex-direction: column; gap: 2px;
+      text-align: center;
+    }
+    .throughput-totals-val {
+      font-size: 16px; font-weight: 500;
+      color: var(--cyan-bright);
+      font-variant-numeric: tabular-nums;
+    }
+    .throughput-totals-val.savings { color: var(--ok); }
+    .throughput-totals-val.cost    { color: var(--gold); }
+    .throughput-totals-lbl {
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--txt-mute); font-size: 9px;
+    }
+    .throughput-rows {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 260px; overflow-y: auto;
+    }
+    .throughput-row {
+      display: grid; grid-template-columns: 72px 1fr 1fr 1fr;
+      gap: 8px; align-items: center;
+      padding: 6px 4px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
+      font-size: 10px;
+    }
+    .throughput-row:last-child { border-bottom: none; }
+    .throughput-role {
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--cyan-bright);
+    }
+    .throughput-cell {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .throughput-cell-val {
+      font-size: 12px; color: var(--txt);
+      font-variant-numeric: tabular-nums;
+    }
+    .throughput-cell-lbl {
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .throughput-mix {
+      display: flex; gap: 4px; align-items: center;
+      font-size: 10px;
+    }
+    .throughput-mix-bar {
+      display: flex; height: 6px; flex: 1; border-radius: 3px; overflow: hidden;
+      background: rgba(255,255,255,0.04);
+    }
+    .throughput-mix-haiku  { background: var(--ok); }
+    .throughput-mix-sonnet { background: var(--cyan-bright); }
+    .throughput-mix-opus   { background: var(--gold); }
+    .throughput-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
+
     /* ===== QUICK ACTIONS ROW (Tier 1 Widget #4) ===== */
     .quick-actions {
       display: flex; gap: 8px;
@@ -2452,6 +2517,14 @@
             <div class="activity-empty">Loading…</div>
           </div>
         </div>
+
+        <!-- AGENT THROUGHPUT (Speed Unlock, atlas_5, 2026-06-20).
+             Queue depth, worker utilization, cache hit rate, model mix, cost. -->
+        <div class="panel" id="throughput-panel">
+          <div class="panel-title">AGENT THROUGHPUT</div>
+          <div id="throughput-totals" class="throughput-totals">Loading…</div>
+          <div id="throughput-rows" class="throughput-rows"></div>
+        </div>
       </aside>
     </main>
 
@@ -3229,6 +3302,9 @@
       setInterval(() => { loadInstances().catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().catch(() => {}); }, 60000);
       setInterval(() => { loadKnowledge().catch(() => {}); }, 90000);
+      // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel
+      loadThroughput().catch(() => {});
+      setInterval(() => { loadThroughput().catch(() => {}); }, 30000);
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -6451,6 +6527,125 @@
         console.warn('[jarvis] loadKnowledge failed', err.message);
         const el = document.getElementById('knowledge-list');
         if (el) el.innerHTML = `<div class="ledger-empty">Knowledge API unavailable.</div>`;
+      }
+    }
+
+    // ===== AGENT THROUGHPUT (Speed Unlock, atlas_5, 2026-06-20) =====
+    async function loadThroughput() {
+      if (!tenant) return;
+      const totalsEl = document.getElementById('throughput-totals');
+      const rowsEl   = document.getElementById('throughput-rows');
+      if (!totalsEl || !rowsEl) return;
+      try {
+        const data = await authedFetch('/api/jarvis-agent-throughput?window_hours=24');
+        if (!data?.ok) {
+          totalsEl.innerHTML = `<div class="throughput-empty">Couldn't load (HTTP).</div>`;
+          rowsEl.innerHTML = '';
+          return;
+        }
+        renderThroughput(data);
+      } catch (err) {
+        console.warn('[jarvis] loadThroughput failed', err.message);
+        totalsEl.innerHTML = `<div class="throughput-empty">Offline.</div>`;
+        rowsEl.innerHTML = '';
+      }
+    }
+
+    function renderThroughput(data) {
+      const totalsEl = document.getElementById('throughput-totals');
+      const rowsEl   = document.getElementById('throughput-rows');
+      if (!totalsEl || !rowsEl) return;
+      const t = data.totals || {};
+      const usd = (v) => '$' + (Number(v) || 0).toFixed(2);
+      const pct = (v) => (Number(v) || 0).toFixed(1) + '%';
+      // Top totals row — completed, cache hit rate, savings, projected daily cost
+      totalsEl.innerHTML = '';
+      [
+        { val: String(t.total_completed || 0),      lbl: 'Tasks 24h' },
+        { val: pct(t.cache_hit_rate || 0),          lbl: 'Cache Hit', cls: 'savings' },
+        { val: usd(t.savings_usd || 0),             lbl: 'Saved 24h', cls: 'savings' },
+        { val: usd(t.projected_daily_cost || 0),    lbl: 'Daily Cost', cls: 'cost' },
+      ].forEach(c => {
+        const cell = document.createElement('div');
+        cell.className = 'throughput-totals-cell';
+        const v = document.createElement('div');
+        v.className = 'throughput-totals-val' + (c.cls ? ' ' + c.cls : '');
+        v.textContent = c.val;
+        const l = document.createElement('div');
+        l.className = 'throughput-totals-lbl';
+        l.textContent = c.lbl;
+        cell.appendChild(v);
+        cell.appendChild(l);
+        totalsEl.appendChild(cell);
+      });
+
+      // Per-role rows — only show roles with any activity OR an active pool
+      const roles = (data.roles || []).filter(r =>
+        (r.workers_idle + r.workers_busy + r.workers_dead) > 0 ||
+        r.queue_depth > 0 || r.tasks_completed > 0 || r.cache_attempts > 0
+      );
+      if (roles.length === 0) {
+        rowsEl.innerHTML = `<div class="throughput-empty">No active agents in window. Queue a task to start.</div>`;
+        return;
+      }
+      rowsEl.innerHTML = '';
+      for (const r of roles) {
+        const row = document.createElement('div');
+        row.className = 'throughput-row';
+        // role label
+        const roleEl = document.createElement('div');
+        roleEl.className = 'throughput-role';
+        roleEl.textContent = r.role;
+        row.appendChild(roleEl);
+        // workers + queue cell
+        const c1 = document.createElement('div');
+        c1.className = 'throughput-cell';
+        const c1v = document.createElement('div');
+        c1v.className = 'throughput-cell-val';
+        c1v.textContent = `${r.workers_busy}/${r.workers_busy + r.workers_idle} busy${r.workers_dead ? ` · ${r.workers_dead}d` : ''}`;
+        const c1l = document.createElement('div');
+        c1l.className = 'throughput-cell-lbl';
+        c1l.textContent = `Q:${r.queue_depth}`;
+        c1.appendChild(c1v); c1.appendChild(c1l); row.appendChild(c1);
+        // throughput cell (per-hour + avg duration)
+        const c2 = document.createElement('div');
+        c2.className = 'throughput-cell';
+        const c2v = document.createElement('div');
+        c2v.className = 'throughput-cell-val';
+        c2v.textContent = `${r.tasks_per_hour}/h`;
+        const c2l = document.createElement('div');
+        c2l.className = 'throughput-cell-lbl';
+        c2l.textContent = r.avg_duration_ms > 0 ? `${Math.round(r.avg_duration_ms / 100) / 10}s avg` : 'no data';
+        c2.appendChild(c2v); c2.appendChild(c2l); row.appendChild(c2);
+        // cache + model mix cell
+        const c3 = document.createElement('div');
+        c3.className = 'throughput-cell';
+        const c3v = document.createElement('div');
+        c3v.className = 'throughput-cell-val';
+        c3v.textContent = r.cache_attempts > 0 ? `${r.cache_hit_rate}%` : '—';
+        const mix = document.createElement('div');
+        mix.className = 'throughput-mix';
+        const totalMix = (r.model_mix.haiku || 0) + (r.model_mix.sonnet || 0) + (r.model_mix.opus || 0) + (r.model_mix.other || 0);
+        if (totalMix > 0) {
+          const bar = document.createElement('div');
+          bar.className = 'throughput-mix-bar';
+          const h = (r.model_mix.haiku  || 0) * 100 / totalMix;
+          const s = (r.model_mix.sonnet || 0) * 100 / totalMix;
+          const o = (r.model_mix.opus   || 0) * 100 / totalMix;
+          const seg = (cls, w) => {
+            if (w <= 0) return null;
+            const el = document.createElement('div');
+            el.className = cls;
+            el.style.width = w.toFixed(1) + '%';
+            return el;
+          };
+          [seg('throughput-mix-haiku', h),
+           seg('throughput-mix-sonnet', s),
+           seg('throughput-mix-opus', o)].forEach(el => { if (el) bar.appendChild(el); });
+          mix.appendChild(bar);
+        }
+        c3.appendChild(c3v); c3.appendChild(mix); row.appendChild(c3);
+        rowsEl.appendChild(row);
       }
     }
 
