@@ -5860,5 +5860,392 @@
       }
     })();
   </script>
+
+  <!-- ============================================================
+       AUDIO DEVICE PICKER (atlas_3, 2026-06-20)
+       Standalone IIFE that patches getUserMedia + HTMLMediaElement
+       playback to honor saved device preferences in localStorage.
+       Decoupled from the main app module so no existing code paths
+       change. The cogwheel button #audio-settings-btn opens a modal
+       that lists devices via enumerateDevices() and persists the
+       user's choice. Works whether or not setSinkId is supported.
+       ============================================================ -->
+  <script>
+  (function audioDevicePickerBoot() {
+    'use strict';
+
+    const LS_INPUT  = 'jarvis:audio:inputDeviceId';
+    const LS_OUTPUT = 'jarvis:audio:outputDeviceId';
+    const LS_INPUT_LABEL  = 'jarvis:audio:inputDeviceLabel';
+    const LS_OUTPUT_LABEL = 'jarvis:audio:outputDeviceLabel';
+
+    // Feature detection — setSinkId on <audio>.
+    const SINK_ID_SUPPORTED =
+      typeof HTMLMediaElement !== 'undefined' &&
+      typeof HTMLMediaElement.prototype.setSinkId === 'function';
+
+    // ===== getUserMedia patch =====
+    // Wrap navigator.mediaDevices.getUserMedia so every audio request
+    // includes the user's saved input deviceId. Preserves caller's
+    // existing constraints (echoCancellation, noiseSuppression, etc).
+    if (
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function' &&
+      !navigator.mediaDevices.__jarvisDevicePatch
+    ) {
+      const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.__jarvisOriginalGUM = original;
+      navigator.mediaDevices.getUserMedia = function patchedGUM(constraints) {
+        try {
+          const deviceId = localStorage.getItem(LS_INPUT);
+          if (deviceId && constraints && constraints.audio) {
+            const audioBase = (typeof constraints.audio === 'object') ? constraints.audio : {};
+            constraints = Object.assign({}, constraints, {
+              audio: Object.assign({}, audioBase, { deviceId: { exact: deviceId } }),
+            });
+          }
+        } catch (e) {
+          console.warn('[jarvis-audio] gUM patch error:', e);
+        }
+        return original(constraints);
+      };
+      navigator.mediaDevices.__jarvisDevicePatch = true;
+    }
+
+    // ===== Audio output patch =====
+    function applySinkIfPossible(el) {
+      if (!SINK_ID_SUPPORTED) return Promise.resolve(false);
+      let deviceId;
+      try { deviceId = localStorage.getItem(LS_OUTPUT); } catch (e) { return Promise.resolve(false); }
+      if (!deviceId) return Promise.resolve(false);
+      if (el.__jarvisSink === deviceId) return Promise.resolve(true);
+      return el.setSinkId(deviceId).then(() => {
+        el.__jarvisSink = deviceId;
+        return true;
+      }).catch((err) => {
+        console.warn('[jarvis-audio] setSinkId failed:', err && err.message);
+        return false;
+      });
+    }
+
+    if (typeof window.Audio === 'function' && !window.Audio.__jarvisDevicePatch) {
+      const OrigAudio = window.Audio;
+      const PatchedAudio = function PatchedAudio(src) {
+        const el = src === undefined ? new OrigAudio() : new OrigAudio(src);
+        applySinkIfPossible(el);
+        return el;
+      };
+      PatchedAudio.prototype = OrigAudio.prototype;
+      PatchedAudio.__jarvisDevicePatch = true;
+      window.Audio = PatchedAudio;
+    }
+
+    if (
+      typeof HTMLMediaElement !== 'undefined' &&
+      HTMLMediaElement.prototype.play &&
+      !HTMLMediaElement.prototype.__jarvisDevicePlayPatch
+    ) {
+      const origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function patchedPlay() {
+        // Best-effort: kick off the sink swap, then play. setSinkId is
+        // async; play() must remain synchronous for autoplay-gesture
+        // rules. Chromium re-routes mid-playback if setSinkId resolves
+        // after play starts.
+        applySinkIfPossible(this);
+        return origPlay.apply(this, arguments);
+      };
+      HTMLMediaElement.prototype.__jarvisDevicePlayPatch = true;
+    }
+
+    // ===== State chip helpers =====
+    function shorten(s, n) {
+      s = String(s || '');
+      if (s.length <= n) return s;
+      return s.slice(0, n - 1) + '…';
+    }
+    function updateRoutingChip() {
+      const chip   = document.getElementById('audio-routing-chip');
+      const micEl  = document.getElementById('audio-routing-mic');
+      const spkEl  = document.getElementById('audio-routing-spk');
+      if (!chip || !micEl || !spkEl) return;
+      let inLabel = '';
+      let outLabel = '';
+      try {
+        if (localStorage.getItem(LS_INPUT))  inLabel  = localStorage.getItem(LS_INPUT_LABEL)  || 'Custom';
+        if (localStorage.getItem(LS_OUTPUT)) outLabel = localStorage.getItem(LS_OUTPUT_LABEL) || 'Custom';
+      } catch (e) {}
+      const isCustomIn  = !!inLabel;
+      const isCustomOut = !!outLabel;
+      if (!isCustomIn && !isCustomOut) {
+        chip.classList.add('hidden');
+        return;
+      }
+      chip.classList.remove('hidden');
+      micEl.textContent = isCustomIn  ? shorten(inLabel,  18) : 'Default';
+      spkEl.textContent = isCustomOut ? shorten(outLabel, 18) : 'Default';
+    }
+
+    // ===== Modal =====
+    let activeBackdrop = null;
+    let cachedDevices = { inputs: [], outputs: [] };
+    let hasLabelPermission = false;
+
+    async function ensurePermissionForLabels() {
+      // enumerateDevices() returns empty labels until the user grants
+      // mic permission once. Trigger a one-time getUserMedia probe to
+      // unlock labels, then stop tracks immediately.
+      try {
+        const origGUM = navigator.mediaDevices.__jarvisOriginalGUM
+          ? navigator.mediaDevices.__jarvisOriginalGUM
+          : navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+        const probeStream = await origGUM({ audio: true });
+        probeStream.getTracks().forEach(t => t.stop());
+        hasLabelPermission = true;
+        return true;
+      } catch (err) {
+        console.warn('[jarvis-audio] mic permission denied for label enumeration:', err && err.message);
+        hasLabelPermission = false;
+        return false;
+      }
+    }
+
+    async function loadDevices() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        cachedDevices = { inputs: [], outputs: [] };
+        return cachedDevices;
+      }
+      const all = await navigator.mediaDevices.enumerateDevices();
+      cachedDevices = {
+        inputs:  all.filter(d => d.kind === 'audioinput'),
+        outputs: all.filter(d => d.kind === 'audiooutput'),
+      };
+      const labelsBlank = cachedDevices.inputs.every(d => !d.label) &&
+                          cachedDevices.outputs.every(d => !d.label);
+      if (labelsBlank && !hasLabelPermission) {
+        const granted = await ensurePermissionForLabels();
+        if (granted) {
+          const all2 = await navigator.mediaDevices.enumerateDevices();
+          cachedDevices = {
+            inputs:  all2.filter(d => d.kind === 'audioinput'),
+            outputs: all2.filter(d => d.kind === 'audiooutput'),
+          };
+        }
+      }
+      return cachedDevices;
+    }
+
+    function buildOption(d, savedId) {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      const fallbackName = (d.kind === 'audioinput' ? 'Microphone' : 'Speaker') + ' ' + (d.deviceId || '').slice(0, 6);
+      opt.textContent = d.label || fallbackName;
+      if (d.deviceId === savedId) opt.selected = true;
+      return opt;
+    }
+
+    async function populateSelects(modal) {
+      const inSel  = modal.querySelector('#audio-input-select');
+      const outSel = modal.querySelector('#audio-output-select');
+      const status = modal.querySelector('#audio-modal-status');
+      const warn   = modal.querySelector('#audio-output-warn');
+
+      if (!inSel || !outSel) return;
+
+      status.classList.remove('is-err');
+      status.textContent = 'Loading audio devices…';
+
+      try {
+        const devices = await loadDevices();
+
+        inSel.innerHTML  = '<option value="">System Default</option>';
+        outSel.innerHTML = '<option value="">System Default</option>';
+
+        const savedIn  = localStorage.getItem(LS_INPUT)  || '';
+        const savedOut = localStorage.getItem(LS_OUTPUT) || '';
+
+        devices.inputs.forEach(d => inSel.appendChild(buildOption(d, savedIn)));
+        devices.outputs.forEach(d => outSel.appendChild(buildOption(d, savedOut)));
+
+        if (!hasLabelPermission && devices.inputs.length > 0 && !devices.inputs[0].label) {
+          status.textContent = 'Tap Save to grant mic permission, then reopen for full device labels.';
+        } else if (devices.inputs.length === 0 && devices.outputs.length === 0) {
+          status.classList.add('is-err');
+          status.textContent = 'No audio devices found.';
+        } else {
+          status.textContent =
+            'Detected ' + devices.inputs.length + ' input · ' + devices.outputs.length + ' output device(s).';
+        }
+
+        if (!SINK_ID_SUPPORTED) {
+          warn.classList.remove('hidden');
+        } else {
+          warn.classList.add('hidden');
+        }
+      } catch (err) {
+        status.classList.add('is-err');
+        status.textContent = 'Could not enumerate devices: ' + (err && err.message || 'unknown error');
+      }
+    }
+
+    function openModal() {
+      if (activeBackdrop) return;
+      const backdrop = document.createElement('div');
+      backdrop.className = 'audio-modal-backdrop';
+      backdrop.setAttribute('role', 'dialog');
+      backdrop.setAttribute('aria-modal', 'true');
+      backdrop.setAttribute('aria-label', 'Audio devices');
+      backdrop.innerHTML = `
+        <div class="audio-modal" role="document">
+          <div class="audio-modal-header">
+            <div>
+              <div class="audio-modal-title">Audio Devices</div>
+              <div class="audio-modal-sub">Mic + Speaker routing for Jarvis</div>
+            </div>
+            <button class="detail-close" id="audio-modal-close" aria-label="Close">×</button>
+          </div>
+
+          <div class="audio-row">
+            <div class="audio-row-label">
+              <svg class="arl-icon" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+              <span>Microphone (Input)</span>
+            </div>
+            <select id="audio-input-select" class="audio-select" aria-label="Microphone input device">
+              <option value="">System Default</option>
+            </select>
+          </div>
+
+          <div class="audio-row">
+            <div class="audio-row-label">
+              <svg class="arl-icon" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 14h3l4 4V6L6 10H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1z"></path>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              <span>Speaker / Headphones (Output)</span>
+            </div>
+            <select id="audio-output-select" class="audio-select" aria-label="Speaker output device">
+              <option value="">System Default</option>
+            </select>
+            <div id="audio-output-warn" class="audio-warn-chip hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <span>This browser can't switch the output device in-app. Use Android Quick Settings &gt; Media output to pick Sony WH.</span>
+            </div>
+          </div>
+
+          <div id="audio-modal-status" class="audio-status">Loading audio devices…</div>
+
+          <div class="audio-modal-actions">
+            <button class="audio-btn" id="audio-modal-reset" type="button">Reset</button>
+            <button class="audio-btn audio-btn-primary" id="audio-modal-save" type="button">Save</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      activeBackdrop = backdrop;
+
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeModal();
+      });
+
+      backdrop.querySelector('#audio-modal-close').addEventListener('click', closeModal);
+      backdrop.querySelector('#audio-modal-save').addEventListener('click', () => onSave(backdrop));
+      backdrop.querySelector('#audio-modal-reset').addEventListener('click', () => onReset(backdrop));
+
+      // Device-change listener so newly plugged DJI / Sony shows up live.
+      if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+        const onChange = () => populateSelects(backdrop);
+        navigator.mediaDevices.addEventListener('devicechange', onChange);
+        backdrop.__deviceChangeListener = onChange;
+      }
+
+      populateSelects(backdrop);
+    }
+
+    function closeModal() {
+      if (!activeBackdrop) return;
+      if (navigator.mediaDevices && activeBackdrop.__deviceChangeListener) {
+        try {
+          navigator.mediaDevices.removeEventListener('devicechange', activeBackdrop.__deviceChangeListener);
+        } catch (e) {}
+      }
+      activeBackdrop.remove();
+      activeBackdrop = null;
+    }
+
+    async function onSave(modal) {
+      const inSel  = modal.querySelector('#audio-input-select');
+      const outSel = modal.querySelector('#audio-output-select');
+      const status = modal.querySelector('#audio-modal-status');
+
+      const inputId  = inSel.value || '';
+      const outputId = outSel.value || '';
+      const inputLabel  = inputId  ? (inSel.options[inSel.selectedIndex].text  || '') : '';
+      const outputLabel = outputId ? (outSel.options[outSel.selectedIndex].text || '') : '';
+
+      try {
+        if (inputId)  localStorage.setItem(LS_INPUT,  inputId);  else localStorage.removeItem(LS_INPUT);
+        if (outputId) localStorage.setItem(LS_OUTPUT, outputId); else localStorage.removeItem(LS_OUTPUT);
+        if (inputLabel)  localStorage.setItem(LS_INPUT_LABEL,  inputLabel);  else localStorage.removeItem(LS_INPUT_LABEL);
+        if (outputLabel) localStorage.setItem(LS_OUTPUT_LABEL, outputLabel); else localStorage.removeItem(LS_OUTPUT_LABEL);
+      } catch (e) {
+        status.classList.add('is-err');
+        status.textContent = 'Could not save preferences (localStorage blocked).';
+        return;
+      }
+
+      // If user picked an output and setSinkId IS supported, route any
+      // audio elements currently on the page (Voice Brief audio etc).
+      if (SINK_ID_SUPPORTED && outputId) {
+        document.querySelectorAll('audio').forEach((a) => {
+          try { a.setSinkId(outputId).then(() => { a.__jarvisSink = outputId; }).catch(() => {}); }
+          catch (e) {}
+        });
+      }
+
+      updateRoutingChip();
+      status.classList.remove('is-err');
+      status.textContent = 'Saved. Jarvis will use these devices on the next mic + speak.';
+      setTimeout(() => closeModal(), 900);
+    }
+
+    function onReset(modal) {
+      try {
+        localStorage.removeItem(LS_INPUT);
+        localStorage.removeItem(LS_OUTPUT);
+        localStorage.removeItem(LS_INPUT_LABEL);
+        localStorage.removeItem(LS_OUTPUT_LABEL);
+      } catch (e) {}
+      updateRoutingChip();
+      populateSelects(modal);
+      const status = modal.querySelector('#audio-modal-status');
+      status.classList.remove('is-err');
+      status.textContent = 'Reset to System Default.';
+    }
+
+    // ===== Bootstrap =====
+    function bootstrap() {
+      const btn = document.getElementById('audio-settings-btn');
+      if (btn && !btn.__jarvisWired) {
+        btn.addEventListener('click', openModal);
+        btn.__jarvisWired = true;
+      }
+      updateRoutingChip();
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrap);
+    } else {
+      bootstrap();
+    }
+  })();
+  </script>
 </body>
 </html>
