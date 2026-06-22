@@ -368,7 +368,14 @@ module.exports = withTelemetry('cron-weekly-newsletter', async function handler(
     }
 
     // Check for Thursday draft first (newsletter_drafts table)
+    // NOTE: `items` must be declared at this scope so the post-send audit_log
+    // metadata + JSON response can reference its length even when the draft
+    // path is taken (items is only populated in the regenerate-from-file
+    // branch below). Without this declaration, the draft path crashed with
+    // ReferenceError: items is not defined at the markSentThisWeek call —
+    // root cause of the 2026-06-19 weekly newsletter http_500.
     let html, subject, toAddresses;
+    let items = null;
     const draftRes = await supabaseFetch(
       `/rest/v1/newsletter_drafts?week_iso=eq.${encodeURIComponent(weekKey)}&select=id,content_html,subject,status`,
     );
@@ -430,7 +437,7 @@ module.exports = withTelemetry('cron-weekly-newsletter', async function handler(
         return res.status(500).json({ ok: false, error: `Anthropic failed: ${err.message}` });
       }
 
-      const items = Array.isArray(rewritten?.items) ? rewritten.items.filter((i) => i && i.header && i.body) : [];
+      items = Array.isArray(rewritten?.items) ? rewritten.items.filter((i) => i && i.header && i.body) : [];
       if (items.length === 0) {
         return res.status(200).json({
           ok: true,
@@ -471,13 +478,17 @@ module.exports = withTelemetry('cron-weekly-newsletter', async function handler(
     }
 
     // Mark sent (only if at least one delivery succeeded — keeps retries safe).
+    // items may be null when the draft path was used — fall back to null in
+    // metadata rather than throwing.
+    const itemsCount = items ? items.length : null;
     if (sendResults.sent > 0) {
       await markSentThisWeek(weekKey, {
         recipients_count: toAddresses.length,
-        items_count: items.length,
+        items_count: itemsCount,
         week_range: weekRange,
         sent: sendResults.sent,
         failed: sendResults.failed,
+        source: items ? 'regenerated' : 'draft',
       });
     }
 
@@ -485,7 +496,7 @@ module.exports = withTelemetry('cron-weekly-newsletter', async function handler(
       ok: true,
       week_key: weekKey,
       week_range: weekRange,
-      items_count: items.length,
+      items_count: itemsCount,
       recipients_count: toAddresses.length,
       sent: sendResults.sent,
       failed: sendResults.failed,
