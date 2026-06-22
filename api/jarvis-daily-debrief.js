@@ -109,6 +109,7 @@ export default async function handler(req, res) {
       pendingSocials,
       pendingEmails,
       pendingFoundings,
+      sageResearchDraftsToday,
     ] = await Promise.all([
       sbGet(`transactions?select=id,property_address,buyer_name,seller_name,closed_at&closed_at=gte.${since}&order=closed_at.desc&limit=20`).catch(() => []),
       sbGet(`profiles?select=id,full_name,email,created_at&created_at=gte.${since}&order=created_at.desc&limit=20`).catch(() => []),
@@ -124,6 +125,7 @@ export default async function handler(req, res) {
       sbCount(`social_posts?status=in.(draft,pending_approval)`),
       sbCount(`email_queue?status=in.(pending,draft)`),
       sbCount(`founding_applications?status=eq.pending`),
+      sbCount(`social_posts?status=eq.pending_approval&source_type=eq.sage_research&created_at=gte.${since}`),
     ]);
 
     // Roll up agent completions by name from BOTH event sources.
@@ -173,6 +175,9 @@ export default async function handler(req, res) {
       },
       inbound: {
         founding_applications: foundingsToday,
+      },
+      sage_research: {
+        drafts_today: sageResearchDraftsToday || 0,
       },
       pending_count: pendingCount,
     });
