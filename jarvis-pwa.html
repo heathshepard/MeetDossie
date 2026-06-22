@@ -2112,6 +2112,22 @@
       return `Bearer ${current.access_token}`;
     }
 
+    // Returns a small object describing the client's "right now" state.
+    // The server uses this to inject a per-turn LIVE TEMPORAL CONTEXT block
+    // so Jarvis never drifts on date/time/timezone. Heath asked "what day
+    // is it" on his Paris flight 2026-06-21 and Jarvis answered "Monday
+    // June 23, San Antonio" — fix: server reads this on every chat turn.
+    function buildClientContext() {
+      let tz = '';
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch {}
+      return {
+        timezone: tz,
+        client_iso: new Date().toISOString(),
+        // location is intentionally omitted — server will use Heath's known
+        // travel itinerary lookup. If we ever wire geolocation, pass it here.
+      };
+    }
+
     async function signIn() {
       const email = authEmail.value.trim();
       const password = authPw.value;
@@ -2756,6 +2772,7 @@
             conversation_id: convId,
             message: transcript,
             system_prompt_extension: ctxExt || undefined,
+            client_context: buildClientContext(),
           }),
         });
         if (!res.ok || !res.body) {
@@ -2885,6 +2902,7 @@
           conversation_id: conversationId,
           message: transcript,
           system_prompt_extension: ctxExt || undefined,
+          client_context: buildClientContext(),
         }),
       });
       const chatData = await chatRes.json();
@@ -3065,6 +3083,7 @@
             conversation_id: conversationId,
             message: transcript,
             system_prompt_extension: ctxExt || undefined,
+            client_context: buildClientContext(),
           }),
         });
         const chatData = await chatRes.json();
@@ -3764,6 +3783,7 @@
           conversation_id: conversationId,
           message,
           system_prompt_extension: ctxExt || undefined,
+          client_context: buildClientContext(),
         }),
       });
       const data = await res.json();

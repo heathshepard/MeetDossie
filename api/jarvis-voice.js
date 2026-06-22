@@ -326,6 +326,94 @@ async function fetchEnabledToolNames(tenantId) {
   }
 }
 
+// ===== Temporal + location context =====
+// Built per-turn (NOT cached) so date/time is always current. Heath asked
+// "what day is it" mid-flight 2026-06-21 and Jarvis answered "Monday June 23"
+// — the cached system prompt had drifted. Fix: prepend a non-cached block
+// every chat turn with server time + tenant timezone hint + known travel
+// itinerary lookup. Locked 2026-06-21.
+function getKnownLocationForHeath(now) {
+  // Heath's itinerary memory `project_chamonix_trip_june_2026.md`:
+  //   2026-06-21 23:01 CST: en route IAH -> CDG (Paris)
+  //   2026-06-22..28: Paris + Provence
+  //   2026-06-29..07-02: Chamonix (Les Praz/Argentière)
+  //   After 2026-07-02: returning to San Antonio
+  const t = now.getTime();
+  const day = (y, m, d) => new Date(Date.UTC(y, m - 1, d)).getTime();
+  if (t >= day(2026, 6, 21) && t < day(2026, 6, 22)) {
+    return 'en route IAH -> CDG (Paris). On board a transatlantic flight as of last known check-in.';
+  }
+  if (t >= day(2026, 6, 22) && t < day(2026, 6, 29)) {
+    return 'Paris / Provence, France (family trip leg 1). Europe Central Summer time (CEST, UTC+2).';
+  }
+  if (t >= day(2026, 6, 29) && t < day(2026, 7, 3)) {
+    return 'Chamonix-Mont-Blanc, France (Les Praz / Argentière area). CEST, UTC+2.';
+  }
+  if (t >= day(2026, 7, 3)) {
+    return 'San Antonio, Texas (home). America/Chicago (CST/CDT).';
+  }
+  return 'San Antonio, Texas (default home base). America/Chicago.';
+}
+
+function buildLiveTemporalBlock(tenant, clientCtx) {
+  const now = new Date();
+  // Prefer client-provided timezone (browser TZ), fall back to Heath default
+  const tz = (clientCtx && typeof clientCtx.timezone === 'string' && clientCtx.timezone) ||
+             (tenant && tenant.slug === 'heath' ? 'America/Chicago' : 'UTC');
+  let localStr = '';
+  try {
+    localStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+    }).format(now);
+  } catch {
+    localStr = now.toISOString();
+  }
+  const isoUtc = now.toISOString();
+
+  // Location: prefer client-supplied (if Heath ever wires geolocation), else
+  // fall back to itinerary lookup for Heath, else last-known for tenant.
+  let location = '';
+  if (clientCtx && typeof clientCtx.location === 'string' && clientCtx.location.trim()) {
+    location = clientCtx.location.trim();
+  } else if (tenant && tenant.slug === 'heath') {
+    location = getKnownLocationForHeath(now);
+  } else {
+    location = 'Unknown — ask the user if relevant.';
+  }
+
+  const lines = [
+    '=== LIVE TEMPORAL CONTEXT (authoritative, refreshed every turn) ===',
+    `Current date and time: ${localStr}`,
+    `Current UTC: ${isoUtc}`,
+    `User timezone: ${tz}`,
+    `User likely location: ${location}`,
+    'These four lines are authoritative. If the user asks "what day is it", "where am I",',
+    'or "what time is it", use these values verbatim. Do NOT guess, do NOT contradict.',
+    '=== END LIVE TEMPORAL CONTEXT ===',
+  ];
+  return lines.join('\n');
+}
+
+// Static UI capability block — describes what the PWA actually exposes so
+// Jarvis can self-explain accurately when Heath asks "what can I do here"
+// or "if I text will you reply by voice". Locked 2026-06-21.
+const PWA_UI_CAPABILITIES = `=== JARVIS PWA UI CAPABILITIES ===
+The user is talking to you through the Jarvis PWA at meetdossie.com/myjarvis.
+The PWA exposes the following surfaces (be accurate when asked):
+- Voice input: tap the central mic / Earth-globe button once to start a continuous conversation. The mic stays held via VAD (Voice Activity Detection); each pause auto-cuts an utterance and submits it. Tap a second time to end the conversation.
+- Text input: a chat dock with a text field. Send messages by Enter or the send button. A Voice/Text reply toggle (persisted per device in localStorage) controls whether Jarvis responds with TTS audio + transcript (Voice) or text only (Text).
+- File attachments: paperclip icon in the chat dock — image/audio/PDF upload.
+- Quick Action chips: above the central orb (Morning Brief, MRR, Pending Approvals, Daily Debrief, etc.). One tap fires that flow.
+- Voice Brief button: a ~60-second audio briefing in George voice.
+- HUD panels (Tier 1 + Tier 2): Calendar, Ask a Specialist (Hadley / Sterling / Pierce / Sage / Quinn / Ridge / Carter / Atlas), Pending Approvals, Daily Debrief, Customer Activity, Open Todo, Money Pulse, Agent Status, Activity Log, Session Log.
+- Globe / Earth wireframe with city lights rotates behind the mic button at all times.
+- Noisy Environment toggle: top-right of the mic area. When ON, the VAD threshold is raised and short ambient noises (cabin noise, music, buzzing) are filtered out as non-speech.
+
+When the user asks about what they can do in the app, describe these accurately. Do NOT invent panels that don't exist. Do NOT say "that depends on the interface" — you ARE in this interface.
+=== END JARVIS PWA UI CAPABILITIES ===`;
+
 async function getContextExtension(tenant) {
   const key = `ctx:${tenant.id}`;
   const hit = _contextExtensionCache.get(key);
@@ -338,7 +426,8 @@ async function getContextExtension(tenant) {
   try {
     const [todoRows, agentEvents, subRows] = await Promise.all([
       sbGet('heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast&limit=10').catch(() => []),
-      sbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=8`).catch(() => []),
+      // Fetch up to 20 recent events so we can group by agent + present in-progress vs completed.
+      sbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=20`).catch(() => []),
       sbGet('subscriptions?select=id&status=eq.active').catch(() => []),
     ]);
     const lines = [
@@ -354,13 +443,27 @@ async function getContextExtension(tenant) {
         lines.push(`  - ${p} ${t.title}${d}${v}`);
       }
     }
+    // Improved agent activity formatting: per-agent latest event + age
+    // ("Atlas (working 12m ago): ..."). Lets Jarvis answer "what are agents
+    // doing" without a query_supabase call. Bug fix 2026-06-21.
     if (agentEvents.length) {
       const latest = {};
       for (const ev of agentEvents) { if (!latest[ev.agent_name]) latest[ev.agent_name] = ev; }
-      lines.push('Agent latest status:');
-      for (const [agent, ev] of Object.entries(latest)) {
-        lines.push(`  - ${agent}: ${ev.event_type} — ${(ev.summary || '').slice(0, 100)}`);
+      lines.push('');
+      lines.push('LIVE AGENT ACTIVITY (latest event per agent, most-recent first):');
+      const sorted = Object.entries(latest).sort(([, a], [, b]) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const now = Date.now();
+      for (const [agent, ev] of sorted) {
+        const ageMs = Math.max(0, now - new Date(ev.created_at).getTime());
+        const ageMin = Math.round(ageMs / 60000);
+        const ageStr = ageMin < 1 ? 'just now' : ageMin < 60 ? `${ageMin}m ago` : `${Math.round(ageMin / 60)}h ago`;
+        lines.push(`  - ${agent} (${ev.event_type}, ${ageStr}): ${(ev.summary || '').slice(0, 140)}`);
       }
+    } else {
+      lines.push('');
+      lines.push('LIVE AGENT ACTIVITY: no recent agent events on record.');
     }
     lines.push('=== END LIVE STATE ===');
     const text = lines.join('\n');
@@ -387,7 +490,7 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     throw err;
   }
 
-  const { conversation_id, message, system_prompt_extension, approve_tool } = body || {};
+  const { conversation_id, message, system_prompt_extension, approve_tool, client_context } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ ok: false, error: 'message is required' });
   }
@@ -417,13 +520,19 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     content: message.slice(0, 4000),
   }, { prefer: 'return=minimal' });
 
-  // Build system prompt with live + (optionally) client-provided extension
+  // Build system prompt:
+  //   [persona]
+  //   [LIVE TEMPORAL CONTEXT — per-turn, never cached]    <- prevents date drift
+  //   [PWA UI CAPABILITIES — static]                       <- self-describes the app
+  //   [LIVE STATE — agents + todo + MRR, 60s cache]
+  //   [client-provided extension — full backbone from /api/jarvis-context-load]
   const liveCtx = await getContextExtension(tenant);
-  const systemPromptParts = [buildSystemPrompt(tenant)];
+  const temporalCtx = buildLiveTemporalBlock(tenant, client_context);
+  const systemPromptParts = [buildSystemPrompt(tenant), temporalCtx, PWA_UI_CAPABILITIES];
+  if (liveCtx) systemPromptParts.push(liveCtx);
   if (system_prompt_extension && typeof system_prompt_extension === 'string') {
     systemPromptParts.push(system_prompt_extension.slice(0, 100000));
   }
-  if (liveCtx) systemPromptParts.push(liveCtx);
   const systemPrompt = systemPromptParts.join('\n\n');
 
   // Load enabled tools for this tenant
@@ -687,7 +796,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     }
     throw err;
   }
-  const { conversation_id, message, system_prompt_extension } = body || {};
+  const { conversation_id, message, system_prompt_extension, client_context } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ ok: false, error: 'message is required' });
   }
@@ -721,11 +830,15 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     { role: 'user', content: message.slice(0, 4000) },
   ];
 
-  const systemPromptParts = [buildSystemPrompt(tenant)];
+  // Mirror the non-streaming /op=chat ordering: persona, temporal context
+  // (NEVER cached), UI capabilities (static), live state (cached), then
+  // client-provided extension. Locked 2026-06-21 (Bugs 1/2/3 fix).
+  const temporalCtx = buildLiveTemporalBlock(tenant, client_context);
+  const systemPromptParts = [buildSystemPrompt(tenant), temporalCtx, PWA_UI_CAPABILITIES];
+  if (liveCtx) systemPromptParts.push(liveCtx);
   if (system_prompt_extension && typeof system_prompt_extension === 'string') {
     systemPromptParts.push(system_prompt_extension.slice(0, 100000));
   }
-  if (liveCtx) systemPromptParts.push(liveCtx);
   const systemPrompt = systemPromptParts.join('\n\n');
   const voiceId = tenant?.voice_id || GEORGE_VOICE_ID;
   const settings = tenant?.voice_settings || GEORGE_SETTINGS;

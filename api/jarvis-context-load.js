@@ -337,6 +337,10 @@ export default async function handler(req, res) {
     const handoff = isHeath ? LATEST_HANDOFF_SUMMARY : '';
     const dods = isHeath ? ACTIVE_DODS : '';
 
+    // Note: temporal block + UI capabilities are injected per-turn by
+    // /api/jarvis-voice (see buildLiveTemporalBlock / PWA_UI_CAPABILITIES).
+    // We don't include them here to keep this endpoint's caller-side cache
+    // (~10 min) from going stale on date — chat handler re-builds every turn.
     const blocks = [backbone, handoff, dods, liveBlock].filter(Boolean);
     const systemPromptExtension = blocks.join('\n\n');
 
