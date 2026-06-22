@@ -532,6 +532,101 @@
     .agent-status.failed    { color: var(--fail); border: 1px solid var(--fail); background: rgba(232, 94, 94, 0.08); }
     .agent-status.heartbeat { color: var(--gold); border: 1px solid var(--gold); }
 
+    /* ===== ACTIONS FOR HEATH PANEL ===== */
+    .panel-title.actions-title-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .actions-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.18em;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .actions-meta.danger { color: var(--fail); }
+    .actions-body { display: flex; flex-direction: column; gap: 10px; }
+    .actions-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
+    .action-card {
+      background: rgba(201, 169, 110, 0.05);
+      border: 1px solid rgba(201, 169, 110, 0.25);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .action-card.urgent {
+      border-color: rgba(232, 131, 107, 0.4);
+      background: rgba(232, 131, 107, 0.06);
+    }
+    .action-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .action-title {
+      font-size: 13px; line-height: 1.3;
+      color: var(--txt-primary);
+      font-weight: 500;
+      flex: 1;
+    }
+    .action-priority-badge {
+      padding: 2px 6px; border-radius: 4px; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      background: rgba(201, 169, 110, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(201, 169, 110, 0.3);
+      flex-shrink: 0;
+    }
+    .action-priority-badge.urgent {
+      background: rgba(232, 131, 107, 0.15);
+      color: var(--fail);
+      border-color: rgba(232, 131, 107, 0.3);
+    }
+    .action-priority-badge.soon {
+      background: rgba(255, 193, 7, 0.15);
+      color: var(--warn);
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+    .action-body {
+      font-size: 11px; line-height: 1.4;
+      color: var(--txt-mute);
+      white-space: pre-wrap; word-wrap: break-word;
+      max-height: 80px; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .action-source {
+      font-size: 9px; color: var(--txt-faint);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .action-buttons {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .action-btn {
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 7px 4px;
+      background: transparent;
+      border: 1px solid rgba(201, 169, 110, 0.3);
+      border-radius: 6px;
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover {
+      background: rgba(201, 169, 110, 0.12);
+      border-color: var(--gold);
+    }
+    .action-btn.done {
+      color: var(--ok);
+      border-color: rgba(139, 168, 136, 0.3);
+    }
+    .action-btn.done:hover {
+      background: rgba(139, 168, 136, 0.12);
+      border-color: var(--ok);
+    }
+    .action-btn:disabled { opacity: 0.5; cursor: wait; }
+
     /* ===== TO-DO PANEL ===== */
     .panel-title.todo-title-row {
       display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -2039,6 +2134,17 @@
           </div>
         </div>
 
+        <!-- ACTIONS FOR HEATH: asks from Cole/agents that need human decision/action. -->
+        <div class="panel" id="actions-panel">
+          <div class="panel-title actions-title-row">
+            <span>ACTIONS FOR YOU</span>
+            <span class="actions-meta" id="actions-meta">ALL CLEAR</span>
+          </div>
+          <div id="actions-body" class="actions-body">
+            <div class="actions-empty">No pending actions.</div>
+          </div>
+        </div>
+
         <!-- TO-DO: highest priority. Single-task focus mode w/ skip/snooze/done. -->
         <div class="panel" id="todo-panel">
           <div class="panel-title todo-title-row">
@@ -2838,6 +2944,7 @@
       await startConversation();
       subscribeAgentEvents();
       // Hydrate side panels (to-do + money + activity). Fire-and-forget — never block UI.
+      loadActions().catch(() => {});
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
       loadPendingApprovals().catch(() => {});
@@ -2863,6 +2970,7 @@
       setInterval(() => { loadTickers().catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().catch(() => {}); }, 60000);
       setInterval(() => { loadPendingApprovals().catch(() => {}); }, 30000);
+      setInterval(() => { loadActions().catch(() => {}); }, 30000);
       setInterval(() => { loadDailyDebrief().catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().catch(() => {}); }, 300000);
@@ -3832,6 +3940,141 @@
         console.warn(err);
         if (resumeAfter && conversationActive) resumeListening();
         else setPttState('idle');
+      }
+    }
+
+    // ===== ACTIONS FOR HEATH panel =====
+    // Lists all pending/snoozed actions grouped by priority (urgent, soon, whenever).
+    // Subscribed to Realtime updates; user can mark done/dismiss/snooze.
+    let currentActions = { urgent: [], soon: [], whenever: [] };
+    let actionsRealtimeChannel = null;
+
+    async function initActionsRealtime() {
+      if (!window.supabaseClient) return;
+      if (actionsRealtimeChannel) return; // Already subscribed
+      try {
+        actionsRealtimeChannel = window.supabaseClient
+          .channel('public:heath_actions')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'heath_actions',
+          }, () => {
+            loadActions(); // Reload on any change
+          })
+          .subscribe();
+      } catch (err) {
+        console.warn('[jarvis] Realtime subscribe failed', err);
+      }
+    }
+
+    async function loadActions() {
+      const body = document.getElementById('actions-body');
+      const meta = document.getElementById('actions-meta');
+      if (!body) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/heath-actions-list`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          body.innerHTML = `<div class="actions-empty">Couldn't load actions (${res.status}).</div>`;
+          meta.textContent = '—';
+          return;
+        }
+        const data = await res.json();
+        currentActions = data.actions || { urgent: [], soon: [], whenever: [] };
+        renderActions();
+        if (meta) {
+          meta.textContent = data.status || 'ALL CLEAR';
+          if (data.total_pending > 0 && data.total_pending <= 3) {
+            meta.textContent = `${data.total_pending} PENDING`;
+          } else if (data.total_pending > 3) {
+            meta.textContent = `${data.total_pending} PENDING`;
+            meta.classList.add('danger');
+          } else {
+            meta.classList.remove('danger');
+          }
+        }
+        initActionsRealtime(); // Set up realtime after first load
+      } catch (err) {
+        console.warn('[jarvis] loadActions failed', err);
+        body.innerHTML = `<div class="actions-empty">Offline.</div>`;
+      }
+    }
+
+    function renderActions() {
+      const body = document.getElementById('actions-body');
+      const allActions = [
+        ...currentActions.urgent.map(a => ({ ...a, priorityKey: 'urgent' })),
+        ...currentActions.soon.map(a => ({ ...a, priorityKey: 'soon' })),
+        ...currentActions.whenever.map(a => ({ ...a, priorityKey: 'whenever' })),
+      ];
+
+      if (allActions.length === 0) {
+        body.innerHTML = `<div class="actions-empty">No pending actions.</div>`;
+        return;
+      }
+
+      let html = allActions.map(action => {
+        const prioClass = action.priorityKey === 'urgent' ? 'urgent' : 
+                         action.priorityKey === 'soon' ? 'soon' : 'whenever';
+        const prioLabel = action.priorityKey.toUpperCase();
+        const bodyText = action.body ? action.body.substring(0, 100) : '';
+        const sourceLabel = (action.source || 'unknown').toUpperCase();
+
+        return `
+          <div class="action-card ${prioClass}" data-id="${action.id}">
+            <div class="action-header">
+              <div class="action-title">${escapeHtml(action.title)}</div>
+              <span class="action-priority-badge ${prioClass}">${prioLabel}</span>
+            </div>
+            ${bodyText ? `<div class="action-body">${escapeHtml(bodyText)}${action.body.length > 100 ? '…' : ''}</div>` : ''}
+            <div class="action-source">From: ${sourceLabel}</div>
+            <div class="action-buttons">
+              <button class="action-btn done" data-act="done" data-id="${action.id}">Done</button>
+              <button class="action-btn" data-act="snooze_4h" data-id="${action.id}">Snooze 4h</button>
+              <button class="action-btn" data-act="dismiss" data-id="${action.id}">Dismiss</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      body.innerHTML = html;
+
+      // Attach event listeners
+      body.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', () => onActionBtnClick(btn));
+      });
+    }
+
+    async function onActionBtnClick(btn) {
+      const actionId = btn.dataset.id;
+      const act = btn.dataset.act;
+      if (!actionId || !act) return;
+
+      const allBtns = document.querySelectorAll('.action-btn');
+      allBtns.forEach(b => { b.disabled = true; });
+
+      try {
+        const res = await fetch(`${API_BASE}/api/heath-actions-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({ id: actionId, action: act }),
+        });
+
+        if (!res.ok) {
+          showToast(`Action ${act} failed (${res.status})`);
+          allBtns.forEach(b => { b.disabled = false; });
+          return;
+        }
+
+        await loadActions();
+      } catch (err) {
+        console.warn('[jarvis] action button click failed', err);
+        allBtns.forEach(b => { b.disabled = false; });
       }
     }
 
