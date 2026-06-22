@@ -1,0 +1,237 @@
+{
+  "generated_at": "2026-06-19T17:49:14.153Z",
+  "form_id": "op-l",
+  "stats": {
+    "PASS": 16,
+    "FLAGGED": 9,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "table": [
+    {
+      "index": 0,
+      "page": 1,
+      "field_name": "Street Address and City",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 1,
+      "page": 1,
+      "field_name": "Check Box7",
+      "field_type": "checkbox",
+      "fixture_key": "lp_presence_known",
+      "confidence_score": 0.626,
+      "status": "PASS"
+    },
+    {
+      "index": 2,
+      "page": 1,
+      "field_name": "undefined",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 3,
+      "page": 1,
+      "field_name": "b Seller has no actual knowledge of leadbased paint andor leadbased paint hazards in the Property",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 4,
+      "page": 1,
+      "field_name": "Check Box8",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 5,
+      "page": 1,
+      "field_name": "Check Box9",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 6,
+      "page": 1,
+      "field_name": "undefined_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 7,
+      "page": 1,
+      "field_name": "b Seller has no reports or records pertaining to leadbased paint andor leadbased paint hazards in the",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 8,
+      "page": 1,
+      "field_name": "Check Box10",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 9,
+      "page": 1,
+      "field_name": "Check Box11",
+      "field_type": "checkbox",
+      "fixture_key": "lead_paint_disclosure",
+      "confidence_score": 0.633,
+      "status": "PASS"
+    },
+    {
+      "index": 10,
+      "page": 1,
+      "field_name": "Check Box12",
+      "field_type": "checkbox",
+      "fixture_key": "lead_paint_disclosure",
+      "confidence_score": 0.634,
+      "status": "PASS"
+    },
+    {
+      "index": 11,
+      "page": 1,
+      "field_name": "Check Box13",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 12,
+      "page": 1,
+      "field_name": "Check Box14",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 13,
+      "page": 1,
+      "field_name": "Signature1",
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 14,
+      "page": 1,
+      "field_name": "Date",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.597,
+      "status": "PASS"
+    },
+    {
+      "index": 15,
+      "page": 1,
+      "field_name": "Signature2",
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.717,
+      "status": "PASS"
+    },
+    {
+      "index": 16,
+      "page": 1,
+      "field_name": "Date_3",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.593,
+      "status": "PASS"
+    },
+    {
+      "index": 17,
+      "page": 1,
+      "field_name": "Signature3",
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.753,
+      "status": "PASS"
+    },
+    {
+      "index": 18,
+      "page": 1,
+      "field_name": "Date_5",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.593,
+      "status": "PASS"
+    },
+    {
+      "index": 19,
+      "page": 1,
+      "field_name": "Signature4",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 20,
+      "page": 1,
+      "field_name": "Date_2",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.553,
+      "status": "PASS"
+    },
+    {
+      "index": 21,
+      "page": 1,
+      "field_name": "Signature5",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.759,
+      "status": "PASS"
+    },
+    {
+      "index": 22,
+      "page": 1,
+      "field_name": "Date_4",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.558,
+      "status": "PASS"
+    },
+    {
+      "index": 23,
+      "page": 1,
+      "field_name": "Signature6",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.794,
+      "status": "PASS"
+    },
+    {
+      "index": 24,
+      "page": 1,
+      "field_name": "Date_6",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.553,
+      "status": "PASS"
+    }
+  ]
+}

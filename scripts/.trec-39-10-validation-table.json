@@ -1,0 +1,417 @@
+{
+  "generated_at": "2026-06-19T17:49:14.023Z",
+  "form_id": "trec-39-10",
+  "stats": {
+    "PASS": 18,
+    "FLAGGED": 27,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "table": [
+    {
+      "index": 0,
+      "page": 1,
+      "field_name": "Street Address and City",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 1,
+      "page": 1,
+      "field_name": "1 The Sales Price in Paragraph 3 of the contract is",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 2,
+      "page": 1,
+      "field_name": "undefined",
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.723,
+      "status": "PASS"
+    },
+    {
+      "index": 3,
+      "page": 1,
+      "field_name": "undefined_2",
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.723,
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "page": 1,
+      "field_name": "undefined_3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 5,
+      "page": 1,
+      "field_name": "2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers",
+      "field_type": "checkbox",
+      "fixture_key": "repairs_required",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 6,
+      "page": 1,
+      "field_name": "Text1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 7,
+      "page": 1,
+      "field_name": "Text 10",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 8,
+      "page": 1,
+      "field_name": "Text 9",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 9,
+      "page": 1,
+      "field_name": "Text 8",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 10,
+      "page": 1,
+      "field_name": "3 The date in Paragraph 9 of the contract is changed to",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 11,
+      "page": 1,
+      "field_name": "date 5",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 12,
+      "page": 1,
+      "field_name": "20_25",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 13,
+      "page": 1,
+      "field_name": "4 The amount in Paragraph 12A1b of the contract is changed to",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 14,
+      "page": 1,
+      "field_name": "will",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 15,
+      "page": 1,
+      "field_name": "20",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 16,
+      "page": 1,
+      "field_name": "will not",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 17,
+      "page": 1,
+      "field_name": "undefined_5",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 18,
+      "page": 1,
+      "field_name": "5 The cost of lender required repairs and treatment as itemized on the attached list will be paid",
+      "field_type": "checkbox",
+      "fixture_key": "repairs_required",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 19,
+      "page": 1,
+      "field_name": "undefined_4",
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.56,
+      "status": "PASS"
+    },
+    {
+      "index": 20,
+      "page": 1,
+      "field_name": "6 Buyer has paid Seller an additional Option Fee of",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 21,
+      "page": 1,
+      "field_name": "as follows",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 22,
+      "page": 1,
+      "field_name": "for an extension of the",
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.793,
+      "status": "PASS"
+    },
+    {
+      "index": 23,
+      "page": 1,
+      "field_name": "7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid",
+      "field_type": "checkbox",
+      "fixture_key": "termination_reason_option_fee",
+      "confidence_score": 1.2,
+      "status": "PASS"
+    },
+    {
+      "index": 24,
+      "page": 1,
+      "field_name": "contract",
+      "field_type": "text",
+      "fixture_key": "option_fee",
+      "confidence_score": 1.186,
+      "status": "PASS"
+    },
+    {
+      "index": 25,
+      "page": 1,
+      "field_name": "be credited to the Sales Price",
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 26,
+      "page": 1,
+      "field_name": "20_2",
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.863,
+      "status": "PASS"
+    },
+    {
+      "index": 27,
+      "page": 1,
+      "field_name": "Fee",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 28,
+      "page": 1,
+      "field_name": "Fee 2",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 29,
+      "page": 1,
+      "field_name": "8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 30,
+      "page": 1,
+      "field_name": "9 Other Modifications Insert only factual statements and business details applicable to this sale",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 31,
+      "page": 1,
+      "field_name": "Text6",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 32,
+      "page": 1,
+      "field_name": "20_3",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 1.197,
+      "status": "PASS"
+    },
+    {
+      "index": 33,
+      "page": 1,
+      "field_name": "10",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 34,
+      "page": 1,
+      "field_name": "Text7 1",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.197,
+      "status": "PASS"
+    },
+    {
+      "index": 35,
+      "page": 1,
+      "field_name": "Text5.1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 36,
+      "page": 1,
+      "field_name": "Text4.1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 37,
+      "page": 1,
+      "field_name": "Text3.1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 38,
+      "page": 1,
+      "field_name": "DATE OF FINAL ACCEPTANCE",
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 1.184,
+      "status": "PASS"
+    },
+    {
+      "index": 39,
+      "page": 1,
+      "field_name": "20_4",
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 0.836,
+      "status": "PASS"
+    },
+    {
+      "index": 40,
+      "page": 1,
+      "field_name": "BROKER FILL IN THE",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 41,
+      "page": 1,
+      "field_name": "Signature3",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.62,
+      "status": "PASS"
+    },
+    {
+      "index": 42,
+      "page": 1,
+      "field_name": "Signature7",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.621,
+      "status": "PASS"
+    },
+    {
+      "index": 43,
+      "page": 1,
+      "field_name": "Signature5",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    },
+    {
+      "index": 44,
+      "page": 1,
+      "field_name": "Signature8",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "status": "PASS"
+    }
+  ]
+}

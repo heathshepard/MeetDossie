@@ -203,6 +203,78 @@
   }
   .meta-row span strong { color: var(--navy); }
 
+  /* Per-widget visual: PDF page PNG + red highlight overlay */
+  .page-preview {
+    margin: 14px 0;
+    background: #1a1a2e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+  }
+  .page-preview .preview-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--blush);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .page-preview .preview-label .legend {
+    color: var(--gold);
+    font-weight: 600;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .page-preview .preview-label .legend .swatch {
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: rgba(232, 131, 107, 0.0);
+    border: 2px solid var(--coral);
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  .page-preview-container {
+    position: relative;
+    overflow: auto;
+    max-height: 400px;
+    background: white;
+    border-radius: 4px;
+    /* Smooth-scroll the widget into view */
+    scroll-behavior: smooth;
+  }
+  .page-preview-container .page-img-wrap {
+    position: relative;
+    display: inline-block; /* shrink-wrap to image */
+    line-height: 0;
+  }
+  .page-preview-container img.page-png {
+    display: block;
+    max-width: none; /* keep 1:1 so coords match */
+    height: auto;
+  }
+  .page-preview-container .widget-highlight {
+    position: absolute;
+    border: 2px solid var(--coral);
+    box-shadow: 0 0 0 2px rgba(232, 131, 107, 0.25), 0 0 12px rgba(232, 131, 107, 0.7);
+    background: rgba(232, 131, 107, 0.12);
+    pointer-events: none;
+    box-sizing: border-box;
+    border-radius: 2px;
+  }
+  .page-preview .no-image {
+    padding: 16px;
+    text-align: center;
+    color: var(--blush);
+    font-size: 13px;
+    font-style: italic;
+    background: #2a2a3e;
+    border-radius: 4px;
+  }
+
   .guess-box {
     background: var(--blush);
     border-left: 4px solid var(--gold);
@@ -288,6 +360,104 @@
   .actions .not-fillable { background: var(--navy); color: var(--blush); }
   .actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* LLM source badges */
+  .source-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .source-badge.llm { background: #e5e0ff; color: #5034a0; border: 1px solid #c4b8ff; }
+  .source-badge.hadley { background: #f5e6e0; color: #1A1A2E; border: 1px solid #D4A0A0; font-weight: 700; }
+  .source-badge.spatial { background: #fff0e0; color: #a04030; border: 1px solid #ffdcba; }
+  .source-badge.spatial_confident { background: #d4ecd4; color: #2d5a2d; border: 1px solid #b0d8b0; }
+  .source-badge.pattern_group { background: #d4ecd4; color: #2d5a2d; border: 1px solid #b0d8b0; }
+  .source-badge.high-conf { background: var(--sage); color: white; }
+  .source-badge.likely { background: var(--gold); color: var(--navy); }
+  .source-badge.low-conf { background: var(--blush-deep); color: white; }
+
+  .llm-reason {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dotted var(--border);
+  }
+
+  /* Pattern group card */
+  .group-card {
+    background: #f7fbf5;
+    border: 2px solid var(--sage);
+  }
+  .group-card .group-banner {
+    background: var(--sage);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .group-card .group-banner .group-count {
+    background: white;
+    color: var(--sage);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 6px;
+  }
+  .group-pages {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 6px 0 12px 0;
+  }
+  .review-pages {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .review-pages button {
+    background: white;
+    color: var(--navy);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    min-height: 28px;
+  }
+  .review-pages button.current { background: var(--gold); color: var(--navy); font-weight: 600; }
+
+  .auto-accept-banner {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .auto-accept-banner button {
+    background: var(--blush);
+    color: var(--navy);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
   .correct-form {
     margin-top: 16px;
     padding: 14px;
@@ -310,6 +480,61 @@
     background: white;
   }
   .correct-form input:focus { outline: 2px solid var(--gold); }
+
+  /* Autocomplete dropdown (v4) */
+  .correct-form .ac-wrap { position: relative; }
+  .correct-form .ac-dropdown {
+    position: absolute;
+    left: 0; right: 0; top: 100%;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid var(--blush-deep);
+    border-radius: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 30;
+  }
+  .correct-form .ac-item {
+    padding: 8px 12px;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px dotted var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: var(--navy);
+  }
+  .correct-form .ac-item:last-child { border-bottom: 0; }
+  .correct-form .ac-item:hover { background: var(--paper); }
+  .correct-form .ac-item.active { background: var(--blush); color: var(--navy); }
+  .correct-form .ac-item .ac-hit { font-weight: 700; color: var(--coral); }
+  .correct-form .ac-item .ac-freq {
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--paper);
+    padding: 1px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .correct-form .ac-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+  .correct-form .ac-hint .kbd {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+  }
+
   .correct-form .row {
     display: flex; gap: 8px; margin-top: 10px;
   }
@@ -412,12 +637,10 @@
   <select id="formSelect" aria-label="Form selector">
     <option value="trec-20-18">TREC 20-18 Resale</option>
     <option value="trec-40">TREC 40 Third-Party Financing</option>
-    <option value="trec-36-11">TREC 36-11 HOA Addendum</option>
-    <option value="op-l">OP-L Lead-Based Paint</option>
-    <option value="trec-39-10">TREC 39-10 Amendment</option>
-    <option value="trec-38-7">TREC 38-7 Notice of Termination</option>
-    <option value="op-h">OP-H Seller's Disclosure</option>
   </select>
+  <label style="display:flex;align-items:center;gap:4px;color:var(--blush);font-size:12px">
+    <input type="checkbox" id="showAllForms" style="margin:0"> Show all forms
+  </label>
   <button id="exportBtn" type="button">Export JSON</button>
   <button id="importBtn" type="button">Import JSON</button>
   <input type="file" id="importFile" accept="application/json,.json">
@@ -445,12 +668,13 @@
 
   <div class="danger-footer">
     Offline tool. Every label saves to your browser's local storage instantly.<br>
+    <button id="reviewAutoBtn" type="button">Review auto-accepted widgets</button>
     <button id="clearBtn" type="button">Clear all labels for this form</button>
   </div>
 </main>
 
 <div class="hotkey-footer" role="note" aria-label="Keyboard shortcuts">
-  Press <span class="kbd">1</span>&ndash;<span class="kbd">4</span> to label without mouse &mdash; speeds you through 84 widgets in ~15 min
+  Press <span class="kbd">1</span>&ndash;<span class="kbd">4</span> to label without mouse &mdash; arrow keys to navigate
 </div>
 
 <script>
@@ -458,9 +682,16 @@
   'use strict';
 
   /* ------------------------------------------------------------------
-   * Embedded dataset (injected at build time by build-labeler.js).
-   * Shape: { "trec-20-18": [widget, ...], "trec-40": [], ... }
-   * Each widget preserves the full schema from .trec-20-18-unmatched-report.json
+   * Embedded dataset (injected at build time by build-labeler.mjs).
+   * Shape v3:
+   *   { "trec-20-18": {
+   *       widgets: [ { index, page, x, y, width, height, ... }, ... ],
+   *       page_sizes: { "1": { width, height }, "2": {...} },  // in PDF points
+   *       page_images: { "1": "iVBOR...", "2": "..." },        // base64 PNG @ DPI
+   *       dpi: 72
+   *     }, ... }
+   * Widget rects are in PDF coords (origin bottom-left). We flip y at render
+   * time and multiply by dpi/72 to convert into image-pixel coords.
    * ---------------------------------------------------------------- */
   var EMBEDDED_DATA_JSON = /* __EMBEDDED_DATASET__ */"__PLACEHOLDER__";
   var DATASET = JSON.parse(EMBEDDED_DATA_JSON);
@@ -486,6 +717,7 @@
   };
 
   function storageKey(formId) { return 'trec-labeler-' + formId; }
+  function autoAppliedKey(formId) { return 'trec-labeler-auto-applied-' + formId; }
 
   function loadLabels(formId) {
     try {
@@ -497,6 +729,131 @@
     }
   }
 
+  /**
+   * AUTO-ACCEPT PASS — runs once per form (idempotent via auto_applied flag).
+   * For widgets flagged auto_accept by the builder (LLM conf ≥ 0.90 with
+   * pattern-group agreement ≥ 0.8): if Heath has no existing label, write
+   * an 'accepted' label with auto_applied=true so he never has to see it.
+   * For widgets in a pattern group: when the representative is auto-accepted,
+   * all members are auto-accepted with the group's suggested key.
+   * Heath's existing labels are NEVER overwritten — his work is sacred.
+   */
+  function applyAutoAccepts(formId) {
+    var widgets = widgetsFor(formId);
+    if (widgets.length === 0) return;
+    var alreadyApplied = false;
+    try { alreadyApplied = localStorage.getItem(autoAppliedKey(formId)) === '1'; } catch (e) {}
+    if (alreadyApplied) return;
+    // v4 policy:
+    //   - Heath forms (trec-20-18, trec-40): auto-apply ONLY spatial-confident
+    //     widgets (source='spatial_confident' — these are already in the
+    //     production override map and need no review). Hadley + LLM + group
+    //     pre-labels stay in the UI so Heath rapid-confirms with [1].
+    //   - All other forms: auto-apply EVERY widget flagged auto_accept,
+    //     plus propagate group rep keys to members.
+    var entry = formEntry(formId);
+    var isHeathForm = !!(entry && entry.heath_form);
+
+    var labels = loadLabels(formId);
+    var groupReps = {};
+    widgets.forEach(function (w) {
+      if (w.group_id && w.group_is_representative) {
+        groupReps[w.group_id] = w;
+      }
+    });
+
+    var applied = 0;
+    widgets.forEach(function (w) {
+      if (labels[w.index]) return; // never overwrite Heath's work
+
+      // On Heath forms, only auto-apply spatial-confident (already-mapped) widgets.
+      if (isHeathForm) {
+        if (w._auto_confident && w.best_label_source === 'spatial_confident' && w.best_label_fixture_key) {
+          labels[w.index] = {
+            index: w.index,
+            fixture_key: w.best_label_fixture_key,
+            status: 'accepted',
+            original_guess: w.best_label_fixture_key,
+            labeled_at: new Date().toISOString(),
+            auto_applied: true,
+            auto_source: 'spatial_confident',
+          };
+          applied++;
+        }
+        return;
+      }
+
+      // Non-Heath form: full auto-accept pipeline.
+      // Pattern-group member: take key from rep
+      if (w.group_id && !w.group_is_representative) {
+        var rep = groupReps[w.group_id];
+        if (rep && rep.auto_accept && rep.best_label_fixture_key) {
+          labels[w.index] = {
+            index: w.index,
+            fixture_key: rep.best_label_fixture_key,
+            status: 'accepted',
+            original_guess: rep.best_label_fixture_key,
+            labeled_at: new Date().toISOString(),
+            auto_applied: true,
+            auto_source: 'pattern_group',
+            group_id: w.group_id,
+          };
+          applied++;
+        }
+        return;
+      }
+      // Solo auto-accept (above threshold)
+      if (w.auto_accept && w.best_label_fixture_key) {
+        labels[w.index] = {
+          index: w.index,
+          fixture_key: w.best_label_fixture_key,
+          status: 'accepted',
+          original_guess: w.best_label_fixture_key,
+          labeled_at: new Date().toISOString(),
+          auto_applied: true,
+          auto_source: w.best_label_source || 'llm',
+        };
+        applied++;
+        return;
+      }
+      // v4: Below threshold on a non-Heath form → mark deferred (NOT Heath's job)
+      // These widgets are surfaced separately in .labeler-v4-deferred-review.json
+      // for Atlas/Hadley post-flight review.
+      labels[w.index] = {
+        index: w.index,
+        fixture_key: w.best_label_fixture_key || null,
+        status: 'deferred',
+        original_guess: w.best_label_fixture_key || null,
+        labeled_at: new Date().toISOString(),
+        auto_applied: true,
+        auto_source: 'deferred_below_threshold',
+        confidence: w.best_label_score || null,
+        reasoning: w.best_label_reason || null,
+      };
+      applied++;
+    });
+    saveLabels(formId, labels);
+    try { localStorage.setItem(autoAppliedKey(formId), '1'); } catch (e) {}
+    if (applied > 0) {
+      console.log('[Atlas] auto-accepted ' + applied + ' widgets for ' + formId);
+    }
+  }
+
+  /** Undo all auto-accepts for a form so Heath can review them manually. */
+  function undoAutoAccepts(formId) {
+    var labels = loadLabels(formId);
+    var removed = 0;
+    Object.keys(labels).forEach(function (k) {
+      if (labels[k] && labels[k].auto_applied) {
+        delete labels[k];
+        removed++;
+      }
+    });
+    saveLabels(formId, labels);
+    try { localStorage.removeItem(autoAppliedKey(formId)); } catch (e) {}
+    return removed;
+  }
+
   function saveLabels(formId, labels) {
     try {
       localStorage.setItem(storageKey(formId), JSON.stringify(labels));
@@ -506,8 +863,38 @@
     }
   }
 
+  function formEntry(formId) {
+    var entry = DATASET[formId];
+    if (!entry) return null;
+    // Back-compat: v2 had bare arrays. v3+ wraps in { widgets, ... }.
+    if (Array.isArray(entry)) {
+      return { widgets: entry, page_sizes: {}, page_images: {}, dpi: 72 };
+    }
+    return entry;
+  }
+
   function widgetsFor(formId) {
-    return DATASET[formId] || [];
+    var e = formEntry(formId);
+    return e ? (e.widgets || []) : [];
+  }
+
+  function pageImageFor(formId, pageNum) {
+    var e = formEntry(formId);
+    if (!e || !e.page_images) return null;
+    var key = String(pageNum);
+    return e.page_images[key] || null;
+  }
+
+  function pageSizeFor(formId, pageNum) {
+    var e = formEntry(formId);
+    if (!e || !e.page_sizes) return null;
+    var key = String(pageNum);
+    return e.page_sizes[key] || null;
+  }
+
+  function dpiFor(formId) {
+    var e = formEntry(formId);
+    return (e && e.dpi) || 72;
   }
 
   /* ------------------------------------------------------------------
@@ -520,15 +907,22 @@
     var labeled = 0;
     var skipped = 0;
     var notFillable = 0;
+    var deferred = 0;
+    var autoApplied = 0;
     widgets.forEach(function (w) {
       var entry = labels[w.index];
       if (!entry) return;
       if (entry.status === 'skipped') skipped++;
       else if (entry.status === 'not_fillable') { notFillable++; labeled++; }
+      else if (entry.status === 'deferred') { deferred++; labeled++; } // v4: deferred = labeled-from-Heath's-POV
       else if (entry.status === 'accepted' || entry.status === 'corrected') labeled++;
+      if (entry.auto_applied) autoApplied++;
     });
     var remaining = total - labeled - skipped;
-    return { total: total, labeled: labeled, skipped: skipped, notFillable: notFillable, remaining: remaining };
+    return {
+      total: total, labeled: labeled, skipped: skipped, notFillable: notFillable,
+      deferred: deferred, remaining: remaining, autoApplied: autoApplied,
+    };
   }
 
   /* ------------------------------------------------------------------
@@ -537,18 +931,30 @@
    * Pass 2: if all are labeled-or-skipped and skipped > 0, walk for skipped.
    * Otherwise: done state.
    * ---------------------------------------------------------------- */
+  /**
+   * isMemberOnly: true if widget belongs to a pattern group but is NOT
+   * the representative. Members are labeled in lockstep with their rep,
+   * so they should not appear as standalone decisions.
+   */
+  function isMemberOnly(w) {
+    return !!(w.group_id && !w.group_is_representative);
+  }
+
   function findNextUnlabeled(formId, startCursor) {
     var widgets = widgetsFor(formId);
     var labels = loadLabels(formId);
     for (var i = startCursor; i < widgets.length; i++) {
+      if (isMemberOnly(widgets[i])) continue;
       if (!labels[widgets[i].index]) return i;
     }
     // wrap to start
     for (var j = 0; j < startCursor; j++) {
+      if (isMemberOnly(widgets[j])) continue;
       if (!labels[widgets[j].index]) return j;
     }
     // no unlabeled — try deferred (skipped)
     for (var k = 0; k < widgets.length; k++) {
+      if (isMemberOnly(widgets[k])) continue;
       var e = labels[widgets[k].index];
       if (e && e.status === 'skipped') return k;
     }
@@ -582,10 +988,15 @@
     var labeledBadge = '<span class="badge sage">' + p.labeled + '</span>';
     var skipBadge = p.skipped > 0
       ? '<span class="badge blush-deep">' + p.skipped + ' skipped</span>' : '';
+    var autoBadge = p.autoApplied > 0
+      ? '<span class="badge gold">' + p.autoApplied + ' auto</span>' : '';
     var midpoint = p.total >= 2 && p.labeled >= Math.floor(p.total / 2)
       ? '<span class="badge gold">halfway</span>' : '';
-    el.innerHTML =
+    var formLabel = FORM_LABELS[state.formId] || state.formId;
+    var formPrefix = '<strong>' + escapeHtml(formLabel) + ':</strong> ';
+    el.innerHTML = formPrefix +
       labeledBadge + ' of ' + p.total + ' labeled · ' +
+      autoBadge + ' ' +
       skipBadge + ' ' +
       '<strong>' + p.remaining + '</strong> remaining ' + midpoint;
   }
@@ -628,20 +1039,45 @@
     var typeBadgeClass = w.field_type === 'checkbox' ? 'checkbox' :
                          w.field_type === 'text' ? 'text' : '';
 
+    var pagePreviewBlock = renderPagePreview(w);
+
+    // Source badge + confidence color
+    var source = w.best_label_source || 'spatial';
+    var sourceLabel = (
+      source === 'hadley' ? 'HADLEY' :
+      source === 'llm' ? 'LLM' :
+      source === 'pattern_group' ? 'GROUP' :
+      source === 'spatial_confident' ? 'CONFIRMED' :
+      'SPATIAL'
+    );
+    var srcBadge = '<span class="source-badge ' + source + '">' + sourceLabel + '</span>';
+    var confClass = '';
+    if (w.best_label_score != null) {
+      if (w.best_label_score >= 0.90) confClass = 'high-conf';
+      else if (w.best_label_score >= 0.70) confClass = 'likely';
+      else confClass = 'low-conf';
+    }
+    var confBadge = w.best_label_score != null
+      ? '<span class="source-badge ' + confClass + '">' + (typeof w.best_label_score === 'number' ? (w.best_label_score * 100).toFixed(0) + '%' : w.best_label_score) + '</span>'
+      : '';
+
+    var primaryKey = w.best_label_fixture_key || '(none)';
     var guessBlock = '';
-    if (w.best_label_guess) {
+    if (w.best_label_fixture_key) {
       guessBlock =
         '<div class="guess-box">' +
-        '<div class="guess-label">Atlas\'s best guess</div>' +
-        '<div class="guess-value">' + escapeHtml(w.best_label_guess) + '</div>' +
-        '<div class="guess-meta">' +
-        'maps to <code>' + escapeHtml(w.best_label_fixture_key || '(none)') + '</code>' +
-        (w.best_label_score != null ? ' &middot; confidence ' + (typeof w.best_label_score === 'number' ? w.best_label_score.toFixed(2) : w.best_label_score) : '') +
-        '</div></div>';
+        '<div class="guess-label">Best guess ' + srcBadge + confBadge + '</div>' +
+        '<div class="guess-value">' + escapeHtml(primaryKey) + '</div>' +
+        (w.best_label_reason
+          ? '<div class="llm-reason">' + escapeHtml(w.best_label_reason) + '</div>'
+          : (w.best_label_guess
+              ? '<div class="guess-meta">spatial label: ' + escapeHtml(w.best_label_guess) + '</div>'
+              : '')) +
+        '</div>';
     } else {
       guessBlock =
         '<div class="guess-box">' +
-        '<div class="guess-label">Atlas\'s best guess</div>' +
+        '<div class="guess-label">Best guess</div>' +
         '<div class="guess-value" style="color:var(--muted);font-style:italic">(no confident guess)</div>' +
         '</div>';
     }
@@ -666,8 +1102,28 @@
       ? '<span class="status-pill ' + existing.status + '">' + existing.status + ': ' + escapeHtml(existing.fixture_key || '—') + '</span>'
       : '';
 
+    // Pattern group banner — shown only on representative widgets
+    var groupBanner = '';
+    var cardClass = 'card';
+    var isGroupRep = !!(w.group_id && w.group_is_representative && w.group_size > 1);
+    if (isGroupRep) {
+      cardClass = 'card group-card';
+      var pageList = (w.group_pages || []).join(', ');
+      groupBanner =
+        '<div class="group-banner">Pattern group: this widget represents ' +
+        '<span class="group-count">' + w.group_size + ' widgets</span> ' +
+        'across pages ' + escapeHtml(pageList) + '. ' +
+        'Labeling this card applies to ALL ' + w.group_size + ' widgets.' +
+        '</div>';
+    }
+
+    var acceptLabel = isGroupRep
+      ? '<span class="kbd">1</span>Accept guess for all ' + w.group_size
+      : '<span class="kbd">1</span>Accept guess';
+
     var cardHtml =
-      '<div class="card">' +
+      '<div class="' + cardClass + '">' +
+      groupBanner +
       '<div class="breadcrumb">' + escapeHtml(formName) + ' — widget ' + orderPosition + ' of ' + widgets.length + statusPill + '</div>' +
       '<div class="field-row">' +
       '<span class="type-badge ' + typeBadgeClass + '">' + escapeHtml(w.field_type) + '</span>' +
@@ -681,11 +1137,12 @@
       '<span><strong>h</strong> ' + escapeHtml(String(w.height)) + '</span>' +
       '<span><strong>widget #</strong> ' + escapeHtml(String(w.index)) + '</span>' +
       '</div>' +
+      pagePreviewBlock +
       guessBlock +
       nearestBlock +
       (w.reason_no_match ? '<div class="reason">' + escapeHtml(w.reason_no_match) + '</div>' : '') +
       '<div class="actions">' +
-      '<button type="button" class="accept" data-action="accept"' + (w.best_label_fixture_key ? '' : ' disabled title="No guess to accept"') + '><span class="kbd">1</span>Accept guess</button>' +
+      '<button type="button" class="accept" data-action="accept"' + (w.best_label_fixture_key ? '' : ' disabled title="No guess to accept"') + '>' + acceptLabel + '</button>' +
       '<button type="button" class="correct" data-action="correct"><span class="kbd">2</span>Correct</button>' +
       '<button type="button" class="skip" data-action="skip"><span class="kbd">3</span>Skip</button>' +
       '<button type="button" class="not-fillable" data-action="not_fillable"><span class="kbd">4</span>Not a fillable field</button>' +
@@ -702,6 +1159,211 @@
     var contentEl = document.getElementById('content');
     contentEl.innerHTML = cardHtml;
     wireCardEvents();
+    // Defer scroll until layout has settled (img dimensions are explicit so this is fast).
+    requestAnimationFrame(autoscrollHighlight);
+  }
+
+  /**
+   * Render the PDF page preview with a red CSS overlay box at the widget's
+   * rect. PDF coords are bottom-up; image is top-down. We flip:
+   *   imgY = (pageHeight_pt - widget.y - widget.height) * dpi/72
+   * At dpi=72 the multiply is a no-op (1:1 point→pixel mapping). The container
+   * has overflow: auto and max-height: 400px so the rest of the labeler UI
+   * stays in view; after render we scroll the highlight to center.
+   */
+  function renderPagePreview(w) {
+    var img = pageImageFor(state.formId, w.page);
+    if (!img) {
+      return '' +
+        '<div class="page-preview">' +
+        '<div class="preview-label"><span>page ' + escapeHtml(String(w.page)) + ' preview</span></div>' +
+        '<div class="no-image">No PDF image available for this form yet. Coordinates: ' +
+        'x=' + escapeHtml(String(w.x)) + ', y=' + escapeHtml(String(w.y)) +
+        ', w=' + escapeHtml(String(w.width)) + ', h=' + escapeHtml(String(w.height)) + '.</div>' +
+        '</div>';
+    }
+    var pageSize = pageSizeFor(state.formId, w.page) || { width: 612, height: 792 };
+    var dpi = dpiFor(state.formId);
+    var scale = dpi / 72.0;
+    var pxX = w.x * scale;
+    var pxY = (pageSize.height - w.y - w.height) * scale;
+    var pxW = Math.max(8, w.width * scale);
+    var pxH = Math.max(8, w.height * scale);
+    // Minimum overlay size so checkboxes (~10×10pt) are still findable.
+    if (pxW < 12) { pxX -= (12 - pxW) / 2; pxW = 12; }
+    if (pxH < 12) { pxY -= (12 - pxH) / 2; pxH = 12; }
+    var imgPxW = pageSize.width * scale;
+    var imgPxH = pageSize.height * scale;
+    return '' +
+      '<div class="page-preview">' +
+      '<div class="preview-label">' +
+      '<span>page ' + escapeHtml(String(w.page)) + ' preview</span>' +
+      '<span class="legend"><span class="swatch"></span>this widget</span>' +
+      '</div>' +
+      '<div class="page-preview-container" id="pagePreviewContainer">' +
+      '<div class="page-img-wrap" style="width:' + imgPxW + 'px;height:' + imgPxH + 'px">' +
+      '<img class="page-png" src="data:image/png;base64,' + img + '" alt="Page ' + escapeHtml(String(w.page)) + '" width="' + imgPxW + '" height="' + imgPxH + '">' +
+      '<div class="widget-highlight" id="widgetHighlight" ' +
+      'style="left:' + pxX + 'px; top:' + pxY + 'px; width:' + pxW + 'px; height:' + pxH + 'px"></div>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+  }
+
+  /** After renderCard() injects HTML, center the highlight in its scroll container. */
+  function autoscrollHighlight() {
+    var container = document.getElementById('pagePreviewContainer');
+    var highlight = document.getElementById('widgetHighlight');
+    if (!container || !highlight) return;
+    // Center widget within container's visible area.
+    var hx = parseFloat(highlight.style.left) || 0;
+    var hy = parseFloat(highlight.style.top) || 0;
+    var hw = parseFloat(highlight.style.width) || 0;
+    var hh = parseFloat(highlight.style.height) || 0;
+    var targetLeft = Math.max(0, hx + hw / 2 - container.clientWidth / 2);
+    var targetTop  = Math.max(0, hy + hh / 2 - container.clientHeight / 2);
+    // Use scrollTo without smooth on initial render (we already injected fresh DOM),
+    // smooth is only nice for next/prev within the same page.
+    container.scrollLeft = targetLeft;
+    container.scrollTop  = targetTop;
+  }
+
+  /* ------------------------------------------------------------------
+   * Autocomplete vocab (v4)
+   *   - Canonical keys from DATASET._meta.autocomplete_vocab (~150-200 keys)
+   *   - Plus keys Heath has actually used in this session, weighted higher
+   *
+   * Strategy:
+   *   - empty input → show top 20 by session frequency (then alphabetical)
+   *   - non-empty → prefix matches first, then substring matches; top 5 returned
+   *   - keys Heath has typed before this session get a frequency badge
+   * ---------------------------------------------------------------- */
+  var META = (DATASET && DATASET._meta) || {};
+  var BASE_VOCAB = Array.isArray(META.autocomplete_vocab) ? META.autocomplete_vocab.slice() : [];
+  var SESSION_FREQ_KEY = 'trec-labeler-session-keys';
+  function loadSessionKeys() {
+    try {
+      var raw = localStorage.getItem(SESSION_FREQ_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function recordSessionKey(k) {
+    if (!k || typeof k !== 'string') return;
+    var f = loadSessionKeys();
+    f[k] = (f[k] || 0) + 1;
+    try { localStorage.setItem(SESSION_FREQ_KEY, JSON.stringify(f)); } catch (e) {}
+  }
+  function getVocabUnion() {
+    var freq = loadSessionKeys();
+    var union = {};
+    BASE_VOCAB.forEach(function (k) { union[k] = freq[k] || 0; });
+    Object.keys(freq).forEach(function (k) { if (!(k in union)) union[k] = freq[k]; });
+    return union;
+  }
+  /**
+   * Return top 5 (or top 20 when query empty) matching keys.
+   * Ranking: (a) prefix match > substring match,
+   *          (b) higher session-frequency wins ties,
+   *          (c) alphabetical.
+   */
+  function getAutocompleteSuggestions(query, limit) {
+    var union = getVocabUnion();
+    var q = (query || '').trim().toLowerCase();
+    var keys = Object.keys(union);
+    var topN = limit || (q ? 5 : 20);
+    var scored = [];
+    keys.forEach(function (k) {
+      var lk = k.toLowerCase();
+      var freq = union[k] || 0;
+      var rank, hitStart = -1, hitEnd = -1;
+      if (!q) { rank = 100; }
+      else if (lk === q) { rank = 0; hitStart = 0; hitEnd = q.length; }
+      else if (lk.indexOf(q) === 0) { rank = 1; hitStart = 0; hitEnd = q.length; }
+      else {
+        var idx = lk.indexOf(q);
+        if (idx >= 0) { rank = 2; hitStart = idx; hitEnd = idx + q.length; }
+        else { return; }
+      }
+      scored.push({ key: k, rank: rank, freq: freq, hitStart: hitStart, hitEnd: hitEnd });
+    });
+    scored.sort(function (a, b) {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      if (a.freq !== b.freq) return b.freq - a.freq;
+      return a.key.localeCompare(b.key);
+    });
+    return scored.slice(0, topN);
+  }
+  /** Find the longest shared prefix among the top suggestions (used by Tab). */
+  function longestSharedPrefix(suggestions, currentQuery) {
+    if (suggestions.length === 0) return null;
+    if (suggestions.length === 1) return suggestions[0].key;
+    var keys = suggestions.map(function (s) { return s.key; });
+    var shortest = keys.reduce(function (a, b) { return a.length <= b.length ? a : b; });
+    var i = 0;
+    for (; i < shortest.length; i++) {
+      var ch = keys[0][i];
+      for (var j = 1; j < keys.length; j++) {
+        if (keys[j][i] !== ch) return shortest.slice(0, i);
+      }
+    }
+    return shortest;
+  }
+
+  /** State for the in-DOM autocomplete dropdown. */
+  var ac = {
+    suggestions: [],
+    activeIndex: 0,
+  };
+
+  function renderAutocompleteDropdown(currentInputVal) {
+    var dd = document.getElementById('acDropdown');
+    if (!dd) return;
+    ac.suggestions = getAutocompleteSuggestions(currentInputVal);
+    if (ac.suggestions.length === 0) {
+      dd.hidden = true;
+      dd.innerHTML = '';
+      return;
+    }
+    if (ac.activeIndex >= ac.suggestions.length) ac.activeIndex = 0;
+    var html = '';
+    ac.suggestions.forEach(function (s, i) {
+      var keyHtml;
+      if (s.hitStart >= 0 && s.hitEnd > s.hitStart) {
+        keyHtml = escapeHtml(s.key.slice(0, s.hitStart)) +
+          '<span class="ac-hit">' + escapeHtml(s.key.slice(s.hitStart, s.hitEnd)) + '</span>' +
+          escapeHtml(s.key.slice(s.hitEnd));
+      } else {
+        keyHtml = escapeHtml(s.key);
+      }
+      var freqBadge = s.freq > 0 ? '<span class="ac-freq">' + s.freq + '×</span>' : '';
+      html += '<div class="ac-item' + (i === ac.activeIndex ? ' active' : '') + '" data-key="' + escapeHtml(s.key) + '" data-i="' + i + '" role="option">' +
+        '<span>' + keyHtml + '</span>' + freqBadge + '</div>';
+    });
+    dd.innerHTML = html;
+    dd.hidden = false;
+    // click + hover wire
+    dd.querySelectorAll('.ac-item').forEach(function (el) {
+      el.addEventListener('mousedown', function (e) {
+        e.preventDefault(); // prevent input blur
+        var k = el.getAttribute('data-key');
+        applyAutocompletePick(k);
+      });
+      el.addEventListener('mouseenter', function () {
+        ac.activeIndex = parseInt(el.getAttribute('data-i'), 10);
+        Array.prototype.forEach.call(dd.querySelectorAll('.ac-item'), function (n) { n.classList.remove('active'); });
+        el.classList.add('active');
+      });
+    });
+  }
+
+  function applyAutocompletePick(key) {
+    var input = document.getElementById('correctInput');
+    if (!input) return;
+    input.value = key;
+    // hide dropdown after pick
+    var dd = document.getElementById('acDropdown');
+    if (dd) { dd.hidden = true; dd.innerHTML = ''; }
+    input.focus();
   }
 
   function renderCorrectForm(w, existing) {
@@ -709,7 +1371,11 @@
     return '' +
       '<div class="correct-form">' +
       '<label for="correctInput">Enter fixture key for this widget</label>' +
-      '<input type="text" id="correctInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + escapeHtml(prefill) + '" placeholder="e.g. buyer_initials, addendum_propane, ignore">' +
+      '<div class="ac-wrap">' +
+      '<input type="text" id="correctInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + escapeHtml(prefill) + '" placeholder="start typing — e.g. buyer_, addendum_, sales_">' +
+      '<div class="ac-dropdown" id="acDropdown" role="listbox" hidden></div>' +
+      '</div>' +
+      '<div class="ac-hint"><span class="kbd">&uarr;</span>/<span class="kbd">&darr;</span> navigate &middot; <span class="kbd">Enter</span> pick highlighted &middot; <span class="kbd">Tab</span> complete prefix</div>' +
       '<div class="row">' +
       '<button type="button" class="save" data-action="save-correct">Save (Enter)</button>' +
       '<button type="button" class="cancel" data-action="cancel-correct">Cancel (Esc)</button>' +
@@ -735,9 +1401,62 @@
     if (correctInput) {
       correctInput.focus();
       correctInput.select();
+      // Initial render (empty input → top-20 most-used keys)
+      ac.activeIndex = 0;
+      renderAutocompleteDropdown(correctInput.value);
+
+      correctInput.addEventListener('input', function () {
+        ac.activeIndex = 0;
+        renderAutocompleteDropdown(correctInput.value);
+      });
       correctInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); saveCorrect(); }
-        else if (e.key === 'Escape') { e.preventDefault(); state.correcting = false; render(); }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (ac.suggestions.length === 0) return;
+          ac.activeIndex = (ac.activeIndex + 1) % ac.suggestions.length;
+          renderAutocompleteDropdown(correctInput.value);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (ac.suggestions.length === 0) return;
+          ac.activeIndex = (ac.activeIndex - 1 + ac.suggestions.length) % ac.suggestions.length;
+          renderAutocompleteDropdown(correctInput.value);
+        } else if (e.key === 'Tab') {
+          // Tab = complete to longest shared prefix among current suggestions
+          if (ac.suggestions.length > 0) {
+            e.preventDefault();
+            var pref = longestSharedPrefix(ac.suggestions, correctInput.value);
+            if (pref && pref.length > correctInput.value.length) {
+              correctInput.value = pref;
+              renderAutocompleteDropdown(pref);
+            } else if (ac.suggestions.length === 1) {
+              applyAutocompletePick(ac.suggestions[0].key);
+            }
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          // If dropdown is showing a suggestion and the input doesn't already
+          // exactly equal it, prefer the highlighted suggestion. Otherwise save.
+          var dd = document.getElementById('acDropdown');
+          if (dd && !dd.hidden && ac.suggestions.length > 0) {
+            var pick = ac.suggestions[ac.activeIndex];
+            if (pick && pick.key !== correctInput.value) {
+              applyAutocompletePick(pick.key);
+              return;
+            }
+          }
+          saveCorrect();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          var dd2 = document.getElementById('acDropdown');
+          if (dd2 && !dd2.hidden) {
+            // First Esc = hide dropdown
+            dd2.hidden = true;
+            return;
+          }
+          // Second Esc = cancel correct mode
+          state.correcting = false;
+          render();
+        }
       });
     }
   }
@@ -757,6 +1476,37 @@
     saveLabels(formId, labels);
   }
 
+  /**
+   * Write a label for a group rep AND propagate to all members. The members
+   * keep a group_id back-reference so the export records the lineage.
+   */
+  function writeGroupLabel(formId, repWidget, fixtureKey, status, originalGuess) {
+    var labels = loadLabels(formId);
+    var ts = new Date().toISOString();
+    labels[repWidget.index] = {
+      index: repWidget.index,
+      fixture_key: fixtureKey,
+      status: status,
+      original_guess: originalGuess == null ? null : originalGuess,
+      labeled_at: ts,
+      group_id: repWidget.group_id,
+      group_role: 'representative',
+    };
+    (repWidget.group_member_indices || []).forEach(function (idx) {
+      if (idx === repWidget.index) return;
+      labels[idx] = {
+        index: idx,
+        fixture_key: fixtureKey,
+        status: status,
+        original_guess: originalGuess == null ? null : originalGuess,
+        labeled_at: ts,
+        group_id: repWidget.group_id,
+        group_role: 'member',
+      };
+    });
+    saveLabels(formId, labels);
+  }
+
   function currentWidget() {
     var widgets = widgetsFor(state.formId);
     return widgets[state.cursor];
@@ -765,10 +1515,15 @@
   function handleAction(action) {
     var w = currentWidget();
     if (!w && action !== 'prev' && action !== 'next') return;
+    var isGroupRep = !!(w && w.group_id && w.group_is_representative && w.group_size > 1);
 
     if (action === 'accept') {
       if (!w.best_label_fixture_key) return;
-      writeLabel(state.formId, w.index, w.best_label_fixture_key, 'accepted', w.best_label_fixture_key);
+      if (isGroupRep) {
+        writeGroupLabel(state.formId, w, w.best_label_fixture_key, 'accepted', w.best_label_fixture_key);
+      } else {
+        writeLabel(state.formId, w.index, w.best_label_fixture_key, 'accepted', w.best_label_fixture_key);
+      }
       advance();
     } else if (action === 'correct') {
       state.correcting = true;
@@ -779,10 +1534,18 @@
       state.correcting = false;
       render();
     } else if (action === 'skip') {
-      writeLabel(state.formId, w.index, null, 'skipped', w.best_label_fixture_key || null);
+      if (isGroupRep) {
+        writeGroupLabel(state.formId, w, null, 'skipped', w.best_label_fixture_key || null);
+      } else {
+        writeLabel(state.formId, w.index, null, 'skipped', w.best_label_fixture_key || null);
+      }
       advance();
     } else if (action === 'not_fillable') {
-      writeLabel(state.formId, w.index, null, 'not_fillable', w.best_label_fixture_key || null);
+      if (isGroupRep) {
+        writeGroupLabel(state.formId, w, null, 'not_fillable', w.best_label_fixture_key || null);
+      } else {
+        writeLabel(state.formId, w.index, null, 'not_fillable', w.best_label_fixture_key || null);
+      }
       advance();
     } else if (action === 'next') {
       advanceCursor(1);
@@ -797,7 +1560,13 @@
     if (!input || !w) return;
     var value = input.value.trim();
     if (!value) { input.focus(); return; }
-    writeLabel(state.formId, w.index, value, 'corrected', w.best_label_fixture_key || null);
+    recordSessionKey(value); // feed autocomplete frequency map
+    var isGroupRep = !!(w.group_id && w.group_is_representative && w.group_size > 1);
+    if (isGroupRep) {
+      writeGroupLabel(state.formId, w, value, 'corrected', w.best_label_fixture_key || null);
+    } else {
+      writeLabel(state.formId, w.index, value, 'corrected', w.best_label_fixture_key || null);
+    }
     state.correcting = false;
     advance();
   }
@@ -942,6 +1711,7 @@
     state.formId = newFormId;
     state.correcting = false;
     state.cursor = 0;
+    applyAutoAccepts(newFormId);
     var widgets = widgetsFor(newFormId);
     if (widgets.length > 0) {
       var next = findNextUnlabeled(newFormId, 0);
@@ -953,10 +1723,48 @@
   /* ------------------------------------------------------------------
    * Wire global controls
    * ---------------------------------------------------------------- */
+  /** Rebuild the form selector based on the "Show all forms" toggle. */
+  function rebuildFormSelector(showAll) {
+    var sel = document.getElementById('formSelect');
+    if (!sel) return;
+    var allForms = [
+      { id: 'trec-20-18', label: 'TREC 20-18 Resale', heath: true },
+      { id: 'trec-40',    label: 'TREC 40 Third-Party Financing', heath: true },
+      { id: 'trec-36-11', label: 'TREC 36-11 HOA (auto)', heath: false },
+      { id: 'op-l',       label: 'OP-L Lead-Based Paint (auto)', heath: false },
+      { id: 'trec-39-10', label: 'TREC 39-10 Amendment (auto)', heath: false },
+      { id: 'trec-38-7',  label: 'TREC 38-7 Termination (auto)', heath: false },
+      { id: 'op-h',       label: "OP-H Seller's Disclosure (auto)", heath: false },
+    ];
+    var current = state.formId;
+    sel.innerHTML = '';
+    allForms.forEach(function (f) {
+      if (!showAll && !f.heath) return;
+      if (!DATASET[f.id]) return;
+      var opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.label;
+      sel.appendChild(opt);
+    });
+    // If current selection no longer exists in the list, fall back to first option
+    var present = Array.prototype.some.call(sel.options, function (o) { return o.value === current; });
+    if (!present && sel.options.length > 0) {
+      switchForm(sel.options[0].value);
+    } else {
+      sel.value = current;
+    }
+  }
+
   function wireGlobal() {
     document.getElementById('formSelect').addEventListener('change', function (e) {
       switchForm(e.target.value);
     });
+    var showAllCb = document.getElementById('showAllForms');
+    if (showAllCb) {
+      showAllCb.addEventListener('change', function () {
+        rebuildFormSelector(!!showAllCb.checked);
+      });
+    }
     document.getElementById('exportBtn').addEventListener('click', exportJson);
     document.getElementById('importBtn').addEventListener('click', function () {
       document.getElementById('importFile').click();
@@ -967,6 +1775,20 @@
       e.target.value = ''; // allow re-import same file
     });
     document.getElementById('clearBtn').addEventListener('click', clearProgress);
+
+    var reviewBtn = document.getElementById('reviewAutoBtn');
+    if (reviewBtn) {
+      reviewBtn.addEventListener('click', function () {
+        var formName = FORM_LABELS[state.formId] || state.formId;
+        if (!confirm('Undo all auto-accepts for ' + formName + ' so you can review them?')) return;
+        var removed = undoAutoAccepts(state.formId);
+        alert('Restored ' + removed + ' widgets for manual review.');
+        state.cursor = 0;
+        var next = findNextUnlabeled(state.formId, 0);
+        if (next !== -1) state.cursor = next;
+        render();
+      });
+    }
 
     document.addEventListener('keydown', function (e) {
       // Don't intercept keys while typing in inputs (other than the correct form)
@@ -990,6 +1812,15 @@
    * Boot
    * ---------------------------------------------------------------- */
   wireGlobal();
+  // v4: default to Heath-forms-only in the picker
+  rebuildFormSelector(false);
+  // Apply auto-accepts (idempotent — only fires once per form) for every form
+  // up-front so the progress badges are accurate when Heath browses the picker.
+  // Skip the synthetic _meta key which holds vocab + thresholds, not widgets.
+  Object.keys(DATASET || {}).forEach(function (fid) {
+    if (fid === '_meta') return;
+    applyAutoAccepts(fid);
+  });
   // Resume to first unlabeled on the default form
   var firstUnlabeled = findNextUnlabeled(state.formId, 0);
   state.cursor = firstUnlabeled === -1 ? 0 : firstUnlabeled;

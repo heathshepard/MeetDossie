@@ -1,0 +1,147 @@
+{
+  "generated_at": "2026-06-19T17:49:14.119Z",
+  "form_id": "trec-38-7",
+  "stats": {
+    "PASS": 15,
+    "FLAGGED": 0,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "table": [
+    {
+      "index": 0,
+      "page": 1,
+      "field_name": "property_address",
+      "field_type": "text",
+      "fixture_key": "property_address",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 1,
+      "page": 1,
+      "field_name": "seller_name",
+      "field_type": "text",
+      "fixture_key": "seller_name",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 2,
+      "page": 1,
+      "field_name": "buyer_name",
+      "field_type": "text",
+      "fixture_key": "buyer_name",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 3,
+      "page": 1,
+      "field_name": "buyer_name_2",
+      "field_type": "text",
+      "fixture_key": "buyer_name_2",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "page": 1,
+      "field_name": "contract_effective_date",
+      "field_type": "text",
+      "fixture_key": "contract_effective_date",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 5,
+      "page": 1,
+      "field_name": "termination_notice_date",
+      "field_type": "text",
+      "fixture_key": "termination_notice_date",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 6,
+      "page": 1,
+      "field_name": "termination_checkbox_option_period",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_option_period",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 7,
+      "page": 1,
+      "field_name": "termination_checkbox_financing",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_financing",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 8,
+      "page": 1,
+      "field_name": "termination_checkbox_property",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_property",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 9,
+      "page": 1,
+      "field_name": "termination_checkbox_hoa",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_hoa",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 10,
+      "page": 1,
+      "field_name": "termination_checkbox_disclosure",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_disclosure",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 11,
+      "page": 1,
+      "field_name": "termination_checkbox_appraisal",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_appraisal",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 12,
+      "page": 1,
+      "field_name": "termination_checkbox_objections",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_objections",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 13,
+      "page": 1,
+      "field_name": "termination_checkbox_other",
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_other",
+      "confidence_score": 1,
+      "status": "PASS"
+    },
+    {
+      "index": 14,
+      "page": 1,
+      "field_name": "termination_reason_other",
+      "field_type": "text",
+      "fixture_key": "termination_reason_other",
+      "confidence_score": 1,
+      "status": "PASS"
+    }
+  ]
+}

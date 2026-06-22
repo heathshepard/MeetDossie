@@ -1,0 +1,31 @@
+ADD: Merge Queue system — visible staging->main merge candidate tracking with sign-off gates
+
+Implements the full merge queue architecture for making staging commit readiness transparent to Heath:
+
+SCHEMA: merge_queue table (20260622_merge_queue.sql)
+- Tracks each staging commit with 5 sign-off slots (atlas_apv, quinn_qa, ridge, hadley, sage_demo)
+- all_green computed boolean enables the "MERGE TO MAIN" button only when all 5 pass
+- merged_to_main tracking + metadata for audit trail
+- Service-role-only RLS + Realtime publication
+
+APIs:
+- /api/merge-queue-add — POST: Add commit to queue (idempotent, called by staging-watcher)
+- /api/merge-queue-update-signoff — POST: Agent signs off (called by Atlas/Quinn/Ridge/Hadley/Sage)
+- /api/merge-queue-list — GET: Fetch pending/recent/all for HUD panel
+- /api/merge-to-main — Updated to mark row as merged after fast-forward succeeds
+
+CRON: cron-staging-watcher.js updated
+- Calls merge-queue-add when new commit detected on staging
+- Tracks result in outcome metadata
+
+HUD: jarvis-pwa.html — new MERGE QUEUE panel
+- Shows pending commits with all 5 sign-off badges (pass/fail/not-run)
+- Tap badge to see evidence URL + notes
+- MERGE TO MAIN button enabled only if all_green=true
+- FIX FAILURES button shown if any slot is red
+- Refreshes every 30s, same priority as Pending Approvals
+
+All components idempotent. No state-changing until Heath taps MERGE button (calls merge-to-main).
+Migration required before deploy.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>

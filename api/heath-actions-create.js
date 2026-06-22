@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
 
   try {
-    const { title, body, source, priority, deadline, evidence_url } = req.body || {};
+    const { title, body, source, priority, deadline, evidence_url, action_type, payload } = req.body || {};
 
     if (!title || !source) {
       return res.status(400).json({ ok: false, error: 'title and source are required' });
@@ -95,6 +95,8 @@ module.exports = async function handler(req, res) {
       deadline: deadline || null,
       status: 'pending',
       evidence_url: evidence_url || null,
+      action_type: action_type || 'manual',
+      payload: payload || null,
     });
 
     if (error) throw error;

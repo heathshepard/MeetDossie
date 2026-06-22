@@ -1,0 +1,52 @@
+{
+  "form_id": "op-l",
+  "total_unmatched": 9,
+  "llm_guesses": {
+    "2": {
+      "fixture_key": "lead_paint_hazards_present_explanation",
+      "confidence": 0.82,
+      "reasoning": "This text field is positioned immediately after checkbox (a) for known lead-based paint hazards and is meant to capture the seller's explanation of hazards if present."
+    },
+    "3": {
+      "fixture_key": "lead_paint_no_knowledge",
+      "confidence": 0.92,
+      "reasoning": "Checkbox option (b) for seller's disclosure that they have no actual knowledge of lead-based paint hazards in the property"
+    },
+    "4": {
+      "fixture_key": "lead_based_paint_present",
+      "confidence": 0.9,
+      "reasoning": "This checkbox corresponds to option (a) under SELLER'S DISCLOSURE section 1, indicating known lead-based paint and/or hazards are present in the property"
+    },
+    "5": {
+      "fixture_key": "seller_lead_paint_disclosure_known_present",
+      "confidence": 0.92,
+      "reasoning": "This checkbox corresponds to option (a) under Section B.1 regarding seller's disclosure of known lead-based paint presence"
+    },
+    "6": {
+      "fixture_key": "lp_records_provided_explanation",
+      "confidence": 0.82,
+      "reasoning": "Text field for seller to list documents provided regarding lead-based paint records and reports, following the checkbox for section 2(a)"
+    },
+    "7": {
+      "fixture_key": "lead_paint_no_records_checkbox",
+      "confidence": 0.92,
+      "reasoning": "This is a checkbox option (2b) for seller having no reports or records pertaining to lead-based paint hazards"
+    },
+    "8": {
+      "fixture_key": "lead_paint_hazards_present",
+      "confidence": 0.95,
+      "reasoning": "Checkbox for section 1(a) indicating known lead-based paint and/or hazards are present in the property"
+    },
+    "11": {
+      "fixture_key": "buyer_waives_inspection",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for buyer waiving right to conduct lead-based paint risk assessment or inspection per section 1"
+    },
+    "12": {
+      "fixture_key": "addendum_lead_based_paint",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in Section D.1 of Lead-Based Paint Addendum confirming buyer received lead paint disclosure information"
+    }
+  },
+  "generated_at": "2026-06-19T19:21:02.974Z"
+}
