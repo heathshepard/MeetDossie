@@ -5817,17 +5817,46 @@
     }
 
     // ===== Boot =====
+    // P0 FIX 2026-06-22 — Wire critical auth listeners BEFORE any async work.
+    // Previously these listeners were attached AFTER `await bootSupabase()` +
+    // `await checkSession()`. If EITHER step threw (e.g. Supabase auto-refresh
+    // throws "Invalid Refresh Token" on a stale session in some browsers),
+    // the SIGN IN button would render but have no click handler — Heath got
+    // locked out of the PWA. Bind listeners synchronously, then run async.
+    authBtn.addEventListener('click', signIn);
+    authPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
+    pttBtn.addEventListener('click', onPttClick);
+
     (async function boot() {
-      await bootSupabase();
-      const signedIn = await checkSession();
+      try {
+        await bootSupabase();
+      } catch (err) {
+        console.error('[jarvis] bootSupabase failed', err);
+        // Show auth gate anyway so the user sees SOMETHING actionable. signIn()
+        // will surface a clear error when the user taps the button.
+        try { authGate.classList.remove('hidden'); } catch {}
+        try { authMsg.textContent = 'Config load failed — refresh the page.'; authMsg.className = 'auth-msg err'; } catch {}
+        return;
+      }
+      let signedIn = false;
+      try {
+        signedIn = await checkSession();
+      } catch (err) {
+        // Most common: stale refresh token. Treat as signed-out so the user
+        // can re-authenticate via the SIGN IN button (which is now wired).
+        console.warn('[jarvis] checkSession failed, falling back to auth gate', err);
+        signedIn = false;
+      }
       if (signedIn) {
-        await afterSignIn();
+        try {
+          await afterSignIn();
+        } catch (err) {
+          console.error('[jarvis] afterSignIn failed', err);
+          try { authGate.classList.remove('hidden'); } catch {}
+        }
       } else {
         authGate.classList.remove('hidden');
       }
-      authBtn.addEventListener('click', signIn);
-      authPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
-      pttBtn.addEventListener('click', onPttClick);
 
       // Initialize Noisy Mode toggle (Bug 4 fix — restore last-used state from
       // localStorage and wire up the click handler).

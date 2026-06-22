@@ -4,7 +4,7 @@
  * Per DoD criteria 94, 95: offline graceful degradation, last-50-messages
  * cached via IndexedDB (handled in app code, not here).
  */
-const CACHE = 'jarvis-pwa-v1-2026-06-21';
+const CACHE = 'jarvis-pwa-v2-2026-06-22-signin-hotfix';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
