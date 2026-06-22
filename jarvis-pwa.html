@@ -1402,6 +1402,89 @@
       font-size: 9px;
     }
 
+    /* ===== AGENT KNOWLEDGE (Shared Memory Pool, SOP 2026-06-22) ===== */
+    .knowledge-list { display: flex; flex-direction: column; gap: 5px; }
+    .knowledge-row {
+      cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: rgba(5, 8, 16, 0.35);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .knowledge-row:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.04); }
+    .knowledge-role {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--txt-primary);
+      font-weight: 500;
+    }
+    .knowledge-count {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--cyan-bright);
+      padding: 2px 7px;
+      border: 1px solid var(--cyan-dim);
+      border-radius: 10px;
+      min-width: 22px; text-align: center;
+    }
+    .knowledge-total {
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(77, 208, 225, 0.06);
+      text-align: right;
+    }
+    .lessons-modal-card { max-width: 720px; }
+    .lessons-list { display: flex; flex-direction: column; gap: 8px; max-height: 540px; overflow-y: auto; }
+    .lesson-card {
+      padding: 8px 10px;
+      background: rgba(5, 8, 16, 0.5);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .lesson-card.heath_approved { border-left: 3px solid var(--ok); }
+    .lesson-card.auto { border-left: 3px solid var(--cyan-bright); }
+    .lesson-card.contested { border-left: 3px solid #f08; opacity: 0.85; }
+    .lesson-card.archived { border-left: 3px solid var(--txt-faint); opacity: 0.55; }
+    .lesson-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 8px; margin-bottom: 4px;
+    }
+    .lesson-title {
+      font-size: 12px; line-height: 1.3; color: var(--txt-primary);
+      font-weight: 500;
+    }
+    .lesson-cat {
+      font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--cyan); white-space: nowrap;
+    }
+    .lesson-body {
+      font-size: 11px; line-height: 1.45; color: var(--txt-mute);
+      white-space: pre-wrap;
+    }
+    .lesson-foot {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; margin-top: 6px;
+      font-size: 9px; color: var(--txt-faint); letter-spacing: 0.06em;
+    }
+    .lesson-actions { display: flex; gap: 4px; }
+    .lesson-action-btn {
+      padding: 2px 7px;
+      font-family: inherit;
+      font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--txt-mute); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .lesson-action-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .lesson-action-btn.approve { color: var(--ok); border-color: var(--ok); }
+    .lesson-action-btn.contest { color: #f08; border-color: #f08; }
+
     /* ===== Quick-Ask voice input modal (compact prompt) ===== */
     .quick-ask-modal {
       max-width: 500px;
@@ -1526,6 +1609,202 @@
         padding: 4px 12px;
       }
     }
+
+    /* ===== AUDIO DEVICE PICKER (cogwheel + modal + state chip) =====
+       Added 2026-06-20 (atlas_3) so Heath can route DJI Mic + Sony WH
+       inside the PWA when Android Chrome ignores OS audio routing. */
+    .audio-routing-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: rgba(5, 8, 16, 0.6);
+      color: var(--cyan-bright);
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: none;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .audio-routing-chip.hidden { display: none; }
+    .audio-routing-chip .arc-icon {
+      width: 12px; height: 12px;
+      stroke: var(--cyan-bright);
+      flex-shrink: 0;
+    }
+    .audio-routing-chip .arc-sep {
+      color: var(--txt-faint);
+      margin: 0 2px;
+    }
+    .audio-settings-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--cyan-bright);
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      cursor: pointer;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+      padding: 0;
+    }
+    .audio-settings-btn:hover,
+    .audio-settings-btn:focus-visible {
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 12px var(--cyan-dim);
+      outline: none;
+    }
+    .audio-settings-btn:active { transform: scale(0.94); }
+    .audio-settings-btn svg {
+      width: 18px; height: 18px;
+      stroke: var(--cyan-bright);
+      fill: none;
+      stroke-width: 1.6;
+    }
+
+    /* Audio Settings modal */
+    .audio-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(5, 8, 16, 0.88);
+      display: grid; place-items: center;
+      z-index: 170;
+      padding: 20px;
+      backdrop-filter: blur(6px);
+    }
+    .audio-modal {
+      max-width: 500px; width: 100%;
+      max-height: 86vh; overflow-y: auto;
+      background: var(--glass-strong);
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.6), 0 0 60px var(--cyan-dim);
+    }
+    .audio-modal-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .audio-modal-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 20px; color: var(--cyan-bright);
+      letter-spacing: 0.06em;
+    }
+    .audio-modal-sub {
+      font-size: 11px; color: var(--txt-mute);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .audio-row { margin-bottom: 16px; }
+    .audio-row-label {
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--txt-faint);
+      margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .audio-row-label .arl-icon {
+      width: 14px; height: 14px;
+      stroke: var(--cyan-bright);
+      fill: none;
+      stroke-width: 1.6;
+    }
+    .audio-select {
+      width: 100%;
+      background: rgba(5, 8, 16, 0.6);
+      color: var(--txt-primary);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--cyan-bright) 50%),
+                        linear-gradient(135deg, var(--cyan-bright) 50%, transparent 50%);
+      background-position: calc(100% - 18px) center, calc(100% - 12px) center;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .audio-select:focus-visible {
+      outline: none;
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 0 2px var(--cyan-dim);
+    }
+    .audio-warn-chip {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      background: rgba(232, 185, 100, 0.08);
+      border: 1px solid rgba(232, 185, 100, 0.35);
+      border-radius: 8px;
+      color: var(--warn);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .audio-warn-chip.hidden { display: none; }
+    .audio-warn-chip svg {
+      width: 14px; height: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .audio-modal-actions {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .audio-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--txt-primary);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      min-height: 40px;
+      font-family: 'Inter', sans-serif;
+    }
+    .audio-btn:hover,
+    .audio-btn:focus-visible {
+      border-color: var(--cyan-bright);
+      color: var(--cyan-bright);
+      outline: none;
+    }
+    .audio-btn-primary {
+      background: var(--cyan-bright);
+      color: var(--bg-deep);
+      border-color: var(--cyan-bright);
+      font-weight: 600;
+    }
+    .audio-btn-primary:hover,
+    .audio-btn-primary:focus-visible {
+      background: var(--cyan);
+      color: var(--bg-deep);
+      box-shadow: 0 0 16px var(--cyan-dim);
+    }
+    .audio-status {
+      font-size: 11px;
+      color: var(--txt-mute);
+      margin-top: 8px;
+      letter-spacing: 0.04em;
+    }
+    .audio-status.is-err { color: var(--fail); }
+    @media (max-width: 500px) {
+      .audio-modal { padding: 18px 16px 14px; }
+      .audio-modal-title { font-size: 18px; }
+      .audio-routing-chip { font-size: 9px; padding: 2px 6px; max-width: 160px; }
+    }
+    @media (max-width: 360px) {
+      /* Z Fold cover — chip hidden in header to save room; cogwheel stays. */
+      .audio-routing-chip { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -1537,8 +1816,32 @@
         <span class="brand-tag">v1 · Iron Man HUD</span>
       </div>
       <div class="header-right">
+        <!-- Audio routing chip (atlas_3, 2026-06-20). Hidden when both default. -->
+        <span id="audio-routing-chip" class="audio-routing-chip hidden" title="Current Jarvis audio routing">
+          <svg class="arc-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span id="audio-routing-mic">Default</span>
+          <span class="arc-sep">·</span>
+          <svg class="arc-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 14h3l4 4V6L6 10H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1z"></path>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <span id="audio-routing-spk">Default</span>
+        </span>
         <span class="live-dot"></span>
         <span id="conn-state">CONNECTED</span>
+        <!-- Audio settings cogwheel (atlas_3, 2026-06-20). -->
+        <button id="audio-settings-btn" class="audio-settings-btn" type="button" aria-label="Audio settings" title="Audio devices (mic + speaker)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -1811,6 +2114,15 @@
           <div class="panel-title">PROJECTS LEDGER</div>
           <div id="projects-ledger">
             <div class="ledger-empty">Loading projects…</div>
+          </div>
+        </div>
+
+        <!-- AGENT KNOWLEDGE (Shared Memory Pool, SOP locked 2026-06-22).
+             Counts per role. Tap a role to open the lessons modal. -->
+        <div class="panel" id="knowledge-panel">
+          <div class="panel-title">AGENT KNOWLEDGE</div>
+          <div id="knowledge-list" class="knowledge-list">
+            <div class="ledger-empty">Loading lessons…</div>
           </div>
         </div>
 
@@ -2534,9 +2846,10 @@
       // Tier 2 hydrations
       loadCalendar().catch(() => {});
       loadAgentLedger().catch(() => {});
-      // SOP 2026-06-22 — agent instance + projects ledger
+      // SOP 2026-06-22 — agent instance + projects ledger + shared knowledge
       loadInstances().catch(() => {});
       loadProjects().catch(() => {});
+      loadKnowledge().catch(() => {});
       subscribeInstanceEvents();
       // Refresh cadences per spec:
       //   tickers (money/activity log) — 30s
@@ -2556,6 +2869,7 @@
       setInterval(() => { loadAgentLedger().catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().catch(() => {}); }, 60000);
+      setInterval(() => { loadKnowledge().catch(() => {}); }, 90000);
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -4979,12 +5293,12 @@
     const instancesById = new Map(); // instance.id -> { instance, project, checklist_summary, checklist? }
     let cachedRecentInstances = []; // recently-completed cards displayed below running ones
 
-    async function authedFetch(url) {
+    async function authedFetch(url, opts) {
       const token = session?.access_token;
       if (!token) throw new Error('no_session');
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const init = Object.assign({}, opts || {});
+      init.headers = Object.assign({}, init.headers || {}, { Authorization: `Bearer ${token}` });
+      const res = await fetch(url, init);
       if (!res.ok) {
         const t = await res.text().catch(() => '');
         throw new Error(`${res.status}: ${t.slice(0, 160)}`);
@@ -5344,6 +5658,139 @@
       });
       document.body.appendChild(backdrop);
     }
+
+    // ===== AGENT KNOWLEDGE — Shared Memory Pool (SOP 2026-06-22) =====
+    async function loadKnowledge() {
+      if (!tenant) return;
+      try {
+        const data = await authedFetch('/api/agent-memory-list');
+        if (!data?.ok) return;
+        renderKnowledgePanel(data);
+      } catch (err) {
+        console.warn('[jarvis] loadKnowledge failed', err.message);
+        const el = document.getElementById('knowledge-list');
+        if (el) el.innerHTML = `<div class="ledger-empty">Knowledge API unavailable.</div>`;
+      }
+    }
+
+    function renderKnowledgePanel(data) {
+      const el = document.getElementById('knowledge-list');
+      if (!el) return;
+      const counts = data.counts || {};
+      const roles = ['atlas','carter','hadley','pierce','sage','ridge','quinn','sterling','jarvis'];
+      const total = data.total || 0;
+      const rows = roles
+        .filter(r => (counts[r] || 0) > 0)
+        .sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+      if (rows.length === 0) {
+        el.innerHTML = '<div class="ledger-empty">No agent lessons yet.</div>';
+        return;
+      }
+      const inner = rows.map(r => `
+        <div class="knowledge-row" data-role="${r}">
+          <span class="knowledge-role">${r}</span>
+          <span class="knowledge-count">${counts[r]}</span>
+        </div>
+      `).join('');
+      el.innerHTML = inner + `<div class="knowledge-total">${total} lesson${total === 1 ? '' : 's'} total</div>`;
+      el.querySelectorAll('.knowledge-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const r = row.getAttribute('data-role');
+          if (r) openLessonsModal(r);
+        });
+      });
+    }
+
+    async function openLessonsModal(role) {
+      let lessons = [];
+      try {
+        const data = await authedFetch(`/api/agent-memory-list?role=${encodeURIComponent(role)}&limit=200`);
+        if (data?.ok) lessons = data.lessons || [];
+      } catch (err) {
+        console.warn('[jarvis] lessons fetch failed', err.message);
+      }
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+      const list = lessons.length === 0
+        ? '<div class="ledger-empty">No lessons yet for this role.</div>'
+        : lessons.map(l => {
+            const cat = (l.category || 'workflow').toLowerCase();
+            const vs = (l.validation_status || 'auto').toLowerCase();
+            const ts = l.last_used_at || l.learned_at;
+            const ago = ts ? `${fmtAgo(ts)} ago` : '';
+            return `
+              <div class="lesson-card ${vs}" data-memory-id="${escapeHtml(l.id)}">
+                <div class="lesson-head">
+                  <div class="lesson-title">${escapeHtml(l.title || '(untitled)')}</div>
+                  <div class="lesson-cat">${escapeHtml(cat)}</div>
+                </div>
+                <div class="lesson-body">${escapeHtml(l.content || '')}</div>
+                <div class="lesson-foot">
+                  <span>${escapeHtml(vs)} · used ${l.usage_count || 0}x · ${escapeHtml(ago)}</span>
+                  <span class="lesson-actions">
+                    <button class="lesson-action-btn approve" data-action="heath_approved">approve</button>
+                    <button class="lesson-action-btn contest" data-action="contested">contest</button>
+                    <button class="lesson-action-btn" data-action="archived">archive</button>
+                  </span>
+                </div>
+              </div>
+            `;
+          }).join('');
+      backdrop.innerHTML = `
+        <div class="modal-card lessons-modal-card">
+          <div class="modal-header">
+            <div class="modal-title">${escapeHtml(role.toUpperCase())} - KNOWLEDGE (${lessons.length})</div>
+            <button class="modal-close" aria-label="Close">x</button>
+          </div>
+          <div class="lessons-list">${list}</div>
+        </div>
+      `;
+      backdrop.querySelector('.modal-close').addEventListener('click', () => backdrop.remove());
+      backdrop.querySelectorAll('.lesson-action-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const card = btn.closest('.lesson-card');
+          const id = card?.getAttribute('data-memory-id');
+          const action = btn.getAttribute('data-action');
+          if (!id || !action) return;
+          btn.disabled = true;
+          try {
+            const out = await authedFetch('/api/agent-memory-validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ memory_id: id, status: action }),
+            });
+            if (out?.ok) {
+              card.className = `lesson-card ${action}`;
+              if (action === 'archived') card.style.display = 'none';
+            }
+          } catch (err) {
+            console.warn('[jarvis] validate failed', err.message);
+          }
+          btn.disabled = false;
+        });
+      });
+      document.body.appendChild(backdrop);
+    }
+
+    // Subscribe to agent_role_memory realtime so counts update live
+    (function subscribeKnowledgeEvents() {
+      const subscribe = () => {
+        if (!supabase || !tenant) return setTimeout(subscribe, 500);
+        try {
+          supabase
+            .channel(`agent_role_memory:${tenant.id}`)
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'agent_role_memory', filter: `tenant_id=eq.${tenant.id}` },
+              () => { loadKnowledge().catch(() => {}); }
+            )
+            .subscribe();
+        } catch (_) {}
+      };
+      setTimeout(subscribe, 2000);
+    })();
 
     // Live elapsed-time tick for instance cards (re-render meta every second when any are running).
     setInterval(() => {
