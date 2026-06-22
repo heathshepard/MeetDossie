@@ -258,6 +258,63 @@ body {
 
   <div id="dashboard" style="display:none;">
 
+    <!-- BILLING PULSE (NEW) -->
+    <div class="section">
+      <h2 class="section-title">Billing Pulse</h2>
+      <div class="cards">
+        <div class="card highlight">
+          <div class="card-label">Monthly MRR</div>
+          <div class="card-value" id="pulse-mrr">$0</div>
+          <div class="card-sublabel">Active subscriptions</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Past Due</div>
+          <div class="card-value" id="pulse-past-due" style="color: #E8836B;">0</div>
+          <div class="card-sublabel">Failed payments</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Active Subs</div>
+          <div class="card-value" id="pulse-active-subs">0</div>
+          <div class="card-sublabel">Healthy customers</div>
+        </div>
+      </div>
+
+      <!-- Recent Payments Table -->
+      <div class="table-card" style="margin-top: 20px;">
+        <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 16px; color: var(--navy);">Last 5 Successful Payments</h3>
+        <table class="data-table" id="recent-payments-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Amount</th>
+              <th>Paid</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="recent-payments-tbody">
+            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Failed Payments Table -->
+      <div class="table-card" style="margin-top: 20px;">
+        <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 16px; color: var(--navy);">Failed Payments (Last 5)</h3>
+        <table class="data-table" id="failed-payments-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Since</th>
+            </tr>
+          </thead>
+          <tbody id="failed-payments-tbody">
+            <tr><td colspan="3" class="empty-state">None</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- REVENUE & GROWTH -->
     <div class="section">
       <h2 class="section-title">Revenue & Growth</h2>
@@ -766,6 +823,12 @@ async function loadDashboard() {
     addDebug('🎨 Rendering dashboard...');
     renderDashboard(data.metrics);
 
+    // Load billing pulse
+    addDebug('💳 Loading billing pulse...');
+    loadBillingPulse(session.access_token).catch(err => {
+      addDebug('⚠️ Billing pulse failed (non-fatal)', { error: err.message });
+    });
+
     // Load cost analytics
     addDebug('💰 Loading cost analytics...');
     loadCostAnalytics(session.access_token).catch(err => {
@@ -897,6 +960,83 @@ function renderDashboard(metrics) {
         <td></td>
       </tr>
     `;
+  }
+}
+
+async function loadBillingPulse(accessToken) {
+  try {
+    const apiUrl = `${window.location.origin}/api/admin-billing-pulse`;
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Billing pulse API error:', response.status);
+      return;
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Billing pulse returned success=false');
+      return;
+    }
+
+    renderBillingPulse(data.billing);
+  } catch (error) {
+    console.error('Failed to load billing pulse:', error);
+  }
+}
+
+function renderBillingPulse(billing) {
+  // Update summary cards
+  document.getElementById('pulse-mrr').textContent = billing.mrrFormatted;
+  document.getElementById('pulse-past-due').textContent = billing.pastDueCount;
+  document.getElementById('pulse-active-subs').textContent = billing.activeSubscriptions;
+
+  // Render recent payments table
+  const recentPaymentsTbody = document.getElementById('recent-payments-tbody');
+  if (billing.recentPayments && billing.recentPayments.length > 0) {
+    const rows = billing.recentPayments.map(payment => {
+      const amount = `$${(payment.amountCents / 100).toFixed(2)}`;
+      const paidDate = new Date(payment.paidAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: '2-digit'
+      });
+      return `
+        <tr>
+          <td><strong>${payment.customerName}</strong></td>
+          <td>${amount}</td>
+          <td>${paidDate}</td>
+          <td><span class="badge sage">paid</span></td>
+        </tr>
+      `;
+    }).join('');
+    recentPaymentsTbody.innerHTML = rows;
+  } else {
+    recentPaymentsTbody.innerHTML = '<tr><td colspan="4" class="empty-state">No recent payments</td></tr>';
+  }
+
+  // Render failed payments table
+  const failedPaymentsTbody = document.getElementById('failed-payments-tbody');
+  if (billing.failedPayments && billing.failedPayments.length > 0) {
+    const rows = billing.failedPayments.map(payment => {
+      const sinceDate = new Date(payment.since).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: '2-digit'
+      });
+      return `
+        <tr>
+          <td><strong>${payment.customerName}</strong></td>
+          <td><span class="badge coral">${payment.status}</span></td>
+          <td>${sinceDate}</td>
+        </tr>
+      `;
+    }).join('');
+    failedPaymentsTbody.innerHTML = rows;
   }
 }
 

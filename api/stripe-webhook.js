@@ -6,8 +6,11 @@
 //     a Stripe invoice link manually). Creates auth user, profile, subscription
 //     row, sends welcome + password-set emails, notifies Heath via Telegram.
 //     Idempotent: skips re-provisioning if auth user already exists; recurring
-//     invoices only refresh period dates.
+//     invoices only refresh period dates. Logs payment to stripe_payment_log.
+//   - invoice.payment_failed → mark subscription status as 'past_due', log event.
+//   - customer.subscription.updated → sync status, period dates, cancel_at_period_end.
 //   - customer.subscription.deleted → mark profile subscription_status = 'cancelled'.
+// All events are deduplicated via stripe_webhook_events table (event.id).
 // Returns 200 on success, 400 on signature failure.
 //
 // Environment:
@@ -225,6 +228,58 @@ async function updateSubscriptionByCustomerId(stripeCustomerId, patch) {
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify(patch),
   });
+}
+
+// Idempotency check: has this webhook event already been processed?
+// Returns true if event is new (not yet processed). Immediately inserts a record
+// to prevent duplicate processing on retries.
+async function isEventNew(eventId, eventType, stripeObjectId) {
+  if (!eventId) return true; // No event ID = always process (fail safe)
+  try {
+    // Check if already processed
+    const encoded = encodeURIComponent(eventId);
+    const existing = await supabaseFetch(`/rest/v1/stripe_webhook_events?event_id=eq.${encoded}&select=event_id&limit=1`);
+    if (Array.isArray(existing) && existing.length > 0) {
+      console.log('[stripe-webhook] event already processed:', eventId);
+      return false;
+    }
+    // Mark as processed
+    await supabaseFetch('/rest/v1/stripe_webhook_events', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        event_id: eventId,
+        event_type: eventType,
+        stripe_object_id: stripeObjectId,
+      }),
+    });
+    return true;
+  } catch (err) {
+    console.warn('[stripe-webhook] isEventNew check failed:', err && err.message, '— proceeding anyway (fail open)');
+    return true; // If dedup fails, process anyway to avoid missed events
+  }
+}
+
+// Log a successful payment to stripe_payment_log for audit trail.
+async function logPayment({ invoiceId, subscriptionId, customerId, amountCents, currency, paidAt, hostedInvoiceUrl }) {
+  if (!invoiceId) return; // Cannot log without an invoice ID
+  try {
+    await supabaseFetch('/rest/v1/stripe_payment_log', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        stripe_invoice_id: invoiceId,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        amount_paid_cents: amountCents,
+        currency: currency || 'USD',
+        paid_at: paidAt,
+        hosted_invoice_url: hostedInvoiceUrl,
+      }),
+    });
+  } catch (err) {
+    console.warn('[stripe-webhook] logPayment failed:', err && err.message);
+  }
 }
 
 async function notifyHeathOnTelegram({ name, email, source }) {
@@ -504,9 +559,17 @@ async function handleCheckoutSessionCompleted(stripe, session) {
 // We provision (create user/profile/sub + send welcome) only on the FIRST
 // invoice for an email we don't already have an auth user for. Recurring
 // invoices just refresh current_period_start/end on the subscription row.
-async function handleInvoicePaid(stripe, invoice) {
+// All invoice.paid events are logged to stripe_payment_log for audit.
+async function handleInvoicePaid(stripe, invoice, eventId) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[stripe-webhook] Supabase not configured — skipping invoice.paid.');
+    return;
+  }
+
+  // Idempotency: skip if this event was already processed
+  const isNew = await isEventNew(eventId, 'invoice.paid', invoice.id);
+  if (!isNew) {
+    console.log('[stripe-webhook] invoice.paid: duplicate event, skipping. invoice=', invoice.id);
     return;
   }
 
@@ -603,6 +666,20 @@ async function handleInvoicePaid(stripe, invoice) {
       }
     } catch (err) {
       console.error('[stripe-webhook] invoice.paid period refresh failed:', err && err.message);
+    }
+    // Log payment even for existing users
+    try {
+      await logPayment({
+        invoiceId: invoice.id,
+        subscriptionId: stripeSubscriptionId,
+        customerId: stripeCustomerId,
+        amountCents: invoice.amount_paid || null,
+        currency: invoice.currency,
+        paidAt: new Date(invoice.paid_at * 1000).toISOString(),
+        hostedInvoiceUrl: invoice.hosted_invoice_url,
+      });
+    } catch (err) {
+      console.warn('[stripe-webhook] logPayment failed during period refresh:', err && err.message);
     }
     return;
   }
@@ -717,6 +794,21 @@ async function handleInvoicePaid(stripe, invoice) {
   } catch (err) {
     console.error('[stripe-webhook] Telegram notify failed in invoice.paid:', err && err.message);
   }
+
+  // 7) Log payment to stripe_payment_log
+  try {
+    await logPayment({
+      invoiceId: invoice.id,
+      subscriptionId: stripeSubscriptionId,
+      customerId: stripeCustomerId,
+      amountCents: invoice.amount_paid || null,
+      currency: invoice.currency,
+      paidAt: new Date(invoice.paid_at * 1000).toISOString(),
+      hostedInvoiceUrl: invoice.hosted_invoice_url,
+    });
+  } catch (err) {
+    console.warn('[stripe-webhook] logPayment failed in invoice.paid:', err && err.message);
+  }
 }
 
 // Handle customer.subscription.created — safety net for the checkout flow gap.
@@ -823,11 +915,19 @@ async function handleSubscriptionCreated(stripe, subscription) {
   }
 }
 
-async function handleSubscriptionDeleted(subscription) {
+async function handleSubscriptionDeleted(subscription, eventId) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[stripe-webhook] Supabase not configured — skipping cancellation.');
     return;
   }
+
+  // Idempotency check
+  const isNew = await isEventNew(eventId, 'customer.subscription.deleted', subscription.id);
+  if (!isNew) {
+    console.log('[stripe-webhook] subscription.deleted: duplicate event, skipping. sub=', subscription.id);
+    return;
+  }
+
   const stripeCustomerId = typeof subscription.customer === 'string'
     ? subscription.customer
     : (subscription.customer && subscription.customer.id) || null;
@@ -871,6 +971,142 @@ async function handleSubscriptionDeleted(subscription) {
   }
 }
 
+// Handle invoice.payment_failed — mark subscription as past_due, log event.
+async function handleInvoicePaymentFailed(stripe, invoice, eventId) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping invoice.payment_failed.');
+    return;
+  }
+
+  // Idempotency check
+  const isNew = await isEventNew(eventId, 'invoice.payment_failed', invoice.id);
+  if (!isNew) {
+    console.log('[stripe-webhook] invoice.payment_failed: duplicate event, skipping. invoice=', invoice.id);
+    return;
+  }
+
+  const stripeSubscriptionId = typeof invoice.subscription === 'string'
+    ? invoice.subscription
+    : (invoice.subscription && invoice.subscription.id) || null;
+  const stripeCustomerId = typeof invoice.customer === 'string'
+    ? invoice.customer
+    : (invoice.customer && invoice.customer.id) || null;
+
+  // Only handle founding-tier invoices
+  const lineItem = invoice?.lines?.data?.[0];
+  const priceId = lineItem?.price?.id || null;
+  if (priceId !== FOUNDING_PRICE_ID) {
+    console.log('[stripe-webhook] invoice.payment_failed skipped — not founding tier. priceId=', priceId, 'invoice=', invoice.id);
+    return;
+  }
+
+  // Mark subscription as past_due
+  if (stripeSubscriptionId) {
+    try {
+      const encoded = encodeURIComponent(stripeSubscriptionId);
+      await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'past_due' }),
+      });
+      console.log('[stripe-webhook] invoice.payment_failed: marked subscription past_due. sub=', stripeSubscriptionId);
+    } catch (err) {
+      console.error('[stripe-webhook] invoice.payment_failed subscription patch failed:', err && err.message);
+    }
+  }
+
+  // Resolve customer email and notify Heath
+  let customerEmail = null;
+  let customerName = '';
+  if (invoice.customer_email) {
+    customerEmail = String(invoice.customer_email).toLowerCase();
+  } else if (stripeCustomerId) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (customer && !customer.deleted) {
+        customerEmail = customer.email ? String(customer.email).toLowerCase() : null;
+        customerName = toTitleCase(customer.name || '');
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] customers.retrieve failed in invoice.payment_failed:', err && err.message);
+    }
+  }
+
+  if (customerEmail) {
+    try {
+      const text = `⚠️ <b>PAYMENT FAILED</b>\n\n<b>Customer:</b> ${customerName || 'unknown'}\n<b>Email:</b> ${customerEmail}\n<b>Invoice:</b> ${invoice.id}\n<b>Amount:</b> $${(invoice.amount_due / 100).toFixed(2)}\n<b>Time:</b> ${new Date().toISOString()}`;
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
+      });
+    } catch (err) {
+      console.warn('[stripe-webhook] Telegram notification failed in invoice.payment_failed:', err && err.message);
+    }
+  }
+}
+
+// Handle customer.subscription.updated — sync status, period dates, cancel_at_period_end.
+async function handleSubscriptionUpdated(stripe, subscription, eventId) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping subscription.updated.');
+    return;
+  }
+
+  // Idempotency check
+  const isNew = await isEventNew(eventId, 'customer.subscription.updated', subscription.id);
+  if (!isNew) {
+    console.log('[stripe-webhook] subscription.updated: duplicate event, skipping. sub=', subscription.id);
+    return;
+  }
+
+  const stripeSubscriptionId = subscription.id;
+  const stripeCustomerId = typeof subscription.customer === 'string'
+    ? subscription.customer
+    : (subscription.customer && subscription.customer.id) || null;
+
+  // Only handle founding-tier subscriptions
+  const priceId = subscription?.items?.data?.[0]?.price?.id || null;
+  if (priceId !== FOUNDING_PRICE_ID) {
+    console.log('[stripe-webhook] subscription.updated skipped — not founding tier. priceId=', priceId, 'sub=', stripeSubscriptionId);
+    return;
+  }
+
+  const currentPeriodStart = subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString() : null;
+  const currentPeriodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString() : null;
+
+  // Map Stripe status to our status
+  let statusToSet = subscription.status; // 'active', 'past_due', 'unpaid', 'canceled'
+  if (subscription.status === 'active') {
+    statusToSet = 'active';
+  } else if (subscription.status === 'past_due') {
+    statusToSet = 'past_due';
+  } else if (subscription.status === 'canceled') {
+    statusToSet = 'cancelled';
+  } else if (subscription.status === 'unpaid') {
+    statusToSet = 'past_due'; // Treat unpaid as past_due
+  }
+
+  try {
+    const encoded = encodeURIComponent(stripeSubscriptionId);
+    await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        status: statusToSet,
+        current_period_start: currentPeriodStart,
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: subscription.cancel_at_period_end || false,
+      }),
+    });
+    console.log('[stripe-webhook] subscription.updated: synced subscription. sub=', stripeSubscriptionId, 'status=', statusToSet);
+  } catch (err) {
+    console.error('[stripe-webhook] subscription.updated patch failed:', err && err.message);
+  }
+}
+
 module.exports = async function handler(req, res) {
   // Stripe reaches this from its own infrastructure, not a browser, so CORS
   // is permissive. Browser callers are not expected to hit this endpoint.
@@ -911,11 +1147,15 @@ module.exports = async function handler(req, res) {
     if (event.type === 'checkout.session.completed') {
       await handleCheckoutSessionCompleted(stripe, event.data.object);
     } else if (event.type === 'invoice.paid') {
-      await handleInvoicePaid(stripe, event.data.object);
+      await handleInvoicePaid(stripe, event.data.object, event.id);
+    } else if (event.type === 'invoice.payment_failed') {
+      await handleInvoicePaymentFailed(stripe, event.data.object, event.id);
     } else if (event.type === 'customer.subscription.created') {
       await handleSubscriptionCreated(stripe, event.data.object);
+    } else if (event.type === 'customer.subscription.updated') {
+      await handleSubscriptionUpdated(stripe, event.data.object, event.id);
     } else if (event.type === 'customer.subscription.deleted') {
-      await handleSubscriptionDeleted(event.data.object);
+      await handleSubscriptionDeleted(event.data.object, event.id);
     }
     res.status(200).json({ ok: true, received: event.type });
   } catch (err) {
