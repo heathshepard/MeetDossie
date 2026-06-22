@@ -79,22 +79,48 @@ export default async function handler(req, res) {
   const tenantId = await resolveTenant(req);
   if (!tenantId) return res.status(403).json({ ok: false, error: 'no_tenant' });
 
-  // Embed the context
-  let embedding;
+  // Embed the context. On embed failure (OpenAI quota / network), gracefully
+  // fall back to "top by usage + recency" — the spawn still benefits from
+  // surfaced lessons even when semantic search is unavailable. Heath spec
+  // 2026-06-22 — system must remain useful under degraded external deps.
+  let embedding = null;
+  let degraded = false;
+  let degradedReason = null;
   try {
     embedding = await embedText(context);
   } catch (err) {
-    console.error('[agent-memory-load] embed failed:', err.message);
-    return res.status(502).json({ ok: false, error: 'embed_failed', detail: err.message });
+    console.warn('[agent-memory-load] embed failed, falling back to usage+recency:', err.message);
+    degraded = true;
+    degradedReason = err.message.slice(0, 200);
   }
 
   // Search
-  let lessons;
+  let lessons = [];
   try {
-    lessons = await searchMemory(tenantId, role, embedding, {
-      matchThreshold: threshold,
-      matchCount: limit,
-    });
+    if (embedding) {
+      lessons = await searchMemory(tenantId, role, embedding, {
+        matchThreshold: threshold,
+        matchCount: limit,
+      });
+    }
+    // If embed failed OR semantic search returned nothing, fall back to a
+    // pure SQL ranking by usage_count + heath_approved + recency.
+    if (!lessons || lessons.length === 0) {
+      const fallback = await sbGet(
+        `agent_role_memory?select=id,title,content,category,tags,usage_count,validation_status,learned_at` +
+        `&tenant_id=eq.${tenantId}&agent_role=eq.${role}&validation_status=neq.archived` +
+        `&order=usage_count.desc,learned_at.desc&limit=${limit}`
+      );
+      lessons = (fallback || []).map(r => ({
+        ...r,
+        similarity: null,
+        score: null,
+      }));
+      if (!degraded && lessons.length > 0) {
+        degraded = true;
+        degradedReason = 'no_semantic_match_using_fallback';
+      }
+    }
   } catch (err) {
     console.error('[agent-memory-load] search failed:', err.message);
     return res.status(500).json({ ok: false, error: 'search_failed', detail: err.message });
@@ -127,6 +153,8 @@ export default async function handler(req, res) {
     ok: true,
     role,
     count: lessons.length,
+    degraded,
+    degraded_reason: degradedReason,
     lessons,
   });
 }

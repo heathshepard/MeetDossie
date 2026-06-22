@@ -491,23 +491,40 @@ const _roleMemoryCache = new Map();
 const ROLE_MEM_TTL_MS = 60 * 1000;
 
 async function getJarvisRoleMemoryBlock(tenant, message) {
-  if (!OPENAI_API_KEY) return '';
   if (!tenant || !tenant.id) return '';
+  const key = `${tenant.id}|${String(message || '').slice(0, 200)}`;
+  const hit = _roleMemoryCache.get(key);
+  if (hit && (Date.now() - hit.at) < ROLE_MEM_TTL_MS) return hit.text;
+
+  let lessons = [];
+  // Try semantic search first
   try {
-    const key = `${tenant.id}|${String(message || '').slice(0, 200)}`;
-    const hit = _roleMemoryCache.get(key);
-    if (hit && (Date.now() - hit.at) < ROLE_MEM_TTL_MS) return hit.text;
-    const embedding = await memoryEmbedText(String(message || '').slice(0, 1000));
-    const lessons = await memorySearch(tenant.id, 'jarvis', embedding, {
-      matchThreshold: 0.40, matchCount: 6,
-    });
-    const text = memoryFormatBlock('jarvis', lessons);
-    _roleMemoryCache.set(key, { at: Date.now(), text });
-    return text;
+    if (OPENAI_API_KEY) {
+      const embedding = await memoryEmbedText(String(message || '').slice(0, 1000));
+      lessons = await memorySearch(tenant.id, 'jarvis', embedding, {
+        matchThreshold: 0.40, matchCount: 6,
+      });
+    }
   } catch (err) {
-    console.warn(`[jarvis-voice/role-memory] non-fatal: ${err.message}`);
-    return '';
+    console.warn(`[jarvis-voice/role-memory] embed non-fatal: ${err.message}`);
   }
+  // Fallback: pull top-by-usage+recency from the same role pool. Heath spec
+  // 2026-06-22 — graceful degradation when OpenAI is throttled.
+  if (!lessons || lessons.length === 0) {
+    try {
+      lessons = await sbGet(
+        `agent_role_memory?select=id,title,content,category,validation_status,usage_count,tags,learned_at` +
+        `&tenant_id=eq.${tenant.id}&agent_role=eq.jarvis&validation_status=neq.archived` +
+        `&order=usage_count.desc,learned_at.desc&limit=6`
+      );
+    } catch (err) {
+      console.warn(`[jarvis-voice/role-memory] fallback non-fatal: ${err.message}`);
+      lessons = [];
+    }
+  }
+  const text = memoryFormatBlock('jarvis', lessons || []);
+  _roleMemoryCache.set(key, { at: Date.now(), text });
+  return text;
 }
 
 async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
