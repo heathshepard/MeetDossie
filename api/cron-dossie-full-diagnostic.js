@@ -100,41 +100,51 @@ const API_PROBES = [
 
 // ----- Crons that should fire at least every N minutes ---------------------
 // Pulled live from cron_runs at runtime; this object is just the SLA.
+// business_hours_only=true means the cron is scheduled only during 14-23 UTC
+// (9 AM – 6 PM CDT) and silence outside that window is expected.
 const CRON_SLA_MIN = {
   // Critical 24/7 ops
-  'cron-mission-watchdog':        90,    // hourly
-  'cron-publish-approved':        60,
-  'cron-send-outbound-emails':    10,
-  'cron-money-pulse-snapshot':    15,
-  'cron-agent-queue-tick':        10,
+  'cron-mission-watchdog':        { sla: 90 },
+  'cron-publish-approved':        { sla: 60 },
+  'cron-send-outbound-emails':    { sla: 10 },
+  'cron-money-pulse-snapshot':    { sla: 15 },
+  'cron-agent-queue-tick':        { sla: 10 },
   // Frequent
-  'cron-staging-watcher':         15,
-  'cron-verify-zernio-deliveries': 90,
-  'cron-engagement-veto-mode':    90,
-  'cron-sage-autonomous-review':  90,
-  'cron-sage-regenerate':         90,
-  'cron-sage-first-comment':      60,
-  'cron-auto-approve':            30,
-  'cron-verify-posts':            120,
-  'cron-platform-health-checker': 4 * 60,
-  'cron-account-session-monitor': 8 * 60,
+  'cron-staging-watcher':         { sla: 15 },
+  'cron-verify-zernio-deliveries': { sla: 90 },
+  'cron-engagement-veto-mode':    { sla: 90 },
+  'cron-sage-autonomous-review':  { sla: 90 },
+  'cron-sage-regenerate':         { sla: 90 },
+  'cron-sage-first-comment':      { sla: 60 },
+  'cron-auto-approve':            { sla: 30 },
+  'cron-verify-posts':            { sla: 120 },
+  // Business-hours-only — schedule "0 14-23/2 * * *"
+  'cron-platform-health-checker': { sla: 4 * 60, business_hours_only: true },
+  'cron-account-session-monitor': { sla: 8 * 60 },
   // Daily-ish (alert if no run in 36h)
-  'cron-heath-publish-digest':    36 * 60,
-  'cron-morning-brief':           36 * 60,
-  'cron-customer-morning-brief':  36 * 60,
-  'cron-kpi-drift-detector':      36 * 60,
-  'cron-pull-post-analytics':     36 * 60,
-  'cron-daily-debrief':           36 * 60,
-  'cron-daily-platform-health':   36 * 60,
-  'cron-elevenlabs-monitor':      36 * 60,
-  'cron-affiliate-qualify-referrals': 36 * 60,
-  'cron-generate-posts':          36 * 60,
-  'cron-render-videos':           36 * 60,
+  'cron-heath-publish-digest':    { sla: 36 * 60 },
+  'cron-morning-brief':           { sla: 36 * 60 },
+  'cron-customer-morning-brief':  { sla: 36 * 60 },
+  'cron-kpi-drift-detector':      { sla: 36 * 60 },
+  'cron-pull-post-analytics':     { sla: 36 * 60 },
+  'cron-daily-debrief':           { sla: 36 * 60 },
+  'cron-daily-platform-health':   { sla: 36 * 60 },
+  'cron-elevenlabs-monitor':      { sla: 36 * 60 },
+  'cron-affiliate-qualify-referrals': { sla: 36 * 60 },
+  'cron-generate-posts':          { sla: 36 * 60 },
+  'cron-render-videos':           { sla: 36 * 60 },
   // Weekly
-  'cron-weekly-newsletter':       9 * 24 * 60,
-  'cron-weekly-scorecard':        9 * 24 * 60,
-  'cron-customer-view-digest':    9 * 24 * 60,
+  'cron-weekly-newsletter':       { sla: 9 * 24 * 60 },
+  'cron-weekly-scorecard':        { sla: 9 * 24 * 60 },
+  'cron-customer-view-digest':    { sla: 9 * 24 * 60 },
 };
+
+// Returns true if the current UTC hour is INSIDE the business window for a
+// business-hours-only cron. (14-23 UTC = 9 AM – 6 PM CDT.)
+function inBusinessHoursUTC() {
+  const h = new Date().getUTCHours();
+  return h >= 14 && h <= 23;
+}
 
 // ============================================================================
 // Helpers
@@ -557,8 +567,11 @@ async function runCronHeartbeat() {
   for (const row of res.data) byName.set(row.cron_name, row);
 
   const now = Date.now();
+  const inBH = inBusinessHoursUTC();
   // For every cron we know the SLA for, evaluate
-  for (const [cronName, slaMin] of Object.entries(CRON_SLA_MIN)) {
+  for (const [cronName, cfg] of Object.entries(CRON_SLA_MIN)) {
+    const slaMin = cfg.sla;
+    const businessHoursOnly = !!cfg.business_hours_only;
     const row = byName.get(cronName);
     let status = 'pass';
     let severity = 'info';
@@ -575,7 +588,13 @@ async function runCronHeartbeat() {
       if (row.last_status === 'error') {
         status = 'fail';
         severity = 'critical';
-        errorMessage = `last run status=error · ${ageMin}m ago`;
+        const errBody = row.last_meta && row.last_meta.error
+          ? String(row.last_meta.error).slice(0, 80)
+          : '';
+        errorMessage = `last run errored${errBody ? ': ' + errBody : ''} · ${ageMin}m ago`;
+      } else if (businessHoursOnly && !inBH) {
+        // Outside business hours — silence is expected. Pass.
+        status = 'pass';
       } else if (ageMin > slaMin * 2) {
         status = 'fail';
         severity = 'critical';
@@ -601,6 +620,7 @@ async function runCronHeartbeat() {
         last_meta: row && row.last_meta,
         age_minutes: ageMin,
         sla_minutes: slaMin,
+        business_hours_only: businessHoursOnly,
       },
       error_message: errorMessage,
     });
@@ -615,28 +635,28 @@ async function runCronHeartbeat() {
 async function runDataHealth() {
   const checks = [];
 
-  // 4a: MRR claim vs active subscriptions
+  // 4a: Active subscriptions count vs CLAUDE.md MRR claim
+  // The subscriptions table stores plan name only (price stored in Stripe).
+  // We infer MRR from the plan column: founding=$29, solo=$79, team=$199.
   {
     const startedAt = Date.now();
     const subRes = await sb(
-      `/rest/v1/subscriptions?select=id,status,plan_amount,monthly_amount,price_id&status=eq.active&limit=200`
+      `/rest/v1/subscriptions?select=id,plan,status&status=eq.active&limit=200`
     );
-    let mrrCents = 0;
+    const PLAN_PRICE_DOLLARS = { founding: 29, solo: 79, team: 199, brokerage: 0 };
     let activeCount = 0;
+    const byPlan = {};
+    let mrrDollars = 0;
     if (subRes.ok && Array.isArray(subRes.data)) {
       activeCount = subRes.data.length;
       for (const s of subRes.data) {
-        const amt = (s.monthly_amount != null ? s.monthly_amount
-                     : s.plan_amount != null ? s.plan_amount : 0);
-        // Heuristic: stored cents or dollars — pick whichever looks plausible.
-        // If amt > 1000 assume cents.
-        if (typeof amt === 'number') {
-          mrrCents += amt > 1000 ? amt : amt * 100;
-        }
+        const p = s.plan || 'unknown';
+        byPlan[p] = (byPlan[p] || 0) + 1;
+        mrrDollars += PLAN_PRICE_DOLLARS[p] || 0;
       }
     }
-    const mrrDollars = Math.round(mrrCents / 100);
-
+    // CLAUDE.md claims $349 MRR (12 founding @ $29 + 1 friend @ $1).
+    // Tolerate a $10 drift for the friend account etc.
     let status = 'pass';
     let severity = 'info';
     let errorMessage = null;
@@ -648,6 +668,10 @@ async function runDataHealth() {
       status = 'warn';
       severity = 'warn';
       errorMessage = '0 active subscriptions';
+    } else if (Math.abs(mrrDollars - 349) > 50) {
+      status = 'warn';
+      severity = 'warn';
+      errorMessage = `MRR drift: calc=$${mrrDollars} vs CLAUDE.md=$349 (delta $${mrrDollars - 349})`;
     }
     checks.push({
       category: 'data',
@@ -658,6 +682,7 @@ async function runDataHealth() {
       duration_ms: Date.now() - startedAt,
       evidence: {
         active_subscriptions: activeCount,
+        by_plan: byPlan,
         calculated_mrr_dollars: mrrDollars,
         claude_md_mrr_claim: 349,
         delta: mrrDollars - 349,
@@ -767,6 +792,62 @@ async function runDataHealth() {
       severity,
       duration_ms: Date.now() - startedAt,
       evidence: { ...counts },
+      error_message: errorMessage,
+    });
+  }
+
+  // 4e: Social posts approved-but-unscheduled (cron-publish-approved silent fail)
+  {
+    const startedAt = Date.now();
+    const sp = await sb(
+      `/rest/v1/social_posts?select=id,platform,created_at,scheduled_for&status=eq.approved&scheduled_for=is.null&limit=20`
+    );
+    let status = 'pass';
+    let severity = 'info';
+    let errorMessage = null;
+    let count = 0;
+    let sample = [];
+    if (sp.ok && Array.isArray(sp.data)) {
+      count = sp.data.length;
+      sample = sp.data.slice(0, 3).map((p) => ({ id: p.id, platform: p.platform, created_at: p.created_at }));
+      if (count > 0) {
+        status = 'fail';
+        severity = 'critical';
+        errorMessage = `${count} approved post(s) have scheduled_for=NULL — cron-publish-approved silently skips them`;
+      }
+    }
+    checks.push({
+      category: 'data',
+      check_key: 'data.approved-no-schedule',
+      label: 'Data: approved posts without scheduled_for',
+      status,
+      severity,
+      duration_ms: Date.now() - startedAt,
+      evidence: { count, sample },
+      error_message: errorMessage,
+    });
+  }
+
+  // 4f: Posts actually published in last 24h (sanity vs the pipeline)
+  {
+    const startedAt = Date.now();
+    const cutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const sp = await sb(
+      `/rest/v1/social_posts?select=id&status=eq.posted&posted_at=gt.${cutoff}&limit=200`
+    );
+    let count = 0;
+    if (sp.ok && Array.isArray(sp.data)) count = sp.data.length;
+    let status = count >= 1 ? 'pass' : 'warn';
+    let severity = count === 0 ? 'warn' : 'info';
+    let errorMessage = count === 0 ? '0 posts published in last 24h — pipeline likely stuck' : null;
+    checks.push({
+      category: 'data',
+      check_key: 'data.posted-last-24h',
+      label: 'Data: posts published in last 24h',
+      status,
+      severity,
+      duration_ms: Date.now() - startedAt,
+      evidence: { count_last_24h: count },
       error_message: errorMessage,
     });
   }
