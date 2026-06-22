@@ -507,10 +507,16 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     console.log(`[jarvis-voice/chat] [${requestId}] new conv ${convId}`);
   }
 
-  // Load last 20 messages from this conversation for history
-  const history = await sbGet(
-    `jarvis_messages?select=role,content&conversation_id=eq.${convId}&order=created_at.asc&limit=20`
+  // Load last 30 messages from this conversation for history.
+  // CRITICAL: order DESC + reverse in JS to get the MOST RECENT 30 messages
+  // (not the oldest 30). Before this fix, long conversations (>30 turns)
+  // were sending Claude the first 30 messages — every reply was based on
+  // ancient context. Heath called it out: "Jarvis is a conversational idiot.
+  // He asks a question, I say yes, then he says 'whenever you're ready'."
+  const historyDesc = await sbGet(
+    `jarvis_messages?select=role,content,created_at&conversation_id=eq.${convId}&order=created_at.desc&limit=30`
   );
+  const history = (historyDesc || []).slice().reverse();
 
   // Persist the user message
   await sbPost('jarvis_messages', {
@@ -542,10 +548,18 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   console.log(`[jarvis-voice/chat] [${requestId}] tenant=${tenant.slug} msg="${message.slice(0, 80)}" tools=${enabledToolNames.length}`);
 
   // Build messages array. Start with prior history + the new user message.
+  // Anthropic requires turns to alternate user/assistant starting with user.
+  // If the trimmed-to-30 history happens to start with an assistant turn
+  // (because the oldest of the 30 is an assistant reply), drop it so the
+  // sequence is well-formed.
+  const cleanedHistory = history
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 4000) }));
+  while (cleanedHistory.length && cleanedHistory[0].role !== 'user') {
+    cleanedHistory.shift();
+  }
   let messages = [
-    ...history
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 4000) })),
+    ...cleanedHistory,
     { role: 'user', content: message.slice(0, 4000) },
   ];
 
@@ -812,9 +826,11 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     convId = created[0].id;
   }
 
-  // Load history + persist user message + load live ctx in parallel
-  const [history, liveCtx] = await Promise.all([
-    sbGet(`jarvis_messages?select=role,content&conversation_id=eq.${convId}&order=created_at.asc&limit=20`),
+  // Load history + persist user message + load live ctx in parallel.
+  // CRITICAL: order DESC + reverse to get the MOST RECENT 30 (not oldest).
+  // See handleChat() for the same fix and the bug it addresses.
+  const [historyDesc, liveCtx] = await Promise.all([
+    sbGet(`jarvis_messages?select=role,content,created_at&conversation_id=eq.${convId}&order=created_at.desc&limit=30`),
     sbPost('jarvis_messages', {
       conversation_id: convId,
       tenant_id: tenant.id,
@@ -822,12 +838,30 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
       content: message.slice(0, 4000),
     }, { prefer: 'return=minimal' }).then(() => getContextExtension(tenant)),
   ]);
+  // Dedupe: the parallel INSERT may have completed before the SELECT, so
+  // the current user message could already be at the head of historyDesc
+  // (DESC order = newest first). Strip only that first entry if it matches,
+  // because Claude API rejects consecutive same-role turns.
+  const trimmedMsg = message.slice(0, 4000);
+  let historyDescSafe = historyDesc || [];
+  if (historyDescSafe.length && historyDescSafe[0].role === 'user' &&
+      String(historyDescSafe[0].content || '').slice(0, 4000) === trimmedMsg) {
+    historyDescSafe = historyDescSafe.slice(1);
+  }
+  const history = historyDescSafe.slice().reverse();
+
+  // Anthropic requires turns to start with user. Drop leading assistant turns
+  // if the trimmed window happens to begin with one.
+  const cleanedHistory = history
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 4000) }));
+  while (cleanedHistory.length && cleanedHistory[0].role !== 'user') {
+    cleanedHistory.shift();
+  }
 
   const finalMessages = [
-    ...history
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 4000) })),
-    { role: 'user', content: message.slice(0, 4000) },
+    ...cleanedHistory,
+    { role: 'user', content: trimmedMsg },
   ];
 
   // Mirror the non-streaming /op=chat ordering: persona, temporal context
