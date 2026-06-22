@@ -1,0 +1,142 @@
+{
+  "form_id": "trec-39-10",
+  "total_unmatched": 27,
+  "llm_guesses": {
+    "0": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.95,
+      "reasoning": "This field explicitly labels 'Street Address and City' for the property being amended in the contract"
+    },
+    "1": {
+      "fixture_key": "addendum_sales_price",
+      "confidence": 0.9,
+      "reasoning": "This is a checkbox for amending the sales price section of the contract, fitting the addendum_<name> pattern for boolean checkboxes on amendment forms"
+    },
+    "4": {
+      "fixture_key": "sales_price_financing",
+      "confidence": 0.95,
+      "reasoning": "Text field for sum of financing amount in Section B of the sales price breakdown"
+    },
+    "6": {
+      "fixture_key": "sales_price_total",
+      "confidence": 0.95,
+      "reasoning": "This is the text field for the total Sales Price (Sum of A and B) as indicated by section heading C"
+    },
+    "7": {
+      "fixture_key": "sales_price_total",
+      "confidence": 0.95,
+      "reasoning": "Widget is positioned on the Sales Price line (Sum of A and B) in section C, representing the total sales price field"
+    },
+    "8": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for seller to describe required repairs and treatments per contract paragraph (2), no more specific category applies"
+    },
+    "9": {
+      "fixture_key": "sales_price_total",
+      "confidence": 0.92,
+      "reasoning": "This is the dollar amount field for Section C which explicitly states 'Sales Price (Sum of A and B)'"
+    },
+    "10": {
+      "fixture_key": "paragraph_9_date_change_selected",
+      "confidence": 0.9,
+      "reasoning": "This checkbox indicates whether Paragraph 9's date in the contract is being amended, making it a conditional modifier for a contract date change."
+    },
+    "11": {
+      "fixture_key": "notes",
+      "confidence": 0.6,
+      "reasoning": "This is a date field in an amendment section modifying Paragraph 9 of the contract, but without more context about what specific date is being amended, it's best categorized as notes rather than a standard date field like closing_date or option_period_end_date."
+    },
+    "12": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Year field for date change in paragraph 9, but unclear if this is a standalone year field or part of a larger date context that would warrant a more specific key"
+    },
+    "13": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "This is a checkbox for selecting between two mutually exclusive options (dollar amount vs. percentage) rather than a fillable field itself; the actual values go in the fields that follow."
+    },
+    "14": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "This is a decorative checkbox for item (4) listing options; the actual fillable fields are the dollar amount and percentage boxes that follow"
+    },
+    "15": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Widget appears to be a year field in an amendment clause modifying Paragraph 9 date, but lacks sufficient context to determine if it's a specific date component or general amendment detail"
+    },
+    "16": {
+      "fixture_key": "will_not",
+      "confidence": 0.35,
+      "reasoning": "Checkbox for negation option in paragraph 12A(1)(b) amendment, but 'will_not' is not a standard TREC fixture convention; should likely be part of a compound field like 'sales_price_cash_or_percentage' or use 'notes' as fallback"
+    },
+    "17": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Widget sits in amendment section modifying Paragraph 12A(1)(b) but position and width suggest it may be a year field, checkbox, or percentage value that lacks sufficient context to determine precisely"
+    },
+    "20": {
+      "fixture_key": "option_fee",
+      "confidence": 0.95,
+      "reasoning": "This is a checkbox to indicate that an additional option fee has been paid, which is a standard real estate contract element for the buyer's option period."
+    },
+    "21": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for describing how lender-required repair costs are allocated between Seller and Buyer, part of amendment modifications"
+    },
+    "27": {
+      "fixture_key": "option_fee_credited_to_sales_price",
+      "confidence": 0.72,
+      "reasoning": "Checkbox indicating whether the additional option fee will be credited to the sales price in paragraph (7)"
+    },
+    "28": {
+      "fixture_key": "option_fee_credited_to_sales_price",
+      "confidence": 0.72,
+      "reasoning": "Checkbox indicating whether the additional Option Fee will be credited to the Sales Price, as referenced in paragraph (7)"
+    },
+    "29": {
+      "fixture_key": "notes",
+      "confidence": 0.4,
+      "reasoning": "Checkbox for incomplete clause about buyer approval notice deadline; text is cut off making specific field identification impossible"
+    },
+    "30": {
+      "fixture_key": "notes",
+      "confidence": 0.9,
+      "reasoning": "This checkbox indicates the start of a free-text section for other modifications to the contract, functioning as a label rather than a data field itself."
+    },
+    "31": {
+      "fixture_key": "option_period_end_date",
+      "confidence": 0.82,
+      "reasoning": "Widget is positioned within section about option fee termination date, matching the date field for when buyer must notify seller regarding option period expiration."
+    },
+    "33": {
+      "fixture_key": "other_modifications_checkbox",
+      "confidence": 0.92,
+      "reasoning": "Checkbox (10) for 'Other Modifications' option allowing additional contract amendments"
+    },
+    "35": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "This text field in section (10) 'Other Modifications' is a catch-all for miscellaneous contract amendments that don't fit standard categories."
+    },
+    "36": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Text field in 'Other Modifications' section for contract amendments, which is a catch-all provision area"
+    },
+    "37": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for 'Other Modifications' section (10) where parties can add custom contract amendments"
+    },
+    "40": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Small text field for broker to fill in date of final acceptance, which is administrative metadata rather than a standard contract field."
+    }
+  },
+  "generated_at": "2026-06-19T19:17:26.300Z"
+}

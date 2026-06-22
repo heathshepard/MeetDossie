@@ -1,0 +1,24 @@
+{
+  "form": "trec-40",
+  "labeled_at": "2026-06-19T17:59:34.570Z",
+  "labels": [
+    {
+      "index": 0,
+      "fixture_key": "property_address_line1",
+      "status": "accepted",
+      "original_guess": "property_address_line1"
+    },
+    {
+      "index": 1,
+      "fixture_key": null,
+      "status": "skipped",
+      "original_guess": "financing_type"
+    },
+    {
+      "index": 2,
+      "fixture_key": "loan_amount",
+      "status": "corrected",
+      "original_guess": null
+    }
+  ]
+}

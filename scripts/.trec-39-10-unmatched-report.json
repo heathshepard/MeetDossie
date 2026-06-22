@@ -1,0 +1,1107 @@
+{
+  "generated_at": "2026-06-19T17:49:14.022Z",
+  "form": "TREC 39-10 Amendment",
+  "form_id": "trec-39-10",
+  "algorithm": {
+    "proximity_radius_pt": 100,
+    "same_baseline_tol_pt": 8,
+    "left_label_max_gap_pt": 220,
+    "above_label_max_gap_pt": 30,
+    "confident_min_score": 0.55,
+    "score_weights": {
+      "same_baseline_left": 1,
+      "directly_above": 0.85,
+      "same_baseline_right": 0.35,
+      "general_proximity": 0.25,
+      "keyword_hit_bonus": 0.2,
+      "exact_keyword_phrase": 0.3
+    }
+  },
+  "stats": {
+    "total_widgets": 45,
+    "confident_match": 18,
+    "unmatched": 27,
+    "skip": 0,
+    "pct_confident": 40,
+    "pct_unmatched": 60
+  },
+  "confident_matches": [
+    {
+      "index": 2,
+      "field_name": "undefined",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.723,
+      "evidence": {
+        "label": "A. Cash portion of Sales Price payable by Buyer at closing",
+        "relation": "same_baseline_left",
+        "gap_pt": 104.9,
+        "matched_phrase": "cash portion",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 3,
+      "field_name": "undefined_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.723,
+      "evidence": {
+        "label": "A. Cash portion of Sales Price payable by Buyer at closing",
+        "relation": "same_baseline_left",
+        "gap_pt": 105,
+        "matched_phrase": "cash portion",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 5,
+      "field_name": "2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "repairs_required",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] 2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "repairs and treatments",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 18,
+      "field_name": "5 The cost of lender required repairs and treatment as itemized on the attached list will be paid",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "repairs_required",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] 5 The cost of lender required repairs and treatment as itemized on the attached list will be paid",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "repairs",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 19,
+      "field_name": "undefined_4",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.56,
+      "evidence": {
+        "label": "of the Sales Price (check one box only).",
+        "relation": "same_baseline_left",
+        "gap_pt": 140.7,
+        "matched_phrase": "sales price",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 22,
+      "field_name": "for an extension of the",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.793,
+      "evidence": {
+        "label": "by Seller; $",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.6,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 23,
+      "field_name": "7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_reason_option_fee",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] 7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "unrestricted right",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 24,
+      "field_name": "contract",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "option_fee",
+      "confidence_score": 1.186,
+      "evidence": {
+        "label": "Buyer has paid Seller an additional Option Fee of $",
+        "relation": "same_baseline_left",
+        "gap_pt": 3,
+        "matched_phrase": "option fee",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 25,
+      "field_name": "be credited to the Sales Price",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] be credited to the Sales Price",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "sales price",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 26,
+      "field_name": "20_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "sales_price",
+      "confidence_score": 0.863,
+      "evidence": {
+        "label": "to the Sales Price.",
+        "relation": "same_baseline_left",
+        "gap_pt": 74,
+        "matched_phrase": "sales price",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 32,
+      "field_name": "20_3",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 1.197,
+      "evidence": {
+        "label": "Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 22.6,
+        "matched_phrase": "buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 34,
+      "field_name": "Text7 1",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 1.197,
+      "evidence": {
+        "label": "Real estate brokers and sales agents are prohibited from practicing law.)",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.6,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 38,
+      "field_name": "DATE OF FINAL ACCEPTANCE",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 1.184,
+      "evidence": {
+        "label": "EXECUTED",
+        "relation": "same_baseline_left",
+        "gap_pt": 25.6,
+        "matched_phrase": "executed",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 39,
+      "field_name": "20_4",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "effective_date",
+      "confidence_score": 0.836,
+      "evidence": {
+        "label": "EXECUTED",
+        "relation": "same_baseline_left",
+        "gap_pt": 102.1,
+        "matched_phrase": "executed",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 41,
+      "field_name": "Signature3",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.62,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 19,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 42,
+      "field_name": "Signature7",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.621,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 18.4,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 43,
+      "field_name": "Signature5",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 44,
+      "field_name": "Signature8",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "index": 0,
+      "field_name": "Street Address and City",
+      "page": 1,
+      "x": 125,
+      "y": 687,
+      "width": 359,
+      "height": 15,
+      "field_type": "text",
+      "best_label_guess": "TO CONTRACT CONCERNING THE PROPERTY AT",
+      "best_label_score": 0.354,
+      "best_label_fixture_key": "contract_concerning_property",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Street Address and City)",
+          "distance": 11.1,
+          "direction": "below"
+        },
+        {
+          "text": "TO CONTRACT CONCERNING THE PROPERTY AT",
+          "distance": 23.5,
+          "direction": "above"
+        },
+        {
+          "text": "AMENDMENT",
+          "distance": 36.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'TO CONTRACT CONCERNING THE PROPERTY AT' would map to 'contract_concerning_property' but score 0.354 < threshold 0.55"
+    },
+    {
+      "index": 1,
+      "field_name": "1 The Sales Price in Paragraph 3 of the contract is",
+      "page": 1,
+      "x": 37,
+      "y": 632,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 1 The Sales Price in Paragraph 3 of the contract is",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "sales_price",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.2,
+          "direction": "above"
+        },
+        {
+          "text": "(1)",
+          "distance": 13.6,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 44.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'sales_price' -- need a boolean fixture key"
+    },
+    {
+      "index": 4,
+      "field_name": "undefined_3",
+      "page": 1,
+      "x": 470,
+      "y": 597,
+      "width": 90,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "7",
+          "distance": 24.4,
+          "direction": "below"
+        },
+        {
+          "text": "of",
+          "distance": 29.7,
+          "direction": "below"
+        },
+        {
+          "text": "warranties",
+          "distance": 34.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '$' but no matching fixture key exists for it"
+    },
+    {
+      "index": 6,
+      "field_name": "Text1",
+      "page": 1,
+      "x": 195,
+      "y": 552,
+      "width": 362,
+      "height": 10,
+      "field_type": "text",
+      "best_label_guess": "repairs and treatments.)",
+      "best_label_score": 1.206,
+      "best_label_fixture_key": "repairs_required",
+      "nearest_labels_within_100px": [
+        {
+          "text": "treatments:",
+          "distance": 21.9,
+          "direction": "above"
+        },
+        {
+          "text": "documentation,",
+          "distance": 22.8,
+          "direction": "left"
+        },
+        {
+          "text": "and",
+          "distance": 36.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'repairs_required' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 7,
+      "field_name": "Text 10",
+      "page": 1,
+      "x": 68,
+      "y": 541,
+      "width": 488,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "of",
+          "distance": 22.2,
+          "direction": "above"
+        },
+        {
+          "text": "repairs",
+          "distance": 35.9,
+          "direction": "above"
+        },
+        {
+          "text": "and",
+          "distance": 36,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'contract' but no matching fixture key exists for it"
+    },
+    {
+      "index": 8,
+      "field_name": "Text 9",
+      "page": 1,
+      "x": 68,
+      "y": 530,
+      "width": 488,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "repairs and treatments.)",
+      "best_label_score": 0.733,
+      "best_label_fixture_key": "repairs_required",
+      "nearest_labels_within_100px": [
+        {
+          "text": "of",
+          "distance": 33.3,
+          "direction": "above"
+        },
+        {
+          "text": "repairs",
+          "distance": 46.3,
+          "direction": "above"
+        },
+        {
+          "text": "and",
+          "distance": 46.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'repairs_required' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 9,
+      "field_name": "Text 8",
+      "page": 1,
+      "x": 69,
+      "y": 519,
+      "width": 488,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "of",
+          "distance": 44.2,
+          "direction": "above"
+        },
+        {
+          "text": "of the contract is changed to",
+          "distance": 44.4,
+          "direction": "left"
+        },
+        {
+          "text": "of the contract is changed to $",
+          "distance": 56.6,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '(3)' but no matching fixture key exists for it"
+    },
+    {
+      "index": 10,
+      "field_name": "3 The date in Paragraph 9 of the contract is changed to",
+      "page": 1,
+      "x": 37,
+      "y": 507,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 12.4,
+          "direction": "below"
+        },
+        {
+          "text": "(3)",
+          "distance": 13.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 3 The date in Paragraph 9 of the contract is changed to' but no matching fixture key exists for it"
+    },
+    {
+      "index": 11,
+      "field_name": "date 5",
+      "page": 1,
+      "x": 347,
+      "y": 506,
+      "width": 149,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "$",
+          "distance": 14.3,
+          "direction": "below"
+        },
+        {
+          "text": "q",
+          "distance": 15.7,
+          "direction": "below"
+        },
+        {
+          "text": "and",
+          "distance": 57.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'of the contract is changed to' but no matching fixture key exists for it"
+    },
+    {
+      "index": 12,
+      "field_name": "20_25",
+      "page": 1,
+      "x": 518,
+      "y": 505,
+      "width": 38,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "_____%",
+          "distance": 13.9,
+          "direction": "below"
+        },
+        {
+          "text": ".",
+          "distance": 20.5,
+          "direction": "right"
+        },
+        {
+          "text": ".",
+          "distance": 24.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found ', 20' but no matching fixture key exists for it"
+    },
+    {
+      "index": 13,
+      "field_name": "4 The amount in Paragraph 12A1b of the contract is changed to",
+      "page": 1,
+      "x": 37,
+      "y": 492,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2,
+          "direction": "above"
+        },
+        {
+          "text": "(4)",
+          "distance": 13.6,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 16.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 4 The amount in Paragraph 12A1b of the contract is changed to' but no matching fixture key exists for it"
+    },
+    {
+      "index": 14,
+      "field_name": "will",
+      "page": 1,
+      "x": 405,
+      "y": 492,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "$",
+          "distance": 9.8,
+          "direction": "right"
+        },
+        {
+          "text": "and",
+          "distance": 71.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] will' but no matching fixture key exists for it"
+    },
+    {
+      "index": 15,
+      "field_name": "20",
+      "page": 1,
+      "x": 425,
+      "y": 491,
+      "width": 62,
+      "height": 13,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "$",
+          "distance": 34.5,
+          "direction": "left"
+        },
+        {
+          "text": "or",
+          "distance": 35.3,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 43.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '$' but no matching fixture key exists for it"
+    },
+    {
+      "index": 16,
+      "field_name": "will not",
+      "page": 1,
+      "x": 503,
+      "y": 492,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2,
+          "direction": "above"
+        },
+        {
+          "text": ", 20",
+          "distance": 14.9,
+          "direction": "above"
+        },
+        {
+          "text": "or",
+          "distance": 18.3,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] will not' but no matching fixture key exists for it"
+    },
+    {
+      "index": 17,
+      "field_name": "undefined_5",
+      "page": 1,
+      "x": 518,
+      "y": 491,
+      "width": 31,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "_____%",
+          "distance": 5.5,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 23.5,
+          "direction": "left"
+        },
+        {
+          "text": ".",
+          "distance": 28.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found ', 20' but no matching fixture key exists for it"
+    },
+    {
+      "index": 20,
+      "field_name": "6 Buyer has paid Seller an additional Option Fee of",
+      "page": 1,
+      "x": 37,
+      "y": 453,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 6 Buyer has paid Seller an additional Option Fee of",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "option_fee",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.5,
+          "direction": "above"
+        },
+        {
+          "text": "(6)",
+          "distance": 13.5,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 16,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'option_fee' -- need a boolean fixture key"
+    },
+    {
+      "index": 21,
+      "field_name": "as follows",
+      "page": 1,
+      "x": 138,
+      "y": 440,
+      "width": 137,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Buyer has paid Seller an additional Option Fee of $",
+          "distance": 14.3,
+          "direction": "below"
+        },
+        {
+          "text": "12",
+          "distance": 26.5,
+          "direction": "above"
+        },
+        {
+          "text": "to",
+          "distance": 28.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'as follows: $' but no matching fixture key exists for it"
+    },
+    {
+      "index": 27,
+      "field_name": "Fee",
+      "page": 1,
+      "x": 412,
+      "y": 403,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": ". This additional Option Fee",
+      "best_label_score": 1.189,
+      "best_label_fixture_key": "option_fee",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2,
+          "direction": "above"
+        },
+        {
+          "text": "will",
+          "distance": 17.8,
+          "direction": "right"
+        },
+        {
+          "text": "or",
+          "distance": 23,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'option_fee' -- need a boolean fixture key"
+    },
+    {
+      "index": 28,
+      "field_name": "Fee 2",
+      "page": 1,
+      "x": 447,
+      "y": 403,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.8,
+          "direction": "above"
+        },
+        {
+          "text": "will",
+          "distance": 17.1,
+          "direction": "left"
+        },
+        {
+          "text": "before",
+          "distance": 21.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Fee 2' but no matching fixture key exists for it"
+    },
+    {
+      "index": 29,
+      "field_name": "8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as",
+      "page": 1,
+      "x": 38,
+      "y": 377,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.7,
+          "direction": "above"
+        },
+        {
+          "text": "(8)",
+          "distance": 13,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 22.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 30,
+      "field_name": "9 Other Modifications Insert only factual statements and business details applicable to this sale",
+      "page": 1,
+      "x": 37,
+      "y": 352,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 9 Other Modifications Insert only factual statements and business details applicable to this sale",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "property_state",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "(9)",
+          "distance": 13.6,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 23.1,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'property_state' -- need a boolean fixture key"
+    },
+    {
+      "index": 31,
+      "field_name": "Text6",
+      "page": 1,
+      "x": 390,
+      "y": 338,
+      "width": 106,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "set forth in the Third Party Financing Addendum",
+      "best_label_score": 0.861,
+      "best_label_fixture_key": "third_party_financing_addendum",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Buyer",
+          "distance": 38.1,
+          "direction": "right"
+        },
+        {
+          "text": ", 20",
+          "distance": 62.4,
+          "direction": "right"
+        },
+        {
+          "text": "will",
+          "distance": 63.5,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'third_party_financing_addendum' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 33,
+      "field_name": "10",
+      "page": 1,
+      "x": 36,
+      "y": 326,
+      "width": 12,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.9,
+          "direction": "above"
+        },
+        {
+          "text": "(10)",
+          "distance": 18.3,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 27.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 10' but no matching fixture key exists for it"
+    },
+    {
+      "index": 35,
+      "field_name": "Text5.1",
+      "page": 1,
+      "x": 71,
+      "y": 314,
+      "width": 485,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "is changed to",
+          "distance": 46.7,
+          "direction": "right"
+        },
+        {
+          "text": "Real estate brokers and sales agents are prohibited from practicing law.)",
+          "distance": 48.5,
+          "direction": "right"
+        },
+        {
+          "text": "READ THIS FORM CAREFULLY.",
+          "distance": 57.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '(10)' but no matching fixture key exists for it"
+    },
+    {
+      "index": 36,
+      "field_name": "Text4.1",
+      "page": 1,
+      "x": 71,
+      "y": 302,
+      "width": 485,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "Real estate brokers and sales agents are prohibited from practicing law.)",
+      "best_label_score": 0.294,
+      "best_label_fixture_key": "property_state",
+      "nearest_labels_within_100px": [
+        {
+          "text": "READ THIS FORM CAREFULLY.",
+          "distance": 46.2,
+          "direction": "below"
+        },
+        {
+          "text": "Real estate brokers and sales agents are prohibited from practicing law.)",
+          "distance": 52.9,
+          "direction": "right"
+        },
+        {
+          "text": "is changed to",
+          "distance": 54.3,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Real estate brokers and sales agents are prohibited from practicing law.)' would map to 'property_state' but score 0.294 < threshold 0.55"
+    },
+    {
+      "index": 37,
+      "field_name": "Text3.1",
+      "page": 1,
+      "x": 71,
+      "y": 293,
+      "width": 484,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "READ THIS FORM CAREFULLY.",
+          "distance": 37,
+          "direction": "below"
+        },
+        {
+          "text": "Real estate brokers and sales agents are prohibited from practicing law.)",
+          "distance": 58.1,
+          "direction": "right"
+        },
+        {
+          "text": "is changed to",
+          "distance": 61.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Text3.1' but no matching fixture key exists for it"
+    },
+    {
+      "index": 40,
+      "field_name": "BROKER FILL IN THE",
+      "page": 1,
+      "x": 395,
+      "y": 232,
+      "width": 35,
+      "height": 13,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ".",
+          "distance": 22.3,
+          "direction": "right"
+        },
+        {
+          "text": ", 20",
+          "distance": 28.4,
+          "direction": "left"
+        },
+        {
+          "text": "TREC rules prohibit real estate brokers and sales",
+          "distance": 44.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found ', 20' but no matching fixture key exists for it"
+    }
+  ],
+  "skipped": []
+}

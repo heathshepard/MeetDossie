@@ -1,0 +1,822 @@
+{
+  "form_id": "op-h",
+  "total_unmatched": 163,
+  "llm_guesses": {
+    "0": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.95,
+      "reasoning": "Text field positioned directly below 'CONCERNING THE PROPERTY AT (Street Address and City)' heading, clearly for entering the street address"
+    },
+    "1": {
+      "fixture_key": "seller_occupying_property_no",
+      "confidence": 0.75,
+      "reasoning": "checkbox for 'Seller is not occupying the Property' disclosure statement"
+    },
+    "2": {
+      "fixture_key": "seller_occupancy_not_occupying",
+      "confidence": 0.92,
+      "reasoning": "Checkbox indicating whether seller is not currently occupying the property, placed immediately after the occupancy disclosure statement"
+    },
+    "4": {
+      "fixture_key": "range_oven_present",
+      "confidence": 0.92,
+      "reasoning": "Single-letter Y/N/U response field for Range Oven fixture status in Property disclosure section 1"
+    },
+    "5": {
+      "fixture_key": "item_dishwasher",
+      "confidence": 0.95,
+      "reasoning": "Text field for Y/N/U response to Dishwasher item in property fixtures checklist"
+    },
+    "6": {
+      "fixture_key": "item_trash_compactor",
+      "confidence": 0.92,
+      "reasoning": "Text field for Yes/No/Unknown response about whether property has a trash compactor, positioned in the appliances section of the disclosure form."
+    },
+    "7": {
+      "fixture_key": "item_range_oven",
+      "confidence": 0.95,
+      "reasoning": "This is a Y/N/U text field for disclosing whether the property includes a range oven appliance, positioned in Section 1 of the seller's disclosure."
+    },
+    "8": {
+      "fixture_key": "washer_dryer_hookups",
+      "confidence": 0.92,
+      "reasoning": "Text field in Section 1 for indicating Yes/No/Unknown about washer/dryer hookups availability at the property"
+    },
+    "9": {
+      "fixture_key": "trash_compactor_present",
+      "confidence": 0.92,
+      "reasoning": "Text input field in section 1 for recording Yes/No/Unknown status of trash compactor fixture in the property"
+    },
+    "10": {
+      "fixture_key": "item_dishwasher",
+      "confidence": 0.95,
+      "reasoning": "Text field for yes/no/unknown response about dishwasher presence in section 1 of seller's disclosure"
+    },
+    "11": {
+      "fixture_key": "washer_dryer_hookups",
+      "confidence": 0.9,
+      "reasoning": "Text field for Y/N/U response regarding presence of washer/dryer hookups in Section 1 property items checklist"
+    },
+    "12": {
+      "fixture_key": "trash_compactor_present",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to whether property has a trash compactor, located in Section 1 fixture checklist"
+    },
+    "13": {
+      "fixture_key": "security_system_y_n_u",
+      "confidence": 0.95,
+      "reasoning": "Single-character response field for Yes/No/Unknown answer about whether the property has a Security System"
+    },
+    "14": {
+      "fixture_key": "washer_dryer_hookups",
+      "confidence": 0.9,
+      "reasoning": "Text field for Yes/No/Unknown response about Washer/Dryer Hookups item in Section 1 property fixtures checklist"
+    },
+    "15": {
+      "fixture_key": "item_window_screens",
+      "confidence": 0.95,
+      "reasoning": "Text input field for Yes/No/Unknown response about window screens presence in property Section 1 disclosure checklist"
+    },
+    "16": {
+      "fixture_key": "security_system_present",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to whether Security System is present in the property, located in Section 1 of the Seller's Disclosure Notice"
+    },
+    "17": {
+      "fixture_key": "smoke_detector_present",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N/U response field for whether the property has a smoke detector, positioned within Section 1 of the disclosure form."
+    },
+    "18": {
+      "fixture_key": "smoke_detector_present",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to whether property has a smoke detector, following the section 1 checkbox format"
+    },
+    "19": {
+      "fixture_key": "item_tv_antenna",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response about TV antenna presence in Section 1 property items checklist"
+    },
+    "20": {
+      "fixture_key": "tv_antenna_present",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to TV Antenna item in property disclosure checklist"
+    },
+    "21": {
+      "fixture_key": "item_tv_antenna",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response about TV antenna presence in Section 1 property items checklist"
+    },
+    "22": {
+      "fixture_key": "ceiling_fan_state",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response about ceiling fan presence in property disclosure section 1"
+    },
+    "23": {
+      "fixture_key": "central_ac_state",
+      "confidence": 0.92,
+      "reasoning": "Text input field for Y/N/U response to Central A/C presence in Section 1 property disclosure checklist"
+    },
+    "24": {
+      "fixture_key": "tv_antenna_present",
+      "confidence": 0.92,
+      "reasoning": "Y/N/U checkbox field for TV Antenna item in Section 1 property disclosure list"
+    },
+    "25": {
+      "fixture_key": "central_heating_state",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to Central Heating fixture in Section 1 property items checklist"
+    },
+    "26": {
+      "fixture_key": "central_ac_present",
+      "confidence": 0.92,
+      "reasoning": "Text input field for Y/N/U response about Central A/C presence in Section 1 property items checklist"
+    },
+    "27": {
+      "fixture_key": "plumbing_system_state",
+      "confidence": 0.92,
+      "reasoning": "This is a checkbox/response field for disclosing the condition state (Y/N/U) of the Plumbing System item listed in Section 1 of the seller's disclosure notice."
+    },
+    "28": {
+      "fixture_key": "central_heating_state",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response indicating whether central heating is present at the property"
+    },
+    "29": {
+      "fixture_key": "central_ac",
+      "confidence": 0.95,
+      "reasoning": "Text input field for Y/N/U response to Central A/C presence in Section 1 property items list"
+    },
+    "30": {
+      "fixture_key": "plumbing_system_state",
+      "confidence": 0.92,
+      "reasoning": "Text field for Yes/No/Unknown response to Plumbing System item in Section 1 property features disclosure"
+    },
+    "31": {
+      "fixture_key": "central_heating",
+      "confidence": 0.95,
+      "reasoning": "Text field for Y/N/U response to Central Heating item in property disclosure checklist"
+    },
+    "32": {
+      "fixture_key": "tv_antenna",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to TV Antenna item in property disclosure checklist"
+    },
+    "33": {
+      "fixture_key": "plumbing_system_state",
+      "confidence": 0.92,
+      "reasoning": "This Y/N/U response field directly follows 'Plumbing System' in the fixture checklist on page 1 of the Seller's Disclosure Notice."
+    },
+    "34": {
+      "fixture_key": "septic_system_present",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N/U response field for 'Septic System' in the property fixtures checklist on page 1 of the disclosure notice"
+    },
+    "35": {
+      "fixture_key": "ceiling_fan_presence",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N/U response field for the Ceiling Fan(s) item in the property fixtures disclosure list."
+    },
+    "36": {
+      "fixture_key": "ceiling_fan_state",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N/U response field for the Ceiling Fan(s) item in the property disclosure checklist."
+    },
+    "37": {
+      "fixture_key": "outdoor_grill",
+      "confidence": 0.95,
+      "reasoning": "Text field for Y/N/U response to whether property has an outdoor grill, positioned within section 1 fixture checklist"
+    },
+    "38": {
+      "fixture_key": "fences_state",
+      "confidence": 0.92,
+      "reasoning": "Single-character text field in Section 1 property items list for Fences, expects Y/N/U response"
+    },
+    "39": {
+      "fixture_key": "central_ac_state",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N/U checkbox field for Central A/C in the property items disclosure section."
+    },
+    "40": {
+      "fixture_key": "fireplace_wood_burning",
+      "confidence": 0.92,
+      "reasoning": "Widget is positioned within the fireplace section and corresponds to the wood-burning fireplace checkbox option in Section 1 property items disclosure."
+    },
+    "41": {
+      "fixture_key": "central_ac",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to Central A/C item in property fixtures disclosure section"
+    },
+    "42": {
+      "fixture_key": "patio_decking_present",
+      "confidence": 0.9,
+      "reasoning": "Widget is a Y/N/U response field for the Patio/Decking item in Section 1 property features disclosure"
+    },
+    "43": {
+      "fixture_key": "outdoor_grill",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to 'Outdoor Grill' item in property features checklist"
+    },
+    "44": {
+      "fixture_key": "natural_gas_lines_state",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to Natural Gas Lines presence in Section 1 property items disclosure"
+    },
+    "45": {
+      "fixture_key": "gas_fixtures",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to 'Gas Fixtures' item in property disclosure checklist"
+    },
+    "46": {
+      "fixture_key": "natural_gas_lines_present",
+      "confidence": 0.92,
+      "reasoning": "Text field for Y/N/U response to Natural Gas Lines checkbox in Section 1 property disclosure"
+    },
+    "47": {
+      "fixture_key": "natural_gas_lines_present",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N/U response field for whether Natural Gas Lines are present on the property, positioned directly after the 'Natural Gas Lines' label in Section 1."
+    },
+    "48": {
+      "fixture_key": "fuel_gas_piping_type",
+      "confidence": 0.75,
+      "reasoning": "Text field for selecting fuel gas piping material type (Corrugated Stainless Steel Tubing, Black Iron Pipe, or Copper) in Section 1 property disclosure"
+    },
+    "49": {
+      "fixture_key": "lp_location_on_property",
+      "confidence": 0.92,
+      "reasoning": "This widget is a checkbox for selecting whether liquid propane gas (LP) is located on the property, positioned within the LP gas options in the property disclosure section."
+    },
+    "50": {
+      "fixture_key": "garage_attached",
+      "confidence": 0.72,
+      "reasoning": "Small text field positioned within garage type options (Attached/Not Attached/Carport) for marking Yes/No/Unknown response"
+    },
+    "51": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "This is a decorative checkbox or visual separator element within a list of property fixtures, not a fillable form field for user input."
+    },
+    "52": {
+      "fixture_key": "garage_attached",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in the Garage line for 'Attached' option in Section 1 property items disclosure"
+    },
+    "53": {
+      "fixture_key": "ignore",
+      "confidence": 0.92,
+      "reasoning": "This is a decorative checkbox or radio button indicator within the checklist options, not a fillable field for data entry."
+    },
+    "54": {
+      "fixture_key": "garage_door_opener_control",
+      "confidence": 0.92,
+      "reasoning": "Text field for indicating type of garage door opener control system (electronic or manual) in Section 1 property items disclosure"
+    },
+    "55": {
+      "fixture_key": "garage_door_opener_control_electronic",
+      "confidence": 0.72,
+      "reasoning": "This is a checkbox field within the Garage Door Opener section for selecting the 'Electronic' control type option."
+    },
+    "56": {
+      "fixture_key": "garage_door_opener_control_electronic",
+      "confidence": 0.92,
+      "reasoning": "Widget is a text field for marking Y/N/U response to whether the property has electronic garage door opener control(s)"
+    },
+    "57": {
+      "fixture_key": "water_heater_type",
+      "confidence": 0.75,
+      "reasoning": "This text field is positioned within the Water Heater line item and appears to capture the type selection (Gas or Electric)"
+    },
+    "58": {
+      "fixture_key": "garage_door_opener_control",
+      "confidence": 0.92,
+      "reasoning": "Text field for specifying garage door opener control type (Electronic or other option) in the property fixtures section"
+    },
+    "60": {
+      "fixture_key": "water_heater_gas",
+      "confidence": 0.92,
+      "reasoning": "This is a checkbox for selecting 'Gas' as the water heater fuel type, positioned within the Water Heater line of the property features disclosure."
+    },
+    "62": {
+      "fixture_key": "water_heater_type",
+      "confidence": 0.75,
+      "reasoning": "Small text field positioned within water heater options (Gas/Electric) in the property systems disclosure section"
+    },
+    "63": {
+      "fixture_key": "water_heater_type",
+      "confidence": 0.9,
+      "reasoning": "Small text field positioned within water heater options (Gas/Electric) on seller's disclosure form"
+    },
+    "64": {
+      "fixture_key": "roof_age",
+      "confidence": 0.92,
+      "reasoning": "Text field positioned immediately after 'Roof Type:' label in the property condition disclosure section, clearly intended to capture the age of the roof."
+    },
+    "65": {
+      "fixture_key": "roof_age",
+      "confidence": 0.92,
+      "reasoning": "Text field positioned after 'Roof Type:' label, asking for the age of the roof as part of property condition disclosure"
+    },
+    "66": {
+      "fixture_key": "seller_aware_defects_yes",
+      "confidence": 0.92,
+      "reasoning": "Checkbox corresponds to 'Yes' option for seller's awareness of items not in working condition or needing repair"
+    },
+    "67": {
+      "fixture_key": "seller_aware_defects_yes",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for 'Yes' response to seller's awareness of items not in working condition or needing repair"
+    },
+    "68": {
+      "fixture_key": "property_condition_defects_yes",
+      "confidence": 0.9,
+      "reasoning": "Checkbox for 'Yes' response to seller's awareness of items not in working condition or needing repair"
+    },
+    "70": {
+      "fixture_key": "roof_type",
+      "confidence": 0.92,
+      "reasoning": "Widget positioned within 'Roof Type: Age:' section header for entering the type of roof on the property"
+    },
+    "71": {
+      "fixture_key": "roof_condition_notes",
+      "confidence": 0.82,
+      "reasoning": "Text field for describing roof defects or repair needs in the seller's disclosure section"
+    },
+    "72": {
+      "fixture_key": "seller_disclosure_defects_description",
+      "confidence": 0.9,
+      "reasoning": "This is a text field for the seller to describe items that are not in working condition or need repair, as part of the TREC Seller's Disclosure Notice."
+    },
+    "74": {
+      "fixture_key": "smoke_detectors_no",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for 'No' answer to whether property has working smoke detectors per Health and Safety Code Chapter 766"
+    },
+    "75": {
+      "fixture_key": "smoke_detectors_unknown",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for 'Unknown' response to question about working smoke detectors installed per Health and Safety Code Chapter 766"
+    },
+    "76": {
+      "fixture_key": "smoke_detectors_no",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for 'No' response to question about working smoke detectors installed per Health and Safety Code Chapter 766"
+    },
+    "78": {
+      "fixture_key": "smoke_detectors_explanation",
+      "confidence": 0.82,
+      "reasoning": "Text field for explaining 'no' or 'unknown' answer to smoke detector question per Chapter 766 requirements"
+    },
+    "79": {
+      "fixture_key": "smoke_detectors_explanation",
+      "confidence": 0.82,
+      "reasoning": "Text field for explaining 'no' or 'unknown' answer to smoke detector question per Chapter 766 requirements"
+    },
+    "80": {
+      "fixture_key": "smoke_detectors_explanation",
+      "confidence": 0.9,
+      "reasoning": "Text field for explaining negative or unknown answer to smoke detector compliance question per Chapter 766"
+    },
+    "81": {
+      "fixture_key": "notes",
+      "confidence": 0.35,
+      "reasoning": "Small text field in defects section context, likely for seller's yes/no response to known defects question but exact purpose unclear from position and surrounding text alone"
+    },
+    "82": {
+      "fixture_key": "notes",
+      "confidence": 0.35,
+      "reasoning": "Small text field in defects disclosure section with unclear purpose; likely for yes/no response to defect awareness question but exact mapping unclear from position alone"
+    },
+    "83": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Small text field in defects section context, likely for Y/N response to awareness question but ambiguous positioning makes specific fixture classification uncertain"
+    },
+    "84": {
+      "fixture_key": "roof_condition",
+      "confidence": 0.92,
+      "reasoning": "Widget is a Y/N response field for 'Roof' defect awareness in the seller's disclosure checklist"
+    },
+    "85": {
+      "fixture_key": "interior_walls_condition",
+      "confidence": 0.92,
+      "reasoning": "Small text field within Section 3 asking seller to write Y/N for known defects in interior walls"
+    },
+    "86": {
+      "fixture_key": "foundation_condition",
+      "confidence": 0.75,
+      "reasoning": "Widget is positioned in the defect awareness checklist next to 'Foundation/Slab(s)' for yes/no response"
+    },
+    "87": {
+      "fixture_key": "condition_roof",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N response field for the Roof defect question in Section 3 of the Seller's Disclosure Notice"
+    },
+    "88": {
+      "fixture_key": "interior_walls_defect",
+      "confidence": 0.75,
+      "reasoning": "This is a Y/N response field for awareness of defects in interior walls, part of section 3's property condition disclosure checklist"
+    },
+    "89": {
+      "fixture_key": "foundation_condition",
+      "confidence": 0.92,
+      "reasoning": "Small text field for Y/N response about Foundation/Slab(s) defect awareness in Section 3 property condition disclosure"
+    },
+    "90": {
+      "fixture_key": "condition_roof",
+      "confidence": 0.92,
+      "reasoning": "Small text field in Section 3 defects list positioned at the 'Roof' item row for Y/N response"
+    },
+    "91": {
+      "fixture_key": "plumbing_sewers_septics_defects",
+      "confidence": 0.92,
+      "reasoning": "Small text input for Yes/No response about known defects in Plumbing/Sewers/Septics per Section 3 of seller's disclosure"
+    },
+    "92": {
+      "fixture_key": "electrical_systems_defect_aware",
+      "confidence": 0.92,
+      "reasoning": "Small text field within Section 3 asking about awareness of defects in 'Electrical Systems', positioned to record Yes/No response"
+    },
+    "93": {
+      "fixture_key": "condition_other_structural_describe",
+      "confidence": 0.92,
+      "reasoning": "Text field for describing other structural components in the property condition section of the seller's disclosure"
+    },
+    "94": {
+      "fixture_key": "item_plumbing",
+      "confidence": 0.92,
+      "reasoning": "Small text field positioned within the 'Plumbing/Sewers/Septics' row of the property condition checklist section"
+    },
+    "95": {
+      "fixture_key": "condition_electrical",
+      "confidence": 0.75,
+      "reasoning": "Small text field positioned within the 'Electrical Systems' row of the property condition checklist section"
+    },
+    "96": {
+      "fixture_key": "condition_other_structural",
+      "confidence": 0.92,
+      "reasoning": "Text field for describing other structural components in the property condition disclosure section"
+    },
+    "97": {
+      "fixture_key": "condition_other_structural",
+      "confidence": 0.92,
+      "reasoning": "Text field for describing other structural components in the property condition disclosure section"
+    },
+    "98": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for describing other structural components in seller's disclosure section, serves as open-ended description field"
+    },
+    "99": {
+      "fixture_key": "notes",
+      "confidence": 0.9,
+      "reasoning": "Text field for explaining 'yes' answers to structural component disclosure questions on seller's disclosure notice"
+    },
+    "101": {
+      "fixture_key": "notes",
+      "confidence": 0.9,
+      "reasoning": "Text field for seller to describe other structural components or explain affirmative answers from disclosure section"
+    },
+    "102": {
+      "fixture_key": "notes",
+      "confidence": 0.78,
+      "reasoning": "Text field for explaining affirmative answers to seller awareness questions in section 4"
+    },
+    "103": {
+      "fixture_key": "notes",
+      "confidence": 0.6,
+      "reasoning": "Small text field within Section 4 condition disclosure area, likely for seller's Y/N response or brief notation about property conditions"
+    },
+    "104": {
+      "fixture_key": "aware_previous_termite_damage",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N response field for the seller's awareness of previous termite damage, which is the third item listed in Section 4's condition checklist."
+    },
+    "105": {
+      "fixture_key": "aware_previous_termite_damage",
+      "confidence": 0.92,
+      "reasoning": "This is a Yes/No response field for awareness of previous termite damage, one of several conditions listed in Section 4 of the seller's disclosure."
+    },
+    "106": {
+      "fixture_key": "aware_termite_treatment",
+      "confidence": 0.75,
+      "reasoning": "Small text field in termite treatment disclosure section, likely for seller to indicate awareness or details of previous termite treatment"
+    },
+    "107": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "This is a tiny text widget (28x18 points) positioned within a list of disclosure checkboxes; it appears to be a decorative or structural element rather than a fillable field for user input."
+    },
+    "108": {
+      "fixture_key": "aware_settling",
+      "confidence": 0.72,
+      "reasoning": "Small checkbox field in Seller's Disclosure Notice aligned with 'Landfill, Settling, Soil Movement, Fault Lines' disclosure item for seller awareness."
+    },
+    "109": {
+      "fixture_key": "settling_state",
+      "confidence": 0.92,
+      "reasoning": "Small checkbox widget positioned within the 'Landfill, Settling, Soil Movement, Fault Lines' disclosure item on the Seller's Disclosure Notice"
+    },
+    "110": {
+      "fixture_key": "aware_active_termites",
+      "confidence": 0.92,
+      "reasoning": "Single-character Y/N response field for seller's awareness of active termites per Section 4 disclosure requirement"
+    },
+    "111": {
+      "fixture_key": "aware_active_termites",
+      "confidence": 0.95,
+      "reasoning": "Single-character text field for Y/N response to awareness of active termites in section 4 of seller's disclosure"
+    },
+    "112": {
+      "fixture_key": "active_termites",
+      "confidence": 0.92,
+      "reasoning": "Small text field positioned to capture Yes/No response for 'Active Termites' condition awareness in Section 4 of seller's disclosure"
+    },
+    "113": {
+      "fixture_key": "aware_previous_termite_treatment",
+      "confidence": 0.92,
+      "reasoning": "This is a Y/N response field for the 'Previous Termite Treatment' disclosure question in Section 4 of the Seller's Disclosure Notice"
+    },
+    "114": {
+      "fixture_key": "notes",
+      "confidence": 0.35,
+      "reasoning": "Small text field in property condition disclosure section with unclear labeling; likely captures seller's response or comment regarding listed property defects"
+    },
+    "115": {
+      "fixture_key": "landfill_settling_soil_movement_fault_lines_state",
+      "confidence": 0.75,
+      "reasoning": "Small text field positioned within the 'Landfill, Settling, Soil Movement, Fault Lines' disclosure item, likely for indicating presence/absence status or notes"
+    },
+    "116": {
+      "fixture_key": "ignore",
+      "confidence": 0.9,
+      "reasoning": "This is a small decorative checkbox widget (28x18 points) within a list of property condition items, not a fillable disclosure field."
+    },
+    "117": {
+      "fixture_key": "ignore",
+      "confidence": 0.9,
+      "reasoning": "This is a decorative or non-fillable element within the property defects checklist section, likely a formatting artifact or spacing widget rather than an actual data entry field."
+    },
+    "118": {
+      "fixture_key": "item_hot_tub",
+      "confidence": 0.82,
+      "reasoning": "Text field positioned within seller's disclosure section about pool/hot tub/spa defects, specifically for documenting single blockable main drain issues"
+    },
+    "119": {
+      "fixture_key": "aware_subsurface",
+      "confidence": 0.9,
+      "reasoning": "Small text field for seller to acknowledge awareness of subsurface structure or pits issue in disclosure section"
+    },
+    "120": {
+      "fixture_key": "subsurface_structure_explanation",
+      "confidence": 0.92,
+      "reasoning": "This is a text field for explaining affirmative answers to property defect disclosures, specifically following the 'Subsurface Structure or Pits' checkbox item."
+    },
+    "122": {
+      "fixture_key": "notes",
+      "confidence": 0.92,
+      "reasoning": "Text field for explaining affirmative answers to subsurface structure, pits, or methamphetamine manufacturing disclosure questions"
+    },
+    "123": {
+      "fixture_key": "notes",
+      "confidence": 0.75,
+      "reasoning": "This is an explanation text field following a yes/no question about methamphetamine manufacturing history, used for seller to provide additional details."
+    },
+    "124": {
+      "fixture_key": "aware_previous_termite_damage",
+      "confidence": 0.92,
+      "reasoning": "This is a yes/no response field for the seller's awareness of previous termite damage, which is the third item listed in Section 4 of the disclosure notice."
+    },
+    "125": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for explaining affirmative responses to flood hazard questions on the seller's disclosure notice"
+    },
+    "126": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Small text field in flood disclosure section with unclear purpose; likely a response field for flood-related yes/no answers but exact mapping to standard fields is ambiguous."
+    },
+    "127": {
+      "fixture_key": "property_located_floodway",
+      "confidence": 0.72,
+      "reasoning": "Checkbox indicating whether property is located wholly or partly in a floodway, part of flood hazard disclosure section"
+    },
+    "129": {
+      "fixture_key": "property_needs_repair_no",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for 'No' option in question 5 asking if seller is aware of any items needing repair on the property"
+    },
+    "130": {
+      "fixture_key": "property_needs_repair_yes",
+      "confidence": 0.92,
+      "reasoning": "Checkbox positioned next to 'Yes' option in question about awareness of items needing repair on the property"
+    },
+    "132": {
+      "fixture_key": "notes",
+      "confidence": 0.75,
+      "reasoning": "Text field for seller to explain items needing repair, which is explanatory/supplemental content best captured as notes"
+    },
+    "133": {
+      "fixture_key": "repairs_needed_explanation",
+      "confidence": 0.82,
+      "reasoning": "Text field for seller to explain items, equipment, or systems in need of repair on the property"
+    },
+    "134": {
+      "fixture_key": "flood_insurance_coverage_aware",
+      "confidence": 0.72,
+      "reasoning": "Small text field for Yes/No response to question about awareness of present flood insurance coverage in Section 6 of seller's disclosure"
+    },
+    "135": {
+      "fixture_key": "aware_present_flood_insurance",
+      "confidence": 0.95,
+      "reasoning": "This is a yes/no response field for the seller's awareness of present flood insurance coverage, matching the first item in section 6."
+    },
+    "136": {
+      "fixture_key": "aware_previous_flooding",
+      "confidence": 0.95,
+      "reasoning": "Single-character Y/N response field for seller's awareness of previous flooding due to reservoir failure or breach"
+    },
+    "137": {
+      "fixture_key": "floodplain_100_year_wholly_partly",
+      "confidence": 0.72,
+      "reasoning": "small text field for Y/N response indicating whether property is wholly or partly located in 100-year floodplain"
+    },
+    "138": {
+      "fixture_key": "floodplain_100_year_wholly",
+      "confidence": 0.72,
+      "reasoning": "checkbox for 100-year floodplain wholly located area in flood disclosure section"
+    },
+    "139": {
+      "fixture_key": "floodplain_100_year_wholly_or_partly",
+      "confidence": 0.72,
+      "reasoning": "Text input for Y/N response indicating awareness of 100-year floodplain location (wholly or partly)"
+    },
+    "141": {
+      "fixture_key": "notes",
+      "confidence": 0.9,
+      "reasoning": "This is an open-ended text field for explaining affirmative answers to flood/floodway/reservoir disclosure questions"
+    },
+    "143": {
+      "fixture_key": "flood_damage_claim_filed",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for whether the seller has ever filed a flood damage insurance claim on the property"
+    },
+    "144": {
+      "fixture_key": "fema_sba_flood_assistance_no",
+      "confidence": 0.92,
+      "reasoning": "This is the 'No' checkbox for question 8 about whether the seller received FEMA or SBA flood damage assistance."
+    },
+    "145": {
+      "fixture_key": "fema_sba_flood_assistance_no",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for 'No' response to question 8 about whether seller received FEMA/SBA flood damage assistance"
+    },
+    "147": {
+      "fixture_key": "flood_damage_claim_explanation",
+      "confidence": 0.9,
+      "reasoning": "Text field for seller to explain any previous flood damage insurance claims filed on the property"
+    },
+    "149": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for explaining FEMA/SBA flood damage assistance; no specific standard fixture key applies to seller disclosure explanations"
+    },
+    "150": {
+      "fixture_key": "property_in_floodplain_state",
+      "confidence": 0.72,
+      "reasoning": "Checkbox indicating whether property is located in a 100-year, 500-year, floodway, flood pool, reservoir, or other flood hazard area as part of mandatory seller disclosure."
+    },
+    "151": {
+      "fixture_key": "floodplain_100_year_wholly",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for indicating property is wholly located in 100-year floodplain, first of two checkboxes (wholly/partly) for this flood hazard category"
+    },
+    "152": {
+      "fixture_key": "floodplain_100year_wholly",
+      "confidence": 0.75,
+      "reasoning": "checkbox for 'wholly' option under 100-year floodplain disclosure question"
+    },
+    "153": {
+      "fixture_key": "flood_hazard_100_year_partly",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for indicating property is partly located in 100-year floodplain based on surrounding text context"
+    },
+    "154": {
+      "fixture_key": "flood_hazard_area_100_year_wholly",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for disclosing whether property is wholly located in a 100-year floodplain (SFHA), part of seller's flood disclosure section"
+    },
+    "155": {
+      "fixture_key": "located_wholly_partly_100_year_floodplain_partly",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for selecting 'partly' option within the 100-year floodplain location question based on surrounding text context"
+    },
+    "156": {
+      "fixture_key": "located_wholly_partly_100_year_floodplain",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for indicating property location in 100-year floodplain (SFHA) with wholly/partly selection option"
+    },
+    "157": {
+      "fixture_key": "flood_hazard_100_year_floodplain_wholly",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for indicating whether property is located wholly in a 100-year floodplain, part of seller's flood disclosure requirements"
+    },
+    "158": {
+      "fixture_key": "floodplain_100_year_wholly",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for disclosing property located wholly in 100-year floodplain, part of flood hazard disclosure section"
+    },
+    "159": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "Small text widget at page top is likely a date stamp or page identifier (09-01-2023), not a fillable form field."
+    },
+    "160": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "Widget is a page number or date stamp (09-01-2023) at the top of the page, not a fillable form field."
+    },
+    "161": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Small text field in Section 9 disclosure area, likely for supplemental notes or yes/no indicator, but precise context unclear from surrounding text fragment"
+    },
+    "162": {
+      "fixture_key": "ignore",
+      "confidence": 0.9,
+      "reasoning": "Small text widget (27x23 points) positioned in margin area of disclosure section appears to be a decorative element or page artifact rather than a fillable form field."
+    },
+    "163": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Small text field in disclosure section without clear labeling; likely for seller notes or checkboxes but position and size suggest a minor annotation field."
+    },
+    "164": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "Small text widget (27px wide, 18px tall) in a disclosure notice section likely represents a checkbox or decorative element rather than a fillable field for capturing substantive information."
+    },
+    "165": {
+      "fixture_key": "seller_initials",
+      "confidence": 0.72,
+      "reasoning": "Small text field positioned at bottom of page content in seller disclosure notice, consistent with initials line placement conventions"
+    },
+    "167": {
+      "fixture_key": "notes",
+      "confidence": 0.9,
+      "reasoning": "This is an open-ended text field for explaining affirmative answers to environmental/water district disclosure questions on the seller's disclosure notice."
+    },
+    "168": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for explaining affirmative answers to groundwater/subsidence district and coastal area disclosure questions"
+    },
+    "169": {
+      "fixture_key": "ignore",
+      "confidence": 0.9,
+      "reasoning": "This is a small text widget (27x18 points) positioned in the margin/padding area of a disclosure section, likely a decorative element or page artifact rather than a meaningful fillable field."
+    },
+    "170": {
+      "fixture_key": "seller_signature",
+      "confidence": 0.95,
+      "reasoning": "Widget is positioned in the signature line area with 'Signature of Seller' text label directly above it"
+    },
+    "171": {
+      "fixture_key": "seller_signature_date",
+      "confidence": 0.9,
+      "reasoning": "Text field positioned in the 'Date' column next to 'Signature of Seller' label in signature block"
+    },
+    "172": {
+      "fixture_key": "purchaser_signature_date",
+      "confidence": 0.75,
+      "reasoning": "Date field positioned immediately before purchaser signature line in acknowledgment receipt section"
+    },
+    "173": {
+      "fixture_key": "purchaser_signature_date",
+      "confidence": 0.8,
+      "reasoning": "Small date field next to purchaser signature line in acknowledgment section of disclosure notice"
+    },
+    "174": {
+      "fixture_key": "seller_signature",
+      "confidence": 0.95,
+      "reasoning": "Signature field in Seller's Disclosure Notice form labeled 'Signature of Seller'"
+    },
+    "175": {
+      "fixture_key": "seller_signature",
+      "confidence": 0.95,
+      "reasoning": "Signature field labeled 'Signature of Seller' in the surrounding text on page 4 of the TREC form"
+    },
+    "176": {
+      "fixture_key": "buyer_signature",
+      "confidence": 0.9,
+      "reasoning": "Signature field for purchaser acknowledgment of receipt of seller's disclosure notice"
+    },
+    "177": {
+      "fixture_key": "buyer_signature",
+      "confidence": 0.92,
+      "reasoning": "Signature field for purchaser acknowledgment of receipt of seller's disclosure notice"
+    }
+  },
+  "generated_at": "2026-06-19T19:20:52.026Z"
+}

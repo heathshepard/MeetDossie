@@ -1,0 +1,427 @@
+{
+  "form_id": "trec-20-18",
+  "total_unmatched": 84,
+  "llm_guesses": {
+    "11": {
+      "fixture_key": "addendum_third_party_financing",
+      "confidence": 0.75,
+      "reasoning": "Checkbox for selecting Third Party Financing Addendum as part of financing description in Section 3.B"
+    },
+    "12": {
+      "fixture_key": "addendum_third_party_financing",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in Section 3.B next to 'Third Party Financing Addendum' option for selecting financing addendum type"
+    },
+    "14": {
+      "fixture_key": "sales_price_financing",
+      "confidence": 0.95,
+      "reasoning": "Text field for sum of all financing amounts in section 3.B of the sales price breakdown"
+    },
+    "15": {
+      "fixture_key": "sales_price_financing",
+      "confidence": 0.95,
+      "reasoning": "This is the dollar amount field for the sum of all financing (Third Party, Loan Assumption, or Seller Financing) in Section 3.B of the contract."
+    },
+    "16": {
+      "fixture_key": "addendum_residential_leases",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for Residential Leases Addendum attachment option in Section 4 regarding property leases"
+    },
+    "17": {
+      "fixture_key": "addendum_residential_leases",
+      "confidence": 0.95,
+      "reasoning": "Checkbox for indicating Property is subject to residential leases with attached addendum per Section 4.A"
+    },
+    "18": {
+      "fixture_key": "addendum_residential_leases",
+      "confidence": 0.95,
+      "reasoning": "Checkbox for whether Property is subject to residential leases requiring the Addendum Regarding Residential Leases attachment"
+    },
+    "19": {
+      "fixture_key": "addendum_natural_resource_leases",
+      "confidence": 0.72,
+      "reasoning": "Checkbox indicating whether natural resource lease addendum applies to the property transaction"
+    },
+    "20": {
+      "fixture_key": "addendum_natural_resource_leases",
+      "confidence": 0.75,
+      "reasoning": "This checkbox indicates whether natural resource leases addendum applies to the contract, following the pattern of fixture lease addendums in TREC forms."
+    },
+    "35": {
+      "fixture_key": "seller_pays_title_policy",
+      "confidence": 0.92,
+      "reasoning": "Checkbox next to 'Seller's' expense option in the Title Policy section (paragraph 6.A) indicating seller will pay for title policy"
+    },
+    "36": {
+      "fixture_key": "buyer_pays_title_policy",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in Section 6.A determining whether Buyer pays for title policy expense instead of Seller"
+    },
+    "38": {
+      "fixture_key": "title_exception_8ii_amended",
+      "confidence": 0.9,
+      "reasoning": "Checkbox for option (ii) to amend exception (8) regarding area discrepancies at buyer or seller's expense"
+    },
+    "39": {
+      "fixture_key": "title_exception_8ii_shortages_in_area_amended",
+      "confidence": 0.82,
+      "reasoning": "Checkbox (ii) under section (8) regarding whether the discrepancy exception will be amended to read 'shortages in area' at buyer or seller expense"
+    },
+    "40": {
+      "fixture_key": "title_exception_8ii_shortages_amended",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for option (ii) to amend title exception 8 regarding shortages in area at expense of buyer or seller"
+    },
+    "41": {
+      "fixture_key": "title_exception_8_ii_not_amended",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for whether title exception 8(ii) regarding area shortages will not be amended, paired with option to amend at buyer or seller expense."
+    },
+    "47": {
+      "fixture_key": "addendum_survey_seller_furnish",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for option (1) selecting seller furnishing existing survey within specified days per TREC Section C"
+    },
+    "50": {
+      "fixture_key": "survey_seller_furnish_within_days",
+      "confidence": 0.92,
+      "reasoning": "This checkbox selects option (1) where seller furnishes existing survey within a specified number of days after effective date"
+    },
+    "51": {
+      "fixture_key": "survey_delivery_days",
+      "confidence": 0.78,
+      "reasoning": "Checkbox for selecting the number of days (within three) for Seller to furnish existing survey and affidavit/declaration to Buyer and Title Company"
+    },
+    "52": {
+      "fixture_key": "survey_deadline_days",
+      "confidence": 0.92,
+      "reasoning": "This text field captures the number of days prior to closing for survey delivery, a specific deadline requirement in the survey provision section."
+    },
+    "53": {
+      "fixture_key": "survey_buyer_obtains_within_days",
+      "confidence": 0.72,
+      "reasoning": "Checkbox for option (2) allowing Buyer to obtain a new survey within a specified number of days after Effective Date"
+    },
+    "54": {
+      "fixture_key": "survey_period_days",
+      "confidence": 0.78,
+      "reasoning": "This text field captures the number of days after Effective Date for Buyer to obtain a new survey per option (2) in the survey section."
+    },
+    "55": {
+      "fixture_key": "title_objections_prohibited_use",
+      "confidence": 0.82,
+      "reasoning": "This text field captures prohibited uses or activities that Buyer may object to beyond standard title exceptions in the commitment."
+    },
+    "58": {
+      "fixture_key": "hoa_present",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in Property Owners Association section indicating whether property is subject to mandatory HOA membership"
+    },
+    "63": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.92,
+      "reasoning": "Widget is positioned to receive the property address as indicated by the surrounding text '(Address of Property)' and is the primary address field on the contract."
+    },
+    "64": {
+      "fixture_key": "notes",
+      "confidence": 0.6,
+      "reasoning": "Small text field in section (12) REQUIRED NOTICES likely for entering notice details or references, generic catch-all field"
+    },
+    "67": {
+      "fixture_key": "property_as_is_accepted",
+      "confidence": 0.92,
+      "reasoning": "Checkbox indicating buyer accepts the property in its current condition without repairs or inspections required"
+    },
+    "68": {
+      "fixture_key": "property_as_is_seller_repairs",
+      "confidence": 0.75,
+      "reasoning": "This checkbox begins a clause about the Property being accepted 'As Is' with Seller completing specified repairs at Seller's expense, indicating a conditional acceptance state."
+    },
+    "70": {
+      "fixture_key": "seller_disclosure_notice_not_received",
+      "confidence": 0.92,
+      "reasoning": "This checkbox represents option (2) where Buyer has not received the Seller's Disclosure Notice, requiring Seller to deliver it within a specified number of days."
+    },
+    "75": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.92,
+      "reasoning": "Widget is positioned in the 'Contract Concerning' section where the property address is typically entered on TREC forms."
+    },
+    "76": {
+      "fixture_key": "property_as_is_accepted",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for Buyer accepting Property As Is under Paragraph 7D(1), first option in mutually exclusive pair"
+    },
+    "77": {
+      "fixture_key": "property_as_is_with_repairs",
+      "confidence": 0.9,
+      "reasoning": "This checkbox represents the option for Buyer to accept Property As Is provided Seller completes specific repairs, which is option (2) in Paragraph 7D"
+    },
+    "78": {
+      "fixture_key": "seller_repairs_required",
+      "confidence": 0.92,
+      "reasoning": "Text field for listing specific repairs and treatments the Seller must complete at their expense under Paragraph 7D(2)"
+    },
+    "81": {
+      "fixture_key": "broker_disclosure",
+      "confidence": 0.75,
+      "reasoning": "Text field for broker/sales agent disclosure statement required under Texas law in Section 8.A"
+    },
+    "82": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "This is a text input field within Section 8.A regarding broker/sales agent disclosure requirements, likely for party to disclose applicable relationships."
+    },
+    "84": {
+      "fixture_key": "closing_date",
+      "confidence": 0.92,
+      "reasoning": "Small text field for year in closing date context '20__' following 'on or before , 20 ,'"
+    },
+    "89": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.92,
+      "reasoning": "Text field positioned below 'Contract Concerning' header in the standard location for the property address on a TREC resale contract."
+    },
+    "90": {
+      "fixture_key": "possession_after_closing",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in Section 10.A about Buyer's Possession, positioned to select either 'upon closing and funding' or 'according to a temporary residential lease form', with this checkbox appearing to correspond to the lease/after-closing option"
+    },
+    "91": {
+      "fixture_key": "possession_after_closing",
+      "confidence": 0.92,
+      "reasoning": "Checkbox in possession section indicating whether seller retains possession after closing, contrasting with the 'upon closing' option shown above it"
+    },
+    "93": {
+      "fixture_key": "special_provisions",
+      "confidence": 0.95,
+      "reasoning": "This text field is located within Section 11 labeled 'SPECIAL PROVISIONS' and is the main input area for additional contract provisions."
+    },
+    "94": {
+      "fixture_key": "special_provisions",
+      "confidence": 0.95,
+      "reasoning": "This text field is located directly below the 'SPECIAL PROVISIONS' section heading and is the primary input area for that contract section."
+    },
+    "95": {
+      "fixture_key": "seller_pays_brokerage_fees_buyer",
+      "confidence": 0.78,
+      "reasoning": "Checkbox for seller to agree to pay a portion or percentage of buyer's brokerage fees as specified in Section 12.A.1(b)"
+    },
+    "96": {
+      "fixture_key": "seller_pays_buyer_expenses_amount",
+      "confidence": 0.78,
+      "reasoning": "This is a dollar amount field for Seller to contribute toward Buyer's Expenses per section 12(1)(c)"
+    },
+    "97": {
+      "fixture_key": "seller_pays_buyer_expenses",
+      "confidence": 0.78,
+      "reasoning": "This checkbox indicates whether seller-paid buyer expenses will not be credited to the sales price at closing"
+    },
+    "98": {
+      "fixture_key": "seller_pays_buyer_expenses_amount",
+      "confidence": 0.72,
+      "reasoning": "This is a dollar amount field where Seller agrees to pay toward Buyer's expenses per section 12.A.(1)(c)"
+    },
+    "99": {
+      "fixture_key": "buyer_pays_seller_expenses",
+      "confidence": 0.72,
+      "reasoning": "This field appears to be a dollar amount that Buyer agrees to pay toward Seller's expenses, specifically the brokerage fees portion mentioned in section 12(1)(c)."
+    },
+    "109": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.9,
+      "reasoning": "Text field positioned where property address is entered on TREC resale contract page 8"
+    },
+    "116": {
+      "fixture_key": "seller_agent_email",
+      "confidence": 0.72,
+      "reasoning": "Text field positioned after 'With a copy to Seller's agent at:' label, matching the contact information section for seller's agent"
+    },
+    "123": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Text field in section 22 (Agreement of Parties) that appears to be for supplementary contract language or terms, lacks clear structural purpose"
+    },
+    "126": {
+      "fixture_key": "addendum_property_subject_to",
+      "confidence": 0.95,
+      "reasoning": "Checkbox in Section 22 listing applicable addenda, specifically for 'Addendum for Property Subject to' agreement"
+    },
+    "132": {
+      "fixture_key": "addendum_lead_based_paint_hazards",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for Lead-based Paint Hazards addendum in the list of optional addenda on page 8"
+    },
+    "133": {
+      "fixture_key": "addendum_hydrostatic_testing",
+      "confidence": 0.75,
+      "reasoning": "Checkbox for 'Addendum for Authorizing Hydrostatic Testing' based on surrounding addendum list text"
+    },
+    "134": {
+      "fixture_key": "addendum_hydrostatic_testing",
+      "confidence": 0.9,
+      "reasoning": "Checkbox for 'Addendum for Authorizing Hydrostatic Testing' addendum option in the list of available addenda"
+    },
+    "135": {
+      "fixture_key": "addendum_environmental_assessment",
+      "confidence": 0.9,
+      "reasoning": "Checkbox for the Environmental Assessment, Threatened or Endangered Species and Wetlands Addendum option in the addendum list"
+    },
+    "140": {
+      "fixture_key": "addendum_sellers_disclosure",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for Seller's Disclosure of Lead-based Paint Hazards addendum as shown in surrounding text"
+    },
+    "141": {
+      "fixture_key": "addendum_sellers_disclosure",
+      "confidence": 0.95,
+      "reasoning": "Checkbox for Addendum for Seller's Disclosure of Information on Lead-based Paint Hazards as Required by Federal Law"
+    },
+    "143": {
+      "fixture_key": "addendum_pid",
+      "confidence": 0.75,
+      "reasoning": "Checkbox for Addendum regarding Property Improvement District based on surrounding addendum options and 'PID' field name abbreviation"
+    },
+    "145": {
+      "fixture_key": "addendum_other",
+      "confidence": 0.9,
+      "reasoning": "Checkbox for 'Other' addendum option with blank space for listing additional addendums not covered by the standard options above"
+    },
+    "146": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Text field in addendum section that appears to capture miscellaneous system service area information not covered by standard form fields"
+    },
+    "147": {
+      "fixture_key": "notes",
+      "confidence": 0.72,
+      "reasoning": "Text field for listing 'Other' addenda not covered by pre-printed checkboxes in the addendum selection section"
+    },
+    "148": {
+      "fixture_key": "notes",
+      "confidence": 0.6,
+      "reasoning": "Text field in addendum section listing other addendums, likely for specifying additional contract addendums not listed above"
+    },
+    "149": {
+      "fixture_key": "notes",
+      "confidence": 0.6,
+      "reasoning": "Text field in addendum list section for listing other addenda not explicitly enumerated"
+    },
+    "151": {
+      "fixture_key": "buyer_attorney_name",
+      "confidence": 0.92,
+      "reasoning": "Text field positioned under 'Buyer's Attorney is:' label on contract page"
+    },
+    "158": {
+      "fixture_key": "seller_attorney_name",
+      "confidence": 0.92,
+      "reasoning": "Text field positioned next to 'Attorney is:' label in the Seller's Attorney section of the contract"
+    },
+    "160": {
+      "fixture_key": "seller_agent_phone",
+      "confidence": 0.9,
+      "reasoning": "Phone field positioned next to 'Attorney is:' label on page 8, consistent with agent contact information section in TREC form"
+    },
+    "178": {
+      "fixture_key": "listing_broker_license",
+      "confidence": 0.95,
+      "reasoning": "Field is labeled 'Listing Broker Firm License No.' in the BROKER INFORMATION section for entering the listing broker's license number."
+    },
+    "179": {
+      "fixture_key": "buyer_agent_represents_buyer_only",
+      "confidence": 0.92,
+      "reasoning": "Checkbox indicating the buyer's agent represents only the buyer in the transaction, part of broker representation disclosure options"
+    },
+    "180": {
+      "fixture_key": "seller_agent_subagent_role",
+      "confidence": 0.9,
+      "reasoning": "Checkbox indicating whether the broker represents the seller as a listing broker's subagent, a role-selection option in the broker representation section."
+    },
+    "181": {
+      "fixture_key": "buyer_agent_name",
+      "confidence": 0.92,
+      "reasoning": "Field labeled 'Associate's Name' in the buyer's agent section of the broker representation paragraph"
+    },
+    "182": {
+      "fixture_key": "listing_associate_license",
+      "confidence": 0.92,
+      "reasoning": "This is the license number field for the Listing Associate, positioned next to 'Listing Associate's Name' in the broker information section"
+    },
+    "186": {
+      "fixture_key": "buyer_agent_supervisor_name",
+      "confidence": 0.9,
+      "reasoning": "This field captures the licensed supervisor name for the buyer's agent, positioned in the agent information section of the contract."
+    },
+    "187": {
+      "fixture_key": "seller_agent_license",
+      "confidence": 0.92,
+      "reasoning": "This is the license number field for the listing associate (seller's agent) based on the column header 'Listing Associate's Name License No.' and its position in that column."
+    },
+    "194": {
+      "fixture_key": "listing_broker_license",
+      "confidence": 0.92,
+      "reasoning": "This is the license number field for the Listing Broker Firm based on the surrounding text header"
+    },
+    "195": {
+      "fixture_key": "broker_represents_seller_and_buyer_as_intermediary",
+      "confidence": 0.92,
+      "reasoning": "This checkbox indicates whether the broker represents both seller and buyer as an intermediary, which is a specific broker representation arrangement option in the Broker Information section."
+    },
+    "196": {
+      "fixture_key": "seller_only_as_listing_agent",
+      "confidence": 0.92,
+      "reasoning": "Checkbox indicating the listing broker represents the seller only as seller's agent in the broker representation section"
+    },
+    "220": {
+      "fixture_key": "broker_fee_dollar_amount",
+      "confidence": 0.92,
+      "reasoning": "Checkbox to select dollar amount option for listing broker's fee to other broker, as shown in the surrounding disclosure text offering either dollar or percentage payment option."
+    },
+    "221": {
+      "fixture_key": "notes",
+      "confidence": 0.45,
+      "reasoning": "Text field for broker fee disclosure details, likely a mailing instruction or supplemental note field without a standard TREC fixture category."
+    },
+    "222": {
+      "fixture_key": "other_broker_fee_percentage",
+      "confidence": 0.92,
+      "reasoning": "Checkbox to select percentage option for other broker fee disclosure, paired with dollar amount alternative"
+    },
+    "225": {
+      "fixture_key": "option_fee",
+      "confidence": 0.95,
+      "reasoning": "This text field captures acknowledgment of receipt for the option fee amount in the Option Fee Receipt section."
+    },
+    "228": {
+      "fixture_key": "option_fee_receipt_date",
+      "confidence": 0.92,
+      "reasoning": "This is the date field in the Option Fee Receipt section where the escrow agent signs and dates the receipt of the option fee."
+    },
+    "229": {
+      "fixture_key": "earnest_money",
+      "confidence": 0.92,
+      "reasoning": "Text field in Earnest Money Receipt section where the dollar amount of earnest money is entered"
+    },
+    "232": {
+      "fixture_key": "earnest_holder_name",
+      "confidence": 0.92,
+      "reasoning": "This is the name field for the escrow agent receiving the earnest money, positioned in the Earnest Money Receipt section."
+    },
+    "242": {
+      "fixture_key": "earnest_holder_received_by",
+      "confidence": 0.9,
+      "reasoning": "Text field for the name of the person at the escrow agent who received the contract, located in the CONTRACT RECEIPT section."
+    },
+    "251": {
+      "fixture_key": "additional_earnest_money_acknowledged",
+      "confidence": 0.9,
+      "reasoning": "This is the acknowledgment field in the Additional Earnest Money Receipt section where the receipt of additional earnest money is confirmed."
+    },
+    "254": {
+      "fixture_key": "earnest_holder_name",
+      "confidence": 0.92,
+      "reasoning": "Field is labeled 'Received by' in the Additional Earnest Money Receipt section, indicating who (the escrow agent) received the earnest money"
+    }
+  },
+  "generated_at": "2026-06-19T19:16:04.261Z"
+}

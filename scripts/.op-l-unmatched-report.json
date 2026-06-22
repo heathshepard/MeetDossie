@@ -1,0 +1,547 @@
+{
+  "generated_at": "2026-06-19T17:49:14.152Z",
+  "form": "OP-L Lead-Based Paint Addendum",
+  "form_id": "op-l",
+  "algorithm": {
+    "proximity_radius_pt": 100,
+    "same_baseline_tol_pt": 8,
+    "left_label_max_gap_pt": 220,
+    "above_label_max_gap_pt": 30,
+    "confident_min_score": 0.55,
+    "score_weights": {
+      "same_baseline_left": 1,
+      "directly_above": 0.85,
+      "same_baseline_right": 0.35,
+      "general_proximity": 0.25,
+      "keyword_hit_bonus": 0.2,
+      "exact_keyword_phrase": 0.3
+    }
+  },
+  "stats": {
+    "total_widgets": 25,
+    "confident_match": 16,
+    "unmatched": 9,
+    "skip": 0,
+    "pct_confident": 64,
+    "pct_unmatched": 36
+  },
+  "confident_matches": [
+    {
+      "index": 0,
+      "field_name": "Street Address and City",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Street Address and City",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "street address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 1,
+      "field_name": "Check Box7",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "lp_presence_known",
+      "confidence_score": 0.626,
+      "evidence": {
+        "label": "Known lead",
+        "relation": "same_baseline_right",
+        "gap_pt": 14.9,
+        "matched_phrase": "known lead",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 9,
+      "field_name": "Check Box11",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "lead_paint_disclosure",
+      "confidence_score": 0.633,
+      "evidence": {
+        "label": "lead",
+        "relation": "same_baseline_right",
+        "gap_pt": 10.5,
+        "matched_phrase": "lead",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 10,
+      "field_name": "Check Box12",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "lead_paint_disclosure",
+      "confidence_score": 0.634,
+      "evidence": {
+        "label": "lead",
+        "relation": "same_baseline_right",
+        "gap_pt": 10,
+        "matched_phrase": "lead",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 13,
+      "field_name": "Signature1",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Buyer",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 14,
+      "field_name": "Date",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.597,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 33.6,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 15,
+      "field_name": "Signature2",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.717,
+      "evidence": {
+        "label": "Buyer",
+        "relation": "directly_above",
+        "gap_pt": 15.3,
+        "matched_phrase": "buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 16,
+      "field_name": "Date_3",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.593,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 35.6,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 17,
+      "field_name": "Signature3",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.753,
+      "evidence": {
+        "label": "Buyer",
+        "relation": "directly_above",
+        "gap_pt": 14,
+        "matched_phrase": "buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 18,
+      "field_name": "Date_5",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.593,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 35.6,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 19,
+      "field_name": "Signature4",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 20,
+      "field_name": "Date_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.553,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 164.2,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 21,
+      "field_name": "Signature5",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.759,
+      "evidence": {
+        "label": "Seller",
+        "relation": "directly_above",
+        "gap_pt": 13.8,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 22,
+      "field_name": "Date_4",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.558,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 163.1,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 23,
+      "field_name": "Signature6",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.794,
+      "evidence": {
+        "label": "Seller",
+        "relation": "directly_above",
+        "gap_pt": 12.6,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 24,
+      "field_name": "Date_6",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.553,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 164.3,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "index": 2,
+      "field_name": "undefined",
+      "page": 1,
+      "x": 528,
+      "y": 519,
+      "width": 54,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(explain): _________",
+          "distance": 22.1,
+          "direction": "left"
+        },
+        {
+          "text": "based paint and/",
+          "distance": 44.9,
+          "direction": "below"
+        },
+        {
+          "text": "-",
+          "distance": 67.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'BASED PAINT HAZARDS (check one box only):' but no matching fixture key exists for it"
+    },
+    {
+      "index": 3,
+      "field_name": "b Seller has no actual knowledge of leadbased paint andor leadbased paint hazards in the Property",
+      "page": 1,
+      "x": 92,
+      "y": 508,
+      "width": 487,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "_____________________________________________________________________________.",
+          "distance": 1.9,
+          "direction": "right"
+        },
+        {
+          "text": "based paint and/or lead",
+          "distance": 16.2,
+          "direction": "left"
+        },
+        {
+          "text": "based paint hazards are present in the Property",
+          "distance": 34.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '(b)' but no matching fixture key exists for it"
+    },
+    {
+      "index": 4,
+      "field_name": "Check Box8",
+      "page": 1,
+      "x": 66,
+      "y": 499,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.8,
+          "direction": "above"
+        },
+        {
+          "text": "(b)",
+          "distance": 11.7,
+          "direction": "right"
+        },
+        {
+          "text": "2.",
+          "distance": 19.7,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box8' but no matching fixture key exists for it"
+    },
+    {
+      "index": 5,
+      "field_name": "Check Box9",
+      "page": 1,
+      "x": 65,
+      "y": 477,
+      "width": 11,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.7,
+          "direction": "above"
+        },
+        {
+          "text": "(a)",
+          "distance": 12.1,
+          "direction": "right"
+        },
+        {
+          "text": "2.",
+          "distance": 18.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box9' but no matching fixture key exists for it"
+    },
+    {
+      "index": 6,
+      "field_name": "undefined_2",
+      "page": 1,
+      "x": 371,
+      "y": 465,
+      "width": 208,
+      "height": 11,
+      "field_type": "text",
+      "best_label_guess": "RECORDS AND REPORTS AVAILABLE TO SELLER (check one box only):",
+      "best_label_score": 0.707,
+      "best_label_fixture_key": "lp_records_provided",
+      "nearest_labels_within_100px": [
+        {
+          "text": "_________________________________",
+          "distance": 0.7,
+          "direction": "above"
+        },
+        {
+          "text": "-",
+          "distance": 30.5,
+          "direction": "right"
+        },
+        {
+          "text": "-",
+          "distance": 33.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'lp_records_provided' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 7,
+      "field_name": "b Seller has no reports or records pertaining to leadbased paint andor leadbased paint hazards in the",
+      "page": 1,
+      "x": 92,
+      "y": 453,
+      "width": 488,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "Seller has provided the purchaser with all available records and reports pertaining to lead",
+      "best_label_score": 0.702,
+      "best_label_fixture_key": "lead_paint_disclosure",
+      "nearest_labels_within_100px": [
+        {
+          "text": "_____________________________________________________________________________.",
+          "distance": 1.7,
+          "direction": "right"
+        },
+        {
+          "text": "-",
+          "distance": 11.2,
+          "direction": "below"
+        },
+        {
+          "text": "Buyer waives the opportunity to conduct a risk assessment or inspection of the Property for the presence of",
+          "distance": 44.8,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'lead_paint_disclosure' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 8,
+      "field_name": "Check Box10",
+      "page": 1,
+      "x": 66,
+      "y": 444,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.6,
+          "direction": "above"
+        },
+        {
+          "text": "(b)",
+          "distance": 12,
+          "direction": "right"
+        },
+        {
+          "text": "BUYER'S RIGHTS",
+          "distance": 32.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box10' but no matching fixture key exists for it"
+    },
+    {
+      "index": 11,
+      "field_name": "Check Box13",
+      "page": 1,
+      "x": 51,
+      "y": 332,
+      "width": 11,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.6,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 8.3,
+          "direction": "below"
+        },
+        {
+          "text": "1.",
+          "distance": 10.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box13' but no matching fixture key exists for it"
+    },
+    {
+      "index": 12,
+      "field_name": "Check Box14",
+      "page": 1,
+      "x": 50,
+      "y": 323,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.3,
+          "direction": "above"
+        },
+        {
+          "text": "2.",
+          "distance": 10.8,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 13.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box14' but no matching fixture key exists for it"
+    }
+  ],
+  "skipped": []
+}

@@ -5,6 +5,9 @@ public/frame_*.jpg
 # Fill-and-verify loop scratch output (PDFs + PNGs, large + ephemeral)
 .tmp-fill-verify/
 
+# Offline TREC labeler intermediate PDF page PNGs
+.tmp-labeler-pages/
+
 # Logs
 logs
 *.log
