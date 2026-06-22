@@ -393,8 +393,25 @@ const TOOLS = [
     },
   },
   {
+    name: 'ask_hadley',
+    description: 'Ask Hadley (General Counsel) a TREC contract or Texas real estate law question. Use whenever the agent says anything like: ask Hadley, what does TREC say about, explain paragraph X of TREC Y, is the seller required to, what does the buyer lose if, what is the rule on, is this enforceable, can the seller, can the buyer, what happens when the option period expires, define earnest money under TREC, what is the deadline for, walk me through paragraph X. Returns a cited answer drawn from Hadley\'s in-house knowledge base of TREC forms and Texas real estate statutes. Currently studied: TREC 20-18 (One to Four Family Residential Contract — Resale). Other forms will return a graceful "studying that next" reply and log the question for Hadley.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'The TREC / Texas real estate question, verbatim or paraphrased from the agent.' },
+        form: {
+          type: 'string',
+          enum: ['TREC 20-18', '20-18', 'TREC 20-17', 'TREC 40-11', 'TREC 36-11', 'TREC 39-10', 'TREC 38-7'],
+          description: 'Optional: which TREC form this question relates to. Default is TREC 20-18 (the current residential resale contract).',
+        },
+        paragraph: { type: 'string', description: 'Optional: paragraph reference like "12.A.(1)(b)" — pass through if the agent quotes one.' },
+      },
+      required: ['question'],
+    },
+  },
+  {
     name: 'answer_question',
-    description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies.',
+    description: 'Answer a general question or have a conversation when no specific action is needed. Use this when no other tool applies. For TREC contract / Texas real estate LAW questions, prefer ask_hadley instead.',
     input_schema: {
       type: 'object',
       properties: {
@@ -472,6 +489,7 @@ INTENT MAPPING:
 - Send wire fraud warning/TAR 2517/fraud notice to buyer = send_wire_fraud_warning
 - We got an offer/received an offer/offer came in/buyer submitted/got a bid = log_offer (seller-side)
 - Buyer wants to terminate/buyer is terminating/buyer is backing out/terminate the contract/draft the termination/TREC 38-7 = initiate_termination
+- Ask Hadley/what does TREC say/explain paragraph/is the seller required to/walk me through paragraph/what's the rule on/is this enforceable/define [TREC term] = ask_hadley (Hadley is Dossie's in-house general counsel; pass the agent's question verbatim and the form/paragraph if mentioned)
 - Everything else = answer_question
 
 CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
