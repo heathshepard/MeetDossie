@@ -5924,6 +5924,37 @@
     ) {
       const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
       navigator.mediaDevices.__jarvisOriginalGUM = original;
+
+      // Capacitor native bridge detection — only present inside the
+      // jarvis-native Android wrapper APK (atlas_4, 2026-06-22). Outside
+      // the APK (regular browser PWA), this is undefined and the helper
+      // becomes a no-op so behavior is identical to before.
+      const isCapacitorNative = !!(
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform()
+      );
+      async function enforceNativeAudioMode(tag) {
+        if (!isCapacitorNative) return null;
+        try {
+          const AudioMode =
+            window.Capacitor.Plugins && window.Capacitor.Plugins.AudioMode;
+          if (!AudioMode || typeof AudioMode.enforceMediaMode !== 'function') {
+            return null;
+          }
+          const r = await AudioMode.enforceMediaMode();
+          if (r && r.modeName) {
+            console.log('[jarvis-audio-native]', tag, r.modeName,
+              'a2dp=', r.a2dpConnected, 'dev=', r.activeDevice);
+          }
+          return r;
+        } catch (e) {
+          console.warn('[jarvis-audio-native]', tag, 'failed:', e && e.message);
+          return null;
+        }
+      }
+      window.__jarvisEnforceNativeAudioMode = enforceNativeAudioMode;
+
       navigator.mediaDevices.getUserMedia = function patchedGUM(constraints) {
         try {
           const deviceId = localStorage.getItem(LS_INPUT);
@@ -5936,7 +5967,19 @@
         } catch (e) {
           console.warn('[jarvis-audio] gUM patch error:', e);
         }
-        return original(constraints);
+        // BEFORE getUserMedia: force MODE_NORMAL via native plugin so the
+        // WebView can't flip into MODE_IN_COMMUNICATION (which kills A2DP
+        // routing to Bluetooth headphones — Sony WH bug, 2026-06-22).
+        // No-op outside the Capacitor APK.
+        const beforePromise = enforceNativeAudioMode('pre-gUM');
+        return Promise.resolve(beforePromise).then(() =>
+          original(constraints).then((stream) => {
+            // AFTER getUserMedia: re-assert MODE_NORMAL. Some OEM Chromium
+            // builds flip the mode AFTER the stream is granted, not before.
+            enforceNativeAudioMode('post-gUM');
+            return stream;
+          })
+        );
       };
       navigator.mediaDevices.__jarvisDevicePatch = true;
     }
