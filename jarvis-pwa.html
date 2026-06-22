@@ -4820,10 +4820,7 @@
       showToast(text);
     }
 
-    function escapeHtml(text) {
-      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-      return text.replace(/[&<>"']/g, m => map[m]);
-    }
+    // escapeHtml is defined later in this module (null-safe version).
 
     function renderPending(items) {
       const list = document.getElementById('pending-list');
@@ -6684,6 +6681,10 @@
        user's choice. Works whether or not setSinkId is supported.
        ============================================================ -->
   <script>
+  // atlas_7 2026-06-22: outer try/catch so a monkey-patch failure never
+  // breaks the rest of the page (sign-in module already lives in its own
+  // <script type="module">, but this is belt-and-suspenders).
+  try {
   (function audioDevicePickerBoot() {
     'use strict';
 
@@ -7102,6 +7103,9 @@
       bootstrap();
     }
   })();
+  } catch (e) {
+    console.error('[jarvis-pwa] audio device picker boot failed (non-fatal):', e);
+  }
   </script>
 </body>
 </html>
