@@ -2078,8 +2078,11 @@
     // false-positive cabin noise transcriptions.
     const NOISY_TRANSCRIPT_RE = /^[\s\W]*[\[\(\*][^\]\)\*]+[\]\)\*][\s\W]*$/;
     const SHORT_NONWORD_RE = /^(uh+|um+|hmm+|mm+|ah+|oh+|huh+)[\s\.\,!\?]*$/i;
-    // Single words that are almost always cabin/ambient noise labels from STT
-    const NOISE_WORDS_RE = /^(music|techno|buzzing|static|noise|wind|engine|hum|humming|silence|whoosh|whirring|rumble|rumbling|whirr)[\s\.\,!\?]*$/i;
+    // Single or short-phrase ambient labels from STT. Matches "music",
+    // "techno music", "background hum", "white noise", "bulb buzzing",
+    // "cabin noise", "engine hum", etc. — all common Whisper / scribe_v1
+    // labels for non-speech audio.
+    const NOISE_WORDS_RE = /^[\s\.\,!\?]*(?:background\s+|white\s+|loud\s+|soft\s+|bulb\s+|electric\s+|engine\s+|cabin\s+)?(?:music|techno(?:\s+music)?|buzzing|buzz|static|noise|wind|engine|hum(?:ming)?|silence|whoosh|whirring|whirr|rumble|rumbling|rustle|rustling|breathing|coughing|clicking)[\s\.\,!\?]*$/i;
 
     function isLikelyNoiseTranscript(text) {
       const t = String(text || '').trim();
