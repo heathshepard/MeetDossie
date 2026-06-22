@@ -1239,6 +1239,169 @@
       font-size: 14px; line-height: 1;
     }
 
+    /* ===== AGENT INSTANCE CARDS (SOP 2026-06-22) ===== */
+    #instance-list {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .instance-empty {
+      font-size: 11px; color: var(--txt-faint);
+      letter-spacing: 0.10em; text-transform: uppercase;
+      text-align: center; padding: 12px 0;
+    }
+    .instance-card {
+      cursor: pointer;
+      padding: 10px 12px;
+      background: rgba(5, 8, 16, 0.4);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .instance-card:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.06); }
+    .instance-card.running { border-left: 3px solid var(--cyan-bright); }
+    .instance-card.completed { border-left: 3px solid var(--ok); opacity: 0.85; }
+    .instance-card.failed { border-left: 3px solid var(--fail); }
+    .instance-card.cancelled { border-left: 3px solid var(--txt-faint); opacity: 0.65; }
+    .instance-header {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .instance-id-badge {
+      font-family: 'Courier New', monospace;
+      font-size: 11px; color: var(--cyan-bright);
+      letter-spacing: 0.06em;
+      text-transform: lowercase;
+    }
+    .instance-role-pill {
+      font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+      padding: 1px 6px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      color: var(--txt-mute);
+    }
+    .instance-project {
+      font-size: 12px; line-height: 1.35; color: var(--txt-primary);
+    }
+    .instance-meta {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.04em;
+    }
+    .instance-progress-track {
+      height: 4px; background: rgba(77, 208, 225, 0.08);
+      border-radius: 2px; overflow: hidden;
+    }
+    .instance-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan) 0%, var(--cyan-bright) 100%);
+      box-shadow: 0 0 6px var(--cyan-dim);
+      transition: width 0.4s ease;
+    }
+    .instance-card.completed .instance-progress-fill {
+      background: linear-gradient(90deg, var(--ok) 0%, var(--ok) 100%);
+      box-shadow: none;
+    }
+    .instance-card.failed .instance-progress-fill {
+      background: var(--fail);
+    }
+
+    /* ===== CHECKLIST MODAL (SOP 2026-06-22) ===== */
+    .checklist-list {
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: 50vh; overflow-y: auto;
+      padding: 4px 0;
+    }
+    .checklist-item-row {
+      display: grid; grid-template-columns: 24px 1fr auto;
+      gap: 8px; align-items: center;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: default;
+    }
+    .checklist-item-row:hover { background: rgba(0, 229, 255, 0.04); border-color: var(--line); }
+    .checklist-icon {
+      font-size: 14px; line-height: 1; text-align: center;
+      width: 24px; height: 24px;
+      display: grid; place-items: center;
+    }
+    .checklist-item-row.completed .checklist-icon { color: var(--ok); }
+    .checklist-item-row.in_progress .checklist-icon { color: var(--cyan-bright); animation: pulse-status 1.4s ease-in-out infinite; }
+    .checklist-item-row.failed .checklist-icon { color: var(--fail); }
+    .checklist-item-row.pending .checklist-icon { color: var(--txt-faint); }
+    .checklist-item-title {
+      font-size: 12px; line-height: 1.35;
+      color: var(--txt-primary);
+    }
+    .checklist-item-row.completed .checklist-item-title {
+      color: var(--txt-mute); text-decoration: line-through;
+    }
+    .checklist-item-row.pending .checklist-item-title { color: var(--txt-mute); }
+    .checklist-item-meta {
+      font-size: 9px; color: var(--txt-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .checklist-progress-bar {
+      height: 4px; background: rgba(77, 208, 225, 0.08);
+      border-radius: 2px; overflow: hidden;
+      margin: 6px 0 12px;
+    }
+    .checklist-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan) 0%, var(--cyan-bright) 100%);
+      transition: width 0.4s ease;
+    }
+
+    /* ===== PROJECTS LEDGER (SOP 2026-06-22) ===== */
+    .ledger-section { margin-bottom: 14px; }
+    .ledger-section:last-child { margin-bottom: 0; }
+    .ledger-section-label {
+      font-size: 10px; letter-spacing: 0.20em; text-transform: uppercase;
+      color: var(--txt-faint);
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
+    }
+    .ledger-section-label.building { color: var(--cyan); }
+    .ledger-section-label.shipped { color: var(--ok); }
+    .ledger-empty {
+      font-size: 11px; color: var(--txt-faint);
+      letter-spacing: 0.08em;
+      padding: 4px 0;
+      font-style: italic;
+    }
+    .project-card {
+      cursor: pointer;
+      padding: 8px 10px;
+      background: rgba(5, 8, 16, 0.35);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .project-card:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.04); }
+    .project-card.building { border-left: 3px solid var(--cyan-bright); }
+    .project-card.shipped { border-left: 3px solid var(--ok); }
+    .project-card.shelved,
+    .project-card.cancelled { border-left: 3px solid var(--txt-faint); opacity: 0.6; }
+    .project-title {
+      font-size: 12px; line-height: 1.35; color: var(--txt-primary);
+      font-weight: 500;
+    }
+    .project-meta {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.04em;
+    }
+    .project-meta .project-pct { color: var(--cyan); }
+    .project-meta .gold-tag {
+      color: var(--gold);
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+    }
+
     /* ===== Quick-Ask voice input modal (compact prompt) ===== */
     .quick-ask-modal {
       max-width: 500px;
@@ -1605,7 +1768,16 @@
 
         <div class="panel">
           <div class="panel-title">AGENT STATUS</div>
-          <div id="agent-grid">
+          <!-- DYNAMIC instance cards (SOP locked 2026-06-22).
+               Cards grow + contract via Supabase Realtime as instances spawn / complete.
+               Falls back to legacy per-role rows if the new endpoint is unavailable. -->
+          <div id="instance-list">
+            <div class="instance-empty">Loading agents…</div>
+          </div>
+          <!-- Legacy per-role rows kept hidden as a fallback target for older code paths
+               (agentLedger merge logic still references .agent-row). They're invisible by
+               default but renderAgentRows() still updates them in-memory. -->
+          <div id="agent-grid" style="display:none;">
             <div class="agent-row" data-agent="atlas">
               <div class="agent-name">Atlas</div>
               <div class="agent-status idle">IDLE</div>
@@ -1631,6 +1803,14 @@
               <div class="agent-status idle">IDLE</div>
               <div class="agent-summary">—</div>
             </div>
+          </div>
+        </div>
+
+        <!-- PROJECTS LEDGER (SOP locked 2026-06-22) — building / recent shipped / all. -->
+        <div class="panel" id="projects-panel">
+          <div class="panel-title">PROJECTS LEDGER</div>
+          <div id="projects-ledger">
+            <div class="ledger-empty">Loading projects…</div>
           </div>
         </div>
 
@@ -2354,6 +2534,10 @@
       // Tier 2 hydrations
       loadCalendar().catch(() => {});
       loadAgentLedger().catch(() => {});
+      // SOP 2026-06-22 — agent instance + projects ledger
+      loadInstances().catch(() => {});
+      loadProjects().catch(() => {});
+      subscribeInstanceEvents();
       // Refresh cadences per spec:
       //   tickers (money/activity log) — 30s
       //   to-do — 60s
@@ -2362,6 +2546,7 @@
       //   customer activity — 30s polling + realtime subscription below
       //   calendar — 5m (slow-changing)
       //   agent ledger — 30s polling backup (realtime is the primary)
+      //   instances + projects — 30s polling backup, realtime primary
       setInterval(() => { loadTickers().catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().catch(() => {}); }, 60000);
       setInterval(() => { loadPendingApprovals().catch(() => {}); }, 30000);
@@ -2369,6 +2554,8 @@
       setInterval(() => { loadCustomerActivity().catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().catch(() => {}); }, 300000);
       setInterval(() => { loadAgentLedger().catch(() => {}); }, 30000);
+      setInterval(() => { loadInstances().catch(() => {}); }, 30000);
+      setInterval(() => { loadProjects().catch(() => {}); }, 60000);
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -4781,6 +4968,397 @@
     function updateAgentRow(event) {
       onAgentEvent(event);
     }
+
+    // =========================================================================
+    // AGENT INSTANCES + PROJECTS LEDGER (SOP locked 2026-06-22)
+    // =========================================================================
+    // Dynamic AGENT STATUS cards: atlas_1, atlas_2, hadley_1, ... grow + contract
+    // as the orchestrator spawns / completes instances. Tap a card -> checklist modal.
+    // PROJECTS LEDGER: building / recent_shipped / all. Tap -> history modal.
+    // -------------------------------------------------------------------------
+    const instancesById = new Map(); // instance.id -> { instance, project, checklist_summary, checklist? }
+    let cachedRecentInstances = []; // recently-completed cards displayed below running ones
+
+    async function authedFetch(url) {
+      const token = session?.access_token;
+      if (!token) throw new Error('no_session');
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${t.slice(0, 160)}`);
+      }
+      return res.json();
+    }
+
+    async function loadInstances() {
+      if (!tenant) return;
+      try {
+        const data = await authedFetch('/api/jarvis-list-instances?completed_window_hours=24&limit=50');
+        if (!data?.ok) return;
+        instancesById.clear();
+        (data.running || []).forEach(r => instancesById.set(r.instance.id, r));
+        cachedRecentInstances = data.recent || [];
+        renderInstanceCards();
+      } catch (err) {
+        console.warn('[jarvis] loadInstances failed', err.message);
+        const list = document.getElementById('instance-list');
+        if (list) {
+          list.innerHTML = `<div class="instance-empty">Agent instance API unavailable — falling back to legacy per-role view.</div>`;
+        }
+      }
+    }
+
+    function renderInstanceCards() {
+      const list = document.getElementById('instance-list');
+      if (!list) return;
+      const running = [...instancesById.values()]
+        .filter(r => r.instance.status === 'running')
+        .sort((a, b) => new Date(b.instance.spawned_at) - new Date(a.instance.spawned_at));
+      const recent = (cachedRecentInstances || [])
+        .sort((a, b) => new Date(b.instance.completed_at || 0) - new Date(a.instance.completed_at || 0))
+        .slice(0, 5);
+      if (running.length === 0 && recent.length === 0) {
+        list.innerHTML = `<div class="instance-empty">No agent instances running.</div>`;
+        return;
+      }
+      const cards = [];
+      running.forEach(r => cards.push(buildInstanceCardHtml(r)));
+      if (recent.length > 0) {
+        cards.push(`<div class="ledger-section-label" style="margin-top:6px;">Recently Completed</div>`);
+        recent.forEach(r => cards.push(buildInstanceCardHtml(r)));
+      }
+      list.innerHTML = cards.join('');
+      // Wire clicks
+      list.querySelectorAll('.instance-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.getAttribute('data-instance-id');
+          if (id) openInstanceChecklistModal(id);
+        });
+      });
+    }
+
+    function buildInstanceCardHtml(r) {
+      const inst = r.instance;
+      const proj = r.project;
+      const sum = r.checklist_summary || { total: 0, completed: 0, failed: 0, in_progress: 0, pending: 0 };
+      const status = (inst.status || 'running').toLowerCase();
+      const pct = sum.total > 0 ? Math.round((sum.completed / sum.total) * 100) : 0;
+      const elapsed = inst.status === 'running'
+        ? `running · ${fmtElapsed(inst.spawned_at)}`
+        : (inst.completed_at ? `done · ${fmtAgo(inst.completed_at)} ago` : '');
+      const projTitle = proj ? escapeHtml(proj.title) : '(no project)';
+      const failedBadge = sum.failed > 0
+        ? `<span style="color:var(--fail);">${sum.failed} failed</span> · `
+        : '';
+      return `
+        <div class="instance-card ${status}" data-instance-id="${escapeHtml(inst.id)}">
+          <div class="instance-header">
+            <span class="instance-id-badge">${escapeHtml(inst.instance_id || '—')}</span>
+            <span class="instance-role-pill">${escapeHtml(inst.agent_role || '?')}</span>
+          </div>
+          <div class="instance-project">${projTitle}</div>
+          <div class="instance-progress-track">
+            <div class="instance-progress-fill" style="width:${pct}%;"></div>
+          </div>
+          <div class="instance-meta">
+            <span>${failedBadge}${sum.completed}/${sum.total} done · ${pct}%</span>
+            <span>${escapeHtml(elapsed)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    async function openInstanceChecklistModal(instanceId) {
+      // Fetch the full checklist for this instance (we don't ship it in the list endpoint for size).
+      let checklist = [];
+      let r = instancesById.get(instanceId) || cachedRecentInstances.find(x => x.instance.id === instanceId);
+      try {
+        const sbUrl = window.__JARVIS_SB_URL;
+        const sbKey = window.__JARVIS_SB_KEY;
+        const token = session?.access_token;
+        const url = `${sbUrl}/rest/v1/jarvis_agent_checklist?select=*&instance_id=eq.${instanceId}&order=display_order.asc&limit=200`;
+        const res = await fetch(url, {
+          headers: { apikey: sbKey, Authorization: `Bearer ${token || sbKey}` },
+        });
+        if (res.ok) checklist = await res.json();
+      } catch (err) {
+        console.warn('[jarvis] checklist fetch failed', err.message);
+      }
+      const inst = r ? r.instance : { instance_id: '?', agent_role: '?', spawn_prompt: '' };
+      const proj = r ? r.project : null;
+      const total = checklist.length;
+      const done = checklist.filter(c => c.status === 'completed').length;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'detail-modal-backdrop';
+      backdrop.innerHTML = `
+        <div class="detail-modal">
+          <div class="detail-header">
+            <div class="detail-title-block">
+              <span class="detail-agent-badge">${escapeHtml(inst.instance_id || '?')}</span>
+              <div class="detail-title">${escapeHtml(proj ? proj.title : '(no project)')}</div>
+              <div style="font-size:10px;letter-spacing:0.16em;color:var(--txt-faint);text-transform:uppercase;margin-top:4px;">${escapeHtml(inst.status || 'running')} · ${escapeHtml(inst.agent_role || '?')}</div>
+            </div>
+            <button class="detail-close" aria-label="Close">×</button>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">Progress (${done}/${total} · ${pct}%)</div>
+            <div class="checklist-progress-bar">
+              <div class="checklist-progress-fill" style="width:${pct}%;"></div>
+            </div>
+            <div class="checklist-list" id="checklist-list-${escapeHtml(instanceId)}">
+              ${total === 0 ? '<div class="ledger-empty">No checklist items.</div>' : checklist.map(item => buildChecklistRowHtml(item)).join('')}
+            </div>
+          </div>
+          ${inst.spawn_prompt ? `
+          <div class="detail-section">
+            <div class="detail-section-label">Spawn prompt</div>
+            <div class="detail-section-body">${escapeHtml(inst.spawn_prompt)}</div>
+          </div>` : ''}
+        </div>
+      `;
+      const close = () => backdrop.remove();
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      backdrop.querySelector('.detail-close').addEventListener('click', close);
+      document.body.appendChild(backdrop);
+    }
+
+    function buildChecklistRowHtml(item) {
+      const status = (item.status || 'pending').toLowerCase();
+      const icon = status === 'completed' ? '✅'
+                 : status === 'in_progress' ? '🔄'
+                 : status === 'failed' ? '❌'
+                 : '⏳';
+      const meta = item.commit_sha
+        ? `<span class="checklist-item-meta">${escapeHtml(item.commit_sha.slice(0, 7))}</span>`
+        : item.completed_at
+          ? `<span class="checklist-item-meta">${fmtAgo(item.completed_at)}</span>`
+          : '';
+      return `
+        <div class="checklist-item-row ${status}" data-item-id="${escapeHtml(item.id)}">
+          <div class="checklist-icon">${icon}</div>
+          <div class="checklist-item-title">${escapeHtml(item.title || '(untitled)')}</div>
+          ${meta}
+        </div>
+      `;
+    }
+
+    // Realtime: instance + checklist inserts/updates
+    function subscribeInstanceEvents() {
+      if (!tenant) return;
+      supabase
+        .channel(`jarvis_agent_instances:${tenant.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'jarvis_agent_instances', filter: `tenant_id=eq.${tenant.id}` },
+          () => { loadInstances().catch(() => {}); }
+        )
+        .subscribe();
+      supabase
+        .channel(`jarvis_agent_checklist:${tenant.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'jarvis_agent_checklist', filter: `tenant_id=eq.${tenant.id}` },
+          (payload) => {
+            // Refresh the list (cheap), and if a modal is open re-render the row in-place.
+            loadInstances().catch(() => {});
+            const item = payload.new || payload.old;
+            if (!item) return;
+            const row = document.querySelector(`.checklist-item-row[data-item-id="${item.id}"]`);
+            if (row && payload.new) {
+              row.outerHTML = buildChecklistRowHtml(payload.new);
+            }
+          }
+        )
+        .subscribe();
+      supabase
+        .channel(`jarvis_projects:${tenant.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'jarvis_projects', filter: `tenant_id=eq.${tenant.id}` },
+          () => { loadProjects().catch(() => {}); }
+        )
+        .subscribe();
+    }
+
+    // ----- PROJECTS LEDGER -----
+    async function loadProjects() {
+      if (!tenant) return;
+      try {
+        const data = await authedFetch('/api/jarvis-list-projects?shipped_window_days=30');
+        if (!data?.ok) return;
+        renderProjectsLedger(data);
+      } catch (err) {
+        console.warn('[jarvis] loadProjects failed', err.message);
+        const el = document.getElementById('projects-ledger');
+        if (el) el.innerHTML = `<div class="ledger-empty">Projects API unavailable.</div>`;
+      }
+    }
+
+    function renderProjectsLedger(data) {
+      const el = document.getElementById('projects-ledger');
+      if (!el) return;
+      const building = data.building || [];
+      const recent = data.recent_shipped || [];
+      const all = data.all || [];
+      const sections = [];
+      sections.push(`
+        <div class="ledger-section">
+          <div class="ledger-section-label building">Building (${building.length})</div>
+          ${building.length === 0
+            ? '<div class="ledger-empty">Nothing actively building.</div>'
+            : building.map(b => buildProjectCardHtml(b.project, b.progress_pct, b.completed_items, b.total_items)).join('')}
+        </div>
+      `);
+      sections.push(`
+        <div class="ledger-section">
+          <div class="ledger-section-label shipped">Recently Shipped · last 30 days (${recent.length})</div>
+          ${recent.length === 0
+            ? '<div class="ledger-empty">Nothing shipped yet.</div>'
+            : recent.map(r => buildProjectCardHtml(r.project)).join('')}
+        </div>
+      `);
+      // Show "all" only if there's anything outside the building+recent buckets.
+      const buildingIds = new Set(building.map(b => b.project.id));
+      const recentIds = new Set(recent.map(r => r.project.id));
+      const other = all.filter(a => !buildingIds.has(a.project.id) && !recentIds.has(a.project.id));
+      if (other.length > 0) {
+        sections.push(`
+          <div class="ledger-section">
+            <div class="ledger-section-label">All History (${other.length})</div>
+            ${other.slice(0, 25).map(o => buildProjectCardHtml(o.project)).join('')}
+          </div>
+        `);
+      }
+      el.innerHTML = sections.join('');
+      el.querySelectorAll('.project-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.getAttribute('data-project-id');
+          if (id) openProjectHistoryModal(id);
+        });
+      });
+    }
+
+    function buildProjectCardHtml(project, progressPct, doneItems, totalItems) {
+      const status = (project.status || 'building').toLowerCase();
+      const pctTxt = (progressPct != null)
+        ? `<span class="project-pct">${progressPct}% (${doneItems}/${totalItems})</span>`
+        : '';
+      const goldTxt = project.gold_tag
+        ? `<span class="gold-tag">${escapeHtml(project.gold_tag)}</span>`
+        : '';
+      const tsTxt = status === 'shipped' && project.completed_at
+        ? `shipped ${fmtAgo(project.completed_at)} ago`
+        : `started ${fmtAgo(project.spawned_at)} ago`;
+      return `
+        <div class="project-card ${status}" data-project-id="${escapeHtml(project.id)}">
+          <div class="project-title">${escapeHtml(project.title || '(untitled)')}</div>
+          <div class="project-meta">
+            <span>${pctTxt} ${goldTxt}</span>
+            <span>${escapeHtml(tsTxt)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    async function openProjectHistoryModal(projectId) {
+      let project = null;
+      let instances = [];
+      try {
+        const sbUrl = window.__JARVIS_SB_URL;
+        const sbKey = window.__JARVIS_SB_KEY;
+        const token = session?.access_token;
+        const projRes = await fetch(`${sbUrl}/rest/v1/jarvis_projects?select=*&id=eq.${projectId}&limit=1`, {
+          headers: { apikey: sbKey, Authorization: `Bearer ${token || sbKey}` },
+        });
+        if (projRes.ok) {
+          const rows = await projRes.json();
+          project = rows[0] || null;
+        }
+        const instRes = await fetch(`${sbUrl}/rest/v1/jarvis_agent_instances?select=*&project_id=eq.${projectId}&order=spawned_at.desc&limit=50`, {
+          headers: { apikey: sbKey, Authorization: `Bearer ${token || sbKey}` },
+        });
+        if (instRes.ok) instances = await instRes.json();
+      } catch (err) {
+        console.warn('[jarvis] project modal load failed', err.message);
+      }
+      if (!project) {
+        showToast('Project not found.');
+        return;
+      }
+      const backdrop = document.createElement('div');
+      backdrop.className = 'detail-modal-backdrop';
+      const status = (project.status || 'building').toLowerCase();
+      backdrop.innerHTML = `
+        <div class="detail-modal">
+          <div class="detail-header">
+            <div class="detail-title-block">
+              <span class="detail-agent-badge">project</span>
+              <div class="detail-title">${escapeHtml(project.title || '(untitled)')}</div>
+              <div style="font-size:10px;letter-spacing:0.16em;color:var(--txt-faint);text-transform:uppercase;margin-top:4px;">${escapeHtml(status)}${project.gold_tag ? ' · ' + escapeHtml(project.gold_tag) : ''}</div>
+            </div>
+            <button class="detail-close" aria-label="Close">×</button>
+          </div>
+          ${project.description ? `
+          <div class="detail-section">
+            <div class="detail-section-label">Description</div>
+            <div class="detail-section-body">${escapeHtml(project.description)}</div>
+          </div>` : ''}
+          ${project.evidence_summary ? `
+          <div class="detail-section">
+            <div class="detail-section-label">Evidence Summary</div>
+            <div class="detail-section-body">${escapeHtml(project.evidence_summary)}</div>
+          </div>` : ''}
+          <div class="detail-section">
+            <div class="detail-section-label">Agent Instances (${instances.length})</div>
+            <div class="checklist-list">
+              ${instances.length === 0 ? '<div class="ledger-empty">No instances yet.</div>' : instances.map(i => `
+                <div class="checklist-item-row ${i.status}" data-instance-id="${escapeHtml(i.id)}">
+                  <div class="checklist-icon">${i.status === 'completed' ? '✅' : i.status === 'failed' ? '❌' : i.status === 'cancelled' ? '⛔' : '🔄'}</div>
+                  <div class="checklist-item-title">${escapeHtml(i.instance_id || i.agent_role)}</div>
+                  <span class="checklist-item-meta">${i.completed_at ? fmtAgo(i.completed_at) + ' ago' : 'running ' + fmtElapsed(i.spawned_at)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Spawned</div><div class="detail-cell-val">${escapeHtml(project.spawned_at ? new Date(project.spawned_at).toLocaleString() : '—')}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Completed</div><div class="detail-cell-val">${escapeHtml(project.completed_at ? new Date(project.completed_at).toLocaleString() : '—')}</div></div>
+          </div>
+        </div>
+      `;
+      const close = () => backdrop.remove();
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      backdrop.querySelector('.detail-close').addEventListener('click', close);
+      // Wire instance rows to open checklist modal
+      backdrop.querySelectorAll('.checklist-item-row[data-instance-id]').forEach(row => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          const id = row.getAttribute('data-instance-id');
+          backdrop.remove();
+          openInstanceChecklistModal(id);
+        });
+      });
+      document.body.appendChild(backdrop);
+    }
+
+    // Live elapsed-time tick for instance cards (re-render meta every second when any are running).
+    setInterval(() => {
+      const running = [...instancesById.values()].filter(r => r.instance.status === 'running');
+      if (running.length === 0) return;
+      document.querySelectorAll('.instance-card.running').forEach(card => {
+        const id = card.getAttribute('data-instance-id');
+        const r = instancesById.get(id);
+        if (!r) return;
+        const metaSpans = card.querySelectorAll('.instance-meta span');
+        if (metaSpans.length >= 2) {
+          metaSpans[1].textContent = `running · ${fmtElapsed(r.instance.spawned_at)}`;
+        }
+      });
+    }, 1000);
 
     // ===== PWA: service worker =====
     if ('serviceWorker' in navigator) {
