@@ -85,15 +85,15 @@ const FRONTEND_URLS = [
 
 // ----- API endpoints probed ------------------------------------------------
 // Public read-only endpoints. We don't mutate. Each probe asserts a status
-// code (200/2xx) and a minimum response shape.
+// code (200/2xx) and a minimum response shape. Endpoints verified live
+// against meetdossie.com on 2026-06-20.
 const API_PROBES = [
-  { slug: 'health-check',          path: '/api/health-check',          method: 'GET', auth: 'none' },
+  // Public
+  { slug: 'health',                path: '/api/health',                method: 'GET', auth: 'none', expect_keys: ['status'] },
   { slug: 'get-supabase-config',   path: '/api/get-supabase-public-config', method: 'GET', auth: 'none', expect_keys: ['url'] },
-  { slug: 'founding-spots',        path: '/api/founding-spots-remaining', method: 'GET', auth: 'none' },
-  { slug: 'scarcity-banner',       path: '/api/scarcity-banner',       method: 'GET', auth: 'none' },
-  { slug: 'admin-public-stats',    path: '/api/admin-public-stats',    method: 'GET', auth: 'none' },
-  // Authed (demo JWT)
-  { slug: 'profiles-me',           path: '/api/me',                    method: 'GET', auth: 'demo' },
+  { slug: 'config',                path: '/api/config',                method: 'GET', auth: 'none' },
+  // Authed (demo JWT) — read-only
+  { slug: 'documents',             path: '/api/documents',             method: 'GET', auth: 'demo' },
   { slug: 'action-items',          path: '/api/action-items',          method: 'GET', auth: 'demo' },
   { slug: 'jarvis-tickers',        path: '/api/jarvis-tickers',        method: 'GET', auth: 'demo' },
 ];
