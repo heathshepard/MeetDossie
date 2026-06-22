@@ -136,7 +136,34 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Fixed mobile layout overflow issue** (customer)
 - We fixed a bug where content on mobile phones was stretching way too wide and forcing horizontal scrolling. Your app now displays properly on smaller screens without unwanted scrolling.
 
-<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1a6e9a1,2637b00,29f9aa4,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,654af68,69f1b2b,70ae540,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,e36fc31,e627144,ea86f86,f393f86,f98eba4,fafb513 -->
+**Talk-to-Dossie chat now easier to read and use** (customer)
+- We've reorganized the chat so new messages appear at the top and older ones scroll below, making it easier to follow recent conversation. The message input box now stays fixed at the bottom of the screen so you can always see it, and you can attach files directly from chat.
+
+**Fixed chat input layout on narrow phones** (customer)
+- We fixed the chat input box and send button to display correctly on very narrow phone screens like the Samsung Z Fold cover, so you can chat with Dossie without text getting cut off.
+
+**Jarvis now knows your location and what agents are doing** (customer)
+- We fixed Jarvis to always know your current date, timezone, and travel plans so it gives you accurate information. Jarvis can also now see what your agents are working on right now and answer questions about their activity without delays.
+
+**Noisy Mode toggle for Talk-to-Dossie** (customer)
+- We added a Noisy Mode toggle to Talk-to-Dossie so the voice assistant works better in loud environments like planes, cafes, and cars. When you turn it on, Dossie ignores background noise and false speech detection, so you get fewer phantom replies and interruptions.
+
+**Chat input stays at top while conversation grows** (customer)
+- We moved the text input box to the top of the chat panel so it stays visible and easy to reach as your conversation with Jarvis grows longer. New messages now appear right below the input instead of pushing it further down the screen.
+
+**Jarvis now remembers your full conversation** (customer)
+- We fixed a bug where Jarvis would forget your recent messages in long conversations and base replies on old context instead. Now Jarvis can see and respond to your last 30 messages, keeping the conversation flowing naturally.
+
+**Fixed sign-in button on Jarvis app** (customer)
+- We fixed a bug where the sign-in button on the Jarvis PWA appeared clickable but wouldn't respond to taps after a session expired. Agents can now sign back in reliably on mobile.
+
+**Fix audio cutting out on Bluetooth headphones** (customer)
+- We fixed an issue where audio would unexpectedly switch from Bluetooth headphones to the phone speaker during calls on Android devices. Agents using Bluetooth headsets will now have consistent, uninterrupted audio.
+
+**Fixed sign-in button not working** (customer)
+- We fixed a critical bug that prevented agents from signing in to the Jarvis app. Sign-in now works properly again.
+
+<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,348a261,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,6501ff1,654af68,69f1b2b,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,d6e08c4,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
 
 ## Week of June 5, 2026
 
