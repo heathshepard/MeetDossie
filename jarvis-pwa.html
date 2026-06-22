@@ -288,6 +288,59 @@
       min-height: 16px;
     }
 
+    /* ===== NOISY MODE TOGGLE =====
+       Floats top-right of the orb-wrap. When ON, the VAD threshold + silenceMs
+       + minSpeechMs are raised so cabin/ambient noise stops triggering phantom
+       transcriptions. Default OFF. State persists per device in localStorage.
+       Added 2026-06-21 (Bug 4 — Heath's transatlantic flight had cabin noise
+       hitting "techno music" and "buzzing" as speech). */
+    .noisy-toggle {
+      position: absolute;
+      top: 8px; right: 8px;
+      z-index: 3; /* above ptt-btn so it's always tappable */
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--txt-mute);
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(77, 208, 225, 0.22);
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+      user-select: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      backdrop-filter: blur(6px);
+    }
+    .noisy-toggle:hover { border-color: var(--cyan-bright); color: var(--cyan-bright); }
+    .noisy-toggle:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--cyan-bright); }
+    .noisy-toggle .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--txt-faint);
+      box-shadow: none;
+      transition: background 0.18s ease, box-shadow 0.18s ease;
+    }
+    .noisy-toggle[data-on="true"] {
+      color: var(--gold);
+      border-color: var(--gold);
+      background: rgba(201, 169, 110, 0.12);
+    }
+    .noisy-toggle[data-on="true"] .dot {
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+    /* Small status chip shown in the ptt-status row when noisy mode is on. */
+    .noisy-chip {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      font-size: 9px; letter-spacing: 0.18em;
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      border-radius: 999px;
+      background: rgba(201, 169, 110, 0.08);
+    }
+
     /* ===== SCROLLBACK =====
        Fixed-height panel so it never pushes downstream panels (Pending Approvals,
        Daily Debrief, etc.) further down the page as the conversation grows.
@@ -1389,6 +1442,22 @@
                If three.js fails to load (mobile, slow network), the SVG fallback above shows. -->
           <div class="orb-earth" id="orb-earth" aria-hidden="true"></div>
 
+          <!-- Noisy Mode toggle — floats top-right of the orb. When ON, VAD
+               thresholds raise so airplane / cafe / car noise doesn't fire
+               phantom transcriptions. Default OFF. Persists per device. -->
+          <button
+            id="noisy-toggle"
+            class="noisy-toggle"
+            type="button"
+            data-on="false"
+            aria-pressed="false"
+            aria-label="Toggle noisy environment mode"
+            title="Noisy mode: raise mic sensitivity threshold to ignore background noise"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span class="noisy-label">QUIET</span>
+          </button>
+
           <button id="ptt" class="ptt-btn" data-state="idle" aria-label="Push to talk">
             <span class="ptt-inner">
               <svg class="ptt-glyph" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1400,7 +1469,10 @@
             </span>
           </button>
         </div>
-        <div class="ptt-status" id="ptt-status"></div>
+        <div class="ptt-status-row" style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;min-height:16px;margin-top:16px;">
+          <div class="ptt-status" id="ptt-status" style="margin-top:0;"></div>
+          <span id="noisy-chip" class="noisy-chip" style="display:none;">NOISY MODE ON</span>
+        </div>
 
         <div class="scrollback" id="scrollback">
           <div class="scrollback-header">
@@ -1966,13 +2038,98 @@
     // Default = continuous conversation mode.
     // ============================================================================
     const FORCE_PTT = new URLSearchParams(location.search).get('ptt') === '1';
-    const VAD = {
-      silenceMs:     600,  // ms of below-threshold amplitude that ends an utterance
-      minSpeechMs:   180,  // ms of above-threshold amplitude required to register as speech
-      threshold:   0.020,  // RMS amplitude (0–1) above which we consider audio "voice"
-      pollMs:         50,  // VAD poll interval
-      maxUtteranceMs: 30000, // hard cap per utterance (safety)
+
+    // ===== VAD PROFILES =====
+    // Two profiles: quiet (default) and noisy. Noisy raises every threshold
+    // so cabin noise, music, buzzing don't register as utterances. Heath
+    // toggles this from the top-right of the orb. Persists in localStorage.
+    // Locked 2026-06-21 (Bug 4 — Paris-flight phantom transcriptions).
+    const VAD_PROFILES = {
+      quiet: {
+        silenceMs:     600,
+        minSpeechMs:   180,
+        threshold:   0.020,
+        pollMs:         50,
+        maxUtteranceMs: 30000,
+      },
+      noisy: {
+        silenceMs:    1200, // need a longer pause to commit (ambient noise spikes)
+        minSpeechMs:   500, // need 500ms+ of sustained speech (filters short clicks/cabin pops)
+        threshold:   0.040, // RMS gate doubled — quieter ambient noise stays below
+        pollMs:         50,
+        maxUtteranceMs: 30000,
+      },
     };
+    // Mutable VAD config — startVadLoop reads from this object. Swapped in
+    // place when the user toggles Noisy Mode mid-conversation.
+    const VAD = { ...VAD_PROFILES.quiet };
+
+    // ===== NOISY MODE STATE =====
+    const NOISY_MODE_LS_KEY = 'jarvis:noisyMode';
+    let noisyModeOn = false;
+
+    // Regex matches Whisper / ElevenLabs transcripts that are pure ambient
+    // labels in brackets or parens like "[background noise]", "(music)",
+    // "(buzzing)", "*static*". Also catches one- or two-word non-speech
+    // ("uh", "uhhh", "hmm") in noisy mode where they're almost certainly
+    // false-positive cabin noise transcriptions.
+    const NOISY_TRANSCRIPT_RE = /^[\s\W]*[\[\(\*][^\]\)\*]+[\]\)\*][\s\W]*$/;
+    const SHORT_NONWORD_RE = /^(uh+|um+|hmm+|mm+|ah+|oh+|huh+)[\s\.\,!\?]*$/i;
+    // Single words that are almost always cabin/ambient noise labels from STT
+    const NOISE_WORDS_RE = /^(music|techno|buzzing|static|noise|wind|engine|hum|humming|silence|whoosh|whirring|rumble|rumbling|whirr)[\s\.\,!\?]*$/i;
+
+    function isLikelyNoiseTranscript(text) {
+      const t = String(text || '').trim();
+      if (!t) return true;
+      if (NOISY_TRANSCRIPT_RE.test(t)) return true;
+      if (NOISE_WORDS_RE.test(t)) return true;
+      // In noisy mode only, also drop one-word fillers (likely false positive)
+      if (noisyModeOn && SHORT_NONWORD_RE.test(t)) return true;
+      return false;
+    }
+
+    function applyVadProfile(profileName) {
+      const src = VAD_PROFILES[profileName] || VAD_PROFILES.quiet;
+      VAD.silenceMs = src.silenceMs;
+      VAD.minSpeechMs = src.minSpeechMs;
+      VAD.threshold = src.threshold;
+      VAD.pollMs = src.pollMs;
+      VAD.maxUtteranceMs = src.maxUtteranceMs;
+    }
+
+    function setNoisyMode(on) {
+      noisyModeOn = !!on;
+      try { localStorage.setItem(NOISY_MODE_LS_KEY, noisyModeOn ? '1' : '0'); } catch {}
+      applyVadProfile(noisyModeOn ? 'noisy' : 'quiet');
+      const btn = document.getElementById('noisy-toggle');
+      if (btn) {
+        btn.dataset.on = noisyModeOn ? 'true' : 'false';
+        btn.setAttribute('aria-pressed', noisyModeOn ? 'true' : 'false');
+        const label = btn.querySelector('.noisy-label');
+        if (label) label.textContent = noisyModeOn ? 'NOISY' : 'QUIET';
+        btn.title = noisyModeOn
+          ? 'Noisy mode ON — higher mic threshold (tap to switch back to quiet)'
+          : 'Noisy mode: raise mic sensitivity threshold to ignore background noise';
+      }
+      // Show / hide the small chip next to the status text
+      const chip = document.getElementById('noisy-chip');
+      if (chip) chip.style.display = noisyModeOn ? 'inline-block' : 'none';
+      console.log(`[jarvis] noisy mode = ${noisyModeOn ? 'ON' : 'OFF'} (profile=${noisyModeOn ? 'noisy' : 'quiet'})`);
+    }
+
+    function initNoisyMode() {
+      let stored = '0';
+      try { stored = localStorage.getItem(NOISY_MODE_LS_KEY) || '0'; } catch {}
+      setNoisyMode(stored === '1');
+      const btn = document.getElementById('noisy-toggle');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          setNoisyMode(!noisyModeOn);
+          showToast(noisyModeOn ? 'Noisy mode ON' : 'Noisy mode OFF', 1400);
+        });
+      }
+    }
     let conversationActive = false;     // true once user taps to start
     let audioCtx = null;
     let analyser = null;
@@ -2602,6 +2759,17 @@
         }
         if (!transcript) {
           // ignore noise, keep conversation open
+          await resumeListening();
+          return;
+        }
+
+        // Filter out pure-noise transcripts before they hit Claude / TTS.
+        // Patterns matched: bracket labels like "[background noise]",
+        // ambient-word labels like "music" / "buzzing" / "techno", and (in
+        // noisy mode) short fillers like "uh", "hmm". Locked 2026-06-21
+        // after Heath's transatlantic flight surfaced phantom replies.
+        if (isLikelyNoiseTranscript(transcript)) {
+          console.log(`[jarvis] noise-filter dropped transcript: "${transcript}" (noisyMode=${noisyModeOn})`);
           await resumeListening();
           return;
         }
@@ -4629,6 +4797,10 @@
       authBtn.addEventListener('click', signIn);
       authPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
       pttBtn.addEventListener('click', onPttClick);
+
+      // Initialize Noisy Mode toggle (Bug 4 fix — restore last-used state from
+      // localStorage and wire up the click handler).
+      try { initNoisyMode(); } catch (err) { console.warn('[jarvis] noisy init failed', err); }
 
       // Page-lifecycle handlers: release the mic so Telegram dictation / other
       // apps can acquire it whenever the user navigates away or backgrounds the PWA.
