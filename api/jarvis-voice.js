@@ -33,6 +33,11 @@
 
 import { verifySupabaseToken } from './_middleware/auth.js';
 import { buildToolSpecs, dispatchTool, logToolInvocation } from './_jarvis_tools.js';
+import {
+  embedText as memoryEmbedText,
+  searchMemory as memorySearch,
+  formatLessonsAsSystemBlock as memoryFormatBlock,
+} from './_lib/agent-memory.js';
 
 // ===== Config =====
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -475,6 +480,36 @@ async function getContextExtension(tenant) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared agent memory pool — pull top relevant lessons for the "jarvis" role
+// so every conversation turn benefits from prior learnings (Heath spec
+// 2026-06-22). 60s in-process cache keyed by (tenant + msg-prefix) to keep
+// embed cost low (~$0.02 / 1M tokens but still — no need to embed every turn).
+// Failure is non-fatal — we return '' and the prompt proceeds without it.
+// ---------------------------------------------------------------------------
+const _roleMemoryCache = new Map();
+const ROLE_MEM_TTL_MS = 60 * 1000;
+
+async function getJarvisRoleMemoryBlock(tenant, message) {
+  if (!OPENAI_API_KEY) return '';
+  if (!tenant || !tenant.id) return '';
+  try {
+    const key = `${tenant.id}|${String(message || '').slice(0, 200)}`;
+    const hit = _roleMemoryCache.get(key);
+    if (hit && (Date.now() - hit.at) < ROLE_MEM_TTL_MS) return hit.text;
+    const embedding = await memoryEmbedText(String(message || '').slice(0, 1000));
+    const lessons = await memorySearch(tenant.id, 'jarvis', embedding, {
+      matchThreshold: 0.40, matchCount: 6,
+    });
+    const text = memoryFormatBlock('jarvis', lessons);
+    _roleMemoryCache.set(key, { at: Date.now(), text });
+    return text;
+  } catch (err) {
+    console.warn(`[jarvis-voice/role-memory] non-fatal: ${err.message}`);
+    return '';
+  }
+}
+
 async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   if (!ANTHROPIC_API_KEY) {
     return res.status(503).json({ ok: false, error: 'Chat not configured' });
@@ -534,8 +569,10 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   //   [client-provided extension — full backbone from /api/jarvis-context-load]
   const liveCtx = await getContextExtension(tenant);
   const temporalCtx = buildLiveTemporalBlock(tenant, client_context);
+  const roleMemoryBlock = await getJarvisRoleMemoryBlock(tenant, message);
   const systemPromptParts = [buildSystemPrompt(tenant), temporalCtx, PWA_UI_CAPABILITIES];
   if (liveCtx) systemPromptParts.push(liveCtx);
+  if (roleMemoryBlock) systemPromptParts.push(roleMemoryBlock);
   if (system_prompt_extension && typeof system_prompt_extension === 'string') {
     systemPromptParts.push(system_prompt_extension.slice(0, 100000));
   }

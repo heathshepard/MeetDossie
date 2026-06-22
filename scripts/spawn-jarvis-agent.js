@@ -45,6 +45,35 @@ const VALID_AGENT_ROLES = new Set([
   'ridge', 'quinn', 'sterling', 'jarvis',
 ]);
 
+// Load prior learnings for this role + context BEFORE spawning so they can
+// be prepended to the spawn prompt the new instance reads.
+//
+// Returns: { block: string, lessons: array }
+// On failure: { block: '', lessons: [] } (non-fatal — spawn still happens).
+async function loadPriorLearnings({ agentRole, context, baseUrl, accessToken, limit = 20 }) {
+  if (!agentRole || !context) return { block: '', lessons: [] };
+  try {
+    const url = new URL(`${(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '')}/api/agent-memory-load`);
+    url.searchParams.set('role', agentRole);
+    url.searchParams.set('context', context.slice(0, 4000));
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('format', 'system_prompt');
+    url.searchParams.set('bump_usage', '1');
+    const headers = {};
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(url.toString(), { headers });
+    if (!res.ok) {
+      console.warn(`[spawn] loadPriorLearnings non-fatal: ${res.status}`);
+      return { block: '', lessons: [] };
+    }
+    const block = await res.text();
+    return { block: block || '', lessons: [] };
+  } catch (err) {
+    console.warn('[spawn] loadPriorLearnings error (non-fatal):', err.message);
+    return { block: '', lessons: [] };
+  }
+}
+
 async function spawnInstance({
   agentRole,
   projectId,
@@ -54,6 +83,8 @@ async function spawnInstance({
   checklistItems,
   accessToken,
   baseUrl,
+  injectPriorLearnings = true,
+  priorLearningsLimit = 20,
 } = {}) {
   if (!agentRole || !VALID_AGENT_ROLES.has(agentRole)) {
     throw new Error(`spawnInstance: invalid agentRole "${agentRole}"`);
@@ -64,12 +95,34 @@ async function spawnInstance({
   }
   const url = `${(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '')}/api/jarvis-spawn-agent-instance`;
 
+  // Pre-flight: load relevant prior learnings for this role and prepend them
+  // to the spawn prompt so the new instance reads them in turn 1.
+  let learningsBlock = '';
+  if (injectPriorLearnings) {
+    const ctxBits = [
+      agentRole && `Agent role: ${agentRole}`,
+      projectTitle && `Project: ${projectTitle}`,
+      projectDescription && `Description: ${projectDescription}`,
+      spawnPrompt && `Spawn prompt: ${spawnPrompt}`,
+      Array.isArray(checklistItems) && checklistItems.length
+        ? `Checklist: ${checklistItems.map(c => c.title).filter(Boolean).join('; ')}` : '',
+    ].filter(Boolean).join('\n');
+    const out = await loadPriorLearnings({
+      agentRole, context: ctxBits, baseUrl, accessToken: token, limit: priorLearningsLimit,
+    });
+    learningsBlock = out.block || '';
+  }
+
+  const effectiveSpawnPrompt = learningsBlock
+    ? `${learningsBlock}\n${spawnPrompt || ''}`.trim()
+    : (spawnPrompt || undefined);
+
   const body = {
     agent_role: agentRole,
     project_id: projectId || undefined,
     project_title: projectTitle || undefined,
     project_description: projectDescription || undefined,
-    spawn_prompt: spawnPrompt || undefined,
+    spawn_prompt: effectiveSpawnPrompt || undefined,
     checklist_items: Array.isArray(checklistItems) ? checklistItems : undefined,
   };
 
@@ -89,6 +142,11 @@ async function spawnInstance({
     err.status = res.status;
     err.body = json;
     throw err;
+  }
+  // Attach learnings metadata for caller visibility
+  if (json && typeof json === 'object') {
+    json.injected_prior_learnings = !!learningsBlock;
+    json.prior_learnings_chars = learningsBlock ? learningsBlock.length : 0;
   }
   return json;
 }
@@ -205,4 +263,4 @@ if (require.main === module) {
   })();
 }
 
-module.exports = { spawnInstance, updateChecklistItem, completeInstance };
+module.exports = { spawnInstance, updateChecklistItem, completeInstance, loadPriorLearnings };
