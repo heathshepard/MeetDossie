@@ -344,9 +344,10 @@
     /* ===== SCROLLBACK =====
        Fixed-height panel so it never pushes downstream panels (Pending Approvals,
        Daily Debrief, etc.) further down the page as the conversation grows.
-       Messages list scrolls INTERNALLY. Newest message inserts at TOP via
-       appendMessage() prepend, so the most recent reply is always visible without
-       scrolling. Chat input docks at the bottom of the panel. */
+       Chat input docks at the TOP of the panel so it never gets pushed down as
+       the conversation grows. Messages list scrolls INTERNALLY below it. Newest
+       message inserts at TOP via appendMessage() prepend, so the most recent
+       reply is always immediately below the input dock without scrolling. */
     .scrollback {
       flex: 0 0 auto;
       max-height: 50vh;
@@ -383,14 +384,15 @@
     #messages::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
 
     /* ===== CHAT INPUT (text + attachment) =====
-       Docked at the bottom of the SESSION LOG panel so Heath can type a message
+       Docked at the TOP of the SESSION LOG panel (above the messages list) so
+       it never slides down the page as the chat grows. Heath can type a message
        or attach a file when voice isn't convenient. Send via Enter or send button.
        Voice/Text reply toggle controls whether Jarvis speaks the reply aloud. */
     .chat-input-bar {
       display: flex; flex-direction: column; gap: 6px;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--line);
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
       flex-shrink: 0;
     }
     .chat-input-row {
@@ -1479,9 +1481,9 @@
             <span class="scrollback-title">SESSION LOG</span>
             <span style="font-size:11px;color:var(--txt-faint);" id="conv-id-display">— no session —</span>
           </div>
-          <div id="messages"></div>
           <!-- Text chat dock — Heath can type or attach a file when voice isn't
-               convenient. Voice/Text toggle controls whether Jarvis speaks aloud. -->
+               convenient. Voice/Text toggle controls whether Jarvis speaks aloud.
+               Pinned at TOP of panel so it never gets pushed down as chat grows. -->
           <div class="chat-input-bar" id="chat-input-bar">
             <div id="chat-attachment-row" class="hidden"></div>
             <div class="chat-input-row">
@@ -1501,6 +1503,7 @@
               </button>
             </div>
           </div>
+          <div id="messages"></div>
         </div>
       </div>
 
