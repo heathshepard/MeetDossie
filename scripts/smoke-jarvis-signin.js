@@ -93,17 +93,24 @@ const URL = `${BASE}/myjarvis`;
     await page.waitForTimeout(1500);
 
     // Did empty-form click leave any side effect?
+    const authMsg = await page.evaluate(() => {
+      const m = document.getElementById("auth-msg");
+      return m ? m.textContent.trim() : "";
+    });
     const stillSignedOut = await page.$("button:has-text('SIGN IN')");
     const inputInvalid = await page.evaluate(() => {
-      const i = document.querySelector('input[placeholder*="meetdossie"], input[type="email"]');
+      const i = document.querySelector(
+        'input[placeholder*="meetdossie"], input[type="email"], #auth-email',
+      );
       return i && (i.matches(":invalid") || i.getAttribute("aria-invalid") === "true");
     });
-    // Heuristic: handler ran if either Supabase was hit OR HTML5 validation
-    // marked the email input invalid (because required+empty).
-    const handlerFired = supabaseAuthHit || inputInvalid;
+    // Handler ran if ANY of: Supabase hit, HTML5 validation invalid, or
+    // the auth-msg <div> got populated (the signIn() function writes
+    // "Email and password required." on empty input).
+    const handlerFired = supabaseAuthHit || inputInvalid || authMsg.length > 0;
     if (!handlerFired) {
       fatal.push(
-        "SIGN IN click had no observable effect (no Supabase request, no invalid input). Handler likely not bound.",
+        "SIGN IN click had no observable effect. auth-msg empty, no Supabase request, no invalid input. Handler likely not bound.",
       );
     }
     if (!stillSignedOut) {
