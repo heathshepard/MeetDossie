@@ -24,6 +24,7 @@ import fs from 'fs';
 import path from 'path';
 
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { messagesCreateCached } = require('./_lib/spawn-with-cache');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -99,8 +100,17 @@ function preloadKnowledge() {
 
 preloadKnowledge();
 
-async function answerWithHadley(question, knowledgeContent, formName) {
-  const systemPrompt = `You are Hadley, Head of General Counsel for Dossie. You are a licensed Texas REALTOR with deep expertise in TREC contract forms and Texas real estate law.
+async function answerWithHadley(question, knowledgeContent, formName, userId) {
+  // STATIC portion — persona + the entire knowledge-base content.
+  // The KB is the largest input and is byte-identical across calls (it's
+  // loaded from a markdown file at cold-start), so it's a perfect cache
+  // target. First call writes the cache (~1.25x cost on KB tokens); every
+  // subsequent question within 5 min reads it at ~10% of input cost.
+  //
+  // We embed the form name into the persona text — note that swapping
+  // forms (TREC 20-18 vs another form) yields a different prefix and a
+  // separate cache entry, which is correct.
+  const systemStatic = `You are Hadley, Head of General Counsel for Dossie. You are a licensed Texas REALTOR with deep expertise in TREC contract forms and Texas real estate law.
 
 You will answer the user's question USING ONLY the knowledge base content provided below. You must cite every claim using specific references to:
 - TAC (Texas Administrative Code) sections — write as (TAC §537.28)
@@ -113,20 +123,19 @@ If the knowledge base does not contain sufficient information to answer the ques
 
 If the question is off-topic (not about Texas real estate or TREC forms), politely decline and suggest the user ask something on-topic.
 
-Never invent or assume facts. Answer in plain English (1-3 paragraphs), structured and clear. Include parenthetical citations inline.`;
-
-  const userMessage = `Question: ${question}
+Never invent or assume facts. Answer in plain English (1-3 paragraphs), structured and clear. Include parenthetical citations inline.
 
 Knowledge base (${formName}):
 ${knowledgeContent}`;
 
-  const response = await anthropic.messages.create({
+  const response = await messagesCreateCached(anthropic, {
     model: 'claude-sonnet-4-6',
     max_tokens: 800,
-    system: systemPrompt,
+    systemStatic,
     messages: [
-      { role: 'user', content: userMessage },
+      { role: 'user', content: `Question: ${question}` },
     ],
+    metadata: { endpoint: 'ask-hadley', agent_role: 'hadley', user_id: userId, form: formName },
   });
 
   const textBlock = response.content?.find((b) => b.type === 'text');
@@ -279,7 +288,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const result = await answerWithHadley(question.trim(), knowledgeContent, formName);
+    const result = await answerWithHadley(question.trim(), knowledgeContent, formName, userId);
 
     // If low confidence, log for later study pass. AWAIT to ensure the row
     // commits before the function terminates.
