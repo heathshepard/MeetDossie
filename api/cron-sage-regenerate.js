@@ -176,8 +176,10 @@ module.exports = withTelemetry('cron-sage-regenerate', async function handler(re
 
     const post = postData[0];
 
-    // Regenerate with feedback
-    const newContent = await regenerateContent(post, inboxRow.sage_feedback || '');
+    // Regenerate with feedback (prefer Cole's review_feedback if she sent the post back)
+    // Use Cole's review_feedback if available (her editorial notes), otherwise Sage's original feedback
+    const feedbackToUse = post.review_feedback || inboxRow.sage_feedback || '';
+    const newContent = await regenerateContent(post, feedbackToUse);
     if (!newContent) {
       console.error('[cron-sage-regenerate] regeneration failed for', postId);
       errors.push({ inbox_id: inboxRow.id, post_id: postId, error: 'regeneration API failed' });
