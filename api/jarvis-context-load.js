@@ -168,17 +168,48 @@ You can spawn these specialists in the background:
 // (Vercel functions don't have access to the home PC). Instead, we embed a
 // compact summary that the build process (or Atlas) re-renders into this
 // file when handoffs change. For now it's manually-curated.
-const LATEST_HANDOFF_SUMMARY = `
-=== LATEST SESSION HANDOFF ===
-2026-06-21 — Jarvis PWA Session 1 SHIPPED to staging.
-- Foundation: schema + voice loop + Iron Man HUD shell.
-- 38 of 97 DoD criteria PASS. Multi-tenant proven (demo tenant onboarded by row-insert only).
-- Voice round-trip 1.85s for chat leg. ElevenLabs George voice locked.
-- Files: api/jarvis-voice.js, jarvis-pwa.html, jarvis-pwa-manifest.json, jarvis-pwa-sw.js, supabase/migrations/20260621_jarvis_pwa_init.sql.
-- Session 2 IN FLIGHT: context federation (this endpoint) + tool surface (web_search, send_telegram, spawn_agent, query_supabase, read_dossie_dashboards, set_reminder, read_calendar, web_browse).
-- Parallel: latency Atlas adding chat_tts_stream op for sub-1s perceived response.
+//
+// Refresh procedure: when a new handoff lands in
+// `Shepard-Ventures/Engineering/session-handoffs/`, edit the LATEST_HANDOFFS
+// constant below (keep last 3, drop oldest) + push. atlas_9 refreshed
+// 2026-06-23 with native-android, agent-memory-pool, agent-instance-infra.
+const LATEST_HANDOFFS = `
+=== RECENT SESSION HANDOFFS (last 3) ===
 
-=== END HANDOFF ===
+--- 2026-06-22 — Jarvis Native Android (atlas_4 + atlas_5) ---
+Capacitor Android wrapper SHIPPED. Fixes Android Chrome flipping AudioManager
+into MODE_IN_COMMUNICATION on getUserMedia (killed A2DP to Heath's Sony WH
+headphones). AudioMode plugin forces MODE_NORMAL + disables SCO around every
+mic grab. Signed APK at \`C:\\Users\\Heath Shepard\\Desktop\\jarvis-native-android-v1.apk\`
+(2.9 MB, bundle id com.shepardventures.jarvis, cert valid until 2053-11-07).
+Built via GitHub Actions CI in private repo heathshepard/jarvis-native (no
+local JDK on Heath's PC). Keystore (\`jarvis-release.jks\`) lives in
+\`Shepard-Ventures/Legal/keystores/\` — gitignored; KEYSTORE_BASE64 is the
+GitHub repo secret. Losing the keystore = users must uninstall + reinstall
+every Jarvis APK ever issued. Pending: Heath sideloads + audio test on
+Z Fold (DoD #48-50), keystore backup to encrypted drive + 1Password vault.
+
+--- 2026-06-22 — Shared Agent Memory Pool (atlas_2) ---
+\`agent_role_memory\` table + 4 APIs (\`agent-memory-learn\`, \`-load\`,
+\`-validate\`, \`-list\`) + \`agent-memory-backfill-embeddings\`. One pool per
+agent_role; every instance reads top-N relevant lessons on spawn,
+contributes new lessons after solving things. Cosine similarity + usage +
+recency + heath-approval weighting. pgvector ivfflat. Jarvis voice handleChat
+loads top-6 jarvis lessons per turn (60s cache). Spawn helper
+\`scripts/spawn-jarvis-agent.js\` prepends PRIOR LEARNINGS block. Seeded ~25-40
+lessons from today. AGENT KNOWLEDGE widget in HUD. SHIPPED to staging;
+awaiting merge.
+
+--- 2026-06-22 — Jarvis Agent Instance Infrastructure (atlas_1) ---
+SOP locked: one instance per task, clone agents (atlas_1 + atlas_2) for
+parallel work. Three new tables: \`jarvis_projects\`, \`jarvis_agent_instances\`,
+\`jarvis_agent_checklist\`. Five APIs: spawn, update-checklist-item,
+complete-instance, list-instances, list-projects. AGENT STATUS panel now
+dynamic — Supabase Realtime drives card grow/contract. PROJECTS LEDGER
+below with BUILDING / RECENTLY SHIPPED / ALL HISTORY tabs. Commits
+8d7a01f + c85f289 + 234b02c on staging.
+
+=== END HANDOFFS ===
 `.trim();
 
 // Tightly-formatted active DoD summaries.
@@ -193,17 +224,37 @@ Audio buffer transient by default; only saved on explicit "save this" command. A
 `.trim();
 
 async function loadLiveContext(tenant, jarvisUser) {
-  // Fire all DB reads in parallel.
+  // Fire all DB reads in parallel. (atlas_9 federation v2 2026-06-23 — added
+  // heath_actions, jarvis_agent_instances 24hr, jarvis_projects 7day, and a
+  // simple "checklist completion %" derivation per running instance.)
+  const tenantClause = tenant.id ? `tenant_id=eq.${tenant.id}` : '';
   const [
     todoRows,
     agentEvents,
     subRows,
     recentConvs,
+    heathActions,
+    recentInstances,
+    recentProjects,
+    instanceChecklists,
   ] = await Promise.all([
     cachedSbGet('heath_todo?select=id,title,detail,action_type,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast&limit=15').catch(() => []),
-    cachedSbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=15`).catch(() => []),
+    cachedSbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at${tenantClause ? '&' + tenantClause : ''}&order=created_at.desc&limit=15`).catch(() => []),
     cachedSbGet('subscriptions?select=id,status,price_id&status=eq.active').catch(() => []),
-    sbGet(`jarvis_conversations?select=id,title,started_at,ended_at&tenant_id=${tenant.id ? `eq.${tenant.id}` : ''}&order=started_at.desc&limit=5`).catch(() => []),
+    sbGet(`jarvis_conversations?select=id,title,started_at,ended_at${tenantClause ? '&' + tenantClause : ''}&order=started_at.desc&limit=5`).catch(() => []),
+    // NEW — heath_actions pending/snoozed for this tenant. Atlas writes
+    // urgent items here (e.g. APK keystore backup), Pierce writes customer
+    // approvals, Sage writes post-approve queues. Jarvis was previously
+    // blind to this table.
+    cachedSbGet(`heath_actions?select=title,body,source,priority,deadline,status,created_at${tenantClause ? '&' + tenantClause : ''}&status=in.(pending,snoozed)&order=created_at.desc&limit=20`).catch(() => []),
+    // NEW — running + recently-completed agent instances (last 24h).
+    // Without this, Jarvis can't answer "what's atlas_8 working on".
+    cachedSbGet(`jarvis_agent_instances?select=id,agent_role,instance_id,project_id,status,spawned_at,completed_at,spawn_prompt${tenantClause ? '&' + tenantClause : ''}&spawned_at=gte.${new Date(Date.now() - 24 * 3600 * 1000).toISOString()}&order=spawned_at.desc&limit=20`).catch(() => []),
+    // NEW — projects building OR shipped in last 7 days.
+    cachedSbGet(`jarvis_projects?select=id,title,description,status,spawned_at,completed_at,gold_tag${tenantClause ? '&' + tenantClause : ''}&or=(status.eq.building,completed_at.gte.${new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()})&order=spawned_at.desc&limit=15`).catch(() => []),
+    // NEW — checklist items for the same 24h window so we can compute %
+    // complete per running instance. One query covers all of them.
+    cachedSbGet(`jarvis_agent_checklist?select=instance_id,status${tenantClause ? '&' + tenantClause : ''}&created_at=gte.${new Date(Date.now() - 36 * 3600 * 1000).toISOString()}&limit=400`).catch(() => []),
   ]);
 
   // MRR math: Stripe founding price = $29; assume all active = founding for now.
@@ -215,6 +266,54 @@ async function loadLiveContext(tenant, jarvisUser) {
   for (const ev of agentEvents) {
     if (!latestPerAgent[ev.agent_name]) latestPerAgent[ev.agent_name] = ev;
   }
+
+  // Roll up checklist completion per instance (instance_uuid -> {done,total})
+  const checklistByInstance = {};
+  for (const item of (instanceChecklists || [])) {
+    const k = item.instance_id;
+    if (!checklistByInstance[k]) checklistByInstance[k] = { done: 0, total: 0 };
+    checklistByInstance[k].total += 1;
+    if (item.status === 'completed') checklistByInstance[k].done += 1;
+  }
+
+  // Project lookup by id so we can join project title onto each instance
+  const projectById = {};
+  for (const p of (recentProjects || [])) projectById[p.id] = p;
+
+  const instances = (recentInstances || []).map((inst) => {
+    const cl = checklistByInstance[inst.id] || { done: 0, total: 0 };
+    const proj = inst.project_id ? projectById[inst.project_id] : null;
+    return {
+      instance_id: inst.instance_id,
+      agent_role: inst.agent_role,
+      status: inst.status,
+      project_title: proj ? proj.title : null,
+      checklist_done: cl.done,
+      checklist_total: cl.total,
+      checklist_pct: cl.total ? Math.round((cl.done / cl.total) * 100) : null,
+      spawn_prompt_short: (inst.spawn_prompt || '').slice(0, 180),
+      spawned_at: inst.spawned_at,
+      completed_at: inst.completed_at,
+    };
+  });
+
+  const projects = (recentProjects || []).map((p) => ({
+    title: p.title,
+    description: (p.description || '').slice(0, 180),
+    status: p.status,
+    spawned_at: p.spawned_at,
+    completed_at: p.completed_at,
+    gold_tag: p.gold_tag,
+  }));
+
+  const actions = (heathActions || []).map((a) => ({
+    title: a.title,
+    body: (a.body || '').slice(0, 200),
+    source: a.source,
+    priority: a.priority,
+    deadline: a.deadline,
+    status: a.status,
+  }));
 
   return {
     customer_count: subRows.length,
@@ -229,6 +328,9 @@ async function loadLiveContext(tenant, jarvisUser) {
       status: t.status,
       venture: t.venture,
     })),
+    heath_actions: actions,
+    recent_instances: instances,
+    recent_projects: projects,
     agent_status: Object.entries(latestPerAgent).map(([agent, ev]) => ({
       agent,
       latest_event: ev.event_type,
@@ -251,7 +353,7 @@ function formatLiveBlock(live) {
 
   if (live.todo && live.todo.length) {
     lines.push('');
-    lines.push('Heath\'s open todo items (top 15):');
+    lines.push("Heath's open todo items (top 15):");
     for (const t of live.todo) {
       const p = t.priority != null ? `[P${t.priority}]` : '';
       const d = t.deadline ? ` due ${t.deadline}` : '';
@@ -259,12 +361,50 @@ function formatLiveBlock(live) {
       lines.push(`  - ${p} ${t.title}${d}${v}`);
     }
   } else {
-    lines.push('Heath\'s todo list is empty or no open items.');
+    lines.push("Heath's todo list is empty or no open items.");
+  }
+
+  // NEW — pending heath_actions (urgent agent-surfaced items)
+  if (live.heath_actions && live.heath_actions.length) {
+    lines.push('');
+    lines.push('Pending Heath actions (agent-surfaced, urgent first):');
+    for (const a of live.heath_actions) {
+      const p = a.priority ? `[${a.priority}]` : '';
+      const src = a.source ? ` (from ${a.source})` : '';
+      const due = a.deadline ? ` due ${a.deadline}` : '';
+      lines.push(`  - ${p} ${a.title}${src}${due}`);
+      if (a.body) lines.push(`      ${a.body}`);
+    }
+  }
+
+  // NEW — running + recently-completed agent instances (24h)
+  if (live.recent_instances && live.recent_instances.length) {
+    lines.push('');
+    lines.push('Agent instances (last 24h — running first, then recently completed):');
+    const running = live.recent_instances.filter((i) => i.status === 'running');
+    const done = live.recent_instances.filter((i) => i.status !== 'running');
+    for (const i of [...running, ...done]) {
+      const proj = i.project_title ? ` — ${i.project_title}` : '';
+      const pct = i.checklist_total ? ` ${i.checklist_done}/${i.checklist_total} (${i.checklist_pct}%)` : '';
+      lines.push(`  - ${i.instance_id} [${i.status}]${proj}${pct}`);
+      if (i.spawn_prompt_short) lines.push(`      task: ${i.spawn_prompt_short}`);
+    }
+  }
+
+  // NEW — projects building / recently shipped (7d)
+  if (live.recent_projects && live.recent_projects.length) {
+    lines.push('');
+    lines.push('Projects building or shipped in last 7 days:');
+    for (const p of live.recent_projects) {
+      const tag = p.gold_tag ? ` (${p.gold_tag})` : '';
+      const when = p.completed_at ? `shipped ${p.completed_at.slice(0, 10)}` : `building since ${p.spawned_at.slice(0, 10)}`;
+      lines.push(`  - [${p.status}] ${p.title} — ${when}${tag}`);
+    }
   }
 
   if (live.agent_status && live.agent_status.length) {
     lines.push('');
-    lines.push('Agent latest status:');
+    lines.push('Agent latest status (event log):');
     for (const a of live.agent_status) {
       lines.push(`  - ${a.agent}: ${a.latest_event} — ${a.summary}`);
     }
@@ -334,7 +474,7 @@ export default async function handler(req, res) {
     // Heath-only: backbone is full. Other tenants get a minimal scaffold.
     const isHeath = context.tenant.slug === 'heath';
     const backbone = isHeath ? MEMORY_BACKBONE : `=== JARVIS MEMORY BACKBONE ===\n${context.tenant.display_name} is the owner. Address as "${context.tenant.addressing_pref}". Be helpful and concise.\n=== END BACKBONE ===`;
-    const handoff = isHeath ? LATEST_HANDOFF_SUMMARY : '';
+    const handoff = isHeath ? LATEST_HANDOFFS : '';
     const dods = isHeath ? ACTIVE_DODS : '';
 
     // Note: temporal block + UI capabilities are injected per-turn by
@@ -346,7 +486,7 @@ export default async function handler(req, res) {
 
     const tokenEstimate = estimateTokens(systemPromptExtension);
 
-    console.log(`[jarvis-context-load] [${requestId}] tenant=${context.tenant.slug} todo=${live.todo.length} agents=${live.agent_status.length} mrr=${live.mrr_estimated} tokens~=${tokenEstimate}`);
+    console.log(`[jarvis-context-load] [${requestId}] tenant=${context.tenant.slug} todo=${live.todo.length} actions=${live.heath_actions.length} instances=${live.recent_instances.length} projects=${live.recent_projects.length} agents=${live.agent_status.length} mrr=${live.mrr_estimated} tokens~=${tokenEstimate}`);
 
     return res.status(200).json({
       ok: true,
