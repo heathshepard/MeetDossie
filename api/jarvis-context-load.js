@@ -223,11 +223,21 @@ Audio buffer transient by default; only saved on explicit "save this" command. A
 === END ACTIVE DOD ===
 `.trim();
 
-async function loadLiveContext(tenant, jarvisUser) {
+async function loadLiveContext(tenant, jarvisUser, authUserId) {
   // Fire all DB reads in parallel. (atlas_9 federation v2 2026-06-23 — added
   // heath_actions, jarvis_agent_instances 24hr, jarvis_projects 7day, and a
   // simple "checklist completion %" derivation per running instance.)
+  //
+  // GOTCHA: `heath_actions.tenant_id` is mis-named — its FK actually
+  // references `auth.users(id)`, NOT `tenants(id)`. Every other table
+  // (jarvis_agent_instances/projects/checklist/events) references
+  // tenants(id) correctly. So we filter heath_actions by authUserId, not
+  // tenant.id. atlas_5 + pierce_2 + hadley_2 + sage_2 all wrote against
+  // Heath's auth.user.id (0cd05e2f-...) which is why those 7 pending
+  // items existed but Jarvis couldn't see them under tenant 'heath'
+  // (which is a different uuid, a9a4c3aa-...).
   const tenantClause = tenant.id ? `tenant_id=eq.${tenant.id}` : '';
+  const userClause = authUserId ? `tenant_id=eq.${authUserId}` : '';
   const [
     todoRows,
     agentEvents,
@@ -242,11 +252,11 @@ async function loadLiveContext(tenant, jarvisUser) {
     cachedSbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at${tenantClause ? '&' + tenantClause : ''}&order=created_at.desc&limit=15`).catch(() => []),
     cachedSbGet('subscriptions?select=id,status,price_id&status=eq.active').catch(() => []),
     sbGet(`jarvis_conversations?select=id,title,started_at,ended_at${tenantClause ? '&' + tenantClause : ''}&order=started_at.desc&limit=5`).catch(() => []),
-    // NEW — heath_actions pending/snoozed for this tenant. Atlas writes
-    // urgent items here (e.g. APK keystore backup), Pierce writes customer
-    // approvals, Sage writes post-approve queues. Jarvis was previously
-    // blind to this table.
-    cachedSbGet(`heath_actions?select=title,body,source,priority,deadline,status,created_at${tenantClause ? '&' + tenantClause : ''}&status=in.(pending,snoozed)&order=created_at.desc&limit=20`).catch(() => []),
+    // NEW — heath_actions pending/snoozed. Atlas writes urgent items here
+    // (e.g. APK keystore backup), Pierce writes customer approvals, Sage
+    // writes post-approve queues. Jarvis was previously blind to this
+    // table. Filter by authUserId (see GOTCHA above).
+    cachedSbGet(`heath_actions?select=title,body,source,priority,deadline,status,created_at${userClause ? '&' + userClause : ''}&status=in.(pending,snoozed)&order=created_at.desc&limit=20`).catch(() => []),
     // NEW — running + recently-completed agent instances (last 24h).
     // Without this, Jarvis can't answer "what's atlas_8 working on".
     cachedSbGet(`jarvis_agent_instances?select=id,agent_role,instance_id,project_id,status,spawned_at,completed_at,spawn_prompt${tenantClause ? '&' + tenantClause : ''}&spawned_at=gte.${new Date(Date.now() - 24 * 3600 * 1000).toISOString()}&order=spawned_at.desc&limit=20`).catch(() => []),
@@ -468,7 +478,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const live = await loadLiveContext(context.tenant, context.jarvisUser);
+    const live = await loadLiveContext(context.tenant, context.jarvisUser, authUser.userId);
     const liveBlock = formatLiveBlock(live);
 
     // Heath-only: backbone is full. Other tenants get a minimal scaffold.
