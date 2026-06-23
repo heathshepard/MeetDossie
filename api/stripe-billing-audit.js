@@ -81,6 +81,20 @@ async function auditOne(t) {
       };
     }
 
+    // List ALL subscriptions on this customer (catches the dual-sub scenario)
+    const allSubs = await stripe.subscriptions.list({ customer: t.customer, status: 'all', limit: 10 });
+    out.all_subscriptions = allSubs.data.map(s => ({
+      id: s.id,
+      status: s.status,
+      created: isoOrNull(s.created),
+      current_period_start: isoOrNull(s.current_period_start),
+      current_period_end: isoOrNull(s.current_period_end),
+      canceled_at: isoOrNull(s.canceled_at),
+      ended_at: isoOrNull(s.ended_at),
+      price_id: s.items?.data?.[0]?.price?.id || null,
+      unit_amount: s.items?.data?.[0]?.price?.unit_amount ?? null,
+    }));
+
     // Pull last 6 invoices for this customer (covers month 1 + month 2 + retries)
     const invs = await stripe.invoices.list({ customer: t.customer, limit: 6 });
     out.invoices = invs.data.map(inv => ({
