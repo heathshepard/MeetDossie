@@ -19,40 +19,14 @@ CREATE INDEX IF NOT EXISTS idx_email_suppression_email ON email_suppression_list
 -- Index on source for filtering by campaign type
 CREATE INDEX IF NOT EXISTS idx_email_suppression_source ON email_suppression_list(source);
 
--- RLS: Allow anyone to INSERT (public unsubscribe endpoint)
--- but restrict SELECT/UPDATE/DELETE to authenticated admin
+-- RLS: Allow public INSERT (so the /api/unsubscribe endpoint works even with anon key).
+-- Service role bypasses RLS automatically for SELECT/UPDATE/DELETE (used by admin tooling).
+-- No SELECT/UPDATE/DELETE policies for anon = deny by default.
+-- NOTE: profiles.is_admin does not exist in this database; admin-gated policies
+-- were removed in favor of service-role-only access for non-INSERT operations.
 ALTER TABLE email_suppression_list ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public insert" ON email_suppression_list;
 CREATE POLICY "Allow public insert" ON email_suppression_list
   FOR INSERT
   WITH CHECK (true);
-
-CREATE POLICY "Allow admin select" ON email_suppression_list
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.is_admin = true
-    )
-  );
-
-CREATE POLICY "Allow admin update" ON email_suppression_list
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.is_admin = true
-    )
-  );
-
-CREATE POLICY "Allow admin delete" ON email_suppression_list
-  FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.is_admin = true
-    )
-  );
