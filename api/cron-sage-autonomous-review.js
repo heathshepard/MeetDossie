@@ -1,23 +1,24 @@
-// Vercel Serverless Function: /api/cron-sage-autonomous-review
-// Sage's autonomous review pass over pending_sage_review posts.
+﻿// Vercel Serverless Function: /api/cron-sage-autonomous-review
+// Cole's autonomous review pass over pending_sage_review posts.
 //
 // For each row in sage_inbox with status='pending_sage_review':
-//   1. Apply Sage's algorithm rules (brand fit, persona consistency, pillar alignment)
+//   1. Apply Cole's editorial judgment (brand fit, voice consistency, strategy alignment)
 //   2. Approve → update sage_inbox.status='approved', social_posts.status='approved'
-//   3. Reject soft (fixable) → kick to regenerator, mark status='regenerating'
-//   4. Reject hard (off-strategy) → mark status='rejected', drop
+//   3. Send Back (fixable) → mark status='regenerating', write feedback to social_posts.review_feedback, increment regeneration_attempts
+//   4. Reject (hard) → mark status='rejected', drop
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: every 30 min after cron-send-to-sage ("*/30 * * * *").
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { buildVerifiedFactsBlock, POLICY_SURFACE_MATRIX } = require('./_lib/sage-verified-facts.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const REVIEWER_MODEL = 'claude-haiku-4-5-20251001';
+const REVIEWER_MODEL = 'claude-sonnet-4-20250514';
 const MAX_PER_RUN = 12;
 
 async function supabaseFetch(path, init = {}) {
@@ -36,82 +37,99 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// Sage's review rules — simplified for speed (Haiku model).
+// Cole's autonomous review — warm-but-rigorous editor with verified facts.
 //
-// PARAMOUNT (2026-06-22, sage_1 fix): Haiku was hallucinating "fabricated
-// specifics" on facts that ARE verified (founding price, founder story,
-// 'dossie' brand-voice persona) and mis-applying the Dossie-in-first-comment
-// rule to MAIN social posts (it's a FB-GROUP-ONLY rule). Every prompt below
-// now ships with a VERIFIED FACTS block so Haiku stops freelancing.
+// PARAMOUNT (2026-06-20, cole_review): Cole brings human judgment to post approval,
+// catching brand voice issues and editorial fit that deterministic rules miss.
+// Cole is warm but rigorous, trusts verified facts (already fact-checked upstream),
+// and defaults to APPROVE when facts are clean and voice matches Dossie's personality.
+// All posts reaching Cole have already passed deterministic fact-checking. Her job is
+// editorial fit and brand voice alignment, NOT re-checking facts.
+//
+// 2026-06-22 sage_4: VERIFIED_FACTS extracted to api/_lib/sage-verified-facts.js
+// and expanded with VERIFIED_PAIN_POINTS whitelist + POLICY_SURFACE_MATRIX so Cole
+// doesn't cross-apply FB-group rules to FB-page/Twitter/LinkedIn/Instagram posts.
 
-// Verified facts — these are LOCKED in CLAUDE.md and persistent memory.
-// Anything in this block must NEVER be flagged as fabricated.
-const VERIFIED_FACTS = `
-## VERIFIED FACTS — DO NOT FLAG THESE AS FABRICATED
+const VERIFIED_FACTS = buildVerifiedFactsBlock();
 
-These are locked, sourced from CLAUDE.md / persistent memory / live product:
-
-1. **Founding pricing: $29/month, locked while subscription stays active, 50 spots total.** This is in CLAUDE.md Section 5. It is current. Posts using "$29/month founding pricing" or "locked while your subscription stays active" are accurate.
-2. **Founder pain story is REAL.** Heath was on a trip when his TC quit mid-deal. Active escrows, ~7-8 hour time difference, no clean handoff. He had paid ~$400/file for TC services and still woke at 4:30am running mental checklists. Dossie was built out of that experience. Any post citing the TC-quit, 4:30am wake-up, or ~$400/file is verified — NOT fabricated.
-3. **TC cost reference: $300-400/file** is the documented going rate. Posts in that range are verified.
-4. **Texas TREC deadlines** (option period from executed date, earnest money typically within 3 days of execution to title company, title commitment window, financing contingency) are all real TREC rules — not fabricated. The verifier already pre-validated TREC facts before this review runs.
-5. **Shipped Dossie features** that posts can claim:
-   - Contract scan + auto-deadline calc with paragraph citations
-   - Pipeline view with per-deal deadline badges
-   - Morning brief (voice, Luna narration)
-   - Email draft queue (review-and-send, not auto-send)
-   - Closing milestone cards
-   - Talk-to-Dossie voice conversation
-6. **Valid persona tags**: 'brenda', 'patricia', 'victor' (agent personas), AND 'dossie' (brand voice). 'dossie' is a legitimate persona — DO NOT reject for "persona mismatch" just because the value is 'dossie'.
-7. **All posts in this queue have ALREADY passed the deterministic content verifier** (verifier_result.verdict='approve' means TREC facts, shipped features, and pricing were validated against ground truth). Your job is brand fit and voice — NOT re-checking facts.
-
-If your only objection is one of the above 7 items, the correct verdict is APPROVE.
-`.trim();
-
-async function sageReview(post) {
-  const isGroupPost = !!post.post_body && !!post.first_comment_body !== undefined;
+async function coleReview(post) {
+  const isGroupPost = !!post.post_body && post.first_comment_body !== undefined;
 
   const systemPrompt = isGroupPost
-    ? `You are Sage, Head of Social Media at Dossie. You review Facebook group posts against brand strategy rules.
+    ? `You are Cole, Chief of Staff at Shepard Ventures (which owns Dossie). You're reviewing this Facebook group post for brand fit and editorial polish before it ships.
+
+Your role: warm but rigorous. You DEFAULT TO APPROVE. The deterministic verifier already passed these posts on facts. Your job is brand voice — NOT re-checking facts.
 
 ${VERIFIED_FACTS}
 
-## Facebook Group Post Rules (THESE ARE GROUP-POST-SPECIFIC)
+${POLICY_SURFACE_MATRIX}
 
-1. **Brand Voice Fit**: Tone is warm, casual, genuine, first-person. Never corporate. Reads like an agent talking to other agents in a private group.
-2. **No Dossie in Main Body**: Post body must NEVER mention Dossie. Zero mentions of the product in the main post.
-3. **Dossie in First Comment**: If post has a first comment, it MUST contain the literal word "Dossie" and name ONE specific shipped capability.
-4. **No Fabricated Specifics**: Per the VERIFIED FACTS block above — anything listed there is real. Only flag genuinely invented details (made-up customer names, made-up MRR numbers, invented features).
-5. **Hook Quality**: Opening must be punchy and agent-relatable.
-6. **Pillar Alignment**: Touches one of Cost, Control, Visibility, Speed, Coverage.
+## Facebook GROUP Post Rules (THIS POST IS A GROUP POST)
 
-## Verdict Scale (BIAS TOWARD APPROVE)
+1. **No Dossie in Main Body** (HARD-BLOCK): Post body must NEVER mention Dossie. This rule applies ONLY to FB group posts.
+2. **Dossie in First Comment** (HARD-BLOCK): If post has a first comment, it MUST contain the literal word "Dossie" and name ONE specific shipped capability.
+3. **Brand Voice Fit**: Tone is warm, casual, genuine, first-person. Like an agent talking to other agents.
+4. **Hook Quality**: Opening must be punchy and agent-relatable.
+5. **Pillar Alignment**: Touches one of Cost, Control, Visibility, Speed, Coverage.
 
-- **APPROVE** (score 7-10): Brand fit acceptable. Ship it. Most posts that reach you should approve — the deterministic verifier already passed them on facts.
-- **REGENERATE** (score 4-6): Specific fixable issue (voice drift, weak hook, body mentions Dossie). State the ONE fix in feedback.
-- **REJECT** (score 1-3): Genuinely off-strategy (wrong audience, harmful claim, hard brand violation). Use sparingly.
+## Decision Framework — DEFAULT TO APPROVE
 
-Return JSON ONLY: {"verdict": "approve|regenerate|reject", "score": N, "feedback": "reason"}`
-    : `You are Sage, Head of Social Media at Dossie. You review draft social posts against brand strategy rules.
+Send back ONLY for these four conditions (per locked spec):
+(a) Obvious factual fabrication BEYOND the VERIFIED FACTS whitelist (e.g., invented customer name like "Sarah from Plano", fake MRR figure, unshipped feature).
+(b) Wrong persona for the platform's audience (rare — most personas work).
+(c) PII or sensitive data exposure.
+(d) FB-group main-body Dossie mention (this IS a hard-block for GROUP posts).
+
+Feedback must be SPECIFIC and ACTIONABLE. Example: "Rewrite hook — your TC story uses $500/file but verified is $400/file." NOT vague: "tone is off."
+
+- **APPROVE** (score 7-10): Default. Ship it.
+- **SEND_BACK** (score 4-6): ONE specific fixable issue from (a)-(d). Name the exact fix.
+- **REJECT** (score 1-3): Hard violation — harmful content, off-audience entirely. Rare.
+
+Return JSON ONLY: {"decision": "approve|send_back|reject", "score": N, "feedback": "concise specific reason if not approve"}`
+    : `You are Cole, Chief of Staff at Shepard Ventures (which owns Dossie). You review main social posts (Facebook page, Twitter, LinkedIn, Instagram) for brand voice and editorial fit.
+
+Your role: warm but rigorous editor. You DEFAULT TO APPROVE. The deterministic verifier already passed these posts on facts. Your job is brand voice — NOT re-checking facts.
 
 ${VERIFIED_FACTS}
 
-## Review Rules (MAIN SOCIAL POSTS — Facebook page, Twitter, LinkedIn, Instagram)
+${POLICY_SURFACE_MATRIX}
 
-1. **Brand Voice Fit**: Warm, capable, agent-focused. Never corporate buzzwords. Solving pain, not pure selling.
-2. **Persona Consistency**: 'dossie' is brand-voice persona and IS VALID. 'brenda'/'patricia'/'victor' are agent personas. Tone should match the tagged persona.
-3. **No Fabricated Specifics**: See VERIFIED FACTS block. Only flag genuinely invented numbers (made-up customer counts, fake testimonials, invented features). Pricing ($29/mo), founder story, TREC rules, and shipped features are all verified.
-4. **Pillar Alignment**: Touches Cost, Control, Visibility, Speed, or Coverage.
-5. **Hook Quality**: First 1-2 sentences are punchy and agent-relatable.
-6. **Dossie Mention** (MAIN POSTS — NOT GROUP POSTS): Main social posts (Facebook page, Twitter, LinkedIn, Instagram) ARE ALLOWED and EXPECTED to mention Dossie in the caption. The "Dossie in first comment only" rule is FACEBOOK-GROUP-SPECIFIC and does not apply here. Captions that name Dossie and a specific capability are correct.
+## Review Rules (MAIN SOCIAL POSTS — Facebook PAGE, Twitter, LinkedIn, Instagram)
 
-## Verdict Scale (BIAS TOWARD APPROVE — verifier already validated facts)
+1. **Dossie Mention IS EXPECTED**: This is the brand's own social presence. Dossie naming in the caption is correct. NEVER send back for "Dossie should be in first comment" — that rule is FB-group-only. If you see "Dossie's pipeline view" or "Dossie reads your contract" in the caption, that is RIGHT.
+2. **All 4 Personas Are Valid**: 'brenda', 'patricia', 'victor', 'dossie' — all 4 are documented valid personas. NEVER reject for "persona mismatch" just because tag is 'dossie'. Dossie IS a brand-voice persona.
+3. **Brand Voice**: Warm, capable, agent-focused. Solving pain, not pure selling.
+4. **Hook Quality**: First 1-2 sentences are punchy and agent-relatable.
+5. **Pillar Alignment**: Touches Cost, Control, Visibility, Speed, or Coverage.
 
-- **APPROVE** (score 7-10): Brand fit acceptable. Ship it. This should be your default verdict. The deterministic verifier already passed these posts on facts.
-- **REGENERATE** (score 4-6): ONE specific fixable issue (e.g., hook too weak, tone drifts corporate mid-post). Name the single fix.
-- **REJECT** (score 1-3): Hard violation — invented customer testimonial, unshipped feature claim, harmful content, completely off-audience. Use sparingly.
+## Decision Framework — DEFAULT TO APPROVE
 
-Return JSON ONLY: {"verdict": "approve|regenerate|reject", "score": N, "feedback": "reason"}`;
+Send back ONLY for these four conditions (per locked spec):
+(a) Obvious factual fabrication BEYOND the VERIFIED FACTS whitelist (e.g., invented customer name like "Sarah from Plano", fake MRR figure, unshipped feature, made-up testimonial).
+(b) Wrong persona for the platform's audience (rare).
+(c) PII or sensitive data exposure.
+(d) FB-group rule violation (DOES NOT APPLY HERE — this is a main social post, Dossie mention in caption is FINE).
+
+DEMOTED to warning (auto-approve, do not send back):
+- "Dossie mentioned in main body" objections on Facebook PAGE / Twitter / LinkedIn / Instagram → AUTO-APPROVE.
+- "Persona is dossie not brenda/patricia/victor" → AUTO-APPROVE (dossie is valid).
+- "$29/month / $400 per file / TC quit in Italy / 4:30am" → AUTO-APPROVE (verified).
+- **Hashtag COUNT alone is NEVER a send-back trigger.** Twitter 2-3 ideal but up to 5 fine. LinkedIn 3-5 normal. Instagram 8-10 normal. Group rule violation = the only hashtag-related send-back.
+- Minor copy nits (clunky phrasing, "could read better", "consider rephrasing") → AUTO-APPROVE. Only send back for outright errors.
+- Self-contradicting reasoning ("on second thought, actually fine") → AUTO-APPROVE. If you find yourself reversing your own send_back rationale, the answer is APPROVE.
+
+DECIDE THE VERDICT FIRST. Then write feedback only if verdict is send_back or reject. Do not reason aloud in the feedback field — feedback must state the ONE exact fix, ≤25 words.
+
+Feedback examples:
+GOOD: "Rewrite hook — claim 'I closed 50 deals last month' is unverified. Use 'high-volume agents do 50+ deals/year' instead."
+BAD: "Hashtag count exceeds rules but LinkedIn allows more so this is actually fine, however on second thought..." ← reverse to APPROVE.
+
+- **APPROVE** (score 7-10): Default. Ship it. Empty feedback OK.
+- **SEND_BACK** (score 4-6): ONE specific fixable issue from (a)-(c). ≤25 words.
+- **REJECT** (score 1-3): Hard violation — invented testimonial, harmful content, completely off-audience. Rare.
+
+Return JSON ONLY: {"decision": "approve|send_back|reject", "score": N, "feedback": "concise specific reason if not approve"}`;
 
   const verifierContext = post.verifier_result && typeof post.verifier_result === 'object'
     ? `\nUpstream verifier verdict: ${post.verifier_result.verdict || 'unknown'} — ${post.verifier_result.summary || ''}`
@@ -169,10 +187,7 @@ Apply the rules above. Bias toward APPROVE if facts are clean and voice is warm.
 
     const data = await res.json();
     const text = data?.content?.[0]?.text || '';
-    // Balanced-brace JSON extraction. The prior regex `/\{[^}]+\}/s` failed on
-    // any response containing nested braces or newlines inside string values,
-    // which Haiku returns for longer reviews — every long-form Facebook post
-    // came back as "review call failed" because of this single line.
+    // Balanced-brace JSON extraction for Sonnet's longer-form responses
     const start = text.indexOf('{');
     if (start === -1) {
       console.warn('[cron-sage-autonomous-review] no JSON object in response:', text.slice(0, 200));
@@ -200,7 +215,7 @@ Apply the rules above. Bias toward APPROVE if facts are clean and voice is warm.
       return null;
     }
     return {
-      verdict: String(parsed.verdict || '').toLowerCase(),
+      decision: String(parsed.decision || '').toLowerCase(),
       score: parseInt(parsed.score, 10) || 5,
       feedback: String(parsed.feedback || ''),
     };
@@ -222,7 +237,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
     return res.status(500).json({ ok: false, error: 'Supabase not configured' });
   }
 
-  // Load posts pending Sage review
+  // Load posts pending review
   const { data: pendingRows, ok: loadOk } = await supabaseFetch(
     `/rest/v1/sage_inbox?status=eq.pending_sage_review&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
@@ -239,7 +254,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
   }
 
   let approved = 0;
-  let regenerate = 0;
+  let sendBack = 0;
   let rejected = 0;
   const errors = [];
 
@@ -272,18 +287,18 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
       }
     }
 
-    // Run Sage's review
-    const review = await sageReview(post);
+    // Run Cole's review
+    const review = await coleReview(post);
     if (!review) {
       console.error('[cron-sage-autonomous-review] review call failed for', postId);
       errors.push({ inbox_id: inboxRow.id, post_id: postId, error: 'review call failed' });
       continue;
     }
 
-    const verdict = review.verdict; // 'approve', 'regenerate', 'reject'
+    const decision = review.decision; // 'approve', 'send_back', 'reject'
     const now = new Date().toISOString();
 
-    if (verdict === 'approve') {
+    if (decision === 'approve') {
       // Approve: update sage_inbox and the relevant post table
       await supabaseFetch(`/rest/v1/sage_inbox?id=eq.${encodeURIComponent(inboxRow.id)}`, {
         method: 'PATCH',
@@ -307,23 +322,33 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
 
       approved++;
       console.log('[cron-sage-autonomous-review] approved:', postId, `(${postTable})`, '— score:', review.score);
-    } else if (verdict === 'regenerate') {
-      // Soft reject: mark as regenerating, increment attempts counter
+    } else if (decision === 'send_back') {
+      // Soft reject: mark as regenerating, write feedback to social_posts, increment attempts
       const attempts = (inboxRow.regeneration_attempts || 0) + 1;
+      
       await supabaseFetch(`/rest/v1/sage_inbox?id=eq.${encodeURIComponent(inboxRow.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
           status: 'regenerating',
-          sage_verdict: 'regenerate',
+          sage_verdict: 'send_back',
           sage_feedback: review.feedback,
           regeneration_attempts: attempts,
           sage_reviewed_at: now,
         }),
       });
 
-      regenerate++;
-      console.log('[cron-sage-autonomous-review] marked for regeneration:', postId, `(${postTable})`, '— attempt', attempts, '— feedback:', review.feedback);
+      // Write feedback to social_posts.review_feedback for Sage's regeneration loop
+      await supabaseFetch(`/rest/v1/${postTable}?id=eq.${encodeURIComponent(postId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          review_feedback: review.feedback,
+        }),
+      });
+
+      sendBack++;
+      console.log('[cron-sage-autonomous-review] sent back for regeneration:', postId, `(${postTable})`, '— attempt', attempts, '— feedback:', review.feedback);
     } else {
       // Hard reject: drop it
       await supabaseFetch(`/rest/v1/sage_inbox?id=eq.${encodeURIComponent(inboxRow.id)}`, {
@@ -342,7 +367,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
           status: 'rejected',
-          rejection_reason: 'Sage hard reject: ' + review.feedback,
+          rejection_reason: 'Cole hard reject: ' + review.feedback,
         }),
       });
 
@@ -355,7 +380,7 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
     ok: true,
     reviewed: rows.length,
     approved,
-    regenerate,
+    sendBack,
     rejected,
     errors: errors.length > 0 ? errors : undefined,
   });

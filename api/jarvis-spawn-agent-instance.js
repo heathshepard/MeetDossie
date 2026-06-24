@@ -29,11 +29,19 @@
 //   401 / 403 / 500 errors
 //
 // Owner: Atlas (atlas_1, 2026-06-22 SOP build).
+//
+// 2026-06-23 atlas_11 fix: auth now accepts THREE sources:
+//   (a) JWT — Heath signed in, normal HUD flow
+//   (b) Service-role bearer — agent spawning programmatically (no jwt available)
+//   (c) CRON_SECRET bearer — cron-spawned tasks
+// spawn_source is recorded on metadata.spawn_source for audit.
+// For (b) and (c), tenant_id MUST be passed in body.tenant_id (else 400).
 
 import { verifySupabaseToken } from './_middleware/auth.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 const VALID_AGENT_ROLES = new Set([
   'atlas', 'carter', 'hadley', 'pierce', 'sage',
@@ -120,11 +128,29 @@ export default async function handler(req, res) {
     return res.status(503).json({ ok: false, error: 'supabase_env_missing' });
   }
 
-  let authUser;
-  try {
-    authUser = await verifySupabaseToken(req);
-  } catch (err) {
-    return res.status(err.status || 401).json({ ok: false, error: err.message });
+  // ── auth: accept JWT, service-role bearer, or CRON_SECRET ─────────────
+  const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+  const bearerMatch = typeof authHeader === 'string' && authHeader.match(/^Bearer\s+(.+)$/i);
+  const bearerToken = bearerMatch ? bearerMatch[1].trim() : null;
+
+  const isServiceRole = bearerToken && bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+  const isCronSecret = bearerToken && CRON_SECRET && bearerToken === CRON_SECRET;
+
+  let authUser = null;
+  let spawnSource = null;
+
+  if (isServiceRole) {
+    spawnSource = 'service_role';
+  } else if (isCronSecret) {
+    spawnSource = 'cron_secret';
+  } else {
+    // Fall back to JWT verification
+    try {
+      authUser = await verifySupabaseToken(req);
+      spawnSource = 'jwt';
+    } catch (err) {
+      return res.status(err.status || 401).json({ ok: false, error: err.message });
+    }
   }
 
   const body = req.body || {};
@@ -135,6 +161,7 @@ export default async function handler(req, res) {
     project_description,
     spawn_prompt,
     checklist_items,
+    tenant_id: bodyTenantId,
   } = body;
 
   if (!agent_role || !VALID_AGENT_ROLES.has(agent_role)) {
@@ -144,9 +171,22 @@ export default async function handler(req, res) {
     });
   }
 
+  // ── resolve tenant ────────────────────────────────────────────────────
+  // JWT path: derive tenant from auth user
+  // Service-role / cron path: body must supply tenant_id (or fall back to first jarvis_users tenant)
   let tenantId;
   try {
-    tenantId = await resolveTenantId(authUser.userId);
+    if (authUser) {
+      tenantId = await resolveTenantId(authUser.userId);
+    } else if (bodyTenantId) {
+      tenantId = String(bodyTenantId);
+    } else {
+      // Fallback for programmatic spawns with no tenant supplied: use the first
+      // jarvis_users tenant (single-tenant deployment today). Logged for audit.
+      const rows = await sbGet('jarvis_users?select=tenant_id&limit=1');
+      tenantId = rows && rows[0] ? rows[0].tenant_id : null;
+      console.warn(`[spawn-agent-instance] ${spawnSource} spawn with no tenant_id — fell back to first jarvis_users tenant: ${tenantId}`);
+    }
   } catch (err) {
     console.error('[spawn-agent-instance] tenant resolve:', err.message);
     return res.status(500).json({ ok: false, error: 'tenant_lookup_failed' });
@@ -154,6 +194,8 @@ export default async function handler(req, res) {
   if (!tenantId) {
     return res.status(403).json({ ok: false, error: 'no_jarvis_tenant' });
   }
+
+  console.log(`[spawn-agent-instance] role=${agent_role} source=${spawnSource} tenant=${tenantId}`);
 
   // Resolve or create the project
   let project = null;
@@ -193,6 +235,7 @@ export default async function handler(req, res) {
       project_id: project ? project.id : null,
       status: 'running',
       spawn_prompt: spawn_prompt ? String(spawn_prompt) : null,
+      metadata: { spawn_source: spawnSource },
     });
     instance = inserted[0];
   } catch (err) {

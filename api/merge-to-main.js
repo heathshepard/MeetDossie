@@ -185,6 +185,18 @@ module.exports = async function handler(req, res) {
         });
     } catch {}
 
+    // 6. Mark merge_queue row as merged (if it exists)
+    try {
+      await supabase
+        .from('merge_queue')
+        .update({
+          merged_to_main: true,
+          merged_at: new Date().toISOString(),
+          merged_by_user_id: user.id,
+        })
+        .eq('commit_sha', fullSha);
+    } catch {}
+
     return res.status(200).json({
       ok: true,
       mergedSha: fullSha,

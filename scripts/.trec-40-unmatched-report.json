@@ -1,0 +1,1583 @@
+{
+  "generated_at": "2026-06-19T17:52:19.723Z",
+  "form": "TREC 40 Third-Party Financing Addendum",
+  "form_id": "trec-40",
+  "algorithm": {
+    "proximity_radius_pt": 100,
+    "same_baseline_tol_pt": 8,
+    "left_label_max_gap_pt": 220,
+    "above_label_max_gap_pt": 30,
+    "confident_min_score": 0.55,
+    "score_weights": {
+      "same_baseline_left": 1,
+      "directly_above": 0.85,
+      "same_baseline_right": 0.35,
+      "general_proximity": 0.25,
+      "keyword_hit_bonus": 0.2,
+      "exact_keyword_phrase": 0.3
+    }
+  },
+  "stats": {
+    "total_widgets": 65,
+    "confident_match": 25,
+    "unmatched": 40,
+    "skip": 0,
+    "pct_confident": 38.5,
+    "pct_unmatched": 61.5
+  },
+  "confident_matches": [
+    {
+      "index": 0,
+      "field_name": "Street Address and City",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Street Address and City",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "street address",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 3,
+      "field_name": "years with interest not to exceed",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] years with interest not to exceed",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "years",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 7,
+      "field_name": "shown on Buyers Loan Estimate for the loan not to exceed",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] shown on Buyers Loan Estimate for the loan not to exceed",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 13,
+      "field_name": "shown on Buyers Loan Estimate for the loan not to exceed_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] shown on Buyers Loan Estimate for the loan not to exceed_2",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 16,
+      "field_name": "years at the interest rate established by the",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "interest_rate_max_percent",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] years at the interest rate established by the",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "interest rate",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 18,
+      "field_name": "undefined",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "financing_type",
+      "confidence_score": 0.938,
+      "evidence": {
+        "label": "C. FHA INSURED FINANCING:",
+        "relation": "same_baseline_left",
+        "gap_pt": 57.7,
+        "matched_phrase": "fha",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 21,
+      "field_name": "years with interest not to exceed_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 1.187,
+      "evidence": {
+        "label": "years, with interest not to exceed",
+        "relation": "same_baseline_left",
+        "gap_pt": 2.9,
+        "matched_phrase": "years",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 23,
+      "field_name": "not to exceed",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.732,
+      "evidence": {
+        "label": "years, with interest not to exceed",
+        "relation": "directly_above",
+        "gap_pt": 11.2,
+        "matched_phrase": "years",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 31,
+      "field_name": "Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 32,
+      "field_name": "years",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] years",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "years",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 35,
+      "field_name": "Estimate for the loan not to exceed",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.71,
+      "evidence": {
+        "label": "years,",
+        "relation": "directly_above",
+        "gap_pt": 12,
+        "matched_phrase": "years",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 40,
+      "field_name": "Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "financing_type",
+      "confidence_score": 1.15,
+      "evidence": {
+        "label": "will not be an FHA insured loan.",
+        "relation": "same_baseline_left",
+        "gap_pt": 11,
+        "matched_phrase": "fha",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 48,
+      "field_name": "per annum for the first_3-1",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "origination_charge_percent",
+      "confidence_score": 0.698,
+      "evidence": {
+        "label": "Origination Charges not to exceed ____% of the loan.",
+        "relation": "same_baseline_left",
+        "gap_pt": 22.4,
+        "matched_phrase": "origination charge",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 49,
+      "field_name": "Text2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "lender_name",
+      "confidence_score": 0.612,
+      "evidence": {
+        "label": "(name of lender) in the principal amount of $___________ due in ______ year(s), with",
+        "relation": "directly_above",
+        "gap_pt": 15.4,
+        "matched_phrase": "lender",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 52,
+      "field_name": "Initialed for identification by Buyer",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.298,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.4,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 53,
+      "field_name": "undefined_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.153,
+      "evidence": {
+        "label": "Initialed for identification by Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 32.2,
+        "matched_phrase": "initialed for identification by buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 54,
+      "field_name": "and Seller",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.299,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.3,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 55,
+      "field_name": "undefined_3",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.128,
+      "evidence": {
+        "label": "and Seller",
+        "relation": "same_baseline_left",
+        "gap_pt": 37.8,
+        "matched_phrase": "and seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 56,
+      "field_name": "Address of Property",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "[field-name] Address of Property",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "address of property",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 58,
+      "field_name": "Conversion Mortgage loan in the original principal amount of",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.792,
+      "evidence": {
+        "label": "Approval, Buyer may terminate this contract within",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.7,
+        "matched_phrase": "buyer",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 60,
+      "field_name": "value of the Property established by the Department of Veterans Affairs",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.822,
+      "evidence": {
+        "label": "statement issued by the Federal Housing Commissioner, Department of Veterans Affairs, or a",
+        "relation": "directly_above",
+        "gap_pt": 8,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 61,
+      "field_name": "Signature1",
+      "page": 2,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.631,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 12,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 62,
+      "field_name": "Signature2",
+      "page": 2,
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.841,
+      "evidence": {
+        "label": "Buyer",
+        "relation": "directly_above",
+        "gap_pt": 10.9,
+        "matched_phrase": "buyer",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 63,
+      "field_name": "Signature3",
+      "page": 2,
+      "field_type": "signature",
+      "fixture_key": "property_state",
+      "confidence_score": 0.563,
+      "evidence": {
+        "label": "furnish a copy of the closing disclosures and settlement statements to the parties",
+        "relation": "directly_above",
+        "gap_pt": 17.2,
+        "matched_phrase": "state",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 64,
+      "field_name": "Signature4",
+      "page": 2,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.841,
+      "evidence": {
+        "label": "Seller",
+        "relation": "directly_above",
+        "gap_pt": 10.9,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "index": 1,
+      "field_name": "1 Conventional Financing",
+      "page": 1,
+      "x": 57,
+      "y": 557,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 1 Conventional Financing",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.2,
+          "direction": "above"
+        },
+        {
+          "text": "for",
+          "distance": 31.3,
+          "direction": "above"
+        },
+        {
+          "text": "q",
+          "distance": 31.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'financing_type' -- need a boolean fixture key"
+    },
+    {
+      "index": 2,
+      "field_name": "a A first mortgage loan in the principal amount of",
+      "page": 1,
+      "x": 86,
+      "y": 544,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.1,
+          "direction": "above"
+        },
+        {
+          "text": "(1)",
+          "distance": 17.8,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 33,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] a A first mortgage loan in the principal amount of' but no matching fixture key exists for it"
+    },
+    {
+      "index": 4,
+      "field_name": "any financed PMI premium due in full in 1",
+      "page": 1,
+      "x": 292,
+      "y": 530,
+      "width": 38,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "to",
+          "distance": 52.7,
+          "direction": "above"
+        },
+        {
+          "text": "limited",
+          "distance": 54.8,
+          "direction": "above"
+        },
+        {
+          "text": "promptly for all financing described below and make every reasonable effort to obtain approval",
+          "distance": 62.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'financed PMI premium), due in full in' but no matching fixture key exists for it"
+    },
+    {
+      "index": 5,
+      "field_name": "any financed PMI premium due in full in 2",
+      "page": 1,
+      "x": 515,
+      "y": 531,
+      "width": 29,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(excluding any",
+          "distance": 17.4,
+          "direction": "above"
+        },
+        {
+          "text": "%",
+          "distance": 20.4,
+          "direction": "right"
+        },
+        {
+          "text": "(excluding any",
+          "distance": 35.8,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'year(s), with interest not to exceed' but no matching fixture key exists for it"
+    },
+    {
+      "index": 6,
+      "field_name": "per annum for the first",
+      "page": 1,
+      "x": 219,
+      "y": 519,
+      "width": 45,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "s Loan Estimate for the loan not to exceed",
+          "distance": 9,
+          "direction": "below"
+        },
+        {
+          "text": "A first mortgage loan in the principal amount of $",
+          "distance": 24.9,
+          "direction": "above"
+        },
+        {
+          "text": "A second mortgage loan in the principal amount of $",
+          "distance": 27.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'per annum for the first' but no matching fixture key exists for it"
+    },
+    {
+      "index": 8,
+      "field_name": "b A second mortgage loan in the principal amount of",
+      "page": 1,
+      "x": 87,
+      "y": 497,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.3,
+          "direction": "above"
+        },
+        {
+          "text": "(2)",
+          "distance": 17,
+          "direction": "right"
+        },
+        {
+          "text": "Buyer",
+          "distance": 27.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] b A second mortgage loan in the principal amount of' but no matching fixture key exists for it"
+    },
+    {
+      "index": 9,
+      "field_name": "excluding",
+      "page": 1,
+      "x": 390,
+      "y": 494,
+      "width": 87,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "% of the loan.",
+          "distance": 16.3,
+          "direction": "above"
+        },
+        {
+          "text": "year(s) of the loan with Origination Charges as",
+          "distance": 20.2,
+          "direction": "below"
+        },
+        {
+          "text": "year(s), with interest not to exceed",
+          "distance": 30.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'A second mortgage loan in the principal amount of $' but no matching fixture key exists for it"
+    },
+    {
+      "index": 10,
+      "field_name": "any financed PMI premium due in full in 1_2",
+      "page": 1,
+      "x": 303,
+      "y": 484,
+      "width": 62,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "from",
+          "distance": 37.5,
+          "direction": "below"
+        },
+        {
+          "text": "the",
+          "distance": 38.6,
+          "direction": "below"
+        },
+        {
+          "text": "s Loan Estimate for the loan not to exceed",
+          "distance": 46.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'financed PMI premium), due in full in' but no matching fixture key exists for it"
+    },
+    {
+      "index": 11,
+      "field_name": "any financed PMI premium due in full in 2_2",
+      "page": 1,
+      "x": 101,
+      "y": 473,
+      "width": 31,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(2)",
+          "distance": 24.6,
+          "direction": "above"
+        },
+        {
+          "text": "TEXAS",
+          "distance": 26.2,
+          "direction": "below"
+        },
+        {
+          "text": "shown on Buyer",
+          "distance": 27.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] any financed PMI premium due in full in 2_2' but no matching fixture key exists for it"
+    },
+    {
+      "index": 12,
+      "field_name": "per annum for the first_2",
+      "page": 1,
+      "x": 267,
+      "y": 473,
+      "width": 46,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "s Loan Estimate for the loan not to exceed",
+          "distance": 10.1,
+          "direction": "below"
+        },
+        {
+          "text": "loan(s)",
+          "distance": 26.5,
+          "direction": "below"
+        },
+        {
+          "text": "for a period in the total amount of",
+          "distance": 35.8,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '% per annum for the first' but no matching fixture key exists for it"
+    },
+    {
+      "index": 14,
+      "field_name": "2 Texas Veterans Loan A loans from the Texas Veterans Land Board of",
+      "page": 1,
+      "x": 56,
+      "y": 450,
+      "width": 12,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.7,
+          "direction": "above"
+        },
+        {
+          "text": "B.",
+          "distance": 14.8,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 34.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 2 Texas Veterans Loan A loans from the Texas Veterans Land Board of' but no matching fixture key exists for it"
+    },
+    {
+      "index": 15,
+      "field_name": "for a period in the total amount of",
+      "page": 1,
+      "x": 95,
+      "y": 437,
+      "width": 95,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "$_______________",
+          "distance": 3.7,
+          "direction": "left"
+        },
+        {
+          "text": "established by the Texas",
+          "distance": 12.2,
+          "direction": "below"
+        },
+        {
+          "text": "VETERANS",
+          "distance": 21.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'B.' but no matching fixture key exists for it"
+    },
+    {
+      "index": 17,
+      "field_name": "3 FHA Insured Financing A Section",
+      "page": 1,
+      "x": 57,
+      "y": 415,
+      "width": 12,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 3 FHA Insured Financing A Section",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.3,
+          "direction": "above"
+        },
+        {
+          "text": "$",
+          "distance": 30.4,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 37.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'financing_type' -- need a boolean fixture key"
+    },
+    {
+      "index": 19,
+      "field_name": "excluding any financed MIP amortizable monthly for not less",
+      "page": 1,
+      "x": 95,
+      "y": 402,
+      "width": 106,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "C. FHA INSURED FINANCING:",
+          "distance": 12.1,
+          "direction": "above"
+        },
+        {
+          "text": "established by the Texas",
+          "distance": 26,
+          "direction": "above"
+        },
+        {
+          "text": "the loan not to exceed",
+          "distance": 31.5,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '$' but no matching fixture key exists for it"
+    },
+    {
+      "index": 20,
+      "field_name": "than",
+      "page": 1,
+      "x": 114,
+      "y": 391,
+      "width": 49,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "the loan not to exceed",
+          "distance": 21.7,
+          "direction": "below"
+        },
+        {
+          "text": "C. FHA INSURED FINANCING:",
+          "distance": 24.5,
+          "direction": "above"
+        },
+        {
+          "text": "established by the Texas",
+          "distance": 38.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'than' but no matching fixture key exists for it"
+    },
+    {
+      "index": 22,
+      "field_name": "Text1",
+      "page": 1,
+      "x": 89,
+      "y": 381,
+      "width": 40,
+      "height": 11,
+      "field_type": "text",
+      "best_label_guess": "year(s) of the loan with Origination Charges as shown on Buyer",
+      "best_label_score": 0.545,
+      "best_label_fixture_key": "origination_charge_percent",
+      "nearest_labels_within_100px": [
+        {
+          "text": "than",
+          "distance": 14.7,
+          "direction": "above"
+        },
+        {
+          "text": "$",
+          "distance": 28.1,
+          "direction": "above"
+        },
+        {
+          "text": "the loan not to exceed",
+          "distance": 37.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'year(s) of the loan with Origination Charges as shown on Buyer' would map to 'origination_charge_percent' but score 0.545 < threshold 0.55"
+    },
+    {
+      "index": 24,
+      "field_name": "6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity",
+      "page": 1,
+      "x": 58,
+      "y": 357,
+      "width": 9,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "than",
+          "distance": 51.4,
+          "direction": "right"
+        },
+        {
+          "text": "$",
+          "distance": 54.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'financing_type' -- need a boolean fixture key"
+    },
+    {
+      "index": 25,
+      "field_name": "excluding_2",
+      "page": 1,
+      "x": 445,
+      "y": 356,
+      "width": 106,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "year(s) of the loan with",
+          "distance": 21.5,
+          "direction": "below"
+        },
+        {
+          "text": "s Loan Estimate for",
+          "distance": 26.8,
+          "direction": "above"
+        },
+        {
+          "text": "to",
+          "distance": 33.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'D. VA GUARANTEED FINANCING: A VA guaranteed loan of not less than $' but no matching fixture key exists for it"
+    },
+    {
+      "index": 26,
+      "field_name": "any financed Funding Fee amortizable monthly for not less than",
+      "page": 1,
+      "x": 482,
+      "y": 344,
+      "width": 39,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "year(s) of the loan with",
+          "distance": 11.4,
+          "direction": "below"
+        },
+        {
+          "text": "to",
+          "distance": 21.3,
+          "direction": "below"
+        },
+        {
+          "text": "not",
+          "distance": 25.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '(excluding any financed Funding Fee), amortizable monthly for not less than' but no matching fixture key exists for it"
+    },
+    {
+      "index": 27,
+      "field_name": "not to exceed_2",
+      "page": 1,
+      "x": 225,
+      "y": 333,
+      "width": 38,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "shown",
+          "distance": 14.3,
+          "direction": "left"
+        },
+        {
+          "text": "on",
+          "distance": 21.5,
+          "direction": "right"
+        },
+        {
+          "text": "D. VA GUARANTEED FINANCING: A VA guaranteed loan of not less than $",
+          "distance": 27.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'with interest not to exceed' but no matching fixture key exists for it"
+    },
+    {
+      "index": 28,
+      "field_name": "per annum for the first_3",
+      "page": 1,
+      "x": 396,
+      "y": 333,
+      "width": 39,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "for",
+          "distance": 10.3,
+          "direction": "below"
+        },
+        {
+          "text": "the",
+          "distance": 20.8,
+          "direction": "right"
+        },
+        {
+          "text": "guaranteed loan of not less than $___________",
+          "distance": 37,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'Estimate' but no matching fixture key exists for it"
+    },
+    {
+      "index": 29,
+      "field_name": "Text2",
+      "page": 1,
+      "x": 86,
+      "y": 311,
+      "width": 43,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Origination",
+          "distance": 14.7,
+          "direction": "above"
+        },
+        {
+          "text": "E.",
+          "distance": 32.7,
+          "direction": "left"
+        },
+        {
+          "text": "q",
+          "distance": 45.9,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'E.' but no matching fixture key exists for it"
+    },
+    {
+      "index": 30,
+      "field_name": "4 VA Guaranteed Financing A VA guaranteed loan of not less than",
+      "page": 1,
+      "x": 57,
+      "y": 300,
+      "width": 12,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1,
+          "direction": "above"
+        },
+        {
+          "text": "E.",
+          "distance": 14.3,
+          "direction": "right"
+        },
+        {
+          "text": "of",
+          "distance": 53.6,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 4 VA Guaranteed Financing A VA guaranteed loan of not less than' but no matching fixture key exists for it"
+    },
+    {
+      "index": 33,
+      "field_name": "with interest not to exceed",
+      "page": 1,
+      "x": 228,
+      "y": 277,
+      "width": 28,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": ": A USDA",
+          "distance": 42.8,
+          "direction": "right"
+        },
+        {
+          "text": "(excluding any financed Funding Fee), amortizable monthly for not less than",
+          "distance": 42.8,
+          "direction": "right"
+        },
+        {
+          "text": "Conversion Mortgage loan) in the original principal amount of $",
+          "distance": 46,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'with interest not to exceed' but no matching fixture key exists for it"
+    },
+    {
+      "index": 34,
+      "field_name": "excluding any financed Funding Fee amortizable monthly for not less than",
+      "page": 1,
+      "x": 391,
+      "y": 276,
+      "width": 42,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "s Loan Estimate for the loan not to exceed",
+          "distance": 14.2,
+          "direction": "left"
+        },
+        {
+          "text": "guaranteed loan of not less than $___________",
+          "distance": 29.6,
+          "direction": "above"
+        },
+        {
+          "text": "for",
+          "distance": 47.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '% per annum for the first' but no matching fixture key exists for it"
+    },
+    {
+      "index": 36,
+      "field_name": "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than",
+      "page": 1,
+      "x": 56,
+      "y": 242,
+      "width": 12,
+      "height": 11,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 5 USDA Guaranteed Financing A USDAguaranteed loan of not less than",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.7,
+          "direction": "above"
+        },
+        {
+          "text": "F.",
+          "distance": 14.5,
+          "direction": "right"
+        },
+        {
+          "text": "of",
+          "distance": 33.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'financing_type' -- need a boolean fixture key"
+    },
+    {
+      "index": 37,
+      "field_name": "per annum for the first_4",
+      "page": 1,
+      "x": 411,
+      "y": 229,
+      "width": 80,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "% of the loan. The reverse mortgage loan",
+          "distance": 53.7,
+          "direction": "left"
+        },
+        {
+          "text": "s Loan Estimate for the loan not to exceed",
+          "distance": 61.7,
+          "direction": "left"
+        },
+        {
+          "text": "year(s) of the loan with",
+          "distance": 64.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'Conversion Mortgage loan) in the original principal amount of $' but no matching fixture key exists for it"
+    },
+    {
+      "index": 38,
+      "field_name": "any financed PMI premium or other costs with interest not to exceed",
+      "page": 1,
+      "x": 451,
+      "y": 218,
+      "width": 34,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "% per annum",
+          "distance": 51.6,
+          "direction": "right"
+        },
+        {
+          "text": "(excluding",
+          "distance": 52.1,
+          "direction": "right"
+        },
+        {
+          "text": "’",
+          "distance": 52.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'any financed PMI premium or other costs), with interest not to exceed' but no matching fixture key exists for it"
+    },
+    {
+      "index": 39,
+      "field_name": "for the first",
+      "page": 1,
+      "x": 149,
+      "y": 208,
+      "width": 42,
+      "height": 11,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Estimate for the loan not to exceed",
+          "distance": 15.6,
+          "direction": "below"
+        },
+        {
+          "text": "will not be an FHA insured loan.",
+          "distance": 29.9,
+          "direction": "below"
+        },
+        {
+          "text": "for the first",
+          "distance": 52.3,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'for the first' but no matching fixture key exists for it"
+    },
+    {
+      "index": 41,
+      "field_name": "will not be an FHA insured loan",
+      "page": 1,
+      "x": 527,
+      "y": 196,
+      "width": 11,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] will not be an FHA insured loan",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.3,
+          "direction": "above"
+        },
+        {
+          "text": "will",
+          "distance": 14.7,
+          "direction": "right"
+        },
+        {
+          "text": "s Loan",
+          "distance": 15.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'financing_type' -- need a boolean fixture key"
+    },
+    {
+      "index": 42,
+      "field_name": "will",
+      "page": 1,
+      "x": 89,
+      "y": 181,
+      "width": 11,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.5,
+          "direction": "above"
+        },
+        {
+          "text": "G.",
+          "distance": 21.2,
+          "direction": "left"
+        },
+        {
+          "text": "q",
+          "distance": 33.7,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] will' but no matching fixture key exists for it"
+    },
+    {
+      "index": 43,
+      "field_name": "6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity-1",
+      "page": 1,
+      "x": 58,
+      "y": 166,
+      "width": 9,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] 6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity-1",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 3.1,
+          "direction": "above"
+        },
+        {
+          "text": "G.",
+          "distance": 14.8,
+          "direction": "right"
+        },
+        {
+          "text": "q",
+          "distance": 35.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'financing_type' -- need a boolean fixture key"
+    },
+    {
+      "index": 44,
+      "field_name": "excluding_2-1",
+      "page": 1,
+      "x": 427,
+      "y": 166,
+      "width": 127,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "% of the loan. The reverse mortgage loan",
+      "best_label_score": 0.116,
+      "best_label_fixture_key": "financing_type",
+      "nearest_labels_within_100px": [
+        {
+          "text": "the",
+          "distance": 21.4,
+          "direction": "below"
+        },
+        {
+          "text": "of",
+          "distance": 27.6,
+          "direction": "below"
+        },
+        {
+          "text": "loan",
+          "distance": 33.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label '% of the loan. The reverse mortgage loan' would map to 'financing_type' but score 0.116 < threshold 0.55"
+    },
+    {
+      "index": 45,
+      "field_name": "not to exceed-1",
+      "page": 1,
+      "x": 331,
+      "y": 154,
+      "width": 70,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "first",
+          "distance": 11.1,
+          "direction": "below"
+        },
+        {
+          "text": "the",
+          "distance": 21.7,
+          "direction": "left"
+        },
+        {
+          "text": "Buyer",
+          "distance": 31,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'for' but no matching fixture key exists for it"
+    },
+    {
+      "index": 46,
+      "field_name": "any financed Funding Fee amortizable monthly for not less than-1",
+      "page": 1,
+      "x": 443,
+      "y": 155,
+      "width": 39,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "of",
+          "distance": 14.6,
+          "direction": "below"
+        },
+        {
+          "text": "year(s)",
+          "distance": 22.1,
+          "direction": "left"
+        },
+        {
+          "text": "q",
+          "distance": 24.7,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '_____' but no matching fixture key exists for it"
+    },
+    {
+      "index": 47,
+      "field_name": "not to exceed_2-1",
+      "page": 1,
+      "x": 213,
+      "y": 143,
+      "width": 23,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "____%",
+          "distance": 6.9,
+          "direction": "right"
+        },
+        {
+          "text": "Origination Charges not to exceed ____% of the loan.",
+          "distance": 12.8,
+          "direction": "below"
+        },
+        {
+          "text": "contract",
+          "distance": 30,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'exceed' but no matching fixture key exists for it"
+    },
+    {
+      "index": 50,
+      "field_name": "will-1",
+      "page": 1,
+      "x": 405,
+      "y": 131,
+      "width": 11,
+      "height": 11,
+      "field_type": "checkbox",
+      "best_label_guess": "Buyer",
+      "best_label_score": 0.88,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.9,
+          "direction": "above"
+        },
+        {
+          "text": "this",
+          "distance": 11,
+          "direction": "below"
+        },
+        {
+          "text": "_____",
+          "distance": 16.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 51,
+      "field_name": "will-2",
+      "page": 1,
+      "x": 448,
+      "y": 131,
+      "width": 11,
+      "height": 11,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.6,
+          "direction": "above"
+        },
+        {
+          "text": "addendum",
+          "distance": 11.3,
+          "direction": "below"
+        },
+        {
+          "text": "year(s)",
+          "distance": 17.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] will-2' but no matching fixture key exists for it"
+    },
+    {
+      "index": 57,
+      "field_name": "Check Box2",
+      "page": 2,
+      "x": 82,
+      "y": 692,
+      "width": 12,
+      "height": 12,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.4,
+          "direction": "above"
+        },
+        {
+          "text": "the",
+          "distance": 28.6,
+          "direction": "right"
+        },
+        {
+          "text": "A.BUYER APPROVAL",
+          "distance": 37.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] Check Box2' but no matching fixture key exists for it"
+    },
+    {
+      "index": 59,
+      "field_name": "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer",
+      "page": 2,
+      "x": 84,
+      "y": 592,
+      "width": 11,
+      "height": 11,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer",
+      "best_label_score": 1.2,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.2,
+          "direction": "above"
+        },
+        {
+          "text": "B.",
+          "distance": 17.2,
+          "direction": "left"
+        },
+        {
+          "text": "lender",
+          "distance": 21.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    }
+  ],
+  "skipped": []
+}

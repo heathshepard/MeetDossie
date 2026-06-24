@@ -1,0 +1,597 @@
+{
+  "generated_at": "2026-06-19T17:52:19.723Z",
+  "form_id": "trec-40",
+  "stats": {
+    "PASS": 25,
+    "FLAGGED": 40,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "table": [
+    {
+      "index": 0,
+      "page": 1,
+      "field_name": "Street Address and City",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 1,
+      "page": 1,
+      "field_name": "1 Conventional Financing",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 2,
+      "page": 1,
+      "field_name": "a A first mortgage loan in the principal amount of",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 3,
+      "page": 1,
+      "field_name": "years with interest not to exceed",
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "page": 1,
+      "field_name": "any financed PMI premium due in full in 1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 5,
+      "page": 1,
+      "field_name": "any financed PMI premium due in full in 2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 6,
+      "page": 1,
+      "field_name": "per annum for the first",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 7,
+      "page": 1,
+      "field_name": "shown on Buyers Loan Estimate for the loan not to exceed",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 8,
+      "page": 1,
+      "field_name": "b A second mortgage loan in the principal amount of",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 9,
+      "page": 1,
+      "field_name": "excluding",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 10,
+      "page": 1,
+      "field_name": "any financed PMI premium due in full in 1_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 11,
+      "page": 1,
+      "field_name": "any financed PMI premium due in full in 2_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 12,
+      "page": 1,
+      "field_name": "per annum for the first_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 13,
+      "page": 1,
+      "field_name": "shown on Buyers Loan Estimate for the loan not to exceed_2",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 14,
+      "page": 1,
+      "field_name": "2 Texas Veterans Loan A loans from the Texas Veterans Land Board of",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 15,
+      "page": 1,
+      "field_name": "for a period in the total amount of",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 16,
+      "page": 1,
+      "field_name": "years at the interest rate established by the",
+      "field_type": "text",
+      "fixture_key": "interest_rate_max_percent",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 17,
+      "page": 1,
+      "field_name": "3 FHA Insured Financing A Section",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 18,
+      "page": 1,
+      "field_name": "undefined",
+      "field_type": "text",
+      "fixture_key": "financing_type",
+      "confidence_score": 0.938,
+      "status": "PASS"
+    },
+    {
+      "index": 19,
+      "page": 1,
+      "field_name": "excluding any financed MIP amortizable monthly for not less",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 20,
+      "page": 1,
+      "field_name": "than",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 21,
+      "page": 1,
+      "field_name": "years with interest not to exceed_2",
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 1.187,
+      "status": "PASS"
+    },
+    {
+      "index": 22,
+      "page": 1,
+      "field_name": "Text1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 23,
+      "page": 1,
+      "field_name": "not to exceed",
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.732,
+      "status": "PASS"
+    },
+    {
+      "index": 24,
+      "page": 1,
+      "field_name": "6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 25,
+      "page": 1,
+      "field_name": "excluding_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 26,
+      "page": 1,
+      "field_name": "any financed Funding Fee amortizable monthly for not less than",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 27,
+      "page": 1,
+      "field_name": "not to exceed_2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 28,
+      "page": 1,
+      "field_name": "per annum for the first_3",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 29,
+      "page": 1,
+      "field_name": "Text2",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 30,
+      "page": 1,
+      "field_name": "4 VA Guaranteed Financing A VA guaranteed loan of not less than",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 31,
+      "page": 1,
+      "field_name": "Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.7,
+      "status": "PASS"
+    },
+    {
+      "index": 32,
+      "page": 1,
+      "field_name": "years",
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 33,
+      "page": 1,
+      "field_name": "with interest not to exceed",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 34,
+      "page": 1,
+      "field_name": "excluding any financed Funding Fee amortizable monthly for not less than",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 35,
+      "page": 1,
+      "field_name": "Estimate for the loan not to exceed",
+      "field_type": "text",
+      "fixture_key": "loan_term_years",
+      "confidence_score": 0.71,
+      "status": "PASS"
+    },
+    {
+      "index": 36,
+      "page": 1,
+      "field_name": "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 37,
+      "page": 1,
+      "field_name": "per annum for the first_4",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 38,
+      "page": 1,
+      "field_name": "any financed PMI premium or other costs with interest not to exceed",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 39,
+      "page": 1,
+      "field_name": "for the first",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 40,
+      "page": 1,
+      "field_name": "Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+      "field_type": "text",
+      "fixture_key": "financing_type",
+      "confidence_score": 1.15,
+      "status": "PASS"
+    },
+    {
+      "index": 41,
+      "page": 1,
+      "field_name": "will not be an FHA insured loan",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 42,
+      "page": 1,
+      "field_name": "will",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 43,
+      "page": 1,
+      "field_name": "6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity-1",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 44,
+      "page": 1,
+      "field_name": "excluding_2-1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 45,
+      "page": 1,
+      "field_name": "not to exceed-1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 46,
+      "page": 1,
+      "field_name": "any financed Funding Fee amortizable monthly for not less than-1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 47,
+      "page": 1,
+      "field_name": "not to exceed_2-1",
+      "field_type": "text",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 48,
+      "page": 1,
+      "field_name": "per annum for the first_3-1",
+      "field_type": "text",
+      "fixture_key": "origination_charge_percent",
+      "confidence_score": 0.698,
+      "status": "PASS"
+    },
+    {
+      "index": 49,
+      "page": 1,
+      "field_name": "Text2",
+      "field_type": "text",
+      "fixture_key": "lender_name",
+      "confidence_score": 0.612,
+      "status": "PASS"
+    },
+    {
+      "index": 50,
+      "page": 1,
+      "field_name": "will-1",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 51,
+      "page": 1,
+      "field_name": "will-2",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 52,
+      "page": 1,
+      "field_name": "Initialed for identification by Buyer",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.298,
+      "status": "PASS"
+    },
+    {
+      "index": 53,
+      "page": 1,
+      "field_name": "undefined_2",
+      "field_type": "text",
+      "fixture_key": "buyer_initials",
+      "confidence_score": 1.153,
+      "status": "PASS"
+    },
+    {
+      "index": 54,
+      "page": 1,
+      "field_name": "and Seller",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.299,
+      "status": "PASS"
+    },
+    {
+      "index": 55,
+      "page": 1,
+      "field_name": "undefined_3",
+      "field_type": "text",
+      "fixture_key": "seller_initials",
+      "confidence_score": 1.128,
+      "status": "PASS"
+    },
+    {
+      "index": 56,
+      "page": 2,
+      "field_name": "Address of Property",
+      "field_type": "text",
+      "fixture_key": "property_address_line1",
+      "confidence_score": 0.8,
+      "status": "PASS"
+    },
+    {
+      "index": 57,
+      "page": 2,
+      "field_name": "Check Box2",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 58,
+      "page": 2,
+      "field_name": "Conversion Mortgage loan in the original principal amount of",
+      "field_type": "text",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.792,
+      "status": "PASS"
+    },
+    {
+      "index": 59,
+      "page": 2,
+      "field_name": "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer",
+      "field_type": "checkbox",
+      "fixture_key": null,
+      "confidence_score": null,
+      "status": "FLAGGED"
+    },
+    {
+      "index": 60,
+      "page": 2,
+      "field_name": "value of the Property established by the Department of Veterans Affairs",
+      "field_type": "text",
+      "fixture_key": "property_state",
+      "confidence_score": 0.822,
+      "status": "PASS"
+    },
+    {
+      "index": 61,
+      "page": 2,
+      "field_name": "Signature1",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.631,
+      "status": "PASS"
+    },
+    {
+      "index": 62,
+      "page": 2,
+      "field_name": "Signature2",
+      "field_type": "signature",
+      "fixture_key": "buyer_names",
+      "confidence_score": 0.841,
+      "status": "PASS"
+    },
+    {
+      "index": 63,
+      "page": 2,
+      "field_name": "Signature3",
+      "field_type": "signature",
+      "fixture_key": "property_state",
+      "confidence_score": 0.563,
+      "status": "PASS"
+    },
+    {
+      "index": 64,
+      "page": 2,
+      "field_name": "Signature4",
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.841,
+      "status": "PASS"
+    }
+  ]
+}

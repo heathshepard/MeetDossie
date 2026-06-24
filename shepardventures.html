@@ -535,6 +535,131 @@
       animation: pulse 1.8s ease-in-out infinite;
     }
 
+    /* ---- Dossie Health panel ---- */
+    .dh-light {
+      width: 12px; height: 12px; border-radius: 50%;
+      box-shadow: 0 0 12px currentColor;
+    }
+    .dh-light-green  { background: #4ADE80; color: #4ADE80; }
+    .dh-light-yellow { background: #FBBF24; color: #FBBF24; }
+    .dh-light-red    { background: #EF4444; color: #EF4444; animation: pulse 1.4s ease-in-out infinite; }
+    .dh-light-grey   { background: rgba(245,230,224,0.35); color: transparent; }
+    .dh-rerun {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .dh-rerun:hover {
+      border-color: var(--cyan);
+      background: rgba(91, 217, 230, 0.08);
+    }
+    .dh-rerun:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .dh-summary {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .dh-summary-tile {
+      background: rgba(32, 32, 58, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 6px;
+      text-align: center;
+    }
+    .dh-summary-tile-label {
+      font-size: 0.55rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .dh-summary-tile-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--blush);
+    }
+    .dh-summary-tile-counts {
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .dh-failed {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .dh-row {
+      background: rgba(239, 68, 68, 0.08);
+      border-left: 2px solid #EF4444;
+      padding: 6px 10px;
+      font-size: 0.7rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--blush);
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+    }
+    .dh-row.warn {
+      background: rgba(251, 191, 36, 0.07);
+      border-left-color: #FBBF24;
+    }
+    .dh-row-key { color: var(--cyan); margin-right: 6px; }
+    .dh-row-msg { color: var(--text-dim); }
+    .dh-improvements {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .dh-improvements-head {
+      font-size: 0.6rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .dh-impr-row {
+      background: rgba(91, 217, 230, 0.06);
+      border-left: 2px solid var(--cyan);
+      padding: 6px 10px;
+      font-size: 0.7rem;
+      color: var(--blush);
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .dh-impr-title { flex: 1; }
+    .dh-impr-queue {
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.55rem;
+      padding: 3px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .dh-impr-queue:hover {
+      background: rgba(91, 217, 230, 0.12);
+    }
+
     .agent-status.idle {
       background: var(--text-faint);
     }
@@ -911,6 +1036,21 @@
             <div class="section-count" id="merge-count">0</div>
           </div>
           <div id="merge-list" class="merge-list"></div>
+        </div>
+
+        <!-- Dossie Health (Ridge daily diagnostic) -->
+        <div class="section hud-panel" id="section-dossie-health" style="margin-top: 16px;">
+          <div class="section-head" style="align-items: center;">
+            <div class="section-title">DOSSIE HEALTH</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div id="dh-traffic-light" class="dh-light dh-light-grey" title="status"></div>
+              <div class="section-count" id="dh-stamp">--</div>
+              <button id="dh-rerun-btn" class="dh-rerun" title="Re-run diagnostic now">RUN</button>
+            </div>
+          </div>
+          <div id="dh-summary" class="dh-summary">Loading diagnostic...</div>
+          <div id="dh-failed" class="dh-failed"></div>
+          <div id="dh-improvements" class="dh-improvements"></div>
         </div>
       </div>
 
@@ -1569,12 +1709,158 @@
 
     async function refresh() {
       try {
-        await Promise.all([loadAgents(), loadCompanies(), loadMerges()]);
+        await Promise.all([loadAgents(), loadCompanies(), loadMerges(), loadDossieHealth()]);
       } catch (err) {
         console.error('Refresh error:', err);
         toast('Refresh failed', 'err');
       }
     }
+
+    // -------- DOSSIE HEALTH (Ridge daily diagnostic) --------
+    function fmtAgo(iso) {
+      if (!iso) return 'never';
+      const ms = Date.now() - new Date(iso).getTime();
+      const m = Math.floor(ms / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    }
+    async function loadDossieHealth() {
+      const summaryEl = document.getElementById('dh-summary');
+      const failedEl  = document.getElementById('dh-failed');
+      const imprEl    = document.getElementById('dh-improvements');
+      const lightEl   = document.getElementById('dh-traffic-light');
+      const stampEl   = document.getElementById('dh-stamp');
+      if (!summaryEl || !_token) return;
+      try {
+        const r = await fetch('/api/system-diagnostics-latest?surface=dossie', {
+          headers: { Authorization: `Bearer ${_token}` },
+        });
+        if (!r.ok) {
+          summaryEl.innerHTML = `<span style="color:var(--text-faint)">unavailable (${r.status})</span>`;
+          return;
+        }
+        const data = await r.json();
+        const diag = data.diagnostic;
+        const checks = data.checks || [];
+        if (!diag) {
+          summaryEl.innerHTML = `<span style="color:var(--text-faint)">No diagnostic runs yet. Press RUN to trigger the first.</span>`;
+          failedEl.innerHTML = '';
+          imprEl.innerHTML = '';
+          stampEl.textContent = '--';
+          lightEl.className = 'dh-light dh-light-grey';
+          return;
+        }
+        // Traffic light
+        const overall = diag.overall_status;
+        lightEl.className = `dh-light dh-light-${overall === 'green' ? 'green' : overall === 'yellow' ? 'yellow' : overall === 'red' ? 'red' : 'grey'}`;
+        stampEl.textContent = fmtAgo(diag.started_at);
+
+        // Per-category summary tiles
+        const t = diag.totals || {};
+        const tile = (label, cat) => {
+          const s = t[cat] || { total: 0, pass: 0, warn: 0, fail: 0 };
+          const color = s.fail > 0 ? '#EF4444' : (s.warn > 0 ? '#FBBF24' : '#4ADE80');
+          return `<div class="dh-summary-tile">
+            <div class="dh-summary-tile-label">${label}</div>
+            <div class="dh-summary-tile-value" style="color:${color}">${s.pass}/${s.total}</div>
+            <div class="dh-summary-tile-counts">${s.warn} warn · ${s.fail} fail</div>
+          </div>`;
+        };
+        summaryEl.innerHTML = tile('FRONTEND','frontend') + tile('API','api') + tile('CRONS','cron') + tile('DATA','data');
+
+        // Failed/warned rows
+        const flagged = checks.filter(c => c.status === 'fail' || c.status === 'error' || c.status === 'warn');
+        if (flagged.length === 0) {
+          failedEl.innerHTML = `<div style="font-size:.7rem;color:var(--text-dim);padding:6px 0;">All ${checks.length} checks passing.</div>`;
+        } else {
+          failedEl.innerHTML = flagged.slice(0, 12).map(c => {
+            const cls = (c.status === 'warn') ? 'dh-row warn' : 'dh-row';
+            const msg = (c.error_message || c.status).replace(/[<>]/g, '');
+            return `<div class="${cls}" title="${c.label || ''}"><span class="dh-row-key">${c.check_key}</span><span class="dh-row-msg">${msg}</span></div>`;
+          }).join('');
+        }
+
+        // Improvements
+        const ideas = diag.improvements || [];
+        if (ideas.length === 0) {
+          imprEl.innerHTML = '';
+        } else {
+          imprEl.innerHTML = `<div class="dh-improvements-head">Improvements (${ideas.length})</div>` +
+            ideas.slice(0, 6).map((i, idx) => {
+              const title = (i.title || '').replace(/[<>]/g, '');
+              const sev = i.severity || 'info';
+              const sevColor = sev === 'critical' ? '#EF4444' : (sev === 'warn' ? '#FBBF24' : 'var(--cyan)');
+              return `<div class="dh-impr-row" data-idea-idx="${idx}">
+                <div class="dh-impr-title"><span style="color:${sevColor}">●</span> ${title}</div>
+                <button class="dh-impr-queue" data-idea-idx="${idx}" data-owner="${i.suggested_owner || 'carter'}">QUEUE → ${(i.suggested_owner || 'carter').toUpperCase()}</button>
+              </div>`;
+            }).join('');
+          // Wire queue buttons
+          imprEl.querySelectorAll('.dh-impr-queue').forEach(btn => {
+            btn.addEventListener('click', async (ev) => {
+              ev.stopPropagation();
+              const idx = parseInt(btn.getAttribute('data-idea-idx'), 10);
+              const idea = ideas[idx];
+              if (!idea) return;
+              btn.disabled = true;
+              btn.textContent = 'QUEUED';
+              toast(`Queued: ${idea.title.slice(0, 60)}`, 'ok');
+              // Soft-queue: ping the agent-dispatch endpoint with the suggested owner
+              try {
+                await fetch('/api/agent-dispatch', {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    agent_role: idea.suggested_owner || 'carter',
+                    project_title: `Ridge improvement: ${idea.title.slice(0, 80)}`,
+                    project_description: JSON.stringify(idea, null, 2),
+                    source: 'ridge_diagnostic',
+                  }),
+                }).catch(() => {});
+              } catch { /* best-effort */ }
+            });
+          });
+        }
+      } catch (err) {
+        console.error('[dh] load error', err);
+        summaryEl.innerHTML = `<span style="color:#EF4444">load failed: ${err.message}</span>`;
+      }
+    }
+    // RUN button wiring
+    document.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest && ev.target.closest('#dh-rerun-btn');
+      if (!btn) return;
+      if (!_token) return;
+      btn.disabled = true;
+      btn.textContent = 'RUNNING...';
+      try {
+        const r = await fetch('/api/system-diagnostics-trigger', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ surface: 'dossie' }),
+        });
+        const d = await r.json();
+        if (r.ok && d.ok) {
+          toast(`Diagnostic complete: ${d.overall_status} (${d.checks_total || 0} checks)`, 'ok');
+          await loadDossieHealth();
+        } else if (r.status === 429) {
+          toast('Diagnostic already running', 'err');
+        } else {
+          toast(`Diagnostic failed: ${d.error || r.status}`, 'err');
+        }
+      } catch (err) {
+        toast(`Trigger error: ${err.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'RUN';
+      }
+    });
 
     async function loadAgents() {
       const { data, error } = await supabase
