@@ -1,0 +1,52 @@
+{
+  "form_id": "trec-36-11",
+  "total_unmatched": 9,
+  "llm_guesses": {
+    "0": {
+      "fixture_key": "property_address_line1",
+      "confidence": 0.92,
+      "reasoning": "Text field for the street address portion of the property location in an HOA addendum contract"
+    },
+    "1": {
+      "fixture_key": "hoa_name_and_phone",
+      "confidence": 0.95,
+      "reasoning": "Text field for entering the HOA association name and phone number, positioned in the HOA addendum header section"
+    },
+    "2": {
+      "fixture_key": "hoa_subdivision_info_seller_delivers",
+      "confidence": 0.88,
+      "reasoning": "Checkbox for option 1 where Seller delivers Subdivision Information within specified days"
+    },
+    "3": {
+      "fixture_key": "subdivision_information_delivery_days",
+      "confidence": 0.72,
+      "reasoning": "This is a numeric input field for the number of days Seller has to deliver Subdivision Information to Buyer after contract execution."
+    },
+    "4": {
+      "fixture_key": "hoa_subdivision_seller_provides",
+      "confidence": 0.9,
+      "reasoning": "This checkbox corresponds to option 1 where the Seller obtains and delivers Subdivision Information to the Buyer"
+    },
+    "5": {
+      "fixture_key": "subdivision_information_days_seller",
+      "confidence": 0.72,
+      "reasoning": "Text field for entering the number of days Seller has to obtain and deliver Subdivision Information to Buyer"
+    },
+    "7": {
+      "fixture_key": "addendum_hoa",
+      "confidence": 0.92,
+      "reasoning": "This is a checkbox in the HOA Addendum form selecting option 2 for Subdivision Information receipt timing, representing one of the addendum's key alternatives"
+    },
+    "11": {
+      "fixture_key": "ignore",
+      "confidence": 0.95,
+      "reasoning": "This checkbox appears to be part of the surrounding contract text about authorization/release rather than a fillable form field for buyer identification."
+    },
+    "12": {
+      "fixture_key": "seller_pays_title_policy",
+      "confidence": 0.92,
+      "reasoning": "Checkbox for seller paying title company costs, a common allocation of closing cost responsibility in real estate transactions"
+    }
+  },
+  "generated_at": "2026-06-19T19:21:02.920Z"
+}

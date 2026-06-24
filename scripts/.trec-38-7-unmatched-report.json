@@ -1,0 +1,258 @@
+{
+  "generated_at": "2026-06-19T17:49:14.118Z",
+  "form": "TREC 38-7 Notice of Buyer's Termination of Contract",
+  "form_id": "trec-38-7",
+  "note": "No AcroForm widgets in this PDF — labeler reads from coords overlay map.",
+  "stats": {
+    "total_widgets": 15,
+    "confident_match": 15,
+    "unmatched": 0,
+    "skip": 0,
+    "pct_confident": 100,
+    "pct_unmatched": 0
+  },
+  "confident_matches": [
+    {
+      "index": 0,
+      "field_name": "property_address",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "property_address",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Above '(Street Address and City)' label at y=128",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "property_address",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 1,
+      "field_name": "seller_name",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "seller_name",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Long blank wraps y=153->y=172 ending at (SELLER) at x=507",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "seller_name",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 2,
+      "field_name": "buyer_name",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_name",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Buyer signature line 1 (left) — 'Buyer' label at y=663 below",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "buyer_name",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 3,
+      "field_name": "buyer_name_2",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "buyer_name_2",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Buyer signature line 2 (right) — second buyer if joint",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "buyer_name_2",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 4,
+      "field_name": "contract_effective_date",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "contract_effective_date",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Date line under signature 1 — 'Date' label at (270.9, 663.2)",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "contract_effective_date",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 5,
+      "field_name": "termination_notice_date",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "termination_notice_date",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Date line under signature 2 — 'Date' label at (526.5, 663.2)",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_notice_date",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 6,
+      "field_name": "termination_checkbox_option_period",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_option_period",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(1) Option Period unrestricted",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_option_period",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 7,
+      "field_name": "termination_checkbox_financing",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_financing",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(2) Financing (Buyer Approval)",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_financing",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 8,
+      "field_name": "termination_checkbox_property",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_property",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(3) Property Approval",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_property",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 9,
+      "field_name": "termination_checkbox_hoa",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_hoa",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(4) HOA mandatory membership",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_hoa",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 10,
+      "field_name": "termination_checkbox_disclosure",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_disclosure",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(5) Seller's Disclosure 7B(2)",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_disclosure",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 11,
+      "field_name": "termination_checkbox_appraisal",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_appraisal",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(6) Lender's Appraisal Para 3",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_appraisal",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 12,
+      "field_name": "termination_checkbox_objections",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_objections",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(7) Para 6.D objections not cured",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_objections",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 13,
+      "field_name": "termination_checkbox_other",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "termination_checkbox_other",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "(8) Other",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_checkbox_other",
+        "exact": true,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 14,
+      "field_name": "termination_reason_other",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "termination_reason_other",
+      "confidence_score": 1,
+      "evidence": {
+        "label": "Free-text reason if (8) Other checked — 6 blank lines",
+        "relation": "coords_overlay",
+        "gap_pt": 0,
+        "matched_phrase": "termination_reason_other",
+        "exact": true,
+        "from_field_name": true
+      }
+    }
+  ],
+  "unmatched": [],
+  "skipped": []
+}

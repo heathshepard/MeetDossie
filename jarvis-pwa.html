@@ -532,6 +532,303 @@
     .agent-status.failed    { color: var(--fail); border: 1px solid var(--fail); background: rgba(232, 94, 94, 0.08); }
     .agent-status.heartbeat { color: var(--gold); border: 1px solid var(--gold); }
 
+    /* ===== ACTIONS FOR HEATH PANEL ===== */
+    .panel-title.actions-title-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .actions-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.18em;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .actions-meta.danger { color: var(--fail); }
+    .actions-body { display: flex; flex-direction: column; gap: 10px; }
+    .actions-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
+    .action-card {
+      background: rgba(201, 169, 110, 0.05);
+      border: 1px solid rgba(201, 169, 110, 0.25);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .action-card.urgent {
+      border-color: rgba(232, 131, 107, 0.4);
+      background: rgba(232, 131, 107, 0.06);
+    }
+    .action-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .action-title {
+      font-size: 13px; line-height: 1.3;
+      color: var(--txt-primary);
+      font-weight: 500;
+      flex: 1;
+    }
+    .action-priority-badge {
+      padding: 2px 6px; border-radius: 4px; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      background: rgba(201, 169, 110, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(201, 169, 110, 0.3);
+      flex-shrink: 0;
+    }
+    .action-priority-badge.urgent {
+      background: rgba(232, 131, 107, 0.15);
+      color: var(--fail);
+      border-color: rgba(232, 131, 107, 0.3);
+    }
+    .action-priority-badge.soon {
+      background: rgba(255, 193, 7, 0.15);
+      color: var(--warn);
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+    .action-body {
+      font-size: 11px; line-height: 1.4;
+      color: var(--txt-mute);
+      white-space: pre-wrap; word-wrap: break-word;
+      max-height: 80px; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .action-source {
+      font-size: 9px; color: var(--txt-faint);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .action-buttons {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .action-btn {
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 7px 4px;
+      background: transparent;
+      border: 1px solid rgba(201, 169, 110, 0.3);
+      border-radius: 6px;
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover {
+      background: rgba(201, 169, 110, 0.12);
+      border-color: var(--gold);
+    }
+    .action-btn.done {
+      color: var(--ok);
+      border-color: rgba(139, 168, 136, 0.3);
+    }
+    .action-btn.done:hover {
+      background: rgba(139, 168, 136, 0.12);
+      border-color: var(--ok);
+    }
+    .action-btn:disabled { opacity: 0.5; cursor: wait; }
+    .action-btn.approve-send {
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.2) 0%, rgba(201, 169, 110, 0.1) 100%);
+      border-color: var(--gold);
+      color: var(--gold);
+      font-weight: 600;
+      grid-column: 1 / -1;
+      padding: 10px 8px;
+    }
+    .action-btn.approve-send:hover {
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.3) 0%, rgba(201, 169, 110, 0.15) 100%);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* EMAIL APPROVAL MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: grid; place-items: center;
+      z-index: 999;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.hidden {
+      display: none;
+    }
+    .modal-card {
+      background: linear-gradient(180deg, rgba(10, 14, 26, 0.95) 0%, rgba(5, 8, 16, 0.98) 100%);
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .modal-title {
+      font-size: 16px; font-weight: 600;
+      color: var(--txt-primary);
+      letter-spacing: 0.05em;
+    }
+    .modal-section {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .modal-label {
+      font-size: 11px; letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--txt-mute);
+    }
+    .modal-value {
+      font-size: 13px;
+      color: var(--txt-primary);
+      background: rgba(77, 208, 225, 0.05);
+      border: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 6px;
+      padding: 8px 10px;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .modal-value.body {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    .modal-buttons {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .modal-btn {
+      font-family: inherit;
+      font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    .modal-btn.send {
+      background: linear-gradient(135deg, rgba(139, 168, 136, 0.2) 0%, rgba(139, 168, 136, 0.1) 100%);
+      border-color: var(--ok);
+      color: var(--ok);
+    }
+    .modal-btn.send:hover {
+      background: linear-gradient(135deg, rgba(139, 168, 136, 0.3) 0%, rgba(139, 168, 136, 0.15) 100%);
+    }
+    .modal-btn.cancel {
+      background: transparent;
+      border-color: rgba(201, 169, 110, 0.3);
+      color: var(--txt-mute);
+    }
+    .modal-btn.cancel:hover {
+      background: rgba(201, 169, 110, 0.1);
+      border-color: var(--gold);
+      color: var(--txt-primary);
+    }
+    .modal-btn:disabled {
+      opacity: 0.5; cursor: wait;
+    }
+
+    /* ===== MERGE QUEUE PANEL ===== */
+    .panel-title.merge-queue-title-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .merge-queue-badge {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.18em;
+      color: var(--cyan);
+      background: rgba(77, 208, 225, 0.15);
+      border: 1px solid rgba(77, 208, 225, 0.3);
+      border-radius: 4px;
+      padding: 2px 8px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .merge-queue-list { display: flex; flex-direction: column; gap: 10px; }
+    .merge-queue-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
+    .merge-queue-item {
+      background: rgba(77, 208, 225, 0.04);
+      border: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .merge-queue-item.all-green {
+      border-color: rgba(139, 168, 136, 0.3);
+      background: rgba(139, 168, 136, 0.06);
+    }
+    .merge-queue-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;
+    }
+    .merge-queue-sha {
+      font-family: 'Courier New', monospace;
+      font-size: 11px; color: var(--txt-mute);
+      letter-spacing: 0.05em;
+    }
+    .merge-queue-title {
+      font-size: 12px; font-weight: 500;
+      color: var(--txt-primary);
+      line-height: 1.3;
+      flex: 1;
+    }
+    .merge-queue-signoff-badges {
+      display: flex; gap: 4px; flex-wrap: wrap;
+    }
+    .signoff-badge {
+      font-size: 9px; padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex; align-items: center; gap: 2px;
+    }
+    .signoff-badge.not-run { background: rgba(77, 208, 225, 0.1); color: var(--txt-mute); border: 1px solid rgba(77, 208, 225, 0.15); }
+    .signoff-badge.pass { background: rgba(139, 168, 136, 0.15); color: var(--ok); border: 1px solid rgba(139, 168, 136, 0.3); }
+    .signoff-badge.fail { background: rgba(232, 94, 94, 0.15); color: var(--fail); border: 1px solid rgba(232, 94, 94, 0.3); }
+    .signoff-badge:hover { opacity: 0.85; }
+    .merge-queue-buttons {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .merge-btn {
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 7px 4px;
+      background: linear-gradient(135deg, rgba(139, 168, 136, 0.2), rgba(139, 168, 136, 0.08));
+      border: 1px solid rgba(139, 168, 136, 0.4);
+      border-radius: 6px;
+      color: var(--ok);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+    .merge-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(139, 168, 136, 0.3), rgba(139, 168, 136, 0.12));
+      border-color: var(--ok);
+      box-shadow: 0 0 8px rgba(139, 168, 136, 0.3);
+    }
+    .merge-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: rgba(77, 208, 225, 0.08);
+      color: var(--txt-mute);
+      border-color: rgba(77, 208, 225, 0.15);
+    }
+    .merge-btn.fix-issues {
+      background: linear-gradient(135deg, rgba(232, 131, 107, 0.15), rgba(232, 131, 107, 0.05));
+      border-color: rgba(232, 131, 107, 0.3);
+      color: var(--fail);
+    }
+    .merge-btn.fix-issues:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(232, 131, 107, 0.25), rgba(232, 131, 107, 0.1));
+      border-color: var(--fail);
+      box-shadow: 0 0 8px rgba(232, 131, 107, 0.2);
+    }
+
     /* ===== TO-DO PANEL ===== */
     .panel-title.todo-title-row {
       display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -660,6 +957,71 @@
     .activity-status-completed { color: var(--ok); }
     .activity-status-failed { color: var(--fail); }
     .activity-status-working { color: var(--cyan-bright); }
+
+    /* ===== AGENT THROUGHPUT PANEL (Speed Unlock, atlas_5, 2026-06-20) ===== */
+    .throughput-totals {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 12px; padding-bottom: 12px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.08);
+      font-size: 10px;
+    }
+    .throughput-totals-cell {
+      display: flex; flex-direction: column; gap: 2px;
+      text-align: center;
+    }
+    .throughput-totals-val {
+      font-size: 16px; font-weight: 500;
+      color: var(--cyan-bright);
+      font-variant-numeric: tabular-nums;
+    }
+    .throughput-totals-val.savings { color: var(--ok); }
+    .throughput-totals-val.cost    { color: var(--gold); }
+    .throughput-totals-lbl {
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--txt-mute); font-size: 9px;
+    }
+    .throughput-rows {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 260px; overflow-y: auto;
+    }
+    .throughput-row {
+      display: grid; grid-template-columns: 72px 1fr 1fr 1fr;
+      gap: 8px; align-items: center;
+      padding: 6px 4px;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
+      font-size: 10px;
+    }
+    .throughput-row:last-child { border-bottom: none; }
+    .throughput-role {
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--cyan-bright);
+    }
+    .throughput-cell {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .throughput-cell-val {
+      font-size: 12px; color: var(--txt);
+      font-variant-numeric: tabular-nums;
+    }
+    .throughput-cell-lbl {
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .throughput-mix {
+      display: flex; gap: 4px; align-items: center;
+      font-size: 10px;
+    }
+    .throughput-mix-bar {
+      display: flex; height: 6px; flex: 1; border-radius: 3px; overflow: hidden;
+      background: rgba(255,255,255,0.04);
+    }
+    .throughput-mix-haiku  { background: var(--ok); }
+    .throughput-mix-sonnet { background: var(--cyan-bright); }
+    .throughput-mix-opus   { background: var(--gold); }
+    .throughput-empty {
+      font-size: 12px; color: var(--txt-mute);
+      text-align: center; padding: 12px 0;
+    }
 
     /* ===== QUICK ACTIONS ROW (Tier 1 Widget #4) ===== */
     .quick-actions {
@@ -1985,6 +2347,17 @@
           </div>
         </div>
 
+        <!-- MERGE QUEUE (Tier 1 Widget #1b) — visible staging->main merge candidates with sign-off status. -->
+        <div class="panel" id="merge-queue-panel">
+          <div class="panel-title merge-queue-title-row">
+            <span>MERGE QUEUE</span>
+            <span class="merge-queue-badge" id="merge-queue-count">0</span>
+          </div>
+          <div id="merge-queue-list" class="merge-queue-list">
+            <div class="merge-queue-empty">Loading…</div>
+          </div>
+        </div>
+
         <!-- CALENDAR (Tier 2 Widget #2) — today + tomorrow events from Google / local. -->
         <div class="panel" id="calendar-panel">
           <div class="panel-title">CALENDAR</div>
@@ -2036,6 +2409,17 @@
           <div class="panel-title">CUSTOMER ACTIVITY</div>
           <div id="cust-feed" class="cust-feed">
             <div class="cust-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- ACTIONS FOR HEATH: asks from Cole/agents that need human decision/action. -->
+        <div class="panel" id="actions-panel">
+          <div class="panel-title actions-title-row">
+            <span>ACTIONS FOR YOU</span>
+            <span class="actions-meta" id="actions-meta">ALL CLEAR</span>
+          </div>
+          <div id="actions-body" class="actions-body">
+            <div class="actions-empty">No pending actions.</div>
           </div>
         </div>
 
@@ -2133,6 +2517,14 @@
             <div class="activity-empty">Loading…</div>
           </div>
         </div>
+
+        <!-- AGENT THROUGHPUT (Speed Unlock, atlas_5, 2026-06-20).
+             Queue depth, worker utilization, cache hit rate, model mix, cost. -->
+        <div class="panel" id="throughput-panel">
+          <div class="panel-title">AGENT THROUGHPUT</div>
+          <div id="throughput-totals" class="throughput-totals">Loading…</div>
+          <div id="throughput-rows" class="throughput-rows"></div>
+        </div>
       </aside>
     </main>
 
@@ -2157,6 +2549,41 @@
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- EMAIL APPROVAL MODAL -->
+  <div id="email-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-title">Approve & Send Email</div>
+      <div class="modal-section">
+        <div class="modal-label">To</div>
+        <div class="modal-value" id="modal-to">—</div>
+      </div>
+      <div class="modal-section" id="modal-cc-section" style="display:none;">
+        <div class="modal-label">CC</div>
+        <div class="modal-value" id="modal-cc">—</div>
+      </div>
+      <div class="modal-section" id="modal-bcc-section" style="display:none;">
+        <div class="modal-label">BCC</div>
+        <div class="modal-value" id="modal-bcc">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">From</div>
+        <div class="modal-value" id="modal-from">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Subject</div>
+        <div class="modal-value" id="modal-subject">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Body</div>
+        <div class="modal-value body" id="modal-body">—</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn send" id="modal-send-btn">Send</button>
+        <button class="modal-btn cancel" id="modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Three.js importmap (used by the Earth orb below). MUST come before any module script. -->
   <script type="importmap">
@@ -2838,8 +3265,10 @@
       await startConversation();
       subscribeAgentEvents();
       // Hydrate side panels (to-do + money + activity). Fire-and-forget — never block UI.
+      loadActions().catch(() => {});
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
+      loadMergeQueue().catch(() => {});
       loadPendingApprovals().catch(() => {});
       loadDailyDebrief().catch(() => {});
       loadCustomerActivity().catch(() => {});
@@ -2854,6 +3283,7 @@
       // Refresh cadences per spec:
       //   tickers (money/activity log) — 30s
       //   to-do — 60s
+      //   merge queue — 30s (high priority)
       //   pending approvals — 30s (high priority)
       //   daily debrief — 60s
       //   customer activity — 30s polling + realtime subscription below
@@ -2862,7 +3292,9 @@
       //   instances + projects — 30s polling backup, realtime primary
       setInterval(() => { loadTickers().catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().catch(() => {}); }, 60000);
+      setInterval(() => { loadMergeQueue().catch(() => {}); }, 30000);
       setInterval(() => { loadPendingApprovals().catch(() => {}); }, 30000);
+      setInterval(() => { loadActions().catch(() => {}); }, 30000);
       setInterval(() => { loadDailyDebrief().catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().catch(() => {}); }, 300000);
@@ -2870,6 +3302,9 @@
       setInterval(() => { loadInstances().catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().catch(() => {}); }, 60000);
       setInterval(() => { loadKnowledge().catch(() => {}); }, 90000);
+      // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel
+      loadThroughput().catch(() => {});
+      setInterval(() => { loadThroughput().catch(() => {}); }, 30000);
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -3835,6 +4270,277 @@
       }
     }
 
+    // ===== ACTIONS FOR HEATH panel =====
+    // Lists all pending/snoozed actions grouped by priority (urgent, soon, whenever).
+    // Subscribed to Realtime updates; user can mark done/dismiss/snooze.
+    let currentActions = { urgent: [], soon: [], whenever: [] };
+    let actionsRealtimeChannel = null;
+
+    async function initActionsRealtime() {
+      if (!window.supabaseClient) return;
+      if (actionsRealtimeChannel) return; // Already subscribed
+      try {
+        actionsRealtimeChannel = window.supabaseClient
+          .channel('public:heath_actions')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'heath_actions',
+          }, () => {
+            loadActions(); // Reload on any change
+          })
+          .subscribe();
+      } catch (err) {
+        console.warn('[jarvis] Realtime subscribe failed', err);
+      }
+    }
+
+    async function loadActions() {
+      const body = document.getElementById('actions-body');
+      const meta = document.getElementById('actions-meta');
+      if (!body) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/heath-actions-list`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          body.innerHTML = `<div class="actions-empty">Couldn't load actions (${res.status}).</div>`;
+          meta.textContent = '—';
+          return;
+        }
+        const data = await res.json();
+        currentActions = data.actions || { urgent: [], soon: [], whenever: [] };
+        renderActions();
+        if (meta) {
+          meta.textContent = data.status || 'ALL CLEAR';
+          if (data.total_pending > 0 && data.total_pending <= 3) {
+            meta.textContent = `${data.total_pending} PENDING`;
+          } else if (data.total_pending > 3) {
+            meta.textContent = `${data.total_pending} PENDING`;
+            meta.classList.add('danger');
+          } else {
+            meta.classList.remove('danger');
+          }
+        }
+        initActionsRealtime(); // Set up realtime after first load
+      } catch (err) {
+        console.warn('[jarvis] loadActions failed', err);
+        body.innerHTML = `<div class="actions-empty">Offline.</div>`;
+      }
+    }
+
+    function renderActions() {
+      const body = document.getElementById('actions-body');
+      const allActions = [
+        ...currentActions.urgent.map(a => ({ ...a, priorityKey: 'urgent' })),
+        ...currentActions.soon.map(a => ({ ...a, priorityKey: 'soon' })),
+        ...currentActions.whenever.map(a => ({ ...a, priorityKey: 'whenever' })),
+      ];
+
+      if (allActions.length === 0) {
+        body.innerHTML = `<div class="actions-empty">No pending actions.</div>`;
+        return;
+      }
+
+      let html = allActions.map(action => {
+        const prioClass = action.priorityKey === 'urgent' ? 'urgent' :
+                         action.priorityKey === 'soon' ? 'soon' : 'whenever';
+        const prioLabel = action.priorityKey.toUpperCase();
+        const bodyText = action.body ? action.body.substring(0, 100) : '';
+        const sourceLabel = (action.source || 'unknown').toUpperCase();
+        const isEmailAction = action.action_type === 'send_email' && action.payload;
+
+        // For send_email actions, render APPROVE & SEND button instead of standard buttons
+        let buttonsHtml;
+        if (isEmailAction) {
+          buttonsHtml = `
+            <div class="action-buttons">
+              <button class="action-btn approve-send" data-action-email="${action.id}">APPROVE & SEND</button>
+            </div>
+          `;
+        } else {
+          buttonsHtml = `
+            <div class="action-buttons">
+              <button class="action-btn done" data-act="done" data-id="${action.id}">Done</button>
+              <button class="action-btn" data-act="snooze_4h" data-id="${action.id}">Snooze 4h</button>
+              <button class="action-btn" data-act="dismiss" data-id="${action.id}">Dismiss</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="action-card ${prioClass}" data-id="${action.id}">
+            <div class="action-header">
+              <div class="action-title">${escapeHtml(action.title)}</div>
+              <span class="action-priority-badge ${prioClass}">${prioLabel}</span>
+            </div>
+            ${bodyText ? `<div class="action-body">${escapeHtml(bodyText)}${action.body.length > 100 ? '…' : ''}</div>` : ''}
+            <div class="action-source">From: ${sourceLabel}</div>
+            ${buttonsHtml}
+          </div>
+        `;
+      }).join('');
+
+      body.innerHTML = html;
+
+      // Attach event listeners for standard action buttons
+      body.querySelectorAll('.action-btn:not(.approve-send)').forEach(btn => {
+        btn.addEventListener('click', () => onActionBtnClick(btn));
+      });
+
+      // Attach event listeners for APPROVE & SEND buttons
+      body.querySelectorAll('.action-btn.approve-send').forEach(btn => {
+        btn.addEventListener('click', () => onApproveEmailClick(btn));
+      });
+    }
+
+    async function onActionBtnClick(btn) {
+      const actionId = btn.dataset.id;
+      const act = btn.dataset.act;
+      if (!actionId || !act) return;
+
+      const allBtns = document.querySelectorAll('.action-btn');
+      allBtns.forEach(b => { b.disabled = true; });
+
+      try {
+        const res = await fetch(`${API_BASE}/api/heath-actions-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({ id: actionId, action: act }),
+        });
+
+        if (!res.ok) {
+          showToast(`Action ${act} failed (${res.status})`);
+          allBtns.forEach(b => { b.disabled = false; });
+          return;
+        }
+
+        await loadActions();
+      } catch (err) {
+        console.warn('[jarvis] action button click failed', err);
+        allBtns.forEach(b => { b.disabled = false; });
+      }
+    }
+
+    // Email approval modal state
+    let pendingEmailActionId = null;
+
+    function onApproveEmailClick(btn) {
+      const actionId = btn.dataset.actionEmail;
+      if (!actionId) return;
+
+      // Find the action in currentActions
+      let emailAction = null;
+      for (const priority of ['urgent', 'soon', 'whenever']) {
+        const found = currentActions[priority].find(a => a.id === actionId);
+        if (found) {
+          emailAction = found;
+          break;
+        }
+      }
+
+      if (!emailAction || !emailAction.payload) {
+        showToast('Action not found or missing email payload');
+        return;
+      }
+
+      // Populate and show the modal
+      const payload = emailAction.payload;
+      pendingEmailActionId = actionId;
+
+      document.getElementById('modal-to').textContent = payload.to || '—';
+      document.getElementById('modal-from').textContent = payload.from_name
+        ? `${payload.from_name} <${payload.from_email || 'heath@meetdossie.com'}>`
+        : (payload.from_email || 'heath@meetdossie.com');
+      document.getElementById('modal-subject').textContent = payload.subject || '—';
+
+      // Show or hide CC/BCC if present
+      const ccSection = document.getElementById('modal-cc-section');
+      const bccSection = document.getElementById('modal-bcc-section');
+      if (payload.cc) {
+        ccSection.style.display = 'flex';
+        document.getElementById('modal-cc').textContent = payload.cc;
+      } else {
+        ccSection.style.display = 'none';
+      }
+      if (payload.bcc) {
+        bccSection.style.display = 'flex';
+        document.getElementById('modal-bcc').textContent = payload.bcc;
+      } else {
+        bccSection.style.display = 'none';
+      }
+
+      // Body: prefer HTML preview, fallback to text
+      const bodyDisplay = payload.body_html || payload.body_text || '—';
+      document.getElementById('modal-body').textContent = bodyDisplay;
+
+      // Show modal
+      document.getElementById('email-modal-overlay').classList.remove('hidden');
+    }
+
+    function closeEmailModal() {
+      document.getElementById('email-modal-overlay').classList.add('hidden');
+      pendingEmailActionId = null;
+    }
+
+    async function sendEmailFromModal() {
+      if (!pendingEmailActionId) return;
+
+      const sendBtn = document.getElementById('modal-send-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+      sendBtn.disabled = true;
+      cancelBtn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/heath-actions-approve-execute`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({ action_id: pendingEmailActionId }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          showToast(`Send failed: ${errData.error || res.status}`);
+          sendBtn.disabled = false;
+          cancelBtn.disabled = false;
+          return;
+        }
+
+        const result = await res.json();
+        showToast(`Email sent (${result.message_id || 'ok'})`);
+        closeEmailModal();
+        await loadActions();
+      } catch (err) {
+        console.error('[jarvis] sendEmailFromModal failed', err);
+        showToast(`Send failed: ${err.message}`);
+        sendBtn.disabled = false;
+        cancelBtn.disabled = false;
+      }
+    }
+
+    // Wire up modal buttons on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('email-modal-overlay');
+      const sendBtn = document.getElementById('modal-send-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+
+      if (sendBtn) sendBtn.addEventListener('click', sendEmailFromModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeEmailModal);
+
+      // Close modal on overlay click (outside the card)
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) closeEmailModal();
+        });
+      }
+    });
+
     // ===== TO-DO panel =====
     // Single-task focus: shows the highest-priority pending item w/ Done/Skip/Snooze.
     // Calls /api/heath-todo-next, /api/heath-todo-complete, /api/heath-todo-skip, /api/heath-todo-snooze.
@@ -4040,6 +4746,157 @@
         list.innerHTML = `<div class="pending-empty">Offline.</div>`;
       }
     }
+
+    // ===== MERGE QUEUE =====
+    let mergeQueueCache = [];
+
+    async function loadMergeQueue() {
+      try {
+        const auth = await getAuthHeader();
+        if (!auth) return;
+        const res = await fetch(`${API_BASE}/api/merge-queue-list?filter=pending`, {
+          headers: { Authorization: auth },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        mergeQueueCache = data.items || [];
+        renderMergeQueue(mergeQueueCache);
+      } catch (err) {
+        console.warn('[merge-queue] load failed', err);
+      }
+    }
+
+    function renderMergeQueue(items) {
+      const list = document.getElementById('merge-queue-list');
+      const badge = document.getElementById('merge-queue-count');
+      if (!list) return;
+
+      if (!items.length) {
+        list.innerHTML = `<div class="merge-queue-empty">All merged · Next: staging...</div>`;
+        if (badge) badge.textContent = '0';
+        return;
+      }
+
+      list.innerHTML = '';
+      for (const item of items) {
+        const row = document.createElement('div');
+        row.className = 'merge-queue-item' + (item.all_green ? ' all-green' : '');
+        const sha = item.commit_sha.slice(0, 7);
+        row.innerHTML = `
+          <div class="merge-queue-header">
+            <div>
+              <div class="merge-queue-title">${escapeHtml(item.title || `Merge ${sha}`)}</div>
+              <div class="merge-queue-sha">${sha}</div>
+            </div>
+          </div>
+          <div class="merge-queue-signoff-badges">
+            <span class="signoff-badge ${item.atlas_apv_status}" data-type="atlas_apv" title="Atlas APV">
+              ${item.atlas_apv_status === 'pass' ? '✓' : item.atlas_apv_status === 'fail' ? '✗' : '◯'}
+              Atlas
+            </span>
+            <span class="signoff-badge ${item.quinn_qa_status}" data-type="quinn_qa" title="Quinn QA">
+              ${item.quinn_qa_status === 'pass' ? '✓' : item.quinn_qa_status === 'fail' ? '✗' : '◯'}
+              Quinn
+            </span>
+            <span class="signoff-badge ${item.ridge_status}" data-type="ridge" title="Ridge">
+              ${item.ridge_status === 'pass' ? '✓' : item.ridge_status === 'fail' ? '✗' : '◯'}
+              Ridge
+            </span>
+            <span class="signoff-badge ${item.hadley_status}" data-type="hadley" title="Hadley">
+              ${item.hadley_status === 'pass' ? '✓' : item.hadley_status === 'fail' ? '✗' : '◯'}
+              Hadley
+            </span>
+            <span class="signoff-badge ${item.sage_demo_status}" data-type="sage_demo" title="Sage Demo">
+              ${item.sage_demo_status === 'pass' ? '✓' : item.sage_demo_status === 'fail' ? '✗' : '◯'}
+              Sage
+            </span>
+          </div>
+          <div class="merge-queue-buttons">
+            <button class="merge-btn ${item.all_green ? '' : 'fix-issues'}" ${item.all_green ? '' : 'disabled'} data-sha="${sha}" data-action="${item.all_green ? 'merge' : 'fix'}">
+              ${item.all_green ? 'MERGE TO MAIN' : 'FIX FAILURES'}
+            </button>
+            <button class="merge-btn" data-sha="${sha}" data-action="details">DETAILS</button>
+          </div>
+        `;
+
+        // Wire up badge clicks to show evidence
+        row.querySelectorAll('.signoff-badge').forEach(badge => {
+          badge.addEventListener('click', () => {
+            const type = badge.getAttribute('data-type');
+            showMergeQueueEvidence(item, type);
+          });
+        });
+
+        // Wire up action buttons
+        row.querySelector('[data-action="merge"]')?.addEventListener('click', () => {
+          mergeStagingToMain(item);
+        });
+        row.querySelector('[data-action="details"]')?.addEventListener('click', () => {
+          showMergeQueueDetails(item);
+        });
+
+        list.appendChild(row);
+      }
+
+      if (badge) {
+        badge.textContent = String(items.length);
+      }
+    }
+
+    async function mergeStagingToMain(item) {
+      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}`);
+      if (!confirmed) return;
+
+      const btn = document.querySelector(`[data-sha="${item.commit_sha.slice(0, 7)}"][data-action="merge"]`);
+      if (btn) btn.disabled = true;
+
+      try {
+        const auth = await getAuthHeader();
+        const res = await fetch(`${API_BASE}/api/merge-to-main`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: auth,
+          },
+          body: JSON.stringify({ sha: item.commit_sha }),
+        });
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          showToast(`Merge failed: ${errBody.error || res.status}`);
+          if (btn) btn.disabled = false;
+          return;
+        }
+
+        showToast(`Merged ${item.commit_sha.slice(0, 7)} to main`);
+        // Optimistic: remove from list
+        mergeQueueCache = mergeQueueCache.filter(m => m.id !== item.id);
+        renderMergeQueue(mergeQueueCache);
+        setTimeout(() => loadMergeQueue().catch(() => {}), 1000);
+      } catch (err) {
+        console.warn('[merge] failed', err);
+        showToast('Merge failed: network error');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function showMergeQueueEvidence(item, type) {
+      const status = item[`${type}_status`];
+      const evidence = item[`${type}_evidence_url`];
+      const notes = item[`${type}_notes`];
+
+      let text = `${type.toUpperCase()} — ${status.toUpperCase()}\n`;
+      if (evidence) text += `Evidence: ${evidence}\n`;
+      if (notes) text += `Notes: ${notes}\n`;
+      showToast(text);
+    }
+
+    function showMergeQueueDetails(item) {
+      let text = `Commit: ${item.commit_sha}\nAuthor: ${item.commit_author || 'unknown'}\nCreated: ${new Date(item.created_at).toLocaleString()}`;
+      showToast(text);
+    }
+
+    // escapeHtml is defined later in this module (null-safe version).
 
     function renderPending(items) {
       const list = document.getElementById('pending-list');
@@ -5673,6 +6530,125 @@
       }
     }
 
+    // ===== AGENT THROUGHPUT (Speed Unlock, atlas_5, 2026-06-20) =====
+    async function loadThroughput() {
+      if (!tenant) return;
+      const totalsEl = document.getElementById('throughput-totals');
+      const rowsEl   = document.getElementById('throughput-rows');
+      if (!totalsEl || !rowsEl) return;
+      try {
+        const data = await authedFetch('/api/jarvis-agent-throughput?window_hours=24');
+        if (!data?.ok) {
+          totalsEl.innerHTML = `<div class="throughput-empty">Couldn't load (HTTP).</div>`;
+          rowsEl.innerHTML = '';
+          return;
+        }
+        renderThroughput(data);
+      } catch (err) {
+        console.warn('[jarvis] loadThroughput failed', err.message);
+        totalsEl.innerHTML = `<div class="throughput-empty">Offline.</div>`;
+        rowsEl.innerHTML = '';
+      }
+    }
+
+    function renderThroughput(data) {
+      const totalsEl = document.getElementById('throughput-totals');
+      const rowsEl   = document.getElementById('throughput-rows');
+      if (!totalsEl || !rowsEl) return;
+      const t = data.totals || {};
+      const usd = (v) => '$' + (Number(v) || 0).toFixed(2);
+      const pct = (v) => (Number(v) || 0).toFixed(1) + '%';
+      // Top totals row — completed, cache hit rate, savings, projected daily cost
+      totalsEl.innerHTML = '';
+      [
+        { val: String(t.total_completed || 0),      lbl: 'Tasks 24h' },
+        { val: pct(t.cache_hit_rate || 0),          lbl: 'Cache Hit', cls: 'savings' },
+        { val: usd(t.savings_usd || 0),             lbl: 'Saved 24h', cls: 'savings' },
+        { val: usd(t.projected_daily_cost || 0),    lbl: 'Daily Cost', cls: 'cost' },
+      ].forEach(c => {
+        const cell = document.createElement('div');
+        cell.className = 'throughput-totals-cell';
+        const v = document.createElement('div');
+        v.className = 'throughput-totals-val' + (c.cls ? ' ' + c.cls : '');
+        v.textContent = c.val;
+        const l = document.createElement('div');
+        l.className = 'throughput-totals-lbl';
+        l.textContent = c.lbl;
+        cell.appendChild(v);
+        cell.appendChild(l);
+        totalsEl.appendChild(cell);
+      });
+
+      // Per-role rows — only show roles with any activity OR an active pool
+      const roles = (data.roles || []).filter(r =>
+        (r.workers_idle + r.workers_busy + r.workers_dead) > 0 ||
+        r.queue_depth > 0 || r.tasks_completed > 0 || r.cache_attempts > 0
+      );
+      if (roles.length === 0) {
+        rowsEl.innerHTML = `<div class="throughput-empty">No active agents in window. Queue a task to start.</div>`;
+        return;
+      }
+      rowsEl.innerHTML = '';
+      for (const r of roles) {
+        const row = document.createElement('div');
+        row.className = 'throughput-row';
+        // role label
+        const roleEl = document.createElement('div');
+        roleEl.className = 'throughput-role';
+        roleEl.textContent = r.role;
+        row.appendChild(roleEl);
+        // workers + queue cell
+        const c1 = document.createElement('div');
+        c1.className = 'throughput-cell';
+        const c1v = document.createElement('div');
+        c1v.className = 'throughput-cell-val';
+        c1v.textContent = `${r.workers_busy}/${r.workers_busy + r.workers_idle} busy${r.workers_dead ? ` · ${r.workers_dead}d` : ''}`;
+        const c1l = document.createElement('div');
+        c1l.className = 'throughput-cell-lbl';
+        c1l.textContent = `Q:${r.queue_depth}`;
+        c1.appendChild(c1v); c1.appendChild(c1l); row.appendChild(c1);
+        // throughput cell (per-hour + avg duration)
+        const c2 = document.createElement('div');
+        c2.className = 'throughput-cell';
+        const c2v = document.createElement('div');
+        c2v.className = 'throughput-cell-val';
+        c2v.textContent = `${r.tasks_per_hour}/h`;
+        const c2l = document.createElement('div');
+        c2l.className = 'throughput-cell-lbl';
+        c2l.textContent = r.avg_duration_ms > 0 ? `${Math.round(r.avg_duration_ms / 100) / 10}s avg` : 'no data';
+        c2.appendChild(c2v); c2.appendChild(c2l); row.appendChild(c2);
+        // cache + model mix cell
+        const c3 = document.createElement('div');
+        c3.className = 'throughput-cell';
+        const c3v = document.createElement('div');
+        c3v.className = 'throughput-cell-val';
+        c3v.textContent = r.cache_attempts > 0 ? `${r.cache_hit_rate}%` : '—';
+        const mix = document.createElement('div');
+        mix.className = 'throughput-mix';
+        const totalMix = (r.model_mix.haiku || 0) + (r.model_mix.sonnet || 0) + (r.model_mix.opus || 0) + (r.model_mix.other || 0);
+        if (totalMix > 0) {
+          const bar = document.createElement('div');
+          bar.className = 'throughput-mix-bar';
+          const h = (r.model_mix.haiku  || 0) * 100 / totalMix;
+          const s = (r.model_mix.sonnet || 0) * 100 / totalMix;
+          const o = (r.model_mix.opus   || 0) * 100 / totalMix;
+          const seg = (cls, w) => {
+            if (w <= 0) return null;
+            const el = document.createElement('div');
+            el.className = cls;
+            el.style.width = w.toFixed(1) + '%';
+            return el;
+          };
+          [seg('throughput-mix-haiku', h),
+           seg('throughput-mix-sonnet', s),
+           seg('throughput-mix-opus', o)].forEach(el => { if (el) bar.appendChild(el); });
+          mix.appendChild(bar);
+        }
+        c3.appendChild(c3v); c3.appendChild(mix); row.appendChild(c3);
+        rowsEl.appendChild(row);
+      }
+    }
+
     function renderKnowledgePanel(data) {
       const el = document.getElementById('knowledge-list');
       if (!el) return;
@@ -5900,6 +6876,10 @@
        user's choice. Works whether or not setSinkId is supported.
        ============================================================ -->
   <script>
+  // atlas_7 2026-06-22: outer try/catch so a monkey-patch failure never
+  // breaks the rest of the page (sign-in module already lives in its own
+  // <script type="module">, but this is belt-and-suspenders).
+  try {
   (function audioDevicePickerBoot() {
     'use strict';
 
@@ -6318,6 +7298,9 @@
       bootstrap();
     }
   })();
+  } catch (e) {
+    console.error('[jarvis-pwa] audio device picker boot failed (non-fatal):', e);
+  }
   </script>
 </body>
 </html>

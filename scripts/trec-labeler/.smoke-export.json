@@ -1,0 +1,30 @@
+{
+  "form": "trec-20-18",
+  "labeled_at": "2026-06-19T17:59:34.103Z",
+  "labels": [
+    {
+      "index": 0,
+      "fixture_key": "buyer_names",
+      "status": "accepted",
+      "original_guess": "buyer_names"
+    },
+    {
+      "index": 1,
+      "fixture_key": "addendum_propane",
+      "status": "corrected",
+      "original_guess": "seller_names"
+    },
+    {
+      "index": 2,
+      "fixture_key": null,
+      "status": "skipped",
+      "original_guess": "lot"
+    },
+    {
+      "index": 3,
+      "fixture_key": null,
+      "status": "not_fillable",
+      "original_guess": "block"
+    }
+  ]
+}

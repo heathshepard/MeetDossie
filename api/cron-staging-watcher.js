@@ -173,6 +173,34 @@ async function tg(text) {
   }
 }
 
+// ─── Add to merge queue ───────────────────────────────────────────────────────
+
+async function addToMergeQueue(commit) {
+  if (!CRON_SECRET) return { ok: false, error: 'no_cron_secret' };
+  try {
+    const res = await fetch(`${SELF_BASE_URL}/api/merge-queue-add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        sha: commit.sha,
+        title: commit.message || `Merge ${commit.sha.slice(0, 7)}`,
+        commit_author: commit.author,
+        committed_at: commit.committed_at,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      return { ok: false, status: res.status, error: data?.error || 'merge_queue_add_failed' };
+    }
+    return { ok: true, id: data?.id };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message || err) };
+  }
+}
+
 // ─── Quinn auto-dispatch via agent_requests ───────────────────────────────────
 
 function buildQuinnRequestText(commit, stagingUrl) {
@@ -400,10 +428,13 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
   const targetCommit = newCommits[newCommits.length - 1];
   const olderShas = newCommits.slice(0, -1).map((c) => c.sha);
 
-  // 7. Auto-dispatch Quinn
+  // 7. Add to merge_queue (if not already present)
+  const queueResult = await addToMergeQueue(targetCommit);
+
+  // 8. Auto-dispatch Quinn
   const quinnResult = await dispatchQuinn(targetCommit);
 
-  // 8. Fire the QA loop (Playwright suite) against staging
+  // 9. Fire the QA loop (Playwright suite) against staging
   const qaResult = await fireQaLoop();
 
   // 9. Telegram ping to Heath — REMOVED 2026-06-18 per feedback_atlas_apv_is_merge_gate.md
@@ -424,6 +455,8 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
 
   // 10. Record event + advance state
   const outcome = {
+    merge_queue_added: queueResult.ok,
+    merge_queue_id: queueResult.id || null,
     quinn_dispatched: quinnResult.ok,
     quinn_request_id: quinnResult.request_id || null,
     qa_loop_fired: qaResult.ok,
@@ -451,6 +484,7 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
     ok: true,
     dispatched: true,
     sha: targetCommit.sha,
+    merge_queue_ok: queueResult.ok,
     quinn_ok: quinnResult.ok,
     qa_loop_ok: qaResult.ok,
     telegram_ok: tgResult.ok,

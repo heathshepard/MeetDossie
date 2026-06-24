@@ -1,0 +1,434 @@
+{
+  "generated_at": "2026-06-19T17:49:14.117Z",
+  "form": "TREC 36-11 Addendum for Property Subject to Mandatory HOA Membership",
+  "form_id": "trec-36-11",
+  "algorithm": {
+    "proximity_radius_pt": 100,
+    "same_baseline_tol_pt": 8,
+    "left_label_max_gap_pt": 220,
+    "above_label_max_gap_pt": 30,
+    "confident_min_score": 0.55,
+    "score_weights": {
+      "same_baseline_left": 1,
+      "directly_above": 0.85,
+      "same_baseline_right": 0.35,
+      "general_proximity": 0.25,
+      "keyword_hit_bonus": 0.2,
+      "exact_keyword_phrase": 0.3
+    }
+  },
+  "stats": {
+    "total_widgets": 17,
+    "confident_match": 8,
+    "unmatched": 9,
+    "skip": 0,
+    "pct_confident": 47.1,
+    "pct_unmatched": 52.9
+  },
+  "confident_matches": [
+    {
+      "index": 6,
+      "field_name": "3Buyer has received and approved the Subdivision Information before signing the contract Buyer",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "subdivision_information",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] 3Buyer has received and approved the Subdivision Information before signing the contract Buyer",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "subdivision information",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 8,
+      "field_name": "does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "resale_certificate",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "resale certificate",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 9,
+      "field_name": "4Buyer does not require delivery of the Subdivision Information",
+      "page": 1,
+      "field_type": "checkbox",
+      "fixture_key": "subdivision_information",
+      "confidence_score": 1.2,
+      "evidence": {
+        "label": "[field-name] 4Buyer does not require delivery of the Subdivision Information",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "subdivision information",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 10,
+      "field_name": "D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "hoa_name_primary",
+      "confidence_score": 0.7,
+      "evidence": {
+        "label": "[field-name] D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association",
+        "relation": "same_baseline_left",
+        "gap_pt": 0,
+        "matched_phrase": "association",
+        "exact": false,
+        "from_field_name": true
+      }
+    },
+    {
+      "index": 13,
+      "field_name": "Signature1",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.596,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 34,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 14,
+      "field_name": "Signature3",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.594,
+      "evidence": {
+        "label": "Seller",
+        "relation": "same_baseline_right",
+        "gap_pt": 35,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 15,
+      "field_name": "Signature2",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 16,
+      "field_name": "Signature4",
+      "page": 1,
+      "field_type": "signature",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.55,
+      "evidence": {
+        "label": "Seller",
+        "relation": "general_proximity",
+        "gap_pt": 0,
+        "matched_phrase": "seller",
+        "exact": true,
+        "from_field_name": false
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "index": 0,
+      "field_name": "Street Address and City",
+      "page": 1,
+      "x": 36,
+      "y": 658,
+      "width": 540,
+      "height": 13,
+      "field_type": "text",
+      "best_label_guess": "ADDENDUM TO CONTRACT CONCERNING THE PROPERTY AT",
+      "best_label_score": 0.325,
+      "best_label_fixture_key": "contract_concerning_property",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Street Address and City)",
+          "distance": 8.4,
+          "direction": "below"
+        },
+        {
+          "text": "ADDENDUM TO CONTRACT CONCERNING THE PROPERTY AT",
+          "distance": 22.4,
+          "direction": "above"
+        },
+        {
+          "text": "(NOT FOR USE WITH CONDOMINIUMS)",
+          "distance": 31.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'ADDENDUM TO CONTRACT CONCERNING THE PROPERTY AT' would map to 'contract_concerning_property' but score 0.325 < threshold 0.55"
+    },
+    {
+      "index": 1,
+      "field_name": "Name of Property Owners Association Association and Phone Number",
+      "page": 1,
+      "x": 36,
+      "y": 632,
+      "width": 540,
+      "height": 13,
+      "field_type": "text",
+      "best_label_guess": "[field-name] Name of Property Owners Association Association and Phone Number",
+      "best_label_score": 0.7,
+      "best_label_fixture_key": "hoa_addendum",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Name of Property Owners Association, (Association) and Phone Number)",
+          "distance": 9.8,
+          "direction": "below"
+        },
+        {
+          "text": "(Street Address and City)",
+          "distance": 17,
+          "direction": "above"
+        },
+        {
+          "text": "”",
+          "distance": 40.5,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'hoa_addendum' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 2,
+      "field_name": "1 Within",
+      "page": 1,
+      "x": 43,
+      "y": 555,
+      "width": 12,
+      "height": 8,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2.1,
+          "direction": "above"
+        },
+        {
+          "text": "1.",
+          "distance": 12.2,
+          "direction": "right"
+        },
+        {
+          "text": "Within",
+          "distance": 35.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] 1 Within' but no matching fixture key exists for it"
+    },
+    {
+      "index": 3,
+      "field_name": "the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate",
+      "page": 1,
+      "x": 102,
+      "y": 554,
+      "width": 72,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "[field-name] the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate",
+      "best_label_score": 0.7,
+      "best_label_fixture_key": "subdivision_information",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Section 207.003 of the Texas Property Code.",
+          "distance": 28.3,
+          "direction": "above"
+        },
+        {
+          "text": "Information, Buyer, as Buyer",
+          "distance": 34.1,
+          "direction": "below"
+        },
+        {
+          "text": "(Check only one box):",
+          "distance": 46.3,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'subdivision_information' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 4,
+      "field_name": "undefined",
+      "page": 1,
+      "x": 43,
+      "y": 499,
+      "width": 12,
+      "height": 8,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 2,
+          "direction": "above"
+        },
+        {
+          "text": "2.",
+          "distance": 12.2,
+          "direction": "right"
+        },
+        {
+          "text": "Within",
+          "distance": 35.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] undefined' but no matching fixture key exists for it"
+    },
+    {
+      "index": 5,
+      "field_name": "copy of the Subdivision Information to the Seller",
+      "page": 1,
+      "x": 101,
+      "y": 497,
+      "width": 72,
+      "height": 11,
+      "field_type": "text",
+      "best_label_guess": "[field-name] copy of the Subdivision Information to the Seller",
+      "best_label_score": 0.7,
+      "best_label_fixture_key": "subdivision_information",
+      "nearest_labels_within_100px": [
+        {
+          "text": "at Buyer",
+          "distance": 11.9,
+          "direction": "right"
+        },
+        {
+          "text": "Information, Buyer, as Buyer",
+          "distance": 22.8,
+          "direction": "above"
+        },
+        {
+          "text": "earnest money will be refunded to Buyer.",
+          "distance": 30.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'subdivision_information' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 7,
+      "field_name": "does",
+      "page": 1,
+      "x": 533,
+      "y": 451,
+      "width": 9,
+      "height": 8,
+      "field_type": "checkbox",
+      "best_label_guess": "Information before signing the contract. Buyer",
+      "best_label_score": 0.781,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.9,
+          "direction": "above"
+        },
+        {
+          "text": "does",
+          "distance": 25.4,
+          "direction": "right"
+        },
+        {
+          "text": "on the date of actual",
+          "distance": 41.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 11,
+      "field_name": "Buyer",
+      "page": 1,
+      "x": 227,
+      "y": 232,
+      "width": 11,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "[field-name] Buyer",
+      "best_label_score": 1.3,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.2,
+          "direction": "above"
+        },
+        {
+          "text": "Buyer",
+          "distance": 23,
+          "direction": "right"
+        },
+        {
+          "text": "REPAIRS",
+          "distance": 23.1,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 12,
+      "field_name": "Seller shall pay the Title Company the cost of obtaining the",
+      "page": 1,
+      "x": 273,
+      "y": 232,
+      "width": 13,
+      "height": 9,
+      "field_type": "checkbox",
+      "best_label_guess": "Buyer",
+      "best_label_score": 0.878,
+      "best_label_fixture_key": "buyer_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "q",
+          "distance": 1.6,
+          "direction": "above"
+        },
+        {
+          "text": "Buyer",
+          "distance": 24.3,
+          "direction": "left"
+        },
+        {
+          "text": "BY",
+          "distance": 24.6,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'buyer_names' -- need a boolean fixture key"
+    }
+  ],
+  "skipped": []
+}

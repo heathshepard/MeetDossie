@@ -41,6 +41,43 @@ const FORM_TARGETS = {
     unmatchedReportJson: path.join(ROOT, 'scripts', '.trec-20-18-unmatched-report.json'),
     headerLine: '// TREC 20-18 Resale Contract - PDF Widget to Internal Key Override Map',
   },
+  'trec-40': {
+    overridemap: path.join(ROOT, 'api', '_assets', 'trec-40-pdflib-overridemap.js'),
+    unmatchedReportMd: path.join(ROOT, 'scripts', '.trec-40-unmatched-report.md'),
+    unmatchedReportJson: path.join(ROOT, 'scripts', '.trec-40-unmatched-report.json'),
+    headerLine: '// TREC 40 Third-Party Financing Addendum - PDF Widget to Internal Key Override Map',
+  },
+  'trec-39-10': {
+    overridemap: path.join(ROOT, 'api', '_assets', 'trec-39-10-pdflib-overridemap.js'),
+    unmatchedReportMd: path.join(ROOT, 'scripts', '.trec-39-10-unmatched-report.md'),
+    unmatchedReportJson: path.join(ROOT, 'scripts', '.trec-39-10-unmatched-report.json'),
+    headerLine: '// TREC 39-10 Amendment - PDF Widget to Internal Key Override Map',
+  },
+  'op-h': {
+    overridemap: path.join(ROOT, 'api', '_assets', 'op-h-pdflib-overridemap.js'),
+    unmatchedReportMd: path.join(ROOT, 'scripts', '.op-h-unmatched-report.md'),
+    unmatchedReportJson: path.join(ROOT, 'scripts', '.op-h-unmatched-report.json'),
+    headerLine: "// OP-H Seller's Disclosure Notice - PDF Widget to Internal Key Override Map",
+  },
+  'trec-36-11': {
+    overridemap: path.join(ROOT, 'api', '_assets', 'trec-36-11-pdflib-overridemap.js'),
+    unmatchedReportMd: path.join(ROOT, 'scripts', '.trec-36-11-unmatched-report.md'),
+    unmatchedReportJson: path.join(ROOT, 'scripts', '.trec-36-11-unmatched-report.json'),
+    headerLine: '// TREC 36-11 HOA Addendum - PDF Widget to Internal Key Override Map',
+  },
+  'trec-38-7': {
+    overridemap: path.join(ROOT, 'api', '_assets', 'trec-38-7-pdflib-overridemap.js'),
+    unmatchedReportMd: path.join(ROOT, 'scripts', '.trec-38-7-unmatched-report.md'),
+    unmatchedReportJson: path.join(ROOT, 'scripts', '.trec-38-7-unmatched-report.json'),
+    headerLine: "// TREC 38-7 Notice of Buyer's Termination - PDF Widget to Internal Key Override Map",
+    coordsOverlay: true, // No AcroForm widgets — labeler reads from coords map
+  },
+  'op-l': {
+    overridemap: path.join(ROOT, 'api', '_assets', 'op-l-pdflib-overridemap.js'),
+    unmatchedReportMd: path.join(ROOT, 'scripts', '.op-l-unmatched-report.md'),
+    unmatchedReportJson: path.join(ROOT, 'scripts', '.op-l-unmatched-report.json'),
+    headerLine: '// OP-L Lead-Based Paint Addendum - PDF Widget to Internal Key Override Map',
+  },
 };
 
 const LOG_PATH = path.join(ROOT, 'scripts', '.trec-labeler-merge-log.json');
@@ -95,11 +132,51 @@ function loadUnmatchedJson(targetCfg) {
   const raw = fs.readFileSync(targetCfg.unmatchedReportJson, 'utf8');
   const parsed = JSON.parse(raw);
   const byIdx = {};
+  // Index BOTH buckets so the merger can patch any widget the labeler shows.
+  // (v2 labeler exposes confident_matches too — Heath may override them.)
   (parsed.unmatched || []).forEach((w) => { byIdx[w.index] = w; });
+  (parsed.confident_matches || []).forEach((w) => {
+    if (byIdx[w.index]) return; // unmatched wins if collision (shouldn't happen)
+    byIdx[w.index] = {
+      index: w.index,
+      field_name: w.field_name,
+      page: w.page,
+      field_type: w.field_type,
+    };
+  });
   return { parsed, byIdx };
 }
 
+function ensureOverrideMap(targetCfg, dryRun) {
+  if (fs.existsSync(targetCfg.overridemap)) return;
+  if (dryRun) {
+    console.log('DRY RUN: would create starter overridemap at', targetCfg.overridemap);
+    return;
+  }
+  // Bootstrap an empty starter override map so the patch step has somewhere
+  // to add lines. Header line + empty module.exports = { };.
+  const stub = `${targetCfg.headerLine}
+// Auto-created by scripts/merge-labeler-export.js — first labeler import.
+// Maps raw PDF AcroForm widget names to Dossie internal fixture keys.
+// Generated: ${new Date().toISOString().slice(0, 10)}
+
+module.exports = {
+};
+`;
+  fs.writeFileSync(targetCfg.overridemap, stub, 'utf8');
+  console.log('Created starter overridemap:', targetCfg.overridemap);
+}
+
 function patchOverrideMap(targetCfg, labels, unmatchedByIdx, dryRun) {
+  if (!fs.existsSync(targetCfg.overridemap)) {
+    // Dry-run path where ensureOverrideMap was skipped. Pretend an empty map.
+    return {
+      changes: [],
+      stats: { updated: 0, added: 0, skipped: 0, not_fillable_marked: 0 },
+      patchedLength: 0,
+      note: 'overridemap absent — dry-run only',
+    };
+  }
   const src = fs.readFileSync(targetCfg.overridemap, 'utf8');
 
   // The overridemap is a JS file like:
@@ -247,9 +324,11 @@ function main() {
     process.exit(1);
   }
 
-  if (!fs.existsSync(targetCfg.overridemap)) {
-    console.error('overridemap missing:', targetCfg.overridemap);
-    process.exit(1);
+  ensureOverrideMap(targetCfg, args.dryRun);
+  // For dry-runs against a never-yet-merged form, also skip the patch step
+  // since there's no overridemap to patch. Just report what would happen.
+  if (args.dryRun && !fs.existsSync(targetCfg.overridemap)) {
+    console.log('DRY RUN: no overridemap exists yet — skipping patch step.');
   }
   if (!fs.existsSync(targetCfg.unmatchedReportJson)) {
     console.error('unmatched report JSON missing:', targetCfg.unmatchedReportJson);

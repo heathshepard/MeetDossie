@@ -1,0 +1,1662 @@
+{
+  "61fde0fa81a612d9": {
+    "fixture_key": "lead_paint_hazards_present_explanation",
+    "confidence": 0.82,
+    "reasoning": "This text field is positioned immediately after checkbox (a) for known lead-based paint hazards and is meant to capture the seller's explanation of hazards if present."
+  },
+  "29a66596675ab22d": {
+    "fixture_key": "lead_paint_no_knowledge",
+    "confidence": 0.92,
+    "reasoning": "Checkbox option (b) for seller's disclosure that they have no actual knowledge of lead-based paint hazards in the property"
+  },
+  "94cdd92fd3aeff07": {
+    "fixture_key": "lead_based_paint_present",
+    "confidence": 0.9,
+    "reasoning": "This checkbox corresponds to option (a) under SELLER'S DISCLOSURE section 1, indicating known lead-based paint and/or hazards are present in the property"
+  },
+  "e24d64acdbf32932": {
+    "fixture_key": "seller_lead_paint_disclosure_known_present",
+    "confidence": 0.92,
+    "reasoning": "This checkbox corresponds to option (a) under Section B.1 regarding seller's disclosure of known lead-based paint presence"
+  },
+  "2024b23f14278c04": {
+    "fixture_key": "lp_records_provided_explanation",
+    "confidence": 0.82,
+    "reasoning": "Text field for seller to list documents provided regarding lead-based paint records and reports, following the checkbox for section 2(a)"
+  },
+  "2faa9cba584b7c01": {
+    "fixture_key": "lead_paint_no_records_checkbox",
+    "confidence": 0.92,
+    "reasoning": "This is a checkbox option (2b) for seller having no reports or records pertaining to lead-based paint hazards"
+  },
+  "43ffdb7aa4e15c6c": {
+    "fixture_key": "lead_paint_hazards_present",
+    "confidence": 0.95,
+    "reasoning": "Checkbox for section 1(a) indicating known lead-based paint and/or hazards are present in the property"
+  },
+  "c165d98435e24448": {
+    "fixture_key": "buyer_waives_inspection",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for buyer waiving right to conduct lead-based paint risk assessment or inspection per section 1"
+  },
+  "12cc92507f0d0bff": {
+    "fixture_key": "addendum_lead_based_paint",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in Section D.1 of Lead-Based Paint Addendum confirming buyer received lead paint disclosure information"
+  },
+  "c4bed92bdf224f72": {
+    "fixture_key": "addendum_third_party_financing",
+    "confidence": 0.75,
+    "reasoning": "Checkbox for selecting Third Party Financing Addendum as part of financing description in Section 3.B"
+  },
+  "2c471d34c9b4ca47": {
+    "fixture_key": "addendum_third_party_financing",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in Section 3.B next to 'Third Party Financing Addendum' option for selecting financing addendum type"
+  },
+  "ef4a5030c75755b1": {
+    "fixture_key": "sales_price_financing",
+    "confidence": 0.95,
+    "reasoning": "Text field for sum of all financing amounts in section 3.B of the sales price breakdown"
+  },
+  "99b4dcefce03f07d": {
+    "fixture_key": "sales_price_financing",
+    "confidence": 0.95,
+    "reasoning": "This is the dollar amount field for the sum of all financing (Third Party, Loan Assumption, or Seller Financing) in Section 3.B of the contract."
+  },
+  "29e5e94fe54bf648": {
+    "fixture_key": "addendum_residential_leases",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for Residential Leases Addendum attachment option in Section 4 regarding property leases"
+  },
+  "4c063eaa18fb9d19": {
+    "fixture_key": "addendum_residential_leases",
+    "confidence": 0.95,
+    "reasoning": "Checkbox for indicating Property is subject to residential leases with attached addendum per Section 4.A"
+  },
+  "c94457d66b36ad03": {
+    "fixture_key": "addendum_residential_leases",
+    "confidence": 0.95,
+    "reasoning": "Checkbox for whether Property is subject to residential leases requiring the Addendum Regarding Residential Leases attachment"
+  },
+  "307b1c97fc6d0190": {
+    "fixture_key": "addendum_natural_resource_leases",
+    "confidence": 0.72,
+    "reasoning": "Checkbox indicating whether natural resource lease addendum applies to the property transaction"
+  },
+  "092cf3e359e18629": {
+    "fixture_key": "addendum_natural_resource_leases",
+    "confidence": 0.75,
+    "reasoning": "This checkbox indicates whether natural resource leases addendum applies to the contract, following the pattern of fixture lease addendums in TREC forms."
+  },
+  "2bb6ecab1941b6ce": {
+    "fixture_key": "seller_pays_title_policy",
+    "confidence": 0.92,
+    "reasoning": "Checkbox next to 'Seller's' expense option in the Title Policy section (paragraph 6.A) indicating seller will pay for title policy"
+  },
+  "7a1dc8fa7d4e2e0f": {
+    "fixture_key": "buyer_pays_title_policy",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in Section 6.A determining whether Buyer pays for title policy expense instead of Seller"
+  },
+  "50318845599870b5": {
+    "fixture_key": "title_exception_8ii_amended",
+    "confidence": 0.9,
+    "reasoning": "Checkbox for option (ii) to amend exception (8) regarding area discrepancies at buyer or seller's expense"
+  },
+  "5d9324a5a20c4606": {
+    "fixture_key": "title_exception_8ii_shortages_in_area_amended",
+    "confidence": 0.82,
+    "reasoning": "Checkbox (ii) under section (8) regarding whether the discrepancy exception will be amended to read 'shortages in area' at buyer or seller expense"
+  },
+  "ea8130d7513a37c3": {
+    "fixture_key": "title_exception_8ii_shortages_amended",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for option (ii) to amend title exception 8 regarding shortages in area at expense of buyer or seller"
+  },
+  "e20edeac9780e0af": {
+    "fixture_key": "title_exception_8_ii_not_amended",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for whether title exception 8(ii) regarding area shortages will not be amended, paired with option to amend at buyer or seller expense."
+  },
+  "ebbb3d4710cb5ea9": {
+    "fixture_key": "addendum_survey_seller_furnish",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for option (1) selecting seller furnishing existing survey within specified days per TREC Section C"
+  },
+  "5561330b50895caf": {
+    "fixture_key": "survey_seller_furnish_within_days",
+    "confidence": 0.92,
+    "reasoning": "This checkbox selects option (1) where seller furnishes existing survey within a specified number of days after effective date"
+  },
+  "83d56f54adb45f33": {
+    "fixture_key": "survey_delivery_days",
+    "confidence": 0.78,
+    "reasoning": "Checkbox for selecting the number of days (within three) for Seller to furnish existing survey and affidavit/declaration to Buyer and Title Company"
+  },
+  "2b6d4a40f8bfeae1": {
+    "fixture_key": "survey_deadline_days",
+    "confidence": 0.92,
+    "reasoning": "This text field captures the number of days prior to closing for survey delivery, a specific deadline requirement in the survey provision section."
+  },
+  "f002a57d75c08881": {
+    "fixture_key": "survey_buyer_obtains_within_days",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for option (2) allowing Buyer to obtain a new survey within a specified number of days after Effective Date"
+  },
+  "dd6427fffd85f7aa": {
+    "fixture_key": "survey_period_days",
+    "confidence": 0.78,
+    "reasoning": "This text field captures the number of days after Effective Date for Buyer to obtain a new survey per option (2) in the survey section."
+  },
+  "2ef618cef9563520": {
+    "fixture_key": "title_objections_prohibited_use",
+    "confidence": 0.82,
+    "reasoning": "This text field captures prohibited uses or activities that Buyer may object to beyond standard title exceptions in the commitment."
+  },
+  "0d422c1088f44c2f": {
+    "fixture_key": "hoa_present",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in Property Owners Association section indicating whether property is subject to mandatory HOA membership"
+  },
+  "56ea60f3657fea48": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.92,
+    "reasoning": "Widget is positioned to receive the property address as indicated by the surrounding text '(Address of Property)' and is the primary address field on the contract."
+  },
+  "b559b806a7ac3466": {
+    "fixture_key": "notes",
+    "confidence": 0.6,
+    "reasoning": "Small text field in section (12) REQUIRED NOTICES likely for entering notice details or references, generic catch-all field"
+  },
+  "302cbd7161aa6f04": {
+    "fixture_key": "property_as_is_accepted",
+    "confidence": 0.92,
+    "reasoning": "Checkbox indicating buyer accepts the property in its current condition without repairs or inspections required"
+  },
+  "ebdec3c772460299": {
+    "fixture_key": "property_as_is_seller_repairs",
+    "confidence": 0.75,
+    "reasoning": "This checkbox begins a clause about the Property being accepted 'As Is' with Seller completing specified repairs at Seller's expense, indicating a conditional acceptance state."
+  },
+  "8966a100154bc832": {
+    "fixture_key": "seller_disclosure_notice_not_received",
+    "confidence": 0.92,
+    "reasoning": "This checkbox represents option (2) where Buyer has not received the Seller's Disclosure Notice, requiring Seller to deliver it within a specified number of days."
+  },
+  "e7ae84bdb0319e69": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.92,
+    "reasoning": "Widget is positioned in the 'Contract Concerning' section where the property address is typically entered on TREC forms."
+  },
+  "2adce4fe6a1881f9": {
+    "fixture_key": "property_as_is_accepted",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for Buyer accepting Property As Is under Paragraph 7D(1), first option in mutually exclusive pair"
+  },
+  "c6b9daff3243ea69": {
+    "fixture_key": "property_as_is_with_repairs",
+    "confidence": 0.9,
+    "reasoning": "This checkbox represents the option for Buyer to accept Property As Is provided Seller completes specific repairs, which is option (2) in Paragraph 7D"
+  },
+  "3bd57018149ec229": {
+    "fixture_key": "seller_repairs_required",
+    "confidence": 0.92,
+    "reasoning": "Text field for listing specific repairs and treatments the Seller must complete at their expense under Paragraph 7D(2)"
+  },
+  "a421bcfae9a275ef": {
+    "fixture_key": "broker_disclosure",
+    "confidence": 0.75,
+    "reasoning": "Text field for broker/sales agent disclosure statement required under Texas law in Section 8.A"
+  },
+  "677a06c066b37a72": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "This is a text input field within Section 8.A regarding broker/sales agent disclosure requirements, likely for party to disclose applicable relationships."
+  },
+  "2fd4bb9969cc5214": {
+    "fixture_key": "closing_date",
+    "confidence": 0.92,
+    "reasoning": "Small text field for year in closing date context '20__' following 'on or before , 20 ,'"
+  },
+  "fb0b0903af401ca2": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.92,
+    "reasoning": "Text field positioned below 'Contract Concerning' header in the standard location for the property address on a TREC resale contract."
+  },
+  "3c53e2916940d276": {
+    "fixture_key": "possession_after_closing",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in Section 10.A about Buyer's Possession, positioned to select either 'upon closing and funding' or 'according to a temporary residential lease form', with this checkbox appearing to correspond to the lease/after-closing option"
+  },
+  "8d6f0a5d2c726828": {
+    "fixture_key": "possession_after_closing",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in possession section indicating whether seller retains possession after closing, contrasting with the 'upon closing' option shown above it"
+  },
+  "51e0d8f056b7d4e2": {
+    "fixture_key": "special_provisions",
+    "confidence": 0.95,
+    "reasoning": "This text field is located within Section 11 labeled 'SPECIAL PROVISIONS' and is the main input area for additional contract provisions."
+  },
+  "1ad8b77120f88f48": {
+    "fixture_key": "special_provisions",
+    "confidence": 0.95,
+    "reasoning": "This text field is located directly below the 'SPECIAL PROVISIONS' section heading and is the primary input area for that contract section."
+  },
+  "47fd62ea08126292": {
+    "fixture_key": "seller_pays_brokerage_fees_buyer",
+    "confidence": 0.78,
+    "reasoning": "Checkbox for seller to agree to pay a portion or percentage of buyer's brokerage fees as specified in Section 12.A.1(b)"
+  },
+  "25023439ef2e750e": {
+    "fixture_key": "seller_pays_buyer_expenses_amount",
+    "confidence": 0.78,
+    "reasoning": "This is a dollar amount field for Seller to contribute toward Buyer's Expenses per section 12(1)(c)"
+  },
+  "cc79d9fb01c35727": {
+    "fixture_key": "seller_pays_buyer_expenses",
+    "confidence": 0.78,
+    "reasoning": "This checkbox indicates whether seller-paid buyer expenses will not be credited to the sales price at closing"
+  },
+  "254bc453b159e106": {
+    "fixture_key": "seller_pays_buyer_expenses_amount",
+    "confidence": 0.72,
+    "reasoning": "This is a dollar amount field where Seller agrees to pay toward Buyer's expenses per section 12.A.(1)(c)"
+  },
+  "96117849b8cd2138": {
+    "fixture_key": "buyer_pays_seller_expenses",
+    "confidence": 0.72,
+    "reasoning": "This field appears to be a dollar amount that Buyer agrees to pay toward Seller's expenses, specifically the brokerage fees portion mentioned in section 12(1)(c)."
+  },
+  "62819d0937b3e2b3": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.9,
+    "reasoning": "Text field positioned where property address is entered on TREC resale contract page 8"
+  },
+  "85b73104276d5bc3": {
+    "fixture_key": "seller_agent_email",
+    "confidence": 0.72,
+    "reasoning": "Text field positioned after 'With a copy to Seller's agent at:' label, matching the contact information section for seller's agent"
+  },
+  "2dd8d027189bcfca": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Text field in section 22 (Agreement of Parties) that appears to be for supplementary contract language or terms, lacks clear structural purpose"
+  },
+  "502456d12865578b": {
+    "fixture_key": "addendum_property_subject_to",
+    "confidence": 0.95,
+    "reasoning": "Checkbox in Section 22 listing applicable addenda, specifically for 'Addendum for Property Subject to' agreement"
+  },
+  "84347426a6b8741c": {
+    "fixture_key": "addendum_lead_based_paint_hazards",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for Lead-based Paint Hazards addendum in the list of optional addenda on page 8"
+  },
+  "3a72c455fab13671": {
+    "fixture_key": "addendum_hydrostatic_testing",
+    "confidence": 0.75,
+    "reasoning": "Checkbox for 'Addendum for Authorizing Hydrostatic Testing' based on surrounding addendum list text"
+  },
+  "fb27fd37a73b2c08": {
+    "fixture_key": "addendum_hydrostatic_testing",
+    "confidence": 0.9,
+    "reasoning": "Checkbox for 'Addendum for Authorizing Hydrostatic Testing' addendum option in the list of available addenda"
+  },
+  "cf0b5757f39c7c9c": {
+    "fixture_key": "addendum_environmental_assessment",
+    "confidence": 0.9,
+    "reasoning": "Checkbox for the Environmental Assessment, Threatened or Endangered Species and Wetlands Addendum option in the addendum list"
+  },
+  "9b8d6a13b91291ea": {
+    "fixture_key": "addendum_sellers_disclosure",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for Seller's Disclosure of Lead-based Paint Hazards addendum as shown in surrounding text"
+  },
+  "ce32ddc75476dda8": {
+    "fixture_key": "addendum_sellers_disclosure",
+    "confidence": 0.95,
+    "reasoning": "Checkbox for Addendum for Seller's Disclosure of Information on Lead-based Paint Hazards as Required by Federal Law"
+  },
+  "7e129c797f4d0ca8": {
+    "fixture_key": "addendum_pid",
+    "confidence": 0.75,
+    "reasoning": "Checkbox for Addendum regarding Property Improvement District based on surrounding addendum options and 'PID' field name abbreviation"
+  },
+  "c033f92bc3334768": {
+    "fixture_key": "addendum_other",
+    "confidence": 0.9,
+    "reasoning": "Checkbox for 'Other' addendum option with blank space for listing additional addendums not covered by the standard options above"
+  },
+  "e47d929f2bf7c9f2": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Text field in addendum section that appears to capture miscellaneous system service area information not covered by standard form fields"
+  },
+  "a608b46ca5c59c63": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for listing 'Other' addenda not covered by pre-printed checkboxes in the addendum selection section"
+  },
+  "26b12235c567831d": {
+    "fixture_key": "notes",
+    "confidence": 0.6,
+    "reasoning": "Text field in addendum section listing other addendums, likely for specifying additional contract addendums not listed above"
+  },
+  "3b30b0f2d72ea187": {
+    "fixture_key": "notes",
+    "confidence": 0.6,
+    "reasoning": "Text field in addendum list section for listing other addenda not explicitly enumerated"
+  },
+  "233aed6172fcd330": {
+    "fixture_key": "buyer_attorney_name",
+    "confidence": 0.92,
+    "reasoning": "Text field positioned under 'Buyer's Attorney is:' label on contract page"
+  },
+  "cb482060c836003b": {
+    "fixture_key": "seller_attorney_name",
+    "confidence": 0.92,
+    "reasoning": "Text field positioned next to 'Attorney is:' label in the Seller's Attorney section of the contract"
+  },
+  "c707ab4cb241a4a6": {
+    "fixture_key": "seller_agent_phone",
+    "confidence": 0.9,
+    "reasoning": "Phone field positioned next to 'Attorney is:' label on page 8, consistent with agent contact information section in TREC form"
+  },
+  "de9c1ee5f33603e3": {
+    "fixture_key": "listing_broker_license",
+    "confidence": 0.95,
+    "reasoning": "Field is labeled 'Listing Broker Firm License No.' in the BROKER INFORMATION section for entering the listing broker's license number."
+  },
+  "bf82540a30abcdfa": {
+    "fixture_key": "buyer_agent_represents_buyer_only",
+    "confidence": 0.92,
+    "reasoning": "Checkbox indicating the buyer's agent represents only the buyer in the transaction, part of broker representation disclosure options"
+  },
+  "789d0c6ea8fd18e1": {
+    "fixture_key": "seller_agent_subagent_role",
+    "confidence": 0.9,
+    "reasoning": "Checkbox indicating whether the broker represents the seller as a listing broker's subagent, a role-selection option in the broker representation section."
+  },
+  "cf7436cd86ecf8a6": {
+    "fixture_key": "buyer_agent_name",
+    "confidence": 0.92,
+    "reasoning": "Field labeled 'Associate's Name' in the buyer's agent section of the broker representation paragraph"
+  },
+  "7867629971f46040": {
+    "fixture_key": "listing_associate_license",
+    "confidence": 0.92,
+    "reasoning": "This is the license number field for the Listing Associate, positioned next to 'Listing Associate's Name' in the broker information section"
+  },
+  "1b91c1364e22dc80": {
+    "fixture_key": "buyer_agent_supervisor_name",
+    "confidence": 0.9,
+    "reasoning": "This field captures the licensed supervisor name for the buyer's agent, positioned in the agent information section of the contract."
+  },
+  "e74fd18582c00edd": {
+    "fixture_key": "seller_agent_license",
+    "confidence": 0.92,
+    "reasoning": "This is the license number field for the listing associate (seller's agent) based on the column header 'Listing Associate's Name License No.' and its position in that column."
+  },
+  "cff455af0c1c54c7": {
+    "fixture_key": "listing_broker_license",
+    "confidence": 0.92,
+    "reasoning": "This is the license number field for the Listing Broker Firm based on the surrounding text header"
+  },
+  "57438361e2ca3514": {
+    "fixture_key": "broker_represents_seller_and_buyer_as_intermediary",
+    "confidence": 0.92,
+    "reasoning": "This checkbox indicates whether the broker represents both seller and buyer as an intermediary, which is a specific broker representation arrangement option in the Broker Information section."
+  },
+  "3e4078296ac14140": {
+    "fixture_key": "seller_only_as_listing_agent",
+    "confidence": 0.92,
+    "reasoning": "Checkbox indicating the listing broker represents the seller only as seller's agent in the broker representation section"
+  },
+  "505876feee69b744": {
+    "fixture_key": "broker_fee_dollar_amount",
+    "confidence": 0.92,
+    "reasoning": "Checkbox to select dollar amount option for listing broker's fee to other broker, as shown in the surrounding disclosure text offering either dollar or percentage payment option."
+  },
+  "5c8896aeca222c9c": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Text field for broker fee disclosure details, likely a mailing instruction or supplemental note field without a standard TREC fixture category."
+  },
+  "e5a922a52f628b7c": {
+    "fixture_key": "other_broker_fee_percentage",
+    "confidence": 0.92,
+    "reasoning": "Checkbox to select percentage option for other broker fee disclosure, paired with dollar amount alternative"
+  },
+  "847ca1a25a153b20": {
+    "fixture_key": "option_fee",
+    "confidence": 0.95,
+    "reasoning": "This text field captures acknowledgment of receipt for the option fee amount in the Option Fee Receipt section."
+  },
+  "83b2ca4d56a2644a": {
+    "fixture_key": "option_fee_receipt_date",
+    "confidence": 0.92,
+    "reasoning": "This is the date field in the Option Fee Receipt section where the escrow agent signs and dates the receipt of the option fee."
+  },
+  "f71349551e108bea": {
+    "fixture_key": "earnest_money",
+    "confidence": 0.92,
+    "reasoning": "Text field in Earnest Money Receipt section where the dollar amount of earnest money is entered"
+  },
+  "881f310612f1412d": {
+    "fixture_key": "earnest_holder_name",
+    "confidence": 0.92,
+    "reasoning": "This is the name field for the escrow agent receiving the earnest money, positioned in the Earnest Money Receipt section."
+  },
+  "5563cdf2eca512c7": {
+    "fixture_key": "earnest_holder_received_by",
+    "confidence": 0.9,
+    "reasoning": "Text field for the name of the person at the escrow agent who received the contract, located in the CONTRACT RECEIPT section."
+  },
+  "970be0f45bbdd134": {
+    "fixture_key": "additional_earnest_money_acknowledged",
+    "confidence": 0.9,
+    "reasoning": "This is the acknowledgment field in the Additional Earnest Money Receipt section where the receipt of additional earnest money is confirmed."
+  },
+  "95d4ff4bcd378a3a": {
+    "fixture_key": "earnest_holder_name",
+    "confidence": 0.92,
+    "reasoning": "Field is labeled 'Received by' in the Additional Earnest Money Receipt section, indicating who (the escrow agent) received the earnest money"
+  },
+  "ce96e4cb7e81b320": {
+    "fixture_key": "addendum_conventional_financing",
+    "confidence": 0.95,
+    "reasoning": "Checkbox for selecting conventional financing as the type of financing in this TREC addendum form"
+  },
+  "0b4533ff0bdb2103": {
+    "fixture_key": "addendum_conventional_financing",
+    "confidence": 0.95,
+    "reasoning": "This is a checkbox for selecting conventional financing as the loan type in the Third-Party Financing Addendum"
+  },
+  "013f0e1a79b779ed": {
+    "fixture_key": "conventional_financing_pmi_premium_due_years",
+    "confidence": 0.72,
+    "reasoning": "Text field for number of years until financed PMI premium is due in full under conventional financing option"
+  },
+  "dd8cd201923f7397": {
+    "fixture_key": "conventional_loan_pmi_premium_due_years",
+    "confidence": 0.78,
+    "reasoning": "Text field for the number of years until financed PMI premium is due in full under conventional financing option"
+  },
+  "44947afa5d97b484": {
+    "fixture_key": "first_mortgage_interest_rate_period_years",
+    "confidence": 0.82,
+    "reasoning": "This field captures the number of years for which the stated interest rate applies to the first mortgage loan"
+  },
+  "c741774321a504d2": {
+    "fixture_key": "second_mortgage_loan_present",
+    "confidence": 0.92,
+    "reasoning": "This is a checkbox in section A(2) that indicates whether a second mortgage loan is part of the conventional financing package"
+  },
+  "513a5b7c7f748267": {
+    "fixture_key": "first_mortgage_loan_amount",
+    "confidence": 0.9,
+    "reasoning": "This is the principal amount field for the first conventional mortgage loan, positioned after the dollar sign in section A(1)"
+  },
+  "0ea8d284b2aea368": {
+    "fixture_key": "first_mortgage_loan_term_years",
+    "confidence": 0.9,
+    "reasoning": "This widget captures the loan term in years for the first conventional mortgage loan described in section A(1)"
+  },
+  "6d2ebb96726c27bc": {
+    "fixture_key": "first_mortgage_pmi_financed_full_year",
+    "confidence": 0.72,
+    "reasoning": "Text field for the year(s) in which financed PMI premium on first mortgage loan is due in full under Conventional Financing section"
+  },
+  "fef4999bfce85de9": {
+    "fixture_key": "first_mortgage_interest_rate_initial_period_years",
+    "confidence": 0.92,
+    "reasoning": "This widget captures the number of years for the initial interest rate period of the first mortgage loan in section A."
+  },
+  "4530645eff7c41c8": {
+    "fixture_key": "addendum_texas_veterans_loan",
+    "confidence": 0.95,
+    "reasoning": "Checkbox in Section B selecting Texas Veterans Land Board loan financing option"
+  },
+  "0b79d5523527d45c": {
+    "fixture_key": "texas_veterans_loan_period_years",
+    "confidence": 0.9,
+    "reasoning": "Text field for specifying the loan period in years under the Texas Veterans Loan financing option (Section B)."
+  },
+  "521ae0dc7190ec7a": {
+    "fixture_key": "addendum_fha_insured_financing",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for selecting FHA Insured Financing option in third-party financing addendum"
+  },
+  "56d2e1f2b2629539": {
+    "fixture_key": "fha_loan_amount",
+    "confidence": 0.9,
+    "reasoning": "Text field for the minimum FHA insured loan amount in section C, preceding the exclusion of financed MIP"
+  },
+  "3b5a067ddeeef5b6": {
+    "fixture_key": "fha_loan_origination_charges_max_percent",
+    "confidence": 0.9,
+    "reasoning": "This percentage field limits FHA loan origination charges as a percentage of the total loan amount under Section C."
+  },
+  "c6d46dec856d27fd": {
+    "fixture_key": "fha_origination_charge_percent",
+    "confidence": 0.92,
+    "reasoning": "This percentage field in Section C specifies the maximum origination charges allowed as a percentage of the FHA loan amount."
+  },
+  "618008b672840830": {
+    "fixture_key": "addendum_reverse_mortgage",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in financing section that indicates selection of reverse mortgage financing option"
+  },
+  "7280ede613d505c2": {
+    "fixture_key": "fha_loan_amount",
+    "confidence": 0.9,
+    "reasoning": "Text field for the minimum FHA insured loan amount in section C, positioned after the dollar sign"
+  },
+  "95adc55326d5cbbc": {
+    "fixture_key": "va_loan_amortization_years",
+    "confidence": 0.9,
+    "reasoning": "Text field for minimum amortization period in years for VA guaranteed loan financing option"
+  },
+  "a60d813629d5ee6f": {
+    "fixture_key": "va_loan_interest_rate_cap",
+    "confidence": 0.92,
+    "reasoning": "This field captures the maximum interest rate percentage for VA guaranteed financing in the first year(s) of the loan."
+  },
+  "a4fe67fed6a855c7": {
+    "fixture_key": "va_loan_interest_rate_first_years",
+    "confidence": 0.92,
+    "reasoning": "This field captures the maximum interest rate for the first year(s) of a VA guaranteed loan, positioned after 'per annum for the first' in Section D."
+  },
+  "dbc175770f6cf5c4": {
+    "fixture_key": "va_loan_amount",
+    "confidence": 0.92,
+    "reasoning": "Text field for the minimum VA guaranteed loan amount in Section D of the financing addendum"
+  },
+  "a24084ad6cc9bbc6": {
+    "fixture_key": "addendum_va_guaranteed_financing",
+    "confidence": 0.95,
+    "reasoning": "Checkbox that enables/selects the VA Guaranteed Financing option in this third-party financing addendum"
+  },
+  "0d3dbe6c047f35a8": {
+    "fixture_key": "va_loan_interest_rate_max",
+    "confidence": 0.92,
+    "reasoning": "Text field for maximum interest rate percentage in VA guaranteed financing section"
+  },
+  "ac51c8fc7ea66190": {
+    "fixture_key": "va_loan_amortization_years",
+    "confidence": 0.92,
+    "reasoning": "This field captures the minimum amortization period in years for a VA guaranteed loan in Section D"
+  },
+  "e0e0a2adb26821c1": {
+    "fixture_key": "addendum_usda_guaranteed_financing",
+    "confidence": 0.95,
+    "reasoning": "Checkbox to select USDA-guaranteed financing option in third-party financing addendum"
+  },
+  "cea329929f6aa5ac": {
+    "fixture_key": "usda_loan_interest_rate_first_years",
+    "confidence": 0.92,
+    "reasoning": "Widget captures the interest rate percentage for the first year(s) of a USDA-guaranteed loan as shown in section E"
+  },
+  "c89c5726f9e40803": {
+    "fixture_key": "reverse_mortgage_interest_rate_max",
+    "confidence": 0.92,
+    "reasoning": "This text field captures the maximum interest rate percentage for a reverse mortgage loan in the first year(s), located within Section F of the financing addendum."
+  },
+  "02f56855e4c6ec6b": {
+    "fixture_key": "notes",
+    "confidence": 0.35,
+    "reasoning": "Widget appears to be a partial text field for loan term duration, but lacks clear semantics to map to a specific canonical field like loan_term_years"
+  },
+  "8d0386fbffcb660e": {
+    "fixture_key": "reverse_mortgage_fha_insured_loan_will_not_be",
+    "confidence": 0.9,
+    "reasoning": "Checkbox in Section F indicating whether reverse mortgage will not be FHA insured, following the pattern <thing>_<state>"
+  },
+  "8521c95c59bc0935": {
+    "fixture_key": "reverse_mortgage_loan_will_be_fha_insured",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in section F indicating whether the reverse mortgage loan will be FHA insured"
+  },
+  "d3864e891cd5afdd": {
+    "fixture_key": "addendum_reverse_mortgage_financing",
+    "confidence": 0.95,
+    "reasoning": "This checkbox selects whether the financing includes a reverse mortgage loan, matching the F. REVERSE MORTGAGE FINANCING section header."
+  },
+  "6c9e324f965edce6": {
+    "fixture_key": "reverse_mortgage_loan_amount",
+    "confidence": 0.92,
+    "reasoning": "This widget is the dollar amount field for a reverse mortgage loan principal, positioned within section F which explicitly describes reverse mortgage financing terms."
+  },
+  "b516bdd530e8c1b2": {
+    "fixture_key": "va_loan_interest_rate_max",
+    "confidence": 0.92,
+    "reasoning": "Widget captures the maximum interest rate percentage for a VA guaranteed loan as specified in section D"
+  },
+  "31147f0b2ac5f82c": {
+    "fixture_key": "va_loan_funding_fee_amortization_months",
+    "confidence": 0.72,
+    "reasoning": "This widget captures the minimum number of months for amortizing a VA loan's financed funding fee, positioned within Section D for VA Guaranteed Financing."
+  },
+  "d9bf147bfcff0b61": {
+    "fixture_key": "va_loan_interest_rate_max",
+    "confidence": 0.9,
+    "reasoning": "This widget captures the maximum interest rate percentage for VA guaranteed financing in section D"
+  },
+  "ecc2f7e93603d165": {
+    "fixture_key": "reverse_mortgage_is_fha_insured",
+    "confidence": 0.72,
+    "reasoning": "Checkbox in reverse mortgage section asking whether loan will or will not be FHA insured, matching the 'will/will not' pattern in surrounding text"
+  },
+  "61e256bfa28a2632": {
+    "fixture_key": "reverse_mortgage_fha_insured",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in section about reverse mortgage loan terms, specifically selecting whether the loan will or will not be FHA insured"
+  },
+  "ae54eac8b8555e05": {
+    "fixture_key": "addendum_third_party_financing_buyer_approval",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in Section A for buyer to indicate contract is subject to buyer obtaining financing approval"
+  },
+  "04aa22bc7c7f8709": {
+    "fixture_key": "addendum_buyer_approval_not_subject",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for the alternative option that contract is NOT subject to Buyer obtaining Buyer Approval, following the standard addendum boolean convention"
+  },
+  "9ccc626935d064c1": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.95,
+    "reasoning": "This field explicitly labels 'Street Address and City' for the property being amended in the contract"
+  },
+  "e651112f6a24bdc2": {
+    "fixture_key": "addendum_sales_price",
+    "confidence": 0.9,
+    "reasoning": "This is a checkbox for amending the sales price section of the contract, fitting the addendum_<name> pattern for boolean checkboxes on amendment forms"
+  },
+  "79d108451a5f5a78": {
+    "fixture_key": "sales_price_financing",
+    "confidence": 0.95,
+    "reasoning": "Text field for sum of financing amount in Section B of the sales price breakdown"
+  },
+  "c47b46ebd34abd69": {
+    "fixture_key": "sales_price_total",
+    "confidence": 0.95,
+    "reasoning": "This is the text field for the total Sales Price (Sum of A and B) as indicated by section heading C"
+  },
+  "585ae52428165924": {
+    "fixture_key": "sales_price_total",
+    "confidence": 0.95,
+    "reasoning": "Widget is positioned on the Sales Price line (Sum of A and B) in section C, representing the total sales price field"
+  },
+  "59f6f18fcbf815ad": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for seller to describe required repairs and treatments per contract paragraph (2), no more specific category applies"
+  },
+  "38ceb6e697316f56": {
+    "fixture_key": "sales_price_total",
+    "confidence": 0.92,
+    "reasoning": "This is the dollar amount field for Section C which explicitly states 'Sales Price (Sum of A and B)'"
+  },
+  "ed84350690edba8a": {
+    "fixture_key": "paragraph_9_date_change_selected",
+    "confidence": 0.9,
+    "reasoning": "This checkbox indicates whether Paragraph 9's date in the contract is being amended, making it a conditional modifier for a contract date change."
+  },
+  "faf72471841f5e7b": {
+    "fixture_key": "notes",
+    "confidence": 0.6,
+    "reasoning": "This is a date field in an amendment section modifying Paragraph 9 of the contract, but without more context about what specific date is being amended, it's best categorized as notes rather than a standard date field like closing_date or option_period_end_date."
+  },
+  "efce27d7f75487cf": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Year field for date change in paragraph 9, but unclear if this is a standalone year field or part of a larger date context that would warrant a more specific key"
+  },
+  "e0fcde19df36ae53": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "This is a checkbox for selecting between two mutually exclusive options (dollar amount vs. percentage) rather than a fillable field itself; the actual values go in the fields that follow."
+  },
+  "1511b497ced6937d": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "This is a decorative checkbox for item (4) listing options; the actual fillable fields are the dollar amount and percentage boxes that follow"
+  },
+  "03689e1328f4ee47": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Widget appears to be a year field in an amendment clause modifying Paragraph 9 date, but lacks sufficient context to determine if it's a specific date component or general amendment detail"
+  },
+  "7fc7fe2231e71575": {
+    "fixture_key": "will_not",
+    "confidence": 0.35,
+    "reasoning": "Checkbox for negation option in paragraph 12A(1)(b) amendment, but 'will_not' is not a standard TREC fixture convention; should likely be part of a compound field like 'sales_price_cash_or_percentage' or use 'notes' as fallback"
+  },
+  "58e73de317efbfd8": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Widget sits in amendment section modifying Paragraph 12A(1)(b) but position and width suggest it may be a year field, checkbox, or percentage value that lacks sufficient context to determine precisely"
+  },
+  "cb9f9c2f2134221a": {
+    "fixture_key": "option_fee",
+    "confidence": 0.95,
+    "reasoning": "This is a checkbox to indicate that an additional option fee has been paid, which is a standard real estate contract element for the buyer's option period."
+  },
+  "83c921f0fc253660": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for describing how lender-required repair costs are allocated between Seller and Buyer, part of amendment modifications"
+  },
+  "e5f0826a5ba7f451": {
+    "fixture_key": "option_fee_credited_to_sales_price",
+    "confidence": 0.72,
+    "reasoning": "Checkbox indicating whether the additional option fee will be credited to the sales price in paragraph (7)"
+  },
+  "d71b9b7007e9cd2d": {
+    "fixture_key": "option_fee_credited_to_sales_price",
+    "confidence": 0.72,
+    "reasoning": "Checkbox indicating whether the additional Option Fee will be credited to the Sales Price, as referenced in paragraph (7)"
+  },
+  "8f4d6154f809a0c8": {
+    "fixture_key": "notes",
+    "confidence": 0.4,
+    "reasoning": "Checkbox for incomplete clause about buyer approval notice deadline; text is cut off making specific field identification impossible"
+  },
+  "ab3f2cac78adec12": {
+    "fixture_key": "notes",
+    "confidence": 0.9,
+    "reasoning": "This checkbox indicates the start of a free-text section for other modifications to the contract, functioning as a label rather than a data field itself."
+  },
+  "e6693b7e680d3d72": {
+    "fixture_key": "option_period_end_date",
+    "confidence": 0.82,
+    "reasoning": "Widget is positioned within section about option fee termination date, matching the date field for when buyer must notify seller regarding option period expiration."
+  },
+  "1e30c6c1d770e030": {
+    "fixture_key": "other_modifications_checkbox",
+    "confidence": 0.92,
+    "reasoning": "Checkbox (10) for 'Other Modifications' option allowing additional contract amendments"
+  },
+  "28201fbf96fbb0f7": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "This text field in section (10) 'Other Modifications' is a catch-all for miscellaneous contract amendments that don't fit standard categories."
+  },
+  "80d4663191c9f862": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Text field in 'Other Modifications' section for contract amendments, which is a catch-all provision area"
+  },
+  "9ee30bbd9d0db679": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for 'Other Modifications' section (10) where parties can add custom contract amendments"
+  },
+  "2da69fc88309b962": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Small text field for broker to fill in date of final acceptance, which is administrative metadata rather than a standard contract field."
+  },
+  "5c97c8d47a782904": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.95,
+    "reasoning": "Text field positioned directly below 'CONCERNING THE PROPERTY AT (Street Address and City)' heading, clearly for entering the street address"
+  },
+  "d882d7659870be41": {
+    "fixture_key": "seller_occupying_property_no",
+    "confidence": 0.75,
+    "reasoning": "checkbox for 'Seller is not occupying the Property' disclosure statement"
+  },
+  "381c640de29ffb4d": {
+    "fixture_key": "seller_occupancy_not_occupying",
+    "confidence": 0.92,
+    "reasoning": "Checkbox indicating whether seller is not currently occupying the property, placed immediately after the occupancy disclosure statement"
+  },
+  "3a91ea2e94183500": {
+    "fixture_key": "range_oven_present",
+    "confidence": 0.92,
+    "reasoning": "Single-letter Y/N/U response field for Range Oven fixture status in Property disclosure section 1"
+  },
+  "fa7a08601bbc9df4": {
+    "fixture_key": "item_dishwasher",
+    "confidence": 0.95,
+    "reasoning": "Text field for Y/N/U response to Dishwasher item in property fixtures checklist"
+  },
+  "9c539411b17bbc56": {
+    "fixture_key": "item_trash_compactor",
+    "confidence": 0.92,
+    "reasoning": "Text field for Yes/No/Unknown response about whether property has a trash compactor, positioned in the appliances section of the disclosure form."
+  },
+  "1dd2bb435f40d78c": {
+    "fixture_key": "item_range_oven",
+    "confidence": 0.95,
+    "reasoning": "This is a Y/N/U text field for disclosing whether the property includes a range oven appliance, positioned in Section 1 of the seller's disclosure."
+  },
+  "7168876a5158d9e1": {
+    "fixture_key": "washer_dryer_hookups",
+    "confidence": 0.92,
+    "reasoning": "Text field in Section 1 for indicating Yes/No/Unknown about washer/dryer hookups availability at the property"
+  },
+  "449409e9daaad1ba": {
+    "fixture_key": "trash_compactor_present",
+    "confidence": 0.92,
+    "reasoning": "Text input field in section 1 for recording Yes/No/Unknown status of trash compactor fixture in the property"
+  },
+  "9d288b1067d7bd09": {
+    "fixture_key": "item_dishwasher",
+    "confidence": 0.95,
+    "reasoning": "Text field for yes/no/unknown response about dishwasher presence in section 1 of seller's disclosure"
+  },
+  "976d180955951f01": {
+    "fixture_key": "washer_dryer_hookups",
+    "confidence": 0.9,
+    "reasoning": "Text field for Y/N/U response regarding presence of washer/dryer hookups in Section 1 property items checklist"
+  },
+  "ca8482143397745f": {
+    "fixture_key": "trash_compactor_present",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to whether property has a trash compactor, located in Section 1 fixture checklist"
+  },
+  "393161a0c6257821": {
+    "fixture_key": "security_system_y_n_u",
+    "confidence": 0.95,
+    "reasoning": "Single-character response field for Yes/No/Unknown answer about whether the property has a Security System"
+  },
+  "54ce72cab6db942a": {
+    "fixture_key": "washer_dryer_hookups",
+    "confidence": 0.9,
+    "reasoning": "Text field for Yes/No/Unknown response about Washer/Dryer Hookups item in Section 1 property fixtures checklist"
+  },
+  "1efb358e6aad5ca3": {
+    "fixture_key": "item_window_screens",
+    "confidence": 0.95,
+    "reasoning": "Text input field for Yes/No/Unknown response about window screens presence in property Section 1 disclosure checklist"
+  },
+  "539f7df274be83c7": {
+    "fixture_key": "security_system_present",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to whether Security System is present in the property, located in Section 1 of the Seller's Disclosure Notice"
+  },
+  "3a872096952690b7": {
+    "fixture_key": "smoke_detector_present",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N/U response field for whether the property has a smoke detector, positioned within Section 1 of the disclosure form."
+  },
+  "68c2e93536a72cca": {
+    "fixture_key": "smoke_detector_present",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to whether property has a smoke detector, following the section 1 checkbox format"
+  },
+  "1451d1ba3fe4f2bc": {
+    "fixture_key": "item_tv_antenna",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response about TV antenna presence in Section 1 property items checklist"
+  },
+  "e5f7d5d2dbfdd354": {
+    "fixture_key": "tv_antenna_present",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to TV Antenna item in property disclosure checklist"
+  },
+  "da2566b5b57fe9c0": {
+    "fixture_key": "item_tv_antenna",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response about TV antenna presence in Section 1 property items checklist"
+  },
+  "d6a5b761109696af": {
+    "fixture_key": "ceiling_fan_state",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response about ceiling fan presence in property disclosure section 1"
+  },
+  "8b9edc286abf02c0": {
+    "fixture_key": "central_ac_state",
+    "confidence": 0.92,
+    "reasoning": "Text input field for Y/N/U response to Central A/C presence in Section 1 property disclosure checklist"
+  },
+  "414b44363e6feb92": {
+    "fixture_key": "tv_antenna_present",
+    "confidence": 0.92,
+    "reasoning": "Y/N/U checkbox field for TV Antenna item in Section 1 property disclosure list"
+  },
+  "19c3dcd9d14957a6": {
+    "fixture_key": "central_heating_state",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to Central Heating fixture in Section 1 property items checklist"
+  },
+  "fb6816ab67f1e7c7": {
+    "fixture_key": "central_ac_present",
+    "confidence": 0.92,
+    "reasoning": "Text input field for Y/N/U response about Central A/C presence in Section 1 property items checklist"
+  },
+  "4f76376f927ee95b": {
+    "fixture_key": "plumbing_system_state",
+    "confidence": 0.92,
+    "reasoning": "This is a checkbox/response field for disclosing the condition state (Y/N/U) of the Plumbing System item listed in Section 1 of the seller's disclosure notice."
+  },
+  "1d24bd568b9090e5": {
+    "fixture_key": "central_heating_state",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response indicating whether central heating is present at the property"
+  },
+  "caff9ef5f4e6d5b6": {
+    "fixture_key": "central_ac",
+    "confidence": 0.95,
+    "reasoning": "Text input field for Y/N/U response to Central A/C presence in Section 1 property items list"
+  },
+  "cbc1fd72ada35e94": {
+    "fixture_key": "plumbing_system_state",
+    "confidence": 0.92,
+    "reasoning": "Text field for Yes/No/Unknown response to Plumbing System item in Section 1 property features disclosure"
+  },
+  "2e7c3d8358f64f1e": {
+    "fixture_key": "central_heating",
+    "confidence": 0.95,
+    "reasoning": "Text field for Y/N/U response to Central Heating item in property disclosure checklist"
+  },
+  "7746239fc8398524": {
+    "fixture_key": "tv_antenna",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to TV Antenna item in property disclosure checklist"
+  },
+  "e8531095bd748974": {
+    "fixture_key": "plumbing_system_state",
+    "confidence": 0.92,
+    "reasoning": "This Y/N/U response field directly follows 'Plumbing System' in the fixture checklist on page 1 of the Seller's Disclosure Notice."
+  },
+  "435c4a5601876ef9": {
+    "fixture_key": "septic_system_present",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N/U response field for 'Septic System' in the property fixtures checklist on page 1 of the disclosure notice"
+  },
+  "63e1c7db71c806bf": {
+    "fixture_key": "ceiling_fan_presence",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N/U response field for the Ceiling Fan(s) item in the property fixtures disclosure list."
+  },
+  "402ff5b5fc8d53a8": {
+    "fixture_key": "ceiling_fan_state",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N/U response field for the Ceiling Fan(s) item in the property disclosure checklist."
+  },
+  "c0154f8ba4296fa2": {
+    "fixture_key": "outdoor_grill",
+    "confidence": 0.95,
+    "reasoning": "Text field for Y/N/U response to whether property has an outdoor grill, positioned within section 1 fixture checklist"
+  },
+  "cdfcc2c03b6da2e4": {
+    "fixture_key": "fences_state",
+    "confidence": 0.92,
+    "reasoning": "Single-character text field in Section 1 property items list for Fences, expects Y/N/U response"
+  },
+  "04982329a93726c7": {
+    "fixture_key": "central_ac_state",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N/U checkbox field for Central A/C in the property items disclosure section."
+  },
+  "08a7fc9cf6b742d0": {
+    "fixture_key": "fireplace_wood_burning",
+    "confidence": 0.92,
+    "reasoning": "Widget is positioned within the fireplace section and corresponds to the wood-burning fireplace checkbox option in Section 1 property items disclosure."
+  },
+  "38e0d1c6713d8948": {
+    "fixture_key": "central_ac",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to Central A/C item in property fixtures disclosure section"
+  },
+  "11273f9b8c98e3e2": {
+    "fixture_key": "patio_decking_present",
+    "confidence": 0.9,
+    "reasoning": "Widget is a Y/N/U response field for the Patio/Decking item in Section 1 property features disclosure"
+  },
+  "cc1bbaeaffe330a1": {
+    "fixture_key": "outdoor_grill",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to 'Outdoor Grill' item in property features checklist"
+  },
+  "6131cb46a1d7ec12": {
+    "fixture_key": "natural_gas_lines_state",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to Natural Gas Lines presence in Section 1 property items disclosure"
+  },
+  "71c0ed13f3e7c17b": {
+    "fixture_key": "gas_fixtures",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to 'Gas Fixtures' item in property disclosure checklist"
+  },
+  "baa94bcdb93136ca": {
+    "fixture_key": "natural_gas_lines_present",
+    "confidence": 0.92,
+    "reasoning": "Text field for Y/N/U response to Natural Gas Lines checkbox in Section 1 property disclosure"
+  },
+  "e86e534353e20a90": {
+    "fixture_key": "natural_gas_lines_present",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N/U response field for whether Natural Gas Lines are present on the property, positioned directly after the 'Natural Gas Lines' label in Section 1."
+  },
+  "d5ce16329a28194f": {
+    "fixture_key": "fuel_gas_piping_type",
+    "confidence": 0.75,
+    "reasoning": "Text field for selecting fuel gas piping material type (Corrugated Stainless Steel Tubing, Black Iron Pipe, or Copper) in Section 1 property disclosure"
+  },
+  "6a9594670230caaf": {
+    "fixture_key": "lp_location_on_property",
+    "confidence": 0.92,
+    "reasoning": "This widget is a checkbox for selecting whether liquid propane gas (LP) is located on the property, positioned within the LP gas options in the property disclosure section."
+  },
+  "e7f43dc6bc7b2ed6": {
+    "fixture_key": "garage_attached",
+    "confidence": 0.72,
+    "reasoning": "Small text field positioned within garage type options (Attached/Not Attached/Carport) for marking Yes/No/Unknown response"
+  },
+  "5e8119981fa3a91f": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "This is a decorative checkbox or visual separator element within a list of property fixtures, not a fillable form field for user input."
+  },
+  "c6d2aeda50cfe5aa": {
+    "fixture_key": "garage_attached",
+    "confidence": 0.92,
+    "reasoning": "Checkbox in the Garage line for 'Attached' option in Section 1 property items disclosure"
+  },
+  "41ffe865f8276b37": {
+    "fixture_key": "ignore",
+    "confidence": 0.92,
+    "reasoning": "This is a decorative checkbox or radio button indicator within the checklist options, not a fillable field for data entry."
+  },
+  "d1e793913eeca28b": {
+    "fixture_key": "garage_door_opener_control",
+    "confidence": 0.92,
+    "reasoning": "Text field for indicating type of garage door opener control system (electronic or manual) in Section 1 property items disclosure"
+  },
+  "d464b7e9bf103446": {
+    "fixture_key": "garage_door_opener_control_electronic",
+    "confidence": 0.72,
+    "reasoning": "This is a checkbox field within the Garage Door Opener section for selecting the 'Electronic' control type option."
+  },
+  "ef9a1a5d863f371a": {
+    "fixture_key": "garage_door_opener_control_electronic",
+    "confidence": 0.92,
+    "reasoning": "Widget is a text field for marking Y/N/U response to whether the property has electronic garage door opener control(s)"
+  },
+  "b07b0e277ec2efaf": {
+    "fixture_key": "water_heater_type",
+    "confidence": 0.75,
+    "reasoning": "This text field is positioned within the Water Heater line item and appears to capture the type selection (Gas or Electric)"
+  },
+  "08043044e0a6ad12": {
+    "fixture_key": "garage_door_opener_control",
+    "confidence": 0.92,
+    "reasoning": "Text field for specifying garage door opener control type (Electronic or other option) in the property fixtures section"
+  },
+  "079e83feed69e32c": {
+    "fixture_key": "water_heater_gas",
+    "confidence": 0.92,
+    "reasoning": "This is a checkbox for selecting 'Gas' as the water heater fuel type, positioned within the Water Heater line of the property features disclosure."
+  },
+  "c61faa8fc48fc94b": {
+    "fixture_key": "water_heater_type",
+    "confidence": 0.75,
+    "reasoning": "Small text field positioned within water heater options (Gas/Electric) in the property systems disclosure section"
+  },
+  "369df7233300984b": {
+    "fixture_key": "water_heater_type",
+    "confidence": 0.9,
+    "reasoning": "Small text field positioned within water heater options (Gas/Electric) on seller's disclosure form"
+  },
+  "c7624c2a7c31a500": {
+    "fixture_key": "roof_age",
+    "confidence": 0.92,
+    "reasoning": "Text field positioned immediately after 'Roof Type:' label in the property condition disclosure section, clearly intended to capture the age of the roof."
+  },
+  "ba12dafb6a6eeb14": {
+    "fixture_key": "roof_age",
+    "confidence": 0.92,
+    "reasoning": "Text field positioned after 'Roof Type:' label, asking for the age of the roof as part of property condition disclosure"
+  },
+  "3f0e96555702bb97": {
+    "fixture_key": "seller_aware_defects_yes",
+    "confidence": 0.92,
+    "reasoning": "Checkbox corresponds to 'Yes' option for seller's awareness of items not in working condition or needing repair"
+  },
+  "de50f0ef8970d29e": {
+    "fixture_key": "seller_aware_defects_yes",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for 'Yes' response to seller's awareness of items not in working condition or needing repair"
+  },
+  "72bbd4312721793a": {
+    "fixture_key": "property_condition_defects_yes",
+    "confidence": 0.9,
+    "reasoning": "Checkbox for 'Yes' response to seller's awareness of items not in working condition or needing repair"
+  },
+  "bf658a61ab667606": {
+    "fixture_key": "roof_type",
+    "confidence": 0.92,
+    "reasoning": "Widget positioned within 'Roof Type: Age:' section header for entering the type of roof on the property"
+  },
+  "7612fda1ef01815e": {
+    "fixture_key": "roof_condition_notes",
+    "confidence": 0.82,
+    "reasoning": "Text field for describing roof defects or repair needs in the seller's disclosure section"
+  },
+  "d6562e99d2f8d998": {
+    "fixture_key": "seller_disclosure_defects_description",
+    "confidence": 0.9,
+    "reasoning": "This is a text field for the seller to describe items that are not in working condition or need repair, as part of the TREC Seller's Disclosure Notice."
+  },
+  "472442a8713f49e9": {
+    "fixture_key": "smoke_detectors_no",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for 'No' answer to whether property has working smoke detectors per Health and Safety Code Chapter 766"
+  },
+  "272ce124c51610a4": {
+    "fixture_key": "smoke_detectors_unknown",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for 'Unknown' response to question about working smoke detectors installed per Health and Safety Code Chapter 766"
+  },
+  "f445fe4b627ec07c": {
+    "fixture_key": "smoke_detectors_no",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for 'No' response to question about working smoke detectors installed per Health and Safety Code Chapter 766"
+  },
+  "d5fef7d61fc639cb": {
+    "fixture_key": "smoke_detectors_explanation",
+    "confidence": 0.82,
+    "reasoning": "Text field for explaining 'no' or 'unknown' answer to smoke detector question per Chapter 766 requirements"
+  },
+  "509d02223c5fe336": {
+    "fixture_key": "smoke_detectors_explanation",
+    "confidence": 0.82,
+    "reasoning": "Text field for explaining 'no' or 'unknown' answer to smoke detector question per Chapter 766 requirements"
+  },
+  "ac078a2dac4e5806": {
+    "fixture_key": "smoke_detectors_explanation",
+    "confidence": 0.9,
+    "reasoning": "Text field for explaining negative or unknown answer to smoke detector compliance question per Chapter 766"
+  },
+  "931b52b2d8e5ae13": {
+    "fixture_key": "notes",
+    "confidence": 0.35,
+    "reasoning": "Small text field in defects section context, likely for seller's yes/no response to known defects question but exact purpose unclear from position and surrounding text alone"
+  },
+  "16883fcaf210d516": {
+    "fixture_key": "notes",
+    "confidence": 0.35,
+    "reasoning": "Small text field in defects disclosure section with unclear purpose; likely for yes/no response to defect awareness question but exact mapping unclear from position alone"
+  },
+  "d1b2ee9e96432da1": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Small text field in defects section context, likely for Y/N response to awareness question but ambiguous positioning makes specific fixture classification uncertain"
+  },
+  "f44e49d7e3a11822": {
+    "fixture_key": "roof_condition",
+    "confidence": 0.92,
+    "reasoning": "Widget is a Y/N response field for 'Roof' defect awareness in the seller's disclosure checklist"
+  },
+  "8b1115c74a306d17": {
+    "fixture_key": "interior_walls_condition",
+    "confidence": 0.92,
+    "reasoning": "Small text field within Section 3 asking seller to write Y/N for known defects in interior walls"
+  },
+  "07191a152b62ed9c": {
+    "fixture_key": "foundation_condition",
+    "confidence": 0.75,
+    "reasoning": "Widget is positioned in the defect awareness checklist next to 'Foundation/Slab(s)' for yes/no response"
+  },
+  "d5496e597a854c71": {
+    "fixture_key": "condition_roof",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N response field for the Roof defect question in Section 3 of the Seller's Disclosure Notice"
+  },
+  "cb56d43604098060": {
+    "fixture_key": "interior_walls_defect",
+    "confidence": 0.75,
+    "reasoning": "This is a Y/N response field for awareness of defects in interior walls, part of section 3's property condition disclosure checklist"
+  },
+  "3d597f7d9404b25d": {
+    "fixture_key": "foundation_condition",
+    "confidence": 0.92,
+    "reasoning": "Small text field for Y/N response about Foundation/Slab(s) defect awareness in Section 3 property condition disclosure"
+  },
+  "6d87a096c4842197": {
+    "fixture_key": "condition_roof",
+    "confidence": 0.92,
+    "reasoning": "Small text field in Section 3 defects list positioned at the 'Roof' item row for Y/N response"
+  },
+  "a40d887eebdeaaf5": {
+    "fixture_key": "plumbing_sewers_septics_defects",
+    "confidence": 0.92,
+    "reasoning": "Small text input for Yes/No response about known defects in Plumbing/Sewers/Septics per Section 3 of seller's disclosure"
+  },
+  "24181522ad29a153": {
+    "fixture_key": "electrical_systems_defect_aware",
+    "confidence": 0.92,
+    "reasoning": "Small text field within Section 3 asking about awareness of defects in 'Electrical Systems', positioned to record Yes/No response"
+  },
+  "d80fbf1bd53266e2": {
+    "fixture_key": "condition_other_structural_describe",
+    "confidence": 0.92,
+    "reasoning": "Text field for describing other structural components in the property condition section of the seller's disclosure"
+  },
+  "1d9c9836a9a7de75": {
+    "fixture_key": "item_plumbing",
+    "confidence": 0.92,
+    "reasoning": "Small text field positioned within the 'Plumbing/Sewers/Septics' row of the property condition checklist section"
+  },
+  "cfcf51beb76888b1": {
+    "fixture_key": "condition_electrical",
+    "confidence": 0.75,
+    "reasoning": "Small text field positioned within the 'Electrical Systems' row of the property condition checklist section"
+  },
+  "4e2e601f3c1b491f": {
+    "fixture_key": "condition_other_structural",
+    "confidence": 0.92,
+    "reasoning": "Text field for describing other structural components in the property condition disclosure section"
+  },
+  "45a56b43f497b347": {
+    "fixture_key": "condition_other_structural",
+    "confidence": 0.92,
+    "reasoning": "Text field for describing other structural components in the property condition disclosure section"
+  },
+  "86ae6b9bf22f6c76": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for describing other structural components in seller's disclosure section, serves as open-ended description field"
+  },
+  "7bb2333c2f6a4ce5": {
+    "fixture_key": "notes",
+    "confidence": 0.9,
+    "reasoning": "Text field for explaining 'yes' answers to structural component disclosure questions on seller's disclosure notice"
+  },
+  "a8df633c120b7139": {
+    "fixture_key": "notes",
+    "confidence": 0.9,
+    "reasoning": "Text field for seller to describe other structural components or explain affirmative answers from disclosure section"
+  },
+  "182dd98b7cc36440": {
+    "fixture_key": "notes",
+    "confidence": 0.78,
+    "reasoning": "Text field for explaining affirmative answers to seller awareness questions in section 4"
+  },
+  "16877f15c0bdf050": {
+    "fixture_key": "notes",
+    "confidence": 0.6,
+    "reasoning": "Small text field within Section 4 condition disclosure area, likely for seller's Y/N response or brief notation about property conditions"
+  },
+  "1e54f3cfdbda1471": {
+    "fixture_key": "aware_previous_termite_damage",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N response field for the seller's awareness of previous termite damage, which is the third item listed in Section 4's condition checklist."
+  },
+  "c3fdcc1d33246f23": {
+    "fixture_key": "aware_previous_termite_damage",
+    "confidence": 0.92,
+    "reasoning": "This is a Yes/No response field for awareness of previous termite damage, one of several conditions listed in Section 4 of the seller's disclosure."
+  },
+  "0c05380281ba92f8": {
+    "fixture_key": "aware_termite_treatment",
+    "confidence": 0.75,
+    "reasoning": "Small text field in termite treatment disclosure section, likely for seller to indicate awareness or details of previous termite treatment"
+  },
+  "00aec709e5fcc546": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "This is a tiny text widget (28x18 points) positioned within a list of disclosure checkboxes; it appears to be a decorative or structural element rather than a fillable field for user input."
+  },
+  "691b9aa857a7cfb6": {
+    "fixture_key": "aware_settling",
+    "confidence": 0.72,
+    "reasoning": "Small checkbox field in Seller's Disclosure Notice aligned with 'Landfill, Settling, Soil Movement, Fault Lines' disclosure item for seller awareness."
+  },
+  "42da631f974d61c8": {
+    "fixture_key": "settling_state",
+    "confidence": 0.92,
+    "reasoning": "Small checkbox widget positioned within the 'Landfill, Settling, Soil Movement, Fault Lines' disclosure item on the Seller's Disclosure Notice"
+  },
+  "19bad9c1166002f3": {
+    "fixture_key": "aware_active_termites",
+    "confidence": 0.92,
+    "reasoning": "Single-character Y/N response field for seller's awareness of active termites per Section 4 disclosure requirement"
+  },
+  "67013309900bb9b0": {
+    "fixture_key": "aware_active_termites",
+    "confidence": 0.95,
+    "reasoning": "Single-character text field for Y/N response to awareness of active termites in section 4 of seller's disclosure"
+  },
+  "9f664d09f74d7c1a": {
+    "fixture_key": "active_termites",
+    "confidence": 0.92,
+    "reasoning": "Small text field positioned to capture Yes/No response for 'Active Termites' condition awareness in Section 4 of seller's disclosure"
+  },
+  "c24c03f98635bbff": {
+    "fixture_key": "aware_previous_termite_treatment",
+    "confidence": 0.92,
+    "reasoning": "This is a Y/N response field for the 'Previous Termite Treatment' disclosure question in Section 4 of the Seller's Disclosure Notice"
+  },
+  "fd481f3e787e6aaa": {
+    "fixture_key": "notes",
+    "confidence": 0.35,
+    "reasoning": "Small text field in property condition disclosure section with unclear labeling; likely captures seller's response or comment regarding listed property defects"
+  },
+  "09d0226f7fd978a3": {
+    "fixture_key": "landfill_settling_soil_movement_fault_lines_state",
+    "confidence": 0.75,
+    "reasoning": "Small text field positioned within the 'Landfill, Settling, Soil Movement, Fault Lines' disclosure item, likely for indicating presence/absence status or notes"
+  },
+  "fdfd381755aba9f7": {
+    "fixture_key": "ignore",
+    "confidence": 0.9,
+    "reasoning": "This is a small decorative checkbox widget (28x18 points) within a list of property condition items, not a fillable disclosure field."
+  },
+  "8b0744a8a4541326": {
+    "fixture_key": "ignore",
+    "confidence": 0.9,
+    "reasoning": "This is a decorative or non-fillable element within the property defects checklist section, likely a formatting artifact or spacing widget rather than an actual data entry field."
+  },
+  "1fff57b147c1a5a0": {
+    "fixture_key": "item_hot_tub",
+    "confidence": 0.82,
+    "reasoning": "Text field positioned within seller's disclosure section about pool/hot tub/spa defects, specifically for documenting single blockable main drain issues"
+  },
+  "79466ea48cd79062": {
+    "fixture_key": "aware_subsurface",
+    "confidence": 0.9,
+    "reasoning": "Small text field for seller to acknowledge awareness of subsurface structure or pits issue in disclosure section"
+  },
+  "fa43e8418016d7b3": {
+    "fixture_key": "subsurface_structure_explanation",
+    "confidence": 0.92,
+    "reasoning": "This is a text field for explaining affirmative answers to property defect disclosures, specifically following the 'Subsurface Structure or Pits' checkbox item."
+  },
+  "2282cc251c1137a4": {
+    "fixture_key": "notes",
+    "confidence": 0.92,
+    "reasoning": "Text field for explaining affirmative answers to subsurface structure, pits, or methamphetamine manufacturing disclosure questions"
+  },
+  "3e7a02e6cf9e90ff": {
+    "fixture_key": "notes",
+    "confidence": 0.75,
+    "reasoning": "This is an explanation text field following a yes/no question about methamphetamine manufacturing history, used for seller to provide additional details."
+  },
+  "7b19cb6118cd3ce9": {
+    "fixture_key": "aware_previous_termite_damage",
+    "confidence": 0.92,
+    "reasoning": "This is a yes/no response field for the seller's awareness of previous termite damage, which is the third item listed in Section 4 of the disclosure notice."
+  },
+  "bb858a1e20387187": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for explaining affirmative responses to flood hazard questions on the seller's disclosure notice"
+  },
+  "7d32e26d7e09a531": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Small text field in flood disclosure section with unclear purpose; likely a response field for flood-related yes/no answers but exact mapping to standard fields is ambiguous."
+  },
+  "14b31b7ccc3f3d6a": {
+    "fixture_key": "property_located_floodway",
+    "confidence": 0.72,
+    "reasoning": "Checkbox indicating whether property is located wholly or partly in a floodway, part of flood hazard disclosure section"
+  },
+  "4e16976d09a448ee": {
+    "fixture_key": "property_needs_repair_no",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for 'No' option in question 5 asking if seller is aware of any items needing repair on the property"
+  },
+  "bc6b9ef0ba2356a3": {
+    "fixture_key": "property_needs_repair_yes",
+    "confidence": 0.92,
+    "reasoning": "Checkbox positioned next to 'Yes' option in question about awareness of items needing repair on the property"
+  },
+  "cb6415b16f52b07f": {
+    "fixture_key": "notes",
+    "confidence": 0.75,
+    "reasoning": "Text field for seller to explain items needing repair, which is explanatory/supplemental content best captured as notes"
+  },
+  "61cb3c9b161d2dcd": {
+    "fixture_key": "repairs_needed_explanation",
+    "confidence": 0.82,
+    "reasoning": "Text field for seller to explain items, equipment, or systems in need of repair on the property"
+  },
+  "facba7c0a9a69888": {
+    "fixture_key": "flood_insurance_coverage_aware",
+    "confidence": 0.72,
+    "reasoning": "Small text field for Yes/No response to question about awareness of present flood insurance coverage in Section 6 of seller's disclosure"
+  },
+  "0a35d9742efce324": {
+    "fixture_key": "aware_present_flood_insurance",
+    "confidence": 0.95,
+    "reasoning": "This is a yes/no response field for the seller's awareness of present flood insurance coverage, matching the first item in section 6."
+  },
+  "1094e58f441f4e68": {
+    "fixture_key": "aware_previous_flooding",
+    "confidence": 0.95,
+    "reasoning": "Single-character Y/N response field for seller's awareness of previous flooding due to reservoir failure or breach"
+  },
+  "075aada86dda1ee6": {
+    "fixture_key": "floodplain_100_year_wholly_partly",
+    "confidence": 0.72,
+    "reasoning": "small text field for Y/N response indicating whether property is wholly or partly located in 100-year floodplain"
+  },
+  "1ca4a0a47e2ff139": {
+    "fixture_key": "floodplain_100_year_wholly",
+    "confidence": 0.72,
+    "reasoning": "checkbox for 100-year floodplain wholly located area in flood disclosure section"
+  },
+  "918842a034d7e213": {
+    "fixture_key": "floodplain_100_year_wholly_or_partly",
+    "confidence": 0.72,
+    "reasoning": "Text input for Y/N response indicating awareness of 100-year floodplain location (wholly or partly)"
+  },
+  "d95659db6f5b5d84": {
+    "fixture_key": "notes",
+    "confidence": 0.9,
+    "reasoning": "This is an open-ended text field for explaining affirmative answers to flood/floodway/reservoir disclosure questions"
+  },
+  "2a6a8d66fea80823": {
+    "fixture_key": "flood_damage_claim_filed",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for whether the seller has ever filed a flood damage insurance claim on the property"
+  },
+  "954bade97db04ab9": {
+    "fixture_key": "fema_sba_flood_assistance_no",
+    "confidence": 0.92,
+    "reasoning": "This is the 'No' checkbox for question 8 about whether the seller received FEMA or SBA flood damage assistance."
+  },
+  "56d285d539d91bdf": {
+    "fixture_key": "fema_sba_flood_assistance_no",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for 'No' response to question 8 about whether seller received FEMA/SBA flood damage assistance"
+  },
+  "4ad011a2c0f7421c": {
+    "fixture_key": "flood_damage_claim_explanation",
+    "confidence": 0.9,
+    "reasoning": "Text field for seller to explain any previous flood damage insurance claims filed on the property"
+  },
+  "fa2c4fcb536fc081": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for explaining FEMA/SBA flood damage assistance; no specific standard fixture key applies to seller disclosure explanations"
+  },
+  "b8c7157777b615cb": {
+    "fixture_key": "property_in_floodplain_state",
+    "confidence": 0.72,
+    "reasoning": "Checkbox indicating whether property is located in a 100-year, 500-year, floodway, flood pool, reservoir, or other flood hazard area as part of mandatory seller disclosure."
+  },
+  "543903260258b831": {
+    "fixture_key": "floodplain_100_year_wholly",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for indicating property is wholly located in 100-year floodplain, first of two checkboxes (wholly/partly) for this flood hazard category"
+  },
+  "1b278adef3c6b35b": {
+    "fixture_key": "floodplain_100year_wholly",
+    "confidence": 0.75,
+    "reasoning": "checkbox for 'wholly' option under 100-year floodplain disclosure question"
+  },
+  "e431f88d4a7da116": {
+    "fixture_key": "flood_hazard_100_year_partly",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for indicating property is partly located in 100-year floodplain based on surrounding text context"
+  },
+  "ebdec25313799181": {
+    "fixture_key": "flood_hazard_area_100_year_wholly",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for disclosing whether property is wholly located in a 100-year floodplain (SFHA), part of seller's flood disclosure section"
+  },
+  "7e561c9d3edb08b3": {
+    "fixture_key": "located_wholly_partly_100_year_floodplain_partly",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for selecting 'partly' option within the 100-year floodplain location question based on surrounding text context"
+  },
+  "9b9e77d4b2e3585a": {
+    "fixture_key": "located_wholly_partly_100_year_floodplain",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for indicating property location in 100-year floodplain (SFHA) with wholly/partly selection option"
+  },
+  "717c108cd19b05fe": {
+    "fixture_key": "flood_hazard_100_year_floodplain_wholly",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for indicating whether property is located wholly in a 100-year floodplain, part of seller's flood disclosure requirements"
+  },
+  "476c30897acb8771": {
+    "fixture_key": "floodplain_100_year_wholly",
+    "confidence": 0.72,
+    "reasoning": "Checkbox for disclosing property located wholly in 100-year floodplain, part of flood hazard disclosure section"
+  },
+  "a3fca6adb353c856": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "Small text widget at page top is likely a date stamp or page identifier (09-01-2023), not a fillable form field."
+  },
+  "a2ebf88186086908": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "Widget is a page number or date stamp (09-01-2023) at the top of the page, not a fillable form field."
+  },
+  "de92d418eec36433": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Small text field in Section 9 disclosure area, likely for supplemental notes or yes/no indicator, but precise context unclear from surrounding text fragment"
+  },
+  "7cbd08e7bfc770d7": {
+    "fixture_key": "ignore",
+    "confidence": 0.9,
+    "reasoning": "Small text widget (27x23 points) positioned in margin area of disclosure section appears to be a decorative element or page artifact rather than a fillable form field."
+  },
+  "dc3d4677ac808907": {
+    "fixture_key": "notes",
+    "confidence": 0.45,
+    "reasoning": "Small text field in disclosure section without clear labeling; likely for seller notes or checkboxes but position and size suggest a minor annotation field."
+  },
+  "bd6d0605b44f2cd1": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "Small text widget (27px wide, 18px tall) in a disclosure notice section likely represents a checkbox or decorative element rather than a fillable field for capturing substantive information."
+  },
+  "3e0c39cca90924ee": {
+    "fixture_key": "seller_initials",
+    "confidence": 0.72,
+    "reasoning": "Small text field positioned at bottom of page content in seller disclosure notice, consistent with initials line placement conventions"
+  },
+  "68418d530d333999": {
+    "fixture_key": "notes",
+    "confidence": 0.9,
+    "reasoning": "This is an open-ended text field for explaining affirmative answers to environmental/water district disclosure questions on the seller's disclosure notice."
+  },
+  "e6395da477275cc8": {
+    "fixture_key": "notes",
+    "confidence": 0.72,
+    "reasoning": "Text field for explaining affirmative answers to groundwater/subsidence district and coastal area disclosure questions"
+  },
+  "ee81cdaf12577731": {
+    "fixture_key": "ignore",
+    "confidence": 0.9,
+    "reasoning": "This is a small text widget (27x18 points) positioned in the margin/padding area of a disclosure section, likely a decorative element or page artifact rather than a meaningful fillable field."
+  },
+  "ee745776e0703661": {
+    "fixture_key": "seller_signature",
+    "confidence": 0.95,
+    "reasoning": "Widget is positioned in the signature line area with 'Signature of Seller' text label directly above it"
+  },
+  "4ce897ea35ad3efc": {
+    "fixture_key": "seller_signature_date",
+    "confidence": 0.9,
+    "reasoning": "Text field positioned in the 'Date' column next to 'Signature of Seller' label in signature block"
+  },
+  "6c62fe4fa58a8627": {
+    "fixture_key": "purchaser_signature_date",
+    "confidence": 0.75,
+    "reasoning": "Date field positioned immediately before purchaser signature line in acknowledgment receipt section"
+  },
+  "71104bb7fe806520": {
+    "fixture_key": "purchaser_signature_date",
+    "confidence": 0.8,
+    "reasoning": "Small date field next to purchaser signature line in acknowledgment section of disclosure notice"
+  },
+  "96f5a92469ab19c7": {
+    "fixture_key": "seller_signature",
+    "confidence": 0.95,
+    "reasoning": "Signature field in Seller's Disclosure Notice form labeled 'Signature of Seller'"
+  },
+  "eb55bc4cffc31293": {
+    "fixture_key": "seller_signature",
+    "confidence": 0.95,
+    "reasoning": "Signature field labeled 'Signature of Seller' in the surrounding text on page 4 of the TREC form"
+  },
+  "85aa56e58b57e67f": {
+    "fixture_key": "buyer_signature",
+    "confidence": 0.9,
+    "reasoning": "Signature field for purchaser acknowledgment of receipt of seller's disclosure notice"
+  },
+  "0eb5b2c9115076f7": {
+    "fixture_key": "buyer_signature",
+    "confidence": 0.92,
+    "reasoning": "Signature field for purchaser acknowledgment of receipt of seller's disclosure notice"
+  },
+  "d48b33fe22f559f4": {
+    "fixture_key": "property_address_line1",
+    "confidence": 0.92,
+    "reasoning": "Text field for the street address portion of the property location in an HOA addendum contract"
+  },
+  "9edeee6879385826": {
+    "fixture_key": "hoa_name_and_phone",
+    "confidence": 0.95,
+    "reasoning": "Text field for entering the HOA association name and phone number, positioned in the HOA addendum header section"
+  },
+  "8c0a4dbd6206a574": {
+    "fixture_key": "hoa_subdivision_info_seller_delivers",
+    "confidence": 0.88,
+    "reasoning": "Checkbox for option 1 where Seller delivers Subdivision Information within specified days"
+  },
+  "492c7ec2cfb5b524": {
+    "fixture_key": "subdivision_information_delivery_days",
+    "confidence": 0.72,
+    "reasoning": "This is a numeric input field for the number of days Seller has to deliver Subdivision Information to Buyer after contract execution."
+  },
+  "8c05860ddcf321b1": {
+    "fixture_key": "hoa_subdivision_seller_provides",
+    "confidence": 0.9,
+    "reasoning": "This checkbox corresponds to option 1 where the Seller obtains and delivers Subdivision Information to the Buyer"
+  },
+  "937c00fa316900df": {
+    "fixture_key": "subdivision_information_days_seller",
+    "confidence": 0.72,
+    "reasoning": "Text field for entering the number of days Seller has to obtain and deliver Subdivision Information to Buyer"
+  },
+  "df5a31ec17b3b7f8": {
+    "fixture_key": "addendum_hoa",
+    "confidence": 0.92,
+    "reasoning": "This is a checkbox in the HOA Addendum form selecting option 2 for Subdivision Information receipt timing, representing one of the addendum's key alternatives"
+  },
+  "74e506ffc38500a4": {
+    "fixture_key": "ignore",
+    "confidence": 0.95,
+    "reasoning": "This checkbox appears to be part of the surrounding contract text about authorization/release rather than a fillable form field for buyer identification."
+  },
+  "7efb3c4028a3f960": {
+    "fixture_key": "seller_pays_title_policy",
+    "confidence": 0.92,
+    "reasoning": "Checkbox for seller paying title company costs, a common allocation of closing cost responsibility in real estate transactions"
+  }
+}

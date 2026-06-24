@@ -1,0 +1,5071 @@
+{
+  "generated_at": "2026-06-19T17:49:14.088Z",
+  "form": "OP-H Seller's Disclosure Notice",
+  "form_id": "op-h",
+  "algorithm": {
+    "proximity_radius_pt": 100,
+    "same_baseline_tol_pt": 8,
+    "left_label_max_gap_pt": 220,
+    "above_label_max_gap_pt": 30,
+    "confident_min_score": 0.55,
+    "score_weights": {
+      "same_baseline_left": 1,
+      "directly_above": 0.85,
+      "same_baseline_right": 0.35,
+      "general_proximity": 0.25,
+      "keyword_hit_bonus": 0.2,
+      "exact_keyword_phrase": 0.3
+    }
+  },
+  "stats": {
+    "total_widgets": 179,
+    "confident_match": 16,
+    "unmatched": 163,
+    "skip": 0,
+    "pct_confident": 8.9,
+    "pct_unmatched": 91.1
+  },
+  "confident_matches": [
+    {
+      "index": 3,
+      "field_name": "form1[0].#subform[0].TextField2[0]",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "years_owned",
+      "confidence_score": 0.78,
+      "evidence": {
+        "label": "is not occupying the Property. If unoccupied, how long since Seller has occupied the Property?",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.3,
+        "matched_phrase": "occupied the property",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 59,
+      "field_name": "form1[0].#subform[0].TextField3[55]",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.564,
+      "evidence": {
+        "label": "City",
+        "relation": "same_baseline_left",
+        "gap_pt": 73.8,
+        "matched_phrase": "city",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 61,
+      "field_name": "form1[0].#subform[0].TextField3[57]",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "city",
+      "confidence_score": 0.566,
+      "evidence": {
+        "label": "City",
+        "relation": "same_baseline_left",
+        "gap_pt": 73.6,
+        "matched_phrase": "city",
+        "exact": true,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 69,
+      "field_name": "form1[0].#subform[0].TextField5[0]",
+      "page": 1,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.8,
+      "evidence": {
+        "label": "If yes, then describe. (Attach additional sheets if necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 0.1,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 73,
+      "field_name": "form1[0].#subform[1].TextField1[1]",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.784,
+      "evidence": {
+        "label": "Seller's Disclosure Notice Concerning the Property at",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.4,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 77,
+      "field_name": "form1[0].#subform[1].TextField5[4]",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.78,
+      "evidence": {
+        "label": "(Attach additional sheets if necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 4.4,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 100,
+      "field_name": "form1[0].#subform[1].TextField5[11]",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.794,
+      "evidence": {
+        "label": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.4,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 121,
+      "field_name": "form1[0].#subform[1].TextField5[14]",
+      "page": 2,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.794,
+      "evidence": {
+        "label": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.4,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 128,
+      "field_name": "form1[0].#subform[2].TextField1[2]",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.784,
+      "evidence": {
+        "label": "Seller's Disclosure Notice Concerning the Property at",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.4,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 131,
+      "field_name": "form1[0].#subform[2].TextField5[17]",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.777,
+      "evidence": {
+        "label": "If yes, explain (attach additional sheets if necessary).",
+        "relation": "same_baseline_left",
+        "gap_pt": 5.1,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 140,
+      "field_name": "form1[0].#subform[2].TextField5[20]",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.769,
+      "evidence": {
+        "label": "If the answer to any of the above is yes, explain (attach additional sheets if necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 6.9,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 142,
+      "field_name": "form1[0].#subform[2].CheckBox6[0]",
+      "page": 3,
+      "field_type": "checkbox",
+      "fixture_key": "aware_flood_insurance",
+      "confidence_score": 0.774,
+      "evidence": {
+        "label": "Flood Insurance Program (NFIP)?*",
+        "relation": "same_baseline_left",
+        "gap_pt": 5.8,
+        "matched_phrase": "flood insurance",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 146,
+      "field_name": "form1[0].#subform[2].TextField5[22]",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.766,
+      "evidence": {
+        "label": "If yes, explain (attach additional sheets as necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 7.4,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 148,
+      "field_name": "form1[0].#subform[2].TextField5[24]",
+      "page": 3,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.766,
+      "evidence": {
+        "label": "If yes, explain (attach additional sheets as necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 7.4,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 166,
+      "field_name": "form1[0].#subform[4].TextField5[26]",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "addition",
+      "confidence_score": 0.794,
+      "evidence": {
+        "label": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+        "relation": "same_baseline_left",
+        "gap_pt": 1.4,
+        "matched_phrase": "addition",
+        "exact": false,
+        "from_field_name": false
+      }
+    },
+    {
+      "index": 178,
+      "field_name": "form1[0].#subform[4].TextField1[7]",
+      "page": 4,
+      "field_type": "text",
+      "fixture_key": "seller_names",
+      "confidence_score": 0.784,
+      "evidence": {
+        "label": "Seller's Disclosure Notice Concerning the Property at",
+        "relation": "same_baseline_left",
+        "gap_pt": 3.4,
+        "matched_phrase": "seller",
+        "exact": false,
+        "from_field_name": false
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "index": 0,
+      "field_name": "form1[0].#subform[0].TextField1[0]",
+      "page": 1,
+      "x": 180,
+      "y": 655,
+      "width": 396,
+      "height": 20,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(Street Address and City)",
+          "distance": 11.9,
+          "direction": "below"
+        },
+        {
+          "text": "THIS NOTICE IS A DISCLOSURE OF SELLER'S KNOWLEDGE OF THE CONDITION OF THE PROPERTY AS OF THE DATE SIGNED BY",
+          "distance": 72.8,
+          "direction": "left"
+        },
+        {
+          "text": "SELLER'S DISCLOSURE NOTICE",
+          "distance": 74.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'CONCERNING THE PROPERTY AT' but no matching fixture key exists for it"
+    },
+    {
+      "index": 1,
+      "field_name": "form1[0].#subform[0].CheckBox1[0]",
+      "page": 1,
+      "x": 75,
+      "y": 590,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "Seller",
+      "best_label_score": 0.869,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "is",
+          "distance": 12.2,
+          "direction": "right"
+        },
+        {
+          "text": "Seller",
+          "distance": 23.4,
+          "direction": "left"
+        },
+        {
+          "text": "Range",
+          "distance": 43.5,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 2,
+      "field_name": "form1[0].#subform[0].CheckBox2[0]",
+      "page": 1,
+      "x": 99,
+      "y": 590,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "is",
+          "distance": 12.1,
+          "direction": "left"
+        },
+        {
+          "text": "Range",
+          "distance": 37,
+          "direction": "below"
+        },
+        {
+          "text": "Seller",
+          "distance": 47.5,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[0].CheckBox2[0]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 4,
+      "field_name": "form1[0].#subform[0].TextField3[0]",
+      "page": 1,
+      "x": 63,
+      "y": 550,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Range",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_range_oven",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Range",
+          "distance": 26.7,
+          "direction": "right"
+        },
+        {
+          "text": "is",
+          "distance": 38.5,
+          "direction": "above"
+        },
+        {
+          "text": "Seller",
+          "distance": 40.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Range' would map to 'item_range_oven' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 5,
+      "field_name": "form1[0].#subform[0].TextField3[1]",
+      "page": 1,
+      "x": 216,
+      "y": 550,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Dishwasher",
+      "best_label_score": 0.548,
+      "best_label_fixture_key": "item_dishwasher",
+      "nearest_labels_within_100px": [
+        {
+          "text": "1. The Property has the items checked below [Write Yes (Y), No (N), or Unknown (U)]:",
+          "distance": 24.4,
+          "direction": "above"
+        },
+        {
+          "text": "Oven",
+          "distance": 24.6,
+          "direction": "right"
+        },
+        {
+          "text": "Trash Compactor",
+          "distance": 52.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Dishwasher' would map to 'item_dishwasher' but score 0.548 < threshold 0.55"
+    },
+    {
+      "index": 6,
+      "field_name": "form1[0].#subform[0].TextField3[2]",
+      "page": 1,
+      "x": 396,
+      "y": 550,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Trash Compactor",
+      "best_label_score": 0.529,
+      "best_label_fixture_key": "item_trash_compactor",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Disposal",
+          "distance": 36.2,
+          "direction": "right"
+        },
+        {
+          "text": "Microwave",
+          "distance": 36.3,
+          "direction": "right"
+        },
+        {
+          "text": "Rain Gutters",
+          "distance": 53.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Trash Compactor' would map to 'item_trash_compactor' but score 0.529 < threshold 0.55"
+    },
+    {
+      "index": 7,
+      "field_name": "form1[0].#subform[0].TextField3[3]",
+      "page": 1,
+      "x": 63,
+      "y": 532,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Range",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_range_oven",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Range",
+          "distance": 31.9,
+          "direction": "right"
+        },
+        {
+          "text": "Dishwasher",
+          "distance": 37.7,
+          "direction": "right"
+        },
+        {
+          "text": "is",
+          "distance": 55.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Range' would map to 'item_range_oven' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 8,
+      "field_name": "form1[0].#subform[0].TextField3[4]",
+      "page": 1,
+      "x": 216,
+      "y": 532,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Washer/Dryer Hookups",
+      "best_label_score": 0.667,
+      "best_label_fixture_key": "item_washer_dryer",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Oven",
+          "distance": 30.2,
+          "direction": "right"
+        },
+        {
+          "text": "1. The Property has the items checked below [Write Yes (Y), No (N), or Unknown (U)]:",
+          "distance": 41.8,
+          "direction": "above"
+        },
+        {
+          "text": "Trash Compactor",
+          "distance": 49.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_washer_dryer' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 9,
+      "field_name": "form1[0].#subform[0].TextField3[5]",
+      "page": 1,
+      "x": 396,
+      "y": 532,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Trash Compactor",
+      "best_label_score": 0.529,
+      "best_label_fixture_key": "item_trash_compactor",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Disposal",
+          "distance": 31.1,
+          "direction": "right"
+        },
+        {
+          "text": "Microwave",
+          "distance": 40.3,
+          "direction": "right"
+        },
+        {
+          "text": "Rain Gutters",
+          "distance": 43.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Trash Compactor' would map to 'item_trash_compactor' but score 0.529 < threshold 0.55"
+    },
+    {
+      "index": 10,
+      "field_name": "form1[0].#subform[0].TextField3[6]",
+      "page": 1,
+      "x": 63,
+      "y": 514,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Dishwasher",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_dishwasher",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Dishwasher",
+          "distance": 41.7,
+          "direction": "right"
+        },
+        {
+          "text": "Range",
+          "distance": 44.5,
+          "direction": "above"
+        },
+        {
+          "text": "Security System",
+          "distance": 50.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Dishwasher' would map to 'item_dishwasher' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 11,
+      "field_name": "form1[0].#subform[0].TextField3[7]",
+      "page": 1,
+      "x": 216,
+      "y": 514,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Washer/Dryer Hookups",
+      "best_label_score": 0.667,
+      "best_label_fixture_key": "item_washer_dryer",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Oven",
+          "distance": 43.2,
+          "direction": "above"
+        },
+        {
+          "text": "Window Screens",
+          "distance": 48.1,
+          "direction": "right"
+        },
+        {
+          "text": "Trash Compactor",
+          "distance": 52.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_washer_dryer' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 12,
+      "field_name": "form1[0].#subform[0].TextField3[8]",
+      "page": 1,
+      "x": 396,
+      "y": 514,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Trash Compactor",
+      "best_label_score": 0.529,
+      "best_label_fixture_key": "item_trash_compactor",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Disposal",
+          "distance": 35.7,
+          "direction": "right"
+        },
+        {
+          "text": "Rain Gutters",
+          "distance": 39,
+          "direction": "right"
+        },
+        {
+          "text": "Microwave",
+          "distance": 50.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Trash Compactor' would map to 'item_trash_compactor' but score 0.529 < threshold 0.55"
+    },
+    {
+      "index": 13,
+      "field_name": "form1[0].#subform[0].TextField3[9]",
+      "page": 1,
+      "x": 63,
+      "y": 496,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Security System",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_security_system",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Security System",
+          "distance": 46.5,
+          "direction": "right"
+        },
+        {
+          "text": "Dishwasher",
+          "distance": 51.8,
+          "direction": "right"
+        },
+        {
+          "text": "Range",
+          "distance": 59.8,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Security System' would map to 'item_security_system' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 14,
+      "field_name": "form1[0].#subform[0].TextField3[10]",
+      "page": 1,
+      "x": 216,
+      "y": 496,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Washer/Dryer Hookups",
+      "best_label_score": 0.667,
+      "best_label_fixture_key": "item_washer_dryer",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Smoke Detector",
+          "distance": 50.6,
+          "direction": "right"
+        },
+        {
+          "text": "Window Screens",
+          "distance": 51.2,
+          "direction": "right"
+        },
+        {
+          "text": "Oven",
+          "distance": 58.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_washer_dryer' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 15,
+      "field_name": "form1[0].#subform[0].TextField3[11]",
+      "page": 1,
+      "x": 396,
+      "y": 496,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Window Screens",
+      "best_label_score": 0.519,
+      "best_label_fixture_key": "item_window_screens",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Rain Gutters",
+          "distance": 42.7,
+          "direction": "right"
+        },
+        {
+          "text": "Disposal",
+          "distance": 47.1,
+          "direction": "above"
+        },
+        {
+          "text": "Intercom System",
+          "distance": 48.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Window Screens' would map to 'item_window_screens' but score 0.519 < threshold 0.55"
+    },
+    {
+      "index": 16,
+      "field_name": "form1[0].#subform[0].TextField3[12]",
+      "page": 1,
+      "x": 216,
+      "y": 478,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Security System",
+      "best_label_score": 0.627,
+      "best_label_fixture_key": "item_security_system",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Smoke Detector",
+          "distance": 47.1,
+          "direction": "right"
+        },
+        {
+          "text": "Window Screens",
+          "distance": 59.8,
+          "direction": "right"
+        },
+        {
+          "text": "Fire Detection Equipment",
+          "distance": 69.3,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_security_system' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 17,
+      "field_name": "form1[0].#subform[0].TextField3[13]",
+      "page": 1,
+      "x": 216,
+      "y": 460,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Smoke Detector",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_smoke_detector",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Smoke Detector",
+          "distance": 50.2,
+          "direction": "right"
+        },
+        {
+          "text": "Carbon Monoxide Alarm",
+          "distance": 67.1,
+          "direction": "right"
+        },
+        {
+          "text": "Window Screens",
+          "distance": 71.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Smoke Detector' would map to 'item_smoke_detector' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 18,
+      "field_name": "form1[0].#subform[0].TextField3[14]",
+      "page": 1,
+      "x": 216,
+      "y": 442,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Smoke Detector-Hearing Impaired",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "item_smoke_detector",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Smoke Detector",
+          "distance": 59,
+          "direction": "right"
+        },
+        {
+          "text": "Cable TV Wiring",
+          "distance": 59.5,
+          "direction": "right"
+        },
+        {
+          "text": "Carbon Monoxide Alarm",
+          "distance": 64.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Smoke Detector-Hearing Impaired' would map to 'item_smoke_detector' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 19,
+      "field_name": "form1[0].#subform[0].TextField3[15]",
+      "page": 1,
+      "x": 216,
+      "y": 424,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "TV Antenna",
+      "best_label_score": 0.548,
+      "best_label_fixture_key": "item_tv_antenna",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Cable TV Wiring",
+          "distance": 50.4,
+          "direction": "right"
+        },
+        {
+          "text": "Attic Fan(s)",
+          "distance": 51.7,
+          "direction": "right"
+        },
+        {
+          "text": "Carbon Monoxide Alarm",
+          "distance": 66.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'TV Antenna' would map to 'item_tv_antenna' but score 0.548 < threshold 0.55"
+    },
+    {
+      "index": 20,
+      "field_name": "form1[0].#subform[0].TextField3[16]",
+      "page": 1,
+      "x": 216,
+      "y": 406,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "TV Antenna",
+      "best_label_score": 0.548,
+      "best_label_fixture_key": "item_tv_antenna",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Attic Fan(s)",
+          "distance": 40.9,
+          "direction": "right"
+        },
+        {
+          "text": "Cable TV Wiring",
+          "distance": 46.8,
+          "direction": "right"
+        },
+        {
+          "text": "Central Heating",
+          "distance": 58.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'TV Antenna' would map to 'item_tv_antenna' but score 0.548 < threshold 0.55"
+    },
+    {
+      "index": 21,
+      "field_name": "form1[0].#subform[0].TextField3[17]",
+      "page": 1,
+      "x": 63,
+      "y": 406,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "TV Antenna",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_tv_antenna",
+      "nearest_labels_within_100px": [
+        {
+          "text": "TV Antenna",
+          "distance": 37.8,
+          "direction": "right"
+        },
+        {
+          "text": "Ceiling Fan(s)",
+          "distance": 45.3,
+          "direction": "right"
+        },
+        {
+          "text": "Central A/C",
+          "distance": 52.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'TV Antenna' would map to 'item_tv_antenna' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 22,
+      "field_name": "form1[0].#subform[0].TextField3[18]",
+      "page": 1,
+      "x": 396,
+      "y": 406,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Satellite Dish",
+          "distance": 40.5,
+          "direction": "right"
+        },
+        {
+          "text": "Exhaust Fan(s)",
+          "distance": 47.1,
+          "direction": "right"
+        },
+        {
+          "text": "Fences",
+          "distance": 77.7,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'Emergency Escape Ladder(s)' but no matching fixture key exists for it"
+    },
+    {
+      "index": 23,
+      "field_name": "form1[0].#subform[0].TextField3[19]",
+      "page": 1,
+      "x": 63,
+      "y": 388,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Central A/C",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_central_ac",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Ceiling Fan(s)",
+          "distance": 41.4,
+          "direction": "right"
+        },
+        {
+          "text": "TV Antenna",
+          "distance": 41.7,
+          "direction": "right"
+        },
+        {
+          "text": "Central A/C",
+          "distance": 41.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Central A/C' would map to 'item_central_ac' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 24,
+      "field_name": "form1[0].#subform[0].TextField3[20]",
+      "page": 1,
+      "x": 216,
+      "y": 388,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "TV Antenna",
+      "best_label_score": 0.548,
+      "best_label_fixture_key": "item_tv_antenna",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Attic Fan(s)",
+          "distance": 36.8,
+          "direction": "right"
+        },
+        {
+          "text": "Central Heating",
+          "distance": 49.8,
+          "direction": "right"
+        },
+        {
+          "text": "Cable TV Wiring",
+          "distance": 50.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'TV Antenna' would map to 'item_tv_antenna' but score 0.548 < threshold 0.55"
+    },
+    {
+      "index": 25,
+      "field_name": "form1[0].#subform[0].TextField3[21]",
+      "page": 1,
+      "x": 396,
+      "y": 388,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Central Heating",
+      "best_label_score": 0.502,
+      "best_label_fixture_key": "item_central_heating",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Exhaust Fan(s)",
+          "distance": 43.3,
+          "direction": "right"
+        },
+        {
+          "text": "Satellite Dish",
+          "distance": 44.1,
+          "direction": "right"
+        },
+        {
+          "text": "Fences",
+          "distance": 61.2,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Central Heating' would map to 'item_central_heating' but score 0.502 < threshold 0.55"
+    },
+    {
+      "index": 26,
+      "field_name": "form1[0].#subform[0].TextField3[22]",
+      "page": 1,
+      "x": 63,
+      "y": 370,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Central A/C",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_central_ac",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Central A/C",
+          "distance": 37.3,
+          "direction": "right"
+        },
+        {
+          "text": "Ceiling Fan(s)",
+          "distance": 44.9,
+          "direction": "right"
+        },
+        {
+          "text": "TV Antenna",
+          "distance": 51.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Central A/C' would map to 'item_central_ac' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 27,
+      "field_name": "form1[0].#subform[0].TextField3[23]",
+      "page": 1,
+      "x": 216,
+      "y": 370,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Plumbing System",
+      "best_label_score": 0.557,
+      "best_label_fixture_key": "item_plumbing",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Attic Fan(s)",
+          "distance": 40.7,
+          "direction": "right"
+        },
+        {
+          "text": "Central Heating",
+          "distance": 46.2,
+          "direction": "right"
+        },
+        {
+          "text": "Septic System",
+          "distance": 46.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_plumbing' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 28,
+      "field_name": "form1[0].#subform[0].TextField3[24]",
+      "page": 1,
+      "x": 396,
+      "y": 370,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Central Heating",
+      "best_label_score": 0.502,
+      "best_label_fixture_key": "item_central_heating",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Fences",
+          "distance": 45.9,
+          "direction": "below"
+        },
+        {
+          "text": "Exhaust Fan(s)",
+          "distance": 46.7,
+          "direction": "right"
+        },
+        {
+          "text": "Satellite Dish",
+          "distance": 53.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Central Heating' would map to 'item_central_heating' but score 0.502 < threshold 0.55"
+    },
+    {
+      "index": 29,
+      "field_name": "form1[0].#subform[0].TextField3[25]",
+      "page": 1,
+      "x": 63,
+      "y": 352,
+      "width": 26,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Central A/C",
+      "best_label_score": 0.249,
+      "best_label_fixture_key": "item_central_ac",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Central A/C",
+          "distance": 41.4,
+          "direction": "right"
+        },
+        {
+          "text": "Pool",
+          "distance": 43.2,
+          "direction": "below"
+        },
+        {
+          "text": "Patio/Decking",
+          "distance": 46.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Central A/C' would map to 'item_central_ac' but score 0.249 < threshold 0.55"
+    },
+    {
+      "index": 30,
+      "field_name": "form1[0].#subform[0].TextField3[26]",
+      "page": 1,
+      "x": 216,
+      "y": 352,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Plumbing System",
+      "best_label_score": 0.557,
+      "best_label_fixture_key": "item_plumbing",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Septic System",
+          "distance": 42.6,
+          "direction": "right"
+        },
+        {
+          "text": "Sauna",
+          "distance": 45,
+          "direction": "below"
+        },
+        {
+          "text": "Outdoor Grill",
+          "distance": 45.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_plumbing' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 31,
+      "field_name": "form1[0].#subform[0].TextField3[27]",
+      "page": 1,
+      "x": 396,
+      "y": 352,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Central Heating",
+      "best_label_score": 0.502,
+      "best_label_fixture_key": "item_central_heating",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Fences",
+          "distance": 33.4,
+          "direction": "right"
+        },
+        {
+          "text": "Spa",
+          "distance": 42.1,
+          "direction": "below"
+        },
+        {
+          "text": "Exhaust Fan(s)",
+          "distance": 55.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Central Heating' would map to 'item_central_heating' but score 0.502 < threshold 0.55"
+    },
+    {
+      "index": 32,
+      "field_name": "form1[0].#subform[0].TextField3[28]",
+      "page": 1,
+      "x": 63,
+      "y": 334,
+      "width": 26,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Pool",
+      "best_label_score": 0.249,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Pool",
+          "distance": 29.6,
+          "direction": "right"
+        },
+        {
+          "text": "Patio/Decking",
+          "distance": 42.8,
+          "direction": "right"
+        },
+        {
+          "text": "Central A/C",
+          "distance": 51.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Pool' would map to 'item_pool' but score 0.249 < threshold 0.55"
+    },
+    {
+      "index": 33,
+      "field_name": "form1[0].#subform[0].TextField3[29]",
+      "page": 1,
+      "x": 216,
+      "y": 334,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Plumbing System",
+      "best_label_score": 0.557,
+      "best_label_fixture_key": "item_plumbing",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Sauna",
+          "distance": 32,
+          "direction": "right"
+        },
+        {
+          "text": "Outdoor Grill",
+          "distance": 40.9,
+          "direction": "right"
+        },
+        {
+          "text": "Septic System",
+          "distance": 45.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_plumbing' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 34,
+      "field_name": "form1[0].#subform[0].TextField3[30]",
+      "page": 1,
+      "x": 396,
+      "y": 334,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Septic System",
+      "best_label_score": 0.469,
+      "best_label_fixture_key": "item_septic",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Fences",
+          "distance": 27.9,
+          "direction": "right"
+        },
+        {
+          "text": "Spa",
+          "distance": 28.1,
+          "direction": "right"
+        },
+        {
+          "text": "Public Sewer System",
+          "distance": 59.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Septic System' would map to 'item_septic' but score 0.469 < threshold 0.55"
+    },
+    {
+      "index": 35,
+      "field_name": "form1[0].#subform[0].TextField3[31]",
+      "page": 1,
+      "x": 63,
+      "y": 316,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Pool",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Pool",
+          "distance": 22.8,
+          "direction": "right"
+        },
+        {
+          "text": "Patio/Decking",
+          "distance": 46,
+          "direction": "right"
+        },
+        {
+          "text": "Pool Equipment",
+          "distance": 50.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Pool' would map to 'item_pool' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 36,
+      "field_name": "form1[0].#subform[0].TextField3[32]",
+      "page": 1,
+      "x": 216,
+      "y": 316,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Pool Equipment",
+      "best_label_score": 0.632,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Sauna",
+          "distance": 26.3,
+          "direction": "right"
+        },
+        {
+          "text": "Pool Heater",
+          "distance": 42.6,
+          "direction": "right"
+        },
+        {
+          "text": "Outdoor Grill",
+          "distance": 44.7,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_pool' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 37,
+      "field_name": "form1[0].#subform[0].TextField3[33]",
+      "page": 1,
+      "x": 396,
+      "y": 316,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Outdoor Grill",
+      "best_label_score": 0.454,
+      "best_label_fixture_key": "item_outdoor_grill",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Spa",
+          "distance": 21.2,
+          "direction": "right"
+        },
+        {
+          "text": "Fences",
+          "distance": 33,
+          "direction": "right"
+        },
+        {
+          "text": "Public Sewer System",
+          "distance": 66.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Outdoor Grill' would map to 'item_outdoor_grill' but score 0.454 < threshold 0.55"
+    },
+    {
+      "index": 38,
+      "field_name": "form1[0].#subform[0].TextField3[34]",
+      "page": 1,
+      "x": 477,
+      "y": 316,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Fences",
+      "best_label_score": 0.786,
+      "best_label_fixture_key": "item_fences",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Automatic Lawn Sprinkler System",
+          "distance": 18.7,
+          "direction": "below"
+        },
+        {
+          "text": "Hot Tub",
+          "distance": 30.3,
+          "direction": "right"
+        },
+        {
+          "text": "Fireplace(s) & Chimney",
+          "distance": 35.6,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_fences' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 39,
+      "field_name": "form1[0].#subform[0].TextField3[35]",
+      "page": 1,
+      "x": 63,
+      "y": 298,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Pool",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Pool",
+          "distance": 28.8,
+          "direction": "right"
+        },
+        {
+          "text": "Pool Equipment",
+          "distance": 47,
+          "direction": "right"
+        },
+        {
+          "text": "Patio/Decking",
+          "distance": 55.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Pool' would map to 'item_pool' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 40,
+      "field_name": "form1[0].#subform[0].TextField3[36]",
+      "page": 1,
+      "x": 216,
+      "y": 298,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Fireplace(s) & Chimney",
+      "best_label_score": 0.659,
+      "best_label_fixture_key": "item_fireplace",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Sauna",
+          "distance": 31.4,
+          "direction": "right"
+        },
+        {
+          "text": "Pool Heater",
+          "distance": 38.1,
+          "direction": "right"
+        },
+        {
+          "text": "Outdoor Grill",
+          "distance": 54.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_fireplace' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 41,
+      "field_name": "form1[0].#subform[0].TextField3[37]",
+      "page": 1,
+      "x": 396,
+      "y": 298,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Pool Heater",
+      "best_label_score": 0.328,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Spa",
+          "distance": 27.5,
+          "direction": "right"
+        },
+        {
+          "text": "Fences",
+          "distance": 45.2,
+          "direction": "above"
+        },
+        {
+          "text": "Gas Fixtures",
+          "distance": 57,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Pool Heater' would map to 'item_pool' but score 0.328 < threshold 0.55"
+    },
+    {
+      "index": 42,
+      "field_name": "form1[0].#subform[0].TextField3[38]",
+      "page": 1,
+      "x": 63,
+      "y": 275,
+      "width": 27,
+      "height": 23,
+      "field_type": "text",
+      "best_label_guess": "Pool Equipment",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Pool",
+          "distance": 44.3,
+          "direction": "above"
+        },
+        {
+          "text": "Pool Equipment",
+          "distance": 51.1,
+          "direction": "right"
+        },
+        {
+          "text": "Natural Gas Lines",
+          "distance": 54.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Pool Equipment' would map to 'item_pool' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 43,
+      "field_name": "form1[0].#subform[0].TextField3[39]",
+      "page": 1,
+      "x": 396,
+      "y": 275,
+      "width": 27,
+      "height": 23,
+      "field_type": "text",
+      "best_label_guess": "Pool Heater",
+      "best_label_score": 0.328,
+      "best_label_fixture_key": "item_pool",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Spa",
+          "distance": 43.5,
+          "direction": "above"
+        },
+        {
+          "text": "Gas Fixtures",
+          "distance": 44.4,
+          "direction": "right"
+        },
+        {
+          "text": "LP on Property",
+          "distance": 56,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Pool Heater' would map to 'item_pool' but score 0.328 < threshold 0.55"
+    },
+    {
+      "index": 44,
+      "field_name": "form1[0].#subform[0].TextField3[40]",
+      "page": 1,
+      "x": 63,
+      "y": 257,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Natural Gas Lines",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_natural_gas_lines",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Natural Gas Lines",
+          "distance": 49.6,
+          "direction": "right"
+        },
+        {
+          "text": "Garage:",
+          "distance": 53.3,
+          "direction": "below"
+        },
+        {
+          "text": "Liquid Propane Gas:",
+          "distance": 58.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Natural Gas Lines' would map to 'item_natural_gas_lines' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 45,
+      "field_name": "form1[0].#subform[0].TextField3[41]",
+      "page": 1,
+      "x": 396,
+      "y": 257,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Gas Fixtures",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_gas_fixtures",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Gas Fixtures",
+          "distance": 38.9,
+          "direction": "right"
+        },
+        {
+          "text": "LP on Property",
+          "distance": 44.1,
+          "direction": "left"
+        },
+        {
+          "text": "Carport",
+          "distance": 61.1,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Gas Fixtures' would map to 'item_gas_fixtures' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 46,
+      "field_name": "form1[0].#subform[0].TextField3[42]",
+      "page": 1,
+      "x": 63,
+      "y": 239,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Natural Gas Lines",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "item_natural_gas_lines",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Garage:",
+          "distance": 35.3,
+          "direction": "below"
+        },
+        {
+          "text": "Fuel Gas Piping:",
+          "distance": 51.3,
+          "direction": "right"
+        },
+        {
+          "text": "Natural Gas Lines",
+          "distance": 52.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Natural Gas Lines' would map to 'item_natural_gas_lines' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 47,
+      "field_name": "form1[0].#subform[0].TextField3[43]",
+      "page": 1,
+      "x": 177,
+      "y": 238,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Natural Gas Lines",
+      "best_label_score": 0.833,
+      "best_label_fixture_key": "item_natural_gas_lines",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Black Iron Pipe",
+          "distance": 32.5,
+          "direction": "right"
+        },
+        {
+          "text": "Attached",
+          "distance": 57.9,
+          "direction": "left"
+        },
+        {
+          "text": "Liquid Propane Gas:",
+          "distance": 59.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_natural_gas_lines' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 48,
+      "field_name": "form1[0].#subform[0].TextField3[44]",
+      "page": 1,
+      "x": 311,
+      "y": 238,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Corrugated Stainless Steel Tubing",
+          "distance": 32.2,
+          "direction": "right"
+        },
+        {
+          "text": "LP on Property",
+          "distance": 44.5,
+          "direction": "right"
+        },
+        {
+          "text": "Control(s)",
+          "distance": 56.1,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found 'LP Community (Captive)' but no matching fixture key exists for it"
+    },
+    {
+      "index": 49,
+      "field_name": "form1[0].#subform[0].TextField3[45]",
+      "page": 1,
+      "x": 63,
+      "y": 220,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Liquid Propane Gas:",
+      "best_label_score": 0.151,
+      "best_label_fixture_key": "addendum_propane",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Garage:",
+          "distance": 16.7,
+          "direction": "below"
+        },
+        {
+          "text": "Fuel Gas Piping:",
+          "distance": 47,
+          "direction": "right"
+        },
+        {
+          "text": "Garage Door Opener(s):",
+          "distance": 50.8,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Liquid Propane Gas:' would map to 'addendum_propane' but score 0.151 < threshold 0.55"
+    },
+    {
+      "index": 50,
+      "field_name": "form1[0].#subform[0].TextField3[46]",
+      "page": 1,
+      "x": 159,
+      "y": 220,
+      "width": 28,
+      "height": 19,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Attached",
+          "distance": 32.8,
+          "direction": "left"
+        },
+        {
+          "text": "Black Iron Pipe",
+          "distance": 44.4,
+          "direction": "right"
+        },
+        {
+          "text": "Liquid Propane Gas:",
+          "distance": 45.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Fuel Gas Piping:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 51,
+      "field_name": "form1[0].#subform[0].TextField3[47]",
+      "page": 1,
+      "x": 253,
+      "y": 220,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Not Attached",
+          "distance": 19.1,
+          "direction": "below"
+        },
+        {
+          "text": "LP Community (Captive)",
+          "distance": 21.1,
+          "direction": "above"
+        },
+        {
+          "text": "Black Iron Pipe",
+          "distance": 49.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Black Iron Pipe' but no matching fixture key exists for it"
+    },
+    {
+      "index": 52,
+      "field_name": "form1[0].#subform[0].TextField3[48]",
+      "page": 1,
+      "x": 424,
+      "y": 219,
+      "width": 27,
+      "height": 19,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Copper",
+          "distance": 28.8,
+          "direction": "right"
+        },
+        {
+          "text": "Gas Fixtures",
+          "distance": 38.3,
+          "direction": "above"
+        },
+        {
+          "text": "Carport",
+          "distance": 56.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Corrugated Stainless Steel Tubing' but no matching fixture key exists for it"
+    },
+    {
+      "index": 53,
+      "field_name": "form1[0].#subform[0].TextField3[49]",
+      "page": 1,
+      "x": 98,
+      "y": 203,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Garage Door Opener(s):",
+          "distance": 18.9,
+          "direction": "below"
+        },
+        {
+          "text": "Fuel Gas Piping:",
+          "distance": 20.2,
+          "direction": "above"
+        },
+        {
+          "text": "Garage:",
+          "distance": 32.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Garage:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 54,
+      "field_name": "form1[0].#subform[0].TextField3[50]",
+      "page": 1,
+      "x": 214,
+      "y": 202,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Garage Door Opener(s):",
+      "best_label_score": 0.559,
+      "best_label_fixture_key": "item_garage_door_opener",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Black Iron Pipe",
+          "distance": 20.8,
+          "direction": "above"
+        },
+        {
+          "text": "Electronic",
+          "distance": 21.1,
+          "direction": "below"
+        },
+        {
+          "text": "Not Attached",
+          "distance": 42.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_garage_door_opener' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 55,
+      "field_name": "form1[0].#subform[0].TextField3[51]",
+      "page": 1,
+      "x": 340,
+      "y": 202,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Corrugated Stainless Steel Tubing",
+          "distance": 17.7,
+          "direction": "above"
+        },
+        {
+          "text": "Control(s)",
+          "distance": 25.1,
+          "direction": "below"
+        },
+        {
+          "text": "Carport",
+          "distance": 29.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'Not Attached' but no matching fixture key exists for it"
+    },
+    {
+      "index": 56,
+      "field_name": "form1[0].#subform[0].TextField3[52]",
+      "page": 1,
+      "x": 170,
+      "y": 184,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Garage Door Opener(s):",
+      "best_label_score": 0.76,
+      "best_label_fixture_key": "item_garage_door_opener",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Gas",
+          "distance": 28.6,
+          "direction": "right"
+        },
+        {
+          "text": "Electronic",
+          "distance": 34.4,
+          "direction": "right"
+        },
+        {
+          "text": "Attached",
+          "distance": 42.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_garage_door_opener' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 57,
+      "field_name": "form1[0].#subform[0].TextField3[53]",
+      "page": 1,
+      "x": 289,
+      "y": 184,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Control(s)",
+          "distance": 34.5,
+          "direction": "right"
+        },
+        {
+          "text": "Electric",
+          "distance": 35.4,
+          "direction": "right"
+        },
+        {
+          "text": "Not Attached",
+          "distance": 36.3,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Electronic' but no matching fixture key exists for it"
+    },
+    {
+      "index": 58,
+      "field_name": "form1[0].#subform[0].TextField3[54]",
+      "page": 1,
+      "x": 171,
+      "y": 165,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Garage Door Opener(s):",
+      "best_label_score": 0.758,
+      "best_label_fixture_key": "item_garage_door_opener",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Gas",
+          "distance": 21.1,
+          "direction": "right"
+        },
+        {
+          "text": "City",
+          "distance": 29.4,
+          "direction": "right"
+        },
+        {
+          "text": "Electronic",
+          "distance": 38.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_garage_door_opener' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 60,
+      "field_name": "form1[0].#subform[0].TextField3[56]",
+      "page": 1,
+      "x": 171,
+      "y": 147,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Water Heater:",
+      "best_label_score": 0.57,
+      "best_label_fixture_key": "item_water_heater",
+      "nearest_labels_within_100px": [
+        {
+          "text": "City",
+          "distance": 22,
+          "direction": "right"
+        },
+        {
+          "text": "Gas",
+          "distance": 27.3,
+          "direction": "right"
+        },
+        {
+          "text": "Electronic",
+          "distance": 49.8,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_water_heater' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 62,
+      "field_name": "form1[0].#subform[0].TextField3[58]",
+      "page": 1,
+      "x": 404,
+      "y": 146,
+      "width": 26,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "MUD",
+          "distance": 23.4,
+          "direction": "right"
+        },
+        {
+          "text": "Age:",
+          "distance": 59.3,
+          "direction": "left"
+        },
+        {
+          "text": "Carport",
+          "distance": 64,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found 'Electric' but no matching fixture key exists for it"
+    },
+    {
+      "index": 63,
+      "field_name": "form1[0].#subform[0].TextField3[59]",
+      "page": 1,
+      "x": 509,
+      "y": 147,
+      "width": 30,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(approx.)",
+          "distance": 26.5,
+          "direction": "below"
+        },
+        {
+          "text": "Co-op",
+          "distance": 27.6,
+          "direction": "right"
+        },
+        {
+          "text": "MUD",
+          "distance": 83.5,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'MUD' but no matching fixture key exists for it"
+    },
+    {
+      "index": 64,
+      "field_name": "form1[0].#subform[0].TextField4[0]",
+      "page": 1,
+      "x": 110,
+      "y": 120,
+      "width": 238,
+      "height": 17,
+      "field_type": "text",
+      "best_label_guess": "Roof Type:",
+      "best_label_score": 0.799,
+      "best_label_fixture_key": "condition_roof",
+      "nearest_labels_within_100px": [
+        {
+          "text": "City",
+          "distance": 34.7,
+          "direction": "above"
+        },
+        {
+          "text": "Unknown.",
+          "distance": 36.3,
+          "direction": "below"
+        },
+        {
+          "text": "Gas",
+          "distance": 50.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'condition_roof' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 65,
+      "field_name": "form1[0].#subform[0].TextField4[1]",
+      "page": 1,
+      "x": 373,
+      "y": 120,
+      "width": 118,
+      "height": 17,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "MUD",
+          "distance": 27.3,
+          "direction": "above"
+        },
+        {
+          "text": "If yes, then describe. (Attach additional sheets if necessary):",
+          "distance": 60.6,
+          "direction": "left"
+        },
+        {
+          "text": "Age:",
+          "distance": 69.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Age:' but no matching fixture key exists for it"
+    },
+    {
+      "index": 66,
+      "field_name": "form1[0].#subform[0].CheckBox3[0]",
+      "page": 1,
+      "x": 129,
+      "y": 85,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Yes",
+          "distance": 13.6,
+          "direction": "right"
+        },
+        {
+          "text": "need of repair?",
+          "distance": 38.3,
+          "direction": "left"
+        },
+        {
+          "text": "No",
+          "distance": 51.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[0].CheckBox3[0]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 67,
+      "field_name": "form1[0].#subform[0].CheckBox4[0]",
+      "page": 1,
+      "x": 165,
+      "y": 85,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "No",
+          "distance": 15.7,
+          "direction": "right"
+        },
+        {
+          "text": "Yes",
+          "distance": 22.8,
+          "direction": "left"
+        },
+        {
+          "text": "Unknown.",
+          "distance": 66.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[0].CheckBox4[0]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 68,
+      "field_name": "form1[0].#subform[0].CheckBox5[0]",
+      "page": 1,
+      "x": 201,
+      "y": 85,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "No",
+          "distance": 20.6,
+          "direction": "left"
+        },
+        {
+          "text": "Unknown.",
+          "distance": 30.6,
+          "direction": "right"
+        },
+        {
+          "text": "Yes",
+          "distance": 58.7,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[0].CheckBox5[0]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 70,
+      "field_name": "form1[0].#subform[0].TextField5[1]",
+      "page": 1,
+      "x": 66,
+      "y": 66,
+      "width": 507,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "If yes, then describe. (Attach additional sheets if necessary):",
+      "best_label_score": 0.397,
+      "best_label_fixture_key": "addition",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the above items that are not in working condition, that have known defects, or that are in",
+          "distance": 32.4,
+          "direction": "above"
+        },
+        {
+          "text": "If yes, then describe. (Attach additional sheets if necessary):",
+          "distance": 67.6,
+          "direction": "right"
+        },
+        {
+          "text": "Age:",
+          "distance": 71.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'If yes, then describe. (Attach additional sheets if necessary):' would map to 'addition' but score 0.397 < threshold 0.55"
+    },
+    {
+      "index": 71,
+      "field_name": "form1[0].#subform[0].TextField5[2]",
+      "page": 1,
+      "x": 66,
+      "y": 48,
+      "width": 507,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the above items that are not in working condition, that have known defects, or that are in",
+          "distance": 50.3,
+          "direction": "above"
+        },
+        {
+          "text": "If yes, then describe. (Attach additional sheets if necessary):",
+          "distance": 75,
+          "direction": "right"
+        },
+        {
+          "text": "Age:",
+          "distance": 86.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[0].TextField5[2]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 72,
+      "field_name": "form1[0].#subform[0].TextField5[3]",
+      "page": 1,
+      "x": 66,
+      "y": 30,
+      "width": 507,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the above items that are not in working condition, that have known defects, or that are in",
+          "distance": 68.2,
+          "direction": "above"
+        },
+        {
+          "text": "If yes, then describe. (Attach additional sheets if necessary):",
+          "distance": 85.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[0].TextField5[3]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 74,
+      "field_name": "form1[0].#subform[1].CheckBox3[1]",
+      "page": 2,
+      "x": 192,
+      "y": 724,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Yes",
+          "distance": 16.6,
+          "direction": "right"
+        },
+        {
+          "text": "Seller's Disclosure Notice Concerning the Property at",
+          "distance": 48.7,
+          "direction": "left"
+        },
+        {
+          "text": "No",
+          "distance": 51.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].CheckBox3[1]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 75,
+      "field_name": "form1[0].#subform[1].CheckBox4[1]",
+      "page": 2,
+      "x": 228,
+      "y": 724,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "(Attach additional sheets if necessary):",
+      "best_label_score": 0.739,
+      "best_label_fixture_key": "addition",
+      "nearest_labels_within_100px": [
+        {
+          "text": "No",
+          "distance": 15.7,
+          "direction": "right"
+        },
+        {
+          "text": "Yes",
+          "distance": 19.8,
+          "direction": "left"
+        },
+        {
+          "text": "Unknown.",
+          "distance": 66.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'addition' -- need a boolean fixture key"
+    },
+    {
+      "index": 76,
+      "field_name": "form1[0].#subform[1].CheckBox5[1]",
+      "page": 2,
+      "x": 264,
+      "y": 724,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "No",
+          "distance": 20.6,
+          "direction": "left"
+        },
+        {
+          "text": "Unknown.",
+          "distance": 30.6,
+          "direction": "right"
+        },
+        {
+          "text": "Does the property have working smoke detectors installed in accordance with the smoke detector requirements of Chapter",
+          "distance": 48.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].CheckBox5[1]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 78,
+      "field_name": "form1[0].#subform[1].TextField5[5]",
+      "page": 2,
+      "x": 57,
+      "y": 696,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Unknown.",
+          "distance": 33.8,
+          "direction": "above"
+        },
+        {
+          "text": "Does the property have working smoke detectors installed in accordance with the smoke detector requirements of Chapter",
+          "distance": 41.1,
+          "direction": "above"
+        },
+        {
+          "text": "Chapter 766 of the Health and Safety Code requires one-family or two-family dwellings to have working smoke detectors",
+          "distance": 57.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[5]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 79,
+      "field_name": "form1[0].#subform[1].TextField5[6]",
+      "page": 2,
+      "x": 57,
+      "y": 678,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Chapter 766 of the Health and Safety Code requires one-family or two-family dwellings to have working smoke detectors",
+          "distance": 39.9,
+          "direction": "below"
+        },
+        {
+          "text": "Unknown.",
+          "distance": 50.5,
+          "direction": "above"
+        },
+        {
+          "text": "installed in accordance with the requirements of the building code in effect in the area in which the dwelling is located,",
+          "distance": 51.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[6]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 80,
+      "field_name": "form1[0].#subform[1].TextField5[7]",
+      "page": 2,
+      "x": 57,
+      "y": 660,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Chapter 766 of the Health and Safety Code requires one-family or two-family dwellings to have working smoke detectors",
+          "distance": 21.9,
+          "direction": "below"
+        },
+        {
+          "text": "installed in accordance with the requirements of the building code in effect in the area in which the dwelling is located,",
+          "distance": 33.9,
+          "direction": "below"
+        },
+        {
+          "text": "effect in your area, you may check unknown above or contact your local building official for more information. A buyer may",
+          "distance": 57.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[7]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 81,
+      "field_name": "form1[0].#subform[1].TextField3[60]",
+      "page": 2,
+      "x": 54,
+      "y": 495,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Are you (Seller) aware of any known defects/malfunctions in any of the following? Write Yes (Y) if you are aware, write No (N)",
+      "best_label_score": 0.393,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "if you are not aware.",
+          "distance": 31.5,
+          "direction": "right"
+        },
+        {
+          "text": "3.",
+          "distance": 35.7,
+          "direction": "left"
+        },
+        {
+          "text": "Interior Walls",
+          "distance": 41.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Are you (Seller) aware of any known defects/malfunctions in any of the following? Write Yes (Y) if you are aware, write No (N)' would map to 'seller_names' but score 0.393 < threshold 0.55"
+    },
+    {
+      "index": 82,
+      "field_name": "form1[0].#subform[1].TextField3[61]",
+      "page": 2,
+      "x": 234,
+      "y": 495,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Are you (Seller) aware of any known defects/malfunctions in any of the following? Write Yes (Y) if you are aware, write No (N)",
+      "best_label_score": 0.393,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Ceilings",
+          "distance": 30.7,
+          "direction": "right"
+        },
+        {
+          "text": "Doors",
+          "distance": 32.5,
+          "direction": "right"
+        },
+        {
+          "text": "the cost of installing the smoke detectors and which brand of smoke detectors to install.",
+          "distance": 45.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Are you (Seller) aware of any known defects/malfunctions in any of the following? Write Yes (Y) if you are aware, write No (N)' would map to 'seller_names' but score 0.393 < threshold 0.55"
+    },
+    {
+      "index": 83,
+      "field_name": "form1[0].#subform[1].TextField3[62]",
+      "page": 2,
+      "x": 405,
+      "y": 495,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Are you (Seller) aware of any known defects/malfunctions in any of the following? Write Yes (Y) if you are aware, write No (N)",
+      "best_label_score": 0.393,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Floors",
+          "distance": 27,
+          "direction": "right"
+        },
+        {
+          "text": "Windows",
+          "distance": 38.4,
+          "direction": "right"
+        },
+        {
+          "text": "Sidewalks",
+          "distance": 50.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Are you (Seller) aware of any known defects/malfunctions in any of the following? Write Yes (Y) if you are aware, write No (N)' would map to 'seller_names' but score 0.393 < threshold 0.55"
+    },
+    {
+      "index": 84,
+      "field_name": "form1[0].#subform[1].TextField3[63]",
+      "page": 2,
+      "x": 54,
+      "y": 477,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Roof",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "condition_roof",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Roof",
+          "distance": 30.2,
+          "direction": "right"
+        },
+        {
+          "text": "if you are not aware.",
+          "distance": 41.4,
+          "direction": "right"
+        },
+        {
+          "text": "Exterior Walls",
+          "distance": 42.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Roof' would map to 'condition_roof' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 85,
+      "field_name": "form1[0].#subform[1].TextField3[64]",
+      "page": 2,
+      "x": 234,
+      "y": 477,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Exterior Walls",
+      "best_label_score": 0.368,
+      "best_label_fixture_key": "condition_walls",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Doors",
+          "distance": 26.7,
+          "direction": "right"
+        },
+        {
+          "text": "Ceilings",
+          "distance": 35.4,
+          "direction": "right"
+        },
+        {
+          "text": "Driveways",
+          "distance": 51.1,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Exterior Walls' would map to 'condition_walls' but score 0.368 < threshold 0.55"
+    },
+    {
+      "index": 86,
+      "field_name": "form1[0].#subform[1].TextField3[65]",
+      "page": 2,
+      "x": 405,
+      "y": 477,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Foundation/Slab(s)",
+      "best_label_score": 0.514,
+      "best_label_fixture_key": "condition_foundation",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Floors",
+          "distance": 32.2,
+          "direction": "right"
+        },
+        {
+          "text": "Windows",
+          "distance": 33.7,
+          "direction": "right"
+        },
+        {
+          "text": "Sidewalks",
+          "distance": 39.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Foundation/Slab(s)' would map to 'condition_foundation' but score 0.514 < threshold 0.55"
+    },
+    {
+      "index": 87,
+      "field_name": "form1[0].#subform[1].TextField3[66]",
+      "page": 2,
+      "x": 54,
+      "y": 459,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Roof",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "condition_roof",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Roof",
+          "distance": 23.9,
+          "direction": "right"
+        },
+        {
+          "text": "Walls/Fences",
+          "distance": 45.3,
+          "direction": "right"
+        },
+        {
+          "text": "Exterior Walls",
+          "distance": 45.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Roof' would map to 'condition_roof' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 88,
+      "field_name": "form1[0].#subform[1].TextField3[67]",
+      "page": 2,
+      "x": 234,
+      "y": 459,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Exterior Walls",
+      "best_label_score": 0.368,
+      "best_label_fixture_key": "condition_walls",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Doors",
+          "distance": 31.9,
+          "direction": "right"
+        },
+        {
+          "text": "Driveways",
+          "distance": 40.2,
+          "direction": "right"
+        },
+        {
+          "text": "Ceilings",
+          "distance": 47,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Exterior Walls' would map to 'condition_walls' but score 0.368 < threshold 0.55"
+    },
+    {
+      "index": 89,
+      "field_name": "form1[0].#subform[1].TextField3[68]",
+      "page": 2,
+      "x": 405,
+      "y": 459,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Foundation/Slab(s)",
+      "best_label_score": 0.514,
+      "best_label_fixture_key": "condition_foundation",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Sidewalks",
+          "distance": 34.8,
+          "direction": "right"
+        },
+        {
+          "text": "Windows",
+          "distance": 37.9,
+          "direction": "right"
+        },
+        {
+          "text": "Floors",
+          "distance": 44.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Foundation/Slab(s)' would map to 'condition_foundation' but score 0.514 < threshold 0.55"
+    },
+    {
+      "index": 90,
+      "field_name": "form1[0].#subform[1].TextField3[69]",
+      "page": 2,
+      "x": 54,
+      "y": 441,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Roof",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "condition_roof",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Roof",
+          "distance": 29.6,
+          "direction": "right"
+        },
+        {
+          "text": "Walls/Fences",
+          "distance": 41.4,
+          "direction": "right"
+        },
+        {
+          "text": "Exterior Walls",
+          "distance": 55.3,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Roof' would map to 'condition_roof' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 91,
+      "field_name": "form1[0].#subform[1].TextField3[70]",
+      "page": 2,
+      "x": 234,
+      "y": 441,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Plumbing/Sewers/Septics",
+      "best_label_score": 0.597,
+      "best_label_fixture_key": "item_plumbing",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Driveways",
+          "distance": 35.7,
+          "direction": "right"
+        },
+        {
+          "text": "Doors",
+          "distance": 44.4,
+          "direction": "above"
+        },
+        {
+          "text": "Electrical Systems",
+          "distance": 54.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_plumbing' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 92,
+      "field_name": "form1[0].#subform[1].TextField3[71]",
+      "page": 2,
+      "x": 405,
+      "y": 441,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Electrical Systems",
+      "best_label_score": 0.587,
+      "best_label_fixture_key": "condition_electrical",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Sidewalks",
+          "distance": 39,
+          "direction": "right"
+        },
+        {
+          "text": "Windows",
+          "distance": 48.9,
+          "direction": "above"
+        },
+        {
+          "text": "Intercom System",
+          "distance": 49.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'condition_electrical' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 93,
+      "field_name": "form1[0].#subform[1].TextField3[72]",
+      "page": 2,
+      "x": 54,
+      "y": 423,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Other Structural Components (Describe):",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "condition_other_structural",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Roof",
+          "distance": 42.8,
+          "direction": "above"
+        },
+        {
+          "text": "Walls/Fences",
+          "distance": 45,
+          "direction": "right"
+        },
+        {
+          "text": "Plumbing/Sewers/Septics",
+          "distance": 67.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Other Structural Components (Describe):' would map to 'condition_other_structural' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 94,
+      "field_name": "form1[0].#subform[1].TextField3[73]",
+      "page": 2,
+      "x": 234,
+      "y": 423,
+      "width": 29,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Plumbing/Sewers/Septics",
+      "best_label_score": 0.597,
+      "best_label_fixture_key": "item_plumbing",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Driveways",
+          "distance": 39.8,
+          "direction": "right"
+        },
+        {
+          "text": "Electrical Systems",
+          "distance": 51.1,
+          "direction": "right"
+        },
+        {
+          "text": "Doors",
+          "distance": 59.8,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_plumbing' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 95,
+      "field_name": "form1[0].#subform[1].TextField3[74]",
+      "page": 2,
+      "x": 405,
+      "y": 423,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Electrical Systems",
+      "best_label_score": 0.587,
+      "best_label_fixture_key": "condition_electrical",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Lighting Fixtures",
+          "distance": 49,
+          "direction": "right"
+        },
+        {
+          "text": "Sidewalks",
+          "distance": 49.9,
+          "direction": "above"
+        },
+        {
+          "text": "Intercom System",
+          "distance": 52.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'condition_electrical' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 96,
+      "field_name": "form1[0].#subform[1].TextField3[75]",
+      "page": 2,
+      "x": 54,
+      "y": 405,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Other Structural Components (Describe):",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "condition_other_structural",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Walls/Fences",
+          "distance": 54.7,
+          "direction": "right"
+        },
+        {
+          "text": "Roof",
+          "distance": 58.7,
+          "direction": "above"
+        },
+        {
+          "text": "Plumbing/Sewers/Septics",
+          "distance": 70,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Other Structural Components (Describe):' would map to 'condition_other_structural' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 97,
+      "field_name": "form1[0].#subform[1].TextField5[8]",
+      "page": 2,
+      "x": 255,
+      "y": 408,
+      "width": 318,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "Other Structural Components (Describe):",
+      "best_label_score": 0.786,
+      "best_label_fixture_key": "condition_other_structural",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Lighting Fixtures",
+          "distance": 56.7,
+          "direction": "right"
+        },
+        {
+          "text": "Intercom System",
+          "distance": 65.2,
+          "direction": "right"
+        },
+        {
+          "text": "Sidewalks",
+          "distance": 66.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'condition_other_structural' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 98,
+      "field_name": "form1[0].#subform[1].TextField5[9]",
+      "page": 2,
+      "x": 84,
+      "y": 390,
+      "width": 489,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Electrical Systems",
+          "distance": 45.9,
+          "direction": "above"
+        },
+        {
+          "text": "Driveways",
+          "distance": 69.6,
+          "direction": "above"
+        },
+        {
+          "text": "Foundation/Slab(s)",
+          "distance": 76.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[9]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 99,
+      "field_name": "form1[0].#subform[1].TextField5[10]",
+      "page": 2,
+      "x": 84,
+      "y": 372,
+      "width": 489,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Electrical Systems",
+          "distance": 60.9,
+          "direction": "above"
+        },
+        {
+          "text": "Are you (Seller) aware of any of the following conditions? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 79.2,
+          "direction": "below"
+        },
+        {
+          "text": "Driveways",
+          "distance": 84.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[10]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 101,
+      "field_name": "form1[0].#subform[1].TextField5[12]",
+      "page": 2,
+      "x": 57,
+      "y": 336,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the following conditions? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 40.9,
+          "direction": "below"
+        },
+        {
+          "text": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+          "distance": 81.6,
+          "direction": "left"
+        },
+        {
+          "text": "Electrical Systems",
+          "distance": 90.9,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[12]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 102,
+      "field_name": "form1[0].#subform[1].TextField5[13]",
+      "page": 2,
+      "x": 57,
+      "y": 318,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the following conditions? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 23.7,
+          "direction": "below"
+        },
+        {
+          "text": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+          "distance": 87.3,
+          "direction": "left"
+        },
+        {
+          "text": "Hazardous or Toxic Waste",
+          "distance": 98.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[13]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 103,
+      "field_name": "form1[0].#subform[1].TextField3[76]",
+      "page": 2,
+      "x": 54,
+      "y": 279,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "4.",
+          "distance": 30.5,
+          "direction": "left"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 77,
+          "direction": "right"
+        },
+        {
+          "text": "Improper Drainage",
+          "distance": 90.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '4.' but no matching fixture key exists for it"
+    },
+    {
+      "index": 104,
+      "field_name": "form1[0].#subform[1].TextField3[77]",
+      "page": 2,
+      "x": 54,
+      "y": 261,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Previous Termite Damage",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "aware_termite_damage",
+      "nearest_labels_within_100px": [
+        {
+          "text": "4.",
+          "distance": 42,
+          "direction": "above"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 70.3,
+          "direction": "right"
+        },
+        {
+          "text": "Improper Drainage",
+          "distance": 76.6,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Previous Termite Damage' would map to 'aware_termite_damage' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 105,
+      "field_name": "form1[0].#subform[1].TextField3[78]",
+      "page": 2,
+      "x": 54,
+      "y": 243,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Previous Termite Damage",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "aware_termite_damage",
+      "nearest_labels_within_100px": [
+        {
+          "text": "4.",
+          "distance": 56.9,
+          "direction": "above"
+        },
+        {
+          "text": "Improper Drainage",
+          "distance": 65,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 67.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Previous Termite Damage' would map to 'aware_termite_damage' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 106,
+      "field_name": "form1[0].#subform[1].TextField3[79]",
+      "page": 2,
+      "x": 54,
+      "y": 207,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Previous Termite Treatment",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "aware_termite_treatment",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Improper Drainage",
+          "distance": 53.8,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Treatment",
+          "distance": 74.1,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 76.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Previous Termite Treatment' would map to 'aware_termite_treatment' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 107,
+      "field_name": "form1[0].#subform[1].TextField3[80]",
+      "page": 2,
+      "x": 54,
+      "y": 189,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Landfill, Settling, Soil Movement, Fault Lines",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_settling",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Improper Drainage",
+          "distance": 56.5,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Treatment",
+          "distance": 80.3,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 86.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Landfill, Settling, Soil Movement, Fault Lines' would map to 'aware_settling' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 108,
+      "field_name": "form1[0].#subform[1].TextField3[81]",
+      "page": 2,
+      "x": 54,
+      "y": 171,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Landfill, Settling, Soil Movement, Fault Lines",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_settling",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Improper Drainage",
+          "distance": 64.5,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Treatment",
+          "distance": 89.8,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 98.6,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Landfill, Settling, Soil Movement, Fault Lines' would map to 'aware_settling' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 109,
+      "field_name": "form1[0].#subform[1].TextField3[82]",
+      "page": 2,
+      "x": 54,
+      "y": 153,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Landfill, Settling, Soil Movement, Fault Lines",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_settling",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Improper Drainage",
+          "distance": 75.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Landfill, Settling, Soil Movement, Fault Lines' would map to 'aware_settling' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 110,
+      "field_name": "form1[0].#subform[1].TextField3[83]",
+      "page": 2,
+      "x": 315,
+      "y": 279,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Active Termites (includes wood destroying insects)",
+      "best_label_score": 0.7,
+      "best_label_fixture_key": "aware_active_termites",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the following conditions? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 27.1,
+          "direction": "left"
+        },
+        {
+          "text": "Hazardous or Toxic Waste",
+          "distance": 70,
+          "direction": "right"
+        },
+        {
+          "text": "Asbestos Components",
+          "distance": 71.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'aware_active_termites' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 111,
+      "field_name": "form1[0].#subform[1].TextField3[84]",
+      "page": 2,
+      "x": 315,
+      "y": 261,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Active Termites (includes wood destroying insects)",
+      "best_label_score": 0.7,
+      "best_label_fixture_key": "aware_active_termites",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the following conditions? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 39.5,
+          "direction": "above"
+        },
+        {
+          "text": "Asbestos Components",
+          "distance": 63.7,
+          "direction": "right"
+        },
+        {
+          "text": "Radon Gas",
+          "distance": 65.4,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'aware_active_termites' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 112,
+      "field_name": "form1[0].#subform[1].TextField3[85]",
+      "page": 2,
+      "x": 315,
+      "y": 243,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Radon Gas",
+          "distance": 51.4,
+          "direction": "below"
+        },
+        {
+          "text": "Are you (Seller) aware of any of the following conditions? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 55.2,
+          "direction": "above"
+        },
+        {
+          "text": "Asbestos Components",
+          "distance": 61,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found 'Termite or Wood Rot Damage Needing Repair' but no matching fixture key exists for it"
+    },
+    {
+      "index": 113,
+      "field_name": "form1[0].#subform[1].TextField3[86]",
+      "page": 2,
+      "x": 315,
+      "y": 225,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Previous Termite Treatment",
+      "best_label_score": 0.368,
+      "best_label_fixture_key": "aware_termite_treatment",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Radon Gas",
+          "distance": 40.7,
+          "direction": "right"
+        },
+        {
+          "text": "Lead Based Paint",
+          "distance": 61.4,
+          "direction": "right"
+        },
+        {
+          "text": "Asbestos Components",
+          "distance": 63.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Previous Termite Treatment' would map to 'aware_termite_treatment' but score 0.368 < threshold 0.55"
+    },
+    {
+      "index": 114,
+      "field_name": "form1[0].#subform[1].TextField3[87]",
+      "page": 2,
+      "x": 315,
+      "y": 207,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Water Damage Not Due to a Flood Event",
+      "best_label_score": 0.508,
+      "best_label_fixture_key": "aware_flood_insurance",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Radon Gas",
+          "distance": 36.2,
+          "direction": "right"
+        },
+        {
+          "text": "Lead Based Paint",
+          "distance": 52.8,
+          "direction": "right"
+        },
+        {
+          "text": "Aluminum Wiring",
+          "distance": 62.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Water Damage Not Due to a Flood Event' would map to 'aware_flood_insurance' but score 0.508 < threshold 0.55"
+    },
+    {
+      "index": 115,
+      "field_name": "form1[0].#subform[1].TextField3[88]",
+      "page": 2,
+      "x": 315,
+      "y": 189,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Landfill, Settling, Soil Movement, Fault Lines",
+      "best_label_score": 0.573,
+      "best_label_fixture_key": "aware_settling",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Radon Gas",
+          "distance": 40.2,
+          "direction": "right"
+        },
+        {
+          "text": "Lead Based Paint",
+          "distance": 49.4,
+          "direction": "right"
+        },
+        {
+          "text": "Aluminum Wiring",
+          "distance": 53.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'aware_settling' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 116,
+      "field_name": "form1[0].#subform[1].TextField3[89]",
+      "page": 2,
+      "x": 315,
+      "y": 171,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Single Blockable Main Drain in Pool/Hot Tub/Spa*",
+      "best_label_score": 0.681,
+      "best_label_fixture_key": "item_hot_tub",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Previous Fires",
+          "distance": 46.8,
+          "direction": "right"
+        },
+        {
+          "text": "Aluminum Wiring",
+          "distance": 50.8,
+          "direction": "right"
+        },
+        {
+          "text": "Radon Gas",
+          "distance": 50.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_hot_tub' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 117,
+      "field_name": "form1[0].#subform[1].TextField3[90]",
+      "page": 2,
+      "x": 315,
+      "y": 153,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Single Blockable Main Drain in Pool/Hot Tub/Spa*",
+      "best_label_score": 0.681,
+      "best_label_fixture_key": "item_hot_tub",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Previous Fires",
+          "distance": 42.7,
+          "direction": "right"
+        },
+        {
+          "text": "Aluminum Wiring",
+          "distance": 53.5,
+          "direction": "right"
+        },
+        {
+          "text": "Lead Based Paint",
+          "distance": 60.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_hot_tub' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 118,
+      "field_name": "form1[0].#subform[1].TextField3[91]",
+      "page": 2,
+      "x": 315,
+      "y": 135,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Single Blockable Main Drain in Pool/Hot Tub/Spa*",
+      "best_label_score": 0.681,
+      "best_label_fixture_key": "item_hot_tub",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Previous Fires",
+          "distance": 46.2,
+          "direction": "right"
+        },
+        {
+          "text": "Unplatted Easements",
+          "distance": 58.7,
+          "direction": "right"
+        },
+        {
+          "text": "Aluminum Wiring",
+          "distance": 61.8,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: text widget mapped to boolean key 'item_hot_tub' -- nearby checkbox label leaked; needs human label"
+    },
+    {
+      "index": 119,
+      "field_name": "form1[0].#subform[1].TextField3[92]",
+      "page": 2,
+      "x": 315,
+      "y": 117,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Subsurface Structure or Pits",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_subsurface",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Previous Fires",
+          "distance": 55.6,
+          "direction": "right"
+        },
+        {
+          "text": "Methamphetamine",
+          "distance": 59.3,
+          "direction": "right"
+        },
+        {
+          "text": "Unplatted Easements",
+          "distance": 61.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Subsurface Structure or Pits' would map to 'aware_subsurface' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 120,
+      "field_name": "form1[0].#subform[1].TextField3[93]",
+      "page": 2,
+      "x": 315,
+      "y": 94,
+      "width": 28,
+      "height": 23,
+      "field_type": "text",
+      "best_label_guess": "Subsurface Structure or Pits",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_subsurface",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Methamphetamine",
+          "distance": 54.5,
+          "direction": "right"
+        },
+        {
+          "text": "Unplatted Easements",
+          "distance": 69.9,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Fires",
+          "distance": 70.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Subsurface Structure or Pits' would map to 'aware_subsurface' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 122,
+      "field_name": "form1[0].#subform[1].TextField5[15]",
+      "page": 2,
+      "x": 57,
+      "y": 57,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Methamphetamine",
+          "distance": 79.1,
+          "direction": "right"
+        },
+        {
+          "text": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+          "distance": 81.5,
+          "direction": "left"
+        },
+        {
+          "text": "* A single blockable main drain may cause a suction entrapment hazard for an individual.",
+          "distance": 83.4,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[15]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 123,
+      "field_name": "form1[0].#subform[1].TextField5[16]",
+      "page": 2,
+      "x": 57,
+      "y": 39,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "* A single blockable main drain may cause a suction entrapment hazard for an individual.",
+          "distance": 77.3,
+          "direction": "left"
+        },
+        {
+          "text": "If the answer to any of the above is yes, explain. (Attach additional sheets if necessary):",
+          "distance": 87.3,
+          "direction": "left"
+        },
+        {
+          "text": "Methamphetamine",
+          "distance": 89.5,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[1].TextField5[16]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 124,
+      "field_name": "form1[0].#subform[1].TextField3[94]",
+      "page": 2,
+      "x": 54,
+      "y": 225,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Previous Termite Damage",
+      "best_label_score": 0.25,
+      "best_label_fixture_key": "aware_termite_damage",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Improper Drainage",
+          "distance": 56.9,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Damage",
+          "distance": 70,
+          "direction": "right"
+        },
+        {
+          "text": "Previous Termite Treatment",
+          "distance": 72,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Previous Termite Damage' would map to 'aware_termite_damage' but score 0.25 < threshold 0.55"
+    },
+    {
+      "index": 125,
+      "field_name": "form1[0].#subform[2].TextField3[95]",
+      "page": 3,
+      "x": 54,
+      "y": 504,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Located",
+          "distance": 31,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 36.8,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 49.3,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField3[95]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 126,
+      "field_name": "form1[0].#subform[2].TextField3[96]",
+      "page": 3,
+      "x": 54,
+      "y": 576,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Located",
+          "distance": 31,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 33.7,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 44.7,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField3[96]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 127,
+      "field_name": "form1[0].#subform[2].CheckBox4[2]",
+      "page": 3,
+      "x": 165,
+      "y": 508,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 21.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 29.8,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 44.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox4[2]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 129,
+      "field_name": "form1[0].#subform[2].CheckBox4[3]",
+      "page": 3,
+      "x": 57,
+      "y": 724,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "5.",
+          "distance": 24.9,
+          "direction": "left"
+        },
+        {
+          "text": "No (if you are not aware).",
+          "distance": 61.6,
+          "direction": "right"
+        },
+        {
+          "text": "6.",
+          "distance": 62,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox4[3]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 130,
+      "field_name": "form1[0].#subform[2].CheckBox3[2]",
+      "page": 3,
+      "x": 482,
+      "y": 735,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "best_label_guess": "Are you (Seller) aware of any item, equipment, or system in or on the Property that is in need of repair?",
+      "best_label_score": 0.792,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Page 3",
+          "distance": 47.3,
+          "direction": "right"
+        },
+        {
+          "text": "Yes (if you are aware)",
+          "distance": 53.2,
+          "direction": "right"
+        },
+        {
+          "text": "09-01-2023",
+          "distance": 92.2,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "type mismatch: checkbox widget mapped to text key 'seller_names' -- need a boolean fixture key"
+    },
+    {
+      "index": 132,
+      "field_name": "form1[0].#subform[2].TextField5[18]",
+      "page": 3,
+      "x": 57,
+      "y": 705,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "If yes, explain (attach additional sheets if necessary).",
+      "best_label_score": 0.397,
+      "best_label_fixture_key": "addition",
+      "nearest_labels_within_100px": [
+        {
+          "text": "If yes, explain (attach additional sheets if necessary).",
+          "distance": 35.3,
+          "direction": "left"
+        },
+        {
+          "text": "Are you (Seller) aware of any of the following conditions?* Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 40.5,
+          "direction": "below"
+        },
+        {
+          "text": "Are you (Seller) aware of any item, equipment, or system in or on the Property that is in need of repair?",
+          "distance": 57.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "weak match: label 'If yes, explain (attach additional sheets if necessary).' would map to 'addition' but score 0.397 < threshold 0.55"
+    },
+    {
+      "index": 133,
+      "field_name": "form1[0].#subform[2].TextField5[19]",
+      "page": 3,
+      "x": 57,
+      "y": 687,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Are you (Seller) aware of any of the following conditions?* Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+          "distance": 23,
+          "direction": "below"
+        },
+        {
+          "text": "If yes, explain (attach additional sheets if necessary).",
+          "distance": 47.9,
+          "direction": "above"
+        },
+        {
+          "text": "Previous flooding due to a failure or breach of a reservoir or a controlled or emergency release of water from a reservoir",
+          "distance": 56.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField5[19]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 134,
+      "field_name": "form1[0].#subform[2].TextField3[97]",
+      "page": 3,
+      "x": 54,
+      "y": 648,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "6.",
+          "distance": 30.5,
+          "direction": "left"
+        },
+        {
+          "text": "Located",
+          "distance": 75.6,
+          "direction": "below"
+        },
+        {
+          "text": "Present flood insurance coverage",
+          "distance": 83.4,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '6.' but no matching fixture key exists for it"
+    },
+    {
+      "index": 135,
+      "field_name": "form1[0].#subform[2].TextField3[98]",
+      "page": 3,
+      "x": 54,
+      "y": 630,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Present flood insurance coverage",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_present_flood_insurance",
+      "nearest_labels_within_100px": [
+        {
+          "text": "6.",
+          "distance": 42,
+          "direction": "above"
+        },
+        {
+          "text": "Located",
+          "distance": 59.6,
+          "direction": "below"
+        },
+        {
+          "text": "Located",
+          "distance": 75.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Present flood insurance coverage' would map to 'aware_present_flood_insurance' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 136,
+      "field_name": "form1[0].#subform[2].TextField3[99]",
+      "page": 3,
+      "x": 54,
+      "y": 612,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Previous flooding due to a failure or breach of a reservoir or a controlled or emergency release of water from a reservoir",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "aware_previous_flooding",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Located",
+          "distance": 45.2,
+          "direction": "below"
+        },
+        {
+          "text": "6.",
+          "distance": 56.9,
+          "direction": "above"
+        },
+        {
+          "text": "Located",
+          "distance": 59.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Previous flooding due to a failure or breach of a reservoir or a controlled or emergency release of water from a reservoir' would map to 'aware_previous_flooding' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 137,
+      "field_name": "form1[0].#subform[2].TextField3[100]",
+      "page": 3,
+      "x": 54,
+      "y": 558,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Located",
+          "distance": 30.7,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 34,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 37.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField3[100]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 138,
+      "field_name": "form1[0].#subform[2].TextField3[101]",
+      "page": 3,
+      "x": 54,
+      "y": 540,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Located",
+          "distance": 30.7,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 34,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 37.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField3[101]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 139,
+      "field_name": "form1[0].#subform[2].TextField3[102]",
+      "page": 3,
+      "x": 54,
+      "y": 522,
+      "width": 28,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Located",
+          "distance": 30.7,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 34.6,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 37.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField3[102]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 141,
+      "field_name": "form1[0].#subform[2].TextField5[21]",
+      "page": 3,
+      "x": 57,
+      "y": 471,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "(A) is identified on the flood insurance rate map as a special flood hazard area, which is designated as",
+          "distance": 57.8,
+          "direction": "below"
+        },
+        {
+          "text": "(B) has a one percent annual chance of flooding, which is considered to be a high risk of flooding; and",
+          "distance": 79.5,
+          "direction": "below"
+        },
+        {
+          "text": "If the answer to any of the above is yes, explain (attach additional sheets if necessary):",
+          "distance": 84.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].TextField5[21]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 143,
+      "field_name": "form1[0].#subform[2].CheckBox7[0]",
+      "page": 3,
+      "x": 237,
+      "y": 157,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "No.",
+          "distance": 16.4,
+          "direction": "right"
+        },
+        {
+          "text": "Yes",
+          "distance": 19.8,
+          "direction": "left"
+        },
+        {
+          "text": "intended to retain water or delay the runoff of water in a designated surface area of land.",
+          "distance": 38.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox7[0]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 144,
+      "field_name": "form1[0].#subform[2].CheckBox6[1]",
+      "page": 3,
+      "x": 102,
+      "y": 49,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Yes",
+          "distance": 16.6,
+          "direction": "right"
+        },
+        {
+          "text": "property?",
+          "distance": 31.5,
+          "direction": "left"
+        },
+        {
+          "text": "property within the structure(s).",
+          "distance": 43.7,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox6[1]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 145,
+      "field_name": "form1[0].#subform[2].CheckBox7[1]",
+      "page": 3,
+      "x": 138,
+      "y": 49,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "No.",
+          "distance": 16.4,
+          "direction": "right"
+        },
+        {
+          "text": "Yes",
+          "distance": 19.8,
+          "direction": "left"
+        },
+        {
+          "text": "property within the structure(s).",
+          "distance": 46.2,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox7[1]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 147,
+      "field_name": "form1[0].#subform[2].TextField5[23]",
+      "page": 3,
+      "x": 57,
+      "y": 138,
+      "width": 517,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "Flood Insurance Program (NFIP)?*",
+      "best_label_score": 0.397,
+      "best_label_fixture_key": "aware_flood_insurance",
+      "nearest_labels_within_100px": [
+        {
+          "text": "*Homes in high risk flood zones with mortgages from federally regulated or insured lenders are required to have",
+          "distance": 16.1,
+          "direction": "below"
+        },
+        {
+          "text": "flood insurance. Even when not required, the Federal Emergency Management Agency (FEMA) encourages homeowners in",
+          "distance": 25.3,
+          "direction": "below"
+        },
+        {
+          "text": "Have you (Seller) ever filed a claim for flood damage to the property with any insurance provider, including the National",
+          "distance": 34.1,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Flood Insurance Program (NFIP)?*' would map to 'aware_flood_insurance' but score 0.397 < threshold 0.55"
+    },
+    {
+      "index": 149,
+      "field_name": "form1[0].#subform[2].TextField5[25]",
+      "page": 3,
+      "x": 57,
+      "y": 30,
+      "width": 517,
+      "height": 12,
+      "field_type": "text",
+      "best_label_guess": "If yes, explain (attach additional sheets as necessary):",
+      "best_label_score": 0.386,
+      "best_label_fixture_key": "addition",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Have you (Seller) ever received assistance from FEMA or the U.S. Small Business Administration (SBA) for flood damage to the",
+          "distance": 32.1,
+          "direction": "above"
+        },
+        {
+          "text": "If yes, explain (attach additional sheets as necessary):",
+          "distance": 38.8,
+          "direction": "left"
+        },
+        {
+          "text": "high risk, moderate risk, and low risk flood zones to purchase flood insurance that covers the structure(s) and the personal",
+          "distance": 71.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'If yes, explain (attach additional sheets as necessary):' would map to 'addition' but score 0.386 < threshold 0.55"
+    },
+    {
+      "index": 150,
+      "field_name": "form1[0].#subform[2].#field[150]",
+      "page": 3,
+      "x": 120,
+      "y": 508,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 23.5,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 26.1,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 31.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].#field[150]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 151,
+      "field_name": "form1[0].#subform[2].#field[151]",
+      "page": 3,
+      "x": 120,
+      "y": 526,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 23.5,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 26.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 28.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].#field[151]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 152,
+      "field_name": "form1[0].#subform[2].CheckBox4[4]",
+      "page": 3,
+      "x": 165,
+      "y": 526,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 21.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 26.6,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 29.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox4[4]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 153,
+      "field_name": "form1[0].#subform[2].CheckBox4[5]",
+      "page": 3,
+      "x": 165,
+      "y": 544,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 21.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 26.6,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 29.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox4[5]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 154,
+      "field_name": "form1[0].#subform[2].#field[154]",
+      "page": 3,
+      "x": 120,
+      "y": 544,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 23.5,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 26.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 28.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].#field[154]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 155,
+      "field_name": "form1[0].#subform[2].CheckBox4[6]",
+      "page": 3,
+      "x": 165,
+      "y": 562,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 21.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 26.6,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 29.8,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox4[6]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 156,
+      "field_name": "form1[0].#subform[2].#field[156]",
+      "page": 3,
+      "x": 120,
+      "y": 562,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 23.5,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 26.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 28.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].#field[156]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 157,
+      "field_name": "form1[0].#subform[2].CheckBox4[7]",
+      "page": 3,
+      "x": 165,
+      "y": 580,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 21.7,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 26.6,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 39.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].CheckBox4[7]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 158,
+      "field_name": "form1[0].#subform[2].#field[158]",
+      "page": 3,
+      "x": 120,
+      "y": 580,
+      "width": 10,
+      "height": 10,
+      "field_type": "checkbox",
+      "nearest_labels_within_100px": [
+        {
+          "text": "wholly",
+          "distance": 23.5,
+          "direction": "right"
+        },
+        {
+          "text": "Located",
+          "distance": 26.1,
+          "direction": "left"
+        },
+        {
+          "text": "wholly",
+          "distance": 28.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[2].#field[158]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 159,
+      "field_name": "form1[0].#subform[4].TextField3[103]",
+      "page": 4,
+      "x": 54,
+      "y": 706,
+      "width": 27,
+      "height": 23,
+      "field_type": "text",
+      "best_label_guess": "Are you (Seller) aware of any of the following? Write Yes (Y) if you are aware, write No (N) if you are not aware.",
+      "best_label_score": 0.393,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "9.",
+          "distance": 36.8,
+          "direction": "left"
+        },
+        {
+          "text": "with others.",
+          "distance": 61.3,
+          "direction": "below"
+        },
+        {
+          "text": "Property.",
+          "distance": 81.7,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Are you (Seller) aware of any of the following? Write Yes (Y) if you are aware, write No (N) if you are not aware.' would map to 'seller_names' but score 0.393 < threshold 0.55"
+    },
+    {
+      "index": 160,
+      "field_name": "form1[0].#subform[4].TextField3[104]",
+      "page": 4,
+      "x": 54,
+      "y": 684,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "best_label_guess": "Homeowners' Association or maintenance fees or assessments.",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "hoa_name_primary",
+      "nearest_labels_within_100px": [
+        {
+          "text": "with others.",
+          "distance": 44.7,
+          "direction": "right"
+        },
+        {
+          "text": "9.",
+          "distance": 56.6,
+          "direction": "above"
+        },
+        {
+          "text": "Property.",
+          "distance": 60,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Homeowners' Association or maintenance fees or assessments.' would map to 'hoa_name_primary' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 161,
+      "field_name": "form1[0].#subform[4].TextField3[105]",
+      "page": 4,
+      "x": 54,
+      "y": 661,
+      "width": 27,
+      "height": 23,
+      "field_type": "text",
+      "best_label_guess": "Homeowners' Association or maintenance fees or assessments.",
+      "best_label_score": 0.15,
+      "best_label_fixture_key": "hoa_name_primary",
+      "nearest_labels_within_100px": [
+        {
+          "text": "with others.",
+          "distance": 38.2,
+          "direction": "right"
+        },
+        {
+          "text": "Property.",
+          "distance": 44.2,
+          "direction": "right"
+        },
+        {
+          "text": "9.",
+          "distance": 75.4,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Homeowners' Association or maintenance fees or assessments.' would map to 'hoa_name_primary' but score 0.15 < threshold 0.55"
+    },
+    {
+      "index": 162,
+      "field_name": "form1[0].#subform[4].TextField3[106]",
+      "page": 4,
+      "x": 54,
+      "y": 634,
+      "width": 27,
+      "height": 23,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Property.",
+          "distance": 32.6,
+          "direction": "right"
+        },
+        {
+          "text": "with others.",
+          "distance": 45,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField3[106]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 163,
+      "field_name": "form1[0].#subform[4].TextField3[107]",
+      "page": 4,
+      "x": 54,
+      "y": 612,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Property.",
+          "distance": 38.9,
+          "direction": "right"
+        },
+        {
+          "text": "with others.",
+          "distance": 61.7,
+          "direction": "above"
+        },
+        {
+          "text": "supply as an auxiliary water source.",
+          "distance": 95.9,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField3[107]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 164,
+      "field_name": "form1[0].#subform[4].TextField3[108]",
+      "page": 4,
+      "x": 54,
+      "y": 594,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Property.",
+          "distance": 51.1,
+          "direction": "above"
+        },
+        {
+          "text": "with others.",
+          "distance": 76.6,
+          "direction": "above"
+        },
+        {
+          "text": "supply as an auxiliary water source.",
+          "distance": 89.6,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField3[108]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 165,
+      "field_name": "form1[0].#subform[4].TextField3[109]",
+      "page": 4,
+      "x": 54,
+      "y": 571,
+      "width": 27,
+      "height": 23,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Property.",
+          "distance": 68.2,
+          "direction": "above"
+        },
+        {
+          "text": "supply as an auxiliary water source.",
+          "distance": 86.5,
+          "direction": "right"
+        },
+        {
+          "text": "with others.",
+          "distance": 95,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField3[109]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 167,
+      "field_name": "form1[0].#subform[4].TextField5[27]",
+      "page": 4,
+      "x": 57,
+      "y": 507,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "If the property is located in a coastal area that is seaward of the Gulf Intracoastal Waterway or within 1,000 feet of the mean",
+          "distance": 39.9,
+          "direction": "below"
+        },
+        {
+          "text": "Any portion of the property that is located in a groundwater conservation district or a subsidence district.",
+          "distance": 47.3,
+          "direction": "above"
+        },
+        {
+          "text": "high tide bordering the Gulf of Mexico, the property may be subject to the Open Beaches Act or the Dune Protection Act",
+          "distance": 51.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField5[27]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 168,
+      "field_name": "form1[0].#subform[4].TextField5[28]",
+      "page": 4,
+      "x": 57,
+      "y": 489,
+      "width": 516,
+      "height": 12,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "If the property is located in a coastal area that is seaward of the Gulf Intracoastal Waterway or within 1,000 feet of the mean",
+          "distance": 21.9,
+          "direction": "below"
+        },
+        {
+          "text": "high tide bordering the Gulf of Mexico, the property may be subject to the Open Beaches Act or the Dune Protection Act",
+          "distance": 33.9,
+          "direction": "below"
+        },
+        {
+          "text": "(Chapter 61 or 63, Natural Resources Code, respectively) and a beachfront construction certificate or dune protection permit",
+          "distance": 45.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField5[28]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 169,
+      "field_name": "form1[0].#subform[4].TextField3[110]",
+      "page": 4,
+      "x": 54,
+      "y": 549,
+      "width": 27,
+      "height": 18,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "10.",
+          "distance": 88.2,
+          "direction": "below"
+        },
+        {
+          "text": "supply as an auxiliary water source.",
+          "distance": 89.1,
+          "direction": "right"
+        },
+        {
+          "text": "Property.",
+          "distance": 90.5,
+          "direction": "above"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField3[110]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 170,
+      "field_name": "form1[0].#subform[4].TextField1[3]",
+      "page": 4,
+      "x": 261,
+      "y": 252,
+      "width": 54,
+      "height": 27,
+      "field_type": "text",
+      "best_label_guess": "Signature of Seller",
+      "best_label_score": 0.136,
+      "best_label_fixture_key": "seller_names",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Date",
+          "distance": 24.5,
+          "direction": "left"
+        },
+        {
+          "text": "Signature of Seller",
+          "distance": 68.1,
+          "direction": "right"
+        }
+      ],
+      "reason_no_match": "weak match: label 'Signature of Seller' would map to 'seller_names' but score 0.136 < threshold 0.55"
+    },
+    {
+      "index": 171,
+      "field_name": "form1[0].#subform[4].TextField1[4]",
+      "page": 4,
+      "x": 540,
+      "y": 252,
+      "width": 54,
+      "height": 27,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Date",
+          "distance": 24.6,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField1[4]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 172,
+      "field_name": "form1[0].#subform[4].TextField1[5]",
+      "page": 4,
+      "x": 261,
+      "y": 117,
+      "width": 54,
+      "height": 27,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Date",
+          "distance": 24.3,
+          "direction": "left"
+        },
+        {
+          "text": "Signature of Purchaser",
+          "distance": 75.1,
+          "direction": "right"
+        },
+        {
+          "text": "This form was prepared by the Texas Real Estate Commission in accordance with Texas Property Code § 5.008(b) and is to",
+          "distance": 79.3,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField1[5]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 173,
+      "field_name": "form1[0].#subform[4].TextField1[6]",
+      "page": 4,
+      "x": 540,
+      "y": 117,
+      "width": 54,
+      "height": 27,
+      "field_type": "text",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Date",
+          "distance": 24.5,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].TextField1[6]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 174,
+      "field_name": "form1[0].#subform[4].SignatureField1[0]",
+      "page": 4,
+      "x": 324,
+      "y": 252,
+      "width": 216,
+      "height": 27,
+      "field_type": "signature",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Signature of Seller",
+          "distance": 79.2,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Date' but no matching fixture key exists for it"
+    },
+    {
+      "index": 175,
+      "field_name": "form1[0].#subform[4].SignatureField1[1]",
+      "page": 4,
+      "x": 36,
+      "y": 252,
+      "width": 225,
+      "height": 27,
+      "field_type": "signature",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Signature of Seller",
+          "distance": 83.6,
+          "direction": "left"
+        },
+        {
+          "text": "The undersigned purchaser hereby acknowledges receipt of the foregoing notice.",
+          "distance": 89.5,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].SignatureField1[1]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 176,
+      "field_name": "form1[0].#subform[4].SignatureField1[2]",
+      "page": 4,
+      "x": 36,
+      "y": 117,
+      "width": 225,
+      "height": 27,
+      "field_type": "signature",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Signature of Purchaser",
+          "distance": 76.4,
+          "direction": "left"
+        },
+        {
+          "text": "The undersigned purchaser hereby acknowledges receipt of the foregoing notice.",
+          "distance": 89.2,
+          "direction": "above"
+        },
+        {
+          "text": "This form replaces OP-H.",
+          "distance": 90.9,
+          "direction": "below"
+        }
+      ],
+      "reason_no_match": "label found '[field-name] form1[0].#subform[4].SignatureField1[2]' but no matching fixture key exists for it"
+    },
+    {
+      "index": 177,
+      "field_name": "form1[0].#subform[4].SignatureField1[3]",
+      "page": 4,
+      "x": 324,
+      "y": 117,
+      "width": 216,
+      "height": 27,
+      "field_type": "signature",
+      "nearest_labels_within_100px": [
+        {
+          "text": "Signature of Purchaser",
+          "distance": 72.1,
+          "direction": "left"
+        }
+      ],
+      "reason_no_match": "label found 'Date' but no matching fixture key exists for it"
+    }
+  ],
+  "skipped": []
+}

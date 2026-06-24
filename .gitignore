@@ -5,6 +5,14 @@ public/frame_*.jpg
 # Fill-and-verify loop scratch output (PDFs + PNGs, large + ephemeral)
 .tmp-fill-verify/
 
+# Offline TREC labeler intermediate PDF page PNGs
+.tmp-labeler-pages/
+
+# Sage reviewer regression test artifacts (sage_4, 2026-06-22) — local only
+scripts/.sage-regression-fixture.json
+scripts/.sage-adversarial-fixture.json
+.sage-regression-report.json
+
 # Logs
 logs
 *.log

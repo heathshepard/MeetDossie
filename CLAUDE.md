@@ -116,7 +116,7 @@ After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quin
 | Solo | $79 | $39 |
 | Team | $199 (3 seats; max 8 at $35/seat) | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (50 spots, 12 taken, 38 remaining) | — |
+| **Founding Member** | **$29** (50 spots, 13 taken, 37 remaining) | — |
 
 Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
@@ -124,7 +124,7 @@ Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $349/month** (12 founding @ $29 + 1 friend @ $1). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
+**MRR: $377/month** (13 founding @ $29). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
 
 ---
 
