@@ -3,10 +3,19 @@
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email } = req.body;
+  const { email, reason } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
+  }
+
+  // Validate reason: must be a string or null, and whitelisted
+  const allowedReasons = ['too_many', 'not_interested', 'wrong_audience', 'other'];
+  if (reason !== undefined && reason !== null && typeof reason !== 'string') {
+    return res.status(400).json({ error: 'Reason must be a string or null' });
+  }
+  if (reason && !allowedReasons.includes(reason)) {
+    return res.status(400).json({ error: `Reason must be one of: ${allowedReasons.join(', ')}, or null` });
   }
 
   try {
@@ -25,10 +34,11 @@
     if (checkRes.ok) {
       const existing = await checkRes.json();
       if (existing && existing.length > 0) {
-        // Already suppressed; return 200 (idempotent)
+        // Already suppressed; return 200 (idempotent, keep original reason)
         return res.status(200).json({
           unsubscribed: true,
           unsubscribed_at: existing[0].unsubscribed_at,
+          reason: existing[0].reason,
         });
       }
     }
@@ -43,7 +53,11 @@
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email,
+        reason: reason || null,
+        source: 'cold_email'
+      }),
     });
 
     if (!insertRes.ok) {
@@ -63,6 +77,7 @@
     return res.status(200).json({
       unsubscribed: true,
       unsubscribed_at: inserted[0].unsubscribed_at,
+      reason: inserted[0].reason,
     });
   } catch (error) {
     console.error('[unsubscribe] Uncaught error:', error.message);
