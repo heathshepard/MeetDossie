@@ -47,6 +47,10 @@
                          "destination":  "/terms.html"
                      },
                      {
+                         "source":  "/unsubscribe",
+                         "destination":  "/unsubscribe.html"
+                     },
+                     {
                          "source":  "/ventures",
                          "destination":  "/ventures.html"
                      },
