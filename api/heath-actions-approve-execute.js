@@ -1,13 +1,14 @@
-// Vercel Serverless Function: /api/heath-actions-approve-execute
+﻿// Vercel Serverless Function: /api/heath-actions-approve-execute
 //
 // POST — Approves and executes a structured action item (e.g., send email).
 // Called by Jarvis HUD when Heath taps "APPROVE & SEND" or similar button.
 //
 // POST /api/heath-actions-approve-execute
-// { action_id }
+// { action_id, dry_run?: 1 }
 //
 // Supports:
-//   - action_type='send_email': calls Resend API with payload (to, cc, bcc, subject, body_html, body_text, etc.)
+//   - action_type='send_email': calls Resend API with recipient_email + subject + body
+//   - dry_run=1: validates email without sending (returns would_send_to, would_subject, etc.)
 //   - action_type='manual': stub (returns 501 TODO)
 //   - Other types: stub (returns 501 TODO)
 //
@@ -15,12 +16,14 @@
 //   - Validates action exists, is pending, has valid action_type + payload
 //   - For send_email: calls Resend, stores message_id in execution_result
 //   - Sets approved_at, executed_at, status='done'
+//   - On error: status='failed', failure_reason set
 //   - Idempotent: re-submit returns last execution_result
 //
 // Auth: Bearer JWT (health.shepard@kw.com) only. RLS enforces tenant ownership.
 //
 // Returns:
 //   200 { ok: true, message_id, executed_at }
+//   200 { ok: true, dry_run: true, would_send_to, would_subject, validated_at }
 //   400 { ok: false, error: "..." }
 //   501 { ok: false, error: "Action type not implemented" }
 //   422 { ok: false, error: "Action validation failed" }
@@ -56,14 +59,21 @@ async function authorizeHealthTenant(req, supabase) {
   }
 }
 
-async function executeEmailAction(payload, supabase) {
-  // Validate payload structure
-  if (!payload.to || !payload.subject || (!payload.body_html && !payload.body_text)) {
-    throw new Error('Email payload missing required fields: to, subject, (body_html or body_text)');
+async function executeEmailAction(action, supabase, dryRun = false) {
+  // Support both payload.to (structured) and action.recipient_email (direct DB column)
+  const emailPayload = action.payload || {};
+  const to = emailPayload.to || action.recipient_email;
+  const subject = emailPayload.subject || action.subject;
+  const bodyText = emailPayload.body_text || action.body;
+  const bodyHtml = emailPayload.body_html;
+
+  // Validate required fields
+  if (!to || !subject || (!bodyHtml && !bodyText)) {
+    throw new Error('Email missing required fields: to, subject, (body_html or body_text)');
   }
 
   // Validate sender (must be an approved alias)
-  const from = payload.from_email || 'heath@meetdossie.com';
+  const from = emailPayload.from_email || 'heath@meetdossie.com';
   const allowedSenders = [
     'heath@meetdossie.com',
     'noreply@meetdossie.com',
@@ -73,32 +83,51 @@ async function executeEmailAction(payload, supabase) {
     throw new Error(`Sender "${from}" not allowed. Use ${allowedSenders.join(', ')}`);
   }
 
+  // Validate recipient email format
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    throw new Error(`Invalid recipient email: ${to}`);
+  }
+
   // Initialize Resend
   if (!RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY not configured');
   }
-  const resend = new Resend(RESEND_API_KEY);
 
-  // Prepare Resend email
-  const emailPayload = {
-    from: payload.from_name ? `${payload.from_name} <${from}>` : from,
-    to: payload.to,
-    subject: payload.subject,
-    reply_to: payload.reply_to,
+  // Build Resend email payload
+  const emailToSend = {
+    from: emailPayload.from_name ? `${emailPayload.from_name} <${from}>` : from,
+    to,
+    subject,
+    reply_to: emailPayload.reply_to,
   };
 
-  if (payload.body_html) emailPayload.html = payload.body_html;
-  if (payload.body_text) emailPayload.text = payload.body_text;
-  if (payload.cc) emailPayload.cc = payload.cc;
-  if (payload.bcc) emailPayload.bcc = payload.bcc;
+  if (bodyHtml) emailToSend.html = bodyHtml;
+  if (bodyText) emailToSend.text = bodyText;
+  if (emailPayload.cc) emailToSend.cc = emailPayload.cc;
+  if (emailPayload.bcc) emailToSend.bcc = emailPayload.bcc;
+
+  // Dry run: validate without sending
+  if (dryRun) {
+    return {
+      type: 'send_email',
+      message_id: null,
+      dry_run: true,
+      would_send_to: to,
+      would_subject: subject,
+      would_from: from,
+      validated_at: new Date().toISOString(),
+    };
+  }
 
   // Send via Resend
-  const { data, error } = await resend.emails.send(emailPayload);
+  const resend = new Resend(RESEND_API_KEY);
+  const { data, error } = await resend.emails.send(emailToSend);
   if (error) throw error;
 
   return {
     type: 'send_email',
     message_id: data.id,
+    sent_to: to,
     sent_at: new Date().toISOString(),
   };
 }
@@ -118,7 +147,9 @@ module.exports = async function handler(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
 
   try {
-    const { action_id } = req.body || {};
+    const { action_id, dry_run } = req.body || {};
+    const dryRun = dry_run === 1 || dry_run === true;
+
     if (!action_id) {
       return res.status(400).json({ ok: false, error: 'action_id is required' });
     }
@@ -135,15 +166,15 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ ok: false, error: 'Action not found' });
     }
 
-    // Reject if action_type not set
+    // Reject if action_type not set or manual
     if (!action.action_type || action.action_type === 'manual') {
       return res
         .status(422)
         .json({ ok: false, error: 'Action is manual or has no action_type; cannot auto-execute' });
     }
 
-    // If already executed, return the cached result (idempotent)
-    if (action.executed_at && action.execution_result) {
+    // If already executed (and not a dry run), return the cached result (idempotent)
+    if (!dryRun && action.status === 'done' && action.execution_result) {
       return res.status(200).json({
         ok: true,
         message: 'Already executed',
@@ -153,20 +184,52 @@ module.exports = async function handler(req, res) {
 
     let executionResult;
 
-    // Route by action_type
-    if (action.action_type === 'send_email') {
-      if (!action.payload) {
-        return res.status(422).json({ ok: false, error: 'Email action missing payload' });
+    try {
+      // Route by action_type
+      if (action.action_type === 'send_email') {
+        if (!action.payload && !action.recipient_email) {
+          return res.status(422).json({ ok: false, error: 'Email action missing payload or recipient_email' });
+        }
+        executionResult = await executeEmailAction(action, supabase, dryRun);
+      } else if (action.action_type === 'send_telegram') {
+        return res.status(501).json({ ok: false, error: 'send_telegram not yet implemented' });
+      } else if (action.action_type === 'process_refund') {
+        return res.status(501).json({ ok: false, error: 'process_refund not yet implemented' });
+      } else if (action.action_type === 'execute_purchase') {
+        return res.status(501).json({ ok: false, error: 'execute_purchase not yet implemented' });
+      } else {
+        return res.status(422).json({ ok: false, error: `Unknown action_type: ${action.action_type}` });
       }
-      executionResult = await executeEmailAction(action.payload, supabase);
-    } else if (action.action_type === 'send_telegram') {
-      return res.status(501).json({ ok: false, error: 'send_telegram not yet implemented' });
-    } else if (action.action_type === 'process_refund') {
-      return res.status(501).json({ ok: false, error: 'process_refund not yet implemented' });
-    } else if (action.action_type === 'execute_purchase') {
-      return res.status(501).json({ ok: false, error: 'execute_purchase not yet implemented' });
-    } else {
-      return res.status(422).json({ ok: false, error: `Unknown action_type: ${action.action_type}` });
+    } catch (execErr) {
+      // Execution failed: mark as failed instead of crashing
+      const now = new Date().toISOString();
+      const { error: updateErr } = await supabase
+        .from('heath_actions')
+        .update({
+          status: 'failed',
+          failure_reason: execErr.message,
+          executed_at: now,
+        })
+        .eq('id', action_id)
+        .eq('tenant_id', auth.user_id);
+
+      if (updateErr) {
+        console.error('[heath-actions-approve-execute] update failed:', updateErr);
+      }
+
+      return res.status(422).json({
+        ok: false,
+        error: 'Execution failed',
+        reason: execErr.message,
+      });
+    }
+
+    // For dry runs, return validation result without updating DB
+    if (dryRun) {
+      return res.status(200).json({
+        ok: true,
+        ...executionResult,
+      });
     }
 
     // Update the action: set approved_at, executed_at, status, execution_result
@@ -178,6 +241,7 @@ module.exports = async function handler(req, res) {
         executed_at: now,
         status: 'done',
         execution_result: executionResult,
+        failure_reason: null,
       })
       .eq('id', action_id)
       .eq('tenant_id', auth.user_id);
