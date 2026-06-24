@@ -72,7 +72,7 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 <main>
  <div class="hero-eyebrow">Legal</div>
  <h1>Terms of Service</h1>
- <p class="updated">Effective May 24, 2026</p>
+ <p class="updated">Effective June 24, 2026 (v2.1)</p>
 
  <div class="draft-banner">
   <strong>Draft pending attorney review.</strong> This document is a working draft and may change before final publication. If you have questions in the meantime, email <a href="mailto:info@meetdossie.com">info@meetdossie.com</a>.
@@ -93,52 +93,83 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
  <h2>3. Subscription and billing</h2>
  <ul>
   <li>Paid plans are billed on a recurring basis (monthly or annual, as selected at checkout) by our payment processor, Stripe.</li>
-  <li>Current published plans: <strong>Solo $79/mo</strong>, <strong>Team $199/mo</strong> (3 seats; additional seats $35/mo up to 8), <strong>Brokerage</strong> (custom). <strong>Founding Member</strong> pricing of <strong>$29/mo</strong> is offered to the first 50 founding members and is honored for the lifetime of the subscription so long as the subscription remains continuously active.</li>
+  <li>Current published plans: <strong>Solo $79/mo</strong>, <strong>Team $199/mo</strong> (3 seats; additional seats $35/mo up to 8), <strong>Brokerage</strong> (custom). <strong>Founding Member</strong> pricing of <strong>$29/mo</strong> is offered to the first 50 founding members and is honored as a contractually binding rate lock for the lifetime of the subscription, as described in detail in <strong>Section 4 (Founding Tier Pricing Lock)</strong>.</li>
   <li>Add-ons (Reply Monitoring, AI Autopilot, Compliance Vault, etc.) are priced separately. <strong>Founding members receive 50% off all add-ons for the life of their subscription</strong> while it remains continuously active.</li>
   <li>Fees are stated in U.S. dollars and are <strong>non-refundable</strong> except where required by law.</li>
   <li>Subscriptions automatically renew at the end of each billing cycle at the then-current rate unless cancelled before the renewal date.</li>
-  <li>We may change pricing on a going-forward basis with at least 30 days' notice. Founding Member pricing is exempt from going-forward price increases for the life of the active subscription.</li>
+  <li>We may change pricing on a going-forward basis for new customers with at least 30 days' notice. Founding Members are exempt from going-forward price increases on the core Service as described in <strong>Section 4</strong>. The narrow regulatory and force-majeure carveouts in Section 4.5 are the only circumstances under which a Founding Member's rate may change.</li>
  </ul>
 
- <h2>4. Cancellation</h2>
+ <h2>4. Founding Tier Pricing Lock</h2>
+ <p>The first 50 customers who subscribe to Dossie under the <strong>Founding Member</strong> tier at <strong>$29 per month</strong> are entitled to a contractually binding rate lock on the core Service for the lifetime of their subscription, subject to the conditions and carveouts in this Section 4. We call this the &quot;<strong>Founding Lock</strong>.&quot;</p>
+
+ <p><strong>4.1 What the Founding Lock guarantees.</strong> As long as your Founding Member subscription remains continuously active (defined in &sect;4.3), Dossie will not raise the monthly rate you pay for the <strong>core Dossie Service</strong> above $29/mo. This is a binding commitment, not a promotion. The Founding Lock is offered in consideration of your early adoption, feedback, and willingness to use the Service before it has been validated at scale.</p>
+
+ <p><strong>4.2 What &quot;core Service&quot; means.</strong> The Founding Lock applies to the core Dossie product as it exists at signup and to any feature added to the core product after signup at no additional charge to non-Founding customers. The Founding Lock does <strong>not</strong> apply to optional paid add-ons (including but not limited to Reply Monitoring, AI Autopilot, Compliance Vault, premium templates, AI video generation, concierge onboarding, brokerage-tier seat expansion beyond the Solo plan, and any future named add-on offered as a separately priced product). Add-ons are billed at their then-current published rates. Founding members receive <strong>50% off all add-ons</strong> for the duration of their active Founding Lock, as described in Section 3.</p>
+
+ <p><strong>4.3 What &quot;continuously active&quot; means.</strong> Your Founding Lock remains in effect so long as:</p>
+ <ul>
+  <li>(a) Your Stripe subscription has not been voluntarily cancelled by you;</li>
+  <li>(b) No payment to Dossie has been declined and remained unpaid for more than <strong>60 consecutive days</strong> without you initiating a payment method update or contacting us to resume billing;</li>
+  <li>(c) Your account has not been terminated by Dossie for material breach of these Terms (including, without limitation, fraud, violation of Section 6 (Acceptable Use), or chargeback abuse); and</li>
+  <li>(d) You have not transferred your account to a third party without our written consent.</li>
+ </ul>
+ <p>If any of (a)&ndash;(d) occurs, the Founding Lock terminates automatically and any future subscription will be billed at the then-current published rate. Re-subscribing after lapse does not restore the Founding Lock. We may, at our sole discretion, reinstate a lapsed Founding Lock in unusual circumstances (e.g., a brief payment-method failure resolved within 14 days of notification), but reinstatement is a courtesy, not a right.</p>
+
+ <p><strong>4.4 What Dossie can and cannot change about the core Service.</strong> Dossie reserves the right to add features, improve performance, redesign the interface, change underlying vendors, and otherwise enhance the core Service over time. Dossie commits that it will not <strong>materially reduce</strong> the core feature set that was available to you at the time you became a Founding Member without offering you a reasonable functional replacement at no additional charge. A change is &quot;material&quot; if it removes a feature you have actively used in the 90 days preceding the change.</p>
+
+ <p><strong>4.5 Regulatory and force-majeure carveouts.</strong> The Founding Lock is contractually binding but is subject to the following narrow carveouts:</p>
+ <ul>
+  <li><strong>(a) Regulatory necessity.</strong> If a federal, state, or local law, regulation, or order of a court or regulatory agency requires Dossie to collect a tax, fee, surcharge, or otherwise increase the price for legal compliance, Dossie may pass through the regulated amount with at least <strong>90 days' prior written notice</strong> to your account email. Dossie may not use this carveout to recover ordinary cost increases.</li>
+  <li><strong>(b) Force majeure / business cessation.</strong> If Dossie (or its successor under &sect;4.7) ceases ordinary business operations due to insolvency, dissolution, court order, regulatory action, casualty, or other force majeure event beyond its reasonable control, Dossie's obligation to honor the Founding Lock terminates upon cessation. We will give you reasonable advance notice and a data-export window where practicable.</li>
+  <li><strong>(c) Catastrophic vendor cost shift.</strong> If a critical infrastructure vendor (e.g., Anthropic for AI inference, Supabase for database) materially changes its pricing in a way that makes the $29/mo rate structurally unsustainable, Dossie may, with at least <strong>90 days' prior written notice</strong>, offer Founding members the choice of (i) continuing at $29/mo with a documented reduction in AI usage limits, or (ii) accepting a one-time, capped rate increase tied directly to the vendor pass-through. This carveout has never been invoked as of the effective date of this Section 4, and Dossie commits to use it only as a last resort. Any invocation will be documented publicly on this Terms page.</li>
+ </ul>
+
+ <p><strong>4.6 Disclaimer &mdash; what the Founding Lock is not.</strong> The Founding Lock is a binding commitment between you and Dossie regarding your subscription rate. It is <strong>not</strong> a guarantee that Dossie will exist indefinitely, that any particular feature will exist indefinitely, that the Service will remain free of bugs or interruptions, or that you will receive any specific business outcome. Sections 9 (Disclaimer of Warranties), 10 (Limitation of Liability), and 11 (Indemnification) apply in full to your use of the Service under the Founding Lock.</p>
+
+ <p><strong>4.7 Survival on sale, merger, or assignment.</strong> The Founding Lock is <strong>binding on Dossie's successors and assigns</strong>. If Dossie LLC is acquired, merges with another company, sells substantially all of its assets, or otherwise transfers ownership of the Service, the acquiring or successor entity must honor the Founding Lock for the remaining lifetime of each affected Founding Member's continuously active subscription, subject to the same conditions and carveouts in this Section 4. Dossie will require the successor entity to agree to this commitment in writing as a condition of any transaction. If the successor entity sunsets the Service rather than continuing it, &sect;4.5(b) applies.</p>
+
+ <p><strong>4.8 Pro-customer interpretation.</strong> Any ambiguity in this Section 4 will be resolved in favor of the Founding Member. The Founding Lock survives ordinary going-forward price increases that Dossie may publish for new customers under Section 3 (Subscription and Billing). The fact that the published rate for new customers may rise is not, by itself, a basis for ending the Founding Lock for existing Founding Members.</p>
+
+ <h2>5. Cancellation</h2>
  <p>You may cancel your subscription at any time from your account settings or by emailing <a href="mailto:info@meetdossie.com">info@meetdossie.com</a>. Cancellation takes effect at the end of the current billing cycle &mdash; you retain access through the period you have already paid for, and you will not be charged for the next cycle. We do not pro-rate refunds for partial billing cycles except where required by law.</p>
 
- <h2>5. Acceptable use</h2>
+ <h2>6. Acceptable use</h2>
  <p>You agree not to: (a) use the Service to violate any law or the rights of any third party; (b) upload content that is unlawful, infringing, or contains malware; (c) attempt to reverse engineer, scrape, or interfere with the Service or its underlying APIs; (d) resell or sublicense access to the Service without our written consent; (e) use the Service to send unsolicited bulk communications; or (f) use the Service to abuse, harass, or harm other users or third parties.</p>
 
- <h2>6. Your content</h2>
+ <h2>7. Your content</h2>
  <p>You retain all ownership of the contracts, party information, documents, and other content you upload to the Service ("<strong>Your Content</strong>"). You grant Dossie a limited, non-exclusive license to host, process, and display Your Content solely as needed to provide the Service to you. We do not sell Your Content. Documents you upload are stored in private cloud storage and are accessible only to your account and to Dossie personnel as needed for support and operations.</p>
 
- <h2>7. AI-generated output</h2>
+ <h2>8. AI-generated output</h2>
  <p>Several Service features produce drafts, summaries, deadline calculations, or extracted data using artificial intelligence (including third-party language models such as Anthropic's Claude). These outputs are <strong>provided for your review</strong> and are not legal, financial, brokerage, or other professional advice. You are responsible for reviewing all AI-generated output before relying on it, sending it to clients, or filing it with any party. Dossie does not guarantee that AI output will be accurate, complete, current, or fit for any specific purpose.</p>
 
- <h2>8. Disclaimer of warranties</h2>
+ <h2>9. Disclaimer of warranties</h2>
  <p>The Service is provided "<strong>AS IS</strong>" and "<strong>AS AVAILABLE</strong>" without warranties of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, non-infringement, or that the Service will be uninterrupted, error-free, or secure. The only representations and warranties Dossie makes regarding the Service are those expressly stated in these Terms. <strong>You acknowledge that you have not relied on any statement, promise, advertisement, demonstration, marketing material, social media post, or other representation outside these Terms in deciding to use or pay for the Service.</strong> Any such extra-contractual statements are disclaimed and superseded by these Terms.</p>
 
- <h2>9. Limitation of liability</h2>
+ <h2>10. Limitation of liability</h2>
  <p>To the maximum extent permitted by law, Dossie's total cumulative liability arising out of or relating to the Service or these Terms <strong>shall not exceed the amount you paid Dossie in the 12 months preceding the event giving rise to the claim</strong>. In no event will Dossie be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages &mdash; including lost profits, lost data, lost commissions, missed deadlines, lost business opportunities, or business interruption &mdash; even if advised of the possibility of such damages. <strong>This limitation applies to all theories of liability, whether based in contract, tort (including negligence), strict liability, statute, or otherwise, including without limitation any claim under the Texas Deceptive Trade Practices &mdash; Consumer Protection Act (Tex. Bus. &amp; Com. Code Ch. 17), to the maximum extent permitted by law.</strong> Some jurisdictions do not allow these limitations; in those jurisdictions our liability is limited to the smallest extent permitted by law.</p>
 
- <h2>10. Indemnification</h2>
+ <h2>11. Indemnification</h2>
  <p>You agree to defend, indemnify, and hold harmless Dossie and its affiliates, officers, directors, members, employees, contractors, and agents (collectively, the "<strong>Dossie Parties</strong>") from and against any claims, damages, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or related to: (a) your use or misuse of the Service; (b) Your Content; (c) your breach of these Terms; or (d) your violation of any law or the rights of any third party.</p>
 
- <h2>11. Termination and suspension</h2>
+ <h2>12. Termination and suspension</h2>
  <p>We may suspend or terminate your access to the Service if you materially breach these Terms or use the Service in a way that creates legal exposure for Dossie or other users. On termination, your right to use the Service ends. We will retain your data for 90 days after termination as described in our <a href="/privacy">Privacy Policy</a> to allow you to reactivate or export, then delete it (except as required for legal, tax, or accounting purposes).</p>
 
- <h2>12. Pre-suit notice and opportunity to cure</h2>
+ <h2>13. Pre-suit notice and opportunity to cure</h2>
  <p>Before initiating any legal proceeding, claim, or formal dispute (including any claim under the Texas Deceptive Trade Practices Act or other consumer-protection statute), you agree to give Dossie <strong>at least 60 days' prior written notice</strong> by email to <a href="mailto:info@meetdossie.com">info@meetdossie.com</a> describing in reasonable detail (a) the nature of the claim, (b) the specific facts giving rise to it, (c) the relief sought, and (d) a daytime contact for resolution discussions. During the 60-day period, Dossie will have the opportunity to investigate and, if appropriate, cure the issue or offer relief. This notice requirement is in addition to any statutory notice required by law (including without limitation Tex. Bus. &amp; Com. Code &sect; 17.505), and is a condition precedent to filing suit.</p>
 
- <h2>13. Governing law and venue</h2>
+ <h2>14. Governing law and venue</h2>
  <p>These Terms are governed by the laws of the State of Texas, without regard to its conflict-of-law principles. Any dispute arising out of or relating to these Terms or the Service shall be brought exclusively in the state or federal courts located in Bexar County, Texas, and you consent to the personal jurisdiction of those courts.</p>
 
- <h2>14. Changes to these Terms</h2>
+ <h2>15. Changes to these Terms</h2>
  <p>We may update these Terms from time to time. If the changes are material we will notify you at the email on file or in the workspace at least 14 days before they take effect. Continued use of the Service after the effective date constitutes acceptance.</p>
 
- <h2>15. Entire agreement; severability; assignment</h2>
+ <h2>16. Entire agreement; severability; assignment</h2>
  <p><strong>Entire agreement.</strong> These Terms (together with our <a href="/privacy">Privacy Policy</a>) constitute the <strong>complete and exclusive agreement</strong> between you and Dossie regarding the Service and supersede all prior or contemporaneous communications, proposals, advertisements, demonstrations, and agreements (whether oral or written). You acknowledge you have not relied on any statement or representation not expressly set forth in these Terms.</p>
  <p><strong>Severability and savings.</strong> If any provision (or any limitation, disclaimer, or remedy in any provision) is held invalid or unenforceable by a court of competent jurisdiction &mdash; including as applied to a particular claim under the Texas Deceptive Trade Practices Act or other statute &mdash; that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall remain in full force and effect.</p>
  <p><strong>Waiver and assignment.</strong> Our failure to enforce any provision is not a waiver. You may not assign these Terms without our written consent; we may assign them in connection with a merger, acquisition, reorganization (including conversion from a sole proprietorship to a limited liability company or other entity form), or sale of assets.</p>
 
- <h2>16. Contact</h2>
+ <h2>17. Contact</h2>
  <p>Questions about these Terms? Email <a href="mailto:info@meetdossie.com">info@meetdossie.com</a>.</p>
 </main>
 
