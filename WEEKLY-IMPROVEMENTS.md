@@ -163,7 +163,10 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Fixed sign-in button not working** (customer)
 - We fixed a critical bug that prevented agents from signing in to the Jarvis app. Sign-in now works properly again.
 
-<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,348a261,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,6501ff1,654af68,69f1b2b,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,d6e08c4,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
+**Email unsubscribe page now available** (customer)
+- We added an unsubscribe page so agents can easily manage their email preferences and comply with anti-spam regulations. This ensures our cold email campaigns stay compliant and respect your communication choices.
+
+<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,348a261,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,62a26ad,6501ff1,654af68,69f1b2b,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,d6e08c4,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
 
 ## Week of June 5, 2026
 
