@@ -3473,6 +3473,7 @@
       setInterval(() => { loadThroughput().catch(() => {}); }, 30000);
       // Future Builds: idea queue panel
       loadFutureBuilds().catch(() => {});
+      wireFutureBuildsPanel();
       setInterval(() => { loadFutureBuilds().catch(() => {}); }, 120000); // 2 min
       subscribeCustomerEvents();
       wireQuickActions();
@@ -6965,6 +6966,36 @@
       }
     }
 
+    function wireFutureBuildsPanel() {
+      const addBtn = document.getElementById('future-builds-add-btn');
+      if (addBtn && !addBtn.__jarvisWired) {
+        addBtn.addEventListener('click', showAddFutureBuildModal);
+        addBtn.__jarvisWired = true;
+      }
+      const detailOverlay = document.getElementById('future-build-modal-overlay');
+      const addOverlay = document.getElementById('add-future-build-modal-overlay');
+      if (detailOverlay && !detailOverlay.__jarvisWired) {
+        detailOverlay.addEventListener('click', (e) => {
+          if (e.target === detailOverlay) detailOverlay.classList.add('hidden');
+        });
+        detailOverlay.__jarvisWired = true;
+      }
+      if (addOverlay && !addOverlay.__jarvisWired) {
+        addOverlay.addEventListener('click', (e) => {
+          if (e.target === addOverlay) addOverlay.classList.add('hidden');
+        });
+        addOverlay.__jarvisWired = true;
+      }
+      document.querySelectorAll('.future-builds-tab').forEach(tab => {
+        if (tab.__jarvisWired) return;
+        tab.addEventListener('click', (e) => {
+          const status = e.target.dataset.status;
+          renderFutureBuilds(window.__futureBuildsCache || {}, status);
+        });
+        tab.__jarvisWired = true;
+      });
+    }
+
     function renderKnowledgePanel(data) {
       const el = document.getElementById('knowledge-list');
       if (!el) return;
@@ -7607,27 +7638,6 @@
         btn.__jarvisWired = true;
       }
       updateRoutingChip();
-      // Wire Future Builds
-      const addBuildBtn = document.getElementById('future-builds-add-btn');
-      if (addBuildBtn && !addBuildBtn.__jarvisWired) {
-        addBuildBtn.addEventListener('click', showAddFutureBuildModal);
-        addBuildBtn.__jarvisWired = true;
-      }
-      // Close modals on overlay click
-      const futureDetailOverlay = document.getElementById('future-build-modal-overlay');
-      const futureAddOverlay = document.getElementById('add-future-build-modal-overlay');
-      if (futureDetailOverlay && !futureDetailOverlay.__jarvisWired) {
-        futureDetailOverlay.addEventListener('click', (e) => {
-          if (e.target === futureDetailOverlay) futureDetailOverlay.classList.add('hidden');
-        });
-        futureDetailOverlay.__jarvisWired = true;
-      }
-      if (futureAddOverlay && !futureAddOverlay.__jarvisWired) {
-        futureAddOverlay.addEventListener('click', (e) => {
-          if (e.target === futureAddOverlay) futureAddOverlay.classList.add('hidden');
-        });
-        futureAddOverlay.__jarvisWired = true;
-      }
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', bootstrap);
