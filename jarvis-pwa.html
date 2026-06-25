@@ -6818,6 +6818,153 @@
       }
     }
 
+    // ===== FUTURE BUILDS FUNCTIONS (carter_14 scope fix) =====
+    async function loadFutureBuilds() {
+      if (!tenant) return;
+      const listEl = document.getElementById('future-builds-list');
+      if (!listEl) return;
+      try {
+        const data = await authedFetch('/api/jarvis-future-builds-list');
+        if (!data?.ok) {
+          listEl.innerHTML = '<div class="future-builds-empty">Failed to load ideas.</div>';
+          return;
+        }
+        renderFutureBuilds(data.builds || {});
+      } catch (err) {
+        console.warn('[jarvis] loadFutureBuilds failed', err.message);
+        listEl.innerHTML = '<div class="future-builds-empty">Offline.</div>';
+      }
+    }
+
+    function renderFutureBuilds(grouped) {
+      const listEl = document.getElementById('future-builds-list');
+      if (!listEl) return;
+      const items = [];
+      const statusOrder = ['idea', 'queued', 'dod_drafting', 'building', 'shipped', 'rejected'];
+      for (const status of statusOrder) {
+        const builds = grouped[status] || [];
+        for (const build of builds) {
+          items.push(build);
+        }
+      }
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="future-builds-empty">No ideas yet. Tap + to add one.</div>';
+        return;
+      }
+      listEl.innerHTML = items.map(b => `
+        <div class="future-build-item" data-build-id="${b.id}">
+          <div class="future-build-item-title">${escapeHtml(b.title)}</div>
+          <div class="future-build-item-meta">
+            <span class="future-build-status">${b.status}</span>
+            <span>${escapeHtml(b.source || '—')}</span>
+          </div>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('.future-build-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = item.getAttribute('data-build-id');
+          const build = items.find(b => b.id === id);
+          if (build) showFutureBuildsModal(build);
+        });
+      });
+    }
+
+    function showFutureBuildsModal(build) {
+      const overlay = document.getElementById('future-build-modal-overlay');
+      if (!overlay) return;
+      document.getElementById('future-build-modal-title-val').textContent = build.title || '—';
+      document.getElementById('future-build-modal-desc').textContent = build.description || '—';
+      document.getElementById('future-build-modal-source').textContent = build.source || '—';
+      document.getElementById('future-build-modal-score').textContent = build.score !== null ? String(build.score) : '—';
+      const statusSel = document.getElementById('future-build-modal-status');
+      if (statusSel) statusSel.value = build.status || 'idea';
+      const docSection = document.getElementById('future-build-modal-doc-section');
+      if (build.source_doc_path && docSection) {
+        docSection.style.display = 'flex';
+        const link = document.getElementById('future-build-modal-doc-link');
+        if (link) link.href = build.source_doc_path;
+      } else if (docSection) {
+        docSection.style.display = 'none';
+      }
+      const prereqSection = document.getElementById('future-build-modal-prereq-section');
+      if (build.prerequisite && prereqSection) {
+        prereqSection.style.display = 'flex';
+        document.getElementById('future-build-modal-prereq').textContent = build.prerequisite;
+      } else if (prereqSection) {
+        prereqSection.style.display = 'none';
+      }
+      overlay.classList.remove('hidden');
+      const saveBtn = document.getElementById('future-build-modal-save-btn');
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          const newStatus = statusSel.value || 'idea';
+          if (newStatus === build.status) {
+            overlay.classList.add('hidden');
+            return;
+          }
+          try {
+            const res = await authedFetch('/api/jarvis-future-builds-update', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: build.id, status: newStatus }),
+            });
+            if (res?.ok) {
+              overlay.classList.add('hidden');
+              await loadFutureBuilds();
+            }
+          } catch (err) {
+            console.warn('[jarvis] updateFutureBuild failed', err.message);
+          }
+        };
+      }
+      const closeBtn = document.getElementById('future-build-modal-close-btn');
+      if (closeBtn) {
+        closeBtn.onclick = () => overlay.classList.add('hidden');
+      }
+    }
+
+    function showAddFutureBuildModal() {
+      const overlay = document.getElementById('add-future-build-modal-overlay');
+      if (!overlay) return;
+      document.getElementById('add-build-title').value = '';
+      document.getElementById('add-build-desc').value = '';
+      document.getElementById('add-build-source').value = 'Heath direct idea';
+      overlay.classList.remove('hidden');
+      const submitBtn = document.getElementById('add-build-submit-btn');
+      if (submitBtn) {
+        submitBtn.onclick = async () => {
+          const title = document.getElementById('add-build-title').value.trim();
+          const desc = document.getElementById('add-build-desc').value.trim();
+          const source = document.getElementById('add-build-source').value || 'Heath direct idea';
+          if (!title || !source) {
+            alert('Title and source are required.');
+            return;
+          }
+          try {
+            const res = await authedFetch('/api/jarvis-future-builds-create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title,
+                description: desc || null,
+                source,
+              }),
+            });
+            if (res?.ok) {
+              overlay.classList.add('hidden');
+              await loadFutureBuilds();
+            }
+          } catch (err) {
+            console.warn('[jarvis] createFutureBuild failed', err.message);
+          }
+        };
+      }
+      const cancelBtn = document.getElementById('add-build-cancel-btn');
+      if (cancelBtn) {
+        cancelBtn.onclick = () => overlay.classList.add('hidden');
+      }
+    }
+
     function renderKnowledgePanel(data) {
       const el = document.getElementById('knowledge-list');
       if (!el) return;
@@ -7204,153 +7351,6 @@
       chip.classList.remove('hidden');
       micEl.textContent = isCustomIn  ? shorten(inLabel,  18) : 'Default';
       spkEl.textContent = isCustomOut ? shorten(outLabel, 18) : 'Default';
-    }
-
-    // ===== FUTURE BUILDS FUNCTIONS =====
-    async function loadFutureBuilds() {
-      if (!tenant) return;
-      const listEl = document.getElementById('future-builds-list');
-      if (!listEl) return;
-      try {
-        const data = await authedFetch('/api/jarvis-future-builds-list');
-        if (!data?.ok) {
-          listEl.innerHTML = '<div class="future-builds-empty">Failed to load ideas.</div>';
-          return;
-        }
-        renderFutureBuilds(data.builds || {});
-      } catch (err) {
-        console.warn('[jarvis] loadFutureBuilds failed', err.message);
-        listEl.innerHTML = '<div class="future-builds-empty">Offline.</div>';
-      }
-    }
-
-    function renderFutureBuilds(grouped) {
-      const listEl = document.getElementById('future-builds-list');
-      if (!listEl) return;
-      const items = [];
-      const statusOrder = ['idea', 'queued', 'dod_drafting', 'building', 'shipped', 'rejected'];
-      for (const status of statusOrder) {
-        const builds = grouped[status] || [];
-        for (const build of builds) {
-          items.push(build);
-        }
-      }
-      if (items.length === 0) {
-        listEl.innerHTML = '<div class="future-builds-empty">No ideas yet. Tap + to add one.</div>';
-        return;
-      }
-      listEl.innerHTML = items.map(b => `
-        <div class="future-build-item" data-build-id="${b.id}">
-          <div class="future-build-item-title">${escapeHtml(b.title)}</div>
-          <div class="future-build-item-meta">
-            <span class="future-build-status">${b.status}</span>
-            <span>${escapeHtml(b.source || '—')}</span>
-          </div>
-        </div>
-      `).join('');
-      listEl.querySelectorAll('.future-build-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const id = item.getAttribute('data-build-id');
-          const build = items.find(b => b.id === id);
-          if (build) showFutureBuildsModal(build);
-        });
-      });
-    }
-
-    function showFutureBuildsModal(build) {
-      const overlay = document.getElementById('future-build-modal-overlay');
-      if (!overlay) return;
-      document.getElementById('future-build-modal-title-val').textContent = build.title || '—';
-      document.getElementById('future-build-modal-desc').textContent = build.description || '—';
-      document.getElementById('future-build-modal-source').textContent = build.source || '—';
-      document.getElementById('future-build-modal-score').textContent = build.score !== null ? String(build.score) : '—';
-      const statusSel = document.getElementById('future-build-modal-status');
-      if (statusSel) statusSel.value = build.status || 'idea';
-      const docSection = document.getElementById('future-build-modal-doc-section');
-      if (build.source_doc_path && docSection) {
-        docSection.style.display = 'flex';
-        const link = document.getElementById('future-build-modal-doc-link');
-        if (link) link.href = build.source_doc_path;
-      } else if (docSection) {
-        docSection.style.display = 'none';
-      }
-      const prereqSection = document.getElementById('future-build-modal-prereq-section');
-      if (build.prerequisite && prereqSection) {
-        prereqSection.style.display = 'flex';
-        document.getElementById('future-build-modal-prereq').textContent = build.prerequisite;
-      } else if (prereqSection) {
-        prereqSection.style.display = 'none';
-      }
-      overlay.classList.remove('hidden');
-      const saveBtn = document.getElementById('future-build-modal-save-btn');
-      if (saveBtn) {
-        saveBtn.onclick = async () => {
-          const newStatus = statusSel.value || 'idea';
-          if (newStatus === build.status) {
-            overlay.classList.add('hidden');
-            return;
-          }
-          try {
-            const res = await authedFetch('/api/jarvis-future-builds-update', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: build.id, status: newStatus }),
-            });
-            if (res?.ok) {
-              overlay.classList.add('hidden');
-              await loadFutureBuilds();
-            }
-          } catch (err) {
-            console.warn('[jarvis] updateFutureBuild failed', err.message);
-          }
-        };
-      }
-      const closeBtn = document.getElementById('future-build-modal-close-btn');
-      if (closeBtn) {
-        closeBtn.onclick = () => overlay.classList.add('hidden');
-      }
-    }
-
-    function showAddFutureBuildModal() {
-      const overlay = document.getElementById('add-future-build-modal-overlay');
-      if (!overlay) return;
-      document.getElementById('add-build-title').value = '';
-      document.getElementById('add-build-desc').value = '';
-      document.getElementById('add-build-source').value = 'Heath direct idea';
-      overlay.classList.remove('hidden');
-      const submitBtn = document.getElementById('add-build-submit-btn');
-      if (submitBtn) {
-        submitBtn.onclick = async () => {
-          const title = document.getElementById('add-build-title').value.trim();
-          const desc = document.getElementById('add-build-desc').value.trim();
-          const source = document.getElementById('add-build-source').value || 'Heath direct idea';
-          if (!title || !source) {
-            alert('Title and source are required.');
-            return;
-          }
-          try {
-            const res = await authedFetch('/api/jarvis-future-builds-create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                title,
-                description: desc || null,
-                source,
-              }),
-            });
-            if (res?.ok) {
-              overlay.classList.add('hidden');
-              await loadFutureBuilds();
-            }
-          } catch (err) {
-            console.warn('[jarvis] createFutureBuild failed', err.message);
-          }
-        };
-      }
-      const cancelBtn = document.getElementById('add-build-cancel-btn');
-      if (cancelBtn) {
-        cancelBtn.onclick = () => overlay.classList.add('hidden');
-      }
     }
 
     // ===== Modal =====
