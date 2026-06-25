@@ -3,7 +3,7 @@
 // Replaces individual per-post Telegram pings Heath gets now.
 //
 // Behavior:
-//   1. Query social_posts where status='posted' and published_at between 24h-48h ago
+//   1. Query social_posts where status='posted' and posted_at between 24h-48h ago
 //   2. Aggregate: post count, platforms, personas, any anomalies
 //   3. Query engagement_queue for metrics (if integrated with Zernio)
 //   4. Send ONE Telegram message to Heath with the summary
@@ -74,7 +74,7 @@ module.exports = withTelemetry('cron-heath-publish-digest', async function handl
   const endISO = endTime.toISOString();
 
   const { data: postedPosts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?status=eq.posted&published_at=gte.${encodeURIComponent(startISO)}&published_at=lt.${encodeURIComponent(endISO)}&order=published_at.desc`,
+    `/rest/v1/social_posts?status=eq.posted&posted_at=gte.${encodeURIComponent(startISO)}&posted_at=lt.${encodeURIComponent(endISO)}&order=posted_at.desc`,
   );
 
   if (!loadOk) {

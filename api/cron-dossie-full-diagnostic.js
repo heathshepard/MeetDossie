@@ -71,13 +71,13 @@ const BUCKET = 'system-diagnostics';
 // inside a logged-in session?
 const FRONTEND_URLS = [
   { slug: 'home',         url: PROD_ORIGIN + '/',             signed_in: false, primary_selector: 'a[href*="founding"], a[href*="/app"]', cta: null },
-  { slug: 'founding',     url: PROD_ORIGIN + '/founding',     signed_in: false, primary_selector: 'form, input[type="email"]', cta: null },
+  { slug: 'founding',     url: PROD_ORIGIN + '/founding',     signed_in: false, primary_selector: 'h1, button, a[href*="founding"]', cta: null },
   { slug: 'agents',       url: PROD_ORIGIN + '/agents',       signed_in: false, primary_selector: 'h1, h2',                    cta: null },
   { slug: 'coordinators', url: PROD_ORIGIN + '/coordinators', signed_in: false, primary_selector: 'h1, h2',                    cta: null },
   { slug: 'calculator',   url: PROD_ORIGIN + '/calculator',   signed_in: false, primary_selector: 'input[type="date"], input[type="number"]', cta: null },
   { slug: 'guides',       url: PROD_ORIGIN + '/guides/',      signed_in: false, primary_selector: 'a, h1, h2',                 cta: null },
   { slug: 'answers',      url: PROD_ORIGIN + '/answers/',     signed_in: false, primary_selector: 'a, h1, h2',                 cta: null },
-  { slug: 'pricing',      url: PROD_ORIGIN + '/founding',     signed_in: false, primary_selector: 'form, input',               cta: null },
+  // pricing slug removed 2026-06-25 — duplicate of /founding (no separate /pricing page exists)
   // Auth-gated pages — signed in as demo
   { slug: 'app',          url: PROD_ORIGIN + '/app',          signed_in: true,  primary_selector: '#app, [data-testid], body', cta: null },
   { slug: 'workspace',    url: PROD_ORIGIN + '/workspace',    signed_in: true,  primary_selector: '#app, [data-testid], body', cta: null },
