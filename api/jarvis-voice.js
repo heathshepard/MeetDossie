@@ -578,22 +578,46 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     content: message.slice(0, 4000),
   }, { prefer: 'return=minimal' });
 
-  // Build system prompt:
-  //   [persona]
-  //   [LIVE TEMPORAL CONTEXT — per-turn, never cached]    <- prevents date drift
-  //   [PWA UI CAPABILITIES — static]                       <- self-describes the app
-  //   [LIVE STATE — agents + todo + MRR, 60s cache]
-  //   [client-provided extension — full backbone from /api/jarvis-context-load]
+  // Build system prompt with Anthropic prompt caching.
+  //
+  // PERF FIX 2026-06-25 (Atlas urgent): pre-cache change, every voice turn was
+  // shipping 9k-29k input tokens (system prompt + client backbone) on every
+  // call. Sonnet at 29k uncached ≈ 6-10s. Result: voice round-trip 8-12s.
+  // Fix: split system into a structured blocks array with cache_control on
+  // the stable portions. Anthropic returns ~85% input-token discount on cache
+  // hits and dramatically lower latency.
+  //
+  // Cache layout (Anthropic caches blocks that come BEFORE the marker):
+  //   [persona]                                            <- stable across all turns
+  //   [PWA UI CAPABILITIES]                                <- static
+  //   [role memory block]                                  <- 60s cache locally
+  //   [client-provided extension]            cache_control <- caches everything above
+  //   [LIVE TEMPORAL CONTEXT — rebuilt per turn]           <- NOT cached (date drift)
+  //   [LIVE STATE — agents + todo + MRR]                   <- NOT cached (state churn)
+  //
+  // The "stable" prefix dominates token count (Heath's backbone is ~20k of
+  // 25k total), so cache hit drops sub-second on every follow-up turn within
+  // the 5-minute cache TTL.
   const liveCtx = await getContextExtension(tenant);
   const temporalCtx = buildLiveTemporalBlock(tenant, client_context);
   const roleMemoryBlock = await getJarvisRoleMemoryBlock(tenant, message);
-  const systemPromptParts = [buildSystemPrompt(tenant), temporalCtx, PWA_UI_CAPABILITIES];
-  if (liveCtx) systemPromptParts.push(liveCtx);
-  if (roleMemoryBlock) systemPromptParts.push(roleMemoryBlock);
+
+  const stableParts = [buildSystemPrompt(tenant), PWA_UI_CAPABILITIES];
+  if (roleMemoryBlock) stableParts.push(roleMemoryBlock);
   if (system_prompt_extension && typeof system_prompt_extension === 'string') {
-    systemPromptParts.push(system_prompt_extension.slice(0, 100000));
+    stableParts.push(system_prompt_extension.slice(0, 100000));
   }
-  const systemPrompt = systemPromptParts.join('\n\n');
+  const stableText = stableParts.join('\n\n');
+
+  const dynamicParts = [temporalCtx];
+  if (liveCtx) dynamicParts.push(liveCtx);
+  const dynamicText = dynamicParts.join('\n\n');
+
+  // Structured system: cached prefix + uncached suffix.
+  const systemBlocks = [
+    { type: 'text', text: stableText, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: dynamicText },
+  ];
 
   // Load enabled tools for this tenant
   const enabledToolNames = await fetchEnabledToolNames(tenant.id);
@@ -631,7 +655,7 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
       const reqBody = {
         model: 'claude-sonnet-4-6',
         max_tokens: 800,
-        system: systemPrompt,
+        system: systemBlocks,
         messages,
       };
       if (toolSpecs.length) reqBody.tools = toolSpecs;
@@ -918,16 +942,26 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     { role: 'user', content: trimmedMsg },
   ];
 
-  // Mirror the non-streaming /op=chat ordering: persona, temporal context
-  // (NEVER cached), UI capabilities (static), live state (cached), then
-  // client-provided extension. Locked 2026-06-21 (Bugs 1/2/3 fix).
+  // Anthropic prompt caching — see handleChat() for the rationale + layout.
+  // Same split: stable prefix (persona + UI caps + client extension) gets
+  // cache_control; temporal + live state stay uncached so they refresh
+  // every turn.
   const temporalCtx = buildLiveTemporalBlock(tenant, client_context);
-  const systemPromptParts = [buildSystemPrompt(tenant), temporalCtx, PWA_UI_CAPABILITIES];
-  if (liveCtx) systemPromptParts.push(liveCtx);
+
+  const stableParts = [buildSystemPrompt(tenant), PWA_UI_CAPABILITIES];
   if (system_prompt_extension && typeof system_prompt_extension === 'string') {
-    systemPromptParts.push(system_prompt_extension.slice(0, 100000));
+    stableParts.push(system_prompt_extension.slice(0, 100000));
   }
-  const systemPrompt = systemPromptParts.join('\n\n');
+  const stableText = stableParts.join('\n\n');
+
+  const dynamicParts = [temporalCtx];
+  if (liveCtx) dynamicParts.push(liveCtx);
+  const dynamicText = dynamicParts.join('\n\n');
+
+  const systemBlocks = [
+    { type: 'text', text: stableText, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: dynamicText },
+  ];
   const voiceId = tenant?.voice_id || GEORGE_VOICE_ID;
   const settings = tenant?.voice_settings || GEORGE_SETTINGS;
   const modelId = settings.model || GEORGE_MODEL;
@@ -968,7 +1002,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
           model: 'claude-sonnet-4-6',
           max_tokens: 500,
           stream: true,
-          system: systemPrompt,
+          system: systemBlocks,
           messages: finalMessages,
         }),
       }),
