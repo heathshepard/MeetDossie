@@ -53,6 +53,7 @@ module.exports = async function handler(req, res) {
   const snoozeUntil = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
 
   try {
+    // Tenant-scoped by auth user id to prevent cross-account writes.
     const { data, error } = await supabase
       .from('heath_actions')
       .update({
@@ -60,6 +61,7 @@ module.exports = async function handler(req, res) {
         snoozed_until: snoozeUntil,
       })
       .eq('id', action_id)
+      .eq('tenant_id', auth.user_id)
       .select();
 
     if (error) throw error;
