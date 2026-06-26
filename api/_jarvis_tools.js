@@ -176,22 +176,40 @@ const ALL_TOOLS = [
   {
     name: 'spawn_agent',
     description:
-      'Fire a background Anthropic call as a Shepard Ventures specialist agent (atlas, carter, hadley, pierce, sage, quinn, ridge, sterling). '
-      + 'The agent gets the task brief, runs autonomously (returns initial response synchronously, but full work may continue). '
-      + 'Records the spawn in jarvis_agent_events so the Agent Status panel updates.',
+      "Queue an async task for one of Heath's named agents (Carter, Atlas, Hadley, Pierce, Sage, Quinn, Ridge, Sterling). "
+      + "Use ONLY when Heath explicitly asks to assign work to an agent (e.g., 'Hadley, do X', 'Have Atlas build Y', "
+      + "'Send this to Pierce'). The agent picks up the work autonomously via the dispatch cron. "
+      + 'Writes a row to agent_queue (and a matching jarvis_future_builds entry so it shows on the HUD).',
     input_schema: {
       type: 'object',
       properties: {
-        agent_name: {
+        target_agent: {
           type: 'string',
-          enum: ['atlas', 'carter', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling'],
-          description: 'Which specialist to spawn.',
+          enum: ['carter', 'atlas', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling'],
+          description: 'Which specialist agent to queue the task for.',
         },
-        task_description: { type: 'string', description: 'Plain-English brief — what Heath wants the agent to do.' },
+        title: {
+          type: 'string',
+          description: 'Short title for the task (under 80 chars). Captures the gist.',
+        },
+        description: {
+          type: 'string',
+          description: 'Full task description with all the context the agent needs. Be specific. Include any constraints, deliverables, file paths Heath named.',
+        },
+        priority: {
+          type: 'integer',
+          enum: [1, 2, 3, 4, 5],
+          description: '1=highest (urgent customer issue), 2=high (blocker), 3=normal (standard work), 4=low (cleanup), 5=backlog',
+        },
+        venture: {
+          type: 'string',
+          description: "Which venture this is for: 'dossie' (most common), 'jarvis', 'shepard-ventures', etc",
+          default: 'dossie',
+        },
       },
-      required: ['agent_name', 'task_description'],
+      required: ['target_agent', 'title', 'description', 'priority'],
     },
-    requires_approval: false, // spawning an agent is internal; the agent itself gates its actions
+    requires_approval: false, // queueing internal work, not a state-changing external action
   },
 ];
 
@@ -427,94 +445,100 @@ async function tool_set_reminder(input, ctx) {
   }
 }
 
+// Build the absolute URL for the cole-enqueue endpoint. Vercel sets
+// VERCEL_URL on every deployment (no protocol). Locally we fall back to the
+// production URL — Heath dev'd through prod by default.
+function getEnqueueUrl() {
+  if (process.env.JARVIS_ENQUEUE_URL) return process.env.JARVIS_ENQUEUE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/api/cole-enqueue`;
+  return 'https://meetdossie.com/api/cole-enqueue';
+}
+
 async function tool_spawn_agent(input, ctx) {
-  const { agent_name, task_description } = input || {};
-  if (!agent_name || !task_description) {
-    return { error: 'agent_name and task_description are required' };
-  }
-  if (!ANTHROPIC_API_KEY) return { error: 'spawn_agent: ANTHROPIC_API_KEY not configured' };
+  const {
+    target_agent,
+    title,
+    description,
+    priority,
+    venture = 'dossie',
+  } = input || {};
 
-  // 1. Write the 'spawned' event so the panel updates immediately.
-  let eventId = null;
-  try {
-    const row = await sbPost('jarvis_agent_events', {
-      tenant_id: ctx?.tenant?.id,
-      agent_name,
-      event_type: 'spawned',
-      summary: String(task_description).slice(0, 200),
-      details: { source: 'jarvis_pwa', conversation_id: ctx?.conversationId || null },
-    });
-    eventId = row[0].id;
-  } catch (err) {
-    return { error: `agent event log failed: ${err.message}` };
-  }
+  if (!target_agent) return { error: 'target_agent is required' };
+  if (!title) return { error: 'title is required' };
+  if (!description) return { error: 'description is required' };
+  if (priority == null) return { error: 'priority is required (1-5)' };
 
-  // 2. Fire a synchronous Anthropic call as that persona to capture a short
-  //    acknowledgement. The full agent run continues in the background via a
-  //    separate worker pattern (TBD); for v1 we return the acknowledgement so
-  //    Heath hears a sensible immediate response.
-  const personaPrompt = AGENT_PERSONA_PROMPTS[agent_name]
-    || `You are ${agent_name}, a Shepard Ventures specialist. Acknowledge the task briefly and outline first 2-3 steps.`;
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return { error: 'spawn_agent: CRON_SECRET not configured' };
+
+  const enqueueUrl = getEnqueueUrl();
+  const safePriority = Math.max(1, Math.min(5, Math.floor(Number(priority) || 3)));
 
   try {
-    const claudeRes = await Promise.race([
-      fetch('https://api.anthropic.com/v1/messages', {
+    const res = await Promise.race([
+      fetch(enqueueUrl, {
         method: 'POST',
         headers: {
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cronSecret}`,
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 250,
-          system: personaPrompt,
-          messages: [{ role: 'user', content: `Heath says: ${task_description}\n\nAcknowledge in 1-2 sentences and name your first 2-3 steps. Be terse.` }],
+          target_agent: String(target_agent).toLowerCase().trim(),
+          title: String(title).slice(0, 280),
+          description: String(description).slice(0, 8000),
+          priority: safePriority,
+          venture: String(venture || 'dossie'),
+          source: 'jarvis-voice',
+          create_future_build: true,
         }),
       }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('agent ack timeout')), 8000)),
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error('cole-enqueue timeout')), 8000)
+      ),
     ]);
-    if (!claudeRes.ok) {
-      return { error: `${agent_name} ack failed (${claudeRes.status})` };
-    }
-    const data = await claudeRes.json();
-    const ack = (data.content?.[0]?.text || '').trim();
 
-    // 3. Write a 'progress' event with the ack so it shows up in the panel.
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      return {
+        error: `cole-enqueue failed (${res.status}): ${data.error || 'unknown'}`,
+      };
+    }
+
+    // Also write a 'spawned' event so the Agent Status panel sees it
+    // immediately (the dispatch cron will write its own 'started' event on
+    // pickup but Heath wants the visual feedback now).
     try {
       await sbPost('jarvis_agent_events', {
         tenant_id: ctx?.tenant?.id,
-        agent_name,
-        event_type: 'progress',
-        summary: ack.slice(0, 200),
-        details: { source: 'jarvis_pwa_ack', spawn_event_id: eventId },
+        agent_name: data.target_agent,
+        event_type: 'spawned',
+        summary: String(title).slice(0, 200),
+        details: {
+          source: 'jarvis_voice',
+          conversation_id: ctx?.conversationId || null,
+          queue_id: data.queue_id,
+          future_build_id: data.future_build_id,
+          priority: safePriority,
+          venture,
+        },
       });
     } catch (e) { /* non-fatal */ }
 
     return {
       result: {
-        spawned: true,
-        agent: agent_name,
-        event_id: eventId,
-        ack,
-        note: 'Agent acknowledged and is working. Status updates will flow through the Agent Status panel.',
+        queued: true,
+        queue_id: data.queue_id,
+        queue_id_short: String(data.queue_id || '').slice(-6),
+        future_build_id: data.future_build_id,
+        target_agent: data.target_agent,
+        priority: data.priority,
+        eta: '~2 minutes (next dispatch tick)',
       },
     };
   } catch (err) {
-    return { error: `${agent_name} spawn failed: ${err.message}` };
+    return { error: `spawn_agent failed: ${err.message}` };
   }
 }
-
-const AGENT_PERSONA_PROMPTS = {
-  atlas: 'You are Atlas, Heath\'s Head of Platform Engineering. Senior staff engineer voice. Opinionated, terse, ship-fast. Acknowledge the task and name the first 2-3 concrete steps.',
-  carter: 'You are Carter, Heath\'s Head of Product Engineering. You DRAFT code (Atlas ships). Acknowledge and outline what you\'ll draft and which files you\'ll touch.',
-  hadley: 'You are Hadley, Heath\'s General Counsel. Lawyer voice, business-pragmatic, never alarmist. Acknowledge and name the legal angles you\'ll explore.',
-  pierce: 'You are Pierce, Heath\'s Growth and Customer Success lead. Warm, founder-direct tone. Acknowledge and name your first outreach or funnel step.',
-  sage: 'You are Sage, Heath\'s Head of Social Media. Acknowledge and name the platform-specific plays you\'ll set up.',
-  quinn: 'You are Quinn, Heath\'s QA lead. Acknowledge and list what you\'ll test.',
-  ridge: 'You are Ridge, Heath\'s reliability engineer. Acknowledge and name the failure modes you\'ll harden against.',
-  sterling: 'You are Sterling, Heath\'s markets analyst. Acknowledge and name the data sources you\'ll pull.',
-};
 
 const TOOL_DISPATCHERS = {
   query_supabase: tool_query_supabase,
