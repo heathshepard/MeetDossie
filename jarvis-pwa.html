@@ -4068,30 +4068,57 @@
     }
 
     function startUtteranceRecorder(stream) {
-      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      // Codec preference: webm-opus > webm > mp4 (Android WebView) > default.
+      // Android WebView (Capacitor APK) often doesn't expose webm-opus; mp4
+      // is its native codec. ElevenLabs scribe_v1 accepts audio/mp4 fine.
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/mp4;codecs=mp4a.40.2',
+      ];
+      let mime = '';
+      for (const c of candidates) {
+        if (MediaRecorder.isTypeSupported(c)) { mime = c; break; }
+      }
       try {
-        mediaRecorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 });
+        mediaRecorder = mime
+          ? new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 })
+          : new MediaRecorder(stream);
       } catch (err) {
+        console.warn('[jarvis] preferred MediaRecorder ctor failed, using default:', err);
         mediaRecorder = new MediaRecorder(stream);
       }
       chunks = [];
       const recRef = mediaRecorder;
-      recRef.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      // Diagnostic — print the actual mimeType the WebView picked so we can
+      // tell Android-WebView "" vs Chrome-desktop "audio/webm;codecs=opus".
+      console.log(`[jarvis] recorder mimeType="${recRef.mimeType}" requested="${mime || 'default'}"`);
+      recRef.ondataavailable = (e) => {
+        if (e.data && e.data.size) chunks.push(e.data);
+      };
       recRef.onstop = async () => {
         if (recRef._suppressFinalize) {
           chunks = [];
           return;
         }
+        // Total bytes captured across all chunks.
+        const total = chunks.reduce((s, c) => s + (c.size || 0), 0);
         const blob = new Blob(chunks, { type: recRef.mimeType || 'audio/webm' });
         chunks = [];
+        console.log(`[jarvis] utterance blob: ${total}b across ${blob.size}b final, type=${blob.type}`);
         await handleUtteranceBlob(blob);
       };
       recRef.onerror = (e) => {
         console.error('[jarvis] mediaRecorder error', e);
       };
-      recRef.start();
+      // Force per-250ms chunk emission. Android WebView's MediaRecorder
+      // sometimes produces a near-empty (~2 byte) container if start() is
+      // called without a timeslice and the stream is short. A timeslice
+      // makes dataavailable fire reliably during recording, not just at
+      // stop(). Locked 2026-06-25 after silent-fail diagnosis on the
+      // native APK (Vercel logs showed "short audio 2b" for every turn).
+      recRef.start(250);
       vadState.utteranceStartedAt = Date.now();
     }
 
@@ -4101,6 +4128,13 @@
       if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
       processingTurn = true;
       try {
+        // Flush any buffered audio before stop so chunks[] contains the
+        // tail of the utterance. requestData() is a synchronous request
+        // that the recorder satisfies by firing dataavailable on the next
+        // tick. stop() then triggers the final dataavailable + onstop.
+        // Without requestData() Android WebView occasionally drops the
+        // last chunk.
+        try { mediaRecorder.requestData(); } catch (e) {}
         mediaRecorder.stop(); // triggers handleUtteranceBlob via onstop
       } catch (err) {
         console.warn('[jarvis] recorder.stop failed', err);
@@ -4116,7 +4150,12 @@
       try {
         if (!conversationActive) { processingTurn = false; return; }
         if (blob.size < 1000) {
-          // too short, skip — keep mic open
+          // Too short to bother with STT. Surface diagnostic toast so the
+          // user is never staring at silent "listening" → "transcribing"
+          // → "listening" flips. The 2-byte Android-WebView empty-blob
+          // bug landed here pre-2026-06-25.
+          console.warn(`[jarvis] dropping ${blob.size}b utterance blob (type=${blob.type})`);
+          showToast(`Audio empty (${blob.size}b). Speak louder or check mic.`);
           processingTurn = false;
           if (conversationActive && micStream) {
             startUtteranceRecorder(micStream);
@@ -4141,10 +4180,14 @@
             },
             body: blob,
           });
-          const sttData = await sttRes.json();
+          const sttData = await sttRes.json().catch(() => ({}));
           if (sttRes.ok && sttData.ok) {
             transcript = (sttData.transcript || '').trim();
           } else if (sttRes.status === 400 && sttData?.error === 'audio_empty_or_too_short') {
+            // Server-side diagnosed empty audio. Surface as toast so user
+            // sees something instead of a silent flip back to listening.
+            console.warn(`[jarvis] server reported empty audio (${sttData?.bytes ?? '?'}b)`);
+            showToast('I didn\'t catch that — try again.');
             transcript = '';
           } else {
             throw new Error(sttData?.error || `STT failed (${sttRes.status})`);
@@ -4559,15 +4602,27 @@
         setPttState('listening');
         pttStatus.textContent = 'Listening…';
 
-        const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm';
+        // Same codec fallback chain as the continuous recorder — Android
+        // WebView prefers mp4, desktop Chrome prefers webm-opus.
+        const ptCandidates = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/mp4;codecs=mp4a.40.2',
+        ];
+        let ptMime = '';
+        for (const c of ptCandidates) {
+          if (MediaRecorder.isTypeSupported(c)) { ptMime = c; break; }
+        }
         try {
-          mediaRecorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 });
+          mediaRecorder = ptMime
+            ? new MediaRecorder(stream, { mimeType: ptMime, audioBitsPerSecond: 64000 })
+            : new MediaRecorder(stream);
         } catch (err) {
           mediaRecorder = new MediaRecorder(stream);
         }
         chunks = [];
+        console.log(`[jarvis-ptt] recorder mimeType="${mediaRecorder.mimeType}" requested="${ptMime || 'default'}"`);
         mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         mediaRecorder.onstop = async () => {
           stopMicStream();
@@ -4579,10 +4634,12 @@
           setPttState('error');
           showToast('Recording error. Tap to retry.');
         };
-        mediaRecorder.start();
+        // Timeslice fixes Android WebView empty-blob bug.
+        mediaRecorder.start(250);
       } else if (pttState === 'listening') {
         pttStatus.textContent = 'Stopping…';
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          try { mediaRecorder.requestData(); } catch (e) {}
           mediaRecorder.stop();
         } else {
           stopMicStream();
