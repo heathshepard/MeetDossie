@@ -166,7 +166,40 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Email unsubscribe page now available** (customer)
 - We added an unsubscribe page so agents can easily manage their email preferences and comply with anti-spam regulations. This ensures our cold email campaigns stay compliant and respect your communication choices.
 
-<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,348a261,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,62a26ad,6501ff1,654af68,69f1b2b,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,d6e08c4,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
+**Emails now use your preferred name** (customer)
+- We've added a way for you to set a preferred name that we'll use to greet you in emails and messages. If you prefer to go by a nickname or middle name, just let us know and we'll use it instead of your full first name.
+
+**Future builds panel now auto-updates** (customer)
+- We've added automatic reconciliation of your upcoming builds from multiple sources, so your Future Builds panel stays current without manual refresh. You can now filter between all builds and stalled ones for better visibility.
+
+**Faster voice chat responses** (customer)
+- We've sped up Jarvis voice conversations from 8-12 seconds down to 1-2 seconds per message by caching repeated parts of the conversation context. You'll notice much snappier back-and-forth when talking to Dossie.
+
+**Faster voice assistant responses** (customer)
+- We've improved how Jarvis Voice handles repeated questions so you get answers even quicker without waiting for reprocessing.
+
+**Share photos with Jarvis in chat** (customer)
+- You can now attach photos and screenshots directly in the Jarvis chat using the paperclip icon. This helps you show Jarvis property images, documents, or other visuals for faster, more accurate answers.
+
+**Talk to Dossie now understands documents and data** (customer)
+- We've upgraded Talk to Dossie so you can upload photos of documents and ask questions about your transaction data. Dossie will read what's in the image and pull the right information from your files to answer you faster.
+
+**Fixed voice input freezing on Android** (customer)
+- We fixed a bug where speaking to Dossie on Android phones would silently stop listening after each sentence. Voice commands now work reliably on all devices.
+
+**Voice recording now works on Android phones** (customer)
+- We fixed a bug where voice commands and recordings would fail silently on Android devices. You'll now see clear messages if there's a problem, and your voice input will work reliably.
+
+**Fixed voice recording in the mobile app** (customer)
+- We fixed a bug where voice recording (speech-to-text) wasn't working correctly on mobile. Your app will now grab fresh code on startup instead of using outdated cached files.
+
+**Speech-to-text now works reliably on mobile** (customer)
+- We fixed an issue where speech-to-text could fail on first use in the mobile app. The app now always loads the latest version, so you'll get the fix immediately without needing to uninstall and reinstall.
+
+**Fixed audio recording on Android devices** (customer)
+- We fixed an issue where voice messages weren't being recorded properly on Android phones like the Samsung Z Fold. Audio now records reliably so you can use voice-to-text features without errors.
+
+<!-- applied_shas: 0465144,0bc1e3c,10cf6fb,117949f,168ef2a,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,345c614,348a261,3688152,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,62a26ad,6501ff1,654af68,69f1b2b,6b7de8e,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,92250d2,924446f,98a4ff5,99ee638,9cfb06f,a22c5a7,aaa3f82,ac5b49c,ad26215,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,cba4abe,d5d3ad1,d6e08c4,e1efb82,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
 
 ## Week of June 5, 2026
 
