@@ -20,6 +20,7 @@
 // Test mode: ?test=1 sends only to heath@meetdossie.com, skips log insert.
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { customerFirstName } = require('./_lib/personalization.js');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -130,7 +131,7 @@ async function loadActiveCustomers() {
   const filter = userIds.map((id) => `"${id}"`).join(',');
 
   const profResp = await supaFetch(
-    `/rest/v1/profiles?id=in.(${filter})&select=id,email,full_name,is_demo,is_founder,morning_brief_email_enabled`,
+    `/rest/v1/profiles?id=in.(${filter})&select=id,email,full_name,preferred_name,is_demo,is_founder,morning_brief_email_enabled`,
   );
   if (!profResp.ok) throw new Error(`profiles fetch ${profResp.status}`);
 
@@ -143,7 +144,9 @@ async function loadActiveCustomers() {
     out.push({
       user_id: p.id,
       email: p.email,
-      first_name: (p.full_name || p.email || '').split(/[\s.@]/)[0] || 'there',
+      // preferred_name wins over full_name's first token so customers like
+      // Kay Suzanne Page can be greeted as "Suzanne" not "Kay".
+      first_name: customerFirstName(p),
       full_name: p.full_name || '',
     });
   }

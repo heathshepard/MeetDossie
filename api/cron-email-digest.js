@@ -17,6 +17,7 @@
 // Customer filter mirrors cron-morning-brief.js.
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { customerFirstName } = require('./_lib/personalization.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -93,7 +94,7 @@ async function loadActiveCustomers() {
 
   const filter = userIds.map((id) => `"${id}"`).join(',');
   const profResp = await supabaseFetch(
-    `/rest/v1/profiles?id=in.(${filter})&select=id,email,full_name,is_demo`,
+    `/rest/v1/profiles?id=in.(${filter})&select=id,email,full_name,preferred_name,is_demo`,
   );
   if (!profResp.ok) throw new Error(`profiles fetch ${profResp.status}`);
   const profilesById = new Map((profResp.data || []).map((p) => [p.id, p]));
@@ -107,7 +108,9 @@ async function loadActiveCustomers() {
     out.push({
       user_id: s.user_id,
       email: p.email,
-      first_name: (p.full_name || p.email || '').split(/[\s.@]/)[0] || 'there',
+      // preferred_name wins over full_name's first token so customers get
+      // greeted by what they actually go by.
+      first_name: customerFirstName(p),
     });
   }
   return out;
