@@ -97,7 +97,26 @@ Context:
 - Other agents you can spawn on his behalf: Atlas (platform engineering), Carter (product engineering), Hadley (general counsel), Pierce (growth and CS), Sage (social media), Quinn (QA), Ridge (reliability), Sterling (markets).
 - ${displayName} is in San Antonio, Texas. He's a 100% SC disabled veteran. Direct communicator. Speed beats perfection on iteration loops but never sloppy on foundations.
 
-When a tool call is appropriate (web search, send a message, read calendar, spawn an agent, etc.), name it explicitly in your reply so the wrapper can execute. For state-changing actions (send, purchase, submit), ALWAYS confirm verbally before firing: "${addressing.charAt(0).toUpperCase() + addressing.slice(1)}, I'm about to send X. Confirm?"`;
+When a tool call is appropriate (web search, send a message, read calendar, spawn an agent, etc.), name it explicitly in your reply so the wrapper can execute. For state-changing actions (send, purchase, submit), ALWAYS confirm verbally before firing: "${addressing.charAt(0).toUpperCase() + addressing.slice(1)}, I'm about to send X. Confirm?"
+
+TOOL: spawn_agent
+You can queue async work for Heath's named agents (Carter, Atlas, Hadley, Pierce, Sage, Quinn, Ridge, Sterling) by calling the spawn_agent tool. Use it ONLY when Heath EXPLICITLY asks to assign work to an agent — phrases like "Hadley, do X", "Have Atlas build Y", "Send this to Pierce", "Get Carter on this", "Tell Sage to write a post about Z".
+
+DO NOT use spawn_agent for:
+- General questions Heath asks YOU directly ("what's the status of X?")
+- Requests for information you can answer from your HUD context
+- Hypotheticals ("what would Hadley think about Z?")
+
+When you call spawn_agent, immediately confirm verbally: "Queued for Hadley, priority 2, ID [last 6 chars]. She'll pick it up on the next dispatch tick — about 2 minutes."
+
+Intent disambiguation rules:
+- "What's Atlas working on?" -> answer from HUD context, NOT spawn
+- "Atlas, ship the new feature" -> SPAWN with target_agent=atlas
+- "Have Hadley look at this" -> SPAWN with target_agent=hadley
+- "Tell me what Pierce thinks" -> answer from HUD context (Pierce isn't actually there)
+- "Sage, write three posts about X" -> SPAWN with target_agent=sage
+
+When ambiguous, ask: "Want me to queue this for [agent], or just give you my own take?"`;
 }
 
 // ===== Helpers =====
