@@ -461,6 +461,25 @@
       padding: 0 4px; line-height: 1;
     }
     .chat-attachment-chip .chip-clear:hover { color: var(--cyan); }
+    /* Inline thumbnail for image attachments (Build A 2026-06-25) — Cormorant
+       cyan glow, glass border to match V5 visual. */
+    .chat-attachment-chip .chip-thumb {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--cyan-dim);
+      box-shadow: 0 0 6px rgba(77, 208, 225, 0.25);
+      flex-shrink: 0;
+    }
+    /* Inline image preview inside chat bubble (Build A 2026-06-25). */
+    .msg-image-preview {
+      max-width: 220px; max-height: 220px;
+      border-radius: 8px;
+      border: 1px solid var(--cyan-dim);
+      box-shadow: 0 0 8px rgba(77, 208, 225, 0.2);
+      margin-top: 6px;
+      display: block;
+    }
     .msg {
       padding: 8px 10px; margin: 6px 0;
       border-radius: 10px;
@@ -597,6 +616,184 @@
     .action-source {
       font-size: 9px; color: var(--txt-faint);
       letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    /* ===== PENDING APPROVALS PANEL (heath_actions approval UI — 2026-06-25) ===== */
+    .pending-approvals-title-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .approvals-count {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.18em;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+      font-weight: 500;
+      background: rgba(77, 208, 225, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(77, 208, 225, 0.3);
+    }
+    .approvals-empty {
+      font-size: 13px; color: var(--txt-mute);
+      text-align: center; padding: 20px 0;
+    }
+    .approval-card {
+      background: rgba(77, 208, 225, 0.04);
+      border-left: 3px solid var(--cyan);
+      border-top: 1px solid rgba(77, 208, 225, 0.15);
+      border-right: 1px solid rgba(77, 208, 225, 0.15);
+      border-bottom: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: all 0.2s ease;
+      animation: approval-slide-in 0.3s ease-out;
+    }
+    .approval-card.urgent-priority { border-left-color: var(--fail); }
+    .approval-card.soon-priority { border-left-color: var(--gold); }
+    .approval-card.whenever-priority { border-left-color: var(--txt-faint); }
+    .approval-card.snoozed {
+      opacity: 0.55;
+      border-left-color: var(--txt-faint);
+    }
+    @keyframes approval-slide-in {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes approval-fade-out {
+      to { opacity: 0; transform: translateX(-12px); }
+    }
+    .approval-card.removing { animation: approval-fade-out 0.3s ease-in forwards; }
+    .approval-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .approval-title {
+      font-size: 13px; font-weight: 500;
+      color: var(--txt-primary);
+      line-height: 1.3;
+      flex: 1;
+    }
+    .approval-badge {
+      padding: 2px 6px; border-radius: 4px; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .approval-badge.urgent {
+      background: rgba(232, 94, 94, 0.15);
+      color: var(--fail);
+      border: 1px solid rgba(232, 94, 94, 0.3);
+    }
+    .approval-badge.soon {
+      background: rgba(201, 169, 110, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(201, 169, 110, 0.3);
+    }
+    .approval-badge.whenever {
+      background: rgba(226, 244, 251, 0.08);
+      color: var(--txt-mute);
+      border: 1px solid rgba(226, 244, 251, 0.15);
+    }
+    .approval-desc {
+      font-size: 11px; line-height: 1.4;
+      color: var(--txt-mute);
+      max-height: 60px; overflow-y: auto;
+      word-wrap: break-word;
+    }
+    .approval-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .approval-time {
+      color: var(--txt-faint);
+    }
+    .approval-source {
+      color: var(--cyan-dim);
+    }
+    .approval-buttons {
+      display: grid; grid-template-columns: 1fr 1fr auto;
+      gap: 6px;
+    }
+    .approval-btn {
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 6px;
+      min-height: 44px;
+      background: transparent;
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      border-radius: 6px;
+      color: var(--cyan);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+    .approval-btn:hover {
+      background: rgba(77, 208, 225, 0.12);
+      border-color: var(--cyan-bright);
+    }
+    .approval-btn:disabled {
+      opacity: 0.4; cursor: wait;
+    }
+    .approval-btn.approve {
+      color: var(--ok);
+      border-color: rgba(139, 168, 136, 0.3);
+    }
+    .approval-btn.approve:hover {
+      background: rgba(139, 168, 136, 0.12);
+      border-color: var(--ok);
+    }
+    .approval-btn.reject {
+      color: var(--fail);
+      border-color: rgba(232, 94, 94, 0.3);
+    }
+    .approval-btn.reject:hover {
+      background: rgba(232, 94, 94, 0.12);
+      border-color: var(--fail);
+    }
+    .approval-btn.snooze {
+      color: var(--gold);
+      border-color: rgba(201, 169, 110, 0.25);
+      min-width: 44px;
+    }
+    .approval-btn.snooze:hover {
+      background: rgba(201, 169, 110, 0.12);
+      border-color: var(--gold);
+    }
+    @media (max-width: 500px) {
+      .approval-buttons {
+        grid-template-columns: 1fr 1fr;
+      }
+      .approval-btn.snooze {
+        grid-column: 1 / -1;
+      }
+    }
+    .approval-toast {
+      position: fixed; bottom: 16px; right: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 1000;
+      animation: toast-slide-in 0.3s ease-out;
+      max-width: 300px;
+    }
+    @keyframes toast-slide-in {
+      from { opacity: 0; transform: translateX(100px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .approval-toast.success {
+      background: rgba(139, 168, 136, 0.2);
+      border: 1px solid var(--ok);
+      color: var(--ok);
+    }
+    .approval-toast.error {
+      background: rgba(232, 94, 94, 0.2);
+      border: 1px solid var(--fail);
+      color: var(--fail);
+    }
+    .approval-toast.info {
+      background: rgba(77, 208, 225, 0.2);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
     }
     .action-buttons {
       display: grid; grid-template-columns: repeat(3, 1fr);
@@ -2471,7 +2668,8 @@
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                 </svg>
               </button>
-              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" />
+              <!-- capture="environment" hints mobile browsers to default to camera (rear); desktop still shows file picker. Heath spec 2026-06-25 (image input build A). -->
+              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" capture="environment" />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
@@ -2601,6 +2799,17 @@
               <div class="money-val" id="money-ship">—</div>
               <div class="money-lbl">Shipped Today</div>
             </div>
+          </div>
+        </div>
+
+        <!-- PENDING APPROVALS (heath_actions approval UI — 2026-06-25, atlas_carter_ship) -->
+        <div class="panel" id="approvals-panel">
+          <div class="panel-title pending-approvals-title-row">
+            <span>PENDING APPROVALS</span>
+            <span class="approvals-count" id="approvals-badge">—</span>
+          </div>
+          <div id="approvals-list">
+            <div class="approvals-empty">Nothing waiting on you. ✨</div>
           </div>
         </div>
 
@@ -3510,6 +3719,8 @@
       loadTickers().catch(() => {});
       loadMergeQueue().catch(() => {});
       loadPendingApprovals().catch(() => {});
+      // PENDING APPROVALS panel (heath_actions) — 2026-06-25
+      try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
       loadDailyDebrief().catch(() => {});
       loadCustomerActivity().catch(() => {});
       // Tier 2 hydrations
@@ -4030,7 +4241,7 @@
     // Returns { fallback: bool, error?, conversationId? }. fallback=true
     // when the stream broke before any audio played — caller should retry
     // via the legacy chat+tts path.
-    async function runStreamingChatTTS({ conversationId: convIdIn, transcript }) {
+    async function runStreamingChatTTS({ conversationId: convIdIn, transcript, imageBase64, imageMediaType }) {
       let convId = convIdIn || null;
       let assistantEl = null;
       let assistantText = '';
@@ -4115,6 +4326,16 @@
 
       try {
         const ctxExt = await ensureContextLoaded(false);
+        const reqBody = {
+          conversation_id: convId,
+          message: transcript,
+          system_prompt_extension: ctxExt || undefined,
+          client_context: buildClientContext(),
+        };
+        if (imageBase64) {
+          reqBody.image_base64 = imageBase64;
+          reqBody.image_media_type = imageMediaType || 'image/jpeg';
+        }
         const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat_tts_stream`, {
           method: 'POST',
           headers: {
@@ -4122,12 +4343,7 @@
             Authorization: await getAuthHeader(),
             Accept: 'text/event-stream',
           },
-          body: JSON.stringify({
-            conversation_id: convId,
-            message: transcript,
-            system_prompt_extension: ctxExt || undefined,
-            client_context: buildClientContext(),
-          }),
+          body: JSON.stringify(reqBody),
         });
         if (!res.ok || !res.body) {
           return { fallback: true, error: `stream HTTP ${res.status}` };
@@ -4531,7 +4747,8 @@
             schema: 'public',
             table: 'heath_actions',
           }, () => {
-            loadActions(); // Reload on any change
+            loadActions(); // Reload existing ACTIONS FOR YOU panel
+            try { approvalsPanel?.refresh?.(); } catch (_) {}
           })
           .subscribe();
       } catch (err) {
@@ -5509,8 +5726,12 @@
       }
       row.classList.remove('hidden');
       const sizeKb = Math.round((pendingAttachment.size || 0) / 1024);
+      const thumb = pendingAttachment.thumbDataUrl
+        ? `<img class="chip-thumb" src="${pendingAttachment.thumbDataUrl}" alt="thumbnail" />`
+        : '';
       row.innerHTML = `
         <span class="chat-attachment-chip">
+          ${thumb}
           <span class="chip-name" title="${pendingAttachment.name}">${pendingAttachment.name}</span>
           <span style="color:var(--txt-faint);font-size:10px;">${sizeKb}KB</span>
           <span class="chip-clear" data-action="clear-attachment" aria-label="Remove attachment">×</span>
@@ -5522,6 +5743,46 @@
         if (fileInput) fileInput.value = '';
         renderAttachmentChip();
       });
+    }
+
+    // ---- Image resize + base64 encode (Build A 2026-06-25) -----------------
+    // Cap inbound images at 1024px max-dim (Heath spec, vision-cost control).
+    // Anthropic vision tokens scale with image area: 1568x1568 ≈ 1500 tokens;
+    // 1024x1024 ≈ 600 tokens. Returns { base64 (no data: prefix), mediaType,
+    // dataUrl (for thumbnail) }. Falls back to raw passthrough on canvas error.
+    async function resizeImageForVision(file) {
+      const MAX_DIM = 1024;
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('FileReader failed'));
+        reader.readAsDataURL(file);
+      });
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error('Image decode failed'));
+        i.src = dataUrl;
+      });
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const scale = MAX_DIM / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      // Prefer JPEG for photos (smaller). Keep PNG for screenshots so text
+      // stays sharp — heuristic: input mime contains 'png' OR has transparency.
+      const wantPng = /png/i.test(file.type || '');
+      const outMime = wantPng ? 'image/png' : 'image/jpeg';
+      const outQuality = wantPng ? undefined : 0.86;
+      const outDataUrl = canvas.toDataURL(outMime, outQuality);
+      // Strip "data:image/jpeg;base64," prefix
+      const base64 = outDataUrl.replace(/^data:image\/(jpeg|png|webp);base64,/i, '');
+      return { base64, mediaType: outMime, dataUrl: outDataUrl, width, height };
     }
 
     // Upload the chosen file to the jarvis-attachments bucket under
@@ -5547,20 +5808,28 @@
 
     // Text-only chat — no TTS. POSTs to /api/jarvis-voice?op=chat and renders
     // the assistant reply as a bubble. Used when reply mode is 'text'.
-    async function runTextOnlyChat(message) {
+    // Accepts optional { imageBase64, imageMediaType } for vision (Build A
+    // 2026-06-25).
+    async function runTextOnlyChat(message, opts = {}) {
+      const { imageBase64, imageMediaType } = opts || {};
       const ctxExt = await ensureContextLoaded(false).catch(() => null);
+      const body = {
+        conversation_id: conversationId,
+        message,
+        system_prompt_extension: ctxExt || undefined,
+        client_context: buildClientContext(),
+      };
+      if (imageBase64) {
+        body.image_base64 = imageBase64;
+        body.image_media_type = imageMediaType || 'image/jpeg';
+      }
       const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: await getAuthHeader(),
         },
-        body: JSON.stringify({
-          conversation_id: conversationId,
-          message,
-          system_prompt_extension: ctxExt || undefined,
-          client_context: buildClientContext(),
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -5592,7 +5861,7 @@
         });
       }
 
-      // Attach button -> open file picker.
+      // Attach button -> open file picker (mobile camera via capture="environment").
       if (attachBtn && fileInput) {
         attachBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', async () => {
@@ -5603,18 +5872,53 @@
             fileInput.value = '';
             return;
           }
+          const isImage = /^image\//i.test(file.type || '');
           // Show chip immediately with "uploading…" sizing, then swap to real
           // chip once upload completes.
-          pendingAttachment = { file, name: file.name, size: file.size, signedUrl: null, path: null };
+          pendingAttachment = {
+            file, name: file.name, size: file.size,
+            signedUrl: null, path: null,
+            isImage,
+            imageBase64: null, mediaType: null, thumbDataUrl: null,
+          };
           renderAttachmentChip();
-          showToast('Uploading attachment…', 1200);
+
+          // For images: resize+base64 IN PARALLEL with the upload. Vision
+          // payload (Build A 2026-06-25) — Anthropic vision needs raw base64;
+          // signed URL still goes up so Heath has a copy in storage.
+          const tasks = [];
+          if (isImage) {
+            tasks.push((async () => {
+              try {
+                const { base64, mediaType, dataUrl } = await resizeImageForVision(file);
+                pendingAttachment.imageBase64 = base64;
+                pendingAttachment.mediaType = mediaType;
+                pendingAttachment.thumbDataUrl = dataUrl;
+                renderAttachmentChip();
+              } catch (err) {
+                console.warn('[jarvis] image resize failed, vision disabled for this file:', err);
+                // Non-fatal — chat still works, vision just absent
+              }
+            })());
+          }
+          tasks.push((async () => {
+            try {
+              const { path, signedUrl } = await uploadAttachment(file);
+              pendingAttachment.path = path;
+              pendingAttachment.signedUrl = signedUrl;
+            } catch (err) {
+              console.warn('[jarvis] storage upload failed (non-fatal if image):', err);
+              // For images we can still send via base64; only block on non-image.
+              if (!isImage) throw err;
+            }
+          })());
+
+          showToast(isImage ? 'Preparing image…' : 'Uploading attachment…', 1200);
           try {
-            const { path, signedUrl } = await uploadAttachment(file);
-            pendingAttachment.path = path;
-            pendingAttachment.signedUrl = signedUrl;
+            await Promise.all(tasks);
             showToast('Attachment ready.', 1200);
           } catch (err) {
-            console.warn('[jarvis] attachment upload failed', err);
+            console.warn('[jarvis] attachment prep failed', err);
             showToast(`Upload failed: ${err.message}`);
             pendingAttachment = null;
             renderAttachmentChip();
@@ -5626,22 +5930,55 @@
       async function sendNow() {
         const raw = (textInput.value || '').trim();
         if (!raw && !pendingAttachment) return;
-        // Compose the message: text + attachment marker (so Jarvis sees the
-        // file path / signed URL and can reason about it).
-        let message = raw;
-        if (pendingAttachment && pendingAttachment.signedUrl) {
-          const tag = `\n\n[Attachment: ${pendingAttachment.name} — ${pendingAttachment.signedUrl}]`;
-          message = (raw || `Heath attached ${pendingAttachment.name}.`) + tag;
-        } else if (pendingAttachment) {
-          // Upload didn't finish — block send until it does.
+        // Block send if attachment is still preparing (no base64 AND no signed URL).
+        const att = pendingAttachment;
+        if (att && !att.imageBase64 && !att.signedUrl) {
           showToast('Attachment still uploading…');
           return;
         }
-        // Render user bubble (without the noisy signed URL — show name only).
-        const bubbleText = pendingAttachment
-          ? `${raw || `Attached ${pendingAttachment.name}.`}${raw ? '\n' : ''}📎 ${pendingAttachment.name}`
+        // Compose the message: text + attachment marker (so Jarvis sees the
+        // file path / signed URL even for non-image attachments).
+        let message = raw;
+        let imageBase64 = null;
+        let imageMediaType = null;
+        let imageThumbDataUrl = null;
+        if (att) {
+          if (att.isImage && att.imageBase64) {
+            // Vision payload — base64 goes in a separate JSON field, the
+            // message text gets a short marker so the transcript reads cleanly.
+            imageBase64 = att.imageBase64;
+            imageMediaType = att.mediaType || 'image/jpeg';
+            imageThumbDataUrl = att.thumbDataUrl;
+            message = raw || 'What do you see in this image, sir?';
+          } else if (att.signedUrl) {
+            // Non-image attachment — keep legacy URL-in-text behavior.
+            const tag = `\n\n[Attachment: ${att.name} — ${att.signedUrl}]`;
+            message = (raw || `Heath attached ${att.name}.`) + tag;
+          }
+        }
+        // Render user bubble (without the noisy signed URL — show name + thumb).
+        const bubbleText = att
+          ? `${raw || (att.isImage ? '' : `Attached ${att.name}.`)}${raw ? '' : ''}`.trim() ||
+            (att.isImage ? 'Image attached.' : `Attached ${att.name}.`)
           : raw;
         appendMessage('user', bubbleText, new Date().toISOString());
+        // If image: append thumbnail under last user bubble for visual proof.
+        if (imageThumbDataUrl) {
+          try {
+            const msgList = document.getElementById('messages');
+            const lastUser = msgList && msgList.querySelector('.msg.user');
+            if (lastUser) {
+              const contentEl = lastUser.querySelector('.msg-content');
+              if (contentEl) {
+                const imgEl = document.createElement('img');
+                imgEl.className = 'msg-image-preview';
+                imgEl.src = imageThumbDataUrl;
+                imgEl.alt = 'attached image';
+                contentEl.appendChild(imgEl);
+              }
+            }
+          } catch (e) { /* non-fatal */ }
+        }
 
         // Clear input + attachment chip.
         textInput.value = '';
@@ -5657,10 +5994,10 @@
         try {
           if (getReplyMode() === 'text') {
             // Text-only — no TTS, no mic resume.
-            await runTextOnlyChat(message);
+            await runTextOnlyChat(message, { imageBase64, imageMediaType });
           } else {
             // Voice reply — reuse the streaming TTS pipeline (same as voice loop).
-            const result = await runStreamingChatTTS({ conversationId, transcript: message });
+            const result = await runStreamingChatTTS({ conversationId, transcript: message, imageBase64, imageMediaType });
             if (result && result.fallback) {
               try { await runLegacyChatTTS(message); } catch (err) {
                 console.warn('[jarvis] chat input legacy fallback failed', err);
@@ -7255,6 +7592,256 @@
         });
       });
     }
+
+    // ============================================================================
+    // PENDING APPROVALS PANEL (heath_actions approval UI — 2026-06-25)
+    // ----------------------------------------------------------------------------
+    // Carter drafted, Atlas shipped. Reads pending + due-snoozed heath_actions
+    // for the signed-in tenant and renders cards w/ Approve / Reject / Snooze
+    // buttons. Auto-refreshes every 60s and exposes refresh() for Realtime.
+    // Priority maps to DB enum: urgent/soon/whenever (not high/medium/low).
+    // ============================================================================
+    const approvalsPanel = {
+      container: null,
+      badge: null,
+      pollHandle: null,
+
+      init() {
+        this.container = document.getElementById('approvals-list');
+        this.badge = document.getElementById('approvals-badge');
+        if (!this.container || !this.badge) return;
+        if (!session?.user?.id) {
+          console.warn('[approvalsPanel] init skipped — no session.user.id');
+          return;
+        }
+        // Initial load
+        this.refresh().catch((err) => console.warn('[approvalsPanel] init load failed', err));
+        // Poll every 60s (lighter than realtime; the existing actions panel already
+        // realtime-subscribes to heath_actions and triggers loadActions()).
+        if (this.pollHandle) clearInterval(this.pollHandle);
+        this.pollHandle = setInterval(() => {
+          this.refresh().catch(() => {});
+        }, 60000);
+      },
+
+      async refresh() {
+        if (!supabase || !session?.user?.id) return;
+        try {
+          // NOTE: heath_actions.tenant_id stores the auth user's id (FK → users.id),
+          // not the tenants table id. Filter by session.user.id, mirroring the
+          // /api/heath-actions-list pattern (auth.user_id).
+          const { data: actions, error } = await supabase
+            .from('heath_actions')
+            .select('id, title, body, source, priority, status, created_at, snoozed_until')
+            .eq('tenant_id', session.user.id)
+            .in('status', ['pending', 'snoozed'])
+            .order('created_at', { ascending: true });
+
+          if (error) throw error;
+
+          // Show pending now, plus snoozed actions whose snoozed_until has passed.
+          const now = new Date();
+          const visible = (actions || []).filter((a) => {
+            if (a.status === 'pending') return true;
+            if (a.status === 'snoozed' && a.snoozed_until) {
+              return new Date(a.snoozed_until) <= now;
+            }
+            return false;
+          });
+
+          // Sort by priority order: urgent → soon → whenever, then oldest-first.
+          const order = { urgent: 0, soon: 1, whenever: 2 };
+          visible.sort((a, b) => {
+            const ap = order[a.priority] ?? 9;
+            const bp = order[b.priority] ?? 9;
+            if (ap !== bp) return ap - bp;
+            return new Date(a.created_at) - new Date(b.created_at);
+          });
+
+          this.render(visible);
+          this.badge.textContent = visible.length > 0 ? String(visible.length) : '—';
+        } catch (err) {
+          console.warn('[approvalsPanel] refresh failed', err);
+        }
+      },
+
+      render(actions) {
+        if (!this.container) return;
+        if (!actions.length) {
+          this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+          return;
+        }
+        this.container.innerHTML = actions.map((a) => this.renderCard(a)).join('');
+        // Wire buttons
+        actions.forEach((a) => {
+          const card = this.container.querySelector(`[data-action-id="${a.id}"]`);
+          if (!card) return;
+          card.querySelector('.approval-btn.approve')
+            ?.addEventListener('click', () => this.handleApprove(a.id));
+          card.querySelector('.approval-btn.reject')
+            ?.addEventListener('click', () => this.handleReject(a.id));
+          card.querySelector('.approval-btn.snooze')
+            ?.addEventListener('click', () => this.handleSnooze(a.id));
+        });
+      },
+
+      renderCard(action) {
+        const priority = (action.priority || 'soon').toLowerCase();
+        const priorityClass = `${priority}-priority`;
+        const badgeClass = priority;
+        const timeAgo = this.formatTimeAgo(new Date(action.created_at));
+        const rawDesc = action.body || '';
+        const desc = rawDesc.length > 200 ? rawDesc.substring(0, 200) + '…' : rawDesc;
+        return `
+          <div class="approval-card ${priorityClass}" data-action-id="${action.id}">
+            <div class="approval-header">
+              <div class="approval-title">${this.escapeHtml(action.title || 'Untitled')}</div>
+              <span class="approval-badge ${badgeClass}">${this.escapeHtml(priority.toUpperCase())}</span>
+            </div>
+            ${desc ? `<div class="approval-desc">${this.escapeHtml(desc)}</div>` : ''}
+            <div class="approval-meta">
+              <span class="approval-source">via ${this.escapeHtml(action.source || 'unknown')}</span>
+              <span class="approval-time">queued ${timeAgo}</span>
+            </div>
+            <div class="approval-buttons">
+              <button class="approval-btn approve">Approve</button>
+              <button class="approval-btn reject">Reject</button>
+              <button class="approval-btn snooze" title="Snooze 24h" aria-label="Snooze 24 hours">⏰</button>
+            </div>
+          </div>
+        `;
+      },
+
+      formatTimeAgo(date) {
+        const diffMs = Date.now() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffMins < 1) return 'now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+      },
+
+      escapeHtml(text) {
+        if (text == null) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, (m) => map[m]);
+      },
+
+      async handleApprove(actionId) {
+        const card = this.container.querySelector(`[data-action-id="${actionId}"]`);
+        const btn = card?.querySelector('.approval-btn.approve');
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/approve-heath-action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ action_id: actionId }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (card) {
+            card.classList.add('removing');
+            setTimeout(() => {
+              card.remove();
+              const remaining = this.container.querySelectorAll('.approval-card').length;
+              this.badge.textContent = remaining > 0 ? String(remaining) : '—';
+              if (remaining === 0) {
+                this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+              }
+            }, 300);
+          }
+          this.showToast('Action approved', 'success');
+        } catch (err) {
+          console.error('[approvalsPanel] approve failed', err);
+          if (btn) btn.disabled = false;
+          this.showToast(`Approve failed: ${err.message}`, 'error');
+        }
+      },
+
+      async handleReject(actionId) {
+        const card = this.container.querySelector(`[data-action-id="${actionId}"]`);
+        const btn = card?.querySelector('.approval-btn.reject');
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/reject-heath-action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ action_id: actionId, reason: 'Rejected by Heath' }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (card) {
+            card.classList.add('removing');
+            setTimeout(() => {
+              card.remove();
+              const remaining = this.container.querySelectorAll('.approval-card').length;
+              this.badge.textContent = remaining > 0 ? String(remaining) : '—';
+              if (remaining === 0) {
+                this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+              }
+            }, 300);
+          }
+          this.showToast('Action rejected', 'info');
+        } catch (err) {
+          console.error('[approvalsPanel] reject failed', err);
+          if (btn) btn.disabled = false;
+          this.showToast(`Reject failed: ${err.message}`, 'error');
+        }
+      },
+
+      async handleSnooze(actionId) {
+        const card = this.container.querySelector(`[data-action-id="${actionId}"]`);
+        const btns = card?.querySelectorAll('button');
+        btns?.forEach((b) => (b.disabled = true));
+        try {
+          const res = await fetch(`${API_BASE}/api/snooze-heath-action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ action_id: actionId, duration_hours: 24 }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (card) {
+            card.classList.add('snoozed');
+            card.classList.add('removing');
+            setTimeout(() => {
+              card.remove();
+              const remaining = this.container.querySelectorAll('.approval-card').length;
+              this.badge.textContent = remaining > 0 ? String(remaining) : '—';
+              if (remaining === 0) {
+                this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+              }
+            }, 300);
+          }
+          this.showToast('Snoozed 24h', 'info');
+        } catch (err) {
+          console.error('[approvalsPanel] snooze failed', err);
+          btns?.forEach((b) => (b.disabled = false));
+          this.showToast(`Snooze failed: ${err.message}`, 'error');
+        }
+      },
+
+      showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `approval-toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.style.animation = 'toast-slide-in 0.3s ease-out reverse';
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      },
+    };
+    // Expose for testing + cross-handler calls.
+    window.approvalsPanel = approvalsPanel;
 
     // ===== Boot =====
     // P0 FIX 2026-06-22 — Wire critical auth listeners BEFORE any async work.

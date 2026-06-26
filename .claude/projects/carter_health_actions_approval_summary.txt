@@ -1,0 +1,42 @@
+DRAFT COMPLETE: Jarvis HUD PENDING APPROVALS Panel
+
+FILES CREATED:
+- api/approve-heath-action.js (1.3KB) — POST endpoint to mark action as 'approved'
+- api/reject-heath-action.js (1.3KB) — POST endpoint to mark action as 'rejected'
+- api/snooze-heath-action.js (1.2KB) — POST endpoint to mark action as 'snoozed' + resurface_at
+- .claude/projects/heath_actions_approval_ui_draft.md (13.7KB) — full spec + CSS + HTML + JS
+
+SCHEMA VERIFIED:
+- Table: heath_actions (18 columns confirmed)
+- Status values: pending, approved, rejected, snoozed, completed
+- Priority: high, medium, low
+- All required fields for UI present (title, body, source, priority, created_at, deadline, etc)
+
+UI FEATURES:
+- Panel: PENDING APPROVALS with count badge, placed BEFORE AGENT STATUS (high priority surface)
+- Empty state: "Nothing waiting on you. ?"
+- Card layout: title + description (truncated 120 chars) + source + relative time + 3 buttons
+- Priority badge styling: high=red, medium=gold, low=grey
+- Border-left accent: 3px cyan (high=red, medium=gold, low=grey)
+- Buttons: Approve (sage green), Reject (coral red), Snooze 24h (gold clock icon)
+- Mobile: responsive at 390px (buttons wrap: Approve/Reject row 1, Snooze full-width row 2)
+- Animations: slide-in on load (300ms), fade-out on action (300ms)
+- Auto-refresh: every 60s polls for new pending + snoozed actions
+- Toasts: bottom-right success/error/info notifications (3s auto-dismiss)
+
+BACKEND STUBS:
+- approve-heath-action: UPDATE status='approved', approved_at=NOW() + TODO for downstream action trigger
+- reject-heath-action: UPDATE status='rejected', failure_reason=reason
+- snooze-heath-action: UPDATE status='snoozed', snoozed_until=NOW()+24h
+
+NEXT STEP:
+Atlas to ship: merge the 3 API files + HTML/CSS/JS into jarvis-pwa.html + test on staging PWA
+Quinn APV: sign in as demo, queue a heath_action manually (INSERT into DB), verify UI loads card, test all 3 button flows (approve/reject/snooze), verify optimistic UI + toast notifications
+
+PLAN FOR ATLAS:
+1. Merge api/approve-heath-action.js + reject + snooze into MeetDossie/api/
+2. Apply HTML diff to jarvis-pwa.html (CSS before line 750, HTML before AGENT STATUS at line 2605, JS in main script block)
+3. Verify TENANT_ID is available in jarvis-pwa.html scope (likely from auth context)
+4. Test on staging: https://[staging-url]/jarvis (should render panel with "Nothing waiting" if no pending actions)
+5. Manually INSERT a test row: INSERT INTO heath_actions (id, tenant_id, title, body, source, priority, status, created_at) VALUES (uuid(), [HEALTH_TENANT_ID], 'Test Action', 'Description', 'atlas', 'high', 'pending', now())
+6. Verify card appears, buttons work, API endpoints return 200
