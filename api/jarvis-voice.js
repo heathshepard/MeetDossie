@@ -170,6 +170,16 @@ function filenameForMime(mime) {
   return 'audio.webm';
 }
 
+// Whitelist of Anthropic-supported image mime types (Build A 2026-06-25).
+function sanitizeImageMediaType(mime) {
+  const m = String(mime || '').toLowerCase().trim();
+  if (m === 'image/jpeg' || m === 'image/jpg') return 'image/jpeg';
+  if (m === 'image/png') return 'image/png';
+  if (m === 'image/gif') return 'image/gif';
+  if (m === 'image/webp') return 'image/webp';
+  return null;
+}
+
 function cleanForSpeech(text) {
   return String(text || '')
     .replace(/[*_~`]/g, '')
@@ -436,6 +446,9 @@ The PWA exposes the following surfaces (be accurate when asked):
 - Noisy Environment toggle: top-right of the mic area. When ON, the VAD threshold is raised and short ambient noises (cabin noise, music, buzzing) are filtered out as non-speech.
 
 When the user asks about what they can do in the app, describe these accurately. Do NOT invent panels that don't exist. Do NOT say "that depends on the interface" — you ARE in this interface.
+
+VISION (image attachments):
+If Heath attaches an image, describe what you see and respond to his question about it. Reference specifics from the image — text, numbers, layouts, dates, names, prices, error messages. Do not say "I can't see images" — you absolutely can. Speak the answer cleanly for TTS: full sentences, no markdown.
 === END JARVIS PWA UI CAPABILITIES ===`;
 
 async function getContextExtension(tenant) {
@@ -781,9 +794,20 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     throw err;
   }
 
-  const { conversation_id, message, system_prompt_extension, approve_tool, client_context } = body || {};
+  const {
+    conversation_id, message, system_prompt_extension, approve_tool, client_context,
+    // Vision payload (Build A 2026-06-25). image_base64 is the raw base64 string
+    // (no "data:" prefix). image_media_type is one of image/jpeg | image/png |
+    // image/gif | image/webp. PWA caps inbound at 1024px to control cost.
+    image_base64, image_media_type,
+  } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ ok: false, error: 'message is required' });
+  }
+  const hasImage = !!(image_base64 && typeof image_base64 === 'string');
+  const imageMime = sanitizeImageMediaType(image_media_type);
+  if (hasImage && !imageMime) {
+    return res.status(400).json({ ok: false, error: 'image_media_type must be image/jpeg|png|gif|webp' });
   }
 
   // Ensure / create the conversation
@@ -809,12 +833,17 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   );
   const history = (historyDesc || []).slice().reverse();
 
-  // Persist the user message
+  // Persist the user message. For vision turns, append a marker so the DB row
+  // reflects that an image was sent (we don't store the base64 in DB — it's
+  // huge and only useful for the live turn). Build A 2026-06-25.
+  const persistedUserContent = hasImage
+    ? `${message.slice(0, 4000)} [image: ${imageMime}]`
+    : message.slice(0, 4000);
   await sbPost('jarvis_messages', {
     conversation_id: convId,
     tenant_id: tenant.id,
     role: 'user',
-    content: message.slice(0, 4000),
+    content: persistedUserContent,
   }, { prefer: 'return=minimal' });
 
   // Build system prompt with Anthropic prompt caching.
@@ -889,9 +918,17 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   while (cleanedHistory.length && cleanedHistory[0].role !== 'user') {
     cleanedHistory.shift();
   }
+  // For vision turns, the final user message must be a content-block array.
+  // Order per Anthropic guidance: image first, then text. Build A 2026-06-25.
+  const finalUserContent = hasImage
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: imageMime, data: image_base64 } },
+        { type: 'text', text: message.slice(0, 4000) },
+      ]
+    : message.slice(0, 4000);
   let messages = [
     ...cleanedHistory,
-    { role: 'user', content: message.slice(0, 4000) },
+    { role: 'user', content: finalUserContent },
   ];
 
   // ===== Tool-use loop =====
@@ -1141,9 +1178,17 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     }
     throw err;
   }
-  const { conversation_id, message, system_prompt_extension, client_context } = body || {};
+  const {
+    conversation_id, message, system_prompt_extension, client_context,
+    image_base64, image_media_type,
+  } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ ok: false, error: 'message is required' });
+  }
+  const hasImage = !!(image_base64 && typeof image_base64 === 'string');
+  const imageMime = sanitizeImageMediaType(image_media_type);
+  if (hasImage && !imageMime) {
+    return res.status(400).json({ ok: false, error: 'image_media_type must be image/jpeg|png|gif|webp' });
   }
 
   // Ensure / create the conversation
@@ -1166,7 +1211,9 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
       conversation_id: convId,
       tenant_id: tenant.id,
       role: 'user',
-      content: message.slice(0, 4000),
+      content: hasImage
+        ? `${message.slice(0, 4000)} [image: ${imageMime}]`
+        : message.slice(0, 4000),
     }, { prefer: 'return=minimal' }).then(() => getContextExtension(tenant)),
     buildHudStateContext(tenant),
   ]);
@@ -1175,9 +1222,10 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
   // (DESC order = newest first). Strip only that first entry if it matches,
   // because Claude API rejects consecutive same-role turns.
   const trimmedMsg = message.slice(0, 4000);
+  const persistedMsg = hasImage ? `${trimmedMsg} [image: ${imageMime}]` : trimmedMsg;
   let historyDescSafe = historyDesc || [];
   if (historyDescSafe.length && historyDescSafe[0].role === 'user' &&
-      String(historyDescSafe[0].content || '').slice(0, 4000) === trimmedMsg) {
+      String(historyDescSafe[0].content || '').slice(0, 4000) === persistedMsg.slice(0, 4000)) {
     historyDescSafe = historyDescSafe.slice(1);
   }
   const history = historyDescSafe.slice().reverse();
@@ -1191,9 +1239,16 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     cleanedHistory.shift();
   }
 
+  // Vision turn → content-block array (image first, then text). Build A 2026-06-25.
+  const finalUserContent = hasImage
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: imageMime, data: image_base64 } },
+        { type: 'text', text: trimmedMsg },
+      ]
+    : trimmedMsg;
   const finalMessages = [
     ...cleanedHistory,
-    { role: 'user', content: trimmedMsg },
+    { role: 'user', content: finalUserContent },
   ];
 
   // Anthropic prompt caching — see handleChat() for the rationale + layout.
