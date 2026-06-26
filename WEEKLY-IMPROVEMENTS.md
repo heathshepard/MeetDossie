@@ -11,6 +11,163 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of June 15, 2026
+
+**Smoother Earth visualization and grid overlay** (customer)
+- We refined the look of the Earth globe on your dashboard — the atmosphere glow is now more subtle, the hex grid overlay is crisper and more visible, and the city lights show through better without washing out. The whole globe animates more smoothly as it rotates.
+
+**Earth orb visualization now shows real city lights** (customer)
+- We replaced the simple blue sphere with a detailed Earth showing real city lights at night, shipping lanes, and a rotating grid background. The globe now spins smoothly on both desktop and mobile.
+
+**Portfolio tiles display more consistently** (customer)
+- We improved how your portfolio tiles are sized and positioned so they stay centered and easier to scan on the portfolio page.
+
+**Mobile portfolio grid displays clearly** (customer)
+- We fixed the mobile view so your property portfolio grid no longer overlaps with side panels, and made the tiles more opaque so you can see your listings without distraction.
+
+**Money Pulse, Voice Brief, and Daily Debrief** (customer)
+- We've added Money Pulse to show your month-to-date revenue at a glance, plus a new voice-powered morning briefing that reads your key metrics aloud and alerts you to important changes. You'll also get a daily debrief summary to stay on top of your business.
+
+**Cleaner Earth map and new voice for morning briefings** (customer)
+- We cleaned up the Earth visualization to make city lights easier to see and switched to a new British voice for your morning briefing that sounds more like the original Jarvis assistant.
+
+**Visual indicators and live activity feeds on dashboard panels** (customer)
+- We added subtle corner brackets that highlight when you hover over dashboard sections, making it easier to see what you're interacting with. We also added live activity feeds at the bottom of key panels so you can quickly see the latest updates from your agent activity, decisions, incidents, and money pulse data without scrolling.
+
+**Larger orb and clearer agent status display** (customer)
+- We made the Talk-to-Dossie orb bigger and easier to see on your screen. Agent activity now shows at a glance with color-coded status indicators instead of text, so you can quickly spot who's working, idle, or experiencing issues.
+
+**Fixed audio stuttering on mobile devices** (customer)
+- We fixed an issue where the morning brief audio would skip or stutter on mobile phones like Samsung Z Fold. The audio now plays smoothly on all devices.
+
+**Streamlined portfolio display** (customer)
+- We cleaned up the portfolio section on your dashboard to show only our core products, giving you a cleaner view of what we offer.
+
+**Mobile layout fixes and Jarvis voice upgrade** (customer)
+- We fixed the mobile experience on foldable phones so the interactive globe displays correctly without overlapping your header. We also upgraded Jarvis's voice to a richer, deeper British tone that better matches the original character.
+
+**Fixed mobile layout alignment at 900px width** (customer)
+- We fixed a rare display issue where the app could show desktop and mobile layouts at the same time on devices exactly 900 pixels wide. Now the app consistently shows the correct mobile layout on smaller screens.
+
+**Pre-listing and pre-contract columns restored** (customer)
+- We've fixed a bug that was hiding pre-listing and pre-contract transaction columns in your workspace. Your transaction pipeline should now display all stages correctly.
+
+**Pre-Listing and Pre-Contract stages restored** (customer)
+- We've restored the Pre-Listing and Pre-Contract pipeline stages that were temporarily unavailable. Your transaction workflows now include all stages again.
+
+**Fixed Earth globe stretching on mobile** (customer)
+- We fixed a bug where the Earth globe appeared stretched and oval-shaped on mobile phones and folding devices. The globe now renders with the correct proportions on all screen sizes.
+
+**Fixed session timeout issues in Today panel** (customer)
+- We fixed a bug where the Today panel (money pulse, tickers, morning brief, and merge queue) would stop working after you left the tab idle for an hour. The panel now refreshes your session automatically so everything keeps working smoothly.
+
+**Fixed voice brief loading errors** (customer)
+- We fixed an issue where the voice brief feature would occasionally fail to load. Your voice briefings now work reliably every time.
+
+**Pre-listing emails now include attachments** (customer)
+- We've added support for sending attachments with your pre-listing fix confirmation emails. Your screenshots and documents will now arrive directly in the email, saving you time on follow-ups.
+
+**Fixed voice pronunciation and login stability on mobile** (customer)
+- We fixed how Dossie speaks task reminders so they sound natural in English. We also improved login reliability on mobile phones by adding a brief retry when the app briefly loses connection in the background.
+
+**Fixed unexpected logouts on mobile** (customer)
+- We fixed a bug that was signing agents out unexpectedly on mobile devices. We also improved how the morning brief pronounces task names in Spanish.
+
+**Agents can now change their password** (customer)
+- We've added a secure password change option in your account settings, so you can update your login credentials whenever you need to.
+
+**Fixed production crash on password change** (customer)
+- We fixed a critical bug that caused the app to show a blank screen when agents tried to change their password. The app is now stable again.
+
+**Change your password in Settings** (customer)
+- We added a secure way for you to change your password directly in the Dossie app without logging out. Your new password takes effect immediately on your next sign-in.
+
+**Pre-Listing and Pre-Contract stages restored** (customer)
+- We've fixed a bug that was hiding your pre-listing and pre-contract transactions from view. Your deals in these early stages will now show up correctly in Dossie.
+
+**Change your password in Settings** (customer)
+- You can now update your password directly in the app without logging out. We'll verify your current password and confirm your new one matches before saving.
+
+
+---
+
+**Teams and brokerage support now available** (customer)
+- Agents can now invite team members to collaborate on transactions and manage permissions within Dossie. We've added secure consent controls so agents can authorize team access to sensitive transaction data.
+
+**Team accounts and consent management** (customer)
+- We've launched team accounts so brokerages can manage multiple agents under one account, with role-based access control and billing by seat. Agents can now accept consent agreements through a secure link before joining a team.
+
+**Talk-to-Dossie now answers TREC questions** (customer)
+- We've added TREC question-and-answer support to Talk-to-Dossie, so you can ask about Texas real estate commission rules and get instant answers with citations to the exact regulations.
+
+**Jarvis voice chat now remembers conversations** (customer)
+- We fixed critical issues with Jarvis, our AI voice assistant. Your conversations now pick up where you left off, the app loads faster on mobile, and it handles poor audio gracefully instead of showing errors.
+
+**Talk-to-Dossie voice sessions stay connected longer** (customer)
+- We fixed an issue where long voice conversations with Dossie would disconnect and require you to sign back in. Your session now automatically refreshes in the background so you can keep talking without interruption.
+
+**Microphone now properly releases after voice messages** (customer)
+- We fixed a bug where the microphone stayed active in the background even after you finished recording a voice message, which could interfere with other apps on your phone. The mic will now cleanly turn off every time, whether you send the message, close the app, or switch tabs.
+
+**Talk-to-Dossie voice recognition now more reliable** (customer)
+- We've upgraded the speech-to-text technology powering Talk-to-Dossie to reduce service interruptions and improve accuracy when you dictate information into your dossiers.
+
+**Talk-to-Dossie now feels like natural conversation** (customer)
+- We fixed Talk-to-Dossie to work like a real conversation — tap once to start talking, the app listens continuously and automatically detects when you finish speaking, then responds. Tap again when you're done. No more awkward press-and-release for every single sentence.
+
+**Talk-to-Dossie responds faster** (customer)
+- We reduced the wait time after you stop talking, so Talk-to-Dossie now responds about 0.7 seconds quicker. You'll experience less latency when having conversations with Dossie.
+
+**Faster responses in Talk-to-Dossie** (customer)
+- We've made Jarvis respond more quickly after you finish speaking, cutting the wait time by about a fifth of a second for snappier conversations.
+
+**Faster voice responses in Talk-to-Dossie** (customer)
+- We've sped up Talk-to-Dossie's voice replies by streaming audio as it's generated, so you hear Dossie's answer roughly 2.5 seconds faster. The app now plays audio sentence-by-sentence as soon as each one is ready, instead of waiting for the full response.
+
+**Animated Earth globe now in Jarvis PWA** (customer)
+- We've added the same rotating Earth visualization to the Jarvis PWA that was in the web app, giving you a more polished and engaging interface when you open Talk-to-Dossie on mobile or desktop.
+
+**Jarvis voice brief, calendar, and quick-ask features** (customer)
+- We've added a morning voice brief that reads you key information, integrated your calendar so you can see today's and tomorrow's events, and built a quick-ask feature so you can ask Jarvis questions and get answers back as audio. These tools help you stay on top of your business without leaving the app.
+
+**Talk-to-Dossie button now centers perfectly on all phones** (customer)
+- We fixed the microphone button to stay centered on your screen no matter what device you use, and made sure all the buttons and text are easy to tap on smaller phones like foldables.
+
+**Fixed mobile layout overflow issue** (customer)
+- We fixed a bug where content on mobile phones was stretching way too wide and forcing horizontal scrolling. Your app now displays properly on smaller screens without unwanted scrolling.
+
+**Talk-to-Dossie chat now easier to read and use** (customer)
+- We've reorganized the chat so new messages appear at the top and older ones scroll below, making it easier to follow recent conversation. The message input box now stays fixed at the bottom of the screen so you can always see it, and you can attach files directly from chat.
+
+**Fixed chat input layout on narrow phones** (customer)
+- We fixed the chat input box and send button to display correctly on very narrow phone screens like the Samsung Z Fold cover, so you can chat with Dossie without text getting cut off.
+
+**Jarvis now knows your location and what agents are doing** (customer)
+- We fixed Jarvis to always know your current date, timezone, and travel plans so it gives you accurate information. Jarvis can also now see what your agents are working on right now and answer questions about their activity without delays.
+
+**Noisy Mode toggle for Talk-to-Dossie** (customer)
+- We added a Noisy Mode toggle to Talk-to-Dossie so the voice assistant works better in loud environments like planes, cafes, and cars. When you turn it on, Dossie ignores background noise and false speech detection, so you get fewer phantom replies and interruptions.
+
+**Chat input stays at top while conversation grows** (customer)
+- We moved the text input box to the top of the chat panel so it stays visible and easy to reach as your conversation with Jarvis grows longer. New messages now appear right below the input instead of pushing it further down the screen.
+
+**Jarvis now remembers your full conversation** (customer)
+- We fixed a bug where Jarvis would forget your recent messages in long conversations and base replies on old context instead. Now Jarvis can see and respond to your last 30 messages, keeping the conversation flowing naturally.
+
+**Fixed sign-in button on Jarvis app** (customer)
+- We fixed a bug where the sign-in button on the Jarvis PWA appeared clickable but wouldn't respond to taps after a session expired. Agents can now sign back in reliably on mobile.
+
+**Fix audio cutting out on Bluetooth headphones** (customer)
+- We fixed an issue where audio would unexpectedly switch from Bluetooth headphones to the phone speaker during calls on Android devices. Agents using Bluetooth headsets will now have consistent, uninterrupted audio.
+
+**Fixed sign-in button not working** (customer)
+- We fixed a critical bug that prevented agents from signing in to the Jarvis app. Sign-in now works properly again.
+
+**Email unsubscribe page now available** (customer)
+- We added an unsubscribe page so agents can easily manage their email preferences and comply with anti-spam regulations. This ensures our cold email campaigns stay compliant and respect your communication choices.
+
+<!-- applied_shas: 0bc1e3c,10cf6fb,117949f,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,348a261,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,62a26ad,6501ff1,654af68,69f1b2b,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,924446f,99ee638,9cfb06f,a22c5a7,aaa3f82,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,d5d3ad1,d6e08c4,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
+
 ## Week of June 5, 2026
 
 **Honor customer name preferences**
