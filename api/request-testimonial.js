@@ -8,6 +8,7 @@
 // Auth: Supabase JWT (Bearer token in Authorization header)
 
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { customerFirstName } = require('./_lib/personalization.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -184,7 +185,7 @@ module.exports = async function handler(req, res) {
 
   // Fetch the agent's profile for name and review links.
   const profResp = await supabaseFetch(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=full_name,email,google_review_url,zillow_review_url`,
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=full_name,preferred_name,email,google_review_url,zillow_review_url`,
   );
   const profile = profResp.ok && profResp.data && profResp.data.length > 0 ? profResp.data[0] : null;
 
@@ -204,7 +205,9 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ ok: false, error: 'Email service not configured.' });
   }
 
-  const firstNameRaw = (profile && profile.full_name ? profile.full_name : toEmail).split(/[\s.@]/)[0] || 'there';
+  // preferred_name wins over full_name's first token so the agent gets
+  // greeted by what they actually go by (e.g. Suzanne, not Kay).
+  const firstNameRaw = customerFirstName(profile || { email: toEmail });
   const firstName = firstNameRaw.charAt(0).toUpperCase() + firstNameRaw.slice(1);
   const subject = `Review request ready for ${tx.property_address || 'your closed deal'}`;
   const html = buildEmailHtml({

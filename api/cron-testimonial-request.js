@@ -8,6 +8,7 @@
 // Schedule: vercel.json — "0 14 * * *" (2PM UTC = 9AM CDT daily)
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { customerFirstName } = require('./_lib/personalization.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -166,7 +167,7 @@ module.exports = withTelemetry('cron-testimonial-request', async function handle
     const filterStr = userIds.map((id) => `"${id}"`).join(',');
 
     const [profResp, subResp] = await Promise.all([
-      supabaseFetch(`/rest/v1/profiles?id=in.(${filterStr})&select=id,email,full_name,is_demo,google_review_url,zillow_review_url`),
+      supabaseFetch(`/rest/v1/profiles?id=in.(${filterStr})&select=id,email,full_name,preferred_name,is_demo,google_review_url,zillow_review_url`),
       supabaseFetch(`/rest/v1/subscriptions?user_id=in.(${filterStr})&status=eq.active&select=user_id`),
     ]);
 
@@ -191,7 +192,7 @@ module.exports = withTelemetry('cron-testimonial-request', async function handle
       if (isExcludedEmail(profile.email)) { summary.skipped_excluded++; continue; }
       if (!activeUserIds.has(tx.user_id)) { summary.skipped_no_sub++; continue; }
 
-      const firstName = (profile.full_name || profile.email || '').split(/[\s.@]/)[0] || 'there';
+      const firstName = customerFirstName(profile);
       const subject = `Your client from ${tx.property_address || 'your closed deal'} is ready for a review request`;
       const html = buildEmailHtml({
         firstName,

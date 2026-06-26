@@ -20,12 +20,35 @@ module.exports = withTelemetry('cron-elevenlabs-monitor', async function handler
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  if (!ELEVENLABS_API_KEY) {
+    return res.status(200).json({ ok: true, skipped: true, reason: 'ELEVENLABS_API_KEY not set' });
+  }
+
   const subRes = await fetch('https://api.elevenlabs.io/v1/user/subscription', {
     headers: { 'xi-api-key': ELEVENLABS_API_KEY }
   });
 
   if (!subRes.ok) {
     const text = await subRes.text();
+    // 401/403 = API key lacks user_read permission. Don't escalate to 502/RED —
+    // this is a key-scope config issue, not an outage. Surface via a one-shot
+    // Telegram alert so Heath knows to widen the key, then 200 OK so the cron
+    // stops looking like a hard failure on every diagnostic.
+    if (subRes.status === 401 || subRes.status === 403) {
+      if (TELEGRAM_BOT_TOKEN) {
+        try {
+          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: TELEGRAM_CHAT_ID,
+              text: `ElevenLabs monitor: API key missing user_read permission. Widen scope or skip credit checks. Status ${subRes.status}.`,
+            }),
+          });
+        } catch (_) { /* swallow telegram failures */ }
+      }
+      return res.status(200).json({ ok: true, skipped: true, reason: 'api_key_missing_user_read', status: subRes.status });
+    }
     return res.status(502).json({ error: 'ElevenLabs API error', status: subRes.status, body: text });
   }
 

@@ -170,6 +170,9 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ## Week of June 5, 2026
 
+**Honor customer name preferences**
+- Honor customer name preferences — added preferred_name field, so we call you what you actually go by, not just what's on the contract.
+
 **Auto-post system — social media runs itself now**
 - Social media posts now go out every day automatically without requiring manual approval. DossieMarketingBot sends a preview 30 minutes before each post. Tap Reject only if you want to stop a specific post. Nothing required on a normal day.
 
