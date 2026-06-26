@@ -598,6 +598,184 @@
       font-size: 9px; color: var(--txt-faint);
       letter-spacing: 0.1em; text-transform: uppercase;
     }
+    /* ===== PENDING APPROVALS PANEL (heath_actions approval UI — 2026-06-25) ===== */
+    .pending-approvals-title-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .approvals-count {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.18em;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+      font-weight: 500;
+      background: rgba(77, 208, 225, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(77, 208, 225, 0.3);
+    }
+    .approvals-empty {
+      font-size: 13px; color: var(--txt-mute);
+      text-align: center; padding: 20px 0;
+    }
+    .approval-card {
+      background: rgba(77, 208, 225, 0.04);
+      border-left: 3px solid var(--cyan);
+      border-top: 1px solid rgba(77, 208, 225, 0.15);
+      border-right: 1px solid rgba(77, 208, 225, 0.15);
+      border-bottom: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: all 0.2s ease;
+      animation: approval-slide-in 0.3s ease-out;
+    }
+    .approval-card.urgent-priority { border-left-color: var(--fail); }
+    .approval-card.soon-priority { border-left-color: var(--gold); }
+    .approval-card.whenever-priority { border-left-color: var(--txt-faint); }
+    .approval-card.snoozed {
+      opacity: 0.55;
+      border-left-color: var(--txt-faint);
+    }
+    @keyframes approval-slide-in {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes approval-fade-out {
+      to { opacity: 0; transform: translateX(-12px); }
+    }
+    .approval-card.removing { animation: approval-fade-out 0.3s ease-in forwards; }
+    .approval-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .approval-title {
+      font-size: 13px; font-weight: 500;
+      color: var(--txt-primary);
+      line-height: 1.3;
+      flex: 1;
+    }
+    .approval-badge {
+      padding: 2px 6px; border-radius: 4px; font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .approval-badge.urgent {
+      background: rgba(232, 94, 94, 0.15);
+      color: var(--fail);
+      border: 1px solid rgba(232, 94, 94, 0.3);
+    }
+    .approval-badge.soon {
+      background: rgba(201, 169, 110, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(201, 169, 110, 0.3);
+    }
+    .approval-badge.whenever {
+      background: rgba(226, 244, 251, 0.08);
+      color: var(--txt-mute);
+      border: 1px solid rgba(226, 244, 251, 0.15);
+    }
+    .approval-desc {
+      font-size: 11px; line-height: 1.4;
+      color: var(--txt-mute);
+      max-height: 60px; overflow-y: auto;
+      word-wrap: break-word;
+    }
+    .approval-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px; color: var(--txt-faint);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .approval-time {
+      color: var(--txt-faint);
+    }
+    .approval-source {
+      color: var(--cyan-dim);
+    }
+    .approval-buttons {
+      display: grid; grid-template-columns: 1fr 1fr auto;
+      gap: 6px;
+    }
+    .approval-btn {
+      font-family: inherit;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 6px;
+      min-height: 44px;
+      background: transparent;
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      border-radius: 6px;
+      color: var(--cyan);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+    .approval-btn:hover {
+      background: rgba(77, 208, 225, 0.12);
+      border-color: var(--cyan-bright);
+    }
+    .approval-btn:disabled {
+      opacity: 0.4; cursor: wait;
+    }
+    .approval-btn.approve {
+      color: var(--ok);
+      border-color: rgba(139, 168, 136, 0.3);
+    }
+    .approval-btn.approve:hover {
+      background: rgba(139, 168, 136, 0.12);
+      border-color: var(--ok);
+    }
+    .approval-btn.reject {
+      color: var(--fail);
+      border-color: rgba(232, 94, 94, 0.3);
+    }
+    .approval-btn.reject:hover {
+      background: rgba(232, 94, 94, 0.12);
+      border-color: var(--fail);
+    }
+    .approval-btn.snooze {
+      color: var(--gold);
+      border-color: rgba(201, 169, 110, 0.25);
+      min-width: 44px;
+    }
+    .approval-btn.snooze:hover {
+      background: rgba(201, 169, 110, 0.12);
+      border-color: var(--gold);
+    }
+    @media (max-width: 500px) {
+      .approval-buttons {
+        grid-template-columns: 1fr 1fr;
+      }
+      .approval-btn.snooze {
+        grid-column: 1 / -1;
+      }
+    }
+    .approval-toast {
+      position: fixed; bottom: 16px; right: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 1000;
+      animation: toast-slide-in 0.3s ease-out;
+      max-width: 300px;
+    }
+    @keyframes toast-slide-in {
+      from { opacity: 0; transform: translateX(100px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .approval-toast.success {
+      background: rgba(139, 168, 136, 0.2);
+      border: 1px solid var(--ok);
+      color: var(--ok);
+    }
+    .approval-toast.error {
+      background: rgba(232, 94, 94, 0.2);
+      border: 1px solid var(--fail);
+      color: var(--fail);
+    }
+    .approval-toast.info {
+      background: rgba(77, 208, 225, 0.2);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+    }
     .action-buttons {
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 6px;
@@ -2604,6 +2782,17 @@
           </div>
         </div>
 
+        <!-- PENDING APPROVALS (heath_actions approval UI — 2026-06-25, atlas_carter_ship) -->
+        <div class="panel" id="approvals-panel">
+          <div class="panel-title pending-approvals-title-row">
+            <span>PENDING APPROVALS</span>
+            <span class="approvals-count" id="approvals-badge">—</span>
+          </div>
+          <div id="approvals-list">
+            <div class="approvals-empty">Nothing waiting on you. ✨</div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-title">AGENT STATUS</div>
           <!-- DYNAMIC instance cards (SOP locked 2026-06-22).
@@ -3510,6 +3699,8 @@
       loadTickers().catch(() => {});
       loadMergeQueue().catch(() => {});
       loadPendingApprovals().catch(() => {});
+      // PENDING APPROVALS panel (heath_actions) — 2026-06-25
+      try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
       loadDailyDebrief().catch(() => {});
       loadCustomerActivity().catch(() => {});
       // Tier 2 hydrations
@@ -4531,7 +4722,8 @@
             schema: 'public',
             table: 'heath_actions',
           }, () => {
-            loadActions(); // Reload on any change
+            loadActions(); // Reload existing ACTIONS FOR YOU panel
+            try { approvalsPanel?.refresh?.(); } catch (_) {}
           })
           .subscribe();
       } catch (err) {
@@ -7255,6 +7447,249 @@
         });
       });
     }
+
+    // ============================================================================
+    // PENDING APPROVALS PANEL (heath_actions approval UI — 2026-06-25)
+    // ----------------------------------------------------------------------------
+    // Carter drafted, Atlas shipped. Reads pending + due-snoozed heath_actions
+    // for the signed-in tenant and renders cards w/ Approve / Reject / Snooze
+    // buttons. Auto-refreshes every 60s and exposes refresh() for Realtime.
+    // Priority maps to DB enum: urgent/soon/whenever (not high/medium/low).
+    // ============================================================================
+    const approvalsPanel = {
+      container: null,
+      badge: null,
+      pollHandle: null,
+
+      init() {
+        this.container = document.getElementById('approvals-list');
+        this.badge = document.getElementById('approvals-badge');
+        if (!this.container || !this.badge) return;
+        // Initial load
+        this.refresh().catch((err) => console.warn('[approvalsPanel] init load failed', err));
+        // Poll every 60s (lighter than realtime; the existing actions panel already
+        // realtime-subscribes to heath_actions and triggers loadActions()).
+        if (this.pollHandle) clearInterval(this.pollHandle);
+        this.pollHandle = setInterval(() => {
+          this.refresh().catch(() => {});
+        }, 60000);
+      },
+
+      async refresh() {
+        if (!supabase || !tenant) return;
+        try {
+          const { data: actions, error } = await supabase
+            .from('heath_actions')
+            .select('id, title, body, source, priority, status, created_at, snoozed_until')
+            .eq('tenant_id', tenant.id)
+            .in('status', ['pending', 'snoozed'])
+            .order('created_at', { ascending: true });
+
+          if (error) throw error;
+
+          // Show pending now, plus snoozed actions whose snoozed_until has passed.
+          const now = new Date();
+          const visible = (actions || []).filter((a) => {
+            if (a.status === 'pending') return true;
+            if (a.status === 'snoozed' && a.snoozed_until) {
+              return new Date(a.snoozed_until) <= now;
+            }
+            return false;
+          });
+
+          // Sort by priority order: urgent → soon → whenever, then oldest-first.
+          const order = { urgent: 0, soon: 1, whenever: 2 };
+          visible.sort((a, b) => {
+            const ap = order[a.priority] ?? 9;
+            const bp = order[b.priority] ?? 9;
+            if (ap !== bp) return ap - bp;
+            return new Date(a.created_at) - new Date(b.created_at);
+          });
+
+          this.render(visible);
+          this.badge.textContent = visible.length > 0 ? String(visible.length) : '—';
+        } catch (err) {
+          console.warn('[approvalsPanel] refresh failed', err);
+        }
+      },
+
+      render(actions) {
+        if (!this.container) return;
+        if (!actions.length) {
+          this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+          return;
+        }
+        this.container.innerHTML = actions.map((a) => this.renderCard(a)).join('');
+        // Wire buttons
+        actions.forEach((a) => {
+          const card = this.container.querySelector(`[data-action-id="${a.id}"]`);
+          if (!card) return;
+          card.querySelector('.approval-btn.approve')
+            ?.addEventListener('click', () => this.handleApprove(a.id));
+          card.querySelector('.approval-btn.reject')
+            ?.addEventListener('click', () => this.handleReject(a.id));
+          card.querySelector('.approval-btn.snooze')
+            ?.addEventListener('click', () => this.handleSnooze(a.id));
+        });
+      },
+
+      renderCard(action) {
+        const priority = (action.priority || 'soon').toLowerCase();
+        const priorityClass = `${priority}-priority`;
+        const badgeClass = priority;
+        const timeAgo = this.formatTimeAgo(new Date(action.created_at));
+        const rawDesc = action.body || '';
+        const desc = rawDesc.length > 200 ? rawDesc.substring(0, 200) + '…' : rawDesc;
+        return `
+          <div class="approval-card ${priorityClass}" data-action-id="${action.id}">
+            <div class="approval-header">
+              <div class="approval-title">${this.escapeHtml(action.title || 'Untitled')}</div>
+              <span class="approval-badge ${badgeClass}">${this.escapeHtml(priority.toUpperCase())}</span>
+            </div>
+            ${desc ? `<div class="approval-desc">${this.escapeHtml(desc)}</div>` : ''}
+            <div class="approval-meta">
+              <span class="approval-source">via ${this.escapeHtml(action.source || 'unknown')}</span>
+              <span class="approval-time">queued ${timeAgo}</span>
+            </div>
+            <div class="approval-buttons">
+              <button class="approval-btn approve">Approve</button>
+              <button class="approval-btn reject">Reject</button>
+              <button class="approval-btn snooze" title="Snooze 24h" aria-label="Snooze 24 hours">⏰</button>
+            </div>
+          </div>
+        `;
+      },
+
+      formatTimeAgo(date) {
+        const diffMs = Date.now() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffMins < 1) return 'now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+      },
+
+      escapeHtml(text) {
+        if (text == null) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, (m) => map[m]);
+      },
+
+      async handleApprove(actionId) {
+        const card = this.container.querySelector(`[data-action-id="${actionId}"]`);
+        const btn = card?.querySelector('.approval-btn.approve');
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/approve-heath-action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ action_id: actionId }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (card) {
+            card.classList.add('removing');
+            setTimeout(() => {
+              card.remove();
+              const remaining = this.container.querySelectorAll('.approval-card').length;
+              this.badge.textContent = remaining > 0 ? String(remaining) : '—';
+              if (remaining === 0) {
+                this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+              }
+            }, 300);
+          }
+          this.showToast('Action approved', 'success');
+        } catch (err) {
+          console.error('[approvalsPanel] approve failed', err);
+          if (btn) btn.disabled = false;
+          this.showToast(`Approve failed: ${err.message}`, 'error');
+        }
+      },
+
+      async handleReject(actionId) {
+        const card = this.container.querySelector(`[data-action-id="${actionId}"]`);
+        const btn = card?.querySelector('.approval-btn.reject');
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/reject-heath-action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ action_id: actionId, reason: 'Rejected by Heath' }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (card) {
+            card.classList.add('removing');
+            setTimeout(() => {
+              card.remove();
+              const remaining = this.container.querySelectorAll('.approval-card').length;
+              this.badge.textContent = remaining > 0 ? String(remaining) : '—';
+              if (remaining === 0) {
+                this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+              }
+            }, 300);
+          }
+          this.showToast('Action rejected', 'info');
+        } catch (err) {
+          console.error('[approvalsPanel] reject failed', err);
+          if (btn) btn.disabled = false;
+          this.showToast(`Reject failed: ${err.message}`, 'error');
+        }
+      },
+
+      async handleSnooze(actionId) {
+        const card = this.container.querySelector(`[data-action-id="${actionId}"]`);
+        const btns = card?.querySelectorAll('button');
+        btns?.forEach((b) => (b.disabled = true));
+        try {
+          const res = await fetch(`${API_BASE}/api/snooze-heath-action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ action_id: actionId, duration_hours: 24 }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (card) {
+            card.classList.add('snoozed');
+            card.classList.add('removing');
+            setTimeout(() => {
+              card.remove();
+              const remaining = this.container.querySelectorAll('.approval-card').length;
+              this.badge.textContent = remaining > 0 ? String(remaining) : '—';
+              if (remaining === 0) {
+                this.container.innerHTML = '<div class="approvals-empty">Nothing waiting on you. ✨</div>';
+              }
+            }, 300);
+          }
+          this.showToast('Snoozed 24h', 'info');
+        } catch (err) {
+          console.error('[approvalsPanel] snooze failed', err);
+          btns?.forEach((b) => (b.disabled = false));
+          this.showToast(`Snooze failed: ${err.message}`, 'error');
+        }
+      },
+
+      showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `approval-toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.style.animation = 'toast-slide-in 0.3s ease-out reverse';
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      },
+    };
+    // Expose for testing + cross-handler calls.
+    window.approvalsPanel = approvalsPanel;
 
     // ===== Boot =====
     // P0 FIX 2026-06-22 — Wire critical auth listeners BEFORE any async work.
