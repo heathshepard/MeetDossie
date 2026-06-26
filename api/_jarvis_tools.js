@@ -47,6 +47,48 @@ const READABLE_TABLES = new Set([
   'action_items',
 ]);
 
+// Wider whitelist for the raw-SQL query_database tool (Build B 2026-06-25).
+// Heath's spec lists these explicitly. Some don't exist yet — empty queries
+// against missing tables fail clean. Explicitly DOES NOT include auth.*,
+// stripe_payment_log, stripe_webhook_events, or any secrets-bearing table.
+const QUERY_DATABASE_TABLES = new Set([
+  'profiles',
+  'transactions',
+  'action_items',
+  'documents',
+  'email_queue',
+  'social_posts',
+  'founding_applications',
+  'subscriptions',
+  'waitlist',
+  'calculator_signups',
+  'dossier_milestones',
+  'share_events',
+  'support_tickets',
+  'customer_bug_reports',
+  'feature_requests',
+  'newsletter_drafts',
+  'jarvis_future_builds',
+  'jarvis_agent_instances',
+  'jarvis_agent_checklist',
+  'heath_actions',
+  'agent_queue',
+  'cron_runs',
+  'weekly_improvements',
+  'heath_todo',
+  'jarvis_conversations',
+  'jarvis_agent_events',
+]);
+
+// Columns whose VALUES get redacted in tool output before Jarvis sees them.
+// Build B 2026-06-25 — PII / secrets scrub.
+const REDACT_COLUMN_NAMES = new Set([
+  'password', 'password_hash',
+  'token', 'access_token', 'refresh_token', 'reset_token',
+  'secret', 'api_key', 'cron_secret',
+  'stripe_customer_id', 'stripe_subscription_id', 'stripe_payment_intent_id',
+]);
+
 // ===== Tool specs (Anthropic tool_use format) =====
 // Each spec is { name, description, input_schema }. Only tools in the tenant's
 // jarvis_tools whitelist make it into the live request.
@@ -67,6 +109,29 @@ const ALL_TOOLS = [
         limit: { type: 'integer', description: 'Max 50.', default: 25 },
       },
       required: ['table'],
+    },
+    requires_approval: false,
+  },
+  {
+    name: 'query_database',
+    description:
+      "Run a read-only SQL SELECT query against the Dossie database to answer Heath's data questions. Use ONLY for factual data queries that you can't answer from your existing HUD context. Examples of valid uses: customer MRR lookups, profile counts, transaction status, support ticket history. The query MUST be a single SELECT statement against the safe-table whitelist (" +
+      Array.from(QUERY_DATABASE_TABLES).join(', ') +
+      "). Never use this for data already on the HUD — answer from HUD context first.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        intent: {
+          type: 'string',
+          description: 'One sentence describing what Heath wants to know.',
+        },
+        sql: {
+          type: 'string',
+          description:
+            'A single SELECT statement. No INSERT/UPDATE/DELETE/DROP/TRUNCATE/ALTER/COPY/GRANT/REVOKE. No semicolons. No CTE that writes. Use only allowlisted tables. Wrap in LIMIT 50.',
+        },
+      },
+      required: ['intent', 'sql'],
     },
     requires_approval: false,
   },
@@ -278,6 +343,246 @@ async function tool_query_supabase(input) {
   } catch (err) {
     return { error: `Query failed: ${err.message}` };
   }
+}
+
+// ---------------------------------------------------------------------------
+// query_database (Build B 2026-06-25) — raw SELECT with multi-layer safety.
+//
+// Layered defense:
+//   1. App-level keyword blacklist (no INSERT/UPDATE/DELETE/DROP/ALTER/etc.)
+//   2. App-level semicolon ban (prevents stacking)
+//   3. App-level system-schema ban (information_schema / pg_catalog)
+//   4. App-level table whitelist (every FROM table must match QUERY_DATABASE_TABLES)
+//   5. App-level LIMIT cap (rewrite/append LIMIT 50)
+//   6. DB RPC also refuses non-SELECT and forces transaction_read_only=on
+//   7. PII column redaction in result before returning to Claude
+//   8. Audit row written for every call (accepted OR rejected)
+// ---------------------------------------------------------------------------
+const FORBIDDEN_SQL_KEYWORDS = [
+  'insert', 'update', 'delete', 'drop', 'alter', 'truncate',
+  'copy', 'grant', 'revoke', 'create', 'comment',
+  'merge', 'call', 'do', 'vacuum', 'analyze', 'reindex',
+  'cluster', 'lock', 'listen', 'notify', 'unlisten',
+  'security', 'reset', 'set ', 'show',
+];
+
+function rejectAuditRow(ctx, intent, sql, reason) {
+  // Best-effort, non-blocking audit insert.
+  sbPost('jarvis_query_audit', {
+    tenant_id: ctx?.tenant?.id || null,
+    jarvis_user_id: ctx?.jarvisUser?.id || null,
+    conversation_id: ctx?.conversationId || null,
+    intent: String(intent || '').slice(0, 500),
+    sql_text: String(sql || '').slice(0, 4000),
+    row_count: null,
+    was_redacted: false,
+    rejected: true,
+    reject_reason: String(reason || '').slice(0, 200),
+  }, { prefer: 'return=minimal' }).catch(() => {});
+}
+
+function acceptAuditRow(ctx, intent, sql, rowCount, wasRedacted, execMs) {
+  sbPost('jarvis_query_audit', {
+    tenant_id: ctx?.tenant?.id || null,
+    jarvis_user_id: ctx?.jarvisUser?.id || null,
+    conversation_id: ctx?.conversationId || null,
+    intent: String(intent || '').slice(0, 500),
+    sql_text: String(sql || '').slice(0, 4000),
+    row_count: rowCount,
+    was_redacted: wasRedacted,
+    rejected: false,
+    exec_ms: execMs,
+  }, { prefer: 'return=minimal' }).catch(() => {});
+}
+
+// Extract every "from X" / "join X" table token from the SQL. Lowercased,
+// schema-stripped. Used to enforce the whitelist. CTE alias names defined
+// via "WITH <name> AS (...)" are tracked separately and excluded from the
+// returned set so legit CTE chains work without tripping the whitelist.
+function extractReferencedTables(sql) {
+  const lc = String(sql || '').toLowerCase();
+  // Strip string literals so we don't false-positive on FROM inside a string
+  const stripped = lc.replace(/'(?:[^']|'')*'/g, "''");
+  const tables = new Set();
+  // Collect WITH-defined CTE names
+  const cteNames = new Set();
+  const cteRe = /\bwith\s+(?:recursive\s+)?([\s\S]+?)\s+(?:select|insert|update|delete)\b/;
+  const cteMatch = stripped.match(cteRe);
+  if (cteMatch) {
+    const head = cteMatch[1];
+    // Pull out each "<name> as (" pattern. Allow commas + nested.
+    const nameRe = /([a-z_][a-z0-9_]*)\s+as\s*\(/g;
+    let n;
+    while ((n = nameRe.exec(head)) !== null) cteNames.add(n[1]);
+  }
+  // Match: FROM <maybe schema.>table  OR  JOIN <maybe schema.>table
+  const re = /(?:\bfrom|\bjoin)\s+([a-z_][a-z0-9_]*)(?:\.([a-z_][a-z0-9_]*))?/g;
+  let m;
+  while ((m = re.exec(stripped)) !== null) {
+    // If schema prefix present, the table is in group 2; bare names live in group 1.
+    const schema = m[2] ? m[1] : null;
+    const table = m[2] || m[1];
+    if (schema && schema !== 'public') {
+      tables.add(`${schema}.${table}`); // flagged so whitelist check fails
+    } else if (!cteNames.has(table)) {
+      tables.add(table);
+    }
+  }
+  return tables;
+}
+
+// Cap or append LIMIT 50. Anthropic might emit "LIMIT 1000" or omit LIMIT
+// entirely. We force a max of 50.
+function enforceLimit(sql) {
+  const lc = sql.toLowerCase();
+  const limitIdx = lc.lastIndexOf('limit');
+  if (limitIdx === -1) {
+    return sql.trim() + ' LIMIT 50';
+  }
+  // Replace whatever number follows the last LIMIT with min(n, 50)
+  const head = sql.slice(0, limitIdx);
+  const tail = sql.slice(limitIdx);
+  const replaced = tail.replace(/limit\s+(\d+)/i, (_match, num) => {
+    const n = Math.min(50, Math.max(1, parseInt(num, 10) || 50));
+    return `LIMIT ${n}`;
+  });
+  return head + replaced;
+}
+
+// Redact PII columns in row values. Operates on an array of plain objects.
+function redactRows(rows) {
+  if (!Array.isArray(rows) || !rows.length) return { rows: rows || [], redacted: false };
+  let redactedAny = false;
+  const out = rows.map((row) => {
+    if (!row || typeof row !== 'object') return row;
+    const copy = { ...row };
+    for (const key of Object.keys(copy)) {
+      if (REDACT_COLUMN_NAMES.has(key.toLowerCase())) {
+        if (copy[key] != null) {
+          copy[key] = '[redacted]';
+          redactedAny = true;
+        }
+      }
+    }
+    return copy;
+  });
+  return { rows: out, redacted: redactedAny };
+}
+
+async function sbRpc(fnName, payload) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`rpc ${fnName} -> ${res.status} ${txt.slice(0, 250)}`);
+  }
+  return res.json();
+}
+
+async function tool_query_database(input, ctx) {
+  const { intent, sql } = input || {};
+  if (!intent || typeof intent !== 'string') {
+    rejectAuditRow(ctx, intent, sql, 'intent required');
+    return { error: 'intent is required (one-sentence description of what Heath wants)' };
+  }
+  if (!sql || typeof sql !== 'string') {
+    rejectAuditRow(ctx, intent, sql, 'sql required');
+    return { error: 'sql is required (a single SELECT statement)' };
+  }
+
+  const trimmed = sql.trim();
+  const lc = trimmed.toLowerCase();
+
+  // 1. Must start with select or with
+  if (!(lc.startsWith('select ') || lc.startsWith('select(') ||
+        lc.startsWith('with ') || lc.startsWith('select\n'))) {
+    rejectAuditRow(ctx, intent, sql, 'not_select');
+    return { error: 'query rejected: only SELECT or WITH...SELECT allowed' };
+  }
+  // 2. Semicolon ban (prevents stacking)
+  if (trimmed.includes(';')) {
+    rejectAuditRow(ctx, intent, sql, 'semicolon');
+    return { error: 'query rejected: semicolons are not allowed' };
+  }
+  // 3. Forbidden keyword scan (after stripping string literals)
+  const stripped = lc.replace(/'(?:[^']|'')*'/g, "''");
+  for (const kw of FORBIDDEN_SQL_KEYWORDS) {
+    // Match with word boundary on either side
+    const re = new RegExp(`\\b${kw.trim()}\\b`, 'i');
+    if (re.test(stripped)) {
+      rejectAuditRow(ctx, intent, sql, `forbidden_keyword:${kw.trim()}`);
+      return { error: `query rejected: keyword "${kw.trim()}" is not allowed` };
+    }
+  }
+  // 4. System schema ban (information_schema, pg_*, auth.*, storage.*)
+  if (/\b(information_schema|pg_catalog|pg_temp|pg_toast|auth\.|storage\.|vault\.|secrets|extensions\.)/i.test(stripped)) {
+    rejectAuditRow(ctx, intent, sql, 'system_schema');
+    return { error: 'query rejected: system schemas (information_schema, pg_*, auth.*, storage.*, vault.*) are not readable' };
+  }
+  // 5. WITH... INSERT (or any write inside CTE) — already covered by keyword
+  // scan above but double-check the WITH...AS (INSERT pattern.
+  if (lc.startsWith('with ') && /\bas\s*\(\s*(insert|update|delete|truncate)/i.test(stripped)) {
+    rejectAuditRow(ctx, intent, sql, 'cte_write');
+    return { error: 'query rejected: writes inside CTE are not allowed' };
+  }
+  // 6. Table whitelist
+  const refs = extractReferencedTables(trimmed);
+  if (refs.size === 0) {
+    rejectAuditRow(ctx, intent, sql, 'no_from');
+    return { error: 'query rejected: could not detect a FROM clause' };
+  }
+  for (const t of refs) {
+    if (t.includes('.')) {
+      // Already flagged non-public schema
+      rejectAuditRow(ctx, intent, sql, `non_public_schema:${t}`);
+      return { error: `query rejected: only public schema is allowed (saw ${t})` };
+    }
+    if (!QUERY_DATABASE_TABLES.has(t)) {
+      rejectAuditRow(ctx, intent, sql, `table_not_whitelisted:${t}`);
+      return {
+        error: `query rejected: table "${t}" is not in the safe whitelist. Allowed: ${Array.from(QUERY_DATABASE_TABLES).join(', ')}`,
+      };
+    }
+  }
+  // 7. LIMIT cap
+  const safeSql = enforceLimit(trimmed);
+
+  // 8. Execute via RPC
+  const t0 = Date.now();
+  let raw;
+  try {
+    raw = await sbRpc('jarvis_run_select', { sql_text: safeSql });
+  } catch (err) {
+    rejectAuditRow(ctx, intent, safeSql, `rpc_error:${err.message.slice(0, 80)}`);
+    return { error: `query execution failed: ${err.message}` };
+  }
+  const execMs = Date.now() - t0;
+
+  // RPC returns the JSONB array directly (a JS array via PostgREST)
+  const rows = Array.isArray(raw) ? raw : (Array.isArray(raw?.[0]) ? raw[0] : []);
+
+  // 9. PII redaction
+  const { rows: safeRows, redacted } = redactRows(rows);
+
+  acceptAuditRow(ctx, intent, safeSql, safeRows.length, redacted, execMs);
+
+  return {
+    result: {
+      intent,
+      sql_executed: safeSql,
+      row_count: safeRows.length,
+      rows: safeRows,
+      redacted,
+      exec_ms: execMs,
+    },
+  };
 }
 
 async function tool_read_dossie_dashboards() {
@@ -542,6 +847,7 @@ async function tool_spawn_agent(input, ctx) {
 
 const TOOL_DISPATCHERS = {
   query_supabase: tool_query_supabase,
+  query_database: tool_query_database,
   read_dossie_dashboards: tool_read_dossie_dashboards,
   web_search: tool_web_search,
   web_browse: tool_web_browse,
