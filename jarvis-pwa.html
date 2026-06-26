@@ -4067,20 +4067,41 @@
       analyser = null;
     }
 
-    function startUtteranceRecorder(stream) {
-      // Codec preference: webm-opus > webm > mp4 (Android WebView) > default.
-      // Android WebView (Capacitor APK) often doesn't expose webm-opus; mp4
-      // is its native codec. ElevenLabs scribe_v1 accepts audio/mp4 fine.
-      const candidates = [
+    // Atlas overnight 2026-06-26: detect Android (incl. Capacitor WebView)
+    // and prefer mp4/AAC. Reason: Android Chromium reports
+    // `isTypeSupported('audio/webm;codecs=opus') === true` but the WebView
+    // MediaRecorder implementation produces blobs that ElevenLabs scribe_v1
+    // rejects with "File is corrupted. Please ensure it is playable audio."
+    // mp4/AAC is Samsung WebView's native container and decodes cleanly
+    // across all STT providers tested.
+    function isAndroidWebView() {
+      const ua = navigator.userAgent || '';
+      return /Android/i.test(ua);
+    }
+    function pickRecorderMime() {
+      const desktopOrder = [
         'audio/webm;codecs=opus',
         'audio/webm',
-        'audio/mp4',
         'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
       ];
-      let mime = '';
-      for (const c of candidates) {
-        if (MediaRecorder.isTypeSupported(c)) { mime = c; break; }
+      const androidOrder = [
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+      ];
+      const order = isAndroidWebView() ? androidOrder : desktopOrder;
+      for (const c of order) {
+        try { if (MediaRecorder.isTypeSupported(c)) return c; } catch {}
       }
+      return '';
+    }
+
+    function startUtteranceRecorder(stream) {
+      // Codec preference handled by pickRecorderMime() — Android prefers mp4,
+      // desktop prefers webm-opus. See note above on the WebView issue.
+      let mime = pickRecorderMime();
       try {
         mediaRecorder = mime
           ? new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 })
@@ -4602,18 +4623,9 @@
         setPttState('listening');
         pttStatus.textContent = 'Listening…';
 
-        // Same codec fallback chain as the continuous recorder — Android
-        // WebView prefers mp4, desktop Chrome prefers webm-opus.
-        const ptCandidates = [
-          'audio/webm;codecs=opus',
-          'audio/webm',
-          'audio/mp4',
-          'audio/mp4;codecs=mp4a.40.2',
-        ];
-        let ptMime = '';
-        for (const c of ptCandidates) {
-          if (MediaRecorder.isTypeSupported(c)) { ptMime = c; break; }
-        }
+        // Same codec preference helper as the continuous recorder —
+        // Android WebView gets mp4 first, desktop Chrome gets webm-opus.
+        let ptMime = pickRecorderMime();
         try {
           mediaRecorder = ptMime
             ? new MediaRecorder(stream, { mimeType: ptMime, audioBitsPerSecond: 64000 })
@@ -7648,7 +7660,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-26-stt-fix').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-26-stt-fix-v5-mp4-pref').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);
