@@ -260,49 +260,26 @@ async function resolveTenant(authUserId) {
 
 // ===== Op handlers =====
 
-async function handleSTT(req, res, requestId) {
-  // ElevenLabs Speech-to-Text (scribe_v1) — replaced OpenAI Whisper 2026-06-20
-  // after the OpenAI account hit insufficient_quota (429) bouncing every
-  // Heath recording as "Provider error". ElevenLabs key reused from TTS path.
-  if (!ELEVENLABS_API_KEY) {
-    return res.status(503).json({ ok: false, error: 'STT not configured' });
-  }
-  const contentType = (req.headers['content-type'] || '').toLowerCase();
-  if (!contentType.startsWith('audio/')) {
-    return res.status(400).json({ ok: false, error: `Expected audio/* Content-Type, got "${contentType}"` });
-  }
-
-  let audioBuffer;
+// Fire-and-forget debug row. Best-effort; never throws.
+async function logSttDebug(row) {
   try {
-    audioBuffer = await readRawBody(req, MAX_AUDIO_BYTES);
-  } catch (err) {
-    if (err.code === 'PAYLOAD_TOO_LARGE') {
-      return res.status(413).json({ ok: false, error: 'Audio too large' });
-    }
-    throw err;
+    await sbPost('jarvis_stt_debug', row, { prefer: 'return=minimal' });
+  } catch (e) {
+    console.warn(`[jarvis-voice/stt] debug log failed: ${e.message}`);
   }
-  if (audioBuffer.length === 0) {
-    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: 'Empty audio payload' });
-  }
-  if (audioBuffer.length < MIN_AUDIO_BYTES) {
-    // Short audio (~<2KB raw webm) is almost always a stray tap or silence.
-    // Surface as 400 with the same error code the client uses for empty
-    // transcripts so the UX falls back to "I didn't catch that, sir."
-    console.log(`[jarvis-voice/stt] [${requestId}] short audio ${audioBuffer.length}b — skipping STT`);
-    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', bytes: audioBuffer.length });
-  }
+}
 
-  const baseMime = contentType.split(';')[0].trim();
-  console.log(`[jarvis-voice/stt] [${requestId}] ${audioBuffer.length} bytes (${baseMime}) -> ElevenLabs scribe_v1`);
-
+// Send the audio buffer to ElevenLabs with a chosen filename hint.
+// Returns { ok, status, transcript, errText, elMs }.
+async function callElevenLabsSTT(audioBuffer, contentType, filenameHint) {
   const form = new FormData();
   form.append('model_id', 'scribe_v1');
-  const blob = new Blob([audioBuffer], { type: baseMime });
-  form.append('file', blob, filenameForMime(baseMime));
-
-  let sttRes;
+  const blob = new Blob([audioBuffer], { type: contentType });
+  form.append('file', blob, filenameHint);
+  const t0 = Date.now();
+  let res;
   try {
-    sttRes = await withTimeout(
+    res = await withTimeout(
       fetch('https://api.elevenlabs.io/v1/speech-to-text', {
         method: 'POST',
         headers: { 'xi-api-key': ELEVENLABS_API_KEY },
@@ -312,35 +289,204 @@ async function handleSTT(req, res, requestId) {
       'ElevenLabsSTT'
     );
   } catch (err) {
-    if (err.code === 'TIMEOUT') {
-      console.warn(`[jarvis-voice/stt] [${requestId}] ElevenLabs STT timeout`);
-      return res.status(504).json({ ok: false, error: 'STT timeout', fallback: 'retry' });
+    return { ok: false, status: 0, transcript: '', errText: err.message || 'fetch_error', elMs: Date.now() - t0 };
+  }
+  const elMs = Date.now() - t0;
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    return { ok: false, status: res.status, transcript: '', errText: errText.slice(0, 400), elMs };
+  }
+  let transcript = '';
+  try {
+    const data = await res.json();
+    transcript = String((data && data.text) || '').trim();
+  } catch (err) {
+    return { ok: false, status: res.status, transcript: '', errText: 'parse_error', elMs };
+  }
+  return { ok: true, status: 200, transcript, errText: '', elMs };
+}
+
+// OpenAI Whisper fallback. Returns same shape as callElevenLabsSTT.
+async function callWhisperSTT(audioBuffer, contentType, filenameHint) {
+  if (!OPENAI_API_KEY) {
+    return { ok: false, status: 0, transcript: '', errText: 'no_openai_key', elMs: 0 };
+  }
+  const form = new FormData();
+  form.append('model', 'whisper-1');
+  form.append('response_format', 'json');
+  const blob = new Blob([audioBuffer], { type: contentType });
+  form.append('file', blob, filenameHint);
+  const t0 = Date.now();
+  let res;
+  try {
+    res = await withTimeout(
+      fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: form,
+      }),
+      STT_TIMEOUT_MS,
+      'WhisperSTT'
+    );
+  } catch (err) {
+    return { ok: false, status: 0, transcript: '', errText: err.message || 'fetch_error', elMs: Date.now() - t0 };
+  }
+  const elMs = Date.now() - t0;
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    return { ok: false, status: res.status, transcript: '', errText: errText.slice(0, 400), elMs };
+  }
+  let transcript = '';
+  try {
+    const data = await res.json();
+    transcript = String((data && data.text) || '').trim();
+  } catch (err) {
+    return { ok: false, status: res.status, transcript: '', errText: 'parse_error', elMs };
+  }
+  return { ok: true, status: 200, transcript, errText: '', elMs };
+}
+
+async function handleSTT(req, res, requestId, authUser) {
+  // ElevenLabs Speech-to-Text (scribe_v1) — replaced OpenAI Whisper 2026-06-20
+  // after the OpenAI account hit insufficient_quota (429) bouncing every
+  // Heath recording as "Provider error". ElevenLabs key reused from TTS path.
+  //
+  // 2026-06-26 (Atlas overnight loop): added jarvis_stt_debug row write + Whisper
+  // retry fallback + filename-coerce retry. Symptom under investigation: Android
+  // WebView in Capacitor APK occasionally produces an audio container ElevenLabs
+  // rejects with 400, surfacing client-side as "I didn't catch that — try again."
+  const startMs = Date.now();
+  const userAgent = String(req.headers['user-agent'] || '').slice(0, 240);
+  const authUserId = (authUser && authUser.userId) || null;
+
+  if (!ELEVENLABS_API_KEY) {
+    await logSttDebug({
+      request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+      content_type: req.headers['content-type'] || '', byte_size: 0, magic_hex: '',
+      el_status: 0, el_error_text: 'STT not configured', transcript_preview: '',
+      outcome: 'no_key', total_ms: Date.now() - startMs, el_ms: 0,
+    });
+    return res.status(503).json({ ok: false, error: 'STT not configured' });
+  }
+  const contentType = (req.headers['content-type'] || '').toLowerCase();
+  if (!contentType.startsWith('audio/')) {
+    await logSttDebug({
+      request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+      content_type: contentType, byte_size: 0, magic_hex: '',
+      el_status: 0, el_error_text: '', transcript_preview: '',
+      outcome: 'bad_content_type', total_ms: Date.now() - startMs, el_ms: 0,
+    });
+    return res.status(400).json({ ok: false, error: `Expected audio/* Content-Type, got "${contentType}"` });
+  }
+
+  let audioBuffer;
+  try {
+    audioBuffer = await readRawBody(req, MAX_AUDIO_BYTES);
+  } catch (err) {
+    if (err.code === 'PAYLOAD_TOO_LARGE') {
+      await logSttDebug({
+        request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+        content_type: contentType, byte_size: -1, magic_hex: '',
+        el_status: 0, el_error_text: '', transcript_preview: '',
+        outcome: 'payload_too_large', total_ms: Date.now() - startMs, el_ms: 0,
+      });
+      return res.status(413).json({ ok: false, error: 'Audio too large' });
     }
     throw err;
   }
 
-  if (!sttRes.ok) {
-    const errText = await sttRes.text().catch(() => '');
-    console.error(`[jarvis-voice/stt] [${requestId}] ElevenLabs ${sttRes.status}: ${errText.slice(0, 300)}`);
-    // ElevenLabs returns 400 for "audio too short" / "invalid file" / decoding
-    // failed. Treat those as client-friendly 400s instead of 502s — the user
-    // didn't say anything meaningful, not a true provider outage.
-    if (sttRes.status === 400) {
-      return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: errText.slice(0, 200) });
-    }
-    return res.status(502).json({ ok: false, error: 'STT provider error', status: sttRes.status });
+  // Capture first 12 bytes as hex for codec identification.
+  // webm: 1A 45 DF A3 (EBML)
+  // mp4:  ?? ?? ?? ?? 66 74 79 70 (ftyp at offset 4)
+  // ogg:  4F 67 67 53
+  // wav:  52 49 46 46 ... 57 41 56 45
+  const magicHex = audioBuffer.length >= 12
+    ? audioBuffer.slice(0, 12).toString('hex')
+    : audioBuffer.toString('hex');
+
+  if (audioBuffer.length === 0) {
+    await logSttDebug({
+      request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+      content_type: contentType, byte_size: 0, magic_hex: '',
+      el_status: 0, el_error_text: '', transcript_preview: '',
+      outcome: 'empty_payload', total_ms: Date.now() - startMs, el_ms: 0,
+    });
+    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: 'Empty audio payload' });
+  }
+  if (audioBuffer.length < MIN_AUDIO_BYTES) {
+    console.log(`[jarvis-voice/stt] [${requestId}] short audio ${audioBuffer.length}b — skipping STT`);
+    await logSttDebug({
+      request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+      content_type: contentType, byte_size: audioBuffer.length, magic_hex: magicHex,
+      el_status: 0, el_error_text: '', transcript_preview: '',
+      outcome: 'too_short_client', total_ms: Date.now() - startMs, el_ms: 0,
+    });
+    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', bytes: audioBuffer.length });
   }
 
-  let transcript = '';
-  try {
-    const data = await sttRes.json();
-    transcript = String((data && data.text) || '').trim();
-  } catch (err) {
-    console.error(`[jarvis-voice/stt] [${requestId}] failed parsing ElevenLabs response: ${err.message}`);
-    return res.status(502).json({ ok: false, error: 'STT provider error', detail: 'invalid_response_shape' });
+  const baseMime = contentType.split(';')[0].trim();
+  const filename1 = filenameForMime(baseMime);
+  console.log(`[jarvis-voice/stt] [${requestId}] ${audioBuffer.length} bytes (${baseMime}) magic=${magicHex.slice(0, 16)} -> ElevenLabs scribe_v1`);
+
+  // Attempt 1 — ElevenLabs with content-type-matched filename
+  let attempt = await callElevenLabsSTT(audioBuffer, baseMime, filename1);
+  let attemptLabel = 'el_primary';
+
+  // Attempt 2 — if EL rejected with 400 (likely container/decoder issue),
+  // retry with a different filename hint. Some EL paths sniff the file by
+  // extension, not Content-Type — this can recover when the container is
+  // valid but mistyped (Android WebView labels mp4 as webm in some OEMs).
+  if (!attempt.ok && attempt.status === 400) {
+    const altFilename = filename1 === 'audio.webm' ? 'audio.mp4' : 'audio.webm';
+    console.warn(`[jarvis-voice/stt] [${requestId}] EL 400 on filename=${filename1}, retrying as ${altFilename}`);
+    const retry = await callElevenLabsSTT(audioBuffer, baseMime, altFilename);
+    if (retry.ok) {
+      attempt = retry;
+      attemptLabel = 'el_filename_retry';
+    } else {
+      // Attempt 3 — Whisper fallback
+      console.warn(`[jarvis-voice/stt] [${requestId}] EL 400 on both filenames, falling back to Whisper`);
+      const whisper = await callWhisperSTT(audioBuffer, baseMime, filename1);
+      if (whisper.ok) {
+        attempt = whisper;
+        attemptLabel = 'whisper_fallback';
+      } else {
+        // Still failed. Use the original EL error for the user response.
+        attempt = retry; // keep retry's errText for logging
+        attemptLabel = `el_400_whisper_${whisper.status || 'err'}`;
+      }
+    }
   }
-  console.log(`[jarvis-voice/stt] [${requestId}] "${transcript.slice(0, 80)}"`);
-  return res.status(200).json({ ok: true, transcript, empty: !transcript });
+
+  if (attempt.ok) {
+    console.log(`[jarvis-voice/stt] [${requestId}] (${attemptLabel}) "${attempt.transcript.slice(0, 80)}"`);
+    await logSttDebug({
+      request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+      content_type: contentType, byte_size: audioBuffer.length, magic_hex: magicHex,
+      el_status: attempt.status, el_error_text: '',
+      transcript_preview: attempt.transcript.slice(0, 200),
+      outcome: `ok_${attemptLabel}`, total_ms: Date.now() - startMs, el_ms: attempt.elMs,
+    });
+    return res.status(200).json({ ok: true, transcript: attempt.transcript, empty: !attempt.transcript });
+  }
+
+  // All providers failed
+  console.error(`[jarvis-voice/stt] [${requestId}] STT failed status=${attempt.status} attempt=${attemptLabel} err="${attempt.errText.slice(0, 200)}"`);
+  await logSttDebug({
+    request_id: requestId, auth_user_id: authUserId, user_agent: userAgent,
+    content_type: contentType, byte_size: audioBuffer.length, magic_hex: magicHex,
+    el_status: attempt.status, el_error_text: attempt.errText.slice(0, 400),
+    transcript_preview: '', outcome: `fail_${attemptLabel}`,
+    total_ms: Date.now() - startMs, el_ms: attempt.elMs,
+  });
+
+  if (attempt.status === 0 && /timed out/i.test(attempt.errText)) {
+    return res.status(504).json({ ok: false, error: 'STT timeout', fallback: 'retry' });
+  }
+  if (attempt.status === 400) {
+    return res.status(400).json({ ok: false, error: 'audio_empty_or_too_short', detail: attempt.errText.slice(0, 200) });
+  }
+  return res.status(502).json({ ok: false, error: 'STT provider error', status: attempt.status });
 }
 
 // Per-instance cache of context extensions (TTL 60s) to avoid re-loading on
@@ -1717,7 +1863,7 @@ export default async function handler(req, res) {
   try {
     switch (op) {
       case 'stt':
-        return await handleSTT(req, res, requestId);
+        return await handleSTT(req, res, requestId, authUser);
       case 'chat':
         return await handleChat(req, res, requestId, context);
       case 'tts':
