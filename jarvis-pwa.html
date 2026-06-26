@@ -7642,10 +7642,22 @@
     }, 1000);
 
     // ===== PWA: service worker =====
+    // 2026-06-26 (Atlas): added ?v= cache-buster so the WebView re-fetches the
+    // SW file when we bump the version, even if its HTTP cache says fresh.
+    // Also: when a new SW takes control we reload so the just-rendered page
+    // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js').catch((err) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-26-stt-fix').then((reg) => {
+          if (reg && reg.update) reg.update().catch(() => {});
+        }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);
+        });
+        let didReload = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (didReload) return;
+          didReload = true;
+          window.location.reload();
         });
       });
     }
