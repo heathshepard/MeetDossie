@@ -11,7 +11,7 @@
  * never be served while the device is online — offline still falls back
  * to whatever was last cached.
  */
-const CACHE = 'jarvis-pwa-v4-2026-06-26-stt-fix-invalidate';
+const CACHE = 'jarvis-pwa-v5-2026-06-26-mp4-pref-android';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
