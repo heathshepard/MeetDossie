@@ -810,6 +810,38 @@
       padding: 2px 6px;
       color: var(--cyan);
     }
+    .future-build-stalled-chip {
+      display: inline-block;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      background: rgba(255, 165, 0, 0.12);
+      border: 1px solid rgba(255, 165, 0, 0.4);
+      border-radius: 3px;
+      padding: 2px 6px;
+      color: #ffb347;
+      margin-left: 6px;
+    }
+    .future-builds-filter-row {
+      display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .future-builds-filter-chip {
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      background: transparent;
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      border-radius: 12px;
+      padding: 3px 10px;
+      color: var(--txt-mute);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .future-builds-filter-chip:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .future-builds-filter-chip.active {
+      background: rgba(77, 208, 225, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
 
     /* ===== MERGE QUEUE PANEL ===== */
     .panel-title.merge-queue-title-row {
@@ -2612,6 +2644,10 @@
           <div class="panel-title future-builds-title-row">
             <span>FUTURE BUILDS</span>
             <button id="future-builds-add-btn" class="panel-action-btn" aria-label="Add Idea">+</button>
+          </div>
+          <div class="future-builds-filter-row" id="future-builds-filter-row">
+            <button class="future-builds-filter-chip active" data-filter="all">All</button>
+            <button class="future-builds-filter-chip" data-filter="stalled">Stalled</button>
           </div>
           <div id="future-builds-list" class="future-builds-list">
             <div class="future-builds-empty">Loading ideas…</div>
@@ -6837,9 +6873,22 @@
       }
     }
 
-    function renderFutureBuilds(grouped) {
+    function isStalledBuild(b) {
+      return !!(b && typeof b.description === 'string' && /\[stalled:true/i.test(b.description));
+    }
+
+    function renderFutureBuilds(grouped, filterOverride) {
       const listEl = document.getElementById('future-builds-list');
       if (!listEl) return;
+      // Cache for filter chip handler
+      window.__futureBuildsCache = grouped;
+      const filter = filterOverride || window.__futureBuildsFilter || 'all';
+      window.__futureBuildsFilter = filter;
+      // Update chip active state
+      document.querySelectorAll('#future-builds-filter-row .future-builds-filter-chip').forEach(chip => {
+        if (chip.dataset.filter === filter) chip.classList.add('active');
+        else chip.classList.remove('active');
+      });
       const items = [];
       const statusOrder = ['idea', 'queued', 'dod_drafting', 'building', 'shipped', 'rejected'];
       for (const status of statusOrder) {
@@ -6848,13 +6897,16 @@
           items.push(build);
         }
       }
-      if (items.length === 0) {
-        listEl.innerHTML = '<div class="future-builds-empty">No ideas yet. Tap + to add one.</div>';
+      const visible = filter === 'stalled' ? items.filter(isStalledBuild) : items;
+      if (visible.length === 0) {
+        listEl.innerHTML = '<div class="future-builds-empty">' +
+          (filter === 'stalled' ? 'No stalled items.' : 'No ideas yet. Tap + to add one.') +
+          '</div>';
         return;
       }
-      listEl.innerHTML = items.map(b => `
+      listEl.innerHTML = visible.map(b => `
         <div class="future-build-item" data-build-id="${b.id}">
-          <div class="future-build-item-title">${escapeHtml(b.title)}</div>
+          <div class="future-build-item-title">${escapeHtml(b.title)}${isStalledBuild(b) ? '<span class="future-build-stalled-chip">stalled</span>' : ''}</div>
           <div class="future-build-item-meta">
             <span class="future-build-status">${b.status}</span>
             <span>${escapeHtml(b.source || '—')}</span>
@@ -6864,7 +6916,7 @@
       listEl.querySelectorAll('.future-build-item').forEach(item => {
         item.addEventListener('click', () => {
           const id = item.getAttribute('data-build-id');
-          const build = items.find(b => b.id === id);
+          const build = visible.find(b => b.id === id);
           if (build) showFutureBuildsModal(build);
         });
       });
@@ -6993,6 +7045,15 @@
           renderFutureBuilds(window.__futureBuildsCache || {}, status);
         });
         tab.__jarvisWired = true;
+      });
+      // Stalled / All filter chips (Atlas, 2026-06-25)
+      document.querySelectorAll('#future-builds-filter-row .future-builds-filter-chip').forEach(chip => {
+        if (chip.__jarvisWired) return;
+        chip.addEventListener('click', (e) => {
+          const filter = e.currentTarget.dataset.filter || 'all';
+          renderFutureBuilds(window.__futureBuildsCache || {}, filter);
+        });
+        chip.__jarvisWired = true;
       });
     }
 
