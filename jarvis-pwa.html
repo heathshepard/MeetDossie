@@ -7465,6 +7465,10 @@
         this.container = document.getElementById('approvals-list');
         this.badge = document.getElementById('approvals-badge');
         if (!this.container || !this.badge) return;
+        if (!session?.user?.id) {
+          console.warn('[approvalsPanel] init skipped — no session.user.id');
+          return;
+        }
         // Initial load
         this.refresh().catch((err) => console.warn('[approvalsPanel] init load failed', err));
         // Poll every 60s (lighter than realtime; the existing actions panel already
@@ -7476,12 +7480,15 @@
       },
 
       async refresh() {
-        if (!supabase || !tenant) return;
+        if (!supabase || !session?.user?.id) return;
         try {
+          // NOTE: heath_actions.tenant_id stores the auth user's id (FK → users.id),
+          // not the tenants table id. Filter by session.user.id, mirroring the
+          // /api/heath-actions-list pattern (auth.user_id).
           const { data: actions, error } = await supabase
             .from('heath_actions')
             .select('id, title, body, source, priority, status, created_at, snoozed_until')
-            .eq('tenant_id', tenant.id)
+            .eq('tenant_id', session.user.id)
             .in('status', ['pending', 'snoozed'])
             .order('created_at', { ascending: true });
 
