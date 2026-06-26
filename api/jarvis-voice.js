@@ -562,6 +562,7 @@ async function buildHudStateContext(tenant) {
     recentShipped,
     openTodo,
     recentCompletions,
+    projectContext,
   ] = await Promise.all([
     sbGet(
       `jarvis_future_builds?select=title,status,score,source&${fbTenantFilter}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=25`
@@ -579,9 +580,12 @@ async function buildHudStateContext(tenant) {
     sbGet(
       `agent_queue?select=status&limit=2000`
     ).catch((e) => { console.warn(`[hud-ctx] agent_queue: ${e.message}`); return []; }),
-    // Recently shipped (last 24h) — same auth_user_id quirk as future_builds
+    // Recently shipped (last 24h) — same auth_user_id quirk as future_builds.
+    // Match on updated_at OR archived_at so manually-backfilled rows that set
+    // archived_at without bumping updated_at, or vice-versa, still surface.
+    // Limit 10 (was 5) so a single-night shipping spree all fits.
     sbGet(
-      `jarvis_future_builds?select=title,status,updated_at&${fbTenantFilter}&status=eq.shipped&updated_at=gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&order=updated_at.desc&limit=5`
+      `jarvis_future_builds?select=title,status,updated_at,archived_at&${fbTenantFilter}&status=eq.shipped&or=(updated_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()},archived_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()})&order=updated_at.desc&limit=10`
     ).catch((e) => { console.warn(`[hud-ctx] shipped: ${e.message}`); return []; }),
     sbGet(
       `heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast,created_at.desc&limit=10`
@@ -589,6 +593,19 @@ async function buildHudStateContext(tenant) {
     sbGet(
       `jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&event_type=in.(instance-closed,item-completed)&created_at=gt.${new Date(Date.now() - 60 * 60 * 1000).toISOString()}&order=created_at.desc&limit=5`
     ).catch((e) => { console.warn(`[hud-ctx] completions: ${e.message}`); return []; }),
+    // PROJECT CONTEXT (atlas_12 2026-06-26): strategic projects + paused
+    // initiatives + decisions Jarvis must speak about correctly. Mirrors
+    // filesystem memory files in ~/.claude/projects/<repo>/memory/. Filter:
+    // status active/paused/blocked (skip shipped/archived). Skip rows past
+    // expires_at. Order: priority asc (1 = top), then last_updated_at desc.
+    // Limit 12 keeps token cost ~1500 input tokens.
+    sbGet(
+      `jarvis_project_context?select=key,title,summary,status,priority,tags,last_updated_at,expires_at` +
+      `&tenant_id=eq.${tenant.id}` +
+      `&status=in.(active,paused,blocked)` +
+      `&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(new Date().toISOString())})` +
+      `&order=priority.asc,last_updated_at.desc&limit=12`
+    ).catch((e) => { console.warn(`[hud-ctx] project_context: ${e.message}`); return []; }),
   ]);
 
   // ===== Section 1: FUTURE BUILDS panel (grouped by status) =====
@@ -711,6 +728,27 @@ async function buildHudStateContext(tenant) {
       const ageMin = Math.round(ageMs / 60000);
       const ageStr = ageMin < 1 ? 'just now' : `${ageMin}m ago`;
       lines.push(`- ${ev.agent_name} (${ageStr}): ${(ev.summary || ev.event_type || '').slice(0, 140)}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  // ===== Section 8: PROJECT CONTEXT (atlas_12 2026-06-26) =====
+  // Strategic projects, paused initiatives, and locked decisions Jarvis must
+  // speak about correctly. Mirrors filesystem memory files. Format per row:
+  //   - **{title}** ({status}, p{priority}): {summary}
+  // This section gives Jarvis the "did Heath pause that" / "what's the status of
+  // X" answers without hallucinating.
+  if (projectContext && projectContext.length) {
+    const lines = [
+      `## PROJECT CONTEXT (live, ${projectContext.length} item${projectContext.length === 1 ? '' : 's'})`,
+      '(Strategic projects, paused initiatives, and locked decisions. When Heath asks about any of these, USE THE SUMMARY VERBATIM — never say "I don\'t know" if a row below matches.)',
+    ];
+    for (const ctx of projectContext) {
+      const title = (ctx.title || ctx.key || '').slice(0, 120);
+      const status = (ctx.status || 'active').toUpperCase();
+      const pri = ctx.priority != null ? `p${ctx.priority}` : 'p?';
+      const summary = (ctx.summary || '').replace(/\s+/g, ' ').trim();
+      lines.push(`- **${title}** (${status}, ${pri}): ${summary}`);
     }
     sections.push(lines.join('\n'));
   }
