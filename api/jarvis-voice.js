@@ -503,7 +503,24 @@ async function buildHudStateContext(tenant) {
   const startedAt = Date.now();
   const sections = [];
 
-  // Run all 7 queries in parallel. Each gets its own try/catch in the .catch.
+  // SCHEMA QUIRK: jarvis_future_builds.tenant_id actually stores the auth.users.id
+  // (per api/jarvis-future-builds-list.js line 51: .eq('tenant_id', auth.user_id)).
+  // It does NOT store tenants.id. So to find a tenant's builds we have to look up
+  // ALL auth_user_ids belonging to this tenant and OR-match them. Heath has two
+  // auth_user_ids (heath@meetdossie.com + heath.shepard@kw.com), only one of
+  // which the future-builds reconciler writes to.
+  let authUserIds = [];
+  try {
+    const ju = await sbGet(`jarvis_users?select=auth_user_id&tenant_id=eq.${tenant.id}`);
+    authUserIds = (ju || []).map((r) => r.auth_user_id).filter(Boolean);
+  } catch (e) {
+    console.warn(`[hud-ctx] auth_user_ids lookup: ${e.message}`);
+  }
+  const fbTenantFilter = authUserIds.length
+    ? `tenant_id=in.(${authUserIds.join(',')})`
+    : `tenant_id=eq.${tenant.id}`;
+
+  // Run all queries in parallel. Each gets its own try/catch in the .catch.
   const [
     futureBuilds,
     runningInstances,
@@ -515,7 +532,7 @@ async function buildHudStateContext(tenant) {
     recentCompletions,
   ] = await Promise.all([
     sbGet(
-      `jarvis_future_builds?select=title,status,score,source&tenant_id=eq.${tenant.id}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=25`
+      `jarvis_future_builds?select=title,status,score,source&${fbTenantFilter}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=25`
     ).catch((e) => { console.warn(`[hud-ctx] future_builds: ${e.message}`); return []; }),
     sbGet(
       `jarvis_agent_instances?select=instance_id,agent_role,project_id,spawned_at,metadata&tenant_id=eq.${tenant.id}&status=eq.running&order=spawned_at.desc&limit=20`
@@ -530,9 +547,9 @@ async function buildHudStateContext(tenant) {
     sbGet(
       `agent_queue?select=status&limit=2000`
     ).catch((e) => { console.warn(`[hud-ctx] agent_queue: ${e.message}`); return []; }),
-    // Recently shipped (last 24h) — pull from jarvis_future_builds shipped + gold_tag
+    // Recently shipped (last 24h) — same auth_user_id quirk as future_builds
     sbGet(
-      `jarvis_future_builds?select=title,status,updated_at&tenant_id=eq.${tenant.id}&status=eq.shipped&updated_at=gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&order=updated_at.desc&limit=5`
+      `jarvis_future_builds?select=title,status,updated_at&${fbTenantFilter}&status=eq.shipped&updated_at=gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&order=updated_at.desc&limit=5`
     ).catch((e) => { console.warn(`[hud-ctx] shipped: ${e.message}`); return []; }),
     sbGet(
       `heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast,created_at.desc&limit=10`
