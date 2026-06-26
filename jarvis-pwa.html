@@ -729,6 +729,119 @@
     .modal-btn:disabled {
       opacity: 0.5; cursor: wait;
     }
+    .modal-input, .modal-input select, .modal-input textarea {
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--txt-primary);
+      background: rgba(77, 208, 225, 0.05);
+      border: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 6px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .modal-input:focus, .modal-input select:focus, .modal-input textarea:focus {
+      border-color: var(--cyan);
+      background: rgba(77, 208, 225, 0.08);
+    }
+    .modal-link {
+      font-size: 13px;
+      color: var(--cyan);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .modal-link:hover {
+      color: #7dd3fc;
+    }
+
+    /* ===== FUTURE BUILDS PANEL ===== */
+    .panel-title.future-builds-title-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .panel-action-btn {
+      background: transparent;
+      border: 1px solid rgba(77, 208, 225, 0.3);
+      color: var(--cyan);
+      border-radius: 4px;
+      width: 24px; height: 24px;
+      font-size: 14px; font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .panel-action-btn:hover {
+      background: rgba(77, 208, 225, 0.15);
+      border-color: var(--cyan);
+    }
+    .future-builds-list {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .future-builds-empty {
+      font-size: 12px; color: var(--txt-faint); text-align: center; padding: 12px;
+    }
+    .future-build-item {
+      padding: 10px 12px;
+      background: rgba(77, 208, 225, 0.05);
+      border: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .future-build-item:hover {
+      background: rgba(77, 208, 225, 0.08);
+      border-color: var(--cyan);
+    }
+    .future-build-item-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--txt-primary);
+      margin-bottom: 4px;
+    }
+    .future-build-item-meta {
+      font-size: 10px;
+      color: var(--txt-mute);
+      display: flex; justify-content: space-between;
+    }
+    .future-build-status {
+      display: inline-block;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      background: rgba(77, 208, 225, 0.1);
+      border: 1px solid rgba(77, 208, 225, 0.2);
+      border-radius: 3px;
+      padding: 2px 6px;
+      color: var(--cyan);
+    }
+    .future-build-stalled-chip {
+      display: inline-block;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      background: rgba(255, 165, 0, 0.12);
+      border: 1px solid rgba(255, 165, 0, 0.4);
+      border-radius: 3px;
+      padding: 2px 6px;
+      color: #ffb347;
+      margin-left: 6px;
+    }
+    .future-builds-filter-row {
+      display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .future-builds-filter-chip {
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      background: transparent;
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      border-radius: 12px;
+      padding: 3px 10px;
+      color: var(--txt-mute);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .future-builds-filter-chip:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .future-builds-filter-chip.active {
+      background: rgba(77, 208, 225, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
 
     /* ===== MERGE QUEUE PANEL ===== */
     .panel-title.merge-queue-title-row {
@@ -2525,6 +2638,21 @@
           <div id="throughput-totals" class="throughput-totals">Loading…</div>
           <div id="throughput-rows" class="throughput-rows"></div>
         </div>
+
+        <!-- FUTURE BUILDS: Idea queue → DoD drafting → building → shipped. -->
+        <div class="panel" id="future-builds-panel">
+          <div class="panel-title future-builds-title-row">
+            <span>FUTURE BUILDS</span>
+            <button id="future-builds-add-btn" class="panel-action-btn" aria-label="Add Idea">+</button>
+          </div>
+          <div class="future-builds-filter-row" id="future-builds-filter-row">
+            <button class="future-builds-filter-chip active" data-filter="all">All</button>
+            <button class="future-builds-filter-chip" data-filter="stalled">Stalled</button>
+          </div>
+          <div id="future-builds-list" class="future-builds-list">
+            <div class="future-builds-empty">Loading ideas…</div>
+          </div>
+        </div>
       </aside>
     </main>
 
@@ -2549,6 +2677,80 @@
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- FUTURE BUILD DETAIL MODAL -->
+  <div id="future-build-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-title" id="future-build-modal-title">Build Idea</div>
+      <div class="modal-section">
+        <div class="modal-label">Title</div>
+        <div class="modal-value" id="future-build-modal-title-val">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Description</div>
+        <div class="modal-value body" id="future-build-modal-desc">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Source</div>
+        <div class="modal-value" id="future-build-modal-source">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Score</div>
+        <div class="modal-value" id="future-build-modal-score">—</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Status</div>
+        <select class="modal-input" id="future-build-modal-status">
+          <option value="idea">idea</option>
+          <option value="queued">queued</option>
+          <option value="dod_drafting">dod_drafting</option>
+          <option value="building">building</option>
+          <option value="shipped">shipped</option>
+          <option value="rejected">rejected</option>
+        </select>
+      </div>
+      <div class="modal-section" id="future-build-modal-doc-section" style="display:none;">
+        <div class="modal-label">Research</div>
+        <a class="modal-link" id="future-build-modal-doc-link" target="_blank">View Doc</a>
+      </div>
+      <div class="modal-section" id="future-build-modal-prereq-section" style="display:none;">
+        <div class="modal-label">Blocker</div>
+        <div class="modal-value" id="future-build-modal-prereq">—</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn send" id="future-build-modal-save-btn">Save Status</button>
+        <button class="modal-btn cancel" id="future-build-modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD FUTURE BUILD MODAL -->
+  <div id="add-future-build-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-title">Add Future Build Idea</div>
+      <div class="modal-section">
+        <div class="modal-label">Title *</div>
+        <input class="modal-input" id="add-build-title" type="text" placeholder="e.g., SOI Relationship Memory" />
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Description</div>
+        <textarea class="modal-input" id="add-build-desc" placeholder="What does it do?" rows="4"></textarea>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Source *</div>
+        <select class="modal-input" id="add-build-source">
+          <option value="Heath direct idea">Heath direct idea</option>
+          <option value="pierce_5 research">pierce_5 research</option>
+          <option value="customer request">customer request</option>
+          <option value="atlas finding">atlas finding</option>
+        </select>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn send" id="add-build-submit-btn">Create Idea</button>
+        <button class="modal-btn cancel" id="add-build-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <!-- EMAIL APPROVAL MODAL -->
   <div id="email-modal-overlay" class="modal-overlay hidden">
@@ -3305,6 +3507,10 @@
       // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel
       loadThroughput().catch(() => {});
       setInterval(() => { loadThroughput().catch(() => {}); }, 30000);
+      // Future Builds: idea queue panel
+      loadFutureBuilds().catch(() => {});
+      wireFutureBuildsPanel();
+      setInterval(() => { loadFutureBuilds().catch(() => {}); }, 120000); // 2 min
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -6647,6 +6853,208 @@
         c3.appendChild(c3v); c3.appendChild(mix); row.appendChild(c3);
         rowsEl.appendChild(row);
       }
+    }
+
+    // ===== FUTURE BUILDS FUNCTIONS (carter_14 scope fix) =====
+    async function loadFutureBuilds() {
+      if (!tenant) return;
+      const listEl = document.getElementById('future-builds-list');
+      if (!listEl) return;
+      try {
+        const data = await authedFetch('/api/jarvis-future-builds-list');
+        if (!data?.ok) {
+          listEl.innerHTML = '<div class="future-builds-empty">Failed to load ideas.</div>';
+          return;
+        }
+        renderFutureBuilds(data.builds || {});
+      } catch (err) {
+        console.warn('[jarvis] loadFutureBuilds failed', err.message);
+        listEl.innerHTML = '<div class="future-builds-empty">Offline.</div>';
+      }
+    }
+
+    function isStalledBuild(b) {
+      return !!(b && typeof b.description === 'string' && /\[stalled:true/i.test(b.description));
+    }
+
+    function renderFutureBuilds(grouped, filterOverride) {
+      const listEl = document.getElementById('future-builds-list');
+      if (!listEl) return;
+      // Cache for filter chip handler
+      window.__futureBuildsCache = grouped;
+      const filter = filterOverride || window.__futureBuildsFilter || 'all';
+      window.__futureBuildsFilter = filter;
+      // Update chip active state
+      document.querySelectorAll('#future-builds-filter-row .future-builds-filter-chip').forEach(chip => {
+        if (chip.dataset.filter === filter) chip.classList.add('active');
+        else chip.classList.remove('active');
+      });
+      const items = [];
+      const statusOrder = ['idea', 'queued', 'dod_drafting', 'building', 'shipped', 'rejected'];
+      for (const status of statusOrder) {
+        const builds = grouped[status] || [];
+        for (const build of builds) {
+          items.push(build);
+        }
+      }
+      const visible = filter === 'stalled' ? items.filter(isStalledBuild) : items;
+      if (visible.length === 0) {
+        listEl.innerHTML = '<div class="future-builds-empty">' +
+          (filter === 'stalled' ? 'No stalled items.' : 'No ideas yet. Tap + to add one.') +
+          '</div>';
+        return;
+      }
+      listEl.innerHTML = visible.map(b => `
+        <div class="future-build-item" data-build-id="${b.id}">
+          <div class="future-build-item-title">${escapeHtml(b.title)}${isStalledBuild(b) ? '<span class="future-build-stalled-chip">stalled</span>' : ''}</div>
+          <div class="future-build-item-meta">
+            <span class="future-build-status">${b.status}</span>
+            <span>${escapeHtml(b.source || '—')}</span>
+          </div>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('.future-build-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = item.getAttribute('data-build-id');
+          const build = visible.find(b => b.id === id);
+          if (build) showFutureBuildsModal(build);
+        });
+      });
+    }
+
+    function showFutureBuildsModal(build) {
+      const overlay = document.getElementById('future-build-modal-overlay');
+      if (!overlay) return;
+      document.getElementById('future-build-modal-title-val').textContent = build.title || '—';
+      document.getElementById('future-build-modal-desc').textContent = build.description || '—';
+      document.getElementById('future-build-modal-source').textContent = build.source || '—';
+      document.getElementById('future-build-modal-score').textContent = build.score !== null ? String(build.score) : '—';
+      const statusSel = document.getElementById('future-build-modal-status');
+      if (statusSel) statusSel.value = build.status || 'idea';
+      const docSection = document.getElementById('future-build-modal-doc-section');
+      if (build.source_doc_path && docSection) {
+        docSection.style.display = 'flex';
+        const link = document.getElementById('future-build-modal-doc-link');
+        if (link) link.href = build.source_doc_path;
+      } else if (docSection) {
+        docSection.style.display = 'none';
+      }
+      const prereqSection = document.getElementById('future-build-modal-prereq-section');
+      if (build.prerequisite && prereqSection) {
+        prereqSection.style.display = 'flex';
+        document.getElementById('future-build-modal-prereq').textContent = build.prerequisite;
+      } else if (prereqSection) {
+        prereqSection.style.display = 'none';
+      }
+      overlay.classList.remove('hidden');
+      const saveBtn = document.getElementById('future-build-modal-save-btn');
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          const newStatus = statusSel.value || 'idea';
+          if (newStatus === build.status) {
+            overlay.classList.add('hidden');
+            return;
+          }
+          try {
+            const res = await authedFetch('/api/jarvis-future-builds-update', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: build.id, status: newStatus }),
+            });
+            if (res?.ok) {
+              overlay.classList.add('hidden');
+              await loadFutureBuilds();
+            }
+          } catch (err) {
+            console.warn('[jarvis] updateFutureBuild failed', err.message);
+          }
+        };
+      }
+      const closeBtn = document.getElementById('future-build-modal-close-btn');
+      if (closeBtn) {
+        closeBtn.onclick = () => overlay.classList.add('hidden');
+      }
+    }
+
+    function showAddFutureBuildModal() {
+      const overlay = document.getElementById('add-future-build-modal-overlay');
+      if (!overlay) return;
+      document.getElementById('add-build-title').value = '';
+      document.getElementById('add-build-desc').value = '';
+      document.getElementById('add-build-source').value = 'Heath direct idea';
+      overlay.classList.remove('hidden');
+      const submitBtn = document.getElementById('add-build-submit-btn');
+      if (submitBtn) {
+        submitBtn.onclick = async () => {
+          const title = document.getElementById('add-build-title').value.trim();
+          const desc = document.getElementById('add-build-desc').value.trim();
+          const source = document.getElementById('add-build-source').value || 'Heath direct idea';
+          if (!title || !source) {
+            alert('Title and source are required.');
+            return;
+          }
+          try {
+            const res = await authedFetch('/api/jarvis-future-builds-create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title,
+                description: desc || null,
+                source,
+              }),
+            });
+            if (res?.ok) {
+              overlay.classList.add('hidden');
+              await loadFutureBuilds();
+            }
+          } catch (err) {
+            console.warn('[jarvis] createFutureBuild failed', err.message);
+          }
+        };
+      }
+      const cancelBtn = document.getElementById('add-build-cancel-btn');
+      if (cancelBtn) {
+        cancelBtn.onclick = () => overlay.classList.add('hidden');
+      }
+    }
+
+    function wireFutureBuildsPanel() {
+      const addBtn = document.getElementById('future-builds-add-btn');
+      if (addBtn && !addBtn.__jarvisWired) {
+        addBtn.addEventListener('click', showAddFutureBuildModal);
+        addBtn.__jarvisWired = true;
+      }
+      const detailOverlay = document.getElementById('future-build-modal-overlay');
+      const addOverlay = document.getElementById('add-future-build-modal-overlay');
+      if (detailOverlay && !detailOverlay.__jarvisWired) {
+        detailOverlay.addEventListener('click', (e) => {
+          if (e.target === detailOverlay) detailOverlay.classList.add('hidden');
+        });
+        detailOverlay.__jarvisWired = true;
+      }
+      if (addOverlay && !addOverlay.__jarvisWired) {
+        addOverlay.addEventListener('click', (e) => {
+          if (e.target === addOverlay) addOverlay.classList.add('hidden');
+        });
+        addOverlay.__jarvisWired = true;
+      }
+      document.querySelectorAll('.future-builds-tab').forEach(tab => {
+        if (tab.__jarvisWired) return;
+        tab.addEventListener('click', (e) => {
+          const status = e.target.dataset.status;
+          renderFutureBuilds(window.__futureBuildsCache || {}, status);
+        });
+        tab.__jarvisWired = true;
+      });
+      // Stalled / All filter chips (Atlas, 2026-06-25)
+      document.querySelectorAll('#future-builds-filter-row .future-builds-filter-chip').forEach(chip => {
+        if (chip.__jarvisWired) return;
+        chip.addEventListener('click', (e) => {
+          const filter = e.currentTarget.dataset.filter || 'all';
+          renderFutureBuilds(window.__futureBuildsCache || {}, filter);
+        });
+        chip.__jarvisWired = true;
+      });
     }
 
     function renderKnowledgePanel(data) {

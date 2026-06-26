@@ -47,6 +47,10 @@
                          "destination":  "/terms.html"
                      },
                      {
+                         "source":  "/unsubscribe",
+                         "destination":  "/unsubscribe.html"
+                     },
+                     {
                          "source":  "/ventures",
                          "destination":  "/ventures.html"
                      },
@@ -335,7 +339,10 @@
                                                              },
                       "api/system-diagnostics-trigger.js":  {
                                                                 "maxDuration":  300
-                                                            }
+                                                            },
+                      "api/cron-reconcile-future-builds.js":  {
+                                                                  "maxDuration":  120
+                                                              }
                   },
     "crons":  [
                   {
@@ -617,6 +624,10 @@
                   {
                       "path":  "/api/cron-dossie-full-diagnostic",
                       "schedule":  "0 10 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-reconcile-future-builds",
+                      "schedule":  "0 */6 * * *"
                   }
               ]
 }
