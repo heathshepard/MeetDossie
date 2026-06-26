@@ -481,6 +481,209 @@ async function getContextExtension(tenant) {
 }
 
 // ---------------------------------------------------------------------------
+// HUD STATE CONTEXT — pulls live state from 7 sources so Jarvis can answer
+// "what's on my future builds", "what's hadley_1 doing", "did anything ship
+// today" conversationally. Locked 2026-06-25 after Heath flagged: "Jarvis
+// also doesn't seem to know what's on his future builds. When I ask him
+// about something that's on there he doesn't know what I'm talking about."
+//
+// This is rebuilt PER TURN (no cache) and appended to the DYNAMIC suffix of
+// the system prompt (NOT cached). Sits BEFORE the existing temporal/live
+// context so Jarvis sees it first. Failure of any single query is logged +
+// skipped, never blocks the turn.
+//
+// Cost: ~1-2k input tokens per turn. With the stable prefix cached (~85%
+// discount on persona + PWA caps), net cost diff is ~$0.003 per voice turn
+// on Sonnet 4.6 — negligible at Heath's volume (~200 turns/day = $0.60/day).
+// ---------------------------------------------------------------------------
+const HUD_CTX_MAX_CHARS = 12000; // ~3000 tokens
+
+async function buildHudStateContext(tenant) {
+  if (!tenant || !tenant.id) return '';
+  const startedAt = Date.now();
+  const sections = [];
+
+  // Run all 7 queries in parallel. Each gets its own try/catch in the .catch.
+  const [
+    futureBuilds,
+    runningInstances,
+    projects,
+    knowledgeCounts,
+    queueCounts,
+    recentShipped,
+    openTodo,
+    recentCompletions,
+  ] = await Promise.all([
+    sbGet(
+      `jarvis_future_builds?select=title,status,score,source&tenant_id=eq.${tenant.id}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=25`
+    ).catch((e) => { console.warn(`[hud-ctx] future_builds: ${e.message}`); return []; }),
+    sbGet(
+      `jarvis_agent_instances?select=instance_id,agent_role,project_id,spawned_at,metadata&tenant_id=eq.${tenant.id}&status=eq.running&order=spawned_at.desc&limit=20`
+    ).catch((e) => { console.warn(`[hud-ctx] agent_instances: ${e.message}`); return []; }),
+    sbGet(
+      `jarvis_projects?select=id,title,status,metadata&tenant_id=eq.${tenant.id}&order=updated_at.desc&limit=50`
+    ).catch((e) => { console.warn(`[hud-ctx] projects: ${e.message}`); return []; }),
+    // Knowledge counts grouped client-side from a single select
+    sbGet(
+      `agent_role_memory?select=agent_role&tenant_id=eq.${tenant.id}&validation_status=neq.archived&limit=2000`
+    ).catch((e) => { console.warn(`[hud-ctx] role_memory: ${e.message}`); return []; }),
+    sbGet(
+      `agent_queue?select=status&limit=2000`
+    ).catch((e) => { console.warn(`[hud-ctx] agent_queue: ${e.message}`); return []; }),
+    // Recently shipped (last 24h) — pull from jarvis_future_builds shipped + gold_tag
+    sbGet(
+      `jarvis_future_builds?select=title,status,updated_at&tenant_id=eq.${tenant.id}&status=eq.shipped&updated_at=gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&order=updated_at.desc&limit=5`
+    ).catch((e) => { console.warn(`[hud-ctx] shipped: ${e.message}`); return []; }),
+    sbGet(
+      `heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast,created_at.desc&limit=10`
+    ).catch((e) => { console.warn(`[hud-ctx] heath_todo: ${e.message}`); return []; }),
+    sbGet(
+      `jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&event_type=in.(instance-closed,item-completed)&created_at=gt.${new Date(Date.now() - 60 * 60 * 1000).toISOString()}&order=created_at.desc&limit=5`
+    ).catch((e) => { console.warn(`[hud-ctx] completions: ${e.message}`); return []; }),
+  ]);
+
+  // ===== Section 1: FUTURE BUILDS panel (grouped by status) =====
+  if (futureBuilds && futureBuilds.length) {
+    const grouped = {};
+    for (const fb of futureBuilds) {
+      const s = (fb.status || 'idea').toLowerCase();
+      if (!grouped[s]) grouped[s] = [];
+      grouped[s].push(fb);
+    }
+    const lines = [`### FUTURE BUILDS panel (${futureBuilds.length} items, top by score)`];
+    // Order: building, dod-drafting, in-progress, idea, then anything else
+    const order = ['building', 'dod-drafting', 'in-progress', 'in_progress', 'idea'];
+    const seen = new Set();
+    for (const status of order) {
+      if (!grouped[status]) continue;
+      seen.add(status);
+      lines.push(`- ${status.toUpperCase()}:`);
+      for (const item of grouped[status]) {
+        const src = item.source ? ` (${item.source})` : '';
+        const sc = item.score != null ? `, score ${item.score}` : '';
+        lines.push(`  - ${item.title}${sc}${src}`);
+      }
+    }
+    for (const status of Object.keys(grouped)) {
+      if (seen.has(status)) continue;
+      lines.push(`- ${status.toUpperCase()}:`);
+      for (const item of grouped[status]) {
+        const src = item.source ? ` (${item.source})` : '';
+        const sc = item.score != null ? `, score ${item.score}` : '';
+        lines.push(`  - ${item.title}${sc}${src}`);
+      }
+    }
+    sections.push(lines.join('\n'));
+  } else {
+    sections.push('### FUTURE BUILDS panel\n- (no items currently on the panel)');
+  }
+
+  // ===== Section 2: AGENT STATUS (running instances + project link) =====
+  if (runningInstances && runningInstances.length) {
+    const projById = {};
+    for (const p of (projects || [])) projById[p.id] = p;
+    const lines = [`### AGENT STATUS (${runningInstances.length} instance${runningInstances.length === 1 ? '' : 's'} running)`];
+    const now = Date.now();
+    for (const inst of runningInstances) {
+      const proj = inst.project_id ? projById[inst.project_id] : null;
+      const projTitle = proj ? proj.title : 'unassigned';
+      // Checklist progress from project metadata if present
+      let progress = '';
+      try {
+        const meta = proj && proj.metadata;
+        const checklist = meta && (meta.checklist || meta.items);
+        if (Array.isArray(checklist) && checklist.length) {
+          const done = checklist.filter((c) => c && (c.done || c.completed || c.status === 'done')).length;
+          progress = ` — ${done}/${checklist.length} done`;
+        }
+      } catch { /* ignore */ }
+      const ageMs = Math.max(0, now - new Date(inst.spawned_at).getTime());
+      const ageH = Math.round(ageMs / 3600000);
+      const ageStr = ageH < 1 ? '<1h' : ageH < 48 ? `${ageH}h` : `${Math.round(ageH / 24)}d`;
+      lines.push(`- ${inst.instance_id} (${inst.agent_role}) — ${projTitle}${progress} — running ${ageStr}`);
+    }
+    sections.push(lines.join('\n'));
+  } else {
+    sections.push('### AGENT STATUS\n- (no instances currently running)');
+  }
+
+  // ===== Section 3: AGENT QUEUE =====
+  if (queueCounts && queueCounts.length) {
+    const counts = {};
+    for (const q of queueCounts) {
+      const s = q.status || 'unknown';
+      counts[s] = (counts[s] || 0) + 1;
+    }
+    const parts = Object.entries(counts).map(([k, v]) => `${v} ${k}`);
+    sections.push(`### AGENT QUEUE\n- ${parts.join(', ')}`);
+  }
+
+  // ===== Section 4: AGENT KNOWLEDGE counts =====
+  if (knowledgeCounts && knowledgeCounts.length) {
+    const counts = {};
+    for (const k of knowledgeCounts) {
+      const r = k.agent_role || 'unknown';
+      counts[r] = (counts[r] || 0) + 1;
+    }
+    const total = knowledgeCounts.length;
+    const sorted = Object.entries(counts).sort(([, a], [, b]) => b - a);
+    const parts = sorted.map(([role, n]) => `${role.charAt(0).toUpperCase() + role.slice(1)}: ${n}`);
+    sections.push(`### AGENT KNOWLEDGE (${total} lessons total)\n- ${parts.join(', ')}`);
+  }
+
+  // ===== Section 5: Recent shipped (last 24h) =====
+  if (recentShipped && recentShipped.length) {
+    const lines = ['### Recent shipped (last 24h)'];
+    for (const s of recentShipped) {
+      const d = s.updated_at ? String(s.updated_at).slice(0, 10) : '';
+      lines.push(`- ${d} ${s.title}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  // ===== Section 6: Heath's open todo =====
+  if (openTodo && openTodo.length) {
+    const lines = [`### Heath's open todo (${openTodo.length} item${openTodo.length === 1 ? '' : 's'})`];
+    for (const t of openTodo) {
+      const p = t.priority != null ? `[P${t.priority}] ` : '';
+      const d = t.deadline ? ` (due ${String(t.deadline).slice(0, 10)})` : '';
+      const v = t.venture ? ` [${t.venture}]` : '';
+      lines.push(`- ${p}${t.title}${d}${v}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  // ===== Section 7: Recent agent completions (last 60min) =====
+  if (recentCompletions && recentCompletions.length) {
+    const lines = ['### Recent agent completions (last 60 min)'];
+    const now = Date.now();
+    for (const ev of recentCompletions) {
+      const ageMs = Math.max(0, now - new Date(ev.created_at).getTime());
+      const ageMin = Math.round(ageMs / 60000);
+      const ageStr = ageMin < 1 ? 'just now' : `${ageMin}m ago`;
+      lines.push(`- ${ev.agent_name} (${ageStr}): ${(ev.summary || ev.event_type || '').slice(0, 140)}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  if (sections.length === 0) return '';
+
+  const header =
+    '=== CURRENT HUD STATE (live, fresh this turn — when Heath asks about his future builds, agents, todo, or recent ships, USE THIS DATA verbatim, do not say "I do not know" if a relevant row is below) ===';
+  let body = sections.join('\n\n');
+
+  // Cap total size — truncate longest section's content if over the limit.
+  if (body.length > HUD_CTX_MAX_CHARS) {
+    body = body.slice(0, HUD_CTX_MAX_CHARS) + '\n[... truncated to keep prompt size sane ...]';
+  }
+
+  const text = `${header}\n${body}\n=== END CURRENT HUD STATE ===`;
+  const elapsed = Date.now() - startedAt;
+  console.log(`[hud-ctx] built ${sections.length} sections, ${text.length} chars in ${elapsed}ms`);
+  return text;
+}
+
+// ---------------------------------------------------------------------------
 // Shared agent memory pool — pull top relevant lessons for the "jarvis" role
 // so every conversation turn benefits from prior learnings (Heath spec
 // 2026-06-22). 60s in-process cache keyed by (tenant + msg-prefix) to keep
@@ -598,9 +801,18 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   // The "stable" prefix dominates token count (Heath's backbone is ~20k of
   // 25k total), so cache hit drops sub-second on every follow-up turn within
   // the 5-minute cache TTL.
-  const liveCtx = await getContextExtension(tenant);
+  // Live context (3 sources in parallel to keep handleChat fast):
+  //   - getContextExtension: MRR + todo + recent agent activity (cached 60s)
+  //   - buildLiveTemporalBlock: date/time/timezone/location (always fresh)
+  //   - buildHudStateContext: future builds + agent status + queue + knowledge
+  //     + recent ships + open todo + completions (always fresh, ~1-2k tokens)
+  //   - getJarvisRoleMemoryBlock: top relevant lessons from jarvis memory pool
+  const [liveCtx, hudCtx, roleMemoryBlock] = await Promise.all([
+    getContextExtension(tenant),
+    buildHudStateContext(tenant),
+    getJarvisRoleMemoryBlock(tenant, message),
+  ]);
   const temporalCtx = buildLiveTemporalBlock(tenant, client_context);
-  const roleMemoryBlock = await getJarvisRoleMemoryBlock(tenant, message);
 
   const stableParts = [buildSystemPrompt(tenant), PWA_UI_CAPABILITIES];
   if (roleMemoryBlock) stableParts.push(roleMemoryBlock);
@@ -609,7 +821,12 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
   }
   const stableText = stableParts.join('\n\n');
 
-  const dynamicParts = [temporalCtx];
+  // Dynamic suffix: HUD state goes FIRST (so it's the most prominent live
+  // info) followed by temporal + live state. None of this is cached so it
+  // refreshes every turn.
+  const dynamicParts = [];
+  if (hudCtx) dynamicParts.push(hudCtx);
+  dynamicParts.push(temporalCtx);
   if (liveCtx) dynamicParts.push(liveCtx);
   const dynamicText = dynamicParts.join('\n\n');
 
@@ -907,7 +1124,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
   // Load history + persist user message + load live ctx in parallel.
   // CRITICAL: order DESC + reverse to get the MOST RECENT 30 (not oldest).
   // See handleChat() for the same fix and the bug it addresses.
-  const [historyDesc, liveCtx] = await Promise.all([
+  const [historyDesc, liveCtx, hudCtx] = await Promise.all([
     sbGet(`jarvis_messages?select=role,content,created_at&conversation_id=eq.${convId}&order=created_at.desc&limit=30`),
     sbPost('jarvis_messages', {
       conversation_id: convId,
@@ -915,6 +1132,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
       role: 'user',
       content: message.slice(0, 4000),
     }, { prefer: 'return=minimal' }).then(() => getContextExtension(tenant)),
+    buildHudStateContext(tenant),
   ]);
   // Dedupe: the parallel INSERT may have completed before the SELECT, so
   // the current user message could already be at the head of historyDesc
@@ -954,7 +1172,11 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
   }
   const stableText = stableParts.join('\n\n');
 
-  const dynamicParts = [temporalCtx];
+  // Dynamic suffix: HUD state first (most prominent), then temporal, then
+  // live state. None cached so it refreshes every voice turn.
+  const dynamicParts = [];
+  if (hudCtx) dynamicParts.push(hudCtx);
+  dynamicParts.push(temporalCtx);
   if (liveCtx) dynamicParts.push(liveCtx);
   const dynamicText = dynamicParts.join('\n\n');
 
