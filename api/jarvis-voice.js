@@ -579,9 +579,12 @@ async function buildHudStateContext(tenant) {
     sbGet(
       `agent_queue?select=status&limit=2000`
     ).catch((e) => { console.warn(`[hud-ctx] agent_queue: ${e.message}`); return []; }),
-    // Recently shipped (last 24h) — same auth_user_id quirk as future_builds
+    // Recently shipped (last 24h) — same auth_user_id quirk as future_builds.
+    // Match on updated_at OR archived_at so manually-backfilled rows that set
+    // archived_at without bumping updated_at, or vice-versa, still surface.
+    // Limit 10 (was 5) so a single-night shipping spree all fits.
     sbGet(
-      `jarvis_future_builds?select=title,status,updated_at&${fbTenantFilter}&status=eq.shipped&updated_at=gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&order=updated_at.desc&limit=5`
+      `jarvis_future_builds?select=title,status,updated_at,archived_at&${fbTenantFilter}&status=eq.shipped&or=(updated_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()},archived_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()})&order=updated_at.desc&limit=10`
     ).catch((e) => { console.warn(`[hud-ctx] shipped: ${e.message}`); return []; }),
     sbGet(
       `heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast,created_at.desc&limit=10`
