@@ -461,6 +461,25 @@
       padding: 0 4px; line-height: 1;
     }
     .chat-attachment-chip .chip-clear:hover { color: var(--cyan); }
+    /* Inline thumbnail for image attachments (Build A 2026-06-25) — Cormorant
+       cyan glow, glass border to match V5 visual. */
+    .chat-attachment-chip .chip-thumb {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--cyan-dim);
+      box-shadow: 0 0 6px rgba(77, 208, 225, 0.25);
+      flex-shrink: 0;
+    }
+    /* Inline image preview inside chat bubble (Build A 2026-06-25). */
+    .msg-image-preview {
+      max-width: 220px; max-height: 220px;
+      border-radius: 8px;
+      border: 1px solid var(--cyan-dim);
+      box-shadow: 0 0 8px rgba(77, 208, 225, 0.2);
+      margin-top: 6px;
+      display: block;
+    }
     .msg {
       padding: 8px 10px; margin: 6px 0;
       border-radius: 10px;
@@ -2649,7 +2668,8 @@
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                 </svg>
               </button>
-              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" />
+              <!-- capture="environment" hints mobile browsers to default to camera (rear); desktop still shows file picker. Heath spec 2026-06-25 (image input build A). -->
+              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" capture="environment" />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
@@ -4221,7 +4241,7 @@
     // Returns { fallback: bool, error?, conversationId? }. fallback=true
     // when the stream broke before any audio played — caller should retry
     // via the legacy chat+tts path.
-    async function runStreamingChatTTS({ conversationId: convIdIn, transcript }) {
+    async function runStreamingChatTTS({ conversationId: convIdIn, transcript, imageBase64, imageMediaType }) {
       let convId = convIdIn || null;
       let assistantEl = null;
       let assistantText = '';
@@ -4306,6 +4326,16 @@
 
       try {
         const ctxExt = await ensureContextLoaded(false);
+        const reqBody = {
+          conversation_id: convId,
+          message: transcript,
+          system_prompt_extension: ctxExt || undefined,
+          client_context: buildClientContext(),
+        };
+        if (imageBase64) {
+          reqBody.image_base64 = imageBase64;
+          reqBody.image_media_type = imageMediaType || 'image/jpeg';
+        }
         const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat_tts_stream`, {
           method: 'POST',
           headers: {
@@ -4313,12 +4343,7 @@
             Authorization: await getAuthHeader(),
             Accept: 'text/event-stream',
           },
-          body: JSON.stringify({
-            conversation_id: convId,
-            message: transcript,
-            system_prompt_extension: ctxExt || undefined,
-            client_context: buildClientContext(),
-          }),
+          body: JSON.stringify(reqBody),
         });
         if (!res.ok || !res.body) {
           return { fallback: true, error: `stream HTTP ${res.status}` };
@@ -5701,8 +5726,12 @@
       }
       row.classList.remove('hidden');
       const sizeKb = Math.round((pendingAttachment.size || 0) / 1024);
+      const thumb = pendingAttachment.thumbDataUrl
+        ? `<img class="chip-thumb" src="${pendingAttachment.thumbDataUrl}" alt="thumbnail" />`
+        : '';
       row.innerHTML = `
         <span class="chat-attachment-chip">
+          ${thumb}
           <span class="chip-name" title="${pendingAttachment.name}">${pendingAttachment.name}</span>
           <span style="color:var(--txt-faint);font-size:10px;">${sizeKb}KB</span>
           <span class="chip-clear" data-action="clear-attachment" aria-label="Remove attachment">×</span>
@@ -5714,6 +5743,46 @@
         if (fileInput) fileInput.value = '';
         renderAttachmentChip();
       });
+    }
+
+    // ---- Image resize + base64 encode (Build A 2026-06-25) -----------------
+    // Cap inbound images at 1024px max-dim (Heath spec, vision-cost control).
+    // Anthropic vision tokens scale with image area: 1568x1568 ≈ 1500 tokens;
+    // 1024x1024 ≈ 600 tokens. Returns { base64 (no data: prefix), mediaType,
+    // dataUrl (for thumbnail) }. Falls back to raw passthrough on canvas error.
+    async function resizeImageForVision(file) {
+      const MAX_DIM = 1024;
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('FileReader failed'));
+        reader.readAsDataURL(file);
+      });
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error('Image decode failed'));
+        i.src = dataUrl;
+      });
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const scale = MAX_DIM / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      // Prefer JPEG for photos (smaller). Keep PNG for screenshots so text
+      // stays sharp — heuristic: input mime contains 'png' OR has transparency.
+      const wantPng = /png/i.test(file.type || '');
+      const outMime = wantPng ? 'image/png' : 'image/jpeg';
+      const outQuality = wantPng ? undefined : 0.86;
+      const outDataUrl = canvas.toDataURL(outMime, outQuality);
+      // Strip "data:image/jpeg;base64," prefix
+      const base64 = outDataUrl.replace(/^data:image\/(jpeg|png|webp);base64,/i, '');
+      return { base64, mediaType: outMime, dataUrl: outDataUrl, width, height };
     }
 
     // Upload the chosen file to the jarvis-attachments bucket under
@@ -5739,20 +5808,28 @@
 
     // Text-only chat — no TTS. POSTs to /api/jarvis-voice?op=chat and renders
     // the assistant reply as a bubble. Used when reply mode is 'text'.
-    async function runTextOnlyChat(message) {
+    // Accepts optional { imageBase64, imageMediaType } for vision (Build A
+    // 2026-06-25).
+    async function runTextOnlyChat(message, opts = {}) {
+      const { imageBase64, imageMediaType } = opts || {};
       const ctxExt = await ensureContextLoaded(false).catch(() => null);
+      const body = {
+        conversation_id: conversationId,
+        message,
+        system_prompt_extension: ctxExt || undefined,
+        client_context: buildClientContext(),
+      };
+      if (imageBase64) {
+        body.image_base64 = imageBase64;
+        body.image_media_type = imageMediaType || 'image/jpeg';
+      }
       const res = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: await getAuthHeader(),
         },
-        body: JSON.stringify({
-          conversation_id: conversationId,
-          message,
-          system_prompt_extension: ctxExt || undefined,
-          client_context: buildClientContext(),
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -5784,7 +5861,7 @@
         });
       }
 
-      // Attach button -> open file picker.
+      // Attach button -> open file picker (mobile camera via capture="environment").
       if (attachBtn && fileInput) {
         attachBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', async () => {
@@ -5795,18 +5872,53 @@
             fileInput.value = '';
             return;
           }
+          const isImage = /^image\//i.test(file.type || '');
           // Show chip immediately with "uploading…" sizing, then swap to real
           // chip once upload completes.
-          pendingAttachment = { file, name: file.name, size: file.size, signedUrl: null, path: null };
+          pendingAttachment = {
+            file, name: file.name, size: file.size,
+            signedUrl: null, path: null,
+            isImage,
+            imageBase64: null, mediaType: null, thumbDataUrl: null,
+          };
           renderAttachmentChip();
-          showToast('Uploading attachment…', 1200);
+
+          // For images: resize+base64 IN PARALLEL with the upload. Vision
+          // payload (Build A 2026-06-25) — Anthropic vision needs raw base64;
+          // signed URL still goes up so Heath has a copy in storage.
+          const tasks = [];
+          if (isImage) {
+            tasks.push((async () => {
+              try {
+                const { base64, mediaType, dataUrl } = await resizeImageForVision(file);
+                pendingAttachment.imageBase64 = base64;
+                pendingAttachment.mediaType = mediaType;
+                pendingAttachment.thumbDataUrl = dataUrl;
+                renderAttachmentChip();
+              } catch (err) {
+                console.warn('[jarvis] image resize failed, vision disabled for this file:', err);
+                // Non-fatal — chat still works, vision just absent
+              }
+            })());
+          }
+          tasks.push((async () => {
+            try {
+              const { path, signedUrl } = await uploadAttachment(file);
+              pendingAttachment.path = path;
+              pendingAttachment.signedUrl = signedUrl;
+            } catch (err) {
+              console.warn('[jarvis] storage upload failed (non-fatal if image):', err);
+              // For images we can still send via base64; only block on non-image.
+              if (!isImage) throw err;
+            }
+          })());
+
+          showToast(isImage ? 'Preparing image…' : 'Uploading attachment…', 1200);
           try {
-            const { path, signedUrl } = await uploadAttachment(file);
-            pendingAttachment.path = path;
-            pendingAttachment.signedUrl = signedUrl;
+            await Promise.all(tasks);
             showToast('Attachment ready.', 1200);
           } catch (err) {
-            console.warn('[jarvis] attachment upload failed', err);
+            console.warn('[jarvis] attachment prep failed', err);
             showToast(`Upload failed: ${err.message}`);
             pendingAttachment = null;
             renderAttachmentChip();
@@ -5818,22 +5930,55 @@
       async function sendNow() {
         const raw = (textInput.value || '').trim();
         if (!raw && !pendingAttachment) return;
-        // Compose the message: text + attachment marker (so Jarvis sees the
-        // file path / signed URL and can reason about it).
-        let message = raw;
-        if (pendingAttachment && pendingAttachment.signedUrl) {
-          const tag = `\n\n[Attachment: ${pendingAttachment.name} — ${pendingAttachment.signedUrl}]`;
-          message = (raw || `Heath attached ${pendingAttachment.name}.`) + tag;
-        } else if (pendingAttachment) {
-          // Upload didn't finish — block send until it does.
+        // Block send if attachment is still preparing (no base64 AND no signed URL).
+        const att = pendingAttachment;
+        if (att && !att.imageBase64 && !att.signedUrl) {
           showToast('Attachment still uploading…');
           return;
         }
-        // Render user bubble (without the noisy signed URL — show name only).
-        const bubbleText = pendingAttachment
-          ? `${raw || `Attached ${pendingAttachment.name}.`}${raw ? '\n' : ''}📎 ${pendingAttachment.name}`
+        // Compose the message: text + attachment marker (so Jarvis sees the
+        // file path / signed URL even for non-image attachments).
+        let message = raw;
+        let imageBase64 = null;
+        let imageMediaType = null;
+        let imageThumbDataUrl = null;
+        if (att) {
+          if (att.isImage && att.imageBase64) {
+            // Vision payload — base64 goes in a separate JSON field, the
+            // message text gets a short marker so the transcript reads cleanly.
+            imageBase64 = att.imageBase64;
+            imageMediaType = att.mediaType || 'image/jpeg';
+            imageThumbDataUrl = att.thumbDataUrl;
+            message = raw || 'What do you see in this image, sir?';
+          } else if (att.signedUrl) {
+            // Non-image attachment — keep legacy URL-in-text behavior.
+            const tag = `\n\n[Attachment: ${att.name} — ${att.signedUrl}]`;
+            message = (raw || `Heath attached ${att.name}.`) + tag;
+          }
+        }
+        // Render user bubble (without the noisy signed URL — show name + thumb).
+        const bubbleText = att
+          ? `${raw || (att.isImage ? '' : `Attached ${att.name}.`)}${raw ? '' : ''}`.trim() ||
+            (att.isImage ? 'Image attached.' : `Attached ${att.name}.`)
           : raw;
         appendMessage('user', bubbleText, new Date().toISOString());
+        // If image: append thumbnail under last user bubble for visual proof.
+        if (imageThumbDataUrl) {
+          try {
+            const msgList = document.getElementById('messages');
+            const lastUser = msgList && msgList.querySelector('.msg.user');
+            if (lastUser) {
+              const contentEl = lastUser.querySelector('.msg-content');
+              if (contentEl) {
+                const imgEl = document.createElement('img');
+                imgEl.className = 'msg-image-preview';
+                imgEl.src = imageThumbDataUrl;
+                imgEl.alt = 'attached image';
+                contentEl.appendChild(imgEl);
+              }
+            }
+          } catch (e) { /* non-fatal */ }
+        }
 
         // Clear input + attachment chip.
         textInput.value = '';
@@ -5849,10 +5994,10 @@
         try {
           if (getReplyMode() === 'text') {
             // Text-only — no TTS, no mic resume.
-            await runTextOnlyChat(message);
+            await runTextOnlyChat(message, { imageBase64, imageMediaType });
           } else {
             // Voice reply — reuse the streaming TTS pipeline (same as voice loop).
-            const result = await runStreamingChatTTS({ conversationId, transcript: message });
+            const result = await runStreamingChatTTS({ conversationId, transcript: message, imageBase64, imageMediaType });
             if (result && result.fallback) {
               try { await runLegacyChatTTS(message); } catch (err) {
                 console.warn('[jarvis] chat input legacy fallback failed', err);
