@@ -342,7 +342,16 @@
                                                             },
                       "api/cron-reconcile-future-builds.js":  {
                                                                   "maxDuration":  120
-                                                              }
+                                                              },
+                      "api/cron-fanout-builds-to-agent-queues.js":  {
+                                                                        "maxDuration":  60
+                                                                    },
+                      "api/cron-agent-queue-dispatch.js":  {
+                                                               "maxDuration":  60
+                                                           },
+                      "api/cole-enqueue.js":  {
+                                                  "maxDuration":  10
+                                              }
                   },
     "crons":  [
                   {
@@ -628,6 +637,14 @@
                   {
                       "path":  "/api/cron-reconcile-future-builds",
                       "schedule":  "0 */6 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-fanout-builds-to-agent-queues",
+                      "schedule":  "10 */6 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-agent-queue-dispatch",
+                      "schedule":  "*/2 * * * *"
                   }
               ]
 }
