@@ -7,27 +7,19 @@
 //      next tick will then surface a real pending task.
 //   2. READINESS LOG — record current pending vs ready vs in_progress counts
 //      to cron_runs.last_meta so the Jarvis HUD can chart queue depth.
-//   3. NUDGE — when an agent is idle AND has a ready task, POST a
-//      notification to Cole's webhook so the local Cole session knows to
-//      claim it without waiting for its 30s poll. This is the "agents never
-//      idle" enforcement: as soon as a task lands, Cole knows.
+//   3. DISPATCH-HEALTH ALERT — if rows have been pending+ready for >10 min
+//      and the dispatcher cron hasn't claimed them, ping Heath ONCE per hour.
+//      The OLD "Cole local poller may be down" nudge was retired 2026-06-25
+//      when cron-agent-queue-dispatch took over as the actual claimer.
 //
-// IMPORTANT: This cron does NOT spawn agents directly. The actual spawning
-// happens locally inside Cole's always-on Claude Code session (which calls
-// /api/agent-queue-claim every 30s and runs the agent against the task brief).
-// Server-side spawning is a fallback we'll add in Phase 2 (cron-process-agent-
-// requests pattern) once the local poller is proven.
-//
-// WHY: Vercel cron-job functions can't open a long-lived Claude Code session.
-// The agent files live on Heath's laptop (~/.claude/agents/). Trying to spawn
-// them from Vercel means re-implementing the agent runtime in a serverless
-// function. The local poller pattern reuses everything we already have.
+// The actual agent execution happens server-side now via
+// cron-agent-queue-dispatch (every 2 min) which calls Anthropic /v1/messages
+// for each ready row. The "local Cole poller" pattern is dead.
 //
 // Auth: Vercel built-in cron header OR Bearer ${CRON_SECRET}
-// Schedule: every 1 minute. Registered in vercel.json OR cron-job.org if we're
-//           at the Vercel cron cap.
+// Schedule: every 1 minute. Registered in vercel.json.
 //
-// Owner: Atlas (SV-ENG-AGENT-QUEUE / 2026-06-17)
+// Owner: Atlas (SV-ENG-AGENT-QUEUE / 2026-06-17, watchdog rewrite 2026-06-25)
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { createClient } = require('@supabase/supabase-js');
@@ -38,8 +30,9 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
 
-const STALE_HEARTBEAT_MIN = 30; // minutes
-const NUDGE_THROTTLE_MIN = 10;  // don't Telegram-spam Cole
+const STALE_HEARTBEAT_MIN = 30;      // minutes
+const DISPATCH_STUCK_MIN = 10;       // ready rows older than this = dispatcher unhealthy
+const DISPATCH_ALERT_THROTTLE_MIN = 60; // alert once per hour for same condition
 
 function checkAuth(req) {
   if (req.headers['x-vercel-cron'] === '1') return true;
@@ -126,40 +119,110 @@ async function snapshotQueue(supabase) {
   return out;
 }
 
-// ─── 3. NUDGE COLE ───────────────────────────────────────────────────────────
+// ─── 3. DISPATCH-HEALTH ALERT ────────────────────────────────────────────────
 //
-// If we have idle agents AND ready tasks, Cole's local poller should claim
-// them within ~30s on its own. We only ping when the situation has held for
-// >NUDGE_THROTTLE_MIN minutes, which implies the local Cole isn't running.
+// New architecture (2026-06-25): cron-agent-queue-dispatch (every 2 min) is
+// the actual claimer. It calls Anthropic for each ready row and writes the
+// result back to agent_queue. We no longer ping Heath about idle local
+// pollers — that pattern is dead.
+//
+// What CAN go wrong now:
+//   - The dispatch cron stops running (Vercel cap, deploy regression, env-var
+//     wipe). Symptom: agent_queue_ready has rows but none get claimed.
+//   - Anthropic returns errors and rows ping-pong between pending/in_progress.
+//     Symptom: same row sits in `agent_queue_ready` for >10 min.
+//
+// We alert when EITHER symptom holds:
+//   - There exist ready rows older than DISPATCH_STUCK_MIN, AND
+//   - cron-agent-queue-dispatch hasn't completed any row in the same window.
+//
+// Throttled to once per DISPATCH_ALERT_THROTTLE_MIN (60 min) so the same stuck
+// state doesn't spam.
 
-async function maybeNudge(supabase, snapshot) {
-  // KILL-SWITCH: Heath paused the queue 2026-06-17 for batch triage of parked
-  // tasks. Set WATCHDOG_DISABLED=true in Vercel to silence the nudge alert
+async function maybeAlertDispatchStuck(supabase, snapshot) {
+  // KILL-SWITCH: Set WATCHDOG_DISABLED=true in Vercel to silence the alert
   // without changing schema. Remove the env var to re-enable.
   if (process.env.WATCHDOG_DISABLED === 'true') {
-    return { nudged: false, disabled: true };
+    return { alerted: false, disabled: true };
   }
 
-  const idleAgentsWithReadyWork = snapshot.agents.idle > 0 && snapshot.ready > 0;
-  if (!idleAgentsWithReadyWork) return { nudged: false };
+  if (snapshot.ready === 0) return { alerted: false, reason: 'no_ready_rows' };
 
-  // Throttle: only nudge once per NUDGE_THROTTLE_MIN window.
-  const sinceIso = new Date(Date.now() - NUDGE_THROTTLE_MIN * 60 * 1000).toISOString();
-  const { data: recentNudge } = await supabase
-    .from('cron_runs')
-    .select('last_run, last_meta')
-    .eq('cron_name', 'cron-agent-queue-tick')
-    .gte('last_run', sinceIso)
-    .order('last_run', { ascending: false })
+  // Find oldest ready row. If it's younger than DISPATCH_STUCK_MIN, dispatcher
+  // just hasn't gotten to it yet (it runs every 2 min) — not an alert.
+  const stuckCutoff = new Date(Date.now() - DISPATCH_STUCK_MIN * 60 * 1000).toISOString();
+  const { data: oldReady } = await supabase
+    .from('agent_queue_ready')
+    .select('id, created_at, agent_name, task_subject')
+    .lt('created_at', stuckCutoff)
+    .order('created_at', { ascending: true })
+    .limit(5);
+
+  if (!oldReady || oldReady.length === 0) {
+    return { alerted: false, reason: 'ready_rows_fresh' };
+  }
+
+  // Did the dispatcher claim anything in the same window? If yes, it's alive
+  // — the old ready rows might be unsupported agents or repeated errors,
+  // which is a different problem.
+  const { data: recentCompletes } = await supabase
+    .from('agent_queue')
+    .select('id', { count: 'exact', head: false })
+    .eq('completed_by_agent_session', 'cron-agent-queue-dispatch')
+    .gte('completed_at', stuckCutoff)
     .limit(1);
 
-  const alreadyNudged = (recentNudge || []).some((r) => r.last_meta && r.last_meta.nudged_at);
-  if (alreadyNudged) return { nudged: false, throttled: true };
+  const dispatcherAlive = Array.isArray(recentCompletes) && recentCompletes.length > 0;
+  if (dispatcherAlive) {
+    return { alerted: false, reason: 'dispatcher_alive', stuck_ready: oldReady.length };
+  }
 
-  // The "ready but no one is claiming" signal usually means Cole's local
-  // session died. Tell Heath via Telegram so he can restart it.
-  await tg(`Queue tick: ${snapshot.ready} ready task(s) but ${snapshot.agents.idle} agents are idle and no claims in last ${NUDGE_THROTTLE_MIN}min. Cole local poller may be down — check Claude Code session.`);
-  return { nudged: true, nudged_at: new Date().toISOString() };
+  // Throttle: read the dedicated watchdog-state row so we don't depend on the
+  // wrapper-managed cron_runs row (which gets overwritten every run). We use
+  // a separate cron_name key ('cron-agent-queue-tick-watchdog') as a tiny
+  // K/V store for the last alert timestamp.
+  const throttleCutoffMs = Date.now() - DISPATCH_ALERT_THROTTLE_MIN * 60 * 1000;
+  const { data: watchdogRow } = await supabase
+    .from('cron_runs')
+    .select('last_run, last_meta')
+    .eq('cron_name', 'cron-agent-queue-tick-watchdog')
+    .maybeSingle();
+
+  const lastAlertIso = watchdogRow && watchdogRow.last_meta && watchdogRow.last_meta.dispatch_alert_at;
+  const lastAlertMs = lastAlertIso ? new Date(lastAlertIso).getTime() : 0;
+  if (lastAlertMs && lastAlertMs > throttleCutoffMs) {
+    return { alerted: false, reason: 'throttled', stuck_ready: oldReady.length };
+  }
+
+  const oldestAgeMin = Math.round(
+    (Date.now() - new Date(oldReady[0].created_at).getTime()) / 60000,
+  );
+  await tg(
+    `[queue watchdog] Dispatcher appears stuck: ${oldReady.length} ready task(s) older than ${DISPATCH_STUCK_MIN}min ` +
+      `(oldest ${oldestAgeMin}min, ${oldReady[0].agent_name} / "${(oldReady[0].task_subject || '').slice(0, 60)}") ` +
+      `AND no dispatch-cron completions in same window. Check /api/cron-agent-queue-dispatch logs.`,
+  );
+
+  // Persist the alert timestamp so the throttle holds across ticks.
+  const alertedAt = new Date().toISOString();
+  await supabase
+    .from('cron_runs')
+    .upsert(
+      {
+        cron_name: 'cron-agent-queue-tick-watchdog',
+        last_run: alertedAt,
+        last_status: 'alerted',
+        last_meta: { dispatch_alert_at: alertedAt, stuck_ready: oldReady.length, oldest_age_min: oldestAgeMin },
+      },
+      { onConflict: 'cron_name' },
+    );
+
+  return {
+    alerted: true,
+    dispatch_alert_at: alertedAt,
+    stuck_ready: oldReady.length,
+    oldest_age_min: oldestAgeMin,
+  };
 }
 
 async function tg(text) {
@@ -189,13 +252,13 @@ module.exports = withTelemetry('cron-agent-queue-tick', async function handler(r
 
   const sweep = await sweepStale(supabase);
   const snapshot = await snapshotQueue(supabase);
-  const nudge = await maybeNudge(supabase, snapshot);
+  const dispatch_alert = await maybeAlertDispatchStuck(supabase, snapshot);
 
   return res.status(200).json({
     ok: true,
     at: new Date().toISOString(),
     sweep,
     snapshot,
-    nudge,
+    dispatch_alert,
   });
 });
