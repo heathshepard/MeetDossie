@@ -2059,6 +2059,44 @@
       /* Slightly smaller chat input controls on mobile to fit narrower width
          while keeping the 44px tap-target minimum. */
       .chat-reply-toggle { font-size: 9px; padding: 0 8px; }
+
+      /* ===== SOP 2026-06-22 components on 390w portrait =====
+         AGENT STATUS cards, PROJECTS LEDGER, CHECKLIST MODAL.
+         Goal: no horizontal scroll; tap targets >= 44px; readable at arm's length.
+         atlas_1 final pending item — locked 2026-06-26. */
+      .instance-card { padding: 12px 12px; gap: 8px; }
+      .instance-card .instance-header { flex-wrap: wrap; row-gap: 4px; }
+      .instance-id-badge { font-size: 12px; }
+      .instance-role-pill { font-size: 9px; padding: 2px 6px; }
+      .instance-project { font-size: 12px; }
+      .instance-meta { font-size: 10px; flex-wrap: wrap; row-gap: 2px; }
+      .instance-progress-track { height: 5px; }
+
+      .project-card { padding: 10px 12px; gap: 6px; }
+      .project-title { font-size: 13px; }
+      .project-meta { font-size: 10px; flex-wrap: wrap; row-gap: 2px; }
+      .ledger-section-label { font-size: 10px; }
+
+      /* Checklist modal — tighter padding + full-height scroll on tiny screens. */
+      .checklist-list { max-height: 64vh; }
+      .checklist-item-row {
+        grid-template-columns: 22px 1fr;
+        grid-template-rows: auto auto;
+        padding: 8px 8px;
+        min-height: 44px;
+        row-gap: 2px;
+      }
+      .checklist-icon { grid-row: 1 / 3; align-self: start; padding-top: 2px; }
+      .checklist-item-title { font-size: 13px; line-height: 1.4; word-break: break-word; }
+      .checklist-item-meta {
+        grid-column: 2;
+        font-size: 9px;
+        white-space: normal;
+      }
+
+      /* Project history modal — match. */
+      .lessons-modal-card { max-width: 100%; }
+      .lessons-list { max-height: 60vh; }
     }
     /* ===== Z FOLD COVER (very narrow, 344w) ===== */
     @media (max-width: 360px) {
@@ -6562,16 +6600,34 @@
     }
 
     // ----- PROJECTS LEDGER -----
-    async function loadProjects() {
-      if (!tenant) return;
+    // atlas sweep 2026-06-26: more resilient loader.
+    // (a) don't gate on `tenant` (server resolves tenant from JWT — client tenant cache may not be hydrated yet)
+    // (b) show diagnostic on failure, not opaque "unavailable"
+    // (c) one auto-retry after 2s if first attempt fails (handles cold-start)
+    async function loadProjects(attempt) {
+      attempt = attempt || 1;
+      if (!session?.access_token) {
+        const el = document.getElementById('projects-ledger');
+        if (el) el.innerHTML = `<div class="ledger-empty">Sign in to load projects.</div>`;
+        return;
+      }
       try {
         const data = await authedFetch('/api/jarvis-list-projects?shipped_window_days=30');
-        if (!data?.ok) return;
+        if (!data?.ok) {
+          const el = document.getElementById('projects-ledger');
+          if (el) el.innerHTML = `<div class="ledger-empty">Projects unavailable: ${escapeHtml(data?.error || 'unknown')}</div>`;
+          return;
+        }
         renderProjectsLedger(data);
       } catch (err) {
-        console.warn('[jarvis] loadProjects failed', err.message);
+        const msg = err && err.message ? err.message : 'unknown';
+        console.warn('[jarvis] loadProjects failed (attempt ' + attempt + ')', msg);
+        if (attempt < 2) {
+          setTimeout(() => loadProjects(attempt + 1), 2000);
+          return;
+        }
         const el = document.getElementById('projects-ledger');
-        if (el) el.innerHTML = `<div class="ledger-empty">Projects API unavailable.</div>`;
+        if (el) el.innerHTML = `<div class="ledger-empty">Projects API: ${escapeHtml(msg.slice(0, 80))}</div>`;
       }
     }
 
