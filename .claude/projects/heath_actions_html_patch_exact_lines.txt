@@ -1,0 +1,64 @@
+EXACT LINE INSERTIONS FOR jarvis-pwa.html
+
+=== CSS INSERTION ===
+Location: After line ~750 (after .action-priority-badge.soon {} rule, before .action-buttons {})
+Length: ~180 lines of CSS
+
+Marker line to find:
+  .action-buttons {
+
+Insert BEFORE that line all CSS from heath_actions_approval_ui_draft.md section "CSS insertion points"
+
+=== HTML INSERTION ===
+Location: Before line 2606 (AGENT STATUS panel)
+Length: 19 lines of HTML
+
+Marker lines:
+  BEFORE (insert new panel here):
+    <div class="panel">
+      <div class="panel-title">AGENT STATUS</div>
+
+Insert from heath_actions_approval_ui_draft.md section "HTML insertion (insert BEFORE AGENT STATUS panel at line ~2605)"
+
+=== JAVASCRIPT INSERTION ===
+Location: Inside the existing <script> block (after existing panel initialization functions, before final </script>)
+Length: ~350 lines of JS
+
+Marker section: Look for "const approvalsPanel" — add entire approvalsPanel object and initialization.
+
+Initialize approvalsPanel in document.addEventListener('DOMContentLoaded') by adding:
+  if (window.supabase && TENANT_ID) {
+    approvalsPanel.init();
+  }
+
+=== REQUIRED CONTEXT IN SCOPE ===
+jarvis-pwa.html must already define:
+- window.supabase (Supabase client)
+- TENANT_ID (Heath's tenant UUID — likely from auth context or global var)
+
+If TENANT_ID not defined, use: const TENANT_ID = supabase.auth.user()?.user_metadata?.tenant_id
+
+=== TESTING CHECKLIST FOR QUINN APV ===
+1. Pull staging branch
+2. Load https://[staging-url]/jarvis in browser
+3. Verify PENDING APPROVALS panel renders (should show "Nothing waiting on you. ?" initially)
+4. Manually insert test action into Supabase: 
+   INSERT INTO heath_actions (id, tenant_id, title, body, source, priority, status, created_at) 
+   VALUES (gen_random_uuid(), [TENANT_ID], 'Test Approval', 'This is a test action for the UI', 'atlas', 'high', 'pending', now())
+5. Refresh page, verify card appears in panel with correct title, source "atlas", priority badge "HIGH" (red)
+6. Click "Approve" button
+   - Card should fade out (300ms animation)
+   - Toast "Action approved" should appear bottom-right (green)
+   - Count badge should update
+7. Insert another test action with priority='medium'
+8. Click "Reject" button
+   - Card should fade out
+   - Toast "Action rejected" should appear (blue)
+9. Insert action with priority='low'
+10. Click "?" (snooze) button
+    - Card should dim + fade out
+    - Toast "Snoozed for 24 hours" should appear
+    - Verify DB: heath_actions.status='snoozed', snoozed_until=NOW()+24h
+11. Verify console has NO errors
+12. Test on mobile (390x844) — buttons should wrap correctly
+13. Sign in as demo@meetdossie.com — verify TENANT_ID resolves correctly for demo user
