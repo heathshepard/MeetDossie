@@ -50,13 +50,17 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // NOTE: heath_actions.status enum is pending/done/dismissed/snoozed.
+    // "rejected" semantically maps to status='dismissed' + failure_reason.
+    // Tenant-scoped by auth user id to prevent cross-account writes.
     const { data, error } = await supabase
       .from('heath_actions')
       .update({
-        status: 'rejected',
+        status: 'dismissed',
         failure_reason: reason || null,
       })
       .eq('id', action_id)
+      .eq('tenant_id', auth.user_id)
       .select();
 
     if (error) throw error;
