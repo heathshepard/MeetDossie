@@ -356,7 +356,8 @@
                                                   "maxDuration":  10
                                               },
                       "api/cron-codebase-facts-indexer.js":  {
-                                                                 "maxDuration":  60
+                                                                 "maxDuration":  60,
+                                                                 "includeFiles":  "{vercel.json,*.html,api/**/*.js}"
                                                              }
                   },
     "crons":  [

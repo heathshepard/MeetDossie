@@ -46,14 +46,26 @@ const CRON_SECRET               = process.env.CRON_SECRET;
 
 const HEATH_TENANT_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
 
-// Repo root: the Vercel bundle deploys api/ + html files at the deploy root.
-// process.cwd() during Vercel function invocation = the function dir's parent
-// container root. We walk up from __dirname until we find vercel.json or the
-// repo root. Fall back to process.cwd().
+// Repo root: Vercel bundles each function into /var/task with the function
+// file in /var/task/api/cron-codebase-facts-indexer.js. With includeFiles in
+// vercel.json, *.html + api/**/*.js + vercel.json get copied alongside. We
+// try several candidates because Vercel's exact layout varies.
 function findRepoRoot() {
+  const candidates = [
+    path.resolve(__dirname, '..'),     // api/ -> /var/task
+    process.cwd(),                       // typically /var/task
+    '/var/task',
+    __dirname,
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(c, 'vercel.json'))) return c;
+    if (fs.existsSync(path.join(c, 'privacy.html'))) return c;
+  }
+  // last-resort: walk up from __dirname
   let dir = __dirname;
   for (let i = 0; i < 6; i++) {
     if (fs.existsSync(path.join(dir, 'vercel.json'))) return dir;
+    if (fs.existsSync(path.join(dir, 'privacy.html'))) return dir;
     const parent = path.dirname(dir);
     if (parent === dir) break;
     dir = parent;
