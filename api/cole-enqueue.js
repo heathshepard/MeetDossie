@@ -103,9 +103,12 @@ async function preflightCheckDupBuild(title, description) {
     if (!matches) continue;
 
     // Check each fact_key — if any says exists=true and is_active, reject.
+    // Use the jarvis-voice canonical tenant (a9a4c3aa) where codebase_facts
+    // lives, NOT the cole-enqueue tenant (0cd05e2f) which is for queue rows.
     const keysParam = pattern.fact_keys.map((k) => `"${k}"`).join(',');
+    const CODEBASE_FACTS_TENANT = 'a9a4c3aa-7278-4f42-ad71-e2e899671fab';
     const r = await sb(
-      `codebase_facts?select=fact_key,fact_value&tenant_id=eq.${HEATH_TENANT_ID}` +
+      `codebase_facts?select=fact_key,fact_value&tenant_id=eq.${CODEBASE_FACTS_TENANT}` +
       `&is_active=eq.true&fact_key=in.(${keysParam})`
     );
     if (!r.ok || !Array.isArray(r.data)) continue;
