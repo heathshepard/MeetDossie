@@ -4139,19 +4139,46 @@
         const total = chunks.reduce((s, c) => s + (c.size || 0), 0);
         const blob = new Blob(chunks, { type: recRef.mimeType || 'audio/webm' });
         chunks = [];
-        console.log(`[jarvis] utterance blob: ${total}b across ${blob.size}b final, type=${blob.type}`);
+        // Atlas 2026-06-27: log first 12 bytes of the assembled blob so we
+        // can verify the EBML header (1a45dfa3...) is present. Prior bug:
+        // restarting MediaRecorder on the same MediaStream caused timeslice-
+        // emitted chunks to lose the EBML header. Fix: removed timeslice
+        // (start() with no arg) — MediaRecorder now buffers internally and
+        // emits one complete webm file at stop(), header guaranteed. If
+        // diagnostic shows magic != 1a45dfa3 on the very first chunk, we
+        // know the no-timeslice fix didn't take and we need a deeper repair.
+        try {
+          const head = await blob.slice(0, 12).arrayBuffer();
+          const hex = Array.from(new Uint8Array(head))
+            .map((b) => b.toString(16).padStart(2, '0')).join('');
+          const ok = hex.startsWith('1a45dfa3') || (blob.type || '').includes('mp4');
+          console.log(`[jarvis] utterance blob: ${total}b, type=${blob.type}, magic=${hex} ${ok ? 'OK' : 'BAD-MISSING-EBML'}`);
+        } catch (_) {
+          console.log(`[jarvis] utterance blob: ${total}b across ${blob.size}b final, type=${blob.type}`);
+        }
         await handleUtteranceBlob(blob);
       };
       recRef.onerror = (e) => {
         console.error('[jarvis] mediaRecorder error', e);
       };
-      // Force per-250ms chunk emission. Android WebView's MediaRecorder
-      // sometimes produces a near-empty (~2 byte) container if start() is
-      // called without a timeslice and the stream is short. A timeslice
-      // makes dataavailable fire reliably during recording, not just at
-      // stop(). Locked 2026-06-25 after silent-fail diagnosis on the
-      // native APK (Vercel logs showed "short audio 2b" for every turn).
-      recRef.start(250);
+      // Atlas 2026-06-27: NO TIMESLICE. Previously start(250) forced per-250ms
+      // dataavailable chunks. That worked for the first ~13 utterances per
+      // mic-stream lifetime, then Android WebView's encoder reset stopped
+      // emitting the EBML header (1a45dfa3) on later chunks. Symptom: magic
+      // bytes switched from 1a45dfa3 → 8c81/41e3/43b675 (header-less Cluster
+      // fragments). Whisper rejected as "File is corrupted". Confirmed via
+      // jarvis_stt_debug: 13 OK (1a45dfa3) at 18:13-18:17 UTC then 6 fails
+      // (Cluster magic) at 18:17:33+ on 2026-06-27.
+      //
+      // With no timeslice, MediaRecorder accumulates internally and emits a
+      // SINGLE dataavailable event on stop() with a complete webm container
+      // (header + clusters + cues). Guaranteed valid every utterance.
+      //
+      // The previous "2-byte empty blob" issue that motivated the 250ms
+      // timeslice was actually CapacitorHttp.fetch JSON-stringifying the
+      // Blob — fixed earlier the same day by blobToFile(). The timeslice
+      // was a red-herring fix for the wrong bug.
+      recRef.start();
       vadState.utteranceStartedAt = Date.now();
     }
 
@@ -4161,13 +4188,11 @@
       if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
       processingTurn = true;
       try {
-        // Flush any buffered audio before stop so chunks[] contains the
-        // tail of the utterance. requestData() is a synchronous request
-        // that the recorder satisfies by firing dataavailable on the next
-        // tick. stop() then triggers the final dataavailable + onstop.
-        // Without requestData() Android WebView occasionally drops the
-        // last chunk.
-        try { mediaRecorder.requestData(); } catch (e) {}
+        // Atlas 2026-06-27: with start() no-timeslice, stop() emits one
+        // complete container in a single dataavailable. requestData()
+        // would force a premature in-progress emission that lacks the
+        // cluster footer — DON'T call it. Just stop() and let onstop
+        // run with the assembled webm file.
         mediaRecorder.stop(); // triggers handleUtteranceBlob via onstop
       } catch (err) {
         console.warn('[jarvis] recorder.stop failed', err);
@@ -4662,12 +4687,15 @@
           setPttState('error');
           showToast('Recording error. Tap to retry.');
         };
-        // Timeslice fixes Android WebView empty-blob bug.
-        mediaRecorder.start(250);
+        // Atlas 2026-06-27: NO TIMESLICE — same fix as continuous mode.
+        // See startUtteranceRecorder for full rationale. start(250) was a
+        // red-herring fix; the real 2-byte bug was CapacitorHttp not Blob.
+        mediaRecorder.start();
       } else if (pttState === 'listening') {
         pttStatus.textContent = 'Stopping…';
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          try { mediaRecorder.requestData(); } catch (e) {}
+          // Atlas 2026-06-27: no requestData() — stop() emits one full
+          // webm file with valid EBML header in single dataavailable.
           mediaRecorder.stop();
         } else {
           stopMicStream();

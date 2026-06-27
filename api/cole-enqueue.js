@@ -36,6 +36,99 @@ const VALID_AGENTS = new Set([
   'carter', 'atlas', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling',
 ]);
 
+// Pre-flight dup-build rejection patterns (atlas 2026-06-27 codebase-facts
+// indexer). Each pattern matches obvious "build a thing that already exists"
+// requests against the codebase_facts catalog. Conservative — only reject
+// when the title clearly says "build X" AND the corresponding fact_key
+// exists=true. Anything ambiguous goes through.
+//
+// Format: { fact_keys: [...], build_patterns: [/regex/], display_name: '...' }
+const DUP_BUILD_PATTERNS = [
+  {
+    fact_keys: ['privacy-policy-page'],
+    build_patterns: [
+      /\bbuild\b.*\bprivacy\b/i,
+      /\bcreate\b.*\bprivacy policy\b/i,
+      /\bdraft\b.*\bprivacy policy\b/i,
+      /\bwrite\b.*\bprivacy policy\b/i,
+      /no privacy policy/i,
+      /privacy policy.*does(?:n't|n.t| not) exist/i,
+    ],
+    display_name: 'Privacy Policy',
+  },
+  {
+    fact_keys: ['terms-of-service-page'],
+    build_patterns: [
+      /\bbuild\b.*\bterms\b/i,
+      /\bcreate\b.*\bterms of service\b/i,
+      /\bdraft\b.*\bterms of service\b/i,
+      /\bwrite\b.*\bterms\b.*\bservice\b/i,
+      /no terms of service/i,
+      /no.*ToS/,
+      /terms.*does(?:n't|n.t| not) exist/i,
+    ],
+    display_name: 'Terms of Service',
+  },
+  {
+    fact_keys: ['calculator-page'],
+    build_patterns: [
+      /\bbuild\b.*\bTREC calculator\b/i,
+      /\bcreate\b.*\bTREC calculator\b/i,
+    ],
+    display_name: 'TREC Calculator page',
+  },
+  {
+    fact_keys: ['founding-page'],
+    build_patterns: [
+      /\bbuild\b.*\bfounding (?:member )?page\b/i,
+      /\bcreate\b.*\bfounding (?:member )?page\b/i,
+    ],
+    display_name: 'Founding member page',
+  },
+  {
+    fact_keys: ['feature:codebase-facts-indexer'],
+    build_patterns: [
+      /\bbuild\b.*\bcodebase facts indexer\b/i,
+      /\bcreate\b.*\bcodebase facts indexer\b/i,
+    ],
+    display_name: 'Codebase facts indexer',
+  },
+];
+
+async function preflightCheckDupBuild(title, description) {
+  const haystack = `${title}\n${description}`;
+
+  for (const pattern of DUP_BUILD_PATTERNS) {
+    const matches = pattern.build_patterns.some((re) => re.test(haystack));
+    if (!matches) continue;
+
+    // Check each fact_key — if any says exists=true and is_active, reject.
+    // Use the jarvis-voice canonical tenant (a9a4c3aa) where codebase_facts
+    // lives, NOT the cole-enqueue tenant (0cd05e2f) which is for queue rows.
+    const keysParam = pattern.fact_keys.map((k) => `"${k}"`).join(',');
+    const CODEBASE_FACTS_TENANT = 'a9a4c3aa-7278-4f42-ad71-e2e899671fab';
+    const r = await sb(
+      `codebase_facts?select=fact_key,fact_value&tenant_id=eq.${CODEBASE_FACTS_TENANT}` +
+      `&is_active=eq.true&fact_key=in.(${keysParam})`
+    );
+    if (!r.ok || !Array.isArray(r.data)) continue;
+
+    const existing = r.data.filter((row) => row.fact_value && row.fact_value.exists === true);
+    if (existing.length > 0) {
+      const where = existing[0].fact_value.path || existing[0].fact_value.route || existing[0].fact_value.location || 'in the repo';
+      return {
+        block: true,
+        reason: 'duplicate_build_rejected',
+        display_name: pattern.display_name,
+        location: where,
+        message: `${pattern.display_name} already exists at ${where}. Not enqueueing a build task. If you want to update it, set source='update' in the task body or describe the specific change needed.`,
+      };
+    }
+  }
+
+  return { block: false };
+}
+
 async function sb(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -99,6 +192,28 @@ module.exports = async function handler(req, res) {
   }
   if (!description) {
     return res.status(400).json({ ok: false, error: 'description_required' });
+  }
+
+  // 0. Pre-flight: codebase_facts dup-build check (atlas 2026-06-27).
+  //    Skip if the source explicitly opts in to update mode.
+  if (body.skip_dup_check !== true && source !== 'update') {
+    try {
+      const preflight = await preflightCheckDupBuild(title, description);
+      if (preflight.block) {
+        return res.status(409).json({
+          ok: false,
+          error: preflight.reason,
+          display_name: preflight.display_name,
+          location: preflight.location,
+          message: preflight.message,
+          hint: 'If you want to update an existing thing, set source="update" in the body or pass skip_dup_check=true.',
+        });
+      }
+    } catch (e) {
+      // Soft-fail: if codebase_facts table is unavailable, proceed with the
+      // enqueue. The indexer might not have run yet.
+      console.warn('[cole-enqueue] preflight check failed (non-fatal):', e.message);
+    }
   }
 
   // 1. Optionally create the jarvis_future_builds row first so the queue row
