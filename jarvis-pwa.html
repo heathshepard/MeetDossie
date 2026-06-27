@@ -4382,33 +4382,66 @@
         if (idx === -1) return; // next-expected not yet arrived
         const item = audioQueue.splice(idx, 1)[0];
         currentlyPlayingSeq = item.seq;
-        item.audio.onended = () => {
-          URL.revokeObjectURL(item.url);
+
+        // 2026-06-27 auto-resume hardening — Heath reported having to tap
+        // "tap to start" after every reply because the conversation didn't
+        // auto-flip back to listening. Root cause: on Android WebView and
+        // some browsers, audio.onended never fires for short MP3 chunks
+        // (~1-2s ElevenLabs sentences), so the chain stalls. We now use:
+        //   1. BOTH onended + addEventListener('ended') for redundancy
+        //   2. A duration-based safety timeout (audio.duration + 1.5s)
+        //   3. play() rejection handler that advances the chain
+        //   4. Idempotent advance() so multiple triggers don't double-fire
+        let advanced = false;
+        let durationTimer = null;
+        function advance(reason) {
+          if (advanced) return;
+          advanced = true;
+          if (durationTimer) { clearTimeout(durationTimer); durationTimer = null; }
+          try { URL.revokeObjectURL(item.url); } catch {}
           currentlyPlayingSeq = -1;
           nextPlaySeq = item.seq + 1;
+          if (reason && reason !== 'ended') {
+            console.log(`[jarvis] audio seq=${item.seq} advanced via ${reason}`);
+          }
           if (audioQueue.length || !streamDone) {
             tryPlayNext();
           } else {
             // queue dry + stream done -> conversation turn complete
             playbackCompletedResolve && playbackCompletedResolve();
           }
-        };
-        item.audio.onerror = () => {
-          URL.revokeObjectURL(item.url);
-          currentlyPlayingSeq = -1;
-          nextPlaySeq = item.seq + 1;
-          if (audioQueue.length || !streamDone) {
-            tryPlayNext();
-          } else {
-            playbackCompletedResolve && playbackCompletedResolve();
+        }
+
+        item.audio.onended = () => advance('ended');
+        item.audio.addEventListener('ended', () => advance('ended-listener'));
+        item.audio.onerror = () => advance('error');
+        item.audio.addEventListener('error', () => advance('error-listener'));
+
+        // Schedule a duration-based safety once metadata loads. If the
+        // audio reports duration 2.4s, we'll force-advance at 2.4 + 1.5 = 3.9s
+        // in case onended never fires.
+        const armDurationTimer = () => {
+          const dur = isFinite(item.audio.duration) ? item.audio.duration : 0;
+          if (dur > 0 && !durationTimer) {
+            durationTimer = setTimeout(() => advance('duration-timeout'), (dur + 1.5) * 1000);
           }
         };
+        item.audio.addEventListener('loadedmetadata', armDurationTimer);
+        item.audio.addEventListener('canplay', armDurationTimer);
+        // Absolute hard ceiling — 15s per audio chunk no matter what.
+        // A single sentence's MP3 is virtually never longer than 12s.
+        const hardCeiling = setTimeout(() => advance('hard-ceiling'), 15000);
+        item.audio.addEventListener('ended', () => clearTimeout(hardCeiling));
+
         anyAudioPlayed = true;
         setPttState('speaking');
         pttLabel.textContent = 'TAP TO END';
         pttStatus.textContent = 'Speaking…';
         item.audio.play().catch((err) => {
           console.warn('[jarvis] audio.play() rejected:', err);
+          // If the browser blocked playback (autoplay policy etc), don't
+          // get stuck — advance the chain so resume still happens.
+          advance('play-rejected');
         });
       }
 
@@ -4536,15 +4569,30 @@
         }
 
         // Wait for the audio queue to drain (last clip's onended fires)
-        // then resume listening.
+        // then auto-resume listening. 2026-06-27: drain timeout lowered
+        // from 30s → 8s — per-clip advance() now has its own 15s ceiling,
+        // and waiting 30s past the last sentence is dead air Heath would
+        // notice immediately.
         const drainTimeout = setTimeout(() => {
-          // Safety: if onended never fires, force resume after 30s
+          console.warn('[jarvis] drain timeout — forcing playback resolve');
           playbackCompletedResolve && playbackCompletedResolve();
-        }, 30000);
+        }, 8000);
         await playbackCompleted;
         clearTimeout(drainTimeout);
 
-        await resumeListening();
+        // 2026-06-27 auto-resume: this is the path that flips the mic back
+        // on after Jarvis stops speaking. If this throws or the page is
+        // currently hidden, the visibilitychange handler will retry on
+        // return-to-foreground (see hidden-mid-tts safety below).
+        try {
+          await resumeListening();
+        } catch (e) {
+          console.warn('[jarvis] resumeListening threw after stream:', e);
+          if (conversationActive) {
+            // Last-ditch — schedule a retry once on the next tick
+            setTimeout(() => { try { resumeListening(); } catch {} }, 250);
+          }
+        }
         return { conversationId: convId, fallback: false };
       } catch (err) {
         console.error('[jarvis] runStreamingChatTTS error:', err);
@@ -4648,6 +4696,11 @@
       pttLabel.textContent = 'TAP TO END';
       pttStatus.textContent = 'Listening — speak, then pause.';
     }
+
+    // 2026-06-27 auto-resume hardening: expose resumeListening to the outer
+    // visibility-change handler so post-hidden recovery can force the mic
+    // back on if onended never fired while we were backgrounded.
+    try { window.__jarvisResumeListening = resumeListening; } catch {}
 
     // ====================================================================
     // WALKIE-TALKIE FALLBACK (legacy single-turn, behind ?ptt=1 flag)
@@ -8052,6 +8105,11 @@
       );
 
       let __wasActiveWhenHidden = false;
+      // 2026-06-27 auto-resume hardening — if the page is backgrounded
+      // mid-TTS playback (pttState 'speaking' or 'thinking'), the audio
+      // chain may stall and onended may never fire. Remember the state
+      // so we can force resumeListening on return to foreground.
+      let __wasSpeakingWhenHidden = false;
 
       // Tear down + rebuild the MediaRecorder + getUserMedia stream. The OS
       // can leave the JS objects in a "zombie" state after a long background
@@ -8097,7 +8155,8 @@
             // holding the mic + wakelock. Just remember we were active so we
             // know whether to rehydrate on return.
             __wasActiveWhenHidden = conversationActive;
-            console.log('[jarvis-lifecycle] hidden (native) — keeping recorder alive, active=' + conversationActive);
+            __wasSpeakingWhenHidden = (pttState === 'speaking' || pttState === 'thinking');
+            console.log('[jarvis-lifecycle] hidden (native) — keeping recorder alive, active=' + conversationActive + ' speaking=' + __wasSpeakingWhenHidden);
           } else {
             // App returned to foreground. If we were in a conversation, the
             // MediaRecorder may be a zombie even though the foreground
@@ -8106,16 +8165,52 @@
               console.log('[jarvis-lifecycle] visible (native) — restartMicStream');
               restartMicStream();
             }
+            // 2026-06-27 hidden-mid-TTS safety: if we were 'speaking'/'thinking'
+            // when hidden, the audio onended chain may have stalled. Force a
+            // resumeListening so the next utterance is captured without a tap.
+            if (__wasSpeakingWhenHidden && conversationActive) {
+              console.log('[jarvis-lifecycle] visible (native) — was mid-TTS when hidden, forcing resumeListening');
+              setTimeout(() => {
+                try {
+                  if (typeof window.__jarvisResumeListening === 'function' && conversationActive) {
+                    window.__jarvisResumeListening();
+                  }
+                } catch (e) {
+                  console.warn('[jarvis-lifecycle] post-hidden resumeListening failed', e);
+                }
+              }, 500);
+            }
             __wasActiveWhenHidden = false;
+            __wasSpeakingWhenHidden = false;
           }
         } else {
           // ===== Plain browser path — original behavior
           if (!visible) {
+            // Remember speaking state so we can recover on return-to-visible
+            // even though the browser will likely tear down the conversation.
+            __wasSpeakingWhenHidden = (pttState === 'speaking' || pttState === 'thinking');
             if (conversationActive) {
               endConversation().catch(() => lifecycleCleanup());
             } else if (pttState !== 'listening') {
               stopMicStream();
             }
+          } else {
+            // Visible again. In plain browser the conversation was usually
+            // torn down on hidden, but if conversationActive is somehow still
+            // true and we were mid-TTS when hidden, force the resume.
+            if (__wasSpeakingWhenHidden && conversationActive) {
+              console.log('[jarvis-lifecycle] visible (browser) — was mid-TTS when hidden, forcing resumeListening');
+              setTimeout(() => {
+                try {
+                  if (typeof window.__jarvisResumeListening === 'function' && conversationActive) {
+                    window.__jarvisResumeListening();
+                  }
+                } catch (e) {
+                  console.warn('[jarvis-lifecycle] post-hidden resumeListening failed', e);
+                }
+              }, 500);
+            }
+            __wasSpeakingWhenHidden = false;
           }
         }
       });
