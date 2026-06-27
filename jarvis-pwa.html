@@ -4067,35 +4067,47 @@
       analyser = null;
     }
 
-    // Atlas overnight 2026-06-26: detect Android (incl. Capacitor WebView)
-    // and prefer mp4/AAC. Reason: Android Chromium reports
-    // `isTypeSupported('audio/webm;codecs=opus') === true` but the WebView
-    // MediaRecorder implementation produces blobs that ElevenLabs scribe_v1
-    // rejects with "File is corrupted. Please ensure it is playable audio."
-    // mp4/AAC is Samsung WebView's native container and decodes cleanly
-    // across all STT providers tested.
-    function isAndroidWebView() {
-      const ua = navigator.userAgent || '';
-      return /Android/i.test(ua);
-    }
+    // Atlas 2026-06-27: REAL root cause of Z Fold STT silent-fail
+    // identified — NOT a codec problem. CapacitorHttp (enabled in
+    // capacitor.config.json) patches window.fetch() to route through
+    // Java's HttpURLConnection. Its body-converter handles ReadableStream,
+    // Uint8Array, FormData, File — but NOT raw Blob. A raw Blob falls
+    // through to JSON.stringify({}) which produces the 2-byte "{}" body
+    // we observed in jarvis_stt_debug (rows 12,13: byte_size=2,
+    // magic_hex=0x7b7d, UA=Dalvik/2.1.0).
+    //
+    // The PWA-side fix: wrap the audio Blob as a `File` before fetch.
+    // CapacitorHttp handles `File` correctly — base64-encodes the bytes
+    // and posts them as binary with the file's mime type.
+    // See blobToFile() and the fetch sites in handleUtteranceBlob /
+    // processCapturedAudioPtt.
+    //
+    // Codec preference reverted to webm-opus first (its desktop default).
+    // The mp4 "fix" from 2026-06-26 was a red herring — it actually made
+    // things worse on Z Fold because the WebView reports mp4 supported
+    // but produces an empty container.
     function pickRecorderMime() {
-      const desktopOrder = [
+      const candidates = [
         'audio/webm;codecs=opus',
         'audio/webm',
         'audio/mp4;codecs=mp4a.40.2',
         'audio/mp4',
       ];
-      const androidOrder = [
-        'audio/mp4;codecs=mp4a.40.2',
-        'audio/mp4',
-        'audio/webm;codecs=opus',
-        'audio/webm',
-      ];
-      const order = isAndroidWebView() ? androidOrder : desktopOrder;
-      for (const c of order) {
+      for (const c of candidates) {
         try { if (MediaRecorder.isTypeSupported(c)) return c; } catch {}
       }
       return '';
+    }
+    // Wrap a Blob as a File so CapacitorHttp (Android WebView) transmits
+    // the binary correctly. On non-Capacitor browsers, File-bodies work
+    // fine with the standard fetch() — File extends Blob.
+    function blobToFile(blob, name) {
+      try {
+        return new File([blob], name || 'audio.bin', { type: blob.type || 'application/octet-stream' });
+      } catch (err) {
+        console.warn('[jarvis] File ctor failed, falling back to Blob', err);
+        return blob;
+      }
     }
 
     function startUtteranceRecorder(stream) {
@@ -4191,15 +4203,19 @@
         pttStatus.textContent = 'Transcribing…';
 
         // STT
+        // Wrap as File so CapacitorHttp (Android WebView) base64-binary
+        // transmits the bytes instead of JSON-stringifying the Blob.
         let transcript = '';
         try {
+          const fileExt = (blob.type || '').includes('mp4') ? 'm4a' : 'webm';
+          const audioFile = blobToFile(blob, `utterance.${fileExt}`);
           const sttRes = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
             method: 'POST',
             headers: {
               'Content-Type': blob.type,
               Authorization: await getAuthHeader(),
             },
-            body: blob,
+            body: audioFile,
           });
           const sttData = await sttRes.json().catch(() => ({}));
           if (sttRes.ok && sttData.ok) {
@@ -4675,13 +4691,15 @@
 
       let transcript = '';
       try {
+        const fileExt = (blob.type || '').includes('mp4') ? 'm4a' : 'webm';
+        const audioFile = blobToFile(blob, `ptt.${fileExt}`);
         const sttRes = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
           method: 'POST',
           headers: {
             'Content-Type': blob.type,
             Authorization: await getAuthHeader(),
           },
-          body: blob,
+          body: audioFile,
         });
         const sttData = await sttRes.json();
         if (sttRes.ok && sttData.ok) {
@@ -7660,7 +7678,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-26-stt-fix-v5-mp4-pref').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-27-stt-fix-v6-capacitor-file-wrap').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);

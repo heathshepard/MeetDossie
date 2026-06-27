@@ -11,7 +11,7 @@
  * never be served while the device is online — offline still falls back
  * to whatever was last cached.
  */
-const CACHE = 'jarvis-pwa-v5-2026-06-26-mp4-pref-android';
+const CACHE = 'jarvis-pwa-v6-2026-06-27-capacitor-file-wrap';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
