@@ -53,10 +53,15 @@ const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
 // signal `audio_empty_or_too_short` so the client surfaces "I didn't catch
 // that" instead of treating it as a 5xx provider failure.
 const MIN_AUDIO_BYTES = 2 * 1024;
-const MAX_TTS_CHARS = 1200;
+// ElevenLabs per-call hard limit is 5000 chars. Raised from 1200 on 2026-06-27
+// after Heath pasted a long message and asked Jarvis to read it back — the
+// 1200 cap silently truncated mid-sentence. Streaming chat_tts_stream already
+// chunks by sentence so this only affects the legacy /op=tts endpoint, but
+// 5000 keeps both paths honest.
+const MAX_TTS_CHARS = 5000;
 const STT_TIMEOUT_MS = 5000;     // DoD criterion 26
-const TTS_TIMEOUT_MS = 3000;     // DoD criterion 25
-const CHAT_TIMEOUT_MS = 15000;
+const TTS_TIMEOUT_MS = 8000;     // raised 2026-06-27 to handle longer payloads
+const CHAT_TIMEOUT_MS = 30000;   // raised 2026-06-27 to allow longer Claude replies (max_tokens=4096)
 
 // George voice — DoD criterion 22 (locked)
 const GEORGE_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb';
@@ -1203,8 +1208,11 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
     let claudeRes;
     try {
       const reqBody = {
+        // 2026-06-27: max_tokens raised 800 -> 4096 so long replies (e.g.
+        // "read this entire memo back to me") aren't truncated mid-sentence.
+        // Sonnet 4.6 supports up to 8192 output tokens.
         model: 'claude-sonnet-4-6',
-        max_tokens: 800,
+        max_tokens: 4096,
         system: systemBlocks,
         messages,
       };
@@ -1596,8 +1604,12 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
           'content-type': 'application/json',
         },
         body: JSON.stringify({
+          // 2026-06-27: max_tokens raised 500 -> 4096 so streaming replies
+          // aren't cut off mid-thought. The sentence-chunked TTS pipeline
+          // already handles arbitrary length — each sentence gets its own
+          // ElevenLabs call.
           model: 'claude-sonnet-4-6',
-          max_tokens: 500,
+          max_tokens: 4096,
           stream: true,
           system: systemBlocks,
           messages: finalMessages,
