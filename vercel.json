@@ -354,7 +354,11 @@
                                                                },
                       "api/cole-enqueue.js":  {
                                                   "maxDuration":  10
-                                              }
+                                              },
+                      "api/cron-codebase-facts-indexer.js":  {
+                                                                 "maxDuration":  60,
+                                                                 "includeFiles":  "{vercel.json,*.html,api/**/*.js}"
+                                                             }
                   },
     "crons":  [
                   {
@@ -652,6 +656,10 @@
                   {
                       "path":  "/api/cron-agent-queue-orphan-reset",
                       "schedule":  "*/30 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-codebase-facts-indexer",
+                      "schedule":  "0 */6 * * *"
                   }
               ]
 }

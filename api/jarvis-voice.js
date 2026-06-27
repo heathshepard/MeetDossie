@@ -709,6 +709,7 @@ async function buildHudStateContext(tenant) {
     openTodo,
     recentCompletions,
     projectContext,
+    codebaseFacts,
   ] = await Promise.all([
     sbGet(
       `jarvis_future_builds?select=title,status,score,source&${fbTenantFilter}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=25`
@@ -752,6 +753,19 @@ async function buildHudStateContext(tenant) {
       `&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(new Date().toISOString())})` +
       `&order=priority.asc,last_updated_at.desc&limit=12`
     ).catch((e) => { console.warn(`[hud-ctx] project_context: ${e.message}`); return []; }),
+    // CODEBASE FACTS (atlas 2026-06-27): live auto-indexed inventory of what
+    // exists in the MeetDossie repo. Updated every 6h by
+    // cron-codebase-facts-indexer. Prevents Jarvis hallucinating "we have no
+    // privacy policy" when privacy.html ships in prod. Pull the top facts that
+    // answer "does X exist" questions — legal pages, feature capabilities,
+    // recent table additions. Limit 25 keeps token cost bounded.
+    sbGet(
+      `codebase_facts?select=category,fact_key,fact_value` +
+      `&tenant_id=eq.${tenant.id}` +
+      `&is_active=eq.true` +
+      `&category=in.(legal-pages,feature-capabilities,vercel-config)` +
+      `&order=category.asc,fact_key.asc&limit=60`
+    ).catch((e) => { console.warn(`[hud-ctx] codebase_facts: ${e.message}`); return []; }),
   ]);
 
   // ===== Section 1: FUTURE BUILDS panel (grouped by status) =====
@@ -895,6 +909,49 @@ async function buildHudStateContext(tenant) {
       const pri = ctx.priority != null ? `p${ctx.priority}` : 'p?';
       const summary = (ctx.summary || '').replace(/\s+/g, ' ').trim();
       lines.push(`- **${title}** (${status}, ${pri}): ${summary}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  // ===== Section 9: CODEBASE TRUTH (atlas 2026-06-27) =====
+  // Live auto-indexed inventory. Stops Jarvis from claiming "we have no PP"
+  // when privacy.html ships in prod. Grouped by category. Each fact_value is
+  // a small JSON object — extract exists + path + summary to keep tokens
+  // bounded.
+  if (codebaseFacts && codebaseFacts.length) {
+    const byCat = {};
+    for (const f of codebaseFacts) {
+      const c = f.category || 'other';
+      if (!byCat[c]) byCat[c] = [];
+      byCat[c].push(f);
+    }
+    const lines = [
+      '## CODEBASE TRUTH (live, auto-indexed every 6h)',
+      '(What actually exists in the MeetDossie repo at HEAD. If a row below says exists=true, IT EXISTS — do not propose building it. If Heath asks "do we have a privacy policy" and you see privacy-policy-page exists=true here, the answer is YES.)',
+    ];
+    const catOrder = ['legal-pages', 'feature-capabilities', 'vercel-config'];
+    const seen = new Set();
+    for (const cat of catOrder) {
+      if (!byCat[cat]) continue;
+      seen.add(cat);
+      lines.push(`### ${cat}`);
+      for (const f of byCat[cat]) {
+        const v = f.fact_value || {};
+        const exists = v.exists === false ? 'MISSING' : 'exists';
+        const where = v.route || v.path || v.location || v.file || '';
+        const extra = v.line_count ? ` (${v.line_count} lines)` : '';
+        lines.push(`- ${f.fact_key} — ${exists}${where ? `: ${where}` : ''}${extra}`);
+      }
+    }
+    for (const cat of Object.keys(byCat)) {
+      if (seen.has(cat)) continue;
+      lines.push(`### ${cat}`);
+      for (const f of byCat[cat]) {
+        const v = f.fact_value || {};
+        const exists = v.exists === false ? 'MISSING' : 'exists';
+        const where = v.route || v.path || v.location || v.file || '';
+        lines.push(`- ${f.fact_key} — ${exists}${where ? `: ${where}` : ''}`);
+      }
     }
     sections.push(lines.join('\n'));
   }
