@@ -242,16 +242,27 @@ const ALL_TOOLS = [
     name: 'spawn_agent',
     description:
       "Queue an async task for one of Heath's named agents (Carter, Atlas, Hadley, Pierce, Sage, Quinn, Ridge, Sterling). "
-      + "Use ONLY when Heath explicitly asks to assign work to an agent (e.g., 'Hadley, do X', 'Have Atlas build Y', "
-      + "'Send this to Pierce'). The agent picks up the work autonomously via the dispatch cron. "
-      + 'Writes a row to agent_queue (and a matching jarvis_future_builds entry so it shows on the HUD).',
+      + "AUTO-ROUTE work requests to the correct agent even when Heath doesn't name them. "
+      + "Routing table by request pattern: "
+      + "(fix/build/ship code, infra, deploy, schema, env, cron, performance) -> atlas; "
+      + "(draft memo, legal review, contract, ToS, privacy, compliance risk) -> hadley; "
+      + "(customer outreach email, activation, funnel, churn, drip) -> pierce; "
+      + "(social post, Instagram, LinkedIn, reel, video, content calendar) -> sage; "
+      + "(QA test, Playwright, verify, sign-in flow) -> quinn; "
+      + "(cron health, uptime, KPI alert, watchdog, SLO) -> ridge; "
+      + "(stock, crypto, portfolio, rebalance, market move) -> sterling; "
+      + "(product UI, React, Dossie frontend, dashboard hero, dossier card) -> carter (drafts) THEN atlas (ships, depends_on=carter_queue_id). "
+      + "Multi-agent chains: spawn the chain in the SAME turn using depends_on. Example: 'draft a memo on X and ship the schema' -> spawn hadley first, then atlas with depends_on=[hadley_queue_id]. "
+      + "DO NOT spawn for: factual questions answerable from HUD/project_context ('how many founders', 'what's our MRR'), status queries about running agents ('what's Atlas working on'), or casual/emotional chat ('how was the trip'). "
+      + "When the request is genuinely ambiguous (could be a question OR a work assignment), ask Heath: 'Want me to queue [agent] for this, or just answer from what I know?' "
+      + "Writes a row to agent_queue (and a matching jarvis_future_builds entry so it shows on the HUD).",
     input_schema: {
       type: 'object',
       properties: {
         target_agent: {
           type: 'string',
           enum: ['carter', 'atlas', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling'],
-          description: 'Which specialist agent to queue the task for.',
+          description: 'Which specialist agent to queue the task for. Pick from the routing table even if Heath did not name them.',
         },
         title: {
           type: 'string',
@@ -271,10 +282,35 @@ const ALL_TOOLS = [
           description: "Which venture this is for: 'dossie' (most common), 'jarvis', 'shepard-ventures', etc",
           default: 'dossie',
         },
+        depends_on: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of agent_queue UUIDs this task waits on. Use when chaining (e.g., Atlas ships after Hadley drafts: pass Hadley\'s queue_id here). UUIDs come from prior spawn_agent results in the same turn.',
+        },
       },
       required: ['target_agent', 'title', 'description', 'priority'],
     },
     requires_approval: false, // queueing internal work, not a state-changing external action
+  },
+  {
+    name: 'query_project_context',
+    description:
+      'Look up specific strategic project_context rows by key when Heath asks about a topic outside your default top-12 federation. '
+      + 'Use for deeper questions on a paused project, a past decision, a customer roster, a specific feedback rule. '
+      + 'Example keys: "cold-email-tx-agents-paused", "customers-roster", "jarvis-saas-vault-wallet", "esignature-docuseal-docusign". '
+      + 'Returns title, summary, status, priority, tags, last_updated_at for up to 5 keys. Read-only, no approval needed.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        keys: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Project context keys to fetch (max 5). Use the slugged key (e.g., "cold-email-tx-agents-paused").',
+        },
+      },
+      required: ['keys'],
+    },
+    requires_approval: false,
   },
 ];
 
@@ -766,6 +802,7 @@ async function tool_spawn_agent(input, ctx) {
     description,
     priority,
     venture = 'dossie',
+    depends_on,
   } = input || {};
 
   if (!target_agent) return { error: 'target_agent is required' };
@@ -778,6 +815,9 @@ async function tool_spawn_agent(input, ctx) {
 
   const enqueueUrl = getEnqueueUrl();
   const safePriority = Math.max(1, Math.min(5, Math.floor(Number(priority) || 3)));
+  const safeDependsOn = Array.isArray(depends_on)
+    ? depends_on.filter((x) => typeof x === 'string' && x.length > 0).slice(0, 10)
+    : [];
 
   try {
     const res = await Promise.race([
@@ -795,6 +835,7 @@ async function tool_spawn_agent(input, ctx) {
           venture: String(venture || 'dossie'),
           source: 'jarvis-voice',
           create_future_build: true,
+          depends_on: safeDependsOn,
         }),
       }),
       new Promise((_, rej) =>
@@ -845,6 +886,50 @@ async function tool_spawn_agent(input, ctx) {
   }
 }
 
+async function tool_query_project_context(input, ctx) {
+  const { keys } = input || {};
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return { error: 'keys is required (array of project_context keys, max 5)' };
+  }
+  const safeKeys = keys
+    .filter((k) => typeof k === 'string' && k.trim().length > 0)
+    .map((k) => k.trim())
+    .slice(0, 5);
+  if (safeKeys.length === 0) {
+    return { error: 'no valid keys provided' };
+  }
+  const tenantId = ctx?.tenant?.id;
+  if (!tenantId) return { error: 'tenant context missing' };
+
+  // PostgREST in.() filter with quoted strings. Strip any commas/parens/quotes
+  // from keys to keep the URL clean.
+  const cleaned = safeKeys.map((k) => k.replace(/["(),]/g, '').slice(0, 200));
+  const inList = cleaned.map((k) => `"${k}"`).join(',');
+  const path =
+    `jarvis_project_context?select=key,title,summary,status,priority,tags,last_updated_at,expires_at,source_memory_path`
+    + `&tenant_id=eq.${tenantId}`
+    + `&key=in.(${inList})`
+    + `&limit=5`;
+
+  try {
+    const rows = await sbGet(path);
+    const list = Array.isArray(rows) ? rows : [];
+    // Note which requested keys had no match so Jarvis can speak honestly.
+    const foundKeys = new Set(list.map((r) => r.key));
+    const missing = cleaned.filter((k) => !foundKeys.has(k));
+    return {
+      result: {
+        requested: cleaned,
+        found: list.length,
+        missing,
+        rows: list,
+      },
+    };
+  } catch (err) {
+    return { error: `query_project_context failed: ${err.message}` };
+  }
+}
+
 const TOOL_DISPATCHERS = {
   query_supabase: tool_query_supabase,
   query_database: tool_query_database,
@@ -856,6 +941,7 @@ const TOOL_DISPATCHERS = {
   read_calendar: tool_read_calendar,
   set_reminder: tool_set_reminder,
   spawn_agent: tool_spawn_agent,
+  query_project_context: tool_query_project_context,
 };
 
 // ===== Public API =====
