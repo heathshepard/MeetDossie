@@ -19,6 +19,7 @@ const {
 } = require('./_lib/founding-approval');
 
 const { handleGroupPostCallback } = require('./group-post-callback');
+const { assignNextScheduledFor } = require('./_lib/scheduling.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -752,12 +753,25 @@ async function handleCallbackQuery(cb) {
       return;
     }
 
-    // Reset to approved so next cron run will retry
-    await patchPost(postId, {
+    // Reset to approved so next cron run will retry.
+    // If the original scheduled_for is null or in the past, reassign so the
+    // publish cron doesn't fire it immediately and bypass platform daily caps.
+    const retryPatch = {
       status: 'approved',
       error_message: null,
-      publishing_started_at: null
-    });
+      publishing_started_at: null,
+    };
+    const hasFutureSlot = post.scheduled_for && new Date(post.scheduled_for) > new Date();
+    if (!hasFutureSlot) {
+      try {
+        const slotIso = await assignNextScheduledFor(post);
+        if (slotIso) retryPatch.scheduled_for = slotIso;
+        console.log(`[telegram-webhook] retry: reassigned scheduled_for=${slotIso || '(immediate fallback)'} for ${postId}`);
+      } catch (err) {
+        console.warn('[telegram-webhook] retry scheduling helper failed for', postId, err && err.message);
+      }
+    }
+    await patchPost(postId, retryPatch);
 
     if (chatId && messageId) {
       await editMessage(chatId, messageId, `${String(message?.text || '')}\n\n🔄 Reset to approved — will retry at next cron run.`);
@@ -1161,7 +1175,19 @@ async function handleCallbackQuery(cb) {
     // Single-gate approval — card already rendered at generation time.
     // Approve goes straight to status='approved'.
     console.log(`[telegram-webhook] Post object:`, JSON.stringify(post));
-    const patchBody = { status: 'approved', approved_at: now };
+    const patchBody = { status: 'approved', approved_at: now, approved_by: 'telegram' };
+    // Assign next available slot so the publish cron respects platform daily caps.
+    // (Without this, scheduled_for=NULL caused the publish cron to fire all
+    // approved rows immediately, bypassing caps. Ridge caught it twice 6/26-6/27.)
+    if (!post.scheduled_for) {
+      try {
+        const slotIso = await assignNextScheduledFor(post);
+        if (slotIso) patchBody.scheduled_for = slotIso;
+        console.log(`[telegram-webhook] assigned scheduled_for=${slotIso || '(immediate fallback)'} to ${postId}`);
+      } catch (err) {
+        console.warn('[telegram-webhook] scheduling helper failed for', postId, err && err.message);
+      }
+    }
     console.log(`[telegram-webhook] Patch body:`, JSON.stringify(patchBody));
     const patchResult = await patchPost(postId, patchBody);
     console.log(`[telegram-webhook] Patch result:`, JSON.stringify(patchResult));

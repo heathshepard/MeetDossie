@@ -12,6 +12,7 @@
 // Auth: Authorization: Bearer ${CRON_SECRET} OR x-vercel-cron: 1
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { assignNextScheduledFor } = require('./_lib/scheduling.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -79,23 +80,44 @@ module.exports = withTelemetry('cron-auto-approve', async function handler(req, 
   console.log('[cron-auto-approve] fb_comment_replies eligible:', replyIds.length);
 
   // ── Approve social posts ─────────────────────────────────────────────────
+  // Per-row PATCH so each one gets its own assigned scheduled_for slot.
+  // Bulk PATCH used to leave scheduled_for=NULL, which the publish cron
+  // treats as "publish immediately" — bypassing platform daily caps.
+  // Ridge caught this twice in 24h (10 + 7 unscheduled approved rows).
   let autoApproved = 0;
-  if (allIds.length > 0) {
-    const idFilter = allIds.map((id) => encodeURIComponent(id)).join(',');
+  for (const id of allIds) {
+    // Need platform/persona to assign a slot. Fetch the row.
+    const { ok: rowOk, data: rowData } = await supabaseFetch(
+      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}&select=id,platform,persona,scheduled_for&limit=1`,
+    );
+    const row = rowOk && Array.isArray(rowData) ? rowData[0] : null;
+    let scheduledFor = null;
+    if (row && row.platform && !row.scheduled_for) {
+      try {
+        scheduledFor = await assignNextScheduledFor(row);
+      } catch (err) {
+        console.warn('[cron-auto-approve] scheduling helper failed for', id, err && err.message);
+      }
+    }
+    const patchBody = { status: 'approved', approved_at: new Date().toISOString() };
+    if (scheduledFor) patchBody.scheduled_for = scheduledFor;
     const { ok: patchOk, status: patchStatus } = await supabaseFetch(
-      `/rest/v1/social_posts?id=in.(${idFilter})`,
+      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}`,
       {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'approved', approved_at: new Date().toISOString() }),
+        body: JSON.stringify(patchBody),
       },
     );
     if (!patchOk) {
-      console.error('[cron-auto-approve] social posts patch failed, status:', patchStatus);
+      console.error('[cron-auto-approve] social post patch failed for', id, 'status:', patchStatus);
     } else {
-      autoApproved = allIds.length;
-      console.log('[cron-auto-approve] auto-approved', autoApproved, 'social posts');
+      autoApproved++;
+      console.log('[cron-auto-approve] auto-approved', id, 'scheduled_for:', scheduledFor || '(immediate)');
     }
+  }
+  if (autoApproved > 0) {
+    console.log('[cron-auto-approve] auto-approved', autoApproved, 'social posts total');
   }
 
   // ── Approve fb_comment_replies and notify Heath to post them ────────────
