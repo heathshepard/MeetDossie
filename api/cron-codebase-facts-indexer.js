@@ -44,7 +44,10 @@ const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET               = process.env.CRON_SECRET;
 
-const HEATH_TENANT_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
+// Canonical jarvis-voice tenant for Heath. Same tenant that owns
+// jarvis_project_context rows, so buildHudStateContext() pulls these facts
+// under the same tenant query.
+const HEATH_TENANT_ID = 'a9a4c3aa-7278-4f42-ad71-e2e899671fab';
 
 // Repo root: Vercel bundles each function into /var/task with the function
 // file in /var/task/api/cron-codebase-facts-indexer.js. With includeFiles in
