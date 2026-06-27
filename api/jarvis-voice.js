@@ -676,10 +676,27 @@ async function getContextExtension(tenant) {
 // ---------------------------------------------------------------------------
 const HUD_CTX_MAX_CHARS = 12000; // ~3000 tokens
 
-async function buildHudStateContext(tenant) {
+// Atlas 2026-06-27 (Lever B latency): when buildHudStateContext is called
+// with { compact: true }, limits drop and the heavy codebase_facts section
+// is skipped entirely. Used for short voice utterances where prompt size
+// dominates Anthropic TTFT. Empirically: full HUD = ~3-4k input tokens,
+// compact HUD = ~700-1000 input tokens. Saves ~150-300ms TTFT.
+async function buildHudStateContext(tenant, opts = {}) {
   if (!tenant || !tenant.id) return '';
   const startedAt = Date.now();
   const sections = [];
+  const compact = !!opts.compact;
+  // Limits — full vs compact mode.
+  const FB_LIMIT = compact ? 5 : 25;
+  const INST_LIMIT = compact ? 5 : 20;
+  const PROJ_LIMIT = compact ? 10 : 50;
+  const ROLE_MEM_LIMIT = compact ? 200 : 2000;
+  const QUEUE_LIMIT = compact ? 200 : 2000;
+  const SHIPPED_LIMIT = compact ? 3 : 10;
+  const TODO_LIMIT = compact ? 5 : 10;
+  const COMPLETIONS_LIMIT = compact ? 0 : 5;
+  const PROJCTX_LIMIT = compact ? 3 : 12;
+  const SKIP_CODEBASE_FACTS = compact; // codebase facts dropped entirely in compact
 
   // SCHEMA QUIRK: jarvis_future_builds.tenant_id actually stores the auth.users.id
   // (per api/jarvis-future-builds-list.js line 51: .eq('tenant_id', auth.user_id)).
@@ -712,60 +729,62 @@ async function buildHudStateContext(tenant) {
     codebaseFacts,
   ] = await Promise.all([
     sbGet(
-      `jarvis_future_builds?select=title,status,score,source&${fbTenantFilter}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=25`
+      `jarvis_future_builds?select=title,status,score,source&${fbTenantFilter}&archived_at=is.null&order=score.desc.nullslast,updated_at.desc&limit=${FB_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] future_builds: ${e.message}`); return []; }),
     sbGet(
-      `jarvis_agent_instances?select=instance_id,agent_role,project_id,spawned_at,metadata&tenant_id=eq.${tenant.id}&status=eq.running&order=spawned_at.desc&limit=20`
+      `jarvis_agent_instances?select=instance_id,agent_role,project_id,spawned_at,metadata&tenant_id=eq.${tenant.id}&status=eq.running&order=spawned_at.desc&limit=${INST_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] agent_instances: ${e.message}`); return []; }),
     sbGet(
-      `jarvis_projects?select=id,title,status,metadata&tenant_id=eq.${tenant.id}&order=updated_at.desc&limit=50`
+      `jarvis_projects?select=id,title,status,metadata&tenant_id=eq.${tenant.id}&order=updated_at.desc&limit=${PROJ_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] projects: ${e.message}`); return []; }),
     // Knowledge counts grouped client-side from a single select
     sbGet(
-      `agent_role_memory?select=agent_role&tenant_id=eq.${tenant.id}&validation_status=neq.archived&limit=2000`
+      `agent_role_memory?select=agent_role&tenant_id=eq.${tenant.id}&validation_status=neq.archived&limit=${ROLE_MEM_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] role_memory: ${e.message}`); return []; }),
     sbGet(
-      `agent_queue?select=status&limit=2000`
+      `agent_queue?select=status&limit=${QUEUE_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] agent_queue: ${e.message}`); return []; }),
     // Recently shipped (last 24h) — same auth_user_id quirk as future_builds.
     // Match on updated_at OR archived_at so manually-backfilled rows that set
     // archived_at without bumping updated_at, or vice-versa, still surface.
-    // Limit 10 (was 5) so a single-night shipping spree all fits.
     sbGet(
-      `jarvis_future_builds?select=title,status,updated_at,archived_at&${fbTenantFilter}&status=eq.shipped&or=(updated_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()},archived_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()})&order=updated_at.desc&limit=10`
+      `jarvis_future_builds?select=title,status,updated_at,archived_at&${fbTenantFilter}&status=eq.shipped&or=(updated_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()},archived_at.gt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()})&order=updated_at.desc&limit=${SHIPPED_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] shipped: ${e.message}`); return []; }),
     sbGet(
-      `heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast,created_at.desc&limit=10`
+      `heath_todo?select=title,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast,created_at.desc&limit=${TODO_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] heath_todo: ${e.message}`); return []; }),
-    sbGet(
-      `jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&event_type=in.(instance-closed,item-completed)&created_at=gt.${new Date(Date.now() - 60 * 60 * 1000).toISOString()}&order=created_at.desc&limit=5`
-    ).catch((e) => { console.warn(`[hud-ctx] completions: ${e.message}`); return []; }),
+    // In compact mode, COMPLETIONS_LIMIT=0 → skip the call (return [] immediately)
+    COMPLETIONS_LIMIT > 0
+      ? sbGet(
+          `jarvis_agent_events?select=agent_name,event_type,summary,created_at&tenant_id=eq.${tenant.id}&event_type=in.(instance-closed,item-completed)&created_at=gt.${new Date(Date.now() - 60 * 60 * 1000).toISOString()}&order=created_at.desc&limit=${COMPLETIONS_LIMIT}`
+        ).catch((e) => { console.warn(`[hud-ctx] completions: ${e.message}`); return []; })
+      : Promise.resolve([]),
     // PROJECT CONTEXT (atlas_12 2026-06-26): strategic projects + paused
     // initiatives + decisions Jarvis must speak about correctly. Mirrors
     // filesystem memory files in ~/.claude/projects/<repo>/memory/. Filter:
     // status active/paused/blocked (skip shipped/archived). Skip rows past
     // expires_at. Order: priority asc (1 = top), then last_updated_at desc.
-    // Limit 12 keeps token cost ~1500 input tokens.
+    // Compact mode = top 3 (only highest-priority strategic context).
     sbGet(
       `jarvis_project_context?select=key,title,summary,status,priority,tags,last_updated_at,expires_at` +
       `&tenant_id=eq.${tenant.id}` +
       `&status=in.(active,paused,blocked)` +
       `&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(new Date().toISOString())})` +
-      `&order=priority.asc,last_updated_at.desc&limit=12`
+      `&order=priority.asc,last_updated_at.desc&limit=${PROJCTX_LIMIT}`
     ).catch((e) => { console.warn(`[hud-ctx] project_context: ${e.message}`); return []; }),
     // CODEBASE FACTS (atlas 2026-06-27): live auto-indexed inventory of what
     // exists in the MeetDossie repo. Updated every 6h by
-    // cron-codebase-facts-indexer. Prevents Jarvis hallucinating "we have no
-    // privacy policy" when privacy.html ships in prod. Pull the top facts that
-    // answer "does X exist" questions — legal pages, feature capabilities,
-    // recent table additions. Limit 25 keeps token cost bounded.
-    sbGet(
-      `codebase_facts?select=category,fact_key,fact_value` +
-      `&tenant_id=eq.${tenant.id}` +
-      `&is_active=eq.true` +
-      `&category=in.(legal-pages,feature-capabilities,vercel-config)` +
-      `&order=category.asc,fact_key.asc&limit=60`
-    ).catch((e) => { console.warn(`[hud-ctx] codebase_facts: ${e.message}`); return []; }),
+    // cron-codebase-facts-indexer. Compact mode skips entirely — short queries
+    // rarely ask "does X exist", and codebase facts are the biggest section.
+    SKIP_CODEBASE_FACTS
+      ? Promise.resolve([])
+      : sbGet(
+          `codebase_facts?select=category,fact_key,fact_value` +
+          `&tenant_id=eq.${tenant.id}` +
+          `&is_active=eq.true` +
+          `&category=in.(legal-pages,feature-capabilities,vercel-config)` +
+          `&order=category.asc,fact_key.asc&limit=60`
+        ).catch((e) => { console.warn(`[hud-ctx] codebase_facts: ${e.message}`); return []; }),
   ]);
 
   // ===== Section 1: FUTURE BUILDS panel (grouped by status) =====
@@ -969,7 +988,7 @@ async function buildHudStateContext(tenant) {
 
   const text = `${header}\n${body}\n=== END CURRENT HUD STATE ===`;
   const elapsed = Date.now() - startedAt;
-  console.log(`[hud-ctx] built ${sections.length} sections, ${text.length} chars in ${elapsed}ms`);
+  console.log(`[hud-ctx${compact ? ':compact' : ''}] built ${sections.length} sections, ${text.length} chars in ${elapsed}ms`);
   return text;
 }
 
@@ -1443,6 +1462,22 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     convId = created[0].id;
   }
 
+  // Atlas 2026-06-27 Lever B: detect short simple voice queries and serve
+  // a compact HUD context. Cuts ~2k input tokens, ~150-300ms Anthropic TTFT.
+  // Heuristic: short utterance (<= 10 words, <= 80 chars), no tool/intent
+  // keywords, no image. Examples that get compact: "what's MRR?", "are you
+  // there?", "what's the time?". Examples that stay full: "spawn atlas",
+  // "what's on the future builds panel", "did anything ship today".
+  const HUD_FULL_INTENT_RE = /\b(future\s*build|panel|agent|atlas|carter|hadley|pierce|sage|quinn|ridge|spawn|ship|merge|deploy|customer|brittney|miki|founder|founding|stripe|webhook|cron|todo|priority|deadline|legal|privacy|tos|terms|memory|context|search|query|email|telegram|sms|approve|reject|snooze|workflow|template|trec|docuseal|signing|bundle|vercel)\b/i;
+  const wordCount = message.trim().split(/\s+/).length;
+  const isCompactCandidate = wordCount <= 10
+    && message.length <= 80
+    && !hasImage
+    && !HUD_FULL_INTENT_RE.test(message);
+  if (isCompactCandidate) {
+    console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] compact-hud (msg="${message.slice(0, 60)}" words=${wordCount})`);
+  }
+
   // Load history + persist user message + load live ctx in parallel.
   // CRITICAL: order DESC + reverse to get the MOST RECENT 30 (not oldest).
   // See handleChat() for the same fix and the bug it addresses.
@@ -1456,7 +1491,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
         ? `${message.slice(0, 4000)} [image: ${imageMime}]`
         : message.slice(0, 4000),
     }, { prefer: 'return=minimal' }).then(() => getContextExtension(tenant)),
-    buildHudStateContext(tenant),
+    buildHudStateContext(tenant, { compact: isCompactCandidate }),
   ]);
   // Dedupe: the parallel INSERT may have completed before the SELECT, so
   // the current user message could already be at the head of historyDesc
@@ -1520,7 +1555,14 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
   const settings = tenant?.voice_settings || GEORGE_SETTINGS;
   const modelId = settings.model || GEORGE_MODEL;
 
-  console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] conv=${convId} tenant=${tenant.slug} msg="${message.slice(0, 80)}"`);
+  console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] conv=${convId} tenant=${tenant.slug} msg="${message.slice(0, 80)}" hud=${isCompactCandidate ? 'compact' : 'full'}`);
+
+  // Atlas 2026-06-27 latency timing: stamps to measure Anthropic TTFT
+  // and time to first audio chunk. Logged on every voice turn.
+  const turnT0 = Date.now();
+  let claudeRequestStartedAt = 0;
+  let claudeFirstTokenAt = 0;
+  let firstAudioSentAt = 0;
 
   // ===== Set up SSE response =====
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -1543,6 +1585,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
 
   // ===== Start Claude stream =====
   let claudeRes;
+  claudeRequestStartedAt = Date.now();
   try {
     claudeRes = await withTimeout(
       fetch('https://api.anthropic.com/v1/messages', {
@@ -1675,6 +1718,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     ttsChain = ttsChain.then(async () => {
       const buf = await fetchPromise;
       if (buf && buf.length) {
+        if (!firstAudioSentAt) firstAudioSentAt = Date.now();
         writeEvent('audio', { seq, base64: buf.toString('base64') });
       } else {
         writeEvent('audio_error', { seq });
@@ -1706,6 +1750,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
           if (evt.type === 'content_block_delta' && evt.delta && evt.delta.type === 'text_delta') {
             const delta = evt.delta.text || '';
             if (!delta) continue;
+            if (!claudeFirstTokenAt) claudeFirstTokenAt = Date.now();
             fullText += delta;
             buffer += delta;
             writeEvent('text', { delta });
@@ -1758,7 +1803,17 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
     full: fullText.trim(),
     sentences: sentenceSeq,
   });
-  console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] done conv=${convId} sentences=${sentenceSeq} chars=${fullText.length}`);
+  // Atlas 2026-06-27 latency log: server-side timing per voice turn.
+  // turn_total = end-to-end SSE handler time
+  // claude_ttft = ms from Claude request start → first token
+  // first_audio = ms from turn start → first audio chunk written
+  // After Lever B (compact HUD), expect ~20-40% reduction on first_audio
+  // for short queries vs full-HUD baseline.
+  const turnTotal = Date.now() - turnT0;
+  const claudeTtft = claudeFirstTokenAt && claudeRequestStartedAt
+    ? claudeFirstTokenAt - claudeRequestStartedAt : null;
+  const firstAudioMs = firstAudioSentAt ? firstAudioSentAt - turnT0 : null;
+  console.log(`[jarvis-voice/chat_tts_stream] [${requestId}] done conv=${convId} sentences=${sentenceSeq} chars=${fullText.length} hud=${isCompactCandidate ? 'compact' : 'full'} turn_total_ms=${turnTotal} claude_ttft_ms=${claudeTtft || '?'} first_audio_ms=${firstAudioMs || '?'}`);
   res.end();
 }
 
