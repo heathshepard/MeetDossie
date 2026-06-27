@@ -434,9 +434,20 @@ async function indexSupabaseTables() {
 async function upsertFacts(facts) {
   if (!facts.length) return { inserted: 0, updated: 0 };
   const now = new Date().toISOString();
+
+  // Dedupe by fact_key — last write wins. vercel.json can register the same
+  // cron path twice (e.g. cron-dossie-qa-loop has two schedule entries) so
+  // we collapse before upsert. PostgREST upsert with merge-duplicates errors
+  // on dup keys in the same batch.
+  const byKey = new Map();
+  for (const f of facts) {
+    byKey.set(f.fact_key, f);
+  }
+  const deduped = Array.from(byKey.values());
+
   // PostgREST upsert via Prefer: resolution=merge-duplicates on the
   // (tenant_id, fact_key) unique key.
-  const payload = facts.map((f) => ({
+  const payload = deduped.map((f) => ({
     tenant_id: HEATH_TENANT_ID,
     category: f.category,
     fact_key: f.fact_key,
