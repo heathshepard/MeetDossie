@@ -8025,16 +8025,149 @@
       };
       window.addEventListener('pagehide', lifecycleCleanup);
       window.addEventListener('beforeunload', lifecycleCleanup);
+
+      // ====================================================================
+      // VISIBILITY-CHANGE BEHAVIOR (atlas_8, 2026-06-27 background hardening)
+      //
+      // Before this change: backgrounding the app (Heath swaps to Maps, Notes,
+      // etc.) immediately ended the conversation, and the next return required
+      // a fresh tap. Screen-off killed the MediaRecorder mid-utterance.
+      //
+      // After this change: on Capacitor APK builds (jarvis-native), the
+      // VoiceSession foreground service keeps mic + CPU alive across both
+      // backgrounding AND screen-off. The PWA only needs to:
+      //   - on hidden:  remember we were active (don't tear down the recorder)
+      //   - on visible: rebuild the MediaRecorder if Android killed it while
+      //                 we were backgrounded (which can still happen on some
+      //                 OEM Chromium builds even with the foreground service)
+      //
+      // On plain browser (no Capacitor): keep the original behavior of ending
+      // the conversation when hidden — browsers can't run a foreground service
+      // so we must release the mic to comply with browser UX rules.
+      // ====================================================================
+      const __isCapacitorNative = !!(
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform()
+      );
+
+      let __wasActiveWhenHidden = false;
+
+      // Tear down + rebuild the MediaRecorder + getUserMedia stream. The OS
+      // can leave the JS objects in a "zombie" state after a long background
+      // — recorder.state reads "recording" but no chunks arrive. Recovering
+      // requires a fresh getUserMedia call.
+      async function restartMicStream() {
+        try {
+          if (!conversationActive) return;
+          console.log('[jarvis-lifecycle] restartMicStream — rebuilding recorder');
+          // Stop the dead recorder + stream WITHOUT triggering an end-of-turn
+          // (so we don't fire an STT request on whatever junk is buffered).
+          if (mediaRecorder) {
+            try { mediaRecorder._suppressFinalize = true; } catch {}
+            try {
+              if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            } catch {}
+            mediaRecorder = null;
+          }
+          stopVadLoop();
+          stopMicStream();
+          // Fresh getUserMedia + recorder.
+          const stream = await ensureMic();
+          if (!stream) {
+            console.warn('[jarvis-lifecycle] restartMicStream — ensureMic failed');
+            return;
+          }
+          startVadLoop(stream);
+          startUtteranceRecorder(stream);
+          if (pttState !== 'speaking' && pttState !== 'thinking') {
+            setPttState('listening');
+          }
+        } catch (e) {
+          console.warn('[jarvis-lifecycle] restartMicStream failed', e);
+        }
+      }
+
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-          // Page hidden — end any active conversation so mic LED goes dark.
-          if (conversationActive) {
-            endConversation().catch(() => lifecycleCleanup());
-          } else if (pttState !== 'listening') {
-            stopMicStream();
+        const visible = document.visibilityState === 'visible';
+        if (__isCapacitorNative) {
+          // ===== Capacitor APK path — foreground service keeps the pipeline alive
+          if (!visible) {
+            // App backgrounded. Don't tear down — the foreground service is
+            // holding the mic + wakelock. Just remember we were active so we
+            // know whether to rehydrate on return.
+            __wasActiveWhenHidden = conversationActive;
+            console.log('[jarvis-lifecycle] hidden (native) — keeping recorder alive, active=' + conversationActive);
+          } else {
+            // App returned to foreground. If we were in a conversation, the
+            // MediaRecorder may be a zombie even though the foreground
+            // service kept the mic open. Rebuild to be safe.
+            if (__wasActiveWhenHidden && conversationActive) {
+              console.log('[jarvis-lifecycle] visible (native) — restartMicStream');
+              restartMicStream();
+            }
+            __wasActiveWhenHidden = false;
+          }
+        } else {
+          // ===== Plain browser path — original behavior
+          if (!visible) {
+            if (conversationActive) {
+              endConversation().catch(() => lifecycleCleanup());
+            } else if (pttState !== 'listening') {
+              stopMicStream();
+            }
           }
         }
       });
+
+      // ====================================================================
+      // VoiceSession start/stop wiring (atlas_8, 2026-06-27 background hardening)
+      // Hook the existing onPttClick lifecycle: when a conversation starts,
+      // tell the native foreground service to come up. When the conversation
+      // ends (or page unloads), shut it down. No-op outside Capacitor APK.
+      // ====================================================================
+      async function startNativeVoiceSession() {
+        try {
+          if (!__isCapacitorNative) return;
+          const VS = window.Capacitor.Plugins && window.Capacitor.Plugins.VoiceSession;
+          if (!VS || typeof VS.start !== 'function') return;
+          const r = await VS.start();
+          console.log('[jarvis-lifecycle] VoiceSession.start ok', r);
+        } catch (e) {
+          console.warn('[jarvis-lifecycle] VoiceSession.start failed', e && e.message);
+        }
+      }
+      async function stopNativeVoiceSession() {
+        try {
+          if (!__isCapacitorNative) return;
+          const VS = window.Capacitor.Plugins && window.Capacitor.Plugins.VoiceSession;
+          if (!VS || typeof VS.stop !== 'function') return;
+          const r = await VS.stop();
+          console.log('[jarvis-lifecycle] VoiceSession.stop ok', r);
+        } catch (e) {
+          console.warn('[jarvis-lifecycle] VoiceSession.stop failed', e && e.message);
+        }
+      }
+      window.__jarvisStartNativeVoiceSession = startNativeVoiceSession;
+      window.__jarvisStopNativeVoiceSession  = stopNativeVoiceSession;
+
+      // Wire the foreground service to the existing PTT button click — fire
+      // VoiceSession.start on the same gesture that already calls onPttClick.
+      // We listen at the bubble phase, AFTER onPttClick has run, so we know
+      // whether the click flipped conversationActive on or off.
+      pttBtn.addEventListener('click', () => {
+        // Use a microtask delay so onPttClick (the original listener) finishes
+        // mutating conversationActive before we check it.
+        Promise.resolve().then(() => {
+          if (conversationActive) {
+            startNativeVoiceSession();
+          } else {
+            stopNativeVoiceSession();
+          }
+        });
+      });
+      // Belt-and-suspenders: tear down the service on page unload.
+      window.addEventListener('pagehide', stopNativeVoiceSession);
 
       // dev convenience: ?demo=1 prefills demo creds
       const usp = new URLSearchParams(location.search);
