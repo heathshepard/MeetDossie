@@ -45,8 +45,10 @@ async function supabaseStorageUpload(path, buffer, contentType = 'application/pd
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST',
     headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': contentType,
+      'x-upsert': 'true',
     },
     body: buffer,
   });
@@ -61,6 +63,7 @@ async function supabaseStorageSignedUrl(path, expirationSeconds) {
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${path}`, {
     method: 'POST',
     headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': 'application/json',
     },
@@ -78,6 +81,7 @@ async function supabaseInsertDocument(docRow) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/documents`, {
     method: 'POST',
     headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
@@ -92,11 +96,16 @@ async function supabaseInsertDocument(docRow) {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
-async function docusealCreateSubmission(templateId, submitters, transactionId) {
+// 2026-06-27 ATLAS FIX (E2E loop):
+//   Submitters cannot carry per-submitter `values` on multi-submitter templates (500 error).
+//   Use top-level `fields: [{name, default_value}]` and bare submitters (role+email+send_email).
+//   Response is an ARRAY of submitter records — submission_id lives on each row.
+async function docusealCreateSubmission(templateId, submitters, fields) {
   const payload = {
     template_id: templateId,
     send_email: false,
     submitters: submitters,
+    fields: fields || [],
   };
 
   const response = await fetch(`${DOCUSEAL_BASE}/submissions`, {
@@ -114,50 +123,44 @@ async function docusealCreateSubmission(templateId, submitters, transactionId) {
   }
 
   const data = await response.json();
-  return data;
+  // Response is an array of submitter records — extract the submission id.
+  if (Array.isArray(data) && data.length > 0 && data[0].submission_id) {
+    return { id: data[0].submission_id, submitters: data };
+  }
+  if (data && data.id) return data;
+  throw new Error('DocuSeal response missing submission id: ' + JSON.stringify(data).slice(0, 200));
 }
 
+// 2026-06-27 ATLAS FIX: use /submissions/{id}/documents (works pre-signing).
 async function docusealGetSubmissionPdf(submissionId) {
-  // Fetch the submission to get document links
-  const response = await fetch(`${DOCUSEAL_BASE}/submissions/${submissionId}`, {
-    method: 'GET',
-    headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`DocuSeal submission fetch failed: ${response.status} ${text.slice(0, 200)}`);
-  }
-
-  const submission = await response.json();
-
-  // Submission object should have a field with the PDF URL or document data
-  // Check for common response shapes
-  if (submission.documents && submission.documents.length > 0) {
-    const pdfUrl = submission.documents[0].url || submission.documents[0].file_url;
-    if (pdfUrl) {
-      // Download the PDF
-      const pdfResponse = await fetch(pdfUrl);
-      if (!pdfResponse.ok) {
-        throw new Error(`PDF download failed: ${pdfResponse.status}`);
-      }
-      return await pdfResponse.buffer();
+  // Try a few times — prefilled PDF is usually ready in <2s but can lag.
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500 * attempt));
+    const response = await fetch(`${DOCUSEAL_BASE}/submissions/${submissionId}/documents`, {
+      method: 'GET',
+      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      lastErr = new Error(`DocuSeal documents fetch failed: ${response.status} ${text.slice(0, 200)}`);
+      continue;
     }
-  }
-
-  // Fallback: check for a direct download URL
-  if (submission.file_url || submission.url) {
-    const pdfUrl = submission.file_url || submission.url;
+    const data = await response.json();
+    const pdfUrl = data?.documents?.[0]?.url;
+    if (!pdfUrl) {
+      lastErr = new Error('DocuSeal documents endpoint returned no URL');
+      continue;
+    }
     const pdfResponse = await fetch(pdfUrl);
     if (!pdfResponse.ok) {
-      throw new Error(`PDF download failed: ${pdfResponse.status}`);
+      lastErr = new Error(`PDF download failed: ${pdfResponse.status}`);
+      continue;
     }
-    return await pdfResponse.buffer();
+    const arrBuf = await pdfResponse.arrayBuffer();
+    return Buffer.from(arrBuf);
   }
-
-  throw new Error('DocuSeal submission has no PDF URL');
+  throw lastErr || new Error('Could not fetch prefilled PDF');
 }
 
 // Map incoming field_values keys to DocuSeal template field names
@@ -346,30 +349,37 @@ module.exports = async (req, res) => {
     // Map and sanitize fields
     const docusealFields = mapExtractedFieldsToDocuSeal(fieldValues);
 
-    // Create DocuSeal submission
-    // Use actual emails from field_values if available; fall back to placeholder emails
-    // DocuSeal requires valid email format but doesn't send (send_email: false)
+    // Convert object {fieldName: value} -> array [{name, default_value}] for DocuSeal top-level `fields`.
+    // 2026-06-27 ATLAS FIX: per-submitter `values` returns 500 on multi-submitter templates.
+    const fieldsArray = Object.entries(docusealFields)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([name, value]) => ({
+        name,
+        default_value: typeof value === 'boolean' ? (value ? 'X' : '') : String(value),
+      }));
+
+    // Template 4018208 (TREC 20-18 resale) has 4 roles: Buyer 1, Seller 1, Buyer 2, Seller 2.
+    // We only fill the primary pair; Buyer 2 / Seller 2 are optional and only needed if there's
+    // a second buyer/seller. Roles MUST match what the template defines exactly.
     const submitters = [
       {
-        role: 'Buyer',
+        role: 'Buyer 1',
         email: fieldValues.buyer_email || 'buyer-placeholder@meetdossie.com',
         name: fieldValues.buyer_name || 'Buyer',
         send_email: false,
-        values: docusealFields,
       },
       {
-        role: 'Seller',
+        role: 'Seller 1',
         email: fieldValues.seller_email || 'seller-placeholder@meetdossie.com',
         name: fieldValues.seller_name || 'Seller',
         send_email: false,
-        values: docusealFields,
       },
     ];
 
     const submission = await docusealCreateSubmission(
       DOCUSEAL_TEMPLATE_RESALE_ID,
       submitters,
-      transactionId
+      fieldsArray
     );
 
     const submissionId = submission.id;
@@ -399,12 +409,17 @@ module.exports = async (req, res) => {
     await supabaseStorageUpload(storagePath, pdfBuffer, 'application/pdf');
 
     // Insert documents row
+    // 2026-06-27 ATLAS FIX: schema uses storage_path + file_name + file_type (not storage_url + name).
     const docRow = await supabaseInsertDocument({
       transaction_id: transactionId,
+      user_id: userId,
       document_type: 'resale_contract',
       status: 'filled',
-      storage_url: storagePath,
-      name: `TREC-Resale-Contract-${timestamp}.pdf`,
+      storage_path: storagePath,
+      file_name: `TREC-Resale-Contract-${timestamp}.pdf`,
+      file_type: 'application/pdf',
+      file_size: pdfBuffer.length,
+      docuseal_submission_id: String(submissionId),
       created_at: new Date().toISOString(),
     });
 

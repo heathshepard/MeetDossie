@@ -183,69 +183,156 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
     };
   }
 
-  // Build submitters array for DocuSeal /submissions/pdf endpoint.
-  // Priority: fieldMap[role] (pre-built per-role arrays, e.g. TREC 20-17 resale contract)
-  //           > fields filtered by signerRole (caller-supplied phase-2 placements)
-  //           > default auto-place (Signature + Date only).
-  const submitters = signers.map((s) => {
+  // 2026-06-27 ATLAS FIX: /submissions/pdf silently drops submitters past the first.
+  // The reliable multi-signer path is:
+  //   1. Download the PDF bytes (from signed URL)
+  //   2. POST /templates/pdf to create a transient template w/ per-role fields
+  //   3. POST /submissions with template_id + submitters[role,email,name]
+  //
+  // This matches the pattern used by sendForAcknowledgment() earlier in this file.
+
+  // Step 1: Download the PDF bytes so we can base64-encode them for /templates/pdf.
+  const pdfRes = await fetch(documentUrl);
+  if (!pdfRes.ok) {
+    throw new ValidationError(`Could not fetch document for signing (${pdfRes.status}).`, 502);
+  }
+  const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+  const base64Pdf = pdfBuffer.toString('base64');
+
+  // Step 2: Build the flattened fields array (top-level on document) with `role`
+  // assigning ownership. /templates/pdf wants this shape:
+  //   documents: [{name, file, fields: [{name, type, role, areas}]}]
+  //   submitters: [{name: roleName}]   ← bare role names; emails come at submission time
+  const allFields = [];
+  for (const s of signers) {
     const role = s.role || 'Signer';
-
     const roleSpecificFields = fieldMap && fieldMap[role] ? fieldMap[role] : null;
-
     const signerFields = roleSpecificFields !== null
       ? roleSpecificFields
       : (Array.isArray(fields) ? fields.filter((f) => f.signerRole === role) : []);
 
-    const entry = {
-      name: s.name,
-      email: s.email,
-      role,
-    };
-
     if (signerFields.length > 0) {
-      entry.fields = signerFields.map((f) => ({
-        name: f.name,
-        type: f.type,
-        areas: (f.areas || []).map((a) => ({
-          x: a.x,
-          y: a.y,
-          w: a.w,
-          h: a.h,
-          page: a.page,
-        })),
-      }));
+      for (const f of signerFields) {
+        allFields.push({
+          name: f.name,
+          type: f.type,
+          role,
+          areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
+        });
+      }
     } else {
-      // Default: include a Signature and Date field with no explicit placement
-      // so DocuSeal auto-places them.
-      entry.fields = [
-        { name: 'Signature', type: 'signature' },
-        { name: 'Date', type: 'date' },
-      ];
+      // Default: a signature + date field per submitter, DocuSeal auto-places them.
+      allFields.push({ name: `${role} Signature`, type: 'signature', role });
+      allFields.push({ name: `${role} Date`, type: 'date', role });
     }
-    return entry;
-  });
+  }
 
-  const body = {
-    send_email: false,
-    documents: [{ name: fileName, file: documentUrl }],
-    submitters,
+  // Submitters are just role placeholders at template time.
+  const submitterPlaceholders = signers.map((s) => ({ name: s.role || 'Signer' }));
+
+  // Step 3: Create a template from the PDF with multi-role fields.
+  const tmplBody = {
+    name: fileName || 'Document',
+    documents: [
+      {
+        name: fileName || 'Document.pdf',
+        file: `data:application/pdf;base64,${base64Pdf}`,
+        fields: allFields,
+      },
+    ],
+    submitters: submitterPlaceholders,
   };
 
-  const res = await fetch(`${DOCUSEAL_BASE}/submissions/pdf`, {
+  const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
     method: 'POST',
     headers: {
       'X-Auth-Token': DOCUSEAL_API_KEY,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(tmplBody),
   });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new ValidationError(`DocuSeal rejected the submission (${res.status}): ${text.slice(0, 200)}`, 422);
+  if (!tmplRes.ok) {
+    const text = await tmplRes.text().catch(() => '');
+    throw new ValidationError(`DocuSeal template creation failed (${tmplRes.status}): ${text.slice(0, 200)}`, 422);
+  }
+  const tmplData = await tmplRes.json();
+  const templateId = tmplData.id;
+  if (!templateId) {
+    throw new ValidationError(`DocuSeal template missing id.`, 502);
   }
 
-  return res.json();
+  // Step 4: Create the submission from the template. Map roles to submitter emails.
+  const tmplSubmitters = (tmplData.submitters || []).map((tmplSub) => {
+    // Match by role; fall back to position.
+    const original = signers.find((s) => (s.role || 'Signer') === tmplSub.name) || null;
+    return {
+      role: tmplSub.name,
+      name: original ? original.name : tmplSub.name,
+      email: original ? original.email : null,
+      send_email: false,
+    };
+  }).filter((s) => s.email);
+
+  // If the template's submitter list didn't include all our signers (rare), fall
+  // back to building submitters from our original `signers` list using the roles
+  // that DocuSeal accepted.
+  if (tmplSubmitters.length < signers.length) {
+    const usedRoles = new Set(tmplSubmitters.map((s) => s.role));
+    for (const s of signers) {
+      if (!usedRoles.has(s.role || 'Signer')) {
+        tmplSubmitters.push({
+          role: s.role || 'Signer',
+          name: s.name,
+          email: s.email,
+          send_email: false,
+        });
+      }
+    }
+  }
+
+  // 2026-06-27 ATLAS FIX: DocuSeal requires message as {subject, body} object,
+  // not a bare string. Wrap if caller passed a string.
+  let messageObj = null;
+  if (message) {
+    if (typeof message === 'object' && (message.subject || message.body)) {
+      messageObj = message;
+    } else if (typeof message === 'string' && message.trim()) {
+      messageObj = { subject: 'Please sign', body: message };
+    }
+  }
+
+  const submBody = {
+    template_id: templateId,
+    send_email: false,
+    submitters: tmplSubmitters,
+    ...(messageObj ? { message: messageObj } : {}),
+  };
+
+  const submRes = await fetch(`${DOCUSEAL_BASE}/submissions`, {
+    method: 'POST',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(submBody),
+  });
+
+  if (!submRes.ok) {
+    const text = await submRes.text().catch(() => '');
+    throw new ValidationError(`DocuSeal rejected the submission (${submRes.status}): ${text.slice(0, 200)}`, 422);
+  }
+
+  const submData = await submRes.json();
+  // Response shape: array of submitter rows. Normalize to { id, submitters } shape
+  // the rest of esign-create expects.
+  if (Array.isArray(submData) && submData.length > 0) {
+    return {
+      id: submData[0].submission_id,
+      submitters: submData,
+    };
+  }
+  if (submData && submData.id) return submData;
+  throw new ValidationError(`DocuSeal returned unexpected submission shape.`, 502);
 }
 
 async function docusealCreateFromTemplate({ templateId, signers, message, prefillData }) {
