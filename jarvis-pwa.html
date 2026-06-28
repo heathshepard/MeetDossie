@@ -2668,8 +2668,8 @@
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                 </svg>
               </button>
-              <!-- capture="environment" hints mobile browsers to default to camera (rear); desktop still shows file picker. Heath spec 2026-06-25 (image input build A). -->
-              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" capture="environment" />
+              <!-- No capture attr — let the OS show native picker (camera + gallery + files). Heath flagged 2026-06-28: capture="environment" forced camera-only on mobile. -->
+              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
@@ -6161,7 +6161,7 @@
         });
       }
 
-      // Attach button -> open file picker (mobile camera via capture="environment").
+      // Attach button -> open native OS picker (camera + gallery + files on mobile).
       if (attachBtn && fileInput) {
         attachBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', async () => {
