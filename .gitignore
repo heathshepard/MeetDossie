@@ -190,3 +190,18 @@ scripts/sessions/
 # Pre-merge smoke-test runs (screenshots + summary.json per run) — local only
 .tmp-smoke/
 today-apv-test.html
+
+# Ad-hoc .tmp-* scratch files — historically leaked DocuSeal + CRON secrets (2026-06-27)
+# Anything matching this pattern stays local-only forever
+.tmp-*
+.tmp-*.js
+.tmp-*.sh
+.tmp-*.txt
+.tmp-*.json
+
+# Pipeline / one-off test scripts that historically had hardcoded secrets
+execute-pipeline-test.sh
+
+# Passphrase files — never commit
+*.passphrase.txt
+*.passphrase
