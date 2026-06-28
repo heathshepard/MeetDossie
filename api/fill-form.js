@@ -2716,11 +2716,20 @@ async function fillForm(formType, fieldValues) {
   const fv = fieldValues || {};
 
   // DocuSeal Prefill API forms (2026-06-17 pivot)
+  // 2026-06-28 ATLAS ROLLBACK: DocuSeal template 4018208 (TREC 20-18) silently
+  // returns 500 on every prefill attempt — verified via direct API probes with
+  // every documented payload format (submitters[].values, submitters[].fields[],
+  // top-level fields[], PATCH submitter). EVERY submission for 4018208 in the
+  // last 24h has values: [0,0] meaning blank PDF. Heath's v3-FHA master prompt
+  // produced 4 blank PDFs because the DocuSeal path drops all values silently.
+  // The pdf-lib path is fully wired below for these forms (fillResaleContract,
+  // fillFinancingAddendum, fillHoaAddendum, fillLeadPaintAddendum). Reverting
+  // these 4 form_types to pdf-lib until DocuSeal template is rebuilt.
   const DOCUSEAL_FORMS = new Set([
-    'resale-contract',
-    'financing-addendum',
-    'hoa-addendum',
-    'lead-paint-addendum',
+    // 'resale-contract',         // DOCUSEAL BROKEN — pdf-lib path used
+    // 'financing-addendum',      // DOCUSEAL BROKEN — pdf-lib path used
+    // 'hoa-addendum',            // DOCUSEAL BROKEN — pdf-lib path used
+    // 'lead-paint-addendum',     // DOCUSEAL BROKEN — pdf-lib path used
   ]);
 
   if (DOCUSEAL_FORMS.has(formType)) {
@@ -2753,6 +2762,10 @@ async function fillForm(formType, fieldValues) {
   }
 
   switch (formType) {
+    case 'resale-contract':       await fillResaleContract(pdfDoc, fv); break;
+    case 'financing-addendum':    await fillFinancingAddendum(pdfDoc, fv); break;
+    case 'hoa-addendum':          await fillHoaAddendum(pdfDoc, fv); break;
+    case 'lead-paint-addendum':   await fillLeadPaintAddendum(pdfDoc, fv); break;
     case 'termination-notice':    await fillTerminationNotice(pdfDoc, fv); break;
     case 'wire-fraud-warning':    await fillWireFraudWarning(pdfDoc, fv); break;
     case 'sellers-disclosure':    await fillSellersDisclosure(pdfDoc, fv); break;
