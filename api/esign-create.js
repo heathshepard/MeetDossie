@@ -290,11 +290,22 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
     }
   }
 
+  // 2026-06-27 ATLAS FIX: DocuSeal requires message as {subject, body} object,
+  // not a bare string. Wrap if caller passed a string.
+  let messageObj = null;
+  if (message) {
+    if (typeof message === 'object' && (message.subject || message.body)) {
+      messageObj = message;
+    } else if (typeof message === 'string' && message.trim()) {
+      messageObj = { subject: 'Please sign', body: message };
+    }
+  }
+
   const submBody = {
     template_id: templateId,
     send_email: false,
     submitters: tmplSubmitters,
-    ...(message ? { message } : {}),
+    ...(messageObj ? { message: messageObj } : {}),
   };
 
   const submRes = await fetch(`${DOCUSEAL_BASE}/submissions`, {
