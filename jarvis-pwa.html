@@ -3517,6 +3517,37 @@
     let processingTurn = false;         // true while STT+chat+TTS round-trip runs
     let pendingEndConversation = false; // set if user taps end mid-turn
 
+    // ===== HALF-DUPLEX VOICE STATE (Atlas 2026-06-28) =====
+    // Two bugs Heath flagged 2026-06-28:
+    //  1. Talk-over — Heath spoke while Jarvis was still talking, both streams
+    //     collided.
+    //  2. Echo replay — Jarvis's TTS audio was picked up by the mic, fed to
+    //     STT, and treated as Heath repeating an earlier turn.
+    // Fix = half-duplex. While Jarvis is thinking/speaking we ZERO the audio
+    // track on the mic stream (track.enabled = false). The MediaRecorder
+    // keeps running on a silent stream — no data captured, VAD never trips,
+    // no echo round-trip possible. When state flips back to 'listening' we
+    // re-enable the track. setPttState() owns this transition (see below).
+    // window.__jarvisInterruptTTS is set by runStreamingChatTTS so a mid-TTS
+    // mic tap can abort playback + flip back to listening immediately.
+    let __jarvisHalfDuplexLast = null; // last logged mic state — dedup logs
+    function setMicTrackEnabled(enabled) {
+      try {
+        if (!micStream) return;
+        const tracks = micStream.getAudioTracks();
+        for (const t of tracks) {
+          if (t.enabled !== enabled) t.enabled = enabled;
+        }
+        if (__jarvisHalfDuplexLast !== enabled) {
+          console.log(`[jarvis-half-duplex] mic ${enabled ? 'UNMUTED (listening)' : 'MUTED (speaking/thinking)'}`);
+          __jarvisHalfDuplexLast = enabled;
+        }
+      } catch (err) {
+        console.warn('[jarvis-half-duplex] setMicTrackEnabled error:', err);
+      }
+    }
+    window.__jarvisSetMicTrackEnabled = setMicTrackEnabled;
+
     // --- elements ---
     const $ = (id) => document.getElementById(id);
     const pttBtn = $('ptt');
@@ -3553,6 +3584,13 @@
       };
       pttLabel.textContent = label || labels[s] || 'TAP';
       if (s === 'idle') pttStatus.textContent = '';
+
+      // Half-duplex mic gate (Atlas 2026-06-28). Only 'listening' enables
+      // audio capture. Every other state zeros the mic track so echoed TTS
+      // can't round-trip into STT and so Heath talking over Jarvis won't
+      // collide. setMicTrackEnabled is a no-op when micStream is null
+      // (idle / error after teardown) so it's safe to call unconditionally.
+      setMicTrackEnabled(s === 'listening');
     }
 
     // Inserts a message bubble at the TOP of the scrollback. Newest-at-top
@@ -3915,10 +3953,38 @@
       // Reusing an old stream is what previously held the mic open across conversations.
       stopMicStream();
       try {
+        // Atlas 2026-06-28: explicitly request AEC + NS + AGC. Without AGC
+        // the browser is allowed to pass raw signal through which on
+        // Android WebView often means the echo-cancellation chain isn't
+        // wired at all. We log the ACTUAL settings the browser chose
+        // immediately after the stream is granted so we know whether the
+        // request was honored or whether Job 3 (native MODE_IN_COMMUNICATION
+        // path) is required.
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000, channelCount: 1 },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 16000,
+            channelCount: 1,
+          },
         });
         micStream = stream;
+        try {
+          const track = stream.getAudioTracks()[0];
+          const s = (track && track.getSettings && track.getSettings()) || {};
+          console.log(
+            `[jarvis-aec] echoCancellation=${s.echoCancellation} ` +
+            `noiseSuppression=${s.noiseSuppression} ` +
+            `autoGainControl=${s.autoGainControl} ` +
+            `sampleRate=${s.sampleRate} channelCount=${s.channelCount} ` +
+            `deviceId=${(s.deviceId || '').slice(0, 8)}`
+          );
+          // Stash the AEC truth so debug callers (or telemetry) can read it.
+          window.__jarvisAecSettings = s;
+        } catch (logErr) {
+          console.warn('[jarvis-aec] getSettings failed:', logErr);
+        }
         return stream;
       } catch (err) {
         console.error('[jarvis] mic error', err);
@@ -3931,6 +3997,24 @@
     // ====================================================================
     async function onPttClick() {
       if (FORCE_PTT) return onPttClickWalkieTalkie();
+
+      // Atlas 2026-06-28: interrupt path. While Jarvis is speaking/thinking
+      // a single tap means "cut in" — abort the TTS chain, unmute mic, flip
+      // to listening. Heath asked for this explicitly when shipping
+      // half-duplex so he can override Jarvis mid-sentence. A long press or
+      // double-tap could end the conversation in a future build; for now
+      // the existing "TAP TO END" affordance is preserved for idle state.
+      if (conversationActive && (pttState === 'speaking' || pttState === 'thinking')) {
+        try {
+          if (typeof window.__jarvisInterruptTTS === 'function') {
+            window.__jarvisInterruptTTS('user-tap');
+          }
+        } catch (e) {
+          console.warn('[jarvis-half-duplex] interrupt handler threw:', e);
+        }
+        try { await resumeListening(); } catch (e) { console.warn('[jarvis-half-duplex] resumeListening after interrupt threw:', e); }
+        return;
+      }
 
       // TAP 2 — end conversation (any active state)
       if (conversationActive) {
@@ -4360,6 +4444,30 @@
       let currentlyPlayingSeq = -1;
       let nextPlaySeq = 0;
 
+      // Atlas 2026-06-28: interrupt hook. Heath taps the mic while Jarvis
+      // is speaking → onPttClick calls window.__jarvisInterruptTTS('user-tap')
+      // which sets aborted=true, pauses the current <audio>, drops the queue,
+      // resolves playbackCompleted. The await playbackCompleted line below
+      // unblocks, the chain falls through to resumeListening(). We also
+      // null the hook on every fresh call so a stale closure can't fire.
+      let aborted = false;
+      let activeAudio = null;
+      window.__jarvisInterruptTTS = function jarvisInterruptTTS(reason) {
+        if (aborted) return;
+        aborted = true;
+        console.log(`[jarvis-half-duplex] TTS interrupt: ${reason || 'unknown'}`);
+        try {
+          if (activeAudio) { activeAudio.onended = null; activeAudio.pause(); }
+        } catch (e) { /* ignore */ }
+        try {
+          while (audioQueue.length) {
+            const it = audioQueue.shift();
+            try { URL.revokeObjectURL(it.url); } catch {}
+          }
+        } catch {}
+        try { playbackCompletedResolve && playbackCompletedResolve(); } catch {}
+      };
+
       // When an audio MP3 arrives, build an <audio> element and queue it.
       // If nothing is currently playing AND this is the next-expected seq,
       // start it. Otherwise wait for chain.
@@ -4377,11 +4485,13 @@
       }
 
       function tryPlayNext() {
+        if (aborted) return; // user interrupted — don't start next clip
         if (currentlyPlayingSeq !== -1) return; // something playing
         const idx = audioQueue.findIndex((it) => it.seq === nextPlaySeq);
         if (idx === -1) return; // next-expected not yet arrived
         const item = audioQueue.splice(idx, 1)[0];
         currentlyPlayingSeq = item.seq;
+        activeAudio = item.audio;
 
         // 2026-06-27 auto-resume hardening — Heath reported having to tap
         // "tap to start" after every reply because the conversation didn't
@@ -4399,10 +4509,15 @@
           advanced = true;
           if (durationTimer) { clearTimeout(durationTimer); durationTimer = null; }
           try { URL.revokeObjectURL(item.url); } catch {}
+          if (activeAudio === item.audio) activeAudio = null;
           currentlyPlayingSeq = -1;
           nextPlaySeq = item.seq + 1;
           if (reason && reason !== 'ended') {
             console.log(`[jarvis] audio seq=${item.seq} advanced via ${reason}`);
+          }
+          if (aborted) {
+            playbackCompletedResolve && playbackCompletedResolve();
+            return;
           }
           if (audioQueue.length || !streamDone) {
             tryPlayNext();
@@ -4435,8 +4550,8 @@
 
         anyAudioPlayed = true;
         setPttState('speaking');
-        pttLabel.textContent = 'TAP TO END';
-        pttStatus.textContent = 'Speaking…';
+        pttLabel.textContent = 'TAP TO INTERRUPT';
+        pttStatus.textContent = 'Speaking… (tap to cut in)';
         item.audio.play().catch((err) => {
           console.warn('[jarvis] audio.play() rejected:', err);
           // If the browser blocked playback (autoplay policy etc), don't
@@ -4607,6 +4722,11 @@
           return { conversationId: convId, fallback: false };
         }
         return { fallback: true, error: err.message };
+      } finally {
+        // Atlas 2026-06-28: drop the interrupt closure so a late tap on a
+        // stale callback can't fire on the next conversation turn. Each
+        // streaming call owns its own __jarvisInterruptTTS.
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
       }
     }
 
@@ -4640,8 +4760,8 @@
       }
       appendMessage('assistant', reply);
       setPttState('speaking');
-      pttLabel.textContent = 'TAP TO END';
-      pttStatus.textContent = 'Speaking…';
+      pttLabel.textContent = 'TAP TO INTERRUPT';
+      pttStatus.textContent = 'Speaking… (tap to cut in)';
       const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
         method: 'POST',
         headers: {
@@ -4661,11 +4781,23 @@
       const audioBlob = await ttsRes.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
+      // Atlas 2026-06-28: half-duplex interrupt for legacy path.
+      let __legacyAborted = false;
+      window.__jarvisInterruptTTS = function legacyInterrupt(reason) {
+        if (__legacyAborted) return;
+        __legacyAborted = true;
+        console.log(`[jarvis-half-duplex] legacy TTS interrupt: ${reason || 'unknown'}`);
+        try { audio.onended = null; audio.pause(); } catch {}
+      };
       audio.onended = async () => {
         URL.revokeObjectURL(audioUrl);
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
         await resumeListening();
       };
-      audio.onerror = async () => { await resumeListening(); };
+      audio.onerror = async () => {
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        await resumeListening();
+      };
       await audio.play();
     }
 
