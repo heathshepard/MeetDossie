@@ -1,0 +1,5269 @@
+{
+  "form": "TREC 20-18",
+  "note": "Includes FinCEN Paragraph 20B. Never use 20-17.",
+  "totalWidgets": 263,
+  "mapped": 263,
+  "unmapped": 0,
+  "fields": [
+    {
+      "internalName": "1 PARTIES The parties to this contract are",
+      "fieldId": "seller_name",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller legal name(s)",
+      "paragraph": "1",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "parties",
+      "fillPriority": "core",
+      "coords": {
+        "x": 280,
+        "y": 688,
+        "w": 277,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Seller and",
+      "fieldId": "buyer_name",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer legal name(s)",
+      "paragraph": "1",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "parties",
+      "fillPriority": "core",
+      "coords": {
+        "x": 124,
+        "y": 677,
+        "w": 391,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "undefined",
+      "fieldId": "property_street_address",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Street address of the Property",
+      "paragraph": "2",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "core",
+      "coords": {
+        "x": 309,
+        "y": 615,
+        "w": 247,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "A LAND Lot",
+      "fieldId": "legal_lot",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Subdivision Lot number",
+      "paragraph": "2A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "core",
+      "coords": {
+        "x": 127,
+        "y": 614,
+        "w": 66,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Block",
+      "fieldId": "legal_block",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Subdivision Block number",
+      "paragraph": "2A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "core",
+      "coords": {
+        "x": 222,
+        "y": 614,
+        "w": 83,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addition City of",
+      "fieldId": "legal_addition",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Subdivision/Addition name",
+      "paragraph": "2A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "core",
+      "coords": {
+        "x": 157,
+        "y": 604,
+        "w": 171,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "County of",
+      "fieldId": "property_county",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "County where Property is located",
+      "paragraph": "2A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "core",
+      "coords": {
+        "x": 387,
+        "y": 604,
+        "w": 169,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Texas known as",
+      "fieldId": "property_city_known_as",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "City / commonly-known-as address line",
+      "paragraph": "2A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "core",
+      "coords": {
+        "x": 161,
+        "y": 593,
+        "w": 395,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "be removed prior to delivery of possession",
+      "fieldId": "exclusions",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Items/improvements excluded from sale & removed before possession",
+      "paragraph": "2",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 323,
+        "y": 380,
+        "w": 232,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "undefined_2",
+      "fieldId": "reservations",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Reservations from conveyance (paragraph 2C list)",
+      "paragraph": "2C",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "property",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 73,
+        "y": 369,
+        "w": 480,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_3",
+      "fieldId": "sales_price_cash_portion",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "3A Cash portion of Sales Price payable by Buyer at closing",
+      "paragraph": "3A",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": null,
+      "group": "price",
+      "fillPriority": "core",
+      "coords": {
+        "x": 457,
+        "y": 317,
+        "w": 101,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "B Sum of all financing described in the attached",
+      "fieldId": "financing_addendum_present",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "3B box: Sum of all financing described in attached addenda",
+      "paragraph": "3B",
+      "format": null,
+      "conditional": "financing_type != 'cash'",
+      "crossRef": null,
+      "group": "price",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 314,
+        "y": 283,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Check Box2",
+      "fieldId": "title_furnished_by_seller",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A Title policy furnished at Seller's expense",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 76,
+        "y": 269,
+        "w": 9,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Loan Assumption Addendum",
+      "fieldId": "title_furnished_by_buyer",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A Title policy furnished at Buyer's expense",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 249,
+        "y": 269,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_4",
+      "fieldId": "sales_price_financing_portion",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "3B Sum of all financing (must equal financed amount in addenda)",
+      "paragraph": "3B",
+      "format": "currency",
+      "conditional": "financing_type != 'cash'",
+      "crossRef": "financing_sum",
+      "group": "price",
+      "fillPriority": "core",
+      "coords": {
+        "x": 457,
+        "y": 267,
+        "w": 101,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "undefined_5",
+      "fieldId": "sales_price_total",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "3C Sales Price = 3A + 3B",
+      "paragraph": "3C",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": "MUST_EQUAL(sales_price_cash_portion + sales_price_financing_portion)",
+      "group": "price",
+      "fillPriority": "core",
+      "coords": {
+        "x": 457,
+        "y": 255,
+        "w": 101,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "i will not be amended or deleted from the title policy or",
+      "fieldId": "survey_area_not_amended",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A(8)(i) shortages in area NOT amended",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(survey_area_amended)",
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 48,
+        "y": 196,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "internalName": "ii will be amended to read shortages in area at the expense of",
+      "fieldId": "survey_area_amended",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A(8)(ii) shortages in area amended at Buyer's expense",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(survey_area_not_amended)",
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 48,
+        "y": 170,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "A TITLE POLICY Seller shall furnish to Buyer at",
+      "fieldId": "title_box_a",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A title policy lead checkbox",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 48,
+        "y": 134,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Sellers",
+      "fieldId": "title_expense_seller",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A title policy paid by Seller",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(title_expense_buyer)",
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 61,
+        "y": 98,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Seller",
+      "fieldId": "title_expense_buyer",
+      "page": 0,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6A title policy paid by Buyer",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(title_expense_seller)",
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 60,
+        "y": 84,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "to escrow agent within 1",
+      "fieldId": "survey_days",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "6C number of days for existing survey delivery",
+      "paragraph": "6C",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 337,
+        "y": 60,
+        "w": 36,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Initialed for identification by Buyer",
+      "fieldId": "initials_buyer_p1",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p1",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "undefined_8",
+      "fieldId": "initials_buyer_p1_b",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p1",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 252,
+        "y": 21,
+        "w": 36,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "and Seller",
+      "fieldId": "initials_seller_p1",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p1",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 347,
+        "y": 21,
+        "w": 41,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "undefined_9",
+      "fieldId": "initials_seller_p1_b",
+      "page": 0,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p1",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 396,
+        "y": 21,
+        "w": 36,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Page 2 of 10",
+      "fieldId": "page_marker_2",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Page marker - DO NOT FILL",
+      "paragraph": "ignore",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "ignore",
+      "fillPriority": "ignore",
+      "coords": {
+        "x": 128,
+        "y": 750,
+        "w": 326,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "undefined_6",
+      "fieldId": "earnest_money_amount",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "5 Earnest money amount",
+      "paragraph": "5",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": null,
+      "group": "earnest",
+      "fillPriority": "core",
+      "coords": {
+        "x": 153,
+        "y": 699,
+        "w": 153,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "other party in writing before entering into a contract of sale  Disclose if applicable",
+      "fieldId": "license_holder_disclosure",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "4 License Holder Disclosure (if license holder is a party or related)",
+      "paragraph": "4",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "disclosure",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 404,
+        "y": 699,
+        "w": 158,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "undefined_7",
+      "fieldId": "option_fee_amount",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "5/23 Option fee amount",
+      "paragraph": "5",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": null,
+      "group": "option",
+      "fillPriority": "core",
+      "coords": {
+        "x": 75,
+        "y": 689,
+        "w": 151,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "as earnest money to",
+      "fieldId": "escrow_agent_name",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "5 Escrow agent receiving earnest money",
+      "paragraph": "5",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "earnest",
+      "fillPriority": "core",
+      "coords": {
+        "x": 293,
+        "y": 689,
+        "w": 72,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "as earnest money to 2",
+      "fieldId": "escrow_agent_address",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "5 Escrow agent address",
+      "paragraph": "5",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "earnest",
+      "fillPriority": "core",
+      "coords": {
+        "x": 488,
+        "y": 689,
+        "w": 75,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "earnest money of",
+      "fieldId": "additional_earnest_money",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "5 Additional earnest money amount",
+      "paragraph": "5",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": null,
+      "group": "earnest",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 342,
+        "y": 657,
+        "w": 106,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "to escrow agent within",
+      "fieldId": "additional_earnest_days",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "5 Days to deliver additional earnest money",
+      "paragraph": "5",
+      "format": "^\\d{1,3}$",
+      "conditional": "additional_earnest_money != null",
+      "crossRef": null,
+      "group": "earnest",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 94,
+        "y": 646,
+        "w": 36,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "the Title Company and Buyers lenders Check one box only",
+      "fieldId": "survey_furnish_days",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "6C days within which survey is furnished",
+      "paragraph": "6C",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 76,
+        "y": 501,
+        "w": 38,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Sellers_2",
+      "fieldId": "survey_existing_seller",
+      "page": 1,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6C existing survey furnished by Seller",
+      "paragraph": "6C",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 314,
+        "y": 352,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Buyers expense no later",
+      "fieldId": "survey_new_buyer",
+      "page": 1,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6C new survey at Buyer expense",
+      "paragraph": "6C",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 368,
+        "y": 352,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "insurance Title Policy issued by",
+      "fieldId": "title_company_name",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "6A Title company issuing policy",
+      "paragraph": "6A",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 285,
+        "y": 340,
+        "w": 197,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "2Within",
+      "fieldId": "objection_days",
+      "page": 1,
+      "fieldType": "CheckBox",
+      "valueType": "text",
+      "purpose": "6D days for Buyer objections",
+      "paragraph": "6D",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 76,
+        "y": 178,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "is",
+      "fieldId": "hoa_is_subject",
+      "page": 1,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6E Property IS subject to mandatory HOA",
+      "paragraph": "6E",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(hoa_is_not_subject)",
+      "group": "hoa",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 435,
+        "y": 168,
+        "w": 11,
+        "h": 8
+      }
+    },
+    {
+      "internalName": "is not",
+      "fieldId": "hoa_is_not_subject",
+      "page": 1,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "6E Property is NOT subject to mandatory HOA",
+      "paragraph": "6E",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(hoa_is_subject)",
+      "group": "hoa",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 499,
+        "y": 168,
+        "w": 11,
+        "h": 8
+      }
+    },
+    {
+      "internalName": "3Within",
+      "fieldId": "hoa_days",
+      "page": 1,
+      "fieldType": "CheckBox",
+      "valueType": "text",
+      "purpose": "6E days related to HOA / subdivision info",
+      "paragraph": "6E",
+      "format": "^\\d{1,3}$",
+      "conditional": "hoa_is_subject == true",
+      "crossRef": null,
+      "group": "hoa",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 75,
+        "y": 167,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property",
+      "fieldId": "initials_buyer_p2",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p2",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "and Seller_2",
+      "fieldId": "initials_buyer_p2_b",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p2",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 253,
+        "y": 21,
+        "w": 35,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "undefined_10",
+      "fieldId": "initials_seller_p2",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p2",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 347,
+        "y": 21,
+        "w": 41,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "undefined_11",
+      "fieldId": "initials_seller_p2_b",
+      "page": 1,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p2",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 396,
+        "y": 21,
+        "w": 36,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Page 3 of 10",
+      "fieldId": "page_marker_3",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Page marker - DO NOT FILL",
+      "paragraph": "ignore",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "ignore",
+      "fillPriority": "ignore",
+      "coords": {
+        "x": 130,
+        "y": 749,
+        "w": 324,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Buyer",
+      "fieldId": "settlement_buyer_box",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Closing/settlement related checkbox",
+      "paragraph": "7",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 58,
+        "y": 706,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "than 3 days prior to Closing Date",
+      "fieldId": "access_days_prior",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "7F access days prior to closing",
+      "paragraph": "7F",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 125,
+        "y": 705,
+        "w": 32,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Within one",
+      "fieldId": "completion_within_one",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Possession/repair completion option one",
+      "paragraph": "7",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 144,
+        "y": 640,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Within two",
+      "fieldId": "completion_within_two",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Possession/repair completion option two",
+      "paragraph": "7",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 198,
+        "y": 640,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Within three",
+      "fieldId": "completion_within_three",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Possession/repair completion option three",
+      "paragraph": "7",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 59,
+        "y": 630,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "3 days prior",
+      "fieldId": "completion_days",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Number of days for completion option",
+      "paragraph": "7",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 125,
+        "y": 627,
+        "w": 36,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Within four",
+      "fieldId": "completion_within_four",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Possession/repair completion option four",
+      "paragraph": "7",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 60,
+        "y": 579,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "receipt or the date specified in this paragraph whichever is earlier",
+      "fieldId": "completion_alt_days",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Alternate completion days",
+      "paragraph": "7",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 124,
+        "y": 577,
+        "w": 40,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Commitment other than items 6A1 through 9 above or which prohibit the following use",
+      "fieldId": "title_objection_text",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "6D objection details freeform",
+      "paragraph": "6D",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 118,
+        "y": 522,
+        "w": 435,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "the Commitment Exception Documents and the survey Buyers failure to object within the",
+      "fieldId": "title_objection_days2",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "6D additional objection days",
+      "paragraph": "6D",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 371,
+        "y": 513,
+        "w": 37,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "1Within",
+      "fieldId": "notices_days_1",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "text",
+      "purpose": "Notices/cure days field 1",
+      "paragraph": "6",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 454,
+        "y": 316,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "2 Within",
+      "fieldId": "notices_days_2",
+      "page": 2,
+      "fieldType": "CheckBox",
+      "valueType": "text",
+      "purpose": "Notices/cure days field 2",
+      "paragraph": "6",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "title",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 478,
+        "y": 315,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Property Code requires Seller to notify Buyer as follows",
+      "fieldId": "initials_buyer_p3",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p3",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "and Seller_3",
+      "fieldId": "initials_buyer_p3_b",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p3",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 254,
+        "y": 21,
+        "w": 35,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "undefined_12",
+      "fieldId": "initials_seller_p3",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p3",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 347,
+        "y": 21,
+        "w": 41,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "The private transfer fee",
+      "fieldId": "initials_seller_p3_b",
+      "page": 2,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p3",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 396,
+        "y": 21,
+        "w": 36,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "Contract Concerning",
+      "fieldId": "header_property_p4",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 128,
+        "y": 749,
+        "w": 326,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Text4",
+      "fieldId": "special_provisions_line0",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "11 Special Provisions (short line)",
+      "paragraph": "11",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "special",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 501,
+        "y": 289,
+        "w": 53,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Text4 2",
+      "fieldId": "special_provisions_line1",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "11 Special Provisions continued",
+      "paragraph": "11",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "special",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 89,
+        "y": 280,
+        "w": 464,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Text4 3",
+      "fieldId": "special_provisions_line2",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "11 Special Provisions continued",
+      "paragraph": "11",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "special",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 88,
+        "y": 270,
+        "w": 465,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "1 Buyer accepts the Property As Is",
+      "fieldId": "accept_as_is",
+      "page": 3,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "7D(1) Buyer accepts Property in present condition (As Is)",
+      "paragraph": "7D",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(accept_as_is_with_repairs)",
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 62,
+        "y": 149,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the",
+      "fieldId": "accept_as_is_with_repairs",
+      "page": 3,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "7D(2) Buyer accepts As Is provided Seller completes listed repairs",
+      "paragraph": "7D",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(accept_as_is)",
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 62,
+        "y": 138,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Within",
+      "fieldId": "repair_completion_days",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "7 repair completion days",
+      "paragraph": "7",
+      "format": "^\\d{1,3}$",
+      "conditional": "accept_as_is_with_repairs == true",
+      "crossRef": null,
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 319,
+        "y": 137,
+        "w": 49,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "upon",
+      "fieldId": "lender_required_repairs_box",
+      "page": 3,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "7 lender-required repairs checkbox",
+      "paragraph": "7",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 62,
+        "y": 79,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Initialed for identification by Buyer_2",
+      "fieldId": "initials_buyer_p4",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p4",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_14",
+      "fieldId": "initials_buyer_p4_b",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p4",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 253,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "and Seller_4",
+      "fieldId": "initials_seller_p4",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p4",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 347,
+        "y": 21,
+        "w": 41,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_15",
+      "fieldId": "initials_seller_p4_b",
+      "page": 3,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p4",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 397,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Contract Concerning_2",
+      "fieldId": "header_property_p5",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 128,
+        "y": 749,
+        "w": 326,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "As Is",
+      "fieldId": "repairs_none_box",
+      "page": 4,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "7D condition: no repairs (As Is)",
+      "paragraph": "7D",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(repairs_specified_box)",
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 59,
+        "y": 681,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "As Is except",
+      "fieldId": "repairs_specified_box",
+      "page": 4,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "7D condition: As Is except specified repairs/treatments",
+      "paragraph": "7D",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(repairs_none_box)",
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 59,
+        "y": 669,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "following specific repairs and treatments",
+      "fieldId": "repairs_specified_text",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "7D specified repairs and treatments",
+      "paragraph": "7D",
+      "format": null,
+      "conditional": "repairs_specified_box == true",
+      "crossRef": null,
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 302,
+        "y": 656,
+        "w": 251,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_13",
+      "fieldId": "repairs_specified_text2",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "7D specified repairs continued",
+      "paragraph": "7D",
+      "format": null,
+      "conditional": "repairs_specified_box == true",
+      "crossRef": null,
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 90,
+        "y": 645,
+        "w": 464,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "service contract in an amount not exceeding",
+      "fieldId": "residential_service_contract_amount",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "7H Residential service contract reimbursement cap",
+      "paragraph": "7H",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": null,
+      "group": "condition",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 422,
+        "y": 356,
+        "w": 92,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Brokers and Sales",
+      "fieldId": "broker_disclosure_line1",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Broker information disclosure line",
+      "paragraph": "12",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 343,
+        "y": 251,
+        "w": 209,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Brokers and Sales 2",
+      "fieldId": "broker_disclosure_line2",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Broker information disclosure continued",
+      "paragraph": "12",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 73,
+        "y": 239,
+        "w": 478,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "A The closing of the sale will be on or before",
+      "fieldId": "closing_date",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "date",
+      "purpose": "9A Closing Date (on or before)",
+      "paragraph": "9A",
+      "format": "date",
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "core",
+      "coords": {
+        "x": 291,
+        "y": 195,
+        "w": 131,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "20",
+      "fieldId": "closing_year_suffix",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "9A closing year two-digit suffix",
+      "paragraph": "9A",
+      "format": "^\\d{2}$",
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(closing_date)",
+      "group": "closing",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 442,
+        "y": 195,
+        "w": 27,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Initialed for identification by Buyer_3",
+      "fieldId": "initials_buyer_p5",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p5",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Buyers Expenses as allowed by the lender",
+      "fieldId": "initials_buyer_p5_b",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p5",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 253,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "and Seller_5",
+      "fieldId": "initials_seller_p5",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p5",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 347,
+        "y": 21,
+        "w": 41,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_16",
+      "fieldId": "initials_seller_p5_b",
+      "page": 4,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p5",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 396,
+        "y": 21,
+        "w": 36,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Contract Concerning_3",
+      "fieldId": "header_property_p6",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 129,
+        "y": 749,
+        "w": 326,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "will",
+      "fieldId": "option_fee_credited_box",
+      "page": 5,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "23 Option fee WILL be credited to Sales Price",
+      "paragraph": "23",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(option_fee_not_credited_box)",
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 351,
+        "y": 657,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "will not be credited to the Sales Price at closing Time is of the",
+      "fieldId": "option_fee_not_credited_box",
+      "page": 5,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "23 Option fee WILL NOT be credited to Sales Price",
+      "paragraph": "23",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(option_fee_credited_box)",
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 499,
+        "y": 657,
+        "w": 10,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Text3",
+      "fieldId": "settlement_expense_amount",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "12 Seller contribution to Buyer expenses amount",
+      "paragraph": "12",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 350,
+        "y": 431,
+        "w": 205,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Text3 2",
+      "fieldId": "addl_provisions_line1",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional info line",
+      "paragraph": "12",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 60,
+        "y": 420,
+        "w": 495,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Text3 3",
+      "fieldId": "addl_provisions_line2",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional info line continued",
+      "paragraph": "12",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "closing",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 60,
+        "y": 409,
+        "w": 495,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "will 1.1",
+      "fieldId": "option_period_will_box",
+      "page": 5,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "23 Termination option present",
+      "paragraph": "23",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 109,
+        "y": 304,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "will not be credited to the Sales Price at closing Time is of the 1",
+      "fieldId": "option_period_will_not_box",
+      "page": 5,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "23 Termination option alt",
+      "paragraph": "23",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 237,
+        "y": 304,
+        "w": 10,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "acknowledged by Seller and Buyers agreement to pay Seller2",
+      "fieldId": "option_days_alt",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "23 option period days (secondary box)",
+      "paragraph": "23",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 250,
+        "y": 304,
+        "w": 31,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "acknowledged by Seller and Buyers agreement to pay Seller 1",
+      "fieldId": "option_period_days",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "23 Number of days in termination option period",
+      "paragraph": "23",
+      "format": "^\\d{1,3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 129,
+        "y": 303,
+        "w": 92,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "acknowledged by Seller and Buyers agreement to pay Seller",
+      "fieldId": "option_fee_text",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "currency",
+      "purpose": "23 Option fee amount (paragraph 23 body)",
+      "paragraph": "23",
+      "format": "currency",
+      "conditional": null,
+      "crossRef": "option_fee_amount",
+      "group": "option",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 250,
+        "y": 293,
+        "w": 79,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Initialed for identification by Buyer_4",
+      "fieldId": "initials_buyer_p6",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p6",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "undefined_17",
+      "fieldId": "initials_buyer_p6_b",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p6",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 253,
+        "y": 21,
+        "w": 35,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "and Seller_6",
+      "fieldId": "initials_seller_p6",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p6",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 347,
+        "y": 21,
+        "w": 41,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "undefined_18",
+      "fieldId": "initials_seller_p6_b",
+      "page": 5,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p6",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 396,
+        "y": 21,
+        "w": 36,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "Page 7 of 10",
+      "fieldId": "page_marker_7",
+      "page": 6,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Page marker - DO NOT FILL",
+      "paragraph": "ignore",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "ignore",
+      "fillPriority": "ignore",
+      "coords": {
+        "x": 129,
+        "y": 749,
+        "w": 325,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "AC numb 1",
+      "fieldId": "initials_buyer_p7",
+      "page": 6,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p7",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 20,
+        "w": 36,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "AC numb 2",
+      "fieldId": "initials_buyer_p7_b",
+      "page": 6,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p7",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 251,
+        "y": 20,
+        "w": 37,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "AC numb 3",
+      "fieldId": "initials_seller_p7",
+      "page": 6,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p7",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 345,
+        "y": 20,
+        "w": 42,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "AC numb 4",
+      "fieldId": "initials_seller_p7_b",
+      "page": 6,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p7",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 394,
+        "y": 20,
+        "w": 38,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "Contract Concerning_4",
+      "fieldId": "header_property_p8",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 129,
+        "y": 749,
+        "w": 326,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows",
+      "fieldId": "notice_buyer_address",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer notice address",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 133,
+        "y": 697,
+        "w": 161,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "undefined_19",
+      "fieldId": "notice_seller_address",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller notice address",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 386,
+        "y": 696,
+        "w": 162,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "at",
+      "fieldId": "notice_buyer_address2",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer notice address line 2",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 62,
+        "y": 672,
+        "w": 233,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "at_2",
+      "fieldId": "notice_seller_address2",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller notice address line 2",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 317,
+        "y": 672,
+        "w": 232,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "Phone 51",
+      "fieldId": "notice_buyer_phone",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer phone",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 166,
+        "y": 648,
+        "w": 129,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "AC1",
+      "fieldId": "notice_buyer_phone_ac",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer phone area code",
+      "paragraph": "21",
+      "format": "^\\d{3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 139,
+        "y": 647,
+        "w": 25,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "AC4",
+      "fieldId": "notice_seller_phone_ac",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller phone area code",
+      "paragraph": "21",
+      "format": "^\\d{3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 394,
+        "y": 647,
+        "w": 24,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Fax 52",
+      "fieldId": "notice_seller_phone",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller phone",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 421,
+        "y": 647,
+        "w": 128,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone 52",
+      "fieldId": "notice_buyer_fax",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer fax/email",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 135,
+        "y": 622,
+        "w": 160,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "undefined numb 21",
+      "fieldId": "notice_seller_fax",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller fax/email",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 388,
+        "y": 622,
+        "w": 162,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "undefined_20-0",
+      "fieldId": "notice_buyer_email",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer email",
+      "paragraph": "21",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 133,
+        "y": 601,
+        "w": 162,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "undefined numb 22-0",
+      "fieldId": "notice_seller_email",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller email",
+      "paragraph": "21",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "core",
+      "coords": {
+        "x": 387,
+        "y": 600,
+        "w": 162,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "undefined_20",
+      "fieldId": "notice_buyer_email2",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Buyer email line 2",
+      "paragraph": "21",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 60,
+        "y": 570,
+        "w": 235,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "undefined numb 22",
+      "fieldId": "notice_seller_email2",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "21 Seller email line 2",
+      "paragraph": "21",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "notices",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 569,
+        "w": 233,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Third Party Financing Addendum",
+      "fieldId": "add_third_party_financing",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Third Party Financing Addendum",
+      "paragraph": "22",
+      "format": null,
+      "conditional": "financing_type == 'conventional' or financing_type == 'fha' or financing_type == 'va'",
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 517,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Environmental Assessment Threatened or",
+      "fieldId": "add_environmental",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Environmental Assessment/Threatened/Endangered Species/Wetlands Addendum",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 516,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Seller Financing Addendum",
+      "fieldId": "add_seller_financing",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Seller Financing Addendum",
+      "paragraph": "22",
+      "format": null,
+      "conditional": "financing_type == 'seller'",
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 503,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Sellers Temporary Residential Lease",
+      "fieldId": "add_seller_temp_lease",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Seller's Temporary Residential Lease",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 498,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Addendum for Property Subject to",
+      "fieldId": "add_mandatory_hoa",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Property Subject to Mandatory Membership in a POA",
+      "paragraph": "22",
+      "format": null,
+      "conditional": "hoa_is_subject == true",
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 488,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Short Sale Addendum",
+      "fieldId": "add_short_sale",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Short Sale Addendum",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 480,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Buyers Temporary Residential Lease",
+      "fieldId": "add_buyer_temp_lease",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Buyer's Temporary Residential Lease",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 455,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addendum for Property Located Seaward",
+      "fieldId": "add_seaward",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Property Located Seaward of the Gulf Intracoastal Waterway",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 453,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Loan Assumption Addendum_2",
+      "fieldId": "add_loan_assumption",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Loan Assumption Addendum",
+      "paragraph": "22",
+      "format": null,
+      "conditional": "financing_type == 'assumption'",
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 440,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addendum for Sale of Other Property by",
+      "fieldId": "add_sale_of_other_property",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Sale of Other Property by Buyer",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 425,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Sellers Disclos",
+      "fieldId": "add_sellers_disclosure_notice",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Seller's Disclosure of Property Condition",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 409,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addendum for Reservation of Oil Gas",
+      "fieldId": "add_oil_gas_reservation",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Reservation of Oil, Gas and Other Minerals",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 400,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addend. for Sellers Disclos",
+      "fieldId": "add_sellers_disclosure_no_notice",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Seller's Disclosure of Information on Lead-based Paint",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 317,
+        "y": 385,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addendum for BackUp Contract",
+      "fieldId": "add_backup",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Back-Up Contract",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 66,
+        "y": 376,
+        "w": 10,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Addendum for Property in a Propane Gas",
+      "fieldId": "add_propane",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Property in a Propane Gas System Service Area",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 369,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Check Box8",
+      "fieldId": "add_coastal_notice",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum/notice checkbox (coastal area notice)",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 66,
+        "y": 361,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "PID",
+      "fieldId": "add_pid",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Property in a Public Improvement District (PID)",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 317,
+        "y": 349,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Check Box9",
+      "fieldId": "add_authorizing_repairs",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum concerning right to terminate due to lender's appraisal",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 66,
+        "y": 343,
+        "w": 12,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Addendum for Section 1031",
+      "fieldId": "add_1031",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Addendum for Section 1031 Exchange",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 320,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Check box 10",
+      "fieldId": "add_hydrostatic",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Hydrostatic Testing Addendum",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 65,
+        "y": 317,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Other",
+      "fieldId": "add_other_box",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Other addendum checkbox",
+      "paragraph": "22",
+      "format": null,
+      "conditional": "add_other_text != null",
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 316,
+        "y": 303,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "System Service Area",
+      "fieldId": "add_other_text",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "22 Other addendum description",
+      "paragraph": "22",
+      "format": null,
+      "conditional": "add_other_box == true",
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 397,
+        "y": 301,
+        "w": 146,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Check box 11",
+      "fieldId": "add_extra_box",
+      "page": 7,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "22 Additional addendum checkbox",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 66,
+        "y": 295,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "1",
+      "fieldId": "add_other_line1",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "22 Other addendum line 1",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 333,
+        "y": 290,
+        "w": 211,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "2",
+      "fieldId": "add_other_line2",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "22 Other addendum line 2",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 333,
+        "y": 278,
+        "w": 211,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "3",
+      "fieldId": "add_other_line3",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "22 Other addendum line 3",
+      "paragraph": "22",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "addenda",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 333,
+        "y": 269,
+        "w": 211,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Attorney is",
+      "fieldId": "buyer_attorney",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer's attorney name",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 130,
+        "y": 201,
+        "w": 169,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Attorney is_2",
+      "fieldId": "seller_attorney",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller's attorney name",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 387,
+        "y": 201,
+        "w": 174,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "undefined_24",
+      "fieldId": "buyer_attorney_contact",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer attorney contact",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 67,
+        "y": 167,
+        "w": 233,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "undefined_25",
+      "fieldId": "seller_attorney_contact",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller attorney contact",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 323,
+        "y": 167,
+        "w": 238,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Text22",
+      "fieldId": "buyer_attorney_fax_ac",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer attorney fax area code",
+      "paragraph": "21",
+      "format": "^\\d{3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 393,
+        "y": 127,
+        "w": 23,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Text2",
+      "fieldId": "buyer_attorney_phone_ac",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer attorney phone area code",
+      "paragraph": "21",
+      "format": "^\\d{3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 136,
+        "y": 126,
+        "w": 23,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Text1",
+      "fieldId": "buyer_attorney_phone",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer attorney phone",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 163,
+        "y": 126,
+        "w": 137,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Phone11",
+      "fieldId": "buyer_attorney_fax",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer attorney fax",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 419,
+        "y": 126,
+        "w": 141,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Text6",
+      "fieldId": "seller_attorney_phone",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller attorney phone",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 163,
+        "y": 85,
+        "w": 137,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Text23",
+      "fieldId": "seller_attorney_fax_ac",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller attorney fax area code",
+      "paragraph": "21",
+      "format": "^\\d{3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 393,
+        "y": 85,
+        "w": 23,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Text7",
+      "fieldId": "seller_attorney_phone_ac",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller attorney phone area code",
+      "paragraph": "21",
+      "format": "^\\d{3}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 136,
+        "y": 84,
+        "w": 23,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone 2",
+      "fieldId": "seller_attorney_fax",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller attorney fax",
+      "paragraph": "21",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 419,
+        "y": 84,
+        "w": 141,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Email",
+      "fieldId": "buyer_attorney_email",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Buyer attorney email",
+      "paragraph": "21",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 130,
+        "y": 43,
+        "w": 169,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Email_2",
+      "fieldId": "seller_attorney_email",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Seller attorney email",
+      "paragraph": "21",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "attorney",
+      "fillPriority": "conditional",
+      "coords": {
+        "x": 387,
+        "y": 43,
+        "w": 174,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Initialed for identification by Buyer_5",
+      "fieldId": "initials_buyer_p8",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Buyer initials footer p8",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 211,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "and Seller_7",
+      "fieldId": "initials_buyer_p8_b",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second buyer initials footer p8",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 254,
+        "y": 21,
+        "w": 35,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_22",
+      "fieldId": "initials_seller_p8",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Seller initials footer p8",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 346,
+        "y": 20,
+        "w": 41,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "undefined_23",
+      "fieldId": "initials_seller_p8_b",
+      "page": 7,
+      "fieldType": "TextField",
+      "valueType": "initials",
+      "purpose": "Second seller initials footer p8",
+      "paragraph": "footer",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "initials",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 396,
+        "y": 20,
+        "w": 36,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Address of Property",
+      "fieldId": "header_property_p9",
+      "page": 8,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 129,
+        "y": 749,
+        "w": 326,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "EXECUTED the",
+      "fieldId": "executed_day",
+      "page": 8,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Execution day of month",
+      "paragraph": "execution",
+      "format": "^\\d{1,2}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "execution",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 149,
+        "y": 556,
+        "w": 38,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "day of",
+      "fieldId": "executed_month",
+      "page": 8,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Execution month",
+      "paragraph": "execution",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "execution",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 224,
+        "y": 556,
+        "w": 137,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "20_2",
+      "fieldId": "executed_year",
+      "page": 8,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Execution year two-digit",
+      "paragraph": "execution",
+      "format": "^\\d{2}$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "execution",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 382,
+        "y": 556,
+        "w": 27,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "Signature8",
+      "fieldId": "sig_buyer_1",
+      "page": 8,
+      "fieldType": "Signature",
+      "valueType": "signature",
+      "purpose": "Buyer 1 signature",
+      "paragraph": "execution",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "signature",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 72,
+        "y": 381,
+        "w": 226,
+        "h": 32
+      }
+    },
+    {
+      "internalName": "Signature9",
+      "fieldId": "sig_buyer_2",
+      "page": 8,
+      "fieldType": "Signature",
+      "valueType": "signature",
+      "purpose": "Buyer 2 signature",
+      "paragraph": "execution",
+      "format": null,
+      "conditional": "has_second_buyer",
+      "crossRef": null,
+      "group": "signature",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 314,
+        "y": 381,
+        "w": 232,
+        "h": 32
+      }
+    },
+    {
+      "internalName": "Signature10",
+      "fieldId": "sig_seller_1",
+      "page": 8,
+      "fieldType": "Signature",
+      "valueType": "signature",
+      "purpose": "Seller 1 signature",
+      "paragraph": "execution",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "signature",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 72,
+        "y": 272,
+        "w": 226,
+        "h": 32
+      }
+    },
+    {
+      "internalName": "Signature11",
+      "fieldId": "sig_seller_2",
+      "page": 8,
+      "fieldType": "Signature",
+      "valueType": "signature",
+      "purpose": "Seller 2 signature",
+      "paragraph": "execution",
+      "format": null,
+      "conditional": "has_second_seller",
+      "crossRef": null,
+      "group": "signature",
+      "fillPriority": "signature",
+      "coords": {
+        "x": 314,
+        "y": 272,
+        "w": 232,
+        "h": 32
+      }
+    },
+    {
+      "internalName": "Addr of Prop",
+      "fieldId": "header_property_p10",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 126,
+        "y": 749,
+        "w": 326,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Other Broker Firm",
+      "fieldId": "other_broker_firm",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker (Buyer's) firm name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 50,
+        "y": 629,
+        "w": 177,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "License No",
+      "fieldId": "other_broker_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker license number",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 228,
+        "y": 629,
+        "w": 59,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Listing Broker Firm",
+      "fieldId": "listing_broker_firm",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker firm name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 629,
+        "w": 197,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "License No_4",
+      "fieldId": "listing_broker_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker license number",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 504,
+        "y": 629,
+        "w": 58,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Buyer only",
+      "fieldId": "rep_buyer_only",
+      "page": 9,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Broker represents Buyer only",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(rep_intermediary,rep_subagent,rep_seller_only)",
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 109,
+        "y": 598,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Seller and Buyer as an intermediary",
+      "fieldId": "rep_intermediary",
+      "page": 9,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Broker is intermediary",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(rep_buyer_only,rep_subagent,rep_seller_only)",
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 365,
+        "y": 598,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Seller as List Brok Sub agent",
+      "fieldId": "rep_subagent",
+      "page": 9,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Other Broker is subagent",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(rep_buyer_only,rep_intermediary,rep_seller_only)",
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 109,
+        "y": 584,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Seller only as Sellers agent",
+      "fieldId": "rep_seller_only",
+      "page": 9,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Listing Broker represents Seller only",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(rep_buyer_only,rep_intermediary,rep_subagent)",
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 365,
+        "y": 584,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "Associates Name numb 1",
+      "fieldId": "other_associate_name",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker associate name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 50,
+        "y": 560,
+        "w": 177,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "License No_2",
+      "fieldId": "other_associate_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker associate license",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 229,
+        "y": 560,
+        "w": 58,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "List Assoc Name",
+      "fieldId": "listing_associate_name",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing associate name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 560,
+        "w": 191,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "License No_5",
+      "fieldId": "listing_associate_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing associate license",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 498,
+        "y": 560,
+        "w": 64,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Associates Name",
+      "fieldId": "other_team_name",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker team/associate name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 49,
+        "y": 530,
+        "w": 238,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Listing Associates Name",
+      "fieldId": "listing_team_name",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing team/associate name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 530,
+        "w": 258,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Associates Email Address",
+      "fieldId": "other_associate_email",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker associate email",
+      "paragraph": "broker",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 50,
+        "y": 500,
+        "w": 164,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Phone",
+      "fieldId": "other_associate_phone",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker associate phone",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 216,
+        "y": 500,
+        "w": 72,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Listing Associates Email Address",
+      "fieldId": "listing_associate_email",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing associate email",
+      "paragraph": "broker",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 500,
+        "w": 183,
+        "h": 17
+      }
+    },
+    {
+      "internalName": "Phone_3",
+      "fieldId": "listing_associate_phone",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing associate phone",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 490,
+        "y": 500,
+        "w": 72,
+        "h": 17
+      }
+    },
+    {
+      "internalName": "Licensed Supervisor of Associate",
+      "fieldId": "other_supervisor",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker supervisor",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 50,
+        "y": 471,
+        "w": 177,
+        "h": 17
+      }
+    },
+    {
+      "internalName": "License No_3",
+      "fieldId": "other_supervisor_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker supervisor license",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 229,
+        "y": 471,
+        "w": 59,
+        "h": 17
+      }
+    },
+    {
+      "internalName": "Licensed Supervisor of Listing Associate",
+      "fieldId": "listing_supervisor",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing supervisor",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 470,
+        "w": 191,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "License No_6",
+      "fieldId": "listing_supervisor_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing supervisor license",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 498,
+        "y": 469,
+        "w": 64,
+        "h": 17
+      }
+    },
+    {
+      "internalName": "Other Brokers Address",
+      "fieldId": "other_broker_address",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker office address",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 50,
+        "y": 440,
+        "w": 165,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Phone_2",
+      "fieldId": "other_broker_phone",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker phone",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 216,
+        "y": 440,
+        "w": 71,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Listing Brokers Office Address",
+      "fieldId": "listing_broker_address",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker office address",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 440,
+        "w": 182,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone_4",
+      "fieldId": "listing_broker_phone",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker phone",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 489,
+        "y": 440,
+        "w": 73,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "City_2",
+      "fieldId": "other_broker_city",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker city",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 411,
+        "w": 152,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "State_2",
+      "fieldId": "other_broker_state",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker state",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 458,
+        "y": 411,
+        "w": 42,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Zip_2",
+      "fieldId": "other_broker_zip",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker zip",
+      "paragraph": "broker",
+      "format": "^\\d{5}(-\\d{4})?$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 500,
+        "y": 411,
+        "w": 61,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "City",
+      "fieldId": "listing_broker_city",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker city",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 50,
+        "y": 410,
+        "w": 127,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "State",
+      "fieldId": "listing_broker_state",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker state",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 178,
+        "y": 410,
+        "w": 44,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Zip",
+      "fieldId": "listing_broker_zip",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing Broker zip",
+      "paragraph": "broker",
+      "format": "^\\d{5}(-\\d{4})?$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 222,
+        "y": 410,
+        "w": 65,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Selling Associates Name",
+      "fieldId": "selling_associate_name",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 380,
+        "w": 193,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "License No_7",
+      "fieldId": "selling_associate_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate license",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 499,
+        "y": 380,
+        "w": 63,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Selling Associates Name-1",
+      "fieldId": "selling_team_name",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling team name",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 352,
+        "w": 257,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Selling Associates Email Address",
+      "fieldId": "selling_associate_email",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate email",
+      "paragraph": "broker",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 322,
+        "w": 181,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone_5",
+      "fieldId": "selling_associate_phone",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate phone",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 488,
+        "y": 322,
+        "w": 74,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Licensed Supervisor of Selling Associate",
+      "fieldId": "selling_supervisor",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling supervisor",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 292,
+        "w": 191,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "License No_8",
+      "fieldId": "selling_supervisor_license",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling supervisor license",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 497,
+        "y": 292,
+        "w": 64,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Selling Associates Office Address",
+      "fieldId": "selling_associate_address",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate office address",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 262,
+        "w": 257,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "City_3",
+      "fieldId": "selling_associate_city",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate city",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 305,
+        "y": 230,
+        "w": 140,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "State_3",
+      "fieldId": "selling_associate_state",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate state",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 446,
+        "y": 230,
+        "w": 47,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Zip_3",
+      "fieldId": "selling_associate_zip",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Selling associate zip",
+      "paragraph": "broker",
+      "format": "^\\d{5}(-\\d{4})?$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 494,
+        "y": 230,
+        "w": 67,
+        "h": 17
+      }
+    },
+    {
+      "internalName": "Dollar Amt",
+      "fieldId": "listing_fee_dollar_box",
+      "page": 9,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Listing fee as dollar amount",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(listing_fee_percent_box)",
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 55,
+        "y": 148,
+        "w": 12,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "Percentage",
+      "fieldId": "listing_fee_percent_box",
+      "page": 9,
+      "fieldType": "CheckBox",
+      "valueType": "checkbox",
+      "purpose": "Listing fee as percentage",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": "MUTEX(listing_fee_dollar_box)",
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 177,
+        "y": 147,
+        "w": 11,
+        "h": 9
+      }
+    },
+    {
+      "internalName": "when mailed to",
+      "fieldId": "listing_fee_value",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Listing fee value (amount or %)",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 78,
+        "y": 146,
+        "w": 81,
+        "h": 10
+      }
+    },
+    {
+      "internalName": "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from",
+      "fieldId": "other_broker_fee_value",
+      "page": 9,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Other Broker fee value",
+      "paragraph": "broker",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "broker",
+      "fillPriority": "broker",
+      "coords": {
+        "x": 190,
+        "y": 145,
+        "w": 29,
+        "h": 11
+      }
+    },
+    {
+      "internalName": "Address of Property_2",
+      "fieldId": "header_property_p11",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Running header: property address",
+      "paragraph": "header",
+      "format": null,
+      "conditional": null,
+      "crossRef": "DERIVE_FROM(property_street_address)",
+      "group": "header",
+      "fillPriority": "derived",
+      "coords": {
+        "x": 127,
+        "y": 749,
+        "w": 326,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "is acknowledged",
+      "fieldId": "receipt_option_ack",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Option fee receipt acknowledgment",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 107,
+        "y": 681,
+        "w": 109,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Option Fee in the form of",
+      "fieldId": "receipt_option_fee_form",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Form of option fee payment",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 344,
+        "y": 680,
+        "w": 212,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Seller or Listing Broker",
+      "fieldId": "receipt_option_received_by",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Option fee received by",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 644,
+        "w": 248,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Date",
+      "fieldId": "receipt_option_date",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "date",
+      "purpose": "Option fee receipt date",
+      "paragraph": "receipt",
+      "format": "date",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 313,
+        "y": 644,
+        "w": 243,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "is acknowledged_2",
+      "fieldId": "receipt_earnest_ack",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest money receipt acknowledgment",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 106,
+        "y": 597,
+        "w": 115,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Earnest Money in the form of",
+      "fieldId": "receipt_earnest_form",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Form of earnest money payment",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 359,
+        "y": 596,
+        "w": 198,
+        "h": 14
+      }
+    },
+    {
+      "internalName": "Escrow Agent",
+      "fieldId": "receipt_earnest_escrow_agent",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest money escrow agent",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 569,
+        "w": 130,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Received by",
+      "fieldId": "receipt_earnest_received_by",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest money received by",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 183,
+        "y": 569,
+        "w": 117,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Email Address",
+      "fieldId": "receipt_earnest_email",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow email",
+      "paragraph": "receipt",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 313,
+        "y": 569,
+        "w": 140,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "DateTime",
+      "fieldId": "receipt_earnest_datetime",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest money date/time",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 456,
+        "y": 569,
+        "w": 100,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Address",
+      "fieldId": "receipt_earnest_address",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow address",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 543,
+        "w": 307,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone_6",
+      "fieldId": "receipt_earnest_phone",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow phone",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 368,
+        "y": 543,
+        "w": 189,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "City_4",
+      "fieldId": "receipt_earnest_city",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow city",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 520,
+        "w": 163,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "State_4",
+      "fieldId": "receipt_earnest_state",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow state",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 217,
+        "y": 520,
+        "w": 40,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Zip_4",
+      "fieldId": "receipt_earnest_zip",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow zip",
+      "paragraph": "receipt",
+      "format": "^\\d{5}(-\\d{4})?$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 258,
+        "y": 520,
+        "w": 101,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Fax",
+      "fieldId": "receipt_earnest_fax",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Earnest escrow fax",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 368,
+        "y": 520,
+        "w": 189,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Escrow Agent_2",
+      "fieldId": "receipt_contract_escrow_agent",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract receipt escrow agent",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 446,
+        "w": 134,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Received by_2",
+      "fieldId": "receipt_contract_received_by",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract received by",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 189,
+        "y": 446,
+        "w": 112,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Email Address_2",
+      "fieldId": "receipt_contract_email",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow email",
+      "paragraph": "receipt",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 313,
+        "y": 446,
+        "w": 148,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Date_2",
+      "fieldId": "receipt_contract_date",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "date",
+      "purpose": "Contract receipt date",
+      "paragraph": "receipt",
+      "format": "date",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 463,
+        "y": 446,
+        "w": 93,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Address_2",
+      "fieldId": "receipt_contract_address",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow address",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 421,
+        "w": 307,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone_7",
+      "fieldId": "receipt_contract_phone",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow phone",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 368,
+        "y": 421,
+        "w": 189,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "City_5",
+      "fieldId": "receipt_contract_city",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow city",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 398,
+        "w": 162,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "State_5",
+      "fieldId": "receipt_contract_state",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow state",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 215,
+        "y": 398,
+        "w": 40,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Zip_5",
+      "fieldId": "receipt_contract_zip",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow zip",
+      "paragraph": "receipt",
+      "format": "^\\d{5}(-\\d{4})?$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 257,
+        "y": 398,
+        "w": 101,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Fax_2",
+      "fieldId": "receipt_contract_fax",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Contract escrow fax",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 368,
+        "y": 398,
+        "w": 189,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "is acknowledged_3",
+      "fieldId": "receipt_addl_earnest_ack",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest receipt ack",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 109,
+        "y": 344,
+        "w": 104,
+        "h": 13
+      }
+    },
+    {
+      "internalName": "additional Earnest Money in the form of",
+      "fieldId": "receipt_addl_earnest_form",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Form of additional earnest money",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 399,
+        "y": 344,
+        "w": 161,
+        "h": 12
+      }
+    },
+    {
+      "internalName": "Escrow Agent_3",
+      "fieldId": "receipt_addl_escrow_agent",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow agent",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 318,
+        "w": 126,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Received by_3",
+      "fieldId": "receipt_addl_received_by",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest received by",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 180,
+        "y": 318,
+        "w": 120,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Email Address_3",
+      "fieldId": "receipt_addl_email",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow email",
+      "paragraph": "receipt",
+      "format": "email",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 313,
+        "y": 318,
+        "w": 150,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "DateTime_2",
+      "fieldId": "receipt_addl_datetime",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest date/time",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 465,
+        "y": 318,
+        "w": 91,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Address_3",
+      "fieldId": "receipt_addl_address",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow address",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 291,
+        "w": 307,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "Phone_8",
+      "fieldId": "receipt_addl_phone",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow phone",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 368,
+        "y": 291,
+        "w": 189,
+        "h": 16
+      }
+    },
+    {
+      "internalName": "City_6",
+      "fieldId": "receipt_addl_city",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow city",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 52,
+        "y": 267,
+        "w": 160,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "State_6",
+      "fieldId": "receipt_addl_state",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow state",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 214,
+        "y": 267,
+        "w": 42,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Zip_6",
+      "fieldId": "receipt_addl_zip",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow zip",
+      "paragraph": "receipt",
+      "format": "^\\d{5}(-\\d{4})?$",
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 258,
+        "y": 267,
+        "w": 101,
+        "h": 15
+      }
+    },
+    {
+      "internalName": "Fax_3",
+      "fieldId": "receipt_addl_fax",
+      "page": 10,
+      "fieldType": "TextField",
+      "valueType": "text",
+      "purpose": "Additional earnest escrow fax",
+      "paragraph": "receipt",
+      "format": null,
+      "conditional": null,
+      "crossRef": null,
+      "group": "receipt",
+      "fillPriority": "receipt",
+      "coords": {
+        "x": 368,
+        "y": 266,
+        "w": 189,
+        "h": 17
+      }
+    }
+  ]
+}

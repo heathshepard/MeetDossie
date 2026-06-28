@@ -34,29 +34,21 @@
 const fs = require('fs');
 const path = require('path');
 
-// Heath's validator + rules live at scripts/. Resolve via process.cwd() with
-// a hard fallback to the repo root so the Vercel runtime (where __dirname is
-// inside .vercel/output/functions/...) still finds them.
+// Heath's validator + rules are the source of truth at scripts/. For Vercel
+// deployment we keep BYTE-IDENTICAL copies at api/_lib/ so the serverless
+// function bundle doesn't accidentally inline the whole 217 MB scripts/
+// directory (atlas-runs/, trec-forms/, etc.) via Vercel's file tracer.
+// scripts/integrity-check.js verifies the copies match the source of truth;
+// CI blocks any PR where they drift.
+const LOCAL_VALIDATOR = require('./trec-validator');
+const LOCAL_RULES_PATH = path.join(__dirname, 'trec-20-18-field-rules.json');
+
+let _cachedRules = null;
 function loadHeathArtifacts() {
-  const candidates = [
-    path.resolve(process.cwd(), 'scripts'),
-    path.resolve(__dirname, '..', '..', 'scripts'),
-    'C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\scripts',
-  ];
-  for (const dir of candidates) {
-    const rulesPath = path.join(dir, 'trec-20-18-field-rules.json');
-    const validatorPath = path.join(dir, 'trec-validator.js');
-    if (fs.existsSync(rulesPath) && fs.existsSync(validatorPath)) {
-      // eslint-disable-next-line global-require
-      const v = require(validatorPath);
-      const rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8'));
-      return { rules, validator: v };
-    }
+  if (!_cachedRules) {
+    _cachedRules = JSON.parse(fs.readFileSync(LOCAL_RULES_PATH, 'utf8'));
   }
-  throw new Error(
-    'TREC 20-18 rules/validator artifacts not found. Searched: ' +
-      candidates.join(' | ')
-  );
+  return { rules: _cachedRules, validator: LOCAL_VALIDATOR };
 }
 
 // ---------------------------------------------------------------------------
