@@ -199,7 +199,46 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Fixed audio recording on Android devices** (customer)
 - We fixed an issue where voice messages weren't being recorded properly on Android phones like the Samsung Z Fold. Audio now records reliably so you can use voice-to-text features without errors.
 
-<!-- applied_shas: 0465144,0bc1e3c,10cf6fb,117949f,168ef2a,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,345c614,348a261,3688152,404a9b9,499cfce,49fce9c,4bf5932,5287fba,5e89003,5fc3990,62a26ad,6501ff1,654af68,69f1b2b,6b7de8e,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,92250d2,924446f,98a4ff5,99ee638,9cfb06f,a22c5a7,aaa3f82,ac5b49c,ad26215,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c67872e,c7e1138,cba4abe,d5d3ad1,d6e08c4,e1efb82,e36fc31,e627144,e92993c,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
+**Fixed multi-signer document fill-and-sign** (customer)
+- We fixed an issue where contracts with multiple signers (like TREC forms with buyers and sellers) were failing to prefill and sign. Fill-and-sign now works correctly for all multi-party transaction documents.
+
+**Talk-to-Dossie voice now lets you interrupt and talk naturally** (customer)
+- We fixed two annoying issues with voice conversations: your words and Dossie's voice no longer talk over each other, and Dossie stops repeating itself when it hears its own audio. Now you can interrupt Dossie mid-sentence by tapping the microphone.
+
+**Attach button now shows full file picker** (customer)
+- We fixed the attach button on mobile to show your device's full file picker instead of camera-only mode, so you can upload photos from your gallery, files, or take a new photo.
+
+**Fix offline panels on Samsung Z Fold** (customer)
+- We fixed a bug where your Customer Activity, Actions for You, and To-Do panels incorrectly showed 'Offline' on Samsung Z Fold devices. Your panels will now display your real data and tasks correctly.
+
+**Fixed file picker on Samsung Z Fold phones** (customer)
+- We fixed a bug where Samsung Z Fold users couldn't browse their photo library when attaching images — the app was jumping straight to the camera instead. Now the full file picker appears so you can choose photos from your library, camera, or files.
+
+**Fixed offline panel display and camera picker on Android** (customer)
+- We fixed an issue where the Customer Activity and To-Do panels incorrectly showed as offline. We also improved the attach file dialog on Android to show the system chooser instead of opening the camera directly.
+
+**Fixed blank PDF generation in loan forms** (customer)
+- We fixed a bug that was causing some pre-filled loan forms to generate as blank pages. Your forms will now fill in correctly with all borrower information.
+
+**Talk-to-Dossie now fills and opens forms** (customer)
+- We've upgraded Talk-to-Dossie to understand your forms and auto-fill them with the right information. Just ask Dossie to fill a form, and it will extract the details from your deal, populate all the fields, and show you the completed PDF right in the chat.
+
+**TREC 20-18 checkboxes now display correctly** (customer)
+- We fixed a bug where checkboxes on TREC forms appeared blank even though your answers were saved. Now when you fill out forms like 'Accepts As Is' or financing options, the checkboxes will show your selections properly when you view, print, or send the completed document.
+
+**Checkboxes now display correctly in all PDF viewers** (customer)
+- We fixed an issue where checkboxes in generated PDFs appeared empty in some viewers like Chrome and mobile apps, even though they were correctly marked. Now all checkboxes render properly everywhere your customers view or share PDFs.
+
+**More accurate Texas resale contract forms** (customer)
+- We've added stricter validation for Texas resale contracts (TREC 20-18) to catch missing or incorrect fields before you send them to your clients for signature. The system now flags problems and suggests fixes automatically, so your contracts are more complete and compliant.
+
+**TREC 20-18 forms now auto-correct missing fields** (customer)
+- We've improved how we fill out TREC 20-18 forms by automatically catching and fixing missing required fields before you sign. This means fewer back-and-forth corrections and faster closings.
+
+**Talk-to-Dossie now fills and previews forms** (customer)
+- We fixed a gap where Talk-to-Dossie couldn't act on form-fill requests. Now when you ask Dossie to fill out your TREC forms, it extracts the fields, populates them with your deal info, and shows you a preview right in the chat so you can review before opening the PDF.
+
+<!-- applied_shas: 0465144,051905d,0bc1e3c,0d9afca,10cf6fb,117949f,168ef2a,1787f72,1a6e9a1,2637b00,29f9aa4,2a0dfea,2a3559f,345c614,348a261,3688152,3841222,404a9b9,499cfce,49fce9c,4bf5932,4e925ac,5287fba,572068f,5e89003,5ed5e58,5fc3990,62a26ad,6501ff1,6526660,654af68,69f1b2b,6b7de8e,70ae540,7226255,748b24d,79c1023,7b61808,87f980b,9178819,92250d2,924446f,98a4ff5,98ef2a0,99ee638,9cfb06f,9d1047f,a22c5a7,aaa3f82,ac5b49c,ad26215,b4a46e5,b4df9df,b549282,b888ac9,bcd8b18,c2cb07c,c448856,c67872e,c7e1138,cba4abe,d5d3ad1,d6e08c4,de0b8ac,e1efb82,e36fc31,e627144,e92993c,ea192b2,ea86f86,f00bb2f,f393f86,f98eba4,fafb513 -->
 
 ## Week of June 5, 2026
 
