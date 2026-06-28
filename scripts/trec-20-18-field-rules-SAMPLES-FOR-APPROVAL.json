@@ -1,0 +1,160 @@
+{
+  "_meta": {
+    "form": "TREC 20-18 — One to Four Family Residential Contract (Resale)",
+    "trec_promulgation_effective": "2025-01-03",
+    "schema_version": "0.1-DRAFT-FOR-HEATH-APPROVAL",
+    "generated_by": "Hadley",
+    "generated_at": "2026-06-28",
+    "purpose": "Five representative sample entries spanning text/currency/date/checkbox/initials. STOP HERE — full 263-entry build pending Heath approval of structure.",
+    "schema_columns": {
+      "fieldId": "Stable semantic key used by the Dossie fill engine and the validation layer. Distinct from the AcroForm widget name (which is a PDF authoring artifact and frequently wrong).",
+      "widgetName": "The literal AcroForm widget name from trec-20-18-widgets.json. Ground truth for the fill engine's pdf-lib lookups.",
+      "page": "1-indexed PDF page (matches the printed page numbering — page 1 of 10).",
+      "paragraph": "TREC 20-18 paragraph anchor (e.g., '1 PARTIES', '3.C', '22 ADDENDA').",
+      "purpose": "Plain-English legal function. What the field DOES in the contract.",
+      "inputType": "text | currency | date | checkbox | initials | signature.",
+      "format": "Expected value shape. Regex where deterministic, else descriptive contract.",
+      "filledBy": "Which party / role authors the value: agent_submitting | seller | buyer | title_company | lender | escrow_agent | broker_firm.",
+      "stage": "Lifecycle stage at which the field is populated: offer | negotiation | execution | post_execution. Drives the 'BLANK at offer' bug Heath caught.",
+      "conditional": "Rule that gates whether the field is filled at all. Null = always filled at its stage.",
+      "crossRef": "Other fieldIds or external forms whose values must match, sum to, or be derivable from this one.",
+      "validationRules": "Array of explicit checks the validation layer runs against the populated value.",
+      "blankSemantics": "What it means contractually if this field is left blank — some blanks are bugs, some are legally meaningful defaults."
+    }
+  },
+  "samples": [
+    {
+      "fieldId": "buyer_name_1",
+      "widgetName": "Seller and",
+      "page": 1,
+      "paragraph": "1 PARTIES",
+      "purpose": "Legal name of the first (or sole) Buyer party to the contract. Identifies the natural person or entity who becomes contractually bound to purchase the Property. The widget label 'Seller and' is misleading — per Hadley's positional inventory the AcroForm widget at (p0 y=677 x=124) holds the BUYER name because TREC autonamed widgets from the nearby printed text 'Seller and ___ (Buyer)'.",
+      "inputType": "text",
+      "format": "Free-text legal name. Recommended pattern: '<First> <Middle?> <Last>' for natural persons; full registered legal name for entities (e.g., 'Smith Family Living Trust dated January 5, 2018'). Multiple buyers joined with ' and ' (e.g., 'John A. Smith and Jane B. Smith').",
+      "filledBy": "agent_submitting",
+      "stage": "offer",
+      "conditional": null,
+      "crossRef": [
+        "buyer_initials_page_1 (and every other per-page buyer initials widget) — initials must be derivable from this name",
+        "notice_to_buyer_name (¶21) — must match exactly",
+        "buyer_signature_block (page 9) — printed name beneath signature must match",
+        "All addenda Buyer name fields (TREC 40-11 ¶1 Buyer, 36-11 Buyer, 49-1 Buyer, etc.) — must match exactly across the packet"
+      ],
+      "validationRules": [
+        "REQUIRED at offer stage — empty value = contract is not enforceable for lack of an identified party (Statute of Frauds, Tex. Bus. & Com. Code §26.01)",
+        "MUST_NOT match seller_name_1 (no self-dealing without disclosure)",
+        "If buyer is an entity (LLC, corp, trust), name MUST include the entity-type suffix exactly as registered with the Texas SOS",
+        "If multiple buyers, the joining word MUST be ' and ' (not '&', not comma) — affects joint tenancy interpretation",
+        "Maximum reasonable length 120 chars (widget rectangle accommodates ~60 chars before overflow)"
+      ],
+      "blankSemantics": "BUG. Blank Buyer name = void contract. Not a meaningful default."
+    },
+    {
+      "fieldId": "sales_price_total",
+      "widgetName": "undefined_5",
+      "page": 1,
+      "paragraph": "3.C",
+      "purpose": "Total Sales Price the Buyer agrees to pay the Seller. The sum of the cash portion (¶3.A) and the financed portion (¶3.B). This is the single most legally and financially load-bearing number on the contract — it drives Seller's net, Buyer's loan-to-value, transfer taxes, title insurance premium, and broker compensation.",
+      "inputType": "currency",
+      "format": "USD currency, no symbol, 2-decimal precision, comma-separated thousands. Pattern: ^\\d{1,3}(,\\d{3})*\\.\\d{2}$ — e.g., '500,000.00'. The widget itself is plain text so the fill engine inserts the formatted string; no symbol because the printed form pre-fills '$' to the left of the widget.",
+      "filledBy": "agent_submitting",
+      "stage": "offer",
+      "conditional": null,
+      "crossRef": [
+        "sales_price_cash_portion (¶3.A, widget undefined_3) + sales_price_financed_portion (¶3.B, widget undefined_4) MUST sum to this value",
+        "If addendum_third_party_financing is checked, sales_price_financed_portion MUST match TREC 40-11 ¶1 financing amount",
+        "If addendum_seller_financing is checked, sales_price_financed_portion MUST match TREC 26-9 financed amount",
+        "title_insurance_premium (¶6.A) is statutorily derived from this value (Tex. Ins. Code Ch. 2703, Texas Title Insurance Premium Rate Schedule)"
+      ],
+      "validationRules": [
+        "REQUIRED at offer stage",
+        "MUST equal sales_price_cash_portion + sales_price_financed_portion (the arithmetic check Heath named as a Layer-2 requirement)",
+        "MUST be > 0",
+        "If addendum_third_party_financing checked AND financed portion > 0, MUST be consistent with lender pre-approval amount (cross-check Layer-3)",
+        "Reasonableness band: 50,000 <= value <= 50,000,000 — outside this band flag for human review (data-entry typo guard)"
+      ],
+      "blankSemantics": "BUG. Blank sales price = void contract (no consideration defined)."
+    },
+    {
+      "fieldId": "effective_date",
+      "widgetName": "EXECUTED the",
+      "page": 9,
+      "paragraph": "24 EXECUTION (also referenced by ¶9 CLOSING and §5 OPTION PERIOD)",
+      "purpose": "The Effective Date is the date the LAST of Buyer and Seller signs and the fully executed contract is delivered to the other party (or the escrow agent). It starts the clock on every contract deadline: option period, financing approval, survey delivery, title objections, closing. Per TREC ¶24 it is the date inserted on the EXECUTED line at the bottom of page 9. The widget is split into three pieces: 'EXECUTED the ___ day of ___ 20___' — fieldId 'effective_date' refers to the composite. (Widget 'EXECUTED the' holds the day-of-month integer; 'day of' holds the month name; '20_2' holds the 2-digit year.)",
+      "inputType": "date",
+      "format": "Composite. Engine writes day (1-31, no leading zero), month (full month name e.g. 'March'), year (2 digits, e.g. '26' for 2026). Validation layer reads as ISO YYYY-MM-DD internally.",
+      "filledBy": "agent_submitting (only at the moment of full execution — typically the listing agent or the escrow agent inserts it once both parties have signed)",
+      "stage": "execution",
+      "conditional": "MUST be BLANK at offer stage. The Effective Date does not exist until both parties have signed AND delivery has occurred (TREC ¶24 + common-law mailbox rule as modified by Tex. Bus. & Com. Code §322.015 for electronic delivery). Filling this at offer-stage misrepresents to the receiving party that the contract is already executed and is a Priority-1 bug.",
+      "crossRef": [
+        "closing_date (¶9.A) — closing_date MUST be > effective_date (typically effective_date + 30-45 days)",
+        "option_period_days (¶5.B) — option period EXPIRES at 5:00 PM local time on (effective_date + option_period_days)",
+        "earnest_money_delivery_days (¶5.A) — earnest money due (effective_date + earnest_money_delivery_days) business days after effective_date",
+        "title_commitment_delivery_days (¶6.B) — title commitment due within X days after effective_date",
+        "third_party_financing_approval_days (TREC 40-11 ¶2.A) — buyer approval deadline calculated FROM effective_date",
+        "All buyer_signature_date and seller_signature_date fields — effective_date must be >= MAX(signature dates)"
+      ],
+      "validationRules": [
+        "MUST be BLANK at stage='offer' — flag any populated value at offer stage as Priority-1 error",
+        "At stage='execution': MUST be a valid calendar date",
+        "At stage='execution': MUST be >= the latest of buyer_signature_date and seller_signature_date",
+        "At stage='execution': MUST NOT be in the future (Effective Date is the date of execution, not a future date)",
+        "At stage='execution': MUST NOT be > 30 days before closing_date (sanity guard for backdating)"
+      ],
+      "blankSemantics": "AT OFFER STAGE: blank is CORRECT — the Effective Date does not yet exist. AT EXECUTION STAGE: blank is a bug — contract has no deadline clock. The validator must understand stage context to interpret blank correctly."
+    },
+    {
+      "fieldId": "addendum_hoa_mandatory_membership",
+      "widgetName": "Addendum for Property Subject to",
+      "page": 9,
+      "paragraph": "22 ADDENDA AND OTHER DOCUMENTS",
+      "purpose": "Checkbox in §22 that, when checked, declares the TREC 36-11 'Addendum for Property Subject to Mandatory Membership in a Property Owners Association' is attached to and incorporated into the contract. Triggered whenever the Property is in a subdivision with a mandatory HOA (i.e., membership runs with the land — not voluntary). Required by Tex. Prop. Code §5.012 and §209.0091 to give Buyer access to dedicatory instruments, resale certificate, transfer fees, and assessment status. Failure to attach the addendum when an HOA exists exposes the seller and the listing broker to claims for non-disclosure and gives Buyer termination rights.",
+      "inputType": "checkbox",
+      "format": "Boolean. true = box is checked (addendum attached); false = box is unchecked (no HOA addendum). The render pipeline ALSO draws a literal 'X' character at the widget rectangle when checked (bulletproof X-overlay — see fillResaleContract pipeline).",
+      "filledBy": "agent_submitting",
+      "stage": "offer",
+      "conditional": "Checked IF AND ONLY IF the Property is subject to mandatory HOA membership. Determined from (a) intake field 'property_has_mandatory_hoa' = true, OR (b) MLS field 'AssociationYN' = Y, OR (c) seller's disclosure §3 Property Owners' Association = checked.",
+      "crossRef": [
+        "hoa_membership_is (¶6.E, widget 'is') — MUST be checked when this is true",
+        "hoa_membership_is_not (¶6.E, widget 'is not') — MUST be unchecked when this is true (paired Y/N — engine inverts; never both checked)",
+        "hoa_subdivision_information_days (¶6.E) — REQUIRED to have a non-blank value when this is true (days for Seller to deliver Subdivision Information)",
+        "EXTERNAL FORM: TREC 36-11 (Addendum for Property Subject to Mandatory Membership in a Property Owners Association) MUST be in the packet when this is true. Validator checks packet manifest.",
+        "RESALE CERTIFICATE: If TREC 36-11 ¶B.4 is checked (Seller to deliver Resale Certificate), the packet must reach Buyer within the days specified in ¶6.E."
+      ],
+      "validationRules": [
+        "If TRUE: TREC 36-11 MUST be present in the packet manifest — missing = Priority-1 error",
+        "If TRUE: hoa_membership_is MUST be true AND hoa_membership_is_not MUST be false (paired-toggle integrity)",
+        "If TRUE: hoa_subdivision_information_days MUST be > 0 (Seller delivery deadline)",
+        "If FALSE: TREC 36-11 MUST NOT be in the packet (extraneous addendum = ambiguity)",
+        "If FALSE but MLS data says AssociationYN=Y: flag for human review — likely missed HOA"
+      ],
+      "blankSemantics": "Unchecked = represents to the parties that no mandatory HOA exists. If a mandatory HOA actually exists, unchecked is a Priority-1 disclosure failure (TRELA §1101.652 + Prop Code §5.012)."
+    },
+    {
+      "fieldId": "buyer_initials_page_1",
+      "widgetName": "Initialed for identification by Buyer",
+      "page": 1,
+      "paragraph": "PAGE FOOTER (not a numbered paragraph — appears at the bottom of every page except the final signature page)",
+      "purpose": "Buyer's initials at the bottom of page 1, acknowledging that the Buyer has read and identified this specific page of the contract. Repeated on every page of the contract except the final execution page (where the full signature appears). Initialing protects against page-substitution disputes — if a page is swapped post-execution, the initials on the substituted page won't match.",
+      "inputType": "initials",
+      "format": "2-3 character string, uppercase, derived from buyer_name_1. Pattern: first letter of first name + (optional middle initial) + first letter of last name. E.g., 'John A. Smith' -> 'JAS' or 'JS'. Maximum 4 characters (widget rectangle accommodates ~4 chars).",
+      "filledBy": "buyer (at signing) — but for the Dossie fill engine, the agent_submitting may pre-populate machine-typed initials as a visual placeholder; the e-sign platform (DocuSeal) replaces with the buyer's actual drawn or typed initials at signing.",
+      "stage": "execution",
+      "conditional": "Filled on EVERY page that has a buyer-initials widget EXCEPT the final signature page (page 9, which holds the full Buyer signature in lieu of initials). Per the inventory, buyer-initials widgets appear on pages 1, 2, 3, 4, 5, 6, 7 — NOT on page 8 (¶22-24 page) or page 9 (signatures).",
+      "crossRef": [
+        "buyer_name_1 (§1 PARTIES) — initials MUST be derivable from this name",
+        "buyer_initials_page_2, buyer_initials_page_3, ... — ALL buyer-initials widgets across the contract MUST hold the same value (same person initialing every page)",
+        "seller_initials_page_1 (and per-page) — seller initials are positionally paired but MUST NOT match (different parties)",
+        "DocuSeal field role mapping — at e-sign, all buyer-initials widgets bind to DocuSeal role 'buyer_1' initials field"
+      ],
+      "validationRules": [
+        "If buyer_name_1 is populated: initials MUST match first-letter-first-name + first-letter-last-name (minimum derivation rule)",
+        "All buyer-initials widgets across the form MUST hold the IDENTICAL string (no per-page variation)",
+        "MUST NOT equal seller_initials_page_1 (different parties)",
+        "Length MUST be between 2 and 4 characters",
+        "MUST be uppercase ASCII letters only — no digits, no punctuation"
+      ],
+      "blankSemantics": "AT OFFER STAGE: blank is acceptable (initials are an execution-stage act). AT EXECUTION STAGE: blank on any page is a Priority-2 error — opens the door to a page-substitution dispute. The validator should warn but not block at execution if any individual page is missing initials, since DocuSeal will collect them at signing."
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "scenario": "Loan assumption purchase",
+  "intake": {
+    "financing_type": "assumption",
+    "has_second_buyer": false,
+    "has_second_seller": false,
+    "hoa_is_subject": false,
+    "add_other_text": null
+  },
+  "assignments": {
+    "seller_name": {
+      "value": "Robert James Calloway",
+      "confidence": 0.99
+    },
+    "buyer_name": {
+      "value": "Maria Elena Vasquez",
+      "confidence": 0.99
+    },
+    "property_street_address": {
+      "value": "104 Wild Cherry Ln, Boerne, TX 78006",
+      "confidence": 0.97
+    },
+    "property_city_known_as": {
+      "value": "104 Wild Cherry Ln",
+      "confidence": 0.95
+    },
+    "legal_lot": {
+      "value": "12",
+      "confidence": 0.95
+    },
+    "legal_block": {
+      "value": "3",
+      "confidence": 0.95
+    },
+    "legal_addition": {
+      "value": "Cordillera Ranch",
+      "confidence": 0.93
+    },
+    "property_county": {
+      "value": "Kendall",
+      "confidence": 0.98
+    },
+    "earnest_money_amount": {
+      "value": "5,000.00",
+      "confidence": 0.97
+    },
+    "option_fee_amount": {
+      "value": "200.00",
+      "confidence": 0.97
+    },
+    "option_period_days": {
+      "value": "7",
+      "confidence": 0.98
+    },
+    "option_fee_credited_box": {
+      "value": true,
+      "confidence": 0.9
+    },
+    "closing_date": {
+      "value": "2026-08-15",
+      "confidence": 0.95
+    },
+    "accept_as_is": {
+      "value": true,
+      "confidence": 0.9
+    },
+    "escrow_agent_name": {
+      "value": "Texas National Title",
+      "confidence": 0.95
+    },
+    "escrow_agent_address": {
+      "value": "1100 NE Loop 410, San Antonio, TX 78209",
+      "confidence": 0.94
+    },
+    "notice_buyer_email": {
+      "value": "maria.vasquez@example.com",
+      "confidence": 0.95
+    },
+    "notice_seller_email": {
+      "value": "rcalloway@example.com",
+      "confidence": 0.95
+    },
+    "notice_buyer_address": {
+      "value": "12 Buyer Way, San Antonio, TX 78258",
+      "confidence": 0.93
+    },
+    "notice_seller_address": {
+      "value": "104 Wild Cherry Ln, Boerne, TX 78006",
+      "confidence": 0.93
+    },
+    "notice_buyer_phone": {
+      "value": "555-1234",
+      "confidence": 0.9
+    },
+    "notice_buyer_phone_ac": {
+      "value": "210",
+      "confidence": 0.9
+    },
+    "notice_seller_phone": {
+      "value": "555-5678",
+      "confidence": 0.9
+    },
+    "notice_seller_phone_ac": {
+      "value": "830",
+      "confidence": 0.9
+    },
+    "rep_seller_only": {
+      "value": true,
+      "confidence": 0.9
+    },
+    "listing_broker_firm": {
+      "value": "Keller Williams City-View",
+      "confidence": 0.95
+    },
+    "title_expense_seller": {
+      "value": true,
+      "confidence": 0.9
+    },
+    "sales_price_cash_portion": {
+      "value": "50,000.00",
+      "confidence": 0.96
+    },
+    "sales_price_financing_portion": {
+      "value": "350,000.00",
+      "confidence": 0.96
+    },
+    "sales_price_total": {
+      "value": "400,000.00",
+      "confidence": 0.96
+    },
+    "financing_addendum_present": {
+      "value": true,
+      "confidence": 0.95
+    },
+    "add_loan_assumption": {
+      "value": true,
+      "confidence": 0.92
+    }
+  }
+}

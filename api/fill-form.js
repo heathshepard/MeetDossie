@@ -3334,7 +3334,66 @@ module.exports = async function handler(req, res) {
     };
 
     // Agent-supplied field_values override transaction defaults
-    const mergedFields = Object.assign({}, txDefaults, fieldValues);
+    let mergedFields = Object.assign({}, txDefaults, fieldValues);
+
+    // ----------------------------------------------------------------------
+    // TREC 20-18 strict validation pipeline (opt-in via body.strict_validate)
+    // Heath's hand-built Layer 3 lives at scripts/trec-20-18-field-rules.json
+    // + scripts/trec-validator.js. Pipeline at api/_lib/trec-20-18-pipeline.js
+    // wires Layer 2 (mapper) -> validate() -> self-correction loop (Opus 4.7)
+    // -> fillable -> legacy fv conversion (for the existing pdf-lib renderer).
+    //
+    // Only runs for resale-contract (TREC 20-18) when caller asks for it.
+    // Returns 422 with a structured `validation` object if pass:false after
+    // max retries, so the caller can surface UNMATCHED fields for human review.
+    // ----------------------------------------------------------------------
+    let validationReport = null;
+    const strictValidateRequested = body.strict_validate === true ||
+      String(req.query?.strict_validate || '').toLowerCase() === '1' ||
+      String(req.query?.strict_validate || '').toLowerCase() === 'true';
+    if (strictValidateRequested && resolvedFormType === 'resale-contract') {
+      try {
+        const { runPipeline } = require('./_lib/trec-20-18-pipeline');
+        const pipelineRes = await runPipeline({
+          fieldValues: mergedFields,
+          intake: body.intake && typeof body.intake === 'object' ? body.intake : null,
+          sourceMessage: typeof body.source_message === 'string' ? body.source_message : null,
+          transactionContext: tx || {},
+          log: (entry) => console.log('[fill-form][strict-validate]', JSON.stringify(entry)),
+        });
+        validationReport = {
+          pass: pipelineRes.pass,
+          flags: pipelineRes.flags,
+          retries: pipelineRes.retries,
+          unmatched: pipelineRes.unmatched,
+          fillable_count: Object.keys(pipelineRes.fillable || {}).length,
+        };
+        if (!pipelineRes.pass) {
+          console.warn('[fill-form] strict validation FAILED', JSON.stringify(validationReport));
+          return res.status(422).json({
+            ok: false,
+            error: 'TREC 20-18 validation did not pass — fields need human review.',
+            validation: {
+              ...validationReport,
+              report: pipelineRes.report.filter(
+                (r) => r.status === 'FAIL' || r.status === 'UNMATCHED'
+              ),
+            },
+          });
+        }
+        // Validator passed — feed the canonical fillable back through the
+        // legacy fv-shape so the existing fillResaleContract() renderer
+        // consumes the validated values (not the raw extractor output).
+        mergedFields = pipelineRes.legacyFv;
+        console.log('[fill-form] strict validation PASSED', JSON.stringify(validationReport));
+      } catch (e) {
+        console.error('[fill-form] strict_validate runtime error:', e && e.message);
+        return res.status(500).json({
+          ok: false,
+          error: 'TREC 20-18 validation pipeline runtime error: ' + (e && e.message),
+        });
+      }
+    }
 
     console.log('[fill-form] filling', resolvedFormType, 'for tx', transactionId);
     const filledBytes = await fillForm(resolvedFormType, mergedFields);
@@ -3399,6 +3458,7 @@ module.exports = async function handler(req, res) {
       fileName: safeName,
       formName: config.name,
       formType: resolvedFormType,
+      validation: validationReport, // null unless strict_validate was true
     });
 
   } catch (error) {
