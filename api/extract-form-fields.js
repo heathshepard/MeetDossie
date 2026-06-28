@@ -77,6 +77,7 @@ Fields to extract:
 - city_state_zip (string): City, state, zip. Example: "San Antonio, TX 78230"
 - county (string): Texas county. Example: "Bexar"
 - legal_description (string): Lot/block/subdivision if known.
+- addition_name (string): Subdivision / addition / neighborhood name if stated. Example: "Cibolo Canyons"
 - sale_price (number): Total purchase price in dollars. Example: 300000
 - earnest_money (number): Earnest money amount. Default 1% of purchase price if not stated.
 - option_fee (number): Option period fee in dollars. Default 100 if not stated.
@@ -87,9 +88,58 @@ Fields to extract:
 - closing_date (string): ISO date YYYY-MM-DD. Calculate from close_in_days if stated.
 - close_in_days (number): Days to closing from today if stated.
 - title_company (string): Title company name if stated.
+- escrow_officer (string): Escrow officer / closer name at the title company if stated. Example: "Ashley Phiffer"
+- title_company_address (string): Title company office address if stated.
 - financing_type (string): One of: "conventional", "fha", "va", "usda", "cash". Default "conventional" if loan mentioned.
-- hoa_exists (boolean): true if HOA mentioned or suspected, false if not.
 - contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
+
+§6.C SURVEY (set exactly ONE of these to true based on agent's intent):
+- survey_existing_or_seller_pays (boolean): true if "seller will provide existing survey or pay for new one" / "seller will provide T-47 or pay for new survey" — TREC §6C(1).
+- survey_buyer_obtains (boolean): true if "buyer will get new survey at buyer expense" — TREC §6C(2).
+- survey_seller_new (boolean): true if "seller will pay for new survey" — TREC §6C(3).
+
+§7.D PROPERTY CONDITION:
+- as_is (boolean): Default true ("buyer accepts as-is"). Set false only if specific repairs required.
+- as_is_with_repairs (boolean): true if specific repairs to be completed by seller before close.
+- required_repairs (string): Specific repairs if as_is_with_repairs=true.
+- service_contract_amount (number): Home warranty / residential service contract amount Seller pays. §7H.
+
+§11 SPECIAL PROVISIONS:
+- special_provisions (string): Factual special provisions text. (Brokers may not practice law — keep factual.)
+- seller_concessions (number): Dollar amount Seller credits Buyer toward closing costs.
+
+§22 ADDENDA — set true for each addendum that should be CHECKED:
+- addendum_financing (boolean): Auto-true if loan_amount > 0.
+- addendum_hoa (boolean): Auto-true if hoa_name or hoa_monthly_dues > 0.
+- addendum_lead_paint (boolean): Auto-true if property_built_year < 1978.
+- addendum_sellers_disclosure (boolean): true if Seller's Disclosure addendum used.
+
+HOA (also fills 36-11 HOA addendum):
+- hoa_exists (boolean): true if Cibolo Canyons / HOA / dues / mandatory membership mentioned. Default false ONLY if explicitly stated "no HOA".
+- hoa_name (string): HOA name if stated.
+- hoa_monthly_dues (number): Monthly HOA dues if stated.
+- hoa_transfer_fee (number): Transfer fee at closing if stated.
+
+LEAD PAINT (also fills OP-L):
+- property_built_year (number): Year built. Required if pre-1978 → triggers lead paint addendum.
+
+BROKER SECTION (§8):
+- listing_broker_firm (string): Seller's agent firm. Example: "Phyllis Browning Company"
+- listing_broker_address (string): Brokerage office address if stated. Example: "Boerne office"
+- listing_agent_name (string): Seller's agent name. Example: "Bizzy Darling"
+- listing_agent_license (string): Seller's agent license number.
+- other_broker_firm (string): Buyer's agent firm. (If agent represents self, leave blank.)
+- selling_agent_name (string): Buyer's agent name (other broker associate).
+- buyer_only_agent (boolean): true if buyer's agent represents BUYER only.
+- listing_only_seller_agent (boolean): true if listing agent represents SELLER only.
+- buyer_agent_commission_pct (number): Buyer's agent commission % if stated. Example: 3
+- seller_agent_commission_pct (number): Listing agent commission % if stated.
+
+POSSESSION:
+- possession (string): "closing" (default), "lease_after", "lease_before". §10.
+
+EFFECTIVE / EXECUTION:
+- contract_effective_date (string): ISO date YYYY-MM-DD. Defaults to today if not stated.
 `,
   'financing-addendum': `
 Extract these fields for the Third Party Financing Addendum.
@@ -260,9 +310,31 @@ Fields to extract:
 const CANONICAL_FIELDS = {
   'resale-contract': [
     'buyer_name', 'seller_name', 'property_address', 'city_state_zip', 'county',
-    'legal_description', 'sale_price', 'earnest_money', 'option_fee', 'option_days',
+    'legal_description', 'addition_name',
+    'sale_price', 'earnest_money', 'option_fee', 'option_days',
     'loan_amount', 'down_payment_pct', 'down_payment_amt', 'closing_date', 'close_in_days',
-    'title_company', 'financing_type', 'hoa_exists', 'contract_effective_date'
+    'title_company', 'escrow_officer', 'title_company_address',
+    'financing_type', 'contract_effective_date',
+    // §6.C survey options (exactly one)
+    'survey_existing_or_seller_pays', 'survey_buyer_obtains', 'survey_seller_new',
+    // §7.D property condition
+    'as_is', 'as_is_with_repairs', 'required_repairs', 'service_contract_amount',
+    // §11 special provisions
+    'special_provisions', 'seller_concessions',
+    // §22 addenda
+    'addendum_financing', 'addendum_hoa', 'addendum_lead_paint', 'addendum_sellers_disclosure',
+    // HOA
+    'hoa_exists', 'hoa_name', 'hoa_monthly_dues', 'hoa_transfer_fee',
+    // lead paint trigger
+    'property_built_year',
+    // broker section
+    'listing_broker_firm', 'listing_broker_address',
+    'listing_agent_name', 'listing_agent_license',
+    'other_broker_firm', 'selling_agent_name',
+    'buyer_only_agent', 'listing_only_seller_agent',
+    'buyer_agent_commission_pct', 'seller_agent_commission_pct',
+    // possession
+    'possession',
   ],
   'financing-addendum': [
     'property_address', 'city_state_zip', 'buyer_name', 'financing_type',
@@ -517,9 +589,39 @@ function postProcess(formType, fields, message) {
   // Default possession
   if (!fv.possession) fv.possession = 'closing';
 
-  // Default hoa_exists = false
-  if (fv.hoa_exists === undefined) {
-    fv.hoa_exists = false;
+  // Auto-detect HOA from message context (Cibolo Canyons, mandatory membership, dues mentioned)
+  if (fv.hoa_exists === undefined || fv.hoa_exists === null) {
+    if (fv.hoa_name || fv.hoa_monthly_dues || fv.hoa_transfer_fee) {
+      fv.hoa_exists = true;
+    } else {
+      const msg = String(message || '').toLowerCase();
+      if (/\bhoa\b|homeowners?\s+association|mandatory\s+membership|cibolo\s+canyons/i.test(msg)) {
+        fv.hoa_exists = true;
+      } else {
+        fv.hoa_exists = false;
+      }
+    }
+  }
+
+  // Auto-derive addendum flags for §22 checkboxes on TREC 20-18
+  if (fv.addendum_financing === undefined) {
+    fv.addendum_financing = !!(fv.loan_amount && Number(fv.loan_amount) > 0);
+  }
+  if (fv.addendum_hoa === undefined) {
+    fv.addendum_hoa = !!fv.hoa_exists;
+  }
+  if (fv.addendum_lead_paint === undefined) {
+    fv.addendum_lead_paint = !!(fv.property_built_year && Number(fv.property_built_year) < 1978);
+  }
+
+  // Default contract_effective_date = today if not set
+  if (!fv.contract_effective_date) {
+    fv.contract_effective_date = today.toISOString().slice(0, 10);
+  }
+
+  // Default §7.D As-Is = true unless repairs explicitly stated
+  if (fv.as_is === undefined && fv.as_is_with_repairs !== true) {
+    fv.as_is = true;
   }
 
   return fv;

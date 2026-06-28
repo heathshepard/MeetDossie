@@ -646,37 +646,69 @@ async function fillResaleContract(pdfDoc, fv) {
   const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
   const sellerInit = fv.seller_initials || initials(fv.seller_name);
 
-  // PARTIES
-  safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
-  safeSetText(form, 'Seller and', fv.seller_name || '');
+  // PARTIES — TREC 20-18 page 1 reads "____ (Seller) and ____ (Buyer)".
+  // Widget '1 PARTIES The parties to this contract are' is the SELLER slot (positioned after "are", before "(Seller)" label).
+  // Widget 'Seller and' is the BUYER slot (positioned after "(Seller) and", before "(Buyer)" label).
+  // Field-name strings are misleading; positions are ground truth (verified 2026-06-27 by Hadley via pdf-lib widget rectangles + pdftoppm render).
+  safeSetText(form, '1 PARTIES The parties to this contract are', fv.seller_name || '');
+  safeSetText(form, 'Seller and', fv.buyer_name || '');
 
   // PROPERTY — address repeats across all pages
   const addr = fv.property_address || '';
+  const fullAddr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  // §2 PROPERTY description "Texas known as" — uses STREET ONLY because the
+  // adjacent "Addition City of" widget holds the city/state/zip portion.
   safeSetText(form, 'Texas known as', addr);
-  safeSetText(form, 'Address of Property', addr);
-  safeSetText(form, 'Address of Property_2', addr);
-  safeSetText(form, 'Addr of Prop', addr);
-  // "Contract Concerning" header lines repeat address on each page
-  safeSetText(form, 'Contract Concerning', addr);
-  safeSetText(form, 'Contract Concerning_2', addr);
-  safeSetText(form, 'Contract Concerning_3', addr);
-  safeSetText(form, 'Contract Concerning_4', addr);
-  safeSetText(form, 'the Title Company and Buyers lenders Check one box only', fv.title_company || '');
+  // Per-page address headers ("Contract Concerning ___ (Address of Property)") on pages
+  // 9, 10, 11 use field names "Address of Property", "Addr of Prop", "Address of Property_2"
+  // — these MUST receive the full address (street + city/state/zip). Heath caught
+  // 2026-06-27 that prior iter6 wrote street-only here, which rendered as truncated
+  // headers on the EXECUTED block (p9), Broker Information (p10), and Receipts (p11).
+  safeSetText(form, 'Address of Property', fullAddr);
+  safeSetText(form, 'Address of Property_2', fullAddr);
+  safeSetText(form, 'Addr of Prop', fullAddr);
+  // "Contract Concerning" header lines repeat full property address (with city/state/zip) on each page
+  safeSetText(form, 'Contract Concerning', fullAddr);
+  safeSetText(form, 'Contract Concerning_2', fullAddr);
+  safeSetText(form, 'Contract Concerning_3', fullAddr);
+  safeSetText(form, 'Contract Concerning_4', fullAddr);
+  // §5.B Termination Option days — widget is mis-labeled in the AcroForm as
+  // 'the Title Company and Buyers lenders Check one box only' (TREC PDF authoring artifact).
+  // Verified position p2/y=501 sits exactly at the §5.B blank "by giving notice... within ___ days
+  // after the Effective Date of this contract (Option Period)". Hadley 2026-06-27.
+  safeSetText(form, 'the Title Company and Buyers lenders Check one box only',
+    (fv.option_period_days != null && fv.option_period_days !== '') ? String(fv.option_period_days)
+      : (fv.option_days != null && fv.option_days !== '') ? String(fv.option_days) : '');
 
   // Legal description: "A LAND Lot" = full legal or lot portion, "Block" = block, "undefined" = lot number
   safeSetText(form, 'A LAND Lot', fv.legal_description || '');
   safeSetText(form, 'Block', fv.legal_block || '');
   safeSetText(form, 'undefined', fv.legal_lot || '');
-  safeSetText(form, 'Addition City of', fv.city_state_zip || '');
+  // 'Addition City of' widget holds subdivision + city. If addition_name is provided
+  // (e.g. "Cibolo Canyons"), prefer it; otherwise fall back to city_state_zip.
+  safeSetText(form, 'Addition City of', fv.addition_name
+    ? (fv.addition_city ? (fv.addition_name + ', ' + fv.addition_city) : fv.addition_name)
+    : (fv.city_state_zip || ''));
   safeSetText(form, 'County of', fv.county || '');
 
-  // SALES PRICE (Section 3)
+  // SALES PRICE (Section 3 — TREC 20-18)
+  // Widget positions on p1 (Hadley 2026-06-27 verification):
+  //   undefined_2 (y=369, w=480)  -> §2.D Exclusions continuation line (BLANK by default; only fill if exclusions exist)
+  //   undefined_3 (y=317, w=101)  -> §3.A Cash portion of Sales Price
+  //   undefined_4 (y=267, w=101)  -> §3.B Sum of all financing
+  //   undefined_5 (y=255, w=101)  -> §3.C Sales Price total (sum of A and B)
   const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
   if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
-  safeSetText(form, 'undefined_2', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
-  safeSetText(form, 'undefined_3', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
-  safeSetText(form, 'undefined_4', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
-  safeSetText(form, 'undefined_5', fv.additional_cash_closing != null && fv.additional_cash_closing !== '' ? formatMoney(fv.additional_cash_closing) : '');
+  // §3.A Cash portion — prefer explicit down_payment_amt; fall back to sale_price - loan_amount
+  let cashPortion = (fv.down_payment_amt != null && fv.down_payment_amt !== '') ? Number(fv.down_payment_amt) : null;
+  if (cashPortion == null && fv.sale_price != null && fv.loan_amount != null) {
+    cashPortion = Number(fv.sale_price) - Number(fv.loan_amount);
+  }
+  // §2.D Exclusions — BLANK by default (only set if explicit exclusions field present)
+  safeSetText(form, 'undefined_2', fv.exclusions || '');
+  safeSetText(form, 'undefined_3', cashPortion != null ? formatMoney(cashPortion) : '');
+  safeSetText(form, 'undefined_4', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
+  safeSetText(form, 'undefined_5', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
   // Sale price credited: default "will not be credited" (standard resale)
   if (fv.sale_price_credited === true) {
     safeCheck(form, 'will');
@@ -685,32 +717,128 @@ async function fillResaleContract(pdfDoc, fv) {
   }
   safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
 
-  // EARNEST MONEY / OPTION FEE (Section 5)
-  safeSetText(form, 'earnest money of', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
-  safeSetText(form, 'Option Fee in the form of', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
+  // EARNEST MONEY / OPTION FEE (Section 5 — TREC 20-18 page 2)
+  // Widget positions (Hadley 2026-06-27 verification):
+  //   undefined_6 (p2/y=699, w=153)              -> §5.A Escrow Agent name slot ("Buyer must deliver to ___")
+  //   'other party in writing...' (p2/y=699, w=158) -> §5.A Escrow Agent address slot
+  //   undefined_7 (p2/y=689, w=151)              -> §5.A Escrow Agent address continuation
+  //   'as earnest money to' (p2/y=689, w=72)     -> §5.A earnest money $ blank
+  //   'as earnest money to 2' (p2/y=689, w=75)   -> §5.A Option Fee $ blank
+  //   'earnest money of' (p2/y=657, w=106)       -> §5.A(1) ADDITIONAL earnest money $ blank
+  //   'to escrow agent within' (p2/y=646, w=36)  -> §5.A(1) days for additional earnest money delivery
+  //
+  // Heath master prompt didn't specify Escrow Agent address — title_company_address may be set by extractor.
+  safeSetText(form, 'undefined_6', fv.title_company || '');
+  safeSetText(form, 'other party in writing before entering into a contract of sale  Disclose if applicable',
+    fv.title_company_address || '');
+  safeSetText(form, 'undefined_7', fv.title_company_address_line2 || '');
+  safeSetText(form, 'as earnest money to', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
+  safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
+  safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
+  safeSetText(form, 'to escrow agent within', fv.additional_earnest_money_days || '');
+  // Page-11 receipts: 'Option Fee in the form of' is the receipt description (e.g. "check"), not the $ amount.
+  safeSetText(form, 'Option Fee in the form of', fv.option_fee_form_of || '');
   safeSetText(form, 'Seller or Listing Broker', fv.listing_agent_name || '');
-  safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
-  safeSetText(form, 'as earnest money to', fv.earnest_money_to || fv.title_company || '');
+  safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form_of || fv.earnest_money_form || '');
 
   // TITLE COMPANY / ESCROW (Section 6)
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
   safeSetText(form, 'Escrow Agent', fv.title_company || '');
   safeSetText(form, 'Escrow Agent_2', fv.title_company || '');
   safeSetText(form, 'Escrow Agent_3', fv.title_company || '');
+  // NOTE: 'Received by' / 'Received by_2' / 'Received by_3' on the page-11 escrow
+  // receipts = ESCROW OFFICER name (Ashley Phiffer). Wired below in the ESCROW
+  // RECEIPT FIELDS block (search for 'receivedBy =') with fv.escrow_agent_name
+  // as the fallback. Heath 2026-06-27 confirmed receipt of master prompt
+  // "title escrow officer is Ashley phiffer".
   safeSetText(form, 'receipt or the date specified in this paragraph whichever is earlier', fv.title_objection_days || '');
   safeSetText(form, 'Commitment other than items 6A1 through 9 above or which prohibit the following use', fv.permitted_use || '');
   safeSetText(form, 'the Commitment Exception Documents and the survey Buyers failure to object within the', fv.exception_objection_days || '');
-  // Survey option: default Buyer pays
-  safeCheck(form, 'Buyer');
+
+  // §6.C SURVEY (Check one box only — three sub-paragraphs)
+  // Master prompt v3-FHA: "seller will provide T47 or survey. If no survey is available
+  // seller will pay for a new one" → maps to §6.C(1): "Within X days after the Effective Date,
+  // Seller shall furnish to Buyer and Title Company Seller's existing survey along with no-
+  // changes affidavit acceptable to Title Company". The fallback inside (1) ("If Seller fails
+  // to furnish... Buyer shall obtain new at Seller's expense") covers the "if not available"
+  // scenario without needing to also check (3).
+  //
+  // Widget map (positions verified p2 = page 3):
+  //   'Within one' (y=640, x=144) = §6.C(1) primary checkbox (Seller furnishes T-47 existing)
+  //   'Within two' (y=640, x=198) = §6.C(1) alt (Seller-furnishes "with affidavit") — leave unchecked
+  //   'Within three' (y=630, x=59) = §6.C(2) primary (Buyer obtains new at Buyer's expense)
+  //   'Within four' (y=579, x=60) = §6.C(3) primary (Seller furnishes new at Seller's expense)
+  //   'Buyer' (y=706, x=58) = §6.C(1) inner-fallback expense direction (check if Buyer pays for fallback new survey; UNcheck if Seller pays)
+  //   'than 3 days prior to Closing Date' = days field for the fallback delivery deadline
+  //   '3 days prior' (y=627) = §6.C(2) days field
+  //   'receipt or the date specified in this paragraph whichever is earlier' (y=577) = §6.C(3) days field
+  // §6.C(1) has NO primary AcroForm checkbox widget in TREC 20-18 — the (1) box is
+  // a printed-only square. We draw an "X" overlay at the visual (1) checkbox
+  // location when the default §6.C(1) is selected. §6.C(2) and §6.C(3) DO have
+  // widgets ("Within three" and "Within four" respectively). The "Buyer" widget
+  // at y=706 is the §6.C(1) inner-fallback "Buyer's expense" toggle.
+  //
+  // Accept legacy (survey_seller_new, survey_buyer_new) and new extractor field
+  // names (survey_buyer_obtains, survey_existing_or_seller_pays).
+  if (fv.survey_seller_new === true) {
+    // §6.C(3) Seller pays for new survey
+    safeCheck(form, 'Within four');
+  } else if (fv.survey_buyer_new === true || fv.survey_buyer_obtains === true) {
+    // §6.C(2) Buyer obtains new at Buyer's expense
+    safeCheck(form, 'Within three');
+    if (fv.survey_buyer_pays === true) safeCheck(form, 'Buyer');
+  } else {
+    // DEFAULT (v3-FHA / survey_existing_or_seller_pays):
+    //   §6.C(1) Seller furnishes existing T-47 survey.
+    //   No primary widget exists; overlay an "X" at the (1) checkbox visual position.
+    try {
+      const pages = pdfDoc.getPages();
+      const page3 = pages[2]; // 0-indexed: displayed page 3
+      // §6.C(1) primary checkbox sits at left edge below the "(1)" label.
+      // Visual measurement (1700px page at 200dpi for 11in PDF = 1 PDF pt ≈ 1.55 px).
+      // Section §6.C "(1) Within ___ days" line is the first line of §6.C body
+      // starting around displayed y=~145 px (PDF coord y≈697 from bottom).
+      page3.drawText('X', { x: 60, y: 709, size: 11 });
+      const c1Days = (fv.survey_furnish_days != null && fv.survey_furnish_days !== '')
+        ? String(fv.survey_furnish_days) : '7';
+      page3.drawText(c1Days, { x: 128, y: 709, size: 10 });
+    } catch (e) { console.warn('[fill-form] §6.C(1) overlay failed:', e && e.message); }
+    // Inner fallback "Seller pays for new" → leave 'Buyer' checkbox UNchecked.
+  }
+  // §6.C days fields — default to 7 days for (1) Seller-furnishes-existing window,
+  // 3 days for the "no later than 3 days prior to Closing" Buyer-obtains-fallback window.
+  const surveyDays = fv.survey_furnish_days != null && fv.survey_furnish_days !== ''
+    ? String(fv.survey_furnish_days) : '7';
+  // The "Within one"/"Within two" share the same days blank in the form's printed layout.
+  // The widget 'than 3 days prior to Closing Date' at p2/y=705 is the §6.C(1) fallback days field.
+  safeSetText(form, 'than 3 days prior to Closing Date', surveyDays);
 
   // PROPERTY CONDITION (Section 7)
-  // Default: Buyer accepts As-Is (most common in Texas resale)
+  //
+  // The §7.D "ACCEPTANCE OF PROPERTY CONDITION" paragraph appears in TWO places
+  // on TREC 20-18 due to a multi-page wrap:
+  //   - Page 4 widget labeled '1 Buyer accepts the Property As Is' (y=149) and
+  //     '2 Buyer accepts the Property As Is provided Seller...' are MIS-LABELED in
+  //     the AcroForm — these are actually §7.B(1) and §7.B(2) "Buyer has received
+  //     Seller's Disclosure Notice" checkboxes. They concern the Seller's Disclosure
+  //     Notice receipt status, NOT property condition acceptance.
+  //   - Page 5 widgets 'As Is' (y=681) and 'As Is except' (y=669) are the ACTUAL
+  //     §7.D "Acceptance of Property Condition" checkboxes.
+  //
+  // Hadley 2026-06-27 fix: check the page-5 'As Is' / 'As Is except' widgets
+  // (the real §7.D), and ALSO continue to check the page-4 mis-labeled widget
+  // to preserve the §7.B "Buyer has received Notice" default (since with the
+  // Disclosure already delivered before contract execution, Buyer always
+  // "has received" by the time the contract is signed).
   if (fv.as_is_with_repairs === true) {
     safeCheck(form, '2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the');
+    safeCheck(form, 'As Is except');
     safeSetText(form, 'following specific repairs and treatments', fv.required_repairs || '');
     safeSetText(form, 'undefined_13', fv.repairs_additional || '');
   } else {
+    // Default: Buyer accepts As-Is (most common in Texas resale)
     safeCheck(form, '1 Buyer accepts the Property As Is');
+    safeCheck(form, 'As Is');
   }
   safeSetText(form, 'service contract in an amount not exceeding', fv.service_contract_amount != null && fv.service_contract_amount !== '' ? formatMoney(fv.service_contract_amount) : '');
 
@@ -726,49 +854,133 @@ async function fillResaleContract(pdfDoc, fv) {
   }
 
   // POSSESSION / CLOSING NOTICES
-  safeSetText(form, 'to escrow agent within', fv.funding_notice_days || '');
-  safeSetText(form, 'to escrow agent within 1', fv.funding_notice_days || '');
-  safeSetText(form, 'than 3 days prior to Closing Date', fv.closing_statement_days || '');
+  // NOTE: 'to escrow agent within' is now wired above to additional_earnest_money_days (§5.A(1)),
+  //       NOT funding_notice_days. The widget 'to escrow agent within 1' at p0/y=60 sits in
+  //       §4.C(2) NATURAL RESOURCE LEASES area (Heath verified PDF text 2026-06-27).
+  // NOTE: 'than 3 days prior to Closing Date' is the §6.C(1) survey-fallback days field
+  //       and is wired above in the §6.C SURVEY block (NOT a closing-statement days field).
+  safeSetText(form, 'to escrow agent within 1', fv.natural_resource_lease_termination_days || '');
   safeSetText(form, 'be removed prior to delivery of possession', fv.items_removed || '');
 
-  // ATTORNEYS (Section 18)
+  // ATTORNEYS (Section 23)
   safeSetText(form, 'Attorney is', fv.buyer_attorney || '');
   safeSetText(form, 'Attorney is_2', fv.seller_attorney || '');
 
-  // HOA (Section 2 membership)
+  // §6.A TITLE POLICY — who pays for owner's title policy
+  // Widget positions p2/y=352: 'Sellers_2' (x=314) = Seller pays; 'Buyers expense no later' (x=368) = Buyer pays
+  // Default for Texas resale: Seller pays owner's title policy (per Heath master prompt "seller will provide").
+  if (fv.title_seller_pays === true || fv.title_seller_pays === undefined || fv.title_seller_pays === null) {
+    safeCheck(form, 'Sellers_2');
+  } else {
+    safeCheck(form, 'Buyers expense no later');
+  }
+
+  // HOA (Section 6.E membership)
   if (fv.hoa_exists === true) {
     safeCheck(form, 'is');
     safeCheck(form, 'Addendum for Property Subject to');
   } else {
     safeCheck(form, 'is not');
   }
-  safeSetText(form, '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property', fv.hoa_description || '');
+  // NOTE: Widget '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property' is
+  // POSITIONALLY a page-2 buyer-initials slot (y=21 x=211 w=35), NOT a §6.E description text field.
+  // Wiring hoa_description here was a long-standing bug. The buyer initials are written below.
 
-  // ADDENDUM CHECKBOXES (Section 22)
-  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
+  // ADDENDUM CHECKBOXES (Section 22 — VERIFIED visually p8 via fitz render 2026-06-27)
+  //
+  // CRITICAL: The TREC 20-18 source PDF's right-column widget NAMES are shifted by ONE
+  // VISUAL ROW UP relative to where the widget actually renders. The fitz/MuPDF render
+  // proves the actual visual mapping (widget rect Y vs text row Y), which is:
+  //
+  // LEFT COLUMN (widget name = visual row; AcroForm names are accurate):
+  //   'Third Party Financing Addendum'          -> Third Party Financing (visual ✓)
+  //   'Seller Financing Addendum'               -> Seller Financing
+  //   'Addendum for Property Subject to'        -> Mandatory HOA membership
+  //   'Buyers Temporary Residential Lease'      -> Buyer's Temp Lease
+  //   'Loan Assumption Addendum_2'              -> Loan Assumption
+  //   'Addendum for Sale of Other Property by'  -> Sale of Other Property by Buyer
+  //   'Addendum for Reservation of Oil Gas'     -> Reservation of Oil/Gas/Minerals
+  //   'Addendum for BackUp Contract'            -> Back-Up Contract
+  //   'Check Box8'                              -> Coastal Area Property
+  //   'Check Box9'                              -> Authorizing Hydrostatic Testing
+  //   'Check box 10'                            -> Right to Terminate Due to Lender's Appraisal (TREC 49-1)
+  //   'Check box 11'                            -> Environmental Assessment / Threatened Species / Wetlands
+  //
+  // RIGHT COLUMN (widget name SHIFTED UP one row from visual; corrected mapping):
+  //   'Environmental Assessment Threatened or'  -> Sellers Temporary Residential Lease
+  //   'Sellers Temporary Residential Lease'     -> Short Sale Addendum
+  //   'Short Sale Addendum'                     -> Property Located Seaward of Gulf Intracoastal
+  //   'Addendum for Property Located Seaward'   -> Seller's Disclosure of Lead-Based Paint (OP-L)
+  //   'Sellers Disclos'                         -> Property in a Propane Gas System Service Area
+  //   'Addend. for Sellers Disclos'             -> Addendum Regarding Residential Leases
+  //   'Addendum for Property in a Propane Gas'  -> Addendum Regarding Fixture Leases
+  //   'PID'                                     -> Notice of Obligation to Pay PID Assessment
+  //   'Addendum for Section 1031'               -> Section 1031 Exchange (visual ✓)
+  //   'Other'                                   -> Other (list)
+  if (isFinanced || fv.financing_addendum === true || fv.addendum_financing === true) safeCheck(form, 'Third Party Financing Addendum');
   if (fv.seller_financing_addendum === true) safeCheck(form, 'Seller Financing Addendum');
-  if (fv.environmental_addendum === true) safeCheck(form, 'Environmental Assessment Threatened or');
-  if (fv.seller_leaseback_addendum === true) safeCheck(form, 'Sellers Temporary Residential Lease');
-  if (fv.short_sale_addendum === true) safeCheck(form, 'Short Sale Addendum');
+  // RIGHT column — shifted mapping (widget name does NOT match visual row)
+  if (fv.seller_leaseback_addendum === true) safeCheck(form, 'Environmental Assessment Threatened or'); // → Sellers Temp Lease
+  if (fv.short_sale_addendum === true) safeCheck(form, 'Sellers Temporary Residential Lease'); // → Short Sale
+  if (fv.coastal_addendum === true) safeCheck(form, 'Short Sale Addendum'); // → Property Located Seaward
+  // Lead-Based Paint Addendum (OP-L) — for pre-1978 homes — VISUAL ROW = "Seller's Disclosure of Lead-Based Paint"
+  // CORRECTED 2026-06-27 by Hadley after visual verification: widget 'Addendum for Property Located Seaward'
+  // renders at the Lead-Paint visual row (not the Seaward row, despite its name).
+  if (fv.addendum_lead_paint === true || fv.lead_paint_addendum === true) safeCheck(form, 'Addendum for Property Located Seaward');
+  if (fv.propane_addendum === true) safeCheck(form, 'Sellers Disclos'); // → Propane Gas
+  if (fv.residential_leases_addendum === true) safeCheck(form, 'Addend. for Sellers Disclos'); // → Residential Leases
+  if (fv.fixture_leases_addendum === true) safeCheck(form, 'Addendum for Property in a Propane Gas'); // → Fixture Leases
+  if (fv.pid_addendum === true) safeCheck(form, 'PID'); // → PID Notice
+  if (fv.section_1031_addendum === true) safeCheck(form, 'Addendum for Section 1031');
+  if (fv.other_addendum === true) safeCheck(form, 'Other');
+  // LEFT column — names match visual rows
   if (fv.buyer_leaseback_addendum === true) safeCheck(form, 'Buyers Temporary Residential Lease');
-  if (fv.loan_assumption_addendum === true) safeCheck(form, 'Loan Assumption Addendum');
-  if (fv.coastal_addendum === true) safeCheck(form, 'Addendum for Property Located Seaward');
+  if (fv.loan_assumption_addendum === true) safeCheck(form, 'Loan Assumption Addendum_2');
   if (fv.other_property_addendum === true) safeCheck(form, 'Addendum for Sale of Other Property by');
   if (fv.oil_gas_addendum === true) safeCheck(form, 'Addendum for Reservation of Oil Gas');
   if (fv.backup_contract_addendum === true) safeCheck(form, 'Addendum for BackUp Contract');
-  if (fv.propane_addendum === true) safeCheck(form, 'Addendum for Property in a Propane Gas');
-  if (fv.sellers_disclosure_addendum === true) safeCheck(form, 'Sellers Disclos');
-  if (fv.pid_addendum === true) safeCheck(form, 'PID');
+  if (fv.coastal_area_addendum === true) safeCheck(form, 'Check Box8');
+  if (fv.hydrostatic_addendum === true) safeCheck(form, 'Check Box9');
+  if (fv.lender_appraisal_addendum === true || fv.addendum_49_1 === true) safeCheck(form, 'Check box 10');
+  if (fv.environmental_addendum === true) safeCheck(form, 'Check box 11');
+  // HOA Addendum (TREC 36-11) — for properties subject to mandatory HOA membership
+  if (fv.addendum_hoa === true || fv.hoa_addendum === true || fv.hoa_exists === true) safeCheck(form, 'Addendum for Property Subject to');
+  // Seller's Disclosure Notice Addendum (OP-H) — note: there is no visual row for OP-H in §22 since
+  // the §22 addendum list does not include OP-H (it's delivered separately under §7.B). The old
+  // wiring to 'Addend. for Sellers Disclos' was incorrect.
   safeSetText(form, 'System Service Area', fv.propane_system_area || '');
-  safeSetText(form, 'The private transfer fee', fv.private_transfer_fee || '');
+  // NOTE: Widget 'The private transfer fee' is POSITIONALLY a page-3 seller-initials slot (y=21 x=396 w=36),
+  // NOT a private-transfer-fee dollar field. Wiring private_transfer_fee here was a long-standing bug.
+  // Seller initials are written below.
+
+  // §11 SPECIAL PROVISIONS — Brokers' factual statements (no UPL).
+  // Build automatic provisions for common deal terms (seller concessions, home warranty if not in §12).
+  // Widget positions on PDF p5 (Contract page 6, where §11 sits per layout verification 2026-06-27):
+  //   'Text3'   (y=431, w=205) — first line, right-side, narrower
+  //   'Text3 2' (y=420, w=495) — second full-width line
+  //   'Text3 3' (y=409, w=495) — third full-width line
+  // 'Brokers and Sales' / 'Brokers and Sales 2' on PDF p4 are §8 BROKERS AND SALES AGENTS widgets, NOT §11.
+  const specialProvisions = [];
+  if (fv.special_provisions) specialProvisions.push(String(fv.special_provisions));
+  if (fv.seller_concessions != null && fv.seller_concessions !== '' && Number(fv.seller_concessions) > 0) {
+    specialProvisions.push('Seller to credit Buyer $' + formatMoney(fv.seller_concessions) + ' toward Buyer\'s closing costs at closing.');
+  }
+  if (specialProvisions.length > 0) {
+    const provText = specialProvisions.join(' ');
+    // Write to the widest line. If text fits in the first line (~80 chars at w=205), use it;
+    // otherwise spill into the wider line. For simplicity, always write into the widest line (Text3 2 or Text3 3).
+    safeSetText(form, 'Text3 2', provText);
+  }
 
   // EXECUTION DATE
   if (fv.contract_effective_date) {
     const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
     safeSetText(form, 'Date', ds);
   }
-  if (fv.execution_date) {
-    const ed = String(fv.execution_date);
+  // EXECUTED block: if execution_date provided, use it; otherwise fall back to contract_effective_date.
+  const execISO = fv.execution_date || fv.contract_effective_date;
+  if (execISO) {
+    const ed = String(execISO);
     const edParsed = ed.includes('-') ? new Date(ed) : null;
     if (edParsed) {
       const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -832,7 +1044,12 @@ async function fillResaleContract(pdfDoc, fv) {
   if (fv.buyer_only_agent === true) safeCheck(form, 'Buyer only');
 
   // ESCROW RECEIPT FIELDS (filled with title company info)
-  safeSetText(form, 'Received by', fv.earnest_received_by || '');
+  // 'Received by' / 'Received by_2' / 'Received by_3' = the ESCROW OFFICER name
+  // (the human at the title company, e.g. "Ashley Phiffer"). Falls back to
+  // escrow_agent_name set up above. Only set when this filler's escrowOfficer
+  // value is non-empty so we don't blank what was written earlier in fillResaleContract.
+  const receivedBy = fv.earnest_received_by || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
+  if (receivedBy) safeSetText(form, 'Received by', receivedBy);
   safeSetText(form, 'Address', fv.escrow_address || '');
   safeSetText(form, 'City_4', fv.escrow_city || '');
   safeSetText(form, 'State_4', fv.escrow_state || '');
@@ -841,7 +1058,8 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'DateTime', fv.earnest_receipt_datetime || '');
   safeSetText(form, 'Phone_6', fv.escrow_phone || '');
   safeSetText(form, 'Fax', fv.escrow_fax || '');
-  safeSetText(form, 'Received by_2', fv.earnest_received_by_2 || '');
+  const receivedBy2 = fv.earnest_received_by_2 || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
+  if (receivedBy2) safeSetText(form, 'Received by_2', receivedBy2);
   safeSetText(form, 'Address_2', fv.escrow_address_2 || '');
   safeSetText(form, 'City_5', fv.escrow_city_2 || '');
   safeSetText(form, 'State_5', fv.escrow_state_2 || '');
@@ -850,7 +1068,8 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Date_2', fv.earnest_date_2 || '');
   safeSetText(form, 'Phone_7', fv.escrow_phone_2 || '');
   safeSetText(form, 'Fax_2', fv.escrow_fax_2 || '');
-  safeSetText(form, 'Received by_3', fv.add_earnest_received_by || '');
+  const receivedBy3 = fv.add_earnest_received_by || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
+  if (receivedBy3) safeSetText(form, 'Received by_3', receivedBy3);
   safeSetText(form, 'Address_3', fv.add_escrow_address || '');
   safeSetText(form, 'City_6', fv.add_escrow_city || '');
   safeSetText(form, 'State_6', fv.add_escrow_state || '');
@@ -867,23 +1086,74 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
   safeSetText(form, 'when mailed to', fv.notice_address_2 || '');
 
-  // INITIALS — all repeater initials fields on each page
+  // INITIALS — every page has a footer "Initialed for identification by Buyer ___ ___ and Seller ___ ___".
+  // The AcroForm field NAMES are misleading: many of them are inherited from arbitrary text
+  // snippets near the widget at PDF-authoring time. The widget POSITIONS are ground truth.
+  // Mapping verified 2026-06-27 by Hadley via pdf-lib widget rectangles (y=21 footer, x∈{211,252-253} for buyer,
+  // x∈{347,396} for seller).
+  //
+  // Per-page initials widgets (positions confirmed):
+  //   PDF page 0 (Contract page 1): Buyer = "Initialed for identification by Buyer" + "undefined_8",  Seller = "and Seller" + "undefined_9"
+  //   PDF page 1 (Contract page 2): Buyer = "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property" + "and Seller_2", Seller = "undefined_10" + "undefined_11"
+  //   PDF page 2 (Contract page 3): Buyer = "Property Code requires Seller to notify Buyer as follows" + "and Seller_3", Seller = "undefined_12" + "The private transfer fee"
+  //   PDF page 3 (Contract page 4): Buyer = "Initialed for identification by Buyer_2" + "undefined_14",  Seller = "and Seller_4" + "undefined_15"
+  //   PDF page 4 (Contract page 5): Buyer = "Initialed for identification by Buyer_3" + "Buyers Expenses as allowed by the lender", Seller = "and Seller_5" + "undefined_16"
+  //   PDF page 5 (Contract page 6): Buyer = "Initialed for identification by Buyer_4" + "undefined_17", Seller = "and Seller_6" + "undefined_18"
+  //   PDF page 6 (Contract page 7): NOT INITIALS — these widgets are "AC numb 1..4" maxLen=3 = §21 phone area codes
+  //   PDF page 7 (Contract page 8): Buyer = "Initialed for identification by Buyer_5" + "and Seller_7", Seller = "undefined_22" + "undefined_23"
+  //
+  // Note: "and Seller_7" appears positionally at x=254 (BUYER side), not seller side, despite the name.
   var buyerInitFields = [
+    // p0
     'Initialed for identification by Buyer',
+    'undefined_8',
+    // p1
+    '2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property',
+    'and Seller_2',
+    // p2
+    'Property Code requires Seller to notify Buyer as follows',
+    'and Seller_3',
+    // p3
     'Initialed for identification by Buyer_2',
+    'undefined_14',
+    // p4
     'Initialed for identification by Buyer_3',
-    'Initialed for identification by Buyer_4',
-    'Initialed for identification by Buyer_5',
     'Buyers Expenses as allowed by the lender',
+    // p5
+    'Initialed for identification by Buyer_4',
+    'undefined_17',
+    // p6 — widgets renamed 'AC numb 1..4' (maxLen=3) but positionally these are initials slots, NOT area codes
+    'AC numb 1',
+    'AC numb 2',
+    // p7
+    'Initialed for identification by Buyer_5',
+    'and Seller_7',
   ];
   var sellerInitFields = [
+    // p0
     'and Seller',
-    'and Seller_2',
-    'and Seller_3',
+    'undefined_9',
+    // p1
+    'undefined_10',
+    'undefined_11',
+    // p2
+    'undefined_12',
+    'The private transfer fee',
+    // p3
     'and Seller_4',
+    'undefined_15',
+    // p4
     'and Seller_5',
+    'undefined_16',
+    // p5
     'and Seller_6',
-    'and Seller_7',
+    'undefined_18',
+    // p6
+    'AC numb 3',
+    'AC numb 4',
+    // p7
+    'undefined_22',
+    'undefined_23',
   ];
   buyerInitFields.forEach(function(f) { safeSetText(form, f, buyerInit); });
   sellerInitFields.forEach(function(f) { safeSetText(form, f, sellerInit); });
@@ -2797,7 +3067,26 @@ async function fillForm(formType, fieldValues) {
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
 
-  try { pdfDoc.getForm().flatten(); } catch (e) { console.warn('[fill-form] flatten failed:', e && e.message); }
+  // ATLAS 2026-06-28 NO-FLATTEN FIX: Hadley diagnosed that pdf-lib's form.flatten()
+  // STRIPS checkbox X marks during the flatten render — values are correctly
+  // written to /V slots, but flatten kills the visible appearance for checkboxes.
+  // This explains every Heath-reported "values stored but invisible" bug:
+  //   - §7.D "Accepts As Is" checkbox blank
+  //   - §6.A Seller's title-policy box blank
+  //   - §1.C FHA INSURED FINANCING box blank
+  //   - plus the broader checkbox-rendering class of bugs.
+  //
+  // Fix: generate appearance streams via updateFieldAppearances() (which produces
+  // visible X marks + text in the widget appearance streams), then SKIP flatten.
+  // The form widgets remain interactive in viewers that support them, but the
+  // appearance streams are baked so the values are visible in any PDF viewer
+  // (including pdftoppm, browser PDF render, print, etc.).
+  try {
+    pdfDoc.getForm().updateFieldAppearances();
+  } catch (e) {
+    console.warn('[fill-form] updateFieldAppearances failed:', e && e.message);
+  }
+  // FLATTEN REMOVED 2026-06-28 — pdf-lib's flatten() bug strips checkbox X marks.
 
   return await pdfDoc.save();
 }
