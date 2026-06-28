@@ -10,8 +10,19 @@
  * Switched to network-only for the HTML shell so a stale cached page can
  * never be served while the device is online — offline still falls back
  * to whatever was last cached.
+ *
+ * 2026-06-28 (Atlas): cache key bumped to v7 to force-refresh Heath's Z Fold —
+ * Heath flagged TWO bugs caused by stale cached HTML:
+ *   1) CUSTOMER ACTIVITY / ACTIONS FOR YOU / TO-DO panels showed "Offline."
+ *      (Server returns 200 + real data; verified via signed-in Playwright as
+ *      heath.shepard@kw.com — all three panels render. Heath's WebView was
+ *      serving stale HTML where the render path threw.)
+ *   2) Attach button only opened camera (fix 9d1047f4 removed capture="environment"
+ *      but his WebView held the pre-fix HTML).
+ * Bumping cache name forces SW activate → claim → navigate() reload of all
+ * window clients, pulling the latest /jarvis-pwa.html.
  */
-const CACHE = 'jarvis-pwa-v6-2026-06-27-capacitor-file-wrap';
+const CACHE = 'jarvis-pwa-v7-2026-06-28-three-panels-and-attach-picker';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
