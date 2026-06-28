@@ -373,7 +373,10 @@ function normalizeFields(raw) {
 }
 
 // ---------------------------------------------------------------------------
-// Extract fields via Claude Haiku with strict schema enforcement
+// Extract fields via Claude Opus 4.7 with strict schema enforcement.
+// 2026-06-27 ATLAS: swapped Haiku → Opus 4.7 per Heath. Worth the 5x cost for
+// one-shot accurate extraction from voice-transcribed prompts. Orchestration
+// (chat.js, jarvis-voice) keeps Sonnet — Opus only for this extraction step.
 // ---------------------------------------------------------------------------
 async function extractFieldsWithAI(formType, message, transaction) {
   const anthropic = new Anthropic({
@@ -444,8 +447,8 @@ Agent's message: "${message}"
 Extract the form fields. Use ONLY field names from the template above.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1000,
+    model: 'claude-opus-4-7',
+    max_tokens: 2000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   });

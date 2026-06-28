@@ -98,31 +98,136 @@ const KEY_MAP = {
     as_is: 'as_is',
     sdn_received: 'sdn_received',
   },
+  // 2026-06-27 ATLAS: expanded to full TREC 40-11 field set (verified via
+  // GET /templates/4023463 — 67 fields). Maps both common extraction keys
+  // (loan_amount, interest_rate_max) and addendum-specific direct fields.
   'financing-addendum': {
     property_address: 'property_address',
+    property_address_p2: 'property_address_p2',
+    // Conventional / first mortgage
+    conventional_financing: 'conventional_financing',
+    first_mortgage_loan: 'first_mortgage_loan',
     first_loan_amount: 'first_loan_amount',
+    first_loan_amount_due: 'first_loan_amount_due',
     first_interest_rate: 'first_interest_rate',
     first_loan_term_years: 'first_loan_term_years',
+    first_origination_cap: 'first_origination_cap',
+    // Second mortgage
+    second_mortgage_loan: 'second_mortgage_loan',
+    second_loan_amount: 'second_loan_amount',
+    second_loan_term: 'second_loan_term',
+    second_interest_rate: 'second_interest_rate',
+    second_origination_cap: 'second_origination_cap',
+    second_loan_exclusion: 'second_loan_exclusion',
+    // TX Vet
+    tx_veterans_loan: 'tx_veterans_loan',
+    tx_vet_loan_amount: 'tx_vet_loan_amount',
+    tx_vet_loan_years: 'tx_vet_loan_years',
+    // FHA
     fha_financing: 'fha_financing',
+    fha_section: 'fha_section',
     fha_loan_amount: 'fha_loan_amount',
     fha_amortization_years: 'fha_amortization_years',
+    fha_interest_rate: 'fha_interest_rate',
+    fha_origination_text: 'fha_origination_text',
+    fha_origination_cap: 'fha_origination_cap',
+    will_fha: 'will_fha',
+    will_not_fha: 'will_not_fha',
+    fha_conversion_check: 'fha_conversion_check',
+    fha_conversion_amount: 'fha_conversion_amount',
+    // VA
     va_financing: 'va_financing',
     va_loan_amount: 'va_loan_amount',
+    va_amortization_years: 'va_amortization_years',
+    va_interest_rate: 'va_interest_rate',
+    va_origination_cap: 'va_origination_cap',
+    va_loan_estimate_cap: 'va_loan_estimate_cap',
+    va_appraised_value: 'va_appraised_value',
+    // USDA
     usda_financing: 'usda_financing',
+    usda_loan_amount: 'usda_loan_amount',
+    usda_interest_rate: 'usda_interest_rate',
+    usda_term_years: 'usda_term_years',
+    usda_origination_cap: 'usda_origination_cap',
+    // Reverse mortgage
+    reverse_mortgage: 'reverse_mortgage',
+    reverse_loan_amount: 'reverse_loan_amount',
+    reverse_funding_fee: 'reverse_funding_fee',
+    reverse_term_1: 'reverse_term_1',
+    reverse_rate_1: 'reverse_rate_1',
+    // Misc / approval
     credit_approval_days: 'credit_approval_days',
-    conventional_financing: 'conventional_financing',
+    buyer_approval_required: 'buyer_approval_required',
+    other_origination_percent: 'other_origination_percent',
+    // Common-extraction aliases → addendum primary loan fields
+    loan_amount: 'first_loan_amount',
+    interest_rate_max: 'first_interest_rate',
+    loan_term_years: 'first_loan_term_years',
   },
+  // 2026-06-27 ATLAS: full HOA field map verified via
+  // GET /templates/4111321 — 17 fields. DocuSeal scraped some field names
+  // from PDF label text — the long descriptive names are real keys.
   'hoa-addendum': {
-    buyer_name: 'buyer_1_name',
-    seller_name: 'Seller_1_name',
+    // Headline fields
     property_address: 'Street Address and City',
+    hoa_name_and_phone: 'Name of Property Owners Association Association and Phone Number',
+    // Section B — Buyer Subdivision Information delivery options
+    section_b1_within: '1 Within',
+    section_b1_terminate_text:
+      'the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate',
+    section_b2_check: 'undefined',
+    section_b2_subdivision_text: 'copy of the Subdivision Information to the Seller',
+    section_b3_received:
+      '3Buyer has received and approved the Subdivision Information before signing the contract Buyer',
+    section_b3_does: 'does',
+    section_b3_does_not:
+      'does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at',
+    section_b4_no_delivery: '4Buyer does not require delivery of the Subdivision Information',
+    // Section D — Reserves + Title cost
+    section_d_reserves:
+      'D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association',
+    title_buyer_pays: 'Buyer',
+    title_seller_pays: 'Seller shall pay the Title Company the cost of obtaining the',
+    // Signature roles
+    buyer_name: 'buyer_1_name',
+    buyer_1_name: 'buyer_1_name',
+    buyer_2_name: 'buyer_2_name',
+    seller_name: 'Seller_1_name',
+    seller_1_name: 'Seller_1_name',
+    seller_2_name: 'Seller_2_name',
   },
+  // 2026-06-27 ATLAS: full OP-L Lead-Based Paint field map verified via
+  // GET /templates/4023469 — 23 fields.
   'lead-paint-addendum': {
     property_address: 'property_address',
+    // Seller disclosure
     known_lead_paint: 'known_lead_paint',
     known_lead_paint_description: 'known_lead_paint_description',
     no_knowledge_lead_paint: 'no_knowledge_lead_paint',
+    records_available: 'records_available',
+    records_description: 'records_description',
+    no_records: 'no_records',
+    // Buyer acknowledgement
     buyer_waives_inspection: 'buyer_waives_inspection',
+    buyer_reserves_inspection: 'buyer_reserves_inspection',
+    buyer_received_copies: 'buyer_received_copies',
+    buyer_received_pamphlet: 'buyer_received_pamphlet',
+    // Signatures and dates
+    buyer_signature_1: 'buyer_signature_1',
+    buyer_date_1: 'buyer_date_1',
+    seller_signature_1: 'seller_signature_1',
+    seller_date_1: 'seller_date_1',
+    buyer_signature_2: 'buyer_signature_2',
+    buyer_date_2: 'buyer_date_2',
+    seller_signature_2: 'seller_signature_2',
+    seller_date_2: 'seller_date_2',
+    buyers_broker_signature: 'buyers_broker_signature',
+    buyers_broker_date: 'buyers_broker_date',
+    sellers_broker_signature: 'sellers_broker_signature',
+    sellers_broker_date: 'sellers_broker_date',
+    // Convenience aliases from extractor canonical keys
+    seller_disclosure_choice: 'no_knowledge_lead_paint',
+    buyer_acknowledgment: 'buyer_received_pamphlet',
   },
 };
 
