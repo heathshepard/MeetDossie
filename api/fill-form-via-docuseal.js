@@ -45,8 +45,10 @@ async function supabaseStorageUpload(path, buffer, contentType = 'application/pd
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST',
     headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': contentType,
+      'x-upsert': 'true',
     },
     body: buffer,
   });
@@ -61,6 +63,7 @@ async function supabaseStorageSignedUrl(path, expirationSeconds) {
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${path}`, {
     method: 'POST',
     headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': 'application/json',
     },
@@ -78,6 +81,7 @@ async function supabaseInsertDocument(docRow) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/documents`, {
     method: 'POST',
     headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
@@ -405,12 +409,17 @@ module.exports = async (req, res) => {
     await supabaseStorageUpload(storagePath, pdfBuffer, 'application/pdf');
 
     // Insert documents row
+    // 2026-06-27 ATLAS FIX: schema uses storage_path + file_name + file_type (not storage_url + name).
     const docRow = await supabaseInsertDocument({
       transaction_id: transactionId,
+      user_id: userId,
       document_type: 'resale_contract',
       status: 'filled',
-      storage_url: storagePath,
-      name: `TREC-Resale-Contract-${timestamp}.pdf`,
+      storage_path: storagePath,
+      file_name: `TREC-Resale-Contract-${timestamp}.pdf`,
+      file_type: 'application/pdf',
+      file_size: pdfBuffer.length,
+      docuseal_submission_id: String(submissionId),
       created_at: new Date().toISOString(),
     });
 
