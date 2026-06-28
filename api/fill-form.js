@@ -3086,6 +3086,78 @@ async function fillForm(formType, fieldValues) {
   } catch (e) {
     console.warn('[fill-form] updateFieldAppearances failed:', e && e.message);
   }
+  // ATLAS 2026-06-28 EOD pivot: set /NeedAppearances=true on the AcroForm so PDF
+  // viewers that ignore baked appearance streams (poppler, some Acrobat configs,
+  // browser PDF renderers) will recompute appearances at render time. TREC's
+  // original PDFs DON'T set this flag, so without this override every checkbox
+  // value silently fails to render anywhere except in Acrobat-full.
+  try {
+    const { PDFName, PDFBool } = require('pdf-lib');
+    pdfDoc.getForm().acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
+  } catch (e) {
+    console.warn('[fill-form] NeedAppearances flag set failed:', e && e.message);
+  }
+
+  // ATLAS 2026-06-28 BULLETPROOF X-OVERLAY: For every checked checkbox, draw a
+  // literal "X" character at the widget's rectangle position. This works in
+  // EVERY PDF viewer (Adobe, Chrome, Firefox, pdftoppm, Telegram preview, mobile,
+  // PWA) because it's just page-level text drawn at exact widget coordinates —
+  // no font tricks, no /AP appearance stream voodoo, no /NeedAppearances flag
+  // dependency. The widget's /V is still set so the form value persists when
+  // editing in Acrobat; the overlay just guarantees visible rendering everywhere.
+  try {
+    const { PDFName } = require('pdf-lib');
+    const form = pdfDoc.getForm();
+    const pages = pdfDoc.getPages();
+    // Build a map from PDFRef -> pageIndex for fast lookup
+    const widgetRefToPage = new Map();
+    for (let pi = 0; pi < pages.length; pi++) {
+      const annots = pages[pi].node.Annots();
+      if (!annots || !annots.asArray) continue;
+      const arr = annots.asArray();
+      for (const annRef of arr) {
+        widgetRefToPage.set(annRef, pi);
+      }
+    }
+    const checkboxes = form.getFields().filter(function(f) { return f.constructor.name === 'PDFCheckBox'; });
+    let overlayCount = 0;
+    for (const cb of checkboxes) {
+      let isChecked = false;
+      try { isChecked = cb.isChecked(); } catch (e) { continue; }
+      if (!isChecked) continue;
+      const widgets = cb.acroField.getWidgets();
+      for (const w of widgets) {
+        const dict = w.dict;
+        const rect = dict.get(PDFName.of('Rect'));
+        if (!rect || !rect.asArray) continue;
+        const r = rect.asArray().map(function(n) { return n.numberValue || 0; });
+        const x0 = r[0], y0 = r[1], x1 = r[2], y1 = r[3];
+        const w_ = x1 - x0, h_ = y1 - y0;
+        // Find which page contains this widget annotation
+        let pageIdx = -1;
+        for (const [ref, pi] of widgetRefToPage.entries()) {
+          const annDict = pdfDoc.context.lookup(ref);
+          if (annDict === dict) { pageIdx = pi; break; }
+        }
+        if (pageIdx < 0) continue;
+        const page = pages[pageIdx];
+        // Draw a bold X centered in the widget rect. Font size is min(w,h) scaled
+        // so the X visually fills the box. The page-level drawing covers any
+        // missing appearance stream rendering — pdftoppm/Chrome/Adobe all show it.
+        const fontSize = Math.max(6, Math.min(w_, h_) * 1.0);
+        // Center horizontally: x = x0 + (w - charWidth)/2; charWidth ~= fontSize*0.5 for X
+        const cx = x0 + (w_ - fontSize * 0.5) / 2;
+        const cy = y0 + (h_ - fontSize * 0.72) / 2;
+        try {
+          page.drawText('X', { x: cx, y: cy, size: fontSize });
+          overlayCount++;
+        } catch (e) { /* drawText can fail if font missing; ignore */ }
+      }
+    }
+    console.log('[fill-form] drew X overlay on ' + overlayCount + ' checked widgets');
+  } catch (e) {
+    console.warn('[fill-form] X-overlay pass failed:', e && e.message);
+  }
   // FLATTEN REMOVED 2026-06-28 — pdf-lib's flatten() bug strips checkbox X marks.
 
   return await pdfDoc.save();
