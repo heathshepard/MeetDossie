@@ -199,48 +199,48 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
   const base64Pdf = pdfBuffer.toString('base64');
 
-  // Step 2: Build per-submitter fields. Each submitter object can carry its own fields[]
-  // when uploaded as a template. /templates/pdf uses this to register field ownership.
-  const submitterEntries = signers.map((s) => {
+  // Step 2: Build the flattened fields array (top-level on document) with `role`
+  // assigning ownership. /templates/pdf wants this shape:
+  //   documents: [{name, file, fields: [{name, type, role, areas}]}]
+  //   submitters: [{name: roleName}]   ← bare role names; emails come at submission time
+  const allFields = [];
+  for (const s of signers) {
     const role = s.role || 'Signer';
     const roleSpecificFields = fieldMap && fieldMap[role] ? fieldMap[role] : null;
     const signerFields = roleSpecificFields !== null
       ? roleSpecificFields
       : (Array.isArray(fields) ? fields.filter((f) => f.signerRole === role) : []);
 
-    const entry = { name: s.name, email: s.email, role };
     if (signerFields.length > 0) {
-      entry.fields = signerFields.map((f) => ({
-        name: f.name,
-        type: f.type,
-        areas: (f.areas || []).map((a) => ({
-          x: a.x,
-          y: a.y,
-          w: a.w,
-          h: a.h,
-          page: a.page,
-        })),
-      }));
+      for (const f of signerFields) {
+        allFields.push({
+          name: f.name,
+          type: f.type,
+          role,
+          areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
+        });
+      }
     } else {
-      entry.fields = [
-        { name: `${role} Signature`, type: 'signature' },
-        { name: `${role} Date`, type: 'date' },
-      ];
+      // Default: a signature + date field per submitter, DocuSeal auto-places them.
+      allFields.push({ name: `${role} Signature`, type: 'signature', role });
+      allFields.push({ name: `${role} Date`, type: 'date', role });
     }
-    return entry;
-  });
+  }
 
-  // Step 3: Create a template from the PDF with submitters defined (this is the
-  // pattern that preserves multi-submitter routing).
+  // Submitters are just role placeholders at template time.
+  const submitterPlaceholders = signers.map((s) => ({ name: s.role || 'Signer' }));
+
+  // Step 3: Create a template from the PDF with multi-role fields.
   const tmplBody = {
     name: fileName || 'Document',
     documents: [
       {
         name: fileName || 'Document.pdf',
         file: `data:application/pdf;base64,${base64Pdf}`,
+        fields: allFields,
       },
     ],
-    submitters: submitterEntries,
+    submitters: submitterPlaceholders,
   };
 
   const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
