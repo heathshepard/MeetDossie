@@ -8,6 +8,8 @@
 //   4. founding_applications where status='pending'
 //   5. decision_queue where status='open' (generic Heath-decision bucket)
 //   6. hadley_unanswered_questions where answered_at IS NULL  (Hadley wants Heath's review on legal Qs)
+//   7. heath_actions where status IN ('pending','snoozed' [due])  (generic Heath-action queue —
+//      Atlas/Carter ship items, manual tasks, anything queued for Heath's yes/no by name)
 //
 // Heath-only (email gate via the standard middleware).
 // GET only. Auto-refresh from the PWA every 30s.
@@ -70,14 +72,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [socials, emails, outboundEmails, foundings, decisions, hadleyQs] = await Promise.all([
+    const heathActionsFilter = `tenant_id=eq.${authUser.userId}&status=in.(pending,snoozed)`;
+    const [socials, emails, outboundEmails, foundings, decisions, hadleyQs, heathActions] = await Promise.all([
       sbGet(`social_posts?select=id,platform,hook,content,persona,topic,created_at,status,source_type,verifier_result&status=in.(draft,pending_approval)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`email_queue?select=id,to_email,to_name,subject,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`outbound_email_queue?select=id,to_email,subject,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`founding_applications?select=id,name,email,brokerage,market,transactions_12mo,why,created_at,status&status=eq.pending&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`decision_queue?select=id,decision_type,title,description,required_by,created_at,status&status=eq.open&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`hadley_unanswered_questions?select=id,question_text,form_context,asked_at,answered_at&answered_at=is.null&order=asked_at.asc&limit=25`).catch(() => []),
+      sbGet(`heath_actions?select=id,title,body,source,priority,created_at,snoozed_until,status,deadline&${heathActionsFilter}&order=created_at.asc&limit=50`).catch(() => []),
     ]);
+
+    // Filter heath_actions: pending now, plus snoozed actions whose snoozed_until has passed.
+    const now = new Date();
+    const visibleHeathActions = (heathActions || []).filter((a) => {
+      if (a.status === 'pending') return true;
+      if (a.status === 'snoozed' && a.snoozed_until) {
+        return new Date(a.snoozed_until) <= now;
+      }
+      return false;
+    });
 
     const items = [];
 
@@ -192,6 +206,23 @@ export default async function handler(req, res) {
       });
     }
 
+    for (const r of visibleHeathActions) {
+      const priority = (r.priority || 'soon').toLowerCase();
+      items.push({
+        id: `heath_action:${r.id}`,
+        source: 'heath_action',
+        source_id: r.id,
+        title: r.title || '(untitled)',
+        subtitle: `${(r.source || 'unknown').toUpperCase()} · ${priority.toUpperCase()}${r.deadline ? ' · due ' + r.deadline.slice(0,10) : ''}`,
+        agent: r.source || 'Jarvis',
+        waiting_minutes: minutesAgo(r.created_at),
+        created_at: r.created_at,
+        approve_endpoint: '/api/approve-heath-action',
+        approve_payload: { action_id: r.id },
+        details: { body: r.body, priority: r.priority, deadline: r.deadline, snoozed_until: r.snoozed_until },
+      });
+    }
+
     // Oldest first (longest waiting bubbles up).
     items.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
@@ -206,6 +237,7 @@ export default async function handler(req, res) {
         founding_applications: foundings.length,
         decision_queue: decisions.length,
         hadley_questions: hadleyQs.length,
+        heath_actions: visibleHeathActions.length,
       },
       items,
     });
