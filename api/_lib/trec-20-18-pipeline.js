@@ -480,7 +480,7 @@ Return JSON only.`;
   let resp;
   try {
     resp = await client.messages.create({
-      model: 'claude-opus-4-5-20250929', // Opus 4.7 (1M ctx) is "opus-4-7"; fallback to 4.5 if 4.7 not available
+      model: 'claude-opus-4-8', // Verified via /v1/models 2026-06-27; bare alias accepts API calls
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

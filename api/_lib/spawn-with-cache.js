@@ -45,6 +45,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // rounded to a single source of truth; refresh when Anthropic publishes
 // new rates.
 const PRICING_PER_M = {
+  'claude-opus-4-8':           { in: 15.00, out: 75.00 },
+  'claude-opus-4-8-1m':        { in: 15.00, out: 75.00 },
   'claude-opus-4-7':           { in: 15.00, out: 75.00 },
   'claude-opus-4-7-1m':        { in: 15.00, out: 75.00 },
   'claude-sonnet-4-6':         { in:  3.00, out: 15.00 },

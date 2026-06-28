@@ -519,7 +519,7 @@ Agent's message: "${message}"
 Extract the form fields. Use ONLY field names from the template above.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-opus-4-7',
+    model: 'claude-opus-4-8',
     max_tokens: 2000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],

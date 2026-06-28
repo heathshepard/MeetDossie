@@ -9,7 +9,7 @@
 // Pricing (per 1M tokens, in/out):
 //   Haiku  4.5 — $0.80 / $4.00     (~13% of Sonnet's cost)
 //   Sonnet 4.6 — $3.00 / $15.00    (default for normal builds)
-//   Opus   4.7 — $15.00 / $75.00   (5x Sonnet, reserve for architecture)
+//   Opus   4.8 — $15.00 / $75.00   (5x Sonnet, reserve for architecture)
 //
 // Decision tree:
 //   1) explicit override → use it
@@ -29,7 +29,7 @@
 // Owner: Atlas (atlas_5, 2026-06-20 Agent Speed Unlock).
 // ============================================================================
 
-const MODEL_OPUS   = 'claude-opus-4-7';
+const MODEL_OPUS   = 'claude-opus-4-8';
 const MODEL_SONNET = 'claude-sonnet-4-6';
 const MODEL_HAIKU  = 'claude-haiku-4-5-20251001';
 
