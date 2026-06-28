@@ -2668,8 +2668,9 @@
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                 </svg>
               </button>
-              <!-- No capture attr — let the OS show native picker (camera + gallery + files). Heath flagged 2026-06-28: capture="environment" forced camera-only on mobile. -->
-              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" />
+              <!-- No capture attr — let the OS show native picker (camera + gallery + files). Heath flagged 2026-06-28: capture="environment" forced camera-only on mobile.
+                   `multiple` added 2026-06-28 (iter v3) — on Android WebView, a single-file image-typed input still defaults straight to the camera on many OEMs (Samsung One UI / Z Fold confirmed). Adding `multiple` forces the system to show the full "Photo Library | Camera | Files" chooser dialog. We still only consume files[0] in the change handler so behavior is unchanged. -->
+              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" multiple />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
@@ -7909,7 +7910,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-28-three-panels-and-attach-picker-v7').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-28-iter3-multiple-attach-v8').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);

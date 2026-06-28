@@ -21,8 +21,15 @@
  *      but his WebView held the pre-fix HTML).
  * Bumping cache name forces SW activate → claim → navigate() reload of all
  * window clients, pulling the latest /jarvis-pwa.html.
+ *
+ * 2026-06-28 iter v3 (Atlas): cache key bumped to v8 — defensive panel render
+ * + SW v7 had not yet merged to main when Heath retested, and Bug 1 (Offline.)
+ * + Bug 2 (camera-only picker) were both still live in prod. Adding `multiple`
+ * to the file input forces Android Z Fold to show the full picker chooser
+ * (One UI default behavior: image/* single = camera, image/* multiple = chooser).
+ * v8 forces fresh fetch of jarvis-pwa.html on activate.
  */
-const CACHE = 'jarvis-pwa-v7-2026-06-28-three-panels-and-attach-picker';
+const CACHE = 'jarvis-pwa-v8-2026-06-28-iter3-multiple-attach';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
