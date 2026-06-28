@@ -131,6 +131,23 @@ function mapToAssignments(fv, intakeIn) {
     };
   }
 
+  // ---- §2.A Legal description splitting ----
+  // Legacy extractor often returns a single legal_description string like
+  // "Lot 12 Block 3 Cordillera Ranch". Rules require legal_lot + legal_block
+  // + legal_addition as separate core fields. Parse the common pattern.
+  if (!assignments.legal_lot && !assignments.legal_block && fv.legal_description) {
+    const ld = String(fv.legal_description);
+    const m = ld.match(/Lot\s+(\S+)\s+Block\s+(\S+)\s+(.+)/i);
+    if (m) {
+      if (!assignments.legal_lot)
+        assignments.legal_lot = { value: m[1], confidence: CONFIDENCE_DERIVED, matchReason: 'derived:legal_description' };
+      if (!assignments.legal_block)
+        assignments.legal_block = { value: m[2], confidence: CONFIDENCE_DERIVED, matchReason: 'derived:legal_description' };
+      if (!assignments.legal_addition)
+        assignments.legal_addition = { value: m[3].trim(), confidence: CONFIDENCE_DERIVED, matchReason: 'derived:legal_description' };
+    }
+  }
+
   // ---- §3 Sales Price tri-split ----
   // Legacy emits sale_price (total) + loan_amount (financing) + optional
   // down_payment_amt (cash). Rules require 3A (cash) + 3B (financing) + 3C (total)
@@ -302,7 +319,7 @@ const MAX_RETRIES_PER_FIELD = 2;
  *   retries  = { fieldId: attemptsUsed }
  *   unmatched = fieldIds that remained UNMATCHED after max retries
  */
-async function validateWithRetry({ assignments, intake, rules, validator, extractor, log }) {
+async function validateWithRetry({ assignments, intake, rules, validator, extractor, log, sourceMessage, transactionContext }) {
   const retries = {};
   let cur = { ...assignments };
   let final = validator.validate(rules, cur, intake);
@@ -342,6 +359,8 @@ async function validateWithRetry({ assignments, intake, rules, validator, extrac
           context: contextForRetry,
           attempt,
           intake,
+          sourceMessage,
+          transactionContext,
         })) || {};
       } catch (err) {
         if (log) log({ stage: 'retry-error', attempt, error: err.message });
@@ -407,7 +426,7 @@ function fillableToLegacy(fillable, originalFv) {
 // Returns a partial assignments dict { fieldId: {value, confidence, matchReason} }.
 // Called once per retry round; we ask for ALL failing fieldIds in a single call.
 // ---------------------------------------------------------------------------
-async function defaultLlmExtractor({ fieldIds, context, intake, attempt }) {
+async function defaultLlmExtractor({ fieldIds, context, intake, attempt, sourceMessage, transactionContext }) {
   let Anthropic;
   try {
     // eslint-disable-next-line global-require
@@ -442,10 +461,18 @@ HARD RULES:
 
 Attempt ${attempt} of ${MAX_RETRIES_PER_FIELD}. Be conservative — better to leave unmatched than guess wrong.`;
 
-  const userPrompt = `Intake context:
+  const userPrompt = `Source agent message (the original natural-language request — extract values from THIS):
+"""
+${sourceMessage || '(no source message available)'}
+"""
+
+Transaction context (existing dossier facts):
+${JSON.stringify(transactionContext || {}, null, 2)}
+
+Strict intake (already resolved):
 ${JSON.stringify(intake, null, 2)}
 
-Failing fields to repair:
+Failing fields to repair (extract a correct value for each from the source message above):
 ${fieldList}
 
 Return JSON only.`;
@@ -513,7 +540,7 @@ Return JSON only.`;
  *     intake                 // resolved intake (with defaults applied)
  *   }
  */
-async function runPipeline({ fieldValues, intake, log, extractor }) {
+async function runPipeline({ fieldValues, intake, log, extractor, sourceMessage, transactionContext }) {
   const { rules, validator } = loadHeathArtifacts();
   const { assignments, intake: resolvedIntake } = mapToAssignments(fieldValues, intake);
 
@@ -527,6 +554,8 @@ async function runPipeline({ fieldValues, intake, log, extractor }) {
     validator,
     extractor: useExtractor,
     log,
+    sourceMessage,
+    transactionContext,
   });
 
   const legacyFv = fillableToLegacy(result.fillable, fieldValues);

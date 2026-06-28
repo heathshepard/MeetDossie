@@ -72,6 +72,7 @@ module.exports = async function handler(req, res) {
     const fieldValues = (body.field_values && typeof body.field_values === 'object') ? body.field_values : {};
     const strictValidate = body.strict_validate === true;
     const intake = (body.intake && typeof body.intake === 'object') ? body.intake : null;
+    const sourceMessage = typeof body.source_message === 'string' ? body.source_message : null;
 
     if (!transactionId) throw new ValidationError('transaction_id is required.');
     if (!forms || forms.length === 0) throw new ValidationError('forms array is required and must not be empty.');
@@ -96,6 +97,7 @@ module.exports = async function handler(req, res) {
           // /api/fill-form is the gate — it ignores the flag for non-supported form types.
           strict_validate: strictValidate && formType === 'resale-contract',
           intake: strictValidate && formType === 'resale-contract' ? intake : undefined,
+          source_message: strictValidate && formType === 'resale-contract' ? sourceMessage : undefined,
         })
       };
 

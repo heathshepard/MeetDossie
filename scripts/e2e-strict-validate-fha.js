@@ -128,6 +128,7 @@ async function fillStrict(token, fieldValues) {
       form_type: 'resale-contract',
       field_values: fieldValues,
       intake,
+      source_message: V3_FHA_PROMPT,
       strict_validate: true,
     }),
   });

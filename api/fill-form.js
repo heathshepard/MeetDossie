@@ -2996,6 +2996,8 @@ module.exports = async function handler(req, res) {
         const pipelineRes = await runPipeline({
           fieldValues: mergedFields,
           intake: body.intake && typeof body.intake === 'object' ? body.intake : null,
+          sourceMessage: typeof body.source_message === 'string' ? body.source_message : null,
+          transactionContext: tx || {},
           log: (entry) => console.log('[fill-form][strict-validate]', JSON.stringify(entry)),
         });
         validationReport = {
