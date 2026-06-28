@@ -70,6 +70,8 @@ module.exports = async function handler(req, res) {
     const transactionId = sanitizeString(body.transaction_id, { maxLength: 200 });
     const forms = Array.isArray(body.forms) ? body.forms : [];
     const fieldValues = (body.field_values && typeof body.field_values === 'object') ? body.field_values : {};
+    const strictValidate = body.strict_validate === true;
+    const intake = (body.intake && typeof body.intake === 'object') ? body.intake : null;
 
     if (!transactionId) throw new ValidationError('transaction_id is required.');
     if (!forms || forms.length === 0) throw new ValidationError('forms array is required and must not be empty.');
@@ -89,7 +91,11 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           transaction_id: transactionId,
           form_type: formType,
-          field_values: fieldValues
+          field_values: fieldValues,
+          // Forward strict_validate only when the form supports it (TREC 20-18 resale).
+          // /api/fill-form is the gate — it ignores the flag for non-supported form types.
+          strict_validate: strictValidate && formType === 'resale-contract',
+          intake: strictValidate && formType === 'resale-contract' ? intake : undefined,
         })
       };
 
