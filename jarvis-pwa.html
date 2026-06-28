@@ -2668,8 +2668,9 @@
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                 </svg>
               </button>
-              <!-- No capture attr — let the OS show native picker (camera + gallery + files). Heath flagged 2026-06-28: capture="environment" forced camera-only on mobile. -->
-              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" />
+              <!-- No capture attr — let the OS show native picker (camera + gallery + files). Heath flagged 2026-06-28: capture="environment" forced camera-only on mobile.
+                   `multiple` added 2026-06-28 (iter v3) — on Android WebView, a single-file image-typed input still defaults straight to the camera on many OEMs (Samsung One UI / Z Fold confirmed). Adding `multiple` forces the system to show the full "Photo Library | Camera | Files" chooser dialog. We still only consume files[0] in the change handler so behavior is unchanged. -->
+              <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" multiple />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
@@ -5060,18 +5061,20 @@
       const body = document.getElementById('actions-body');
       const meta = document.getElementById('actions-meta');
       if (!body) return;
+      let renderedOk = false;
       try {
         const res = await fetch(`${API_BASE}/api/heath-actions-list`, {
           headers: { Authorization: await getAuthHeader() },
         });
         if (!res.ok) {
           body.innerHTML = `<div class="actions-empty">Couldn't load actions (${res.status}).</div>`;
-          meta.textContent = '—';
+          if (meta) meta.textContent = '—';
           return;
         }
         const data = await res.json();
         currentActions = data.actions || { urgent: [], soon: [], whenever: [] };
         renderActions();
+        renderedOk = true;
         if (meta) {
           meta.textContent = data.status || 'ALL CLEAR';
           if (data.total_pending > 0 && data.total_pending <= 3) {
@@ -5083,11 +5086,19 @@
             meta.classList.remove('danger');
           }
         }
-        initActionsRealtime(); // Set up realtime after first load
       } catch (err) {
-        console.warn('[jarvis] loadActions failed', err);
-        body.innerHTML = `<div class="actions-empty">Offline.</div>`;
+        console.warn('[jarvis] loadActions failed', err && err.message ? err.message : err);
+        // Only show "Offline." if we never rendered. A post-render side-effect
+        // throw (e.g. realtime channel) must NOT overwrite real data — that
+        // was Heath's Z Fold bug 2026-06-28: panels rendered then got wiped.
+        if (!renderedOk) {
+          body.innerHTML = `<div class="actions-empty">Offline.</div>`;
+        }
       }
+      // Realtime is fire-and-forget — its own try/catch handles failures.
+      // Pulled out of the main try so a realtime error never overwrites
+      // the rendered actions with "Offline."
+      try { initActionsRealtime(); } catch (e) { console.warn('[jarvis] initActionsRealtime threw', e); }
     }
 
     function renderActions() {
@@ -5310,23 +5321,27 @@
       const body = document.getElementById('todo-body');
       const meta = document.getElementById('todo-meta');
       if (!body) return;
+      let renderedOk = false;
       try {
         const res = await fetch(`${API_BASE}/api/heath-todo-next`, {
           headers: { Authorization: await getAuthHeader() },
         });
         if (!res.ok) {
           body.innerHTML = `<div class="todo-empty">Couldn't load (${res.status}).</div>`;
-          meta.textContent = '';
+          if (meta) meta.textContent = '';
           return;
         }
         const data = await res.json();
         renderTodo(data.task);
-        if (typeof data.queue_count === 'number') {
+        renderedOk = true;
+        if (meta && typeof data.queue_count === 'number') {
           meta.textContent = data.queue_count ? `${data.queue_count} queued` : '';
         }
       } catch (err) {
-        console.warn('[jarvis] loadTodo failed', err);
-        body.innerHTML = `<div class="todo-empty">Offline.</div>`;
+        console.warn('[jarvis] loadTodo failed', err && err.message ? err.message : err);
+        if (!renderedOk) {
+          body.innerHTML = `<div class="todo-empty">Offline.</div>`;
+        }
       }
     }
 
@@ -5837,6 +5852,7 @@
     async function loadCustomerActivity() {
       const feed = document.getElementById('cust-feed');
       if (!feed) return;
+      let renderedOk = false;
       try {
         const res = await fetch(`${API_BASE}/api/jarvis-customer-activity?limit=20`, {
           headers: { Authorization: await getAuthHeader() },
@@ -5848,9 +5864,12 @@
         const data = await res.json();
         custFeedCache = data.events || [];
         renderCustomerFeed(custFeedCache);
+        renderedOk = true;
       } catch (err) {
-        console.warn('[jarvis] loadCustomerActivity failed', err);
-        feed.innerHTML = `<div class="cust-empty">Offline.</div>`;
+        console.warn('[jarvis] loadCustomerActivity failed', err && err.message ? err.message : err);
+        if (!renderedOk) {
+          feed.innerHTML = `<div class="cust-empty">Offline.</div>`;
+        }
       }
     }
 
@@ -7891,7 +7910,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-27-stt-fix-v6-capacitor-file-wrap').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-06-28-iter3-multiple-attach-v8').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);
