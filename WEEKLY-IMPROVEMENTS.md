@@ -11,6 +11,18 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 
 ---
 
+## Week of June 29, 2026
+
+**Emojis now display correctly on founding page** (customer)
+- We fixed an issue where emojis on the founding page were showing as generic symbols instead of colorful emoji icons. Agents will now see proper emoji rendering across all browsers.
+
+**Emojis now display correctly on signup page** (customer)
+- We fixed an issue where emoji icons weren't showing up properly on the founding page during signup. Now they'll display correctly across all browsers.
+
+<!-- applied_shas: 419daba,8750343 -->
+
+---
+
 ## Week of June 15, 2026
 
 **Smoother Earth visualization and grid overlay** (customer)
