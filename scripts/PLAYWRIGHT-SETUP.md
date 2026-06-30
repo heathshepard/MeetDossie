@@ -181,6 +181,45 @@ Repeat for each script with the recommended schedule above.
 
 ---
 
+## ZenRows Managed Scraping (for bot-protected public sites)
+
+Tier 1 (stealth Playwright) fails against sites with aggressive bot detection
+(realtor.com, Zillow, Homes.com). Tier 2 uses ZenRows, a managed proxy service
+that handles Akamai and fingerprint detection automatically.
+
+### Setup (one-time, ~2 minutes)
+
+1. Sign up at https://www.zenrows.com/signup (free trial, no card required, 1,000 requests)
+2. Copy your API key from the ZenRows dashboard
+3. Add to Vercel environment: `ZENROWS_API_KEY=<your-key>`
+4. Test: `node scripts/test-zenrows-realtor.js`
+
+### When to use ZenRows vs DossieBot vs raw Playwright
+
+| Target | Method | Why |
+|--------|--------|-----|
+| realtor.com, Zillow, Homes.com (public agent directories) | ZenRows | Bot detection (Akamai) |
+| Facebook, Instagram, LinkedIn (logged-in actions) | DossieBot Chrome profile | Requires authentication |
+| TREC Typesense, brokerage office pages (light bot detection) | Raw Playwright + stealth | Lower cost, sufficient for simple sites |
+
+### Cost tracking
+
+ZenRows free trial: **1,000 requests**. Premium proxy (enabled by default) uses ~10 credits per request.
+
+- Test harness: 1 credit
+- Realtor.com agent directory scrape: ~50-100 credits (5-10 pages)
+- Single URL fetch: ~10 credits
+
+Track credits via `getCostSummary()` in the wrapper:
+
+```javascript
+const { getCostSummary } = require('./_lib/zenrows-fetch');
+const costs = getCostSummary();
+console.log(`Credits used: ${costs.usedThisSession} / 1000`);
+```
+
+---
+
 ## Dedup files
 
 The `.json` dedup files in `scripts/` are gitignored (or should be — add them
