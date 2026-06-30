@@ -20,8 +20,8 @@ const RESEND_WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
 // Resend includes an 'x-resend-signature' header with format: 't=<timestamp>,v1=<hmac>'
 function verifyResendSignature(rawBody, signature) {
   if (!RESEND_WEBHOOK_SECRET) {
-    console.warn('[resend-webhook] RESEND_WEBHOOK_SECRET not configured — skipping verification');
-    return true; // Fail open if not configured
+    console.error('[resend-webhook] RESEND_WEBHOOK_SECRET not configured — rejecting webhook');
+    return false; // Fail closed if not configured
   }
 
   if (!signature) {
@@ -153,6 +153,12 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error('[resend-webhook] Failed to read body:', err && err.message);
     return res.status(400).json({ ok: false, error: 'Failed to read request body' });
+  }
+
+  // Verify webhook is configured first
+  if (!RESEND_WEBHOOK_SECRET) {
+    console.error('[resend-webhook] Webhook not configured (RESEND_WEBHOOK_SECRET missing)');
+    return res.status(503).json({ ok: false, error: 'Webhook not configured' });
   }
 
   // Verify signature

@@ -474,7 +474,7 @@ body {
 
 <script>
 async function getAuthToken() {
-  const session = localStorage.getItem('sb-pgwoitbdiyubjugwufhk-auth-token');
+  const session = localStorage.getItem('supabase.auth.token');
   if (!session) {
     window.location.href = '/app.html?redirect=/admin-cold-email.html';
     return null;
