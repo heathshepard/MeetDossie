@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cold Email Metrics — Dossie Admin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E8927C'/><text y='.9em' font-size='90' x='10'>D</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF; --bg-dark: #1A1A2E;
+  --border: #E8E2D9; --border-light: #F0EBE3;
+  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
+  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
+  --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+  --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+  --coral: #E8836B; --coral-light: #FCE4DC; --coral-deep: #C9624A;
+  --navy: #1A1A2E;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  padding: 0;
+  margin: 0;
+}
+
+.header {
+  background: var(--navy);
+  color: white;
+  padding: 24px 32px;
+  border-bottom: 2px solid var(--gold);
+}
+
+.header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+.header .sub {
+  font-size: 14px;
+  color: var(--blush-light);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-link {
+  display: inline-block;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--gold-light);
+  text-decoration: none;
+  font-size: 13px;
+  margin-left: 24px;
+  transition: background 0.2s;
+}
+
+.header-link:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--blush);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(45,42,38,0.06);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(45,42,38,0.1);
+}
+
+.card-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1;
+}
+
+.card-sublabel {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+.card.highlight {
+  background: linear-gradient(135deg, var(--blush-light) 0%, var(--gold-light) 100%);
+  border-color: var(--gold);
+}
+
+.card.highlight .card-value {
+  background: linear-gradient(135deg, var(--blush-deep) 0%, var(--gold-deep) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(45,42,38,0.06);
+  overflow: auto;
+  margin-top: 20px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-light);
+}
+
+.data-table td {
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge.sage {
+  background: var(--sage-light);
+  color: var(--sage-deep);
+}
+
+.badge.coral {
+  background: var(--coral-light);
+  color: var(--coral-deep);
+}
+
+.badge.gold {
+  background: var(--gold-light);
+  color: var(--gold-deep);
+}
+
+.loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  font-size: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error {
+  background: var(--coral-light);
+  border: 1px solid var(--coral);
+  border-radius: 12px;
+  padding: 20px;
+  color: var(--coral-deep);
+  margin: 20px 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+.search-box {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.search-box input {
+  flex: 1;
+  max-width: 300px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.search-box input::placeholder {
+  color: var(--text-light);
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--blush);
+  box-shadow: 0 0 0 3px rgba(212, 160, 160, 0.1);
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-warm);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1;
+}
+
+.metric-percent {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <h1>Cold Email Metrics</h1>
+      <div class="sub">
+        <span>Campaign performance dashboard</span>
+      </div>
+    </div>
+    <a href="/admin.html" class="header-link">← Back to Admin</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="loading" class="loading">
+    <div class="loading-spinner">⏳</div>
+    <p>Loading metrics...</p>
+  </div>
+
+  <div id="error" style="display:none;"></div>
+
+  <div id="dashboard" style="display:none;">
+
+    <!-- AGGREGATE METRICS -->
+    <div class="section">
+      <h2 class="section-title">Campaign Summary</h2>
+      <div class="cards">
+        <div class="card highlight">
+          <div class="card-label">Total Sent</div>
+          <div class="card-value" id="total-sent">0</div>
+          <div class="card-sublabel">All campaigns</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Delivered</div>
+          <div class="card-value" id="total-delivered">0</div>
+          <div class="card-sublabel"><span id="delivery-percent">0%</span> delivery rate</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Opened</div>
+          <div class="card-value" id="total-opened">0</div>
+          <div class="card-sublabel"><span id="open-percent">0%</span> open rate</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Clicked</div>
+          <div class="card-value" id="total-clicked">0</div>
+          <div class="card-sublabel"><span id="click-percent">0%</span> click rate</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Bounced</div>
+          <div class="card-value" id="total-bounced">0</div>
+          <div class="card-sublabel"><span id="bounce-percent">0%</span> bounce rate</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Complained</div>
+          <div class="card-value" id="total-complained">0</div>
+          <div class="card-sublabel">Spam reports</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PER-CAMPAIGN METRICS -->
+    <div class="section">
+      <h2 class="section-title">Campaigns</h2>
+      <div class="table-card">
+        <table class="data-table" id="campaigns-table">
+          <thead>
+            <tr>
+              <th>Campaign ID</th>
+              <th>Sent</th>
+              <th>Delivered</th>
+              <th>Opened</th>
+              <th>Clicked</th>
+              <th>Bounced</th>
+              <th>Complained</th>
+            </tr>
+          </thead>
+          <tbody id="campaigns-tbody">
+            <tr><td colspan="7" class="empty-state">No campaigns found</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RECIPIENT DRILL-DOWN -->
+    <div class="section">
+      <h2 class="section-title">Recipient Lookup</h2>
+      <div class="search-box">
+        <input type="email" id="search-email" placeholder="Search by email address..." />
+        <button id="search-btn" style="padding: 10px 24px; background: var(--blush); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Search</button>
+      </div>
+
+      <div id="recipient-results" style="display: none;">
+        <div class="table-card">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 16px; color: var(--navy);">
+            Email Events for <span id="result-email"></span>
+          </h3>
+
+          <div class="metric-row" id="recipient-metrics">
+            <div class="metric">
+              <div class="metric-label">Sent</div>
+              <div class="metric-value" id="recipient-sent">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Delivered</div>
+              <div class="metric-value" id="recipient-delivered">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Opened</div>
+              <div class="metric-value" id="recipient-opened">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Clicked</div>
+              <div class="metric-value" id="recipient-clicked">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Bounced</div>
+              <div class="metric-value" id="recipient-bounced">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Complained</div>
+              <div class="metric-value" id="recipient-complained">0</div>
+            </div>
+          </div>
+
+          <table class="data-table" id="recipient-events-table">
+            <thead>
+              <tr>
+                <th>Event Type</th>
+                <th>Date</th>
+                <th>URL (if clicked)</th>
+                <th>Campaign</th>
+              </tr>
+            </thead>
+            <tbody id="recipient-events-tbody">
+              <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7-DAY ROLLING METRICS -->
+    <div class="section">
+      <h2 class="section-title">7-Day Performance</h2>
+      <div class="table-card">
+        <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 18px; margin-bottom: 16px; color: var(--navy);">Daily Open & Reply Rate (Last 7 Days)</h3>
+        <table class="data-table" id="daily-metrics-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Emails Sent</th>
+              <th>Opened (24h)</th>
+              <th>Open Rate</th>
+              <th>Replied</th>
+              <th>Reply Rate</th>
+            </tr>
+          </thead>
+          <tbody id="daily-metrics-tbody">
+            <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function getAuthToken() {
+  const session = localStorage.getItem('sb-pgwoitbdiyubjugwufhk-auth-token');
+  if (!session) {
+    window.location.href = '/app.html?redirect=/admin-cold-email.html';
+    return null;
+  }
+  try {
+    const auth = JSON.parse(session);
+    return auth.access_token;
+  } catch (e) {
+    window.location.href = '/app.html?redirect=/admin-cold-email.html';
+    return null;
+  }
+}
+
+async function fetchMetrics() {
+  const token = await getAuthToken();
+  if (!token) return;
+
+  try {
+    // Call the cold-email metrics API
+    const res = await fetch('/api/cold-email-metrics', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        window.location.href = '/app.html?redirect=/admin-cold-email.html';
+        return;
+      }
+      throw new Error(`API error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderDashboard(data);
+  } catch (err) {
+    console.error('Fetch error:', err);
+    document.getElementById('loading').style.display = 'none';
+    const errorDiv = document.getElementById('error');
+    errorDiv.style.display = 'block';
+    errorDiv.innerHTML = `<strong>Error loading metrics:</strong> ${err.message}`;
+  }
+}
+
+function renderDashboard(data) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  const {
+    aggregate,
+    campaigns,
+    daily_metrics,
+  } = data;
+
+  // Aggregate metrics
+  document.getElementById('total-sent').textContent = aggregate.total_sent || 0;
+  document.getElementById('total-delivered').textContent = aggregate.total_delivered || 0;
+  document.getElementById('total-opened').textContent = aggregate.total_opened || 0;
+  document.getElementById('total-clicked').textContent = aggregate.total_clicked || 0;
+  document.getElementById('total-bounced').textContent = aggregate.total_bounced || 0;
+  document.getElementById('total-complained').textContent = aggregate.total_complained || 0;
+
+  // Percentages
+  const deliveryPct = aggregate.total_sent > 0 ? Math.round((aggregate.total_delivered / aggregate.total_sent) * 100) : 0;
+  const openPct = aggregate.total_delivered > 0 ? Math.round((aggregate.total_opened / aggregate.total_delivered) * 100) : 0;
+  const clickPct = aggregate.total_delivered > 0 ? Math.round((aggregate.total_clicked / aggregate.total_delivered) * 100) : 0;
+  const bouncePct = aggregate.total_sent > 0 ? Math.round((aggregate.total_bounced / aggregate.total_sent) * 100) : 0;
+
+  document.getElementById('delivery-percent').textContent = `${deliveryPct}%`;
+  document.getElementById('open-percent').textContent = `${openPct}%`;
+  document.getElementById('click-percent').textContent = `${clickPct}%`;
+  document.getElementById('bounce-percent').textContent = `${bouncePct}%`;
+
+  // Campaigns table
+  const campaignsTbody = document.getElementById('campaigns-tbody');
+  if (campaigns && campaigns.length > 0) {
+    campaignsTbody.innerHTML = campaigns.map(c => `
+      <tr>
+        <td><strong>${c.campaign_id || '(no campaign)'}</strong></td>
+        <td>${c.sent}</td>
+        <td>${c.delivered}</td>
+        <td>${c.opened}</td>
+        <td>${c.clicked}</td>
+        <td>${c.bounced}</td>
+        <td>${c.complained}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Daily metrics table
+  const dailyTbody = document.getElementById('daily-metrics-tbody');
+  if (daily_metrics && daily_metrics.length > 0) {
+    dailyTbody.innerHTML = daily_metrics.map(d => {
+      const openRate = d.sent > 0 ? Math.round((d.opened / d.sent) * 100) : 0;
+      const replyRate = d.sent > 0 ? Math.round((d.replied / d.sent) * 100) : 0;
+      return `
+        <tr>
+          <td>${new Date(d.date).toLocaleDateString()}</td>
+          <td>${d.sent}</td>
+          <td>${d.opened}</td>
+          <td>${openRate}%</td>
+          <td>${d.replied}</td>
+          <td>${replyRate}%</td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+async function searchRecipient(email) {
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email address');
+    return;
+  }
+
+  const token = await getAuthToken();
+  if (!token) return;
+
+  try {
+    const res = await fetch(`/api/cold-email-recipient?email=${encodeURIComponent(email)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        window.location.href = '/app.html?redirect=/admin-cold-email.html';
+        return;
+      }
+      if (res.status === 404) {
+        alert('No events found for this email address');
+        return;
+      }
+      throw new Error(`API error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderRecipientResults(email, data);
+  } catch (err) {
+    console.error('Search error:', err);
+    alert('Error searching for recipient: ' + err.message);
+  }
+}
+
+function renderRecipientResults(email, data) {
+  const {
+    events,
+    counts,
+  } = data;
+
+  document.getElementById('result-email').textContent = email;
+  document.getElementById('recipient-sent').textContent = counts.sent || 0;
+  document.getElementById('recipient-delivered').textContent = counts.delivered || 0;
+  document.getElementById('recipient-opened').textContent = counts.opened || 0;
+  document.getElementById('recipient-clicked').textContent = counts.clicked || 0;
+  document.getElementById('recipient-bounced').textContent = counts.bounced || 0;
+  document.getElementById('recipient-complained').textContent = counts.complained || 0;
+
+  const eventsTbody = document.getElementById('recipient-events-tbody');
+  if (events && events.length > 0) {
+    eventsTbody.innerHTML = events.map(e => `
+      <tr>
+        <td><span class="badge ${e.event_type === 'opened' ? 'sage' : e.event_type === 'clicked' ? 'gold' : e.event_type === 'bounced' ? 'coral' : ''}">${e.event_type}</span></td>
+        <td>${new Date(e.event_ts).toLocaleString()}</td>
+        <td>${e.url_clicked ? `<a href="${e.url_clicked}" target="_blank" style="color: var(--blush);">Link</a>` : '—'}</td>
+        <td>${e.campaign_id || '—'}</td>
+      </tr>
+    `).join('');
+  } else {
+    eventsTbody.innerHTML = '<tr><td colspan="4" class="empty-state">No events found</td></tr>';
+  }
+
+  document.getElementById('recipient-results').style.display = 'block';
+}
+
+document.getElementById('search-btn').addEventListener('click', () => {
+  const email = document.getElementById('search-email').value.trim();
+  searchRecipient(email);
+});
+
+document.getElementById('search-email').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    const email = document.getElementById('search-email').value.trim();
+    searchRecipient(email);
+  }
+});
+
+// Load on page init
+fetchMetrics();
+</script>
+
+</body>
+</html>
