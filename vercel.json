@@ -384,7 +384,10 @@
                                                                   },
                       "api/cron-self-improvement-daily.js":  {
                                                                  "maxDuration":  120
-                                                             }
+                                                             },
+                      "api/dossiesign-auto-map.js":  {
+                                                         "maxDuration":  300
+                                                     }
                   },
     "crons":  [
                   {
