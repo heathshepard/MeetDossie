@@ -1251,10 +1251,16 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   const ft = String(fv.financing_type || '').toLowerCase();
   const loanAmt = fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '';
 
-  // FIRST MORTGAGE CHECKBOX (auto-checked if any financed loan)
-  if (ft && ft !== 'cash') {
+  // D1 fix: Only check first mortgage checkbox if CONVENTIONAL
+  if (ft === 'conventional') {
     safeCheck(form, 'a A first mortgage loan in the principal amount of');
+  }
+  // D5 fix: For ANY financed deal, subject to buyer approval; ensure Box 2 is unchecked
+  if (ft && ft !== 'cash') {
     safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
+    safeUncheck(form, 'Check Box2');
+    // D6 fix: Wire buyer_approval_days with default 21
+    safeSetText(form, 'Text1', fv.buyer_approval_days || '21');
   }
   if (fv.second_mortgage === true) {
     safeCheck(form, 'b A second mortgage loan in the principal amount of');
@@ -1276,17 +1282,21 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 
   if (ft === 'tx_veterans' || fv.financing_tx_veterans === true) {
     safeCheck(form, '2 Texas Veterans Loan A loans from the Texas Veterans Land Board of');
+    // D8 note: AcroForm field names appear inverted per Hadley audit; this needs visual verify on TxVet render
     safeSetText(form, 'for a period in the total amount of', loanAmt);
-    safeSetText(form, 'years at the interest rate established by the', fv.tx_vet_loan_years || '');
+    safeSetText(form, 'years at the interest rate established by the', fv.tx_vet_loan_years || '30');
   }
 
   if (ft === 'fha' || fv.financing_fha === true) {
     safeCheck(form, '3 FHA Insured Financing A Section');
-    safeSetText(form, 'undefined', fv.fha_loan_section || '');
+    // D2 fix: Default FHA Section to "203(b)" if not provided
+    safeSetText(form, 'undefined', fv.fha_loan_section || '203(b)');
     safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', loanAmt);
-    safeSetText(form, 'than', fv.fha_amortization_years || '');
-    safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || '');
-    safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '');
+    // D3 fix: Use loan_term_years as fallback for fha_amortization_years, default to 30
+    safeSetText(form, 'than', fv.fha_amortization_years || fv.loan_term_years || '30');
+    // D4 fix: Use interest_rate_cap as fallback, default rate cap period to 30 years, origination cap to 1.00
+    safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || fv.interest_rate_cap || '');
+    safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '1.00');
     if (fv.fha_conversion_amount) {
       safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
       safeSetText(form, 'not to exceed', fv.fha_conversion_not_exceed || '');
@@ -1296,16 +1306,28 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   if (ft === 'va' || fv.financing_va === true) {
     safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
     safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', loanAmt);
-    safeSetText(form, 'years', fv.va_amortization_years || '');
-    safeSetText(form, 'with interest not to exceed', fv.va_interest_rate_cap || '');
-    safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '');
-    safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '');
-    safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : '');
+    // D9 fix: Use loan_term_years as fallback, default to 30
+    safeSetText(form, 'years', fv.va_amortization_years || fv.loan_term_years || '30');
+    // D9 fix: Use interest_rate_cap as fallback
+    safeSetText(form, 'with interest not to exceed', fv.va_interest_rate_cap || fv.interest_rate_cap || '');
+    // D9 fix: Default rate cap period to 30 years
+    safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '30');
+    // D9 fix: Default origination cap to 1.00
+    safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '1.00');
+    // D7 fix: Populate FHA/VA appraised value floor with sale_price fallback
+    safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : (fv.sale_price != null ? formatMoney(fv.sale_price) : ''));
   }
 
   if (ft === 'usda' || fv.financing_usda === true) {
     safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
     safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', loanAmt);
+    // D10 NOTE: USDA term, rate cap %, rate cap period years, and origination cap % fields
+    // are NOT YET ENUMERATED in trec-40-raw.pdf AcroForm. These fields need to be added to
+    // the PDF template before they can be wired. Once added, wire:
+    // - USDA term-years → fv.financing_usda_term_years || fv.loan_term_years || '30'
+    // - USDA rate cap % → fv.financing_usda_rate_cap || fv.interest_rate_cap || ''
+    // - USDA rate cap period → fv.financing_usda_rate_cap_period || '30'
+    // - USDA origination cap % → fv.financing_usda_origination_cap || '1.00'
   }
 
   if (ft === 'reverse' || fv.financing_reverse === true) {
@@ -1314,7 +1336,48 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeSetText(form, 'not to exceed_2', fv.reverse_not_exceed || '');
     safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
     safeSetText(form, 'per annum for the first_3', fv.reverse_per_annum || '');
+    // D11 fix: Wire Reverse Mortgage "will/will not FHA insured" paired checkboxes
+    if (fv.financing_reverse_fha_insured === true) {
+      safeCheck(form, 'will');
+      safeUncheck(form, 'will-1');
+      safeUncheck(form, 'will-2');
+      safeUncheck(form, 'will not be an FHA insured loan');
+    } else if (fv.financing_reverse_fha_insured === false) {
+      safeUncheck(form, 'will');
+      safeUncheck(form, 'will-1');
+      safeUncheck(form, 'will-2');
+      safeCheck(form, 'will not be an FHA insured loan');
+    }
   }
+
+  // D11 NOTE: Other Financing section (¶1.G) is NOT YET ENUMERATED in trec-40-raw.pdf AcroForm.
+  // The following fields need to be added to the PDF template before they can be wired:
+  // - Checkbox: "7 Other Financing"
+  // - TextField: Other Financing Lender Name
+  // - TextField: Other Financing Principal Amount
+  // - TextField: Other Financing Term Years
+  // - TextField: Other Financing Rate Cap %
+  // - TextField: Other Financing Rate Cap Period Years
+  // - TextField: Other Financing Origination Cap %
+  // - CheckBox pair: "does waive 2B" / "does not waive 2B"
+  //
+  // Once fields are added to the PDF, wire as follows:
+  // if (ft === 'other' || fv.financing_other === true) {
+  //   safeCheck(form, '7 Other Financing');
+  //   safeSetText(form, '[Lender Name field]', fv.financing_other_lender_name || '');
+  //   safeSetText(form, '[Principal field]', fv.financing_other_principal || (fv.loan_amount != null ? formatMoney(fv.loan_amount) : ''));
+  //   safeSetText(form, '[Term field]', fv.financing_other_term_years || '30');
+  //   safeSetText(form, '[Rate Cap field]', fv.financing_other_rate_cap || '');
+  //   safeSetText(form, '[Rate Cap Period field]', fv.financing_other_rate_cap_period || '30');
+  //   safeSetText(form, '[Origination Cap field]', fv.financing_other_origination_cap || '1.00');
+  //   if (fv.financing_other_waive_2b === true) {
+  //     safeCheck(form, '[does waive]');
+  //     safeUncheck(form, '[does not waive]');
+  //   } else if (fv.financing_other_waive_2b === false) {
+  //     safeUncheck(form, '[does waive]');
+  //     safeCheck(form, '[does not waive]');
+  //   }
+  // }
 
   // INITIALS
   safeSetText(form, 'Initialed for identification by Buyer', buyerInit);
