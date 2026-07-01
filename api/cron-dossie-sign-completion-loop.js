@@ -540,10 +540,13 @@ async function checkGateEvidence(row, ctx) {
       const withPdf = gateSigs.find(sr => sr.signed_document_id);
       if (!withPdf) return null;
       // Verify the document actually exists
-      const docCheck = await sb(`documents?select=id,file_url,storage_path&id=eq.${encodeURIComponent(withPdf.signed_document_id)}&limit=1`);
+      // NOTE: documents table has no file_url column — only storage_path.
+      // Ridge 2026-07-01 fixed: previous query returned 400 for every check,
+      // blocking all 8 signed_pdf_stored gates from ever flipping.
+      const docCheck = await sb(`documents?select=id,storage_path,file_name&id=eq.${encodeURIComponent(withPdf.signed_document_id)}&limit=1`);
       if (!docCheck.ok || !Array.isArray(docCheck.data) || docCheck.data.length === 0) return null;
       const doc = docCheck.data[0];
-      if (!doc.file_url && !doc.storage_path) return null;
+      if (!doc.storage_path) return null;
       return {
         newStatus: 'green',
         path: `signature_requests/${withPdf.id}`,
@@ -551,7 +554,8 @@ async function checkGateEvidence(row, ctx) {
           source: 'signed_pdf_verified',
           signature_request_id: withPdf.id,
           document_id: withPdf.signed_document_id,
-          storage_path: doc.storage_path || doc.file_url,
+          storage_path: doc.storage_path,
+          file_name: doc.file_name,
         },
       };
     }
