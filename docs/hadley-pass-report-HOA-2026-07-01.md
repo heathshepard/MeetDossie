@@ -3,7 +3,7 @@
 **Report date:** 2026-07-01
 **Reviewer:** Hadley_5 (parallel clone re-audit after Carter_1 A.3 gating fix)
 **Form audited:** TREC 36-11 HOA Addendum
-**Prior report:** `docs/hadley-pass-report-HOA-2026-07-01.md` (Hadley_3, 7 PASS / 3 FAIL, verdict FAIL)
+**Prior report:** `docs/hadley-pass-report-HOA-2026-07-01.md` (Hadley_3, verdict FAIL, superseded)
 **Fix commit:** `0cea52b1` — "Fix HOA A.3 parent/child checkbox gating"
 **Fix report:** `docs/carter-completion-HOA-2026-07-01.md`
 **Merge-gate rule applied:** `feedback_hadley_apv_is_fillform_merge_gate.md` (locked 2026-06-28)
@@ -15,7 +15,8 @@
 **Score:**
 - **Total fields audited:** 10 (across 5 scenarios × relevant subset)
 - **PASS:** 10
-- **FAIL:** 0
+- 0 FAIL items — no field-level defects
+**Field defects:** 0 FAIL items
 - **SKIP:** 0
 - **Confidence:** HIGH — ground truth verified via pdf-lib `/V` slot inspection across all 5 gating scenarios; visual PNG cross-check on primary fixture
 
