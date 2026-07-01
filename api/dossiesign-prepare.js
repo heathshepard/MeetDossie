@@ -66,37 +66,42 @@ const FORM_B64_MAP = {
   'improvement-district':  () => require('./_assets/trec-improvement-district-base64.js'),
 };
 
-// Map from form_template short_name/name patterns to fill-form form_type slugs.
-// form_templates.short_name is the canonical identifier from form-templates.js seed data.
+// Map from form_templates.short_name (actual DB values) to FORM_B64_MAP form_type slugs.
+// This is the bridge between the database schema and the form filling logic.
+// null = no preview PDF available (still can be sent via DocuSeal if configured).
 const SHORT_NAME_TO_FORM_TYPE = {
-  'TREC-Resale-Contract':           'resale-contract',
-  'TREC-Financing-Addendum':        'financing-addendum',
-  'TREC-Termination-Notice':        'termination-notice',
-  'TAR-Wire-Fraud-Warning':         'wire-fraud-warning',
-  'TREC-HOA-Addendum':              'hoa-addendum',
-  'OP-L-Lead-Paint':                'lead-paint-addendum',
-  'TREC-55-SDN':                    'sellers-disclosure',
-  'TREC-39-Amendment':              'amendment',
-  'TAR-Buyer-Rep':                  'buyer-rep-agreement',
-  'TREC-49-1':                      'appraisal-termination',
-  'T-47-Affidavit':                 't47-affidavit',
-  'TREC-9-Unimproved-Property':     'unimproved-property',
-  'TREC-26-Seller-Financing':       'seller-financing',
-  'TREC-16-Buyers-Temp-Lease':      'buyers-temp-lease',
-  'TREC-15-Sellers-Temp-Lease':     'sellers-temp-lease',
-  'TREC-10-Sale-Other-Property':    'sale-other-property',
-  'TREC-44-Oil-Gas-Minerals':       'oil-gas-minerals',
-  'TREC-11-Backup-Contract':        'backup-contract',
-  'TREC-33-Coastal-Area':           'coastal-area',
-  'TREC-48-Hydrostatic-Testing':    'hydrostatic-testing',
-  'TREC-28-Environmental':          'environmental',
-  'TREC-45-Short-Sale':             'short-sale',
-  'TREC-34-Gulf-Waterway':          'gulf-waterway',
-  'TREC-47-Propane-Gas':            'propane-gas',
-  'TREC-51-Residential-Leases':     'residential-leases',
-  'TREC-52-Fixture-Leases':         'fixture-leases',
-  'TREC-41-Loan-Assumption':        'loan-assumption',
-  'TREC-IDN-Improvement-District':  'improvement-district',
+  // Primary TREC forms for buyer purchase package
+  '1-4 Family Contract':           'resale-contract',
+  'Financing Addendum':            'financing-addendum',
+  'HOA Addendum':                  'hoa-addendum',
+  'OP-L':                          'lead-paint-addendum',
+  'Amendment':                     'amendment',
+  'TREC 49-1':                     'appraisal-termination',
+
+  // Secondary TREC forms
+  'OP-H':                          'sellers-disclosure',
+  'Seller Financing':              'seller-financing',
+  'Sale of Other Property':        'sale-other-property',
+  'Back-Up Contract':              'backup-contract',
+  'Seller Disclosure':             'sellers-disclosure',
+  'T-47':                          't47-affidavit',
+  'TREC 9':                        'unimproved-property',
+  'Property Affidavit':            null,
+  'TREC 25':                       null,
+
+  // TAR forms
+  'Buyer Rep Agreement':           'buyer-rep-agreement',
+  'TAR 1501':                      'buyer-rep-agreement',
+  'TAR 2001':                      'residential-leases',
+  'TAR 2003':                      null,
+  'TAR 2517':                      'wire-fraud-warning',
+
+  // Admin / disclosure forms (no PDF needed)
+  'CDA':                           null,
+  'IABS':                          null,
+  'PID':                           null,
+  'New Home Contract':             null,
+  'New Home Completed':            null,
 };
 
 function applyCors(req, res) {
