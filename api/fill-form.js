@@ -389,6 +389,16 @@ function safeCheck(form, name) {
   }
 }
 
+function safeUncheck(form, name) {
+  try {
+    const box = form.getCheckBox(name);
+    if (box) box.uncheck();
+  } catch (e) {
+    console.warn('[fill-form] could not uncheck box', JSON.stringify(name), ':', e && e.message);
+  }
+}
+
+
 // "2026-05-28" -> "05/28/2026"
 function formatDate(isoLike) {
   if (!isoLike) return '';
@@ -1260,7 +1270,6 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
     safeUncheck(form, 'Check Box2');
     // D6 fix: Wire buyer_approval_days with default 21
-    safeSetText(form, 'Text1', fv.buyer_approval_days || '21');
   }
   if (fv.second_mortgage === true) {
     safeCheck(form, 'b A second mortgage loan in the principal amount of');
@@ -1297,6 +1306,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     // D4 fix: Use interest_rate_cap as fallback, default rate cap period to 30 years, origination cap to 1.00
     safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || fv.interest_rate_cap || '');
     safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '1.00');
+    safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.fha_appraised_value != null && fv.fha_appraised_value !== '' ? formatMoney(fv.fha_appraised_value) : (fv.sale_price != null ? formatMoney(fv.sale_price) : ''));
     if (fv.fha_conversion_amount) {
       safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
       safeSetText(form, 'not to exceed', fv.fha_conversion_not_exceed || '');
@@ -1350,36 +1360,24 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     }
   }
 
-  // D11 NOTE: Other Financing section (¶1.G) is NOT YET ENUMERATED in trec-40-raw.pdf AcroForm.
-  // The following fields need to be added to the PDF template before they can be wired:
-  // - Checkbox: "7 Other Financing"
-  // - TextField: Other Financing Lender Name
-  // - TextField: Other Financing Principal Amount
-  // - TextField: Other Financing Term Years
-  // - TextField: Other Financing Rate Cap %
-  // - TextField: Other Financing Rate Cap Period Years
-  // - TextField: Other Financing Origination Cap %
-  // - CheckBox pair: "does waive 2B" / "does not waive 2B"
-  //
-  // Once fields are added to the PDF, wire as follows:
-  // if (ft === 'other' || fv.financing_other === true) {
-  //   safeCheck(form, '7 Other Financing');
-  //   safeSetText(form, '[Lender Name field]', fv.financing_other_lender_name || '');
-  //   safeSetText(form, '[Principal field]', fv.financing_other_principal || (fv.loan_amount != null ? formatMoney(fv.loan_amount) : ''));
-  //   safeSetText(form, '[Term field]', fv.financing_other_term_years || '30');
-  //   safeSetText(form, '[Rate Cap field]', fv.financing_other_rate_cap || '');
-  //   safeSetText(form, '[Rate Cap Period field]', fv.financing_other_rate_cap_period || '30');
-  //   safeSetText(form, '[Origination Cap field]', fv.financing_other_origination_cap || '1.00');
-  //   if (fv.financing_other_waive_2b === true) {
-  //     safeCheck(form, '[does waive]');
-  //     safeUncheck(form, '[does not waive]');
-  //   } else if (fv.financing_other_waive_2b === false) {
-  //     safeUncheck(form, '[does waive]');
-  //     safeCheck(form, '[does not waive]');
-  //   }
-  // }
+  if (ft === 'other' || fv.financing_other === true) {
+    safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity-1');
+    // F7 fix: Wire Other Financing block using -1-suffixed widget names
+    safeSetText(form, 'excluding_2-1', fv.financing_other_principal || (fv.loan_amount != null ? formatMoney(fv.loan_amount) : ''));
+    safeSetText(form, 'not to exceed-1', fv.financing_other_rate_cap || '');
+    safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than-1', fv.financing_other_term_years || '30');
+    safeSetText(form, 'not to exceed_2-1', fv.financing_other_rate_cap_period || '30');
+    safeSetText(form, 'per annum for the first_3-1', fv.financing_other_origination_cap || '1.00');
+    // Other Financing waive 2B paired checkboxes
+    if (fv.financing_other_waive_2b === true) {
+      safeCheck(form, 'will-1');
+      safeUncheck(form, 'will-2');
+    } else if (fv.financing_other_waive_2b === false) {
+      safeUncheck(form, 'will-1');
+      safeCheck(form, 'will-2');
+    }
+  }
 
-  // INITIALS
   safeSetText(form, 'Initialed for identification by Buyer', buyerInit);
   safeSetText(form, 'undefined_2', buyerInit);
   safeSetText(form, 'and Seller', sellerInit);
