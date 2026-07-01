@@ -135,10 +135,55 @@ export default async function handler(req, res) {
       checklist_summary: summarizeChecklist(checklistItems, inst.id),
     });
 
+    let runningOut = running.map(assemble);
+    let recentOut = recent.map(assemble);
+
+    // Fallback: when the SOP-spawn table (jarvis_agent_instances) is silent, derive
+    // synthetic "instances" from the live agent_queue so the Agent Status panel isn't
+    // empty. Each queue row becomes a card representing the last work a named agent
+    // did. Not perfect — no checklist — but reflects reality.
+    if (runningOut.length === 0 && recentOut.length === 0) {
+      try {
+        const queueRows = await sbGet(
+          `agent_queue?select=id,agent_name,task_subject,status,started_at,completed_at,created_at,result_summary&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=${limit}`
+        );
+        // Deduplicate: keep the most recent row per (agent_name).
+        const seen = new Set();
+        const synth = [];
+        for (const row of queueRows) {
+          const key = String(row.agent_name || '').toLowerCase();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          synth.push({
+            instance: {
+              id: `queue:${row.id}`,
+              instance_id: key + '_live',
+              agent_role: key,
+              status: row.status === 'completed' ? 'completed'
+                    : row.status === 'failed'    ? 'failed'
+                    : 'running',
+              spawned_at: row.started_at || row.created_at,
+              completed_at: row.completed_at,
+              tenant_id: tenantId,
+              project_id: null,
+              spawn_prompt: row.task_subject || '',
+              _synthetic: true,
+            },
+            project: null,
+            checklist_summary: { total: 0, completed: 0, failed: 0, in_progress: 0, pending: 0 },
+          });
+        }
+        runningOut = synth.filter(x => x.instance.status === 'running');
+        recentOut  = synth.filter(x => x.instance.status !== 'running');
+      } catch (fbErr) {
+        console.warn('[list-instances] agent_queue fallback failed', fbErr.message);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
-      running: running.map(assemble),
-      recent:  recent.map(assemble),
+      running: runningOut,
+      recent:  recentOut,
     });
   } catch (err) {
     console.error('[list-instances] failed:', err.message);

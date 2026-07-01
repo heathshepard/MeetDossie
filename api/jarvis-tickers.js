@@ -42,22 +42,21 @@ export default async function handler(req, res) {
   });
 
   try {
+    const todayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+
     // Run all reads in parallel
     const [
       subsRes,
-      profilesRes,
       agentRes,
       activityRes,
       todoDoneRes,
+      agentQueueCompletedRes,
+      futureBuildsShippedRes,
     ] = await Promise.all([
       admin
         .from('subscriptions')
-        .select('id, plan, status, stripe_price_id, metadata')
+        .select('id, plan, status, stripe_price_id, metadata, user_id')
         .eq('status', 'active'),
-      admin
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .or('is_demo.is.null,is_demo.eq.false'),
       admin
         .from('agent_state')
         .select('agent_name, status, last_heartbeat_at'),
@@ -70,7 +69,19 @@ export default async function handler(req, res) {
         .from('heath_todo')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'done')
-        .gte('completed_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+        .gte('completed_at', todayIso),
+      // Count agent_queue completions today (agent-shipped work)
+      admin
+        .from('agent_queue')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'completed')
+        .gte('completed_at', todayIso),
+      // Count future_builds moved to shipped today
+      admin
+        .from('jarvis_future_builds')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'shipped')
+        .gte('updated_at', todayIso),
     ]);
 
     // MRR — best-effort. We don't have an amount column; infer from plan/price.
@@ -93,10 +104,29 @@ export default async function handler(req, res) {
       mrrCents += price * 100;
     }
 
-    const customerCount = profilesRes.count || 0;
+    // Customer count = distinct active-paying non-demo profiles.
+    // Prior version counted every non-demo profile (including waitlist/unpaid signups).
+    const activeUserIds = [...new Set(subs.map(s => s.user_id).filter(Boolean))];
+    let payingNonDemoCount = 0;
+    if (activeUserIds.length > 0) {
+      const { data: payingProfiles } = await admin
+        .from('profiles')
+        .select('id')
+        .in('id', activeUserIds)
+        .or('is_demo.is.null,is_demo.eq.false');
+      payingNonDemoCount = (payingProfiles || []).length;
+    }
+    const customerCount = payingNonDemoCount || activeUserIds.length;
+
     const activeAgentCount = (agentRes.data || []).filter(a => a.status === 'working').length;
     const totalAgentCount = (agentRes.data || []).length;
-    const shippedToday = todoDoneRes.count || 0;
+
+    // shipped_today = heath_todo done + agent_queue completed + future_builds moved to shipped
+    // (previous version only counted heath_todo — misleading given agent-shipped work.)
+    const shippedToday =
+      (todoDoneRes.count || 0) +
+      (agentQueueCompletedRes.count || 0) +
+      (futureBuildsShippedRes.count || 0);
 
     // Marquee feed — last 40 agent activity rows, most recent first
     const activity = (activityRes.data || []).map(a => ({

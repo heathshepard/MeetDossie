@@ -65,25 +65,40 @@ module.exports = async function handler(req, res) {
 
     if (error) throw error;
 
-    // Group by priority
+    // Age-out: items untouched for >7 days are moved to "stale" bucket. The panel's
+    // main counts should reflect what Heath needs to look at NOW, not a snapshot of
+    // every action ever queued.
+    const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - STALE_MS;
+
+    // Group by priority (fresh only)
     const grouped = {
       urgent: [],
       soon: [],
       whenever: [],
     };
+    const stale = [];
 
-    actions.forEach((action) => {
-      grouped[action.priority].push(action);
+    (actions || []).forEach((action) => {
+      const ts = action.created_at ? new Date(action.created_at).getTime() : 0;
+      if (ts && ts < cutoff) {
+        stale.push(action);
+        return;
+      }
+      if (grouped[action.priority]) grouped[action.priority].push(action);
     });
 
-    // Calculate total count (non-dismissed, non-done)
-    const totalCount = actions.length;
+    const totalCount = grouped.urgent.length + grouped.soon.length + grouped.whenever.length;
 
     return res.status(200).json({
       ok: true,
       actions: grouped,
+      stale,
       total_pending: totalCount,
-      status: totalCount === 0 ? 'ALL CLEAR' : `${totalCount} PENDING`,
+      stale_count: stale.length,
+      status: totalCount === 0
+        ? (stale.length > 0 ? `${stale.length} STALE` : 'ALL CLEAR')
+        : `${totalCount} PENDING`,
     });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });

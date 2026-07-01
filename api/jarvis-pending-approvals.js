@@ -223,13 +223,28 @@ export default async function handler(req, res) {
       });
     }
 
+    // Age-out policy: items older than 7 days are excluded from the "pending approvals"
+    // count — they're stale and misrepresent what Heath actually needs to look at right
+    // now. We still surface them behind `stale_items` so nothing silently disappears.
+    const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - STALE_MS;
+    const freshItems = [];
+    const staleItems = [];
+    for (const it of items) {
+      const ts = it.created_at ? new Date(it.created_at).getTime() : 0;
+      if (ts && ts >= cutoff) freshItems.push(it);
+      else staleItems.push(it);
+    }
+
     // Oldest first (longest waiting bubbles up).
-    items.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    freshItems.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    staleItems.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
     return res.status(200).json({
       ok: true,
       generated_at: new Date().toISOString(),
-      count: items.length,
+      count: freshItems.length,
+      stale_count: staleItems.length,
       breakdown: {
         social_posts: socials.length,
         email_queue: emails.length,
@@ -239,7 +254,8 @@ export default async function handler(req, res) {
         hadley_questions: hadleyQs.length,
         heath_actions: visibleHeathActions.length,
       },
-      items,
+      items: freshItems,
+      stale_items: staleItems,
     });
   } catch (err) {
     console.error('jarvis-pending-approvals error:', err);

@@ -6846,7 +6846,7 @@
     const agentLedger = new Map(); // agent_name -> { status, summary, started_at, completed_at, task_title, prompt, result_summary, commit_sha, files_touched, screenshot_paths, apv_status, token_cost_cents }
 
     async function loadAgentLedger() {
-      if (!tenant) return;
+      if (!session?.access_token) return;
       try {
         // 2026-07-01: source-swapped from dead jarvis_agent_events (last write
         // 2026-06-26) to /api/jarvis-activity-log which reads agent_queue —
@@ -7061,14 +7061,29 @@
     }
 
     // ===== Realtime agent events =====
+    // Source-swapped 2026-07-01: was subscribing to dead `jarvis_agent_events` (last
+    // write 2026-06-26). Now subscribes to the live `agent_queue` table which is
+    // being written to on every agent task. `agent_queue` has no tenant_id column
+    // (single-tenant table for Heath), so no filter is applied.
     function subscribeAgentEvents() {
-      if (!tenant) return;
       const ch = supabase
-        .channel(`jarvis_agent_events:${tenant.id}`)
+        .channel('agent_queue_stream')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'jarvis_agent_events', filter: `tenant_id=eq.${tenant.id}` },
-          (payload) => onAgentEvent(payload.new),
+          { event: '*', schema: 'public', table: 'agent_queue' },
+          (payload) => {
+            const row = payload.new || payload.old;
+            if (!row) return;
+            // Map agent_queue schema onto the shape onAgentEvent expects
+            onAgentEvent({
+              agent_name: row.agent_name,
+              task_title: row.task_subject,
+              summary: row.result_summary,
+              status: row.status,
+              event_type: payload.eventType,
+              created_at: row.completed_at || row.started_at || row.created_at,
+            });
+          },
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') connState.textContent = 'CONNECTED';
@@ -7139,7 +7154,7 @@
     }
 
     async function loadInstances() {
-      if (!tenant) return;
+      if (!session?.access_token) return;
       try {
         const data = await authedFetch('/api/jarvis-list-instances?completed_window_hours=24&limit=50');
         if (!data?.ok) return;
@@ -7510,8 +7525,11 @@
     }
 
     // ===== AGENT KNOWLEDGE — Shared Memory Pool (SOP 2026-06-22) =====
+    // Guard fixed 2026-07-01: previously bailed on `!tenant` — but the endpoint
+    // resolves tenant from the JWT server-side, so client tenant hydration is
+    // irrelevant. Session is the only gate we actually need.
     async function loadKnowledge() {
-      if (!tenant) return;
+      if (!session?.access_token) return;
       try {
         const data = await authedFetch('/api/agent-memory-list');
         if (!data?.ok) return;
@@ -7524,8 +7542,10 @@
     }
 
     // ===== AGENT THROUGHPUT (Speed Unlock, atlas_5, 2026-06-20) =====
+    // Guard fixed 2026-07-01: swapped `!tenant` for `!session` — same rationale
+    // as loadKnowledge above.
     async function loadThroughput() {
-      if (!tenant) return;
+      if (!session?.access_token) return;
       const totalsEl = document.getElementById('throughput-totals');
       const rowsEl   = document.getElementById('throughput-rows');
       if (!totalsEl || !rowsEl) return;
@@ -7644,7 +7664,7 @@
 
     // ===== FUTURE BUILDS FUNCTIONS (carter_14 scope fix) =====
     async function loadFutureBuilds() {
-      if (!tenant) return;
+      if (!session?.access_token) return;
       const listEl = document.getElementById('future-builds-list');
       if (!listEl) return;
       try {
