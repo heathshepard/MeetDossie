@@ -1,0 +1,203 @@
+{
+  "totalIterations": 7,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "fill-form failed: Too many requests. Try again later.",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "1a6366c6-248a-420c-b034-36741a7efc75"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "e78f22ed-b408-4038-b31a-ad1173c24c82"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817501,
+          "documentId": "8f804d86-d2ec-4409-bc67-9046c04f2bb6"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817502",
+          "signatureRequestId": "7ed8271d-344d-48e4-969e-28accdd494c7"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 2
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "048e4a09-70f4-4b67-aa6d-507a1687d4ea"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 1
+        },
+        "verify_sr_completed": {
+          "ok": "048e4a09-70f4-4b67-aa6d-507a1687d4ea",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "1a6366c6-248a-420c-b034-36741a7efc75"
+    },
+    {
+      "iteration": 2,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "61b497c0-2c2a-491c-96a5-22a5eb0a2464"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "df83614a-3690-412e-a1dd-74e24d12f929"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817504,
+          "documentId": "5942b558-ea7b-4808-b26d-0c2702bd1a57"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817505",
+          "signatureRequestId": "bac23b3d-eddf-423b-85df-52d98c50ca52"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 2
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "a46867b0-7b41-4103-9132-b3008c4054c9"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 2
+        },
+        "verify_sr_completed": {
+          "ok": "e26a4e4e-7bd0-4424-a032-70793dbad8a5",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "61b497c0-2c2a-491c-96a5-22a5eb0a2464"
+    },
+    {
+      "iteration": 3,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "92a0cdda-249b-40e0-82a6-6befe5d69c52"
+        },
+        "fill_form": {
+          "status": 429,
+          "ok": false,
+          "error": "Too many requests. Try again later."
+        }
+      },
+      "pass": false,
+      "transactionId": "92a0cdda-249b-40e0-82a6-6befe5d69c52",
+      "error": "fill-form failed: Too many requests. Try again later."
+    },
+    {
+      "iteration": 4,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "0a72815a-d06f-491d-aa65-3b84fc600cb1"
+        },
+        "fill_form": {
+          "status": 429,
+          "ok": false,
+          "error": "Too many requests. Try again later."
+        }
+      },
+      "pass": false,
+      "transactionId": "0a72815a-d06f-491d-aa65-3b84fc600cb1",
+      "error": "fill-form failed: Too many requests. Try again later."
+    },
+    {
+      "iteration": 5,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "f37a6e48-1c22-45b1-b541-8eb98bd4b8f3"
+        },
+        "fill_form": {
+          "status": 429,
+          "ok": false,
+          "error": "Too many requests. Try again later."
+        }
+      },
+      "pass": false,
+      "transactionId": "f37a6e48-1c22-45b1-b541-8eb98bd4b8f3",
+      "error": "fill-form failed: Too many requests. Try again later."
+    },
+    {
+      "iteration": 6,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "a60d3e91-99e4-444a-a694-b6992c523c45"
+        },
+        "fill_form": {
+          "status": 429,
+          "ok": false,
+          "error": "Too many requests. Try again later."
+        }
+      },
+      "pass": false,
+      "transactionId": "a60d3e91-99e4-444a-a694-b6992c523c45",
+      "error": "fill-form failed: Too many requests. Try again later."
+    },
+    {
+      "iteration": 7,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "88caa622-36b3-44eb-98ae-14a6f2913174"
+        },
+        "fill_form": {
+          "status": 429,
+          "ok": false,
+          "error": "Too many requests. Try again later."
+        }
+      },
+      "pass": false,
+      "transactionId": "88caa622-36b3-44eb-98ae-14a6f2913174",
+      "error": "fill-form failed: Too many requests. Try again later."
+    }
+  ]
+}

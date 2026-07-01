@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "145": false,
+    "200": false,
+    "500000": false,
+    "Heath Shepard": true,
+    "Cibolo Canyons": true,
+    "Boerne": true,
+    "500,000": true
+  },
+  "pdfs": [
+    {
+      "formType": "resale-contract",
+      "outPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp\\v3-fha-verify\\resale-contract.pdf"
+    },
+    {
+      "formType": "financing-addendum",
+      "outPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp\\v3-fha-verify\\financing-addendum.pdf"
+    },
+    {
+      "formType": "hoa-addendum",
+      "outPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp\\v3-fha-verify\\hoa-addendum.pdf"
+    },
+    {
+      "formType": "lead-paint-addendum",
+      "outPath": "C:\\Users\\Heath Shepard\\Desktop\\MeetDossie\\.tmp\\v3-fha-verify\\lead-paint-addendum.pdf"
+    }
+  ]
+}

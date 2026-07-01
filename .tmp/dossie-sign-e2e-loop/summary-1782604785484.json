@@ -1,0 +1,25 @@
+{
+  "totalIterations": 1,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "fill-form failed: DocuSeal prefill failed for resale-contract: DocuSeal API erro",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "fa6c45b6-99cf-4653-8de7-dfd3903e24e2"
+        },
+        "fill_form": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal prefill failed for resale-contract: DocuSeal API error (500): {\"status\":500}"
+        }
+      },
+      "pass": false,
+      "transactionId": "fa6c45b6-99cf-4653-8de7-dfd3903e24e2",
+      "error": "fill-form failed: DocuSeal prefill failed for resale-contract: DocuSeal API error (500): {\"status\":500}"
+    }
+  ]
+}

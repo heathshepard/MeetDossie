@@ -1,0 +1,1721 @@
+{
+  "batch_id": "sa-cold-batch-1",
+  "generated_at": "2026-07-01T05:25:37.584436+00:00",
+  "generated_by": "Pierce",
+  "source_leads_csv": "data/sa-realtor-leads-final-v2.csv",
+  "source_copy_doc": "docs/cold-email-sa-realtors-v1.md",
+  "hook": "1-founder-origin",
+  "subject_variant": "A (did your tc quit?)",
+  "resend_endpoint": "POST https://api.resend.com/emails",
+  "resend_headers_note": "Authorization: Bearer $RESEND_API_KEY, Content-Type: application/json",
+  "total_messages": 50,
+  "guardrails": [
+    "Do NOT send until Hadley CAN-SPAM approves",
+    "Do NOT send until admin cold-email dashboard merged",
+    "Do NOT send until Heath green-lights",
+    "Send window: Tue/Wed/Thu 8:30 AM CST per feedback_email_send_timing",
+    "Expected bounce rate: 15-25% (accept-all provider caveat)"
+  ],
+  "messages": [
+    {
+      "to": "nathan.koudouris@kw.com",
+      "personalization": {
+        "first_name": "Nathan",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Nathan — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=nathan.koudouris@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Nathan — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=nathan.koudouris@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "rj.reyes@kw.com",
+      "personalization": {
+        "first_name": "Rj",
+        "city": "Von Ormy",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Rj — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Von Ormy, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=rj.reyes@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Rj — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Von Ormy, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=rj.reyes@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "beth.bush@kw.com",
+      "personalization": {
+        "first_name": "Beth",
+        "city": "New Braunfels",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Beth — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=beth.bush@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Beth — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=beth.bush@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "tiffany.linville@kw.com",
+      "personalization": {
+        "first_name": "Tiffany",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Tiffany — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=tiffany.linville@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Tiffany — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=tiffany.linville@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "alberto.murillo@kw.com",
+      "personalization": {
+        "first_name": "Alberto",
+        "city": "New Braunfels",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Alberto — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=alberto.murillo@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Alberto — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=alberto.murillo@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "melanie.ruiz@therealbrokerage.com",
+      "personalization": {
+        "first_name": "Melanie",
+        "city": "Schertz",
+        "brokerage": "Real Broker, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Melanie — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Schertz, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=melanie.ruiz@therealbrokerage.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Melanie — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Schertz, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=melanie.ruiz@therealbrokerage.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Real_Broker__LLC"
+        }
+      ]
+    },
+    {
+      "to": "alexis.weigand@therealbrokerage.com",
+      "personalization": {
+        "first_name": "Alexis",
+        "city": "Granite Shoals",
+        "brokerage": "Real Broker, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Alexis — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Granite Shoals, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=alexis.weigand@therealbrokerage.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Alexis — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Granite Shoals, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=alexis.weigand@therealbrokerage.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Real_Broker__LLC"
+        }
+      ]
+    },
+    {
+      "to": "justin.brickman@therealbrokerage.com",
+      "personalization": {
+        "first_name": "Justin",
+        "city": "San Antonio",
+        "brokerage": "Real Broker, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Justin — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=justin.brickman@therealbrokerage.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Justin — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=justin.brickman@therealbrokerage.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Real_Broker__LLC"
+        }
+      ]
+    },
+    {
+      "to": "tami.price@therealbrokerage.com",
+      "personalization": {
+        "first_name": "Tami",
+        "city": "San Antonio",
+        "brokerage": "Real Broker, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Tami — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=tami.price@therealbrokerage.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Tami — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=tami.price@therealbrokerage.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Real_Broker__LLC"
+        }
+      ]
+    },
+    {
+      "to": "evan.rayborn@therealbrokerage.com",
+      "personalization": {
+        "first_name": "Evan",
+        "city": "San Antonio",
+        "brokerage": "Real Broker, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Evan — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=evan.rayborn@therealbrokerage.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Evan — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=evan.rayborn@therealbrokerage.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Real_Broker__LLC"
+        }
+      ]
+    },
+    {
+      "to": "mark.lemmons@exprealty.com",
+      "personalization": {
+        "first_name": "Mark",
+        "city": "New Braunfels",
+        "brokerage": "eXp Realty, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Mark — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=mark.lemmons@exprealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Mark — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=mark.lemmons@exprealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "eXp_Realty__LLC"
+        }
+      ]
+    },
+    {
+      "to": "shane.neal@exprealty.com",
+      "personalization": {
+        "first_name": "Shane",
+        "city": "Schertz",
+        "brokerage": "eXp Realty, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Shane — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Schertz, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=shane.neal@exprealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Shane — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Schertz, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=shane.neal@exprealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "eXp_Realty__LLC"
+        }
+      ]
+    },
+    {
+      "to": "christopher.beal@exprealty.com",
+      "personalization": {
+        "first_name": "Christopher",
+        "city": "La Vernia",
+        "brokerage": "eXp Realty, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Christopher — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in La Vernia, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=christopher.beal@exprealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Christopher — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in La Vernia, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=christopher.beal@exprealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "eXp_Realty__LLC"
+        }
+      ]
+    },
+    {
+      "to": "kyle.handy@exprealty.com",
+      "personalization": {
+        "first_name": "Kyle",
+        "city": "San Antonio",
+        "brokerage": "eXp Realty, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Kyle — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=kyle.handy@exprealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Kyle — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=kyle.handy@exprealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "eXp_Realty__LLC"
+        }
+      ]
+    },
+    {
+      "to": "rima.bhavsar@exprealty.com",
+      "personalization": {
+        "first_name": "Rima",
+        "city": "Pflugerville",
+        "brokerage": "eXp Realty, LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Rima — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Pflugerville, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=rima.bhavsar@exprealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Rima — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Pflugerville, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=rima.bhavsar@exprealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "eXp_Realty__LLC"
+        }
+      ]
+    },
+    {
+      "to": "nadine.berger@lptrealty.com",
+      "personalization": {
+        "first_name": "Nadine",
+        "city": "San Antonio",
+        "brokerage": "LPT Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Nadine — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=nadine.berger@lptrealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Nadine — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=nadine.berger@lptrealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "LPT_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "dallas.pipes@lptrealty.com",
+      "personalization": {
+        "first_name": "Dallas",
+        "city": "Leon Valley",
+        "brokerage": "LPT Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Dallas — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Leon Valley, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=dallas.pipes@lptrealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Dallas — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Leon Valley, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=dallas.pipes@lptrealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "LPT_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "jennifer.taylor@lptrealty.com",
+      "personalization": {
+        "first_name": "Jennifer",
+        "city": "San Antonio",
+        "brokerage": "LPT Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Jennifer — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=jennifer.taylor@lptrealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Jennifer — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=jennifer.taylor@lptrealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "LPT_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "jewels.pawlik@lptrealty.com",
+      "personalization": {
+        "first_name": "Jewels",
+        "city": "San Antonio",
+        "brokerage": "LPT Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Jewels — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=jewels.pawlik@lptrealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Jewels — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=jewels.pawlik@lptrealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "LPT_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "laurie.kasch@lptrealty.com",
+      "personalization": {
+        "first_name": "Laurie",
+        "city": "New Braunfels",
+        "brokerage": "LPT Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Laurie — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=laurie.kasch@lptrealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Laurie — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=laurie.kasch@lptrealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "LPT_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "bianca.killey@kw.com",
+      "personalization": {
+        "first_name": "Bianca",
+        "city": "Converse",
+        "brokerage": "Keller Williams Legacy"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Bianca — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Converse, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=bianca.killey@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Bianca — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Converse, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=bianca.killey@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Legacy"
+        }
+      ]
+    },
+    {
+      "to": "jennifer.ward@kw.com",
+      "personalization": {
+        "first_name": "Jennifer",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Legacy"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Jennifer — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=jennifer.ward@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Jennifer — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=jennifer.ward@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Legacy"
+        }
+      ]
+    },
+    {
+      "to": "scott.jauregui@kw.com",
+      "personalization": {
+        "first_name": "Scott",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Legacy"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Scott — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=scott.jauregui@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Scott — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=scott.jauregui@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Legacy"
+        }
+      ]
+    },
+    {
+      "to": "ashley.realtor@kw.com",
+      "personalization": {
+        "first_name": "Ashley",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Legacy"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Ashley — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=ashley.realtor@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Ashley — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=ashley.realtor@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Legacy"
+        }
+      ]
+    },
+    {
+      "to": "flower.castillo@kw.com",
+      "personalization": {
+        "first_name": "Flower",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Legacy"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Flower — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=flower.castillo@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Flower — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=flower.castillo@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Legacy"
+        }
+      ]
+    },
+    {
+      "to": "danny.charbel@kw.com",
+      "personalization": {
+        "first_name": "Danny",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams City View"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Danny — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=danny.charbel@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Danny — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=danny.charbel@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_City_View"
+        }
+      ]
+    },
+    {
+      "to": "heather.elizondo@kw.com",
+      "personalization": {
+        "first_name": "Heather",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams City View"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Heather — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=heather.elizondo@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Heather — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=heather.elizondo@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_City_View"
+        }
+      ]
+    },
+    {
+      "to": "m.stephens@kw.com",
+      "personalization": {
+        "first_name": "M",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams City View"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>M — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=m.stephens@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "M — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=m.stephens@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_City_View"
+        }
+      ]
+    },
+    {
+      "to": "romulo.arroyo@kw.com",
+      "personalization": {
+        "first_name": "Romulo",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams City View"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Romulo — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=romulo.arroyo@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Romulo — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=romulo.arroyo@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_City_View"
+        }
+      ]
+    },
+    {
+      "to": "tyler.willmann@kw.com",
+      "personalization": {
+        "first_name": "Tyler",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams City View"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Tyler — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=tyler.willmann@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Tyler — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=tyler.willmann@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_City_View"
+        }
+      ]
+    },
+    {
+      "to": "daye.wanat@epiquerealty.com",
+      "personalization": {
+        "first_name": "Daye",
+        "city": "Hondo",
+        "brokerage": "Epique Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Daye — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Hondo, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=daye.wanat@epiquerealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Daye — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Hondo, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=daye.wanat@epiquerealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Epique_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "laura.grau@epiquerealty.com",
+      "personalization": {
+        "first_name": "Laura",
+        "city": "Universal City",
+        "brokerage": "Epique Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Laura — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Universal City, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=laura.grau@epiquerealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Laura — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Universal City, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=laura.grau@epiquerealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Epique_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "linda.pena@epiquerealty.com",
+      "personalization": {
+        "first_name": "Linda",
+        "city": "San Antonio",
+        "brokerage": "Epique Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Linda — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=linda.pena@epiquerealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Linda — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=linda.pena@epiquerealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Epique_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "nora.uriostegui@epiquerealty.com",
+      "personalization": {
+        "first_name": "Nora",
+        "city": "San Antonio",
+        "brokerage": "Epique Realty LLC"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Nora — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=nora.uriostegui@epiquerealty.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Nora — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=nora.uriostegui@epiquerealty.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Epique_Realty_LLC"
+        }
+      ]
+    },
+    {
+      "to": "jan.boyle@kw.com",
+      "personalization": {
+        "first_name": "Jan",
+        "city": "New Braunfels",
+        "brokerage": "KELLER WILLIAMS NEW BRAUNFELS (S)"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Jan — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=jan.boyle@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Jan — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=jan.boyle@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "KELLER_WILLIAMS_NEW_BRAUNFELS__S_"
+        }
+      ]
+    },
+    {
+      "to": "suzanne.kuntz@kw.com",
+      "personalization": {
+        "first_name": "Suzanne",
+        "city": "New Braunfels",
+        "brokerage": "KELLER WILLIAMS NEW BRAUNFELS (S)"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Suzanne — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=suzanne.kuntz@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Suzanne — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in New Braunfels, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=suzanne.kuntz@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "KELLER_WILLIAMS_NEW_BRAUNFELS__S_"
+        }
+      ]
+    },
+    {
+      "to": "marsha.kovar@kw.com",
+      "personalization": {
+        "first_name": "Marsha",
+        "city": "Schertz",
+        "brokerage": "KELLER WILLIAMS NEW BRAUNFELS (S)"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Marsha — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Schertz, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=marsha.kovar@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Marsha — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Schertz, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=marsha.kovar@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "KELLER_WILLIAMS_NEW_BRAUNFELS__S_"
+        }
+      ]
+    },
+    {
+      "to": "vanessa.martinez@kw.com",
+      "personalization": {
+        "first_name": "Vanessa",
+        "city": "Seguin",
+        "brokerage": "KELLER WILLIAMS NEW BRAUNFELS (S)"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Vanessa — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Seguin, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=vanessa.martinez@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Vanessa — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Seguin, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=vanessa.martinez@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "KELLER_WILLIAMS_NEW_BRAUNFELS__S_"
+        }
+      ]
+    },
+    {
+      "to": "sonia.rene@kupersir.com",
+      "personalization": {
+        "first_name": "Sonia",
+        "city": "Selma",
+        "brokerage": "Kuper Sotheby's International Realty"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Sonia — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Selma, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=sonia.rene@kupersir.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Sonia — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Selma, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=sonia.rene@kupersir.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Kuper_Sotheby_s_International_Realty"
+        }
+      ]
+    },
+    {
+      "to": "cat.lodge@kupersir.com",
+      "personalization": {
+        "first_name": "Cat",
+        "city": "San Antonio",
+        "brokerage": "Kuper Sotheby's International Realty"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Cat — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=cat.lodge@kupersir.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Cat — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=cat.lodge@kupersir.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Kuper_Sotheby_s_International_Realty"
+        }
+      ]
+    },
+    {
+      "to": "trinie.johnson@kupersir.com",
+      "personalization": {
+        "first_name": "Trinie",
+        "city": "San Antonio",
+        "brokerage": "Kuper Sotheby's International Realty"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Trinie — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=trinie.johnson@kupersir.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Trinie — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=trinie.johnson@kupersir.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Kuper_Sotheby_s_International_Realty"
+        }
+      ]
+    },
+    {
+      "to": "david.kline@cbharper.com",
+      "personalization": {
+        "first_name": "David",
+        "city": "Castroville",
+        "brokerage": "Coldwell Banker D'ann Harper, Realtors"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>David — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Castroville, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=david.kline@cbharper.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "David — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Castroville, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=david.kline@cbharper.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Coldwell_Banker_D_ann_Harper__Realtors"
+        }
+      ]
+    },
+    {
+      "to": "jane.bash@cbharper.com",
+      "personalization": {
+        "first_name": "Jane",
+        "city": "Selma",
+        "brokerage": "Coldwell Banker D'ann Harper, Realtors"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Jane — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Selma, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=jane.bash@cbharper.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Jane — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Selma, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=jane.bash@cbharper.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Coldwell_Banker_D_ann_Harper__Realtors"
+        }
+      ]
+    },
+    {
+      "to": "trudy.pape@cbharper.com",
+      "personalization": {
+        "first_name": "Trudy",
+        "city": "San Antonio",
+        "brokerage": "Coldwell Banker D'ann Harper, Realtors"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Trudy — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=trudy.pape@cbharper.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Trudy — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=trudy.pape@cbharper.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Coldwell_Banker_D_ann_Harper__Realtors"
+        }
+      ]
+    },
+    {
+      "to": "carol.woodward@kw.com",
+      "personalization": {
+        "first_name": "Carol",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Carol — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=carol.woodward@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Carol — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=carol.woodward@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "cathy.heshmat@kw.com",
+      "personalization": {
+        "first_name": "Cathy",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Cathy — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=cathy.heshmat@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Cathy — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=cathy.heshmat@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "chad.agent@kw.com",
+      "personalization": {
+        "first_name": "Chad",
+        "city": "Boerne",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Chad — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in Boerne, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=chad.agent@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Chad — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in Boerne, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=chad.agent@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "criselda.farias@kw.com",
+      "personalization": {
+        "first_name": "Criselda",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Criselda — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=criselda.farias@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Criselda — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=criselda.farias@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "estela.associate@kw.com",
+      "personalization": {
+        "first_name": "Estela",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Estela — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=estela.associate@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Estela — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=estela.associate@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    },
+    {
+      "to": "lorraine.agent@kw.com",
+      "personalization": {
+        "first_name": "Lorraine",
+        "city": "San Antonio",
+        "brokerage": "Keller Williams Heritage"
+      },
+      "subject": "did your tc quit?",
+      "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;\">\n<p>Lorraine — last year my TC quit on me while I was in Italy with three deals in escrow.</p>\n\n<p>I'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.</p>\n\n<p>If you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.</p>\n\n<p>Worth a quick reply if that math sounds familiar?</p>\n\n<p>— Heath<br>\nKW City View / KW Boerne</p>\n\n<p style=\"color: #555;\">P.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. <a href=\"https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\">Founding details</a>.</p>\n\n<hr style=\"border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;\">\n<p style=\"font-size: 11px; color: #888;\">\n<a href=\"https://meetdossie.com/unsubscribe?email=lorraine.agent@kw.com\" style=\"color: #888;\">Unsubscribe</a> | Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n</p>\n</div>",
+      "text": "Lorraine — last year my TC quit on me while I was in Italy with three deals in escrow.\n\nI'm a working REALTOR at KW in San Antonio, so I rebuilt the back office myself and ended up turning it into software. It's called Dossie. She drafts your TREC forms, watches every deadline, and writes the client updates so you don't have to.\n\nIf you're paying $400 a file to a TC right now — that's $4.8k to $12k a year for most of us.\n\nWorth a quick reply if that math sounds familiar?\n\n— Heath\nKW City View / KW Boerne\n\nP.S. We're holding the founding rate at $29/mo for the first 50 agents — locked for the lifetime of your subscription. Fewer than 40 spots remaining. https://meetdossie.com/founding?utm_source=cold-email&utm_campaign=sa-batch-1&utm_medium=email\n\n---\nUnsubscribe: https://meetdossie.com/unsubscribe?email=lorraine.agent@kw.com\nDossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731\n",
+      "reply_to": "heath@meetdossie.com",
+      "from": "Heath Shepard <heath@meetdossie.com>",
+      "bcc": [
+        "heath@meetdossie.com"
+      ],
+      "tags": [
+        {
+          "name": "campaign",
+          "value": "sa-cold-batch-1"
+        },
+        {
+          "name": "hook",
+          "value": "founder-origin"
+        },
+        {
+          "name": "subject_variant",
+          "value": "A"
+        },
+        {
+          "name": "brokerage",
+          "value": "Keller_Williams_Heritage"
+        }
+      ]
+    }
+  ]
+}

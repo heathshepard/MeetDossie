@@ -1,0 +1,108 @@
+{
+  "ok": false,
+  "blocker_1": {
+    "pass": true,
+    "reason": null,
+    "forms_analysis": [
+      {
+        "form_name": "Right to Terminate Due to Lenders Appraisal",
+        "form_type": null,
+        "document_id": null,
+        "has_valid_uuid": null,
+        "error": "Form type mapping not found for short_name=\"TREC 49-1\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js.",
+        "has_error_field_in_schema": true,
+        "status": "RED-with-meaningful-error: Form type mapping not found for short_name=\"TREC 49-1\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      },
+      {
+        "form_name": "One to Four Family Residential Contract (Resale)",
+        "form_type": null,
+        "document_id": null,
+        "has_valid_uuid": null,
+        "error": "Form type mapping not found for short_name=\"1-4 Family Contract\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js.",
+        "has_error_field_in_schema": true,
+        "status": "RED-with-meaningful-error: Form type mapping not found for short_name=\"1-4 Family Contract\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      },
+      {
+        "form_name": "Residential Buyer/Tenant Representation Agreement",
+        "form_type": null,
+        "document_id": null,
+        "has_valid_uuid": null,
+        "error": "Form type mapping not found for short_name=\"Buyer Rep Agreement\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js.",
+        "has_error_field_in_schema": true,
+        "status": "RED-with-meaningful-error: Form type mapping not found for short_name=\"Buyer Rep Agreement\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      },
+      {
+        "form_name": "Third Party Financing Addendum",
+        "form_type": null,
+        "document_id": null,
+        "has_valid_uuid": null,
+        "error": "Form type mapping not found for short_name=\"Financing Addendum\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js.",
+        "has_error_field_in_schema": true,
+        "status": "RED-with-meaningful-error: Form type mapping not found for short_name=\"Financing Addendum\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      }
+    ]
+  },
+  "esign_create_analysis": [],
+  "esign_create_intercepted": 0,
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 ()"
+  ],
+  "pageErrors": [],
+  "prepare_response_full": {
+    "ok": true,
+    "transaction": {
+      "id": "225a7030-12d8-4197-87cb-0d44118383a6",
+      "property_address": "8412 Mock Trail",
+      "city_state_zip": "San Antonio, TX 78230",
+      "buyer_name": "Steven and Amy Chen",
+      "seller_name": "Margaret and Thomas Chen",
+      "buyer_email": "",
+      "seller_email": "mchen@example.com",
+      "transaction_type": "buyer_purchase",
+      "closing_date": "2026-06-15",
+      "sale_price": 720000
+    },
+    "forms": [
+      {
+        "form_id": "48c40a2c-e8d2-4752-955b-4edd81e39034",
+        "form_name": "Right to Terminate Due to Lenders Appraisal",
+        "trec_number": "49-1",
+        "form_type": null,
+        "preview_url": null,
+        "storage_path": null,
+        "document_id": null,
+        "error": "Form type mapping not found for short_name=\"TREC 49-1\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      },
+      {
+        "form_id": "c42a8bbe-6e6f-4a78-9f15-6746b07eabbc",
+        "form_name": "One to Four Family Residential Contract (Resale)",
+        "trec_number": "20-16",
+        "form_type": null,
+        "preview_url": null,
+        "storage_path": null,
+        "document_id": null,
+        "error": "Form type mapping not found for short_name=\"1-4 Family Contract\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      },
+      {
+        "form_id": "e2e0ce27-7772-4129-a4a9-0126b0a4cf32",
+        "form_name": "Residential Buyer/Tenant Representation Agreement",
+        "trec_number": "38-7",
+        "form_type": null,
+        "preview_url": null,
+        "storage_path": null,
+        "document_id": null,
+        "error": "Form type mapping not found for short_name=\"Buyer Rep Agreement\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      },
+      {
+        "form_id": "8c7b1ac7-6469-49b0-83c9-f607fe402cdf",
+        "form_name": "Third Party Financing Addendum",
+        "trec_number": "40-9",
+        "form_type": null,
+        "preview_url": null,
+        "storage_path": null,
+        "document_id": null,
+        "error": "Form type mapping not found for short_name=\"Financing Addendum\". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js."
+      }
+    ]
+  }
+}

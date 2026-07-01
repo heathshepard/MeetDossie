@@ -1,0 +1,26 @@
+{
+  "results": {
+    "bug1": {
+      "pass": false,
+      "notes": [
+        "Stayed on admin page: https://meet-dossie-phjiudgw7-heathshepard-6590s-projects.vercel.app/admin-cold-email.html",
+        "Dashboard state: {\"loading\":{\"display\":\"none\",\"visible\":false},\"dashboard\":{\"display\":\"none\",\"visible\":false},\"error\":{\"display\":\"block\",\"visible\":true},\"errorText\":\"Error loading metrics: API error: 403\",\"totalSent\":\"0\",\"url\":\"https://meet-dossie-phjiudgw7-heathshepard-6590s-projects.vercel.app/admin-cold-email.html\"}"
+      ]
+    },
+    "bug2": {
+      "pass": true,
+      "notes": [
+        "No-signature POST: {\"status\":503,\"body\":{\"ok\":false,\"error\":\"Webhook not configured\"}}",
+        "PASS: 503 returned — fail-closed when secret missing"
+      ]
+    }
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Fetch error: Error: API error: 403\n    at fetchMetrics (https://meet-dossie-phjiudgw7-heathshepard-6590s-projects.vercel.app/admin-cold-email.html:509:13)",
+    "Failed to load resource: the server responded with a status of 503 ()"
+  ],
+  "pageErrors": [],
+  "overall": false
+}

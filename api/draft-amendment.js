@@ -165,8 +165,15 @@ function safeCheck(form, name) {
 
 // Field name aliases — see `scripts/probe-39-10-positions.js` for the visual
 // layout of the form. These names come directly from the AcroForm dictionary
-// in the published TREC 39-10 PDF; many are auto-generated and unhelpful
+// in the published TREC 39-11 PDF; many are auto-generated and unhelpful
 // ("undefined", "Text6") so they're documented inline.
+//
+// CRITICAL: 39-11 inserted a new lender-repairs paragraph (5) between the old
+// paragraphs 5 and 6, shifting all paragraph numbers from (6) onward. The
+// AcroForm field NAMES still have the old numbers embedded (e.g. "6 Buyer has
+// paid Seller...") but their VISUAL positions now correspond to the new
+// paragraph layout. Use field names exactly as they appear in the AcroForm,
+// not by paragraph number.
 const FIELDS = {
   propertyAddress: 'Street Address and City',                       // page top
   finalAcceptanceDate: 'DATE OF FINAL ACCEPTANCE',                  // footer
@@ -179,7 +186,9 @@ const FIELDS = {
   closingDateCheckbox: '3 The date in Paragraph 9 of the contract is changed to',
   closingDateText: 'date 5',
   closingDateYearSuffix: '20_25',
-  // Paragraph 6 — additional option fee + extension
+  // Paragraph 7 (visually) — additional option fee + extension
+  // NOTE: Field names still say "(6)" because they retained pre-39-11 nomenclature,
+  // but they now render at visual paragraph (7) due to the inserted lender-repairs ¶(6)
   optionFeeCheckbox: '6 Buyer has paid Seller an additional Option Fee of',
   optionFeeAmount: 'as follows',                  // dollar amount paid
   optionFeeExtensionDays: 'for an extension of the', // number of days

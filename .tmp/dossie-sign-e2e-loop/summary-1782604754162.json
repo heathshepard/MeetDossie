@@ -1,0 +1,14 @@
+{
+  "totalIterations": 1,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "Supabase insert transactions failed (400): {\"code\":\"23502\",\"details\":\"Failing ro",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {},
+      "pass": false,
+      "error": "Supabase insert transactions failed (400): {\"code\":\"23502\",\"details\":\"Failing row contains (48d73611-2e57-441d-9ede-dada0a115dfd, c29ce34c-1434-44e5-a260-8d1a45213ec3, null, active, null, null, 1234 Loop Test Lane #1, San Antonio, TX 78230, Atlas Buyer 1, Atlas Seller 1, 450000, 5000, 250, 7, 21, null, 2026-08-31, null, {}, [], [], [], 2026-"
+    }
+  ]
+}

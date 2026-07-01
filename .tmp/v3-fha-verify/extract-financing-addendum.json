@@ -1,0 +1,16 @@
+{
+  "property_address": "123 Main St",
+  "city_state_zip": "Boerne, TX 78006",
+  "buyer_name": "Heath Shepard",
+  "financing_type": "fha",
+  "loan_amount": 482500,
+  "down_payment_pct": 3.5,
+  "loan_term_years": 30,
+  "possession": "closing",
+  "hoa_exists": true,
+  "addendum_financing": true,
+  "addendum_hoa": true,
+  "addendum_lead_paint": false,
+  "contract_effective_date": "2026-07-01",
+  "as_is": true
+}

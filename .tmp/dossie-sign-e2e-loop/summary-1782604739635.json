@@ -1,0 +1,14 @@
+{
+  "totalIterations": 1,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "Failed to parse URL from \"https://pgwoitbdiyubjugwufhk.supabase.co\"/rest/v1/tran",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {},
+      "pass": false,
+      "error": "Failed to parse URL from \"https://pgwoitbdiyubjugwufhk.supabase.co\"/rest/v1/transactions"
+    }
+  ]
+}

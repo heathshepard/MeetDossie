@@ -1,0 +1,12 @@
+{
+  "property_address": "123 Main St",
+  "city_state_zip": "Boerne, TX 78006",
+  "buyer_name": "Heath Shepard",
+  "seller_name": "Josh Sissam",
+  "hoa_name": "Cibolo Canyons HOA",
+  "hoa_monthly_dues": 145,
+  "hoa_transfer_fee": 200,
+  "financing_type": "fha",
+  "possession": "closing",
+  "hoa_exists": false
+}

@@ -1,0 +1,283 @@
+{
+  "totalIterations": 5,
+  "consecutivePasses": 5,
+  "targetReached": true,
+  "finalBlocker": null,
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "2358ab02-5989-4e0a-9768-89403d21c92c"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "867510d5-6391-4182-8e5c-7c45c5c060b2"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817398,
+          "documentId": "20010d2d-b0df-4d79-916d-ddbe07a6a060"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817399",
+          "signatureRequestId": "a542cb0c-c6f5-4faf-845b-42e213bedf4e"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 1
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "2b8f0180-1077-4c43-b585-d29022f2dc79"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 1
+        },
+        "verify_sr_completed": {
+          "ok": "2b8f0180-1077-4c43-b585-d29022f2dc79",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "2358ab02-5989-4e0a-9768-89403d21c92c"
+    },
+    {
+      "iteration": 2,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "b5e4436e-7eee-4c92-99e2-66840f412f20"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "953fbfc4-2f7f-437f-bd04-0c6b63e8f9ea"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817402,
+          "documentId": "a1d38d0b-e9ce-43fd-8489-8c8067d38f13"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817404",
+          "signatureRequestId": "c9dd3f31-4798-4fd7-a11d-df3b75237031"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 1
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "f7476b4a-f42d-457f-abdd-9a2b81308751"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 1
+        },
+        "verify_sr_completed": {
+          "ok": "f7476b4a-f42d-457f-abdd-9a2b81308751",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "b5e4436e-7eee-4c92-99e2-66840f412f20"
+    },
+    {
+      "iteration": 3,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "19d311cb-1031-4c21-9c39-d7d5626ee4f0"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "c2adbe30-ec80-4234-80fe-75dfc9f0fad6"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817407,
+          "documentId": "91f50d48-267f-4f4e-bbe4-783c83716a63"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817409",
+          "signatureRequestId": "3af3e1d9-dbd0-4c07-bf8f-2c7e93efb5e7"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 1
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "a318f674-83c3-4406-953f-7b8e6699e4e3"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 1
+        },
+        "verify_sr_completed": {
+          "ok": "a318f674-83c3-4406-953f-7b8e6699e4e3",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "19d311cb-1031-4c21-9c39-d7d5626ee4f0"
+    },
+    {
+      "iteration": 4,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "cd447d7f-1195-4094-a9be-d5092d2a39e3"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "d3f3feaf-ccbc-49ac-9a3a-ffc572105b84"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817412,
+          "documentId": "847b5517-0b39-45b8-bb96-f3b37e3d7a86"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817413",
+          "signatureRequestId": "cc6a7989-f700-4b66-8c45-e9b285b78126"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 1
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "2c6b87c2-6962-4ee5-bfa0-d64469fc568e"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 1
+        },
+        "verify_sr_completed": {
+          "ok": "2c6b87c2-6962-4ee5-bfa0-d64469fc568e",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "cd447d7f-1195-4094-a9be-d5092d2a39e3"
+    },
+    {
+      "iteration": 5,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "2c6f1a31-a42c-43b4-a677-614ad2a8aa01"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "8377ded2-0e39-4825-a70b-1efdc1196003"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817415,
+          "documentId": "e8d0a748-7ca8-4706-85f4-f4f2c74ec459"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 200,
+          "ok": true,
+          "submissionId": "8817417",
+          "signatureRequestId": "90ab5ca2-33d0-4c68-a145-f05df088f02c"
+        },
+        "docuseal_status": {
+          "status": 200,
+          "ok": true,
+          "envelopeStatus": "pending",
+          "submitterCount": 1
+        },
+        "sign_all": {
+          "ok": true
+        },
+        "esign_download": {
+          "status": 200,
+          "ok": true,
+          "signedDocumentId": "efcced67-fc8b-4bbc-a070-499a5556fc4c"
+        },
+        "verify_signed_doc": {
+          "ok": true,
+          "docs": 1
+        },
+        "verify_sr_completed": {
+          "ok": "efcced67-fc8b-4bbc-a070-499a5556fc4c",
+          "status": "completed"
+        }
+      },
+      "pass": true,
+      "transactionId": "2c6f1a31-a42c-43b4-a677-614ad2a8aa01"
+    }
+  ]
+}

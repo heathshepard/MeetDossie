@@ -1,0 +1,16 @@
+{
+  "property_address": "123 Main St",
+  "city_state_zip": "Boerne, TX 78006",
+  "buyer_name": "Heath Shepard",
+  "seller_name": "Josh Sissam",
+  "property_built_year": 1972,
+  "seller_disclosure_choice": "no_knowledge",
+  "financing_type": "fha",
+  "possession": "closing",
+  "hoa_exists": true,
+  "addendum_financing": false,
+  "addendum_hoa": true,
+  "addendum_lead_paint": true,
+  "contract_effective_date": "2026-07-01",
+  "as_is": true
+}

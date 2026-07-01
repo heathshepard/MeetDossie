@@ -1,0 +1,173 @@
+{
+  "totalIterations": 5,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"message m",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "aa17789d-4054-49ce-a7cb-6fb35ea49d36"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "ae063b04-af36-4cf1-9002-3fafa1142782"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817453,
+          "documentId": "a301ba7b-7480-45d8-be90-294bf8e2a494"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "aa17789d-4054-49ce-a7cb-6fb35ea49d36",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+    },
+    {
+      "iteration": 2,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "aa2c7ed8-89d9-4802-8d6c-047524058e86"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "1855d90c-7fcd-4648-8047-093e25de76b2"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817455,
+          "documentId": "95d20954-6156-4105-ae19-b8afee5aec29"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "aa2c7ed8-89d9-4802-8d6c-047524058e86",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+    },
+    {
+      "iteration": 3,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "e1b1641b-5850-4971-879f-7e4f81ba5f39"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "55f3ab4a-d70f-4493-9fee-f73037695eb2"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817457,
+          "documentId": "5ad3658e-101c-40d1-897e-a2e6e4cc9750"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "e1b1641b-5850-4971-879f-7e4f81ba5f39",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+    },
+    {
+      "iteration": 4,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "580efdeb-2762-4ce4-8147-35f7bbaaed3a"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "3e4cf85a-4055-4bd3-8250-ef22afb0979a"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817459,
+          "documentId": "c87616d7-4d7e-4297-9657-48f9eda7832e"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "580efdeb-2762-4ce4-8147-35f7bbaaed3a",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+    },
+    {
+      "iteration": 5,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "b207cd98-8c65-4d01-b28e-899dd6a888cd"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "edf7f4b5-3eda-4527-9b11-d48a9e00e170"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817462,
+          "documentId": "98a8aa6d-f499-4ba0-95cb-54e841dc24ec"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "b207cd98-8c65-4d01-b28e-899dd6a888cd",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"message must be a Object\"}"
+    }
+  ]
+}

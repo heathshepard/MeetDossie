@@ -1,0 +1,173 @@
+{
+  "totalIterations": 5,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"Template ",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "807cc790-7a99-4ba0-900d-5242bb868cda"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "16daa221-bd47-4804-bf92-eeebda29af0b"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817476,
+          "documentId": "8b488e9d-c967-4950-b065-87564979a99d"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "807cc790-7a99-4ba0-900d-5242bb868cda",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+    },
+    {
+      "iteration": 2,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "03b2dc5b-6e3e-4c76-bccb-ad732ffe8891"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "b880583d-110a-4a30-b704-3354e5a64e8b"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817479,
+          "documentId": "7e23f11c-217f-45d7-bdb3-2b2f4cc3f1ec"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "03b2dc5b-6e3e-4c76-bccb-ad732ffe8891",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+    },
+    {
+      "iteration": 3,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "c82da2f3-b3e3-4d4f-ad49-b9b59463aa33"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "c053cd23-d1d1-4777-bacf-83dbe314651d"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817481,
+          "documentId": "97e6f675-14b3-4dba-aee3-0cb24f8facd3"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "c82da2f3-b3e3-4d4f-ad49-b9b59463aa33",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+    },
+    {
+      "iteration": 4,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "5c55d7b6-9f82-409b-9a07-bee9442b5b71"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "0e22999d-9ced-4dba-8116-9448de87f208"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817484,
+          "documentId": "718d9905-e403-4a2f-93a8-ac7742932f62"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "5c55d7b6-9f82-409b-9a07-bee9442b5b71",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+    },
+    {
+      "iteration": 5,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "206a11e4-3b6c-449d-a7e6-831dbcaa88da"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "ee1d995e-5cb6-4ce4-944b-deb4ab11d653"
+        },
+        "fill_via_docuseal": {
+          "status": 200,
+          "ok": true,
+          "submissionId": 8817486,
+          "documentId": "0d1665a7-6cd0-4dcc-bd29-6b077b5ed300"
+        },
+        "dossiesign_prepare": {
+          "status": 200,
+          "ok": true,
+          "formsCount": 4
+        },
+        "esign_create": {
+          "status": 422,
+          "ok": false,
+          "error": "DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "206a11e4-3b6c-449d-a7e6-831dbcaa88da",
+      "error": "esign-create failed: DocuSeal rejected the submission (422): {\"error\":\"Template does not contain fields\"}"
+    }
+  ]
+}

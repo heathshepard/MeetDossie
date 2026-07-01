@@ -1,0 +1,26 @@
+{
+  "ok": false,
+  "error": "Failed to fill some forms: resale-contract, financing-addendum, hoa-addendum, lead-paint-addendum",
+  "results": [
+    {
+      "form_type": "resale-contract",
+      "documentId": "45416172-47fa-4a44-b4a0-8a12836d7417",
+      "storagePath": "c29ce34c-1434-44e5-a260-8d1a45213ec3/87883946-8dc4-4ae4-9464-d1ed5ef33fac/TREC-Resale-Contract-1782647005156.pdf"
+    },
+    {
+      "form_type": "financing-addendum",
+      "documentId": "0aeccdb3-fd73-4966-824f-8f080aedf7cb",
+      "storagePath": "c29ce34c-1434-44e5-a260-8d1a45213ec3/87883946-8dc4-4ae4-9464-d1ed5ef33fac/TREC-Financing-Addendum-1782647005998.pdf"
+    },
+    {
+      "form_type": "hoa-addendum",
+      "documentId": "9fc62828-3905-4816-96ad-3da7fb83acd1",
+      "storagePath": "c29ce34c-1434-44e5-a260-8d1a45213ec3/87883946-8dc4-4ae4-9464-d1ed5ef33fac/TREC-HOA-Addendum-1782647006503.pdf"
+    },
+    {
+      "form_type": "lead-paint-addendum",
+      "documentId": "6173b11a-6fb3-41b9-a771-1e31f6103856",
+      "storagePath": "c29ce34c-1434-44e5-a260-8d1a45213ec3/87883946-8dc4-4ae4-9464-d1ed5ef33fac/OP-L-Lead-Paint-1782647007165.pdf"
+    }
+  ]
+}

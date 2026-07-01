@@ -1,0 +1,653 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5] [cursor=pointer]: 
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: Information on the Aiguille du Midi
+        - generic [ref=e9]:
+          - paragraph [ref=e10]:
+            - text: The Chamonix Terrace (North Peak), located above the 3842 restaurant, will be closed to the public starting May 25, 2026, for an estimated period of 4 to 5 weeks.
+            - strong [ref=e11]
+            - text: in order to
+            - strong
+            - text: Perform waterproofing work and install new decking.
+          - paragraph [ref=e12]: The other areas, as well as the restaurants and the entire tour at the summit of the Aiguille du Midi, remain open as usual.
+          - paragraph [ref=e13]: Thank you for your understanding.
+        - link "Live Updates" [ref=e15] [cursor=pointer]:
+          - /url: /en/info-live
+          - generic [ref=e16]: Live Updates
+      - generic [ref=e18]:
+        - img [ref=e19]
+        - img [ref=e20]
+        - img "Aiguille du Midi" [ref=e21]
+  - generic [ref=e22]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - link "l'Aiguille du Midi" [ref=e28] [cursor=pointer]:
+          - /url: /en
+          - img "l'Aiguille du Midi" [ref=e32]
+        - list [ref=e81]:
+          - listitem [ref=e82]:
+            - generic [ref=e83]:
+              - generic [ref=e86] [cursor=pointer]: Preparing your visit
+              - text: 
+          - listitem [ref=e87]:
+            - generic [ref=e88]:
+              - generic [ref=e91] [cursor=pointer]: Your visit
+              - text: 
+          - listitem [ref=e92]:
+            - link "Ticketing" [ref=e94] [cursor=pointer]:
+              - /url: /en/ticketing
+              - generic [ref=e95]: Ticketing
+      - generic [ref=e97]:
+        - generic [ref=e99]:
+          - generic [ref=e100] [cursor=pointer]: Summer
+          - generic [ref=e101] [cursor=pointer]: Winter
+        - link "" [ref=e103] [cursor=pointer]:
+          - /url: https://shop-aiguilledumidi.montblancnaturalresort.com/en/profil/
+          - generic [ref=e104]: 
+        - button "English flag" [ref=e107] [cursor=pointer]:
+          - img "English flag" [ref=e109]
+    - generic [ref=e111]:
+      - generic:
+        - generic:
+          - generic:
+            - heading "Tickets, passes and reservation" [level=1]
+            - generic:
+              - paragraph:
+                - text: Take advantage of the
+                - strong: lowest prices
+                - text: by buying your ticket or pass online.
+                - strong: Anticipate & save = visit smart!
+    - generic [ref=e117]:
+      - link " Closed" [ref=e118] [cursor=pointer]:
+        - /url: /en/info-live#opening
+        - generic [ref=e120]: 
+        - generic [ref=e121]: Closed
+      - link "Partly Cloudy 3°C" [ref=e123] [cursor=pointer]:
+        - /url: /en/info-live#weather
+        - img "Partly Cloudy" [ref=e125]
+        - generic [ref=e126]: 3°C
+      - link " Webcam" [ref=e127] [cursor=pointer]:
+        - /url: /en/info-live#webcam
+        - generic [ref=e129]: 
+        - generic [ref=e130]: Webcam
+  - generic [ref=e132]:
+    - heading "All products" [level=2] [ref=e135]
+    - generic [ref=e137]:
+      - generic [ref=e138] [cursor=pointer]: All themes
+      - generic [ref=e139] [cursor=pointer]: Top
+      - generic [ref=e140] [cursor=pointer]: Pedestrian
+      - generic [ref=e141] [cursor=pointer]: Mid-station
+      - generic [ref=e142] [cursor=pointer]: Adult
+      - generic [ref=e143] [cursor=pointer]: Family/Tribu
+      - generic [ref=e144] [cursor=pointer]: Walks & Visits
+      - generic [ref=e145] [cursor=pointer]: Stay
+      - generic [ref=e146] [cursor=pointer]: Reservation
+    - generic [ref=e147]:
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - generic [ref=e151]:
+            - generic [ref=e152]:
+              - generic [ref=e154]: 
+              - text: Aiguille du Midi
+            - generic [ref=e155]: Top
+          - generic [ref=e157]:
+            - img [ref=e158]
+            - img [ref=e159]
+            - img "Aiguille du Midi summer ticket" [ref=e160]
+        - generic [ref=e161]:
+          - generic [ref=e162]:
+            - heading "Ticket Return" [level=3] [ref=e163]
+            - paragraph [ref=e164]: Reservation + return ticket
+            - paragraph [ref=e166]: From 60,20€ to 83,00€
+          - link " Buy" [ref=e168] [cursor=pointer]:
+            - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/COMPLET-TAM
+            - generic [ref=e169]: 
+            - generic [ref=e170]: Buy
+      - generic [ref=e172]:
+        - generic [ref=e173]:
+          - generic [ref=e174]:
+            - generic [ref=e175]:
+              - generic [ref=e177]: 
+              - text: Aiguille du Midi
+            - generic [ref=e178]: Pedestrian
+          - generic [ref=e180]:
+            - img [ref=e181]
+            - img [ref=e182]
+            - img "Grand Balcon Nord" [ref=e183]
+        - generic [ref=e184]:
+          - generic [ref=e185]:
+            - heading "Ticket Balcon Nord" [level=3] [ref=e186]
+            - paragraph [ref=e187]: Ascent of the Aiguille + visit to Montenvers - Mer de Glace + return by train
+            - paragraph [ref=e189]: 68,40€
+          - generic [ref=e190]:
+            - link " Buy" [ref=e191] [cursor=pointer]:
+              - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/BALCON-NORD-PAR-TAM-SITE-MDG
+              - generic [ref=e192]: 
+              - generic [ref=e193]: Buy
+            - link "Ticket info" [ref=e194] [cursor=pointer]:
+              - /url: https://www.montblancnaturalresort.com/en/ticketing/montblanc-multipass
+              - generic [ref=e195]: Ticket info
+      - generic [ref=e197]:
+        - generic [ref=e198]:
+          - generic [ref=e199]:
+            - generic [ref=e200]:
+              - generic [ref=e202]: 
+              - text: Aiguille du Midi
+            - generic [ref=e203]: Mid-station
+            - generic [ref=e204]: Adult
+          - generic [ref=e206]:
+            - img [ref=e207]
+            - img [ref=e208]
+            - img "Aiguille du Midi" [ref=e209]
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - heading "Ticket round trip Plan de l'Aiguille" [level=3] [ref=e212]
+            - paragraph [ref=e213]: Reservation + return ticket
+            - paragraph [ref=e215]: 43,00€
+          - link " Buy" [ref=e217] [cursor=pointer]:
+            - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/AR-PLAN-AIGUILLE-DYN
+            - generic [ref=e218]: 
+            - generic [ref=e219]: Buy
+      - generic [ref=e221]:
+        - generic [ref=e222]:
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - generic [ref=e226]: 
+              - text: Aiguille du Midi
+            - generic [ref=e227]: Top
+            - generic [ref=e228]: Family/Tribu
+          - generic [ref=e230]:
+            - img [ref=e231]
+            - img [ref=e232]
+        - generic [ref=e233]:
+          - generic [ref=e234]:
+            - heading "Ticket Return" [level=3] [ref=e235]
+            - paragraph [ref=e236]: "Tribu : 2 adults + 2 children"
+            - paragraph [ref=e238]: From 186,70€ to 257,40€
+          - link " Buy" [ref=e240] [cursor=pointer]:
+            - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/COMPLET-TAM?valcat=1DAY&p[1][conscat]=ADULT&p[2][conscat]=ADULT&p[3][conscat]=CHILD&p[4][conscat]=CHILD
+            - generic [ref=e241]: 
+            - generic [ref=e242]: Buy
+      - generic [ref=e244]:
+        - generic [ref=e245]:
+          - generic [ref=e246]:
+            - generic [ref=e247]:
+              - generic [ref=e249]: 
+              - text: Aiguille du Midi
+            - generic [ref=e250]: Mid-station
+            - generic [ref=e251]: Family/Tribu
+          - generic [ref=e253]:
+            - img [ref=e254]
+            - img [ref=e255]
+        - generic [ref=e256]:
+          - generic [ref=e257]:
+            - heading "Ticket round trip Plan de l'Aiguille" [level=3] [ref=e258]
+            - paragraph [ref=e259]: "Tribu : 2 adults + 2 children"
+            - paragraph [ref=e261]: 133,40€
+          - link " Buy" [ref=e263] [cursor=pointer]:
+            - /url: https://aiguilledumidi.montblancnaturalresort.com/fr/produit/AR-PLAN-AIGUILLE-DYN?valcat=1DAY&p[1][conscat]=ADULT&p[2][conscat]=ADULT&p[3][conscat]=CHILD&p[4][conscat]=CHILD
+            - generic [ref=e264]: 
+            - generic [ref=e265]: Buy
+      - generic [ref=e267]:
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - generic [ref=e270]:
+              - generic [ref=e272]: 
+              - text: All resorts
+            - generic [ref=e273]: Walks & Visits
+            - generic [ref=e274]: Stay
+          - generic [ref=e276]:
+            - img [ref=e277]
+            - img [ref=e278]
+          - generic [ref=e280]:
+            - img [ref=e281]
+            - img [ref=e282]
+        - generic [ref=e283]:
+          - generic [ref=e284]:
+            - heading "Pass MONT BLANC MultiPass" [level=3] [ref=e285]
+            - paragraph [ref=e286]: "Adult : 1 to 9 days \"Walks & Visits\""
+            - paragraph [ref=e288]: From 95,60€
+          - generic [ref=e289]:
+            - link " Buy" [ref=e290] [cursor=pointer]:
+              - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/MULTIPASS
+              - generic [ref=e291]: 
+              - generic [ref=e292]: Buy
+            - link "Pass info" [ref=e293] [cursor=pointer]:
+              - /url: https://www.montblancnaturalresort.com/en/ticketing/montblanc-multipass
+              - generic [ref=e294]: Pass info
+    - generic [ref=e296]:
+      - generic [ref=e298] [cursor=pointer]: "1"
+      - generic [ref=e300] [cursor=pointer]: "2"
+  - generic [ref=e303]:
+    - img "Ticket for carriage" [ref=e305]
+    - generic [ref=e306]:
+      - heading "Do you already have a pass ?" [level=2] [ref=e307]
+      - paragraph [ref=e309]:
+        - text: If you already have a
+        - strong [ref=e310]: MONT BLANC MultiPass pass
+        - text: ", access to the Aiguille du Midi is already included. All you have to do is book your date and time slot. Please note that"
+        - strong [ref=e311]: booking is compulsory
+        - text: for access to the Aiguille du Midi
+      - link " Book my place" [ref=e313] [cursor=pointer]:
+        - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/RESERVATION-TAM
+        - generic [ref=e314]: 
+        - generic [ref=e315]: Book my place
+  - generic [ref=e317]:
+    - generic [ref=e319]:
+      - heading "Compare our products" [level=2] [ref=e320]
+      - generic [ref=e321]:
+        - paragraph [ref=e322]:
+          - text: Are you hesitating between a
+          - strong [ref=e323]: round-trip ticket for the Aiguille du Midi and a MONT BLANC Multipass ?
+        - paragraph [ref=e324]: We help you better understand the differences between these two products with this comparison table.
+    - generic [ref=e325]:
+      - generic [ref=e326]:
+        - generic [ref=e327]:
+          - generic [ref=e330]:
+            - img [ref=e331]
+            - img [ref=e332]
+          - generic [ref=e333]:
+            - generic [ref=e334]:
+              - heading "Ticket Return" [level=3] [ref=e335]
+              - paragraph [ref=e337]: From 60,20€ to 83,00€
+            - link " Buy" [ref=e339] [cursor=pointer]:
+              - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/COMPLET-TAM
+              - generic [ref=e340]: 
+              - generic [ref=e341]: Buy
+        - generic [ref=e342]:
+          - generic [ref=e345]:
+            - img [ref=e346]
+            - img [ref=e347]
+          - generic [ref=e348]:
+            - generic [ref=e349]:
+              - heading "Pass MONT BLANC MultiPass" [level=3] [ref=e350]
+              - paragraph [ref=e352]: From 95,60€
+            - generic [ref=e353]:
+              - link " Buy" [ref=e354] [cursor=pointer]:
+                - /url: https://aiguilledumidi.montblancnaturalresort.com/en/produit/MULTIPASS
+                - generic [ref=e355]: 
+                - generic [ref=e356]: Buy
+              - link "Pass info" [ref=e357] [cursor=pointer]:
+                - /url: https://www.montblancnaturalresort.com/en/ticketing/montblanc-multipass
+                - generic [ref=e358]: Pass info
+      - generic [ref=e359]:
+        - generic [ref=e360]:
+          - generic [ref=e361]:
+            - generic [ref=e362]: Plan de l'Aiguille Cable Car
+            - generic [ref=e363]:
+              - generic [ref=e364]: 
+              - generic [ref=e365]: "Yes"
+            - generic [ref=e366]:
+              - generic [ref=e367]: 
+              - generic [ref=e368]: "Yes"
+          - generic [ref=e369]:
+            - generic [ref=e370]: Aiguille du midi cable car
+            - generic [ref=e371]:
+              - generic [ref=e372]: 
+              - generic [ref=e373]: "Yes"
+            - generic [ref=e374]:
+              - generic [ref=e375]: 
+              - generic [ref=e376]: "Yes"
+          - generic [ref=e377]:
+            - generic [ref=e378]: Reservation required
+            - generic [ref=e379]:
+              - generic [ref=e380]: 
+              - generic [ref=e381]: "Yes"
+            - generic [ref=e382]:
+              - generic [ref=e383]: 
+              - generic [ref=e384]: "Yes"
+          - generic [ref=e385]:
+            - generic [ref=e386] [cursor=pointer]:
+              - generic [ref=e387]: 
+              - generic [ref=e388]: Access to hiking areas
+            - generic:
+              - generic [ref=e389]:
+                - generic [ref=e390]: Chamonix areas*
+                - generic [ref=e391]:
+                  - generic [ref=e392]: 
+                  - generic [ref=e393]: "No"
+                - generic [ref=e394]:
+                  - generic [ref=e395]: 
+                  - generic [ref=e396]: "Yes"
+              - generic [ref=e397]:
+                - generic [ref=e398]: Houches-Saint Gervais area
+                - generic [ref=e399]:
+                  - generic [ref=e400]: 
+                  - generic [ref=e401]: "No"
+                - generic [ref=e402]:
+                  - generic [ref=e403]: 
+                  - generic [ref=e404]: "Yes"
+              - generic [ref=e405]:
+                - generic [ref=e406]: Evasion Mont Blanc area
+                - generic [ref=e407]:
+                  - generic [ref=e408]: 
+                  - generic [ref=e409]: "No"
+                - generic [ref=e410]:
+                  - generic [ref=e411]: 
+                  - generic [ref=e412]: "Yes"
+              - generic [ref=e413]:
+                - generic [ref=e414]: Bossons chairlift
+                - generic [ref=e415]:
+                  - generic [ref=e416]: 
+                  - generic [ref=e417]: "No"
+                - generic [ref=e418]:
+                  - generic [ref=e419]: 
+                  - generic [ref=e420]: "Yes"
+              - generic [ref=e421]:
+                - generic [ref=e422]: Saint Gervais area**
+                - generic [ref=e423]:
+                  - generic [ref=e424]: 
+                  - generic [ref=e425]: "No"
+                - generic [ref=e426]:
+                  - generic [ref=e427]: 
+                  - generic [ref=e428]: "Yes"
+              - generic [ref=e429]:
+                - generic [ref=e430]: Contamines area**
+                - generic [ref=e431]:
+                  - generic [ref=e432]: 
+                  - generic [ref=e433]: "No"
+                - generic [ref=e434]:
+                  - generic [ref=e435]: 
+                  - generic [ref=e436]: "Yes"
+              - generic [ref=e437]:
+                - generic [ref=e438]: Courmayeur cable car - Italy**
+                - generic [ref=e439]:
+                  - generic [ref=e440]: 
+                  - generic [ref=e441]: "No"
+                - generic [ref=e442]:
+                  - generic [ref=e443]: 
+                  - generic [ref=e444]: "Yes"
+          - generic [ref=e445]:
+            - generic [ref=e446] [cursor=pointer]:
+              - generic [ref=e447]: 
+              - generic [ref=e448]: Access to sites
+            - generic:
+              - generic [ref=e449]:
+                - generic [ref=e450]: Montenvers - Mer de Glace
+                - generic [ref=e451]:
+                  - generic [ref=e452]: 
+                  - generic [ref=e453]: "No"
+                - generic [ref=e454]:
+                  - generic [ref=e455]: 
+                  - generic [ref=e456]: "Yes"
+              - generic [ref=e457]:
+                - generic [ref=e458]: Tramway du Mont-Blanc
+                - generic [ref=e459]:
+                  - generic [ref=e460]: 
+                  - generic [ref=e461]: "No"
+                - generic [ref=e462]:
+                  - generic [ref=e463]: 
+                  - generic [ref=e464]: "Yes"
+              - generic [ref=e465]:
+                - generic [ref=e466]: Skyway - Monte Bianco**
+                - generic [ref=e467]:
+                  - generic [ref=e468]: 
+                  - generic [ref=e469]: "No"
+                - generic [ref=e470]:
+                  - generic [ref=e471]: 
+                  - generic [ref=e472]: "Yes"
+              - generic [ref=e473]:
+                - generic [ref=e474]: Panoramic Mont-Blanc
+                - generic [ref=e475]:
+                  - generic [ref=e476]: 
+                  - generic [ref=e477]: "No"
+                - generic [ref=e478]:
+                  - generic [ref=e479]: 
+                  - generic [ref=e480]: "No"
+          - generic [ref=e481]:
+            - generic [ref=e482] [cursor=pointer]:
+              - generic [ref=e483]: 
+              - generic [ref=e484]: Advantages
+            - generic:
+              - generic [ref=e485]:
+                - generic [ref=e486]: Benefits Booklet
+                - generic [ref=e487]:
+                  - generic [ref=e488]: 
+                  - generic [ref=e489]: "No"
+                - generic [ref=e490]:
+                  - generic [ref=e491]: 
+                  - generic [ref=e492]: "Yes"
+              - generic [ref=e493]:
+                - generic [ref=e494]: Immersive 4D Cinema at the Aiguille du Midi
+                - generic [ref=e495]:
+                  - generic [ref=e496]: 
+                  - generic [ref=e497]: "No"
+                - generic [ref=e498]:
+                  - generic [ref=e499]: 
+                  - generic [ref=e500]: "Yes"
+              - generic [ref=e501]:
+                - generic [ref=e502]: Easy access to the TER Mont-Blanc Express
+                - generic [ref=e503]:
+                  - generic [ref=e504]: 
+                  - generic [ref=e505]: "No"
+                - generic [ref=e506]:
+                  - generic [ref=e507]: 
+                  - generic [ref=e508]: "Yes"
+        - generic [ref=e509]:
+          - paragraph [ref=e510]: "* Brévent-Flégère, Balme-Le Tour-Vallorcine"
+          - paragraph [ref=e511]: "** Starting from the 2-day pass and up, under certain conditions"
+  - generic [ref=e514]:
+    - generic [ref=e517]:
+      - heading "Reviews" [level=2] [ref=e518]
+      - generic [ref=e521]:
+        - generic [ref=e523]:
+          - generic [ref=e524]: 
+          - generic [ref=e525]: 
+          - generic [ref=e526]: 
+          - generic [ref=e527]: 
+          - generic [ref=e528]:
+            - generic [ref=e530]: 
+            - generic [ref=e531]: 
+        - generic [ref=e532]: Overall rating out of 769 reviews
+      - link "Show all reviews" [ref=e534] [cursor=pointer]:
+        - /url: https://www.avis-montblancnaturalresort.com/focus-sites-dexcursion/telepherique-de-laiguille-du-midi
+        - generic [ref=e535]: Show all reviews
+    - generic [ref=e538]:
+      - heading "Need information?" [level=2] [ref=e539]
+      - paragraph [ref=e542]: You need info, make a claim, apply at...
+      - link "Contact us" [ref=e544] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.com/en/nous-contacter
+        - generic [ref=e545]: Contact us
+    - generic [ref=e548]:
+      - heading "Order collection" [level=2] [ref=e549]
+      - paragraph [ref=e552]:
+        - text: Collect your internet orders directly from our automatic terminals
+        - strong [ref=e553]: « Pick-Up Box »
+      - link "Locate Pick-Up Box" [ref=e555] [cursor=pointer]:
+        - /url: https://shop.montblancnaturalresort.com/en/pickupsites
+        - generic [ref=e556]: Locate Pick-Up Box
+    - generic [ref=e559]:
+      - heading "Group Request" [level=2] [ref=e560]
+      - paragraph [ref=e563]: "Group requests for 20 people or more: companies, organizers, CSE, schools, ski clubs…"
+      - link "Visit the website" [ref=e565] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.pro/en/home/
+        - generic [ref=e566]: Visit the website
+  - generic [ref=e569]:
+    - generic [ref=e571]:
+      - link "Logo Chamonix Mont-Blanc" [ref=e574] [cursor=pointer]:
+        - /url: https://www.chamonix.com/
+        - generic [ref=e575]:
+          - img [ref=e576]
+          - img [ref=e577]
+      - paragraph [ref=e579]:
+        - text: "The Aiguille du Midi: the ultimate"
+        - strong [ref=e580]: high mountain experience
+        - text: "! An"
+        - strong [ref=e581]: incredible panorama
+        - text: of the French, Swiss and Italian Alps awaits you...
+      - link " Newsletter subscribe" [ref=e583] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.com/en/inscription-newsletter
+        - generic [ref=e584]: 
+        - generic [ref=e585]: Newsletter subscribe
+    - generic [ref=e586]:
+      - generic [ref=e587]: Menu
+      - list [ref=e589]:
+        - listitem [ref=e590]:
+          - link "Contact" [ref=e591] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/contact
+        - listitem [ref=e592]:
+          - link "Infos live" [ref=e593] [cursor=pointer]:
+            - /url: /en/info-live
+        - listitem [ref=e594]:
+          - link "Ticketing" [ref=e595] [cursor=pointer]:
+            - /url: /en/ticketing
+        - listitem [ref=e596]:
+          - link "Opening times and prices" [ref=e597] [cursor=pointer]:
+            - /url: /en/timetables-rates
+        - listitem [ref=e598]:
+          - link "Access and maps" [ref=e599] [cursor=pointer]:
+            - /url: /en/access-and-maps
+        - listitem [ref=e600]:
+          - link "Frequently Asked Questions" [ref=e601] [cursor=pointer]:
+            - /url: /en/frequently-asked-questions
+        - listitem [ref=e602]:
+          - link "Sitemap" [ref=e603] [cursor=pointer]:
+            - /url: /en/sitemap
+    - generic [ref=e604]:
+      - generic [ref=e605]: Information
+      - list [ref=e607]:
+        - listitem [ref=e608]:
+          - link "MONT-BLANC Natural Resort" [ref=e609] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/
+        - listitem [ref=e610]:
+          - link "Brochures, Rates & Maps" [ref=e611] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/brochures
+        - listitem [ref=e612]:
+          - link "Press release Winter 25-26" [ref=e613] [cursor=pointer]:
+            - /url: https://784f075a.flowpaper.com/DPCMBhiver2526/
+        - listitem [ref=e614]:
+          - link "Sales conditions" [ref=e615] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/page/general-sales-conditions
+        - listitem [ref=e616]:
+          - link "Legals mentions" [ref=e617] [cursor=pointer]:
+            - /url: /en/page/legal-mentions
+        - listitem [ref=e618]:
+          - link "Public Accessibility Registry" [ref=e619] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/registre-public-accessibilite
+        - listitem [ref=e620]:
+          - link "Personal data" [ref=e621] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/page/personal-data-management
+        - listitem [ref=e622]:
+          - link "Mountain safety" [ref=e623] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/securite-en-montagne
+    - list [ref=e625]:
+      - listitem [ref=e626]:
+        - link "facebook facebook" [ref=e627] [cursor=pointer]:
+          - /url: https://www.facebook.com/MontBlancNaturalResort/
+          - img "facebook" [ref=e628]
+          - img "facebook" [ref=e629]
+      - listitem [ref=e630]:
+        - link "instagram instagram" [ref=e631] [cursor=pointer]:
+          - /url: https://www.instagram.com/montblanc_nr/
+          - img "instagram" [ref=e632]
+          - img "instagram" [ref=e633]
+      - listitem [ref=e634]:
+        - link "x x" [ref=e635] [cursor=pointer]:
+          - /url: https://twitter.com/MONTBLANC_NR
+          - img "x" [ref=e636]
+          - img "x" [ref=e637]
+      - listitem [ref=e638]:
+        - link "youtube youtube" [ref=e639] [cursor=pointer]:
+          - /url: https://www.youtube.com/user/CieMtBlanc/videos/
+          - img "youtube" [ref=e640]
+          - img "youtube" [ref=e641]
+      - listitem [ref=e642]:
+        - link "tiktok tiktok" [ref=e643] [cursor=pointer]:
+          - /url: https://www.tiktok.com/@montblancnaturalresort
+          - img "tiktok" [ref=e644]
+          - img "tiktok" [ref=e645]
+      - listitem [ref=e646]:
+        - link "threads threads" [ref=e647] [cursor=pointer]:
+          - /url: https://www.threads.net/@montblanc_nr?hl=fr
+          - img "threads" [ref=e648]
+          - img "threads" [ref=e649]
+    - generic [ref=e650]:
+      - paragraph [ref=e651]: Partners
+      - list [ref=e653]:
+        - listitem [ref=e654]:
+          - link "Helly Hansen Partner" [ref=e656] [cursor=pointer]:
+            - /url: https://www.hellyhansen.com/
+            - generic [ref=e657]:
+              - img [ref=e658]
+              - img [ref=e659]
+        - listitem [ref=e660]:
+          - link "Partenaire Scott" [ref=e662] [cursor=pointer]:
+            - /url: https://www.scott-sports.com/fr/fr/
+            - generic [ref=e663]:
+              - img [ref=e664]
+              - img [ref=e665]
+        - listitem [ref=e666]:
+          - link "Partenaire Audi" [ref=e668] [cursor=pointer]:
+            - /url: https://www.audi.fr/
+            - generic [ref=e669]:
+              - img [ref=e670]
+              - img [ref=e671]
+        - listitem [ref=e672]:
+          - link "Partenaire Samaya" [ref=e674] [cursor=pointer]:
+            - /url: https://www.samaya-equipment.com/
+            - generic [ref=e675]:
+              - img [ref=e676]
+              - img [ref=e677]
+        - listitem [ref=e678]:
+          - link "Partenaire Arc'teryx" [ref=e680] [cursor=pointer]:
+            - /url: https://arcteryx.com/
+            - generic [ref=e681]:
+              - img [ref=e682]
+              - img [ref=e683]
+        - listitem [ref=e684]:
+          - link "Partenaire Tunnel du Mont-Blanc" [ref=e686] [cursor=pointer]:
+            - /url: https://www.tunnelmb.net/fr-FR
+            - generic [ref=e687]:
+              - img [ref=e688]
+              - img [ref=e689]
+    - generic [ref=e690]:
+      - link "By MONT-BLANC Natural Resort" [ref=e692] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.com/en/
+        - img "By MONT-BLANC Natural Resort" [ref=e693]
+      - generic [ref=e694]:
+        - generic [ref=e695]: Compagnie du Mont-Blanc
+        - text: "-"
+        - generic [ref=e696]: Made with 🖤 by Un autre monde
+  - alert [ref=e697]
+  - generic:
+    - generic:
+      - generic:
+        - 'dialog "Consent Management Platform: Personalize Your Options" [ref=e710]':
+          - button "Close the widget without accepting cookie settings" [ref=e711] [cursor=pointer]:
+            - generic [ref=e712]: Continue without consent
+          - generic [ref=e713]:
+            - generic [ref=e714]:
+              - generic [ref=e716]:
+                - heading "Hi there! We're the cookies" [level=1] [ref=e718]:
+                  - generic [ref=e719]: Hi there!
+                  - generic [ref=e720]: We're the cookies
+                - paragraph [ref=e722]: We waited to make sure that you were interested in the content of this website before bothering you, but we would love to be your companions during your visit...
+                - paragraph [ref=e724]: To modify your preferences afterwards, click on the 'Cookie Preferences' link located in the page footer.
+                - generic [ref=e725]:
+                  - generic [ref=e726]: Here’s why we use cookies.
+                  - list [ref=e727]:
+                    - listitem "Choose how Google can collect and use your data for a better browsing experience on our site. Your privacy is paramount, and you have full control here." [ref=e728]:
+                      - link "Data Sharing with Google" [ref=e729] [cursor=pointer]:
+                        - /url: "#Decide how Google uses your data"
+                    - listitem "We are purely technical and functional cookies. Without us, the site cannot function properly. You cannot disable us." [ref=e730]:
+                      - link "Functional cookies" [ref=e731] [cursor=pointer]:
+                        - /url: "#FYI"
+                    - listitem "In order to improve your experience, we need to count and measure events on this website, what page you view, how long you stay on the content, etc." [ref=e732]:
+                      - link "Audience Measurement & Analytics" [ref=e733] [cursor=pointer]:
+                        - /url: "#Analytics & Stats"
+              - button "Consents certified by Axeptio" [ref=e736]:
+                - generic [ref=e737]: Consents certified by
+                - img "Axeptio" [ref=e741]
+            - generic [ref=e745]:
+              - button "I choose the cookies to configure" [ref=e746] [cursor=pointer]: Let me choose
+              - button "Accept all cookies" [ref=e747] [cursor=pointer]: OK!
+          - generic [ref=e698]:
+            - text: Axeptio consent
+            - checkbox [ref=e699]
+          - generic [ref=e700]:
+            - paragraph [ref=e701]: "Consent Management Platform: Personalize Your Options"
+            - paragraph [ref=e702]: Our platform empowers you to tailor and manage your privacy settings, ensuring compliance with regulations. Customize your preferences to control how your information is handled.
+        - button "Close the widget without accepting cookie settings" [ref=e748] [cursor=pointer]:
+          - img [ref=e749]

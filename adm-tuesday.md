@@ -1,0 +1,538 @@
+- generic [ref=e1]:
+  - generic [ref=e224]:
+    - generic [ref=e226] [cursor=pointer]: 
+    - generic [ref=e227]:
+      - generic [ref=e228]:
+        - generic [ref=e229]: Information on the Aiguille du Midi
+        - generic [ref=e230]:
+          - paragraph [ref=e231]:
+            - text: The Chamonix Terrace (North Peak), located above the 3842 restaurant, will be closed to the public starting May 25, 2026, for an estimated period of 4 to 5 weeks.
+            - strong [ref=e232]
+            - text: in order to
+            - strong
+            - text: Perform waterproofing work and install new decking.
+          - paragraph [ref=e233]: The other areas, as well as the restaurants and the entire tour at the summit of the Aiguille du Midi, remain open as usual.
+          - paragraph [ref=e234]: Thank you for your understanding.
+        - link "Live Updates" [ref=e236] [cursor=pointer]:
+          - /url: /en/info-live
+          - generic [ref=e237]: Live Updates
+      - generic [ref=e239]:
+        - img [ref=e240]
+        - img [ref=e241]
+        - img "Aiguille du Midi" [ref=e242]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - link "l'Aiguille du Midi" [ref=e244] [cursor=pointer]:
+        - /url: /en
+        - img "l'Aiguille du Midi" [ref=e248]
+      - list [ref=e8]:
+        - listitem [ref=e9]:
+          - generic [ref=e10]:
+            - generic [ref=e13] [cursor=pointer]: Preparing your visit
+            - text: 
+        - listitem [ref=e14]:
+          - generic [ref=e15]:
+            - generic [ref=e18] [cursor=pointer]: Your visit
+            - text: 
+        - listitem [ref=e19]:
+          - link "Ticketing" [ref=e21] [cursor=pointer]:
+            - /url: /en/ticketing
+            - generic [ref=e22]: Ticketing
+    - generic [ref=e24]:
+      - generic [ref=e26]:
+        - generic [ref=e27] [cursor=pointer]: Summer
+        - generic [ref=e28] [cursor=pointer]: Winter
+      - link "" [ref=e30] [cursor=pointer]:
+        - /url: https://shop-aiguilledumidi.montblancnaturalresort.com/en/profil/
+        - generic [ref=e31]: 
+      - button "English flag" [ref=e34] [cursor=pointer]:
+        - img "English flag" [ref=e36]
+  - generic [ref=e301]:
+    - button "Back" [ref=e303] [cursor=pointer]:
+      - generic [ref=e304]:
+        - generic [ref=e306]: 
+        - generic [ref=e307]: Back
+    - heading "Aiguille Midi" [level=1] [ref=e308]
+    - generic [ref=e309]:
+      - img "Aiguille Midi" [ref=e310]
+      - generic [ref=e312]:
+        - heading "E-ticket" [level=2] [ref=e313]
+        - paragraph [ref=e314]: Select your visit date, departure time slot, and the number of participants.
+        - button "Buy now" [ref=e316] [cursor=pointer]:
+          - generic [ref=e318]: Buy now
+    - generic [ref=e320]:
+      - generic [ref=e322]:
+        - 'link "👉 Access Children Under 3 years old: access not permitted. Not recommended for children under 5. Under 5 years old: free ticket — proof required at the ticket office People with disabilities You are entitled to a 50% discount on the full journey or day pass for you and your accompanying person upon presentation of your disability card at the ticket office. Please email us a copy of your disability card: info@montblancnaturalresort.com. After verification, we will send you the purchase link (at least 48 hours before your visit)." [ref=e323] [cursor=pointer]':
+          - /url: "mailto: info@montblancnaturalresort.com"
+          - generic [ref=e324]:
+            - generic [ref=e325]: 👉
+            - generic [ref=e326]: Access
+          - paragraph [ref=e327]:
+            - text: "Children Under 3 years old: access not permitted. Not recommended for children under 5."
+            - text: "Under 5 years old: free ticket — proof required at the ticket office"
+            - text: People with disabilities
+            - text: You are entitled to a 50% discount on the full journey or day pass for you and your accompanying person upon presentation of your disability card at the ticket office.
+            - text: "Please email us a copy of your disability card: info@montblancnaturalresort.com. After verification, we will send you the purchase link (at least 48 hours before your visit)."
+        - generic [ref=e328]:
+          - generic [ref=e329]:
+            - generic [ref=e330]: 💡
+            - generic [ref=e331]: Useful info
+          - paragraph [ref=e332]:
+            - text: Ticket non valid for Montenvers
+            - text: Pets are not allowed, except for assistance dogs and guide dogs upon presentation of valid documentation.
+            - text: Please bring warm clothing, sunglasses and sunscreen.
+            - text: In case of closure on the day of your visit (weather or technical reasons), you will be notified by email and the ticket may be changed or refunded.
+        - generic [ref=e333]:
+          - generic [ref=e334]:
+            - generic [ref=e335]: 🌟
+            - generic [ref=e336]: Online special offer
+          - paragraph [ref=e337]:
+            - text: Discover our dynamic pricing!
+            - text: Anticipate your purchase to benefit from advantageous rates and plan your purchase with peace of mind!
+          - generic [ref=e338]: Non-changeable, non-refundable.
+          - text: Discount available until D-3
+          - paragraph
+        - generic [ref=e339]:
+          - generic [ref=e340]:
+            - generic [ref=e341]: 📌
+            - generic [ref=e342]: Informations importantes
+          - paragraph [ref=e343]:
+            - text: The return journey can be used up to D+7.
+            - text: "Your ticket gives access to the following visits: Step Into the Void, 3842 Terrace, Vertical Area. Free visits subject to opening conditions and visitor numbers — no discount in case of closure."
+            - text: "Average visit duration: 2 to 3 hours (journey included). In case of high visitor numbers, a visit time slot will be assigned with limited time on site."
+      - generic [ref=e345]:
+        - generic [ref=e346]:
+          - generic [ref=e347]: 🗺️
+          - heading "Map" [level=2] [ref=e348]
+        - generic [ref=e349]:
+          - link "Plan des pistes" [ref=e350] [cursor=pointer]:
+            - /url: https://aiguilledumidi.montblancnaturalresort.com/en/access-and-maps
+            - img "Plan des pistes" [ref=e351]
+          - link "INFOS LIVE" [ref=e353] [cursor=pointer]:
+            - /url: https://aiguilledumidi.montblancnaturalresort.com/en/info-live
+  - generic [ref=e39]:
+    - generic [ref=e42]:
+      - heading "Reviews" [level=2] [ref=e43]
+      - generic [ref=e46]:
+        - generic [ref=e48]:
+          - generic [ref=e49]: 
+          - generic [ref=e50]: 
+          - generic [ref=e51]: 
+          - generic [ref=e52]: 
+          - generic [ref=e53]:
+            - generic [ref=e55]: 
+            - generic [ref=e56]: 
+        - generic [ref=e57]: Overall rating out of 767 reviews
+      - link "Show all reviews" [ref=e59] [cursor=pointer]:
+        - /url: https://www.avis-montblancnaturalresort.com/focus-sites-dexcursion/telepherique-de-laiguille-du-midi
+        - generic [ref=e60]: Show all reviews
+    - generic [ref=e63]:
+      - heading "Need information?" [level=2] [ref=e64]
+      - paragraph [ref=e67]: You need info, make a claim, apply at...
+      - link "Contact us" [ref=e69] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.com/en/nous-contacter
+        - generic [ref=e70]: Contact us
+    - generic [ref=e73]:
+      - heading "Order collection" [level=2] [ref=e74]
+      - paragraph [ref=e77]:
+        - text: Collect your internet orders directly from our automatic terminals
+        - strong [ref=e78]: « Pick-Up Box »
+      - link "Locate Pick-Up Box" [ref=e80] [cursor=pointer]:
+        - /url: https://shop.montblancnaturalresort.com/en/pickupsites
+        - generic [ref=e81]: Locate Pick-Up Box
+    - generic [ref=e84]:
+      - heading "Group Request" [level=2] [ref=e85]
+      - paragraph [ref=e88]: "Group requests for 20 people or more: companies, organizers, CSE, schools, ski clubs…"
+      - link "Visit the website" [ref=e90] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.pro/en/home/
+        - generic [ref=e91]: Visit the website
+  - generic [ref=e94]:
+    - generic [ref=e96]:
+      - link "Logo Chamonix Mont-Blanc" [ref=e99] [cursor=pointer]:
+        - /url: https://www.chamonix.com/
+        - generic [ref=e100]:
+          - img [ref=e101]
+          - img [ref=e102]
+          - img "Logo Chamonix Mont-Blanc" [ref=e354]
+      - paragraph [ref=e104]:
+        - text: "The Aiguille du Midi: the ultimate"
+        - strong [ref=e105]: high mountain experience
+        - text: "! An"
+        - strong [ref=e106]: incredible panorama
+        - text: of the French, Swiss and Italian Alps awaits you...
+      - link " Newsletter subscribe" [ref=e108] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.com/en/inscription-newsletter
+        - generic [ref=e109]: 
+        - generic [ref=e110]: Newsletter subscribe
+    - generic [ref=e111]:
+      - generic [ref=e112]: Menu
+      - list [ref=e114]:
+        - listitem [ref=e115]:
+          - link "Contact" [ref=e116] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/contact
+        - listitem [ref=e117]:
+          - link "Infos live" [ref=e118] [cursor=pointer]:
+            - /url: /en/info-live
+        - listitem [ref=e119]:
+          - link "Ticketing" [ref=e120] [cursor=pointer]:
+            - /url: /en/ticketing
+        - listitem [ref=e121]:
+          - link "Opening times and prices" [ref=e122] [cursor=pointer]:
+            - /url: /en/timetables-rates
+        - listitem [ref=e123]:
+          - link "Access and maps" [ref=e124] [cursor=pointer]:
+            - /url: /en/access-and-maps
+        - listitem [ref=e125]:
+          - link "Frequently Asked Questions" [ref=e126] [cursor=pointer]:
+            - /url: /en/frequently-asked-questions
+        - listitem [ref=e127]:
+          - link "Sitemap" [ref=e128] [cursor=pointer]:
+            - /url: /en/sitemap
+    - generic [ref=e129]:
+      - generic [ref=e130]: Information
+      - list [ref=e132]:
+        - listitem [ref=e133]:
+          - link "MONT-BLANC Natural Resort" [ref=e134] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/
+        - listitem [ref=e135]:
+          - link "Brochures, Rates & Maps" [ref=e136] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/brochures
+        - listitem [ref=e137]:
+          - link "Press release Winter 25-26" [ref=e138] [cursor=pointer]:
+            - /url: https://784f075a.flowpaper.com/DPCMBhiver2526/
+        - listitem [ref=e139]:
+          - link "Sales conditions" [ref=e140] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/page/general-sales-conditions
+        - listitem [ref=e141]:
+          - link "Legals mentions" [ref=e142] [cursor=pointer]:
+            - /url: /en/page/legal-mentions
+        - listitem [ref=e143]:
+          - link "Public Accessibility Registry" [ref=e144] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/registre-public-accessibilite
+        - listitem [ref=e145]:
+          - link "Personal data" [ref=e146] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/page/personal-data-management
+        - listitem [ref=e147]:
+          - link "Mountain safety" [ref=e148] [cursor=pointer]:
+            - /url: https://www.montblancnaturalresort.com/en/securite-en-montagne
+    - list [ref=e150]:
+      - listitem [ref=e151]:
+        - link "facebook facebook" [ref=e152] [cursor=pointer]:
+          - /url: https://www.facebook.com/MontBlancNaturalResort/
+          - img "facebook" [ref=e153]
+          - img "facebook" [ref=e154]
+      - listitem [ref=e155]:
+        - link "instagram instagram" [ref=e156] [cursor=pointer]:
+          - /url: https://www.instagram.com/montblanc_nr/
+          - img "instagram" [ref=e157]
+          - img "instagram" [ref=e158]
+      - listitem [ref=e159]:
+        - link "x x" [ref=e160] [cursor=pointer]:
+          - /url: https://twitter.com/MONTBLANC_NR
+          - img "x" [ref=e161]
+          - img "x" [ref=e162]
+      - listitem [ref=e163]:
+        - link "youtube youtube" [ref=e164] [cursor=pointer]:
+          - /url: https://www.youtube.com/user/CieMtBlanc/videos/
+          - img "youtube" [ref=e165]
+          - img "youtube" [ref=e166]
+      - listitem [ref=e167]:
+        - link "tiktok tiktok" [ref=e168] [cursor=pointer]:
+          - /url: https://www.tiktok.com/@montblancnaturalresort
+          - img "tiktok" [ref=e169]
+          - img "tiktok" [ref=e170]
+      - listitem [ref=e171]:
+        - link "threads threads" [ref=e172] [cursor=pointer]:
+          - /url: https://www.threads.net/@montblanc_nr?hl=fr
+          - img "threads" [ref=e173]
+          - img "threads" [ref=e174]
+    - generic [ref=e175]:
+      - paragraph [ref=e176]: Partners
+      - list [ref=e178]:
+        - listitem [ref=e179]:
+          - link "Helly Hansen Partner" [ref=e181] [cursor=pointer]:
+            - /url: https://www.hellyhansen.com/
+            - generic [ref=e182]:
+              - img [ref=e183]
+              - img [ref=e184]
+              - img "Helly Hansen Partner" [ref=e355]
+        - listitem [ref=e185]:
+          - link "Partenaire Scott" [ref=e187] [cursor=pointer]:
+            - /url: https://www.scott-sports.com/fr/fr/
+            - generic [ref=e188]:
+              - img [ref=e189]
+              - img [ref=e190]
+              - img "Partenaire Scott" [ref=e356]
+        - listitem [ref=e191]:
+          - link "Partenaire Audi" [ref=e193] [cursor=pointer]:
+            - /url: https://www.audi.fr/
+            - generic [ref=e194]:
+              - img [ref=e195]
+              - img [ref=e196]
+              - img "Partenaire Audi" [ref=e357]
+        - listitem [ref=e197]:
+          - link "Partenaire Samaya" [ref=e199] [cursor=pointer]:
+            - /url: https://www.samaya-equipment.com/
+            - generic [ref=e200]:
+              - img [ref=e201]
+              - img [ref=e202]
+              - img "Partenaire Samaya" [ref=e358]
+        - listitem [ref=e203]:
+          - link "Partenaire Arc'teryx" [ref=e205] [cursor=pointer]:
+            - /url: https://arcteryx.com/
+            - generic [ref=e206]:
+              - img [ref=e207]
+              - img [ref=e208]
+        - listitem [ref=e209]:
+          - link "Partenaire Tunnel du Mont-Blanc" [ref=e211] [cursor=pointer]:
+            - /url: https://www.tunnelmb.net/fr-FR
+            - generic [ref=e212]:
+              - img [ref=e213]
+              - img [ref=e214]
+    - generic [ref=e215]:
+      - link "By MONT-BLANC Natural Resort" [ref=e217] [cursor=pointer]:
+        - /url: https://www.montblancnaturalresort.com/en/
+        - img "By MONT-BLANC Natural Resort" [ref=e218]
+      - generic [ref=e219]:
+        - generic [ref=e220]: Compagnie du Mont-Blanc
+        - text: "-"
+        - generic [ref=e221]: Made with 🖤 by Un autre monde
+  - alert [ref=e222]
+  - dialog "Your selection 1 CONFIGURATION 2 OPTIONS" [ref=e360]:
+    - banner [ref=e361]:
+      - heading "Your selection 1 CONFIGURATION 2 OPTIONS" [level=2] [ref=e362]:
+        - generic [ref=e364]: Your selection
+        - generic [ref=e366]:
+          - button "1 CONFIGURATION" [ref=e367] [cursor=pointer]:
+            - generic [ref=e369]: "1"
+            - generic [ref=e371]: CONFIGURATION
+          - button "2 OPTIONS" [ref=e373] [cursor=pointer]:
+            - generic [ref=e375]: "2"
+            - generic [ref=e377]: OPTIONS
+      - button [ref=e378] [cursor=pointer]:
+        - img [ref=e379]
+    - generic [ref=e381]:
+      - generic [ref=e383]:
+        - generic [ref=e384]:
+          - generic [ref=e385] [cursor=pointer]:
+            - button "Duration Round trip ticket" [ref=e386]:
+              - generic [ref=e387]:
+                - generic [ref=e388]: Duration
+                - generic [ref=e389]: Round trip ticket
+            - button "Edit" [ref=e390]:
+              - generic [ref=e392]: Edit
+          - region [ref=e397]:
+            - generic [ref=e400] [cursor=pointer]:
+              - generic [ref=e402]: 
+              - generic [ref=e404]: Round trip ticket
+        - separator [ref=e405]
+        - generic [ref=e406]:
+          - generic [ref=e407]:
+            - generic [ref=e409]: Date
+            - button "Cancel" [ref=e410] [cursor=pointer]:
+              - generic [ref=e412]: Cancel
+          - generic [ref=e416]:
+            - dialog "Choose Date" [ref=e420]:
+              - button "Previous month" [ref=e421]:
+                - generic [ref=e422]: Previous Month
+              - button "Next month" [ref=e423] [cursor=pointer]:
+                - generic [ref=e424]: Next Month
+              - generic [ref=e425]:
+                - generic [ref=e426]:
+                  - generic [ref=e427]: June 2026
+                  - generic [ref=e428]:
+                    - generic "Sunday" [ref=e429]: Sun
+                    - generic "Monday" [ref=e430]: Mon
+                    - generic "Tuesday" [ref=e431]: Tue
+                    - generic "Wednesday" [ref=e432]: Wed
+                    - generic "Thursday" [ref=e433]: Thu
+                    - generic "Friday" [ref=e434]: Fri
+                    - generic "Saturday" [ref=e435]: Sat
+                - listbox "Calendar June, 2026" [ref=e436]:
+                  - generic [ref=e437]:
+                    - option "Not available Sunday, May 31st, 2026" [disabled] [ref=e438]: "31"
+                    - option "Not available Monday, June 1st, 2026" [disabled] [ref=e439]: "1"
+                    - option "Not available Tuesday, June 2nd, 2026" [disabled] [ref=e440]: "2"
+                    - option "Not available Wednesday, June 3rd, 2026" [disabled] [ref=e441]: "3"
+                    - option "Not available Thursday, June 4th, 2026" [disabled] [ref=e442]: "4"
+                    - option "Not available Friday, June 5th, 2026" [disabled] [ref=e443]: "5"
+                    - option "Not available Saturday, June 6th, 2026" [disabled] [ref=e444]: "6"
+                  - generic [ref=e445]:
+                    - option "Not available Sunday, June 7th, 2026" [disabled] [ref=e446]: "7"
+                    - option "Not available Monday, June 8th, 2026" [disabled] [ref=e447]: "8"
+                    - option "Not available Tuesday, June 9th, 2026" [disabled] [ref=e448]: "9"
+                    - option "Not available Wednesday, June 10th, 2026" [disabled] [ref=e449]: "10"
+                    - option "Not available Thursday, June 11th, 2026" [disabled] [ref=e450]: "11"
+                    - option "Not available Friday, June 12th, 2026" [disabled] [ref=e451]: "12"
+                    - option "Not available Saturday, June 13th, 2026" [disabled] [ref=e452]: "13"
+                  - generic [ref=e453]:
+                    - option "Not available Sunday, June 14th, 2026" [disabled] [ref=e454]: "14"
+                    - option "Not available Monday, June 15th, 2026" [disabled] [ref=e455]: "15"
+                    - option "Not available Tuesday, June 16th, 2026" [disabled] [ref=e456]: "16"
+                    - option "Not available Wednesday, June 17th, 2026" [disabled] [ref=e457]: "17"
+                    - option "Not available Thursday, June 18th, 2026" [disabled] [ref=e458]: "18"
+                    - option "Not available Friday, June 19th, 2026" [disabled] [ref=e459]: "19"
+                    - option "Not available Saturday, June 20th, 2026" [disabled] [ref=e460]: "20"
+                  - generic [ref=e461]:
+                    - option "Not available Sunday, June 21st, 2026" [disabled] [ref=e462]: "21"
+                    - option "Not available Monday, June 22nd, 2026" [disabled] [ref=e463]: "22"
+                    - option "Not available Tuesday, June 23rd, 2026" [disabled] [ref=e464]: "23"
+                    - option "Not available Wednesday, June 24th, 2026" [disabled] [ref=e465]: "24"
+                    - option "Not available Thursday, June 25th, 2026" [disabled] [ref=e466]: "25"
+                    - option "Not available Friday, June 26th, 2026" [disabled] [ref=e467]: "26"
+                    - option "Not available Saturday, June 27th, 2026" [disabled] [ref=e468]: "27"
+                  - generic [ref=e469]:
+                    - option "Not available Sunday, June 28th, 2026" [disabled] [ref=e470]: "28"
+                    - option "Choose Monday, June 29th, 2026" [ref=e471] [cursor=pointer]: "29"
+                    - option "Choose Tuesday, June 30th, 2026" [selected] [ref=e472] [cursor=pointer]: "30"
+                    - option "Choose Wednesday, July 1st, 2026" [ref=e473] [cursor=pointer]: "1"
+                    - option "Choose Thursday, July 2nd, 2026" [ref=e474] [cursor=pointer]: "2"
+                    - option "Choose Friday, July 3rd, 2026" [ref=e475] [cursor=pointer]: "3"
+                    - option "Choose Saturday, July 4th, 2026" [ref=e476] [cursor=pointer]: "4"
+            - generic [ref=e477]:
+              - generic [ref=e478]:
+                - generic [ref=e479]: "Show prices for:"
+                - generic [ref=e480]:
+                  - generic [ref=e481]:
+                    - radio "Adulte Internet" [checked]
+                    - generic [ref=e482] [cursor=pointer]:
+                      - generic [ref=e484]: 
+                      - generic [ref=e486]: Adulte Internet
+                  - generic [ref=e487]:
+                    - radio "Jeune Internet"
+                    - generic [ref=e490] [cursor=pointer]: Jeune Internet
+                  - generic [ref=e491]:
+                    - radio "Senior Internet"
+                    - generic [ref=e494] [cursor=pointer]: Senior Internet
+              - generic [ref=e495]:
+                - generic [ref=e496]: "Choose a timeslot:"
+                - generic [ref=e497]:
+                  - generic [ref=e498]:
+                    - radio "11:40 €83.00 15 seats"
+                    - generic [ref=e500] [cursor=pointer]:
+                      - generic [ref=e501]: 11:40
+                      - generic [ref=e502]: €83.00
+                      - generic [ref=e503]: 15 seats
+                  - generic [ref=e505]:
+                    - radio "12:10 €83.00 42 seats"
+                    - generic [ref=e507] [cursor=pointer]:
+                      - generic [ref=e508]: 12:10
+                      - generic [ref=e509]: €83.00
+                      - generic [ref=e510]: 42 seats
+                  - generic [ref=e512]:
+                    - radio "12:25 €83.00 41 seats"
+                    - generic [ref=e514] [cursor=pointer]:
+                      - generic [ref=e515]: 12:25
+                      - generic [ref=e516]: €83.00
+                      - generic [ref=e517]: 41 seats
+                  - generic [ref=e519]:
+                    - radio "12:40 €83.00 41 seats"
+                    - generic [ref=e521] [cursor=pointer]:
+                      - generic [ref=e522]: 12:40
+                      - generic [ref=e523]: €83.00
+                      - generic [ref=e524]: 41 seats
+                  - generic [ref=e526]:
+                    - radio "13:10 €83.00 27 seats"
+                    - generic [ref=e528] [cursor=pointer]:
+                      - generic [ref=e529]: 13:10
+                      - generic [ref=e530]: €83.00
+                      - generic [ref=e531]: 27 seats
+                  - generic [ref=e533]:
+                    - radio "13:25 €83.00 29 seats"
+                    - generic [ref=e535] [cursor=pointer]:
+                      - generic [ref=e536]: 13:25
+                      - generic [ref=e537]: €83.00
+                      - generic [ref=e538]: 29 seats
+                  - generic [ref=e540]:
+                    - radio "13:40 €83.00 41 seats"
+                    - generic [ref=e542] [cursor=pointer]:
+                      - generic [ref=e543]: 13:40
+                      - generic [ref=e544]: €83.00
+                      - generic [ref=e545]: 41 seats
+        - separator [ref=e547]
+        - generic [ref=e548]:
+          - generic [ref=e549] [cursor=pointer]:
+            - button "Participants 5" [ref=e550]:
+              - generic [ref=e552]:
+                - text: Participants
+                - generic [ref=e553]: "5"
+            - button "Edit" [ref=e554]:
+              - generic [ref=e556]: Edit
+          - generic [ref=e558]:
+            - generic [ref=e559]:
+              - generic [ref=e560]:
+                - generic [ref=e561]: Adulte Internet
+                - generic [ref=e562]: (15-64 years old)
+              - generic [ref=e563]:
+                - button [ref=e564] [cursor=pointer]:
+                  - generic [ref=e566]: 
+                - generic [ref=e567]: "2"
+                - button [ref=e568] [cursor=pointer]:
+                  - generic [ref=e570]: 
+            - generic [ref=e571]:
+              - generic [ref=e572]:
+                - generic [ref=e573]: Jeune Internet
+                - generic [ref=e574]: (5-14 years old)
+              - generic [ref=e575]:
+                - button [ref=e576] [cursor=pointer]:
+                  - generic [ref=e578]: 
+                - generic [ref=e579]: "3"
+                - button [ref=e580] [cursor=pointer]:
+                  - generic [ref=e582]: 
+            - generic [ref=e583]:
+              - generic [ref=e584]:
+                - generic [ref=e585]: Senior Internet
+                - generic [ref=e586]: (65-99 years old)
+              - generic [ref=e587]:
+                - button [disabled] [ref=e588]:
+                  - generic [ref=e590]: 
+                - generic [ref=e591]: "0"
+                - button [ref=e592] [cursor=pointer]:
+                  - generic [ref=e594]: 
+          - generic [ref=e596]:
+            - generic [ref=e598]:
+              - generic [ref=e599]:
+                - button "Icon delete" [ref=e600] [cursor=pointer]:
+                  - generic [ref=e602]: 
+                - generic [ref=e603]:
+                  - generic [ref=e604]: Adulte Internet 1
+                  - generic [ref=e605]: (15-64 years old)
+              - generic [ref=e607]: "--"
+            - generic [ref=e609]:
+              - generic [ref=e610]:
+                - button "Icon delete" [ref=e611] [cursor=pointer]:
+                  - generic [ref=e613]: 
+                - generic [ref=e614]:
+                  - generic [ref=e615]: Adulte Internet 2
+                  - generic [ref=e616]: (15-64 years old)
+              - generic [ref=e618]: "--"
+            - generic [ref=e620]:
+              - generic [ref=e621]:
+                - button "Icon delete" [ref=e622] [cursor=pointer]:
+                  - generic [ref=e624]: 
+                - generic [ref=e625]:
+                  - generic [ref=e626]: Jeune Internet 1
+                  - generic [ref=e627]: (5-14 years old)
+              - generic [ref=e629]: "--"
+            - generic [ref=e631]:
+              - generic [ref=e632]:
+                - button "Icon delete" [ref=e633] [cursor=pointer]:
+                  - generic [ref=e635]: 
+                - generic [ref=e636]:
+                  - generic [ref=e637]: Jeune Internet 2
+                  - generic [ref=e638]: (5-14 years old)
+              - generic [ref=e640]: "--"
+            - generic [ref=e642]:
+              - generic [ref=e643]:
+                - button "Icon delete" [ref=e644] [cursor=pointer]:
+                  - generic [ref=e646]: 
+                - generic [ref=e647]:
+                  - generic [ref=e648]: Jeune Internet 3
+                  - generic [ref=e649]: (5-14 years old)
+              - generic [ref=e651]: "--"
+      - generic [ref=e652]:
+        - status [ref=e654]:
+          - heading "Price summary" [level=2] [ref=e655]
+          - generic [ref=e656]: "--"
+        - button "Add to cart" [disabled] [ref=e657]:
+          - generic [ref=e659]: Add to cart

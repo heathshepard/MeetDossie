@@ -1,0 +1,108 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - link [ref=e7] [cursor=pointer]:
+            - /url: /en/
+            - img [ref=e8]
+          - generic [ref=e9]:
+            - generic [ref=e10]:
+              - list
+            - generic [ref=e11]:
+              - list
+              - generic [ref=e12] [cursor=pointer]:
+                - text: EN
+                - link "FR" [ref=e13]:
+                  - /url: /fr/cart/a-retour-complet-tam-15087/premerge?s=2026-06-30&sk%5B1%5D%5Bage%5D=39&sk%5B1%5D%5Bsubcontingent%5D=902-319-29&sk%5B2%5D%5Bage%5D=39&sk%5B2%5D%5Bsubcontingent%5D=902-319-29&sk%5B3%5D%5Bage%5D=9&sk%5B3%5D%5Bsubcontingent%5D=902-319-29&sk%5B4%5D%5Bage%5D=9&sk%5B4%5D%5Bsubcontingent%5D=902-319-29&sk%5B5%5D%5Bage%5D=9&sk%5B5%5D%5Bsubcontingent%5D=902-319-29
+              - list [ref=e14] [cursor=pointer]:
+                - listitem [ref=e15]:
+                  - link "" [ref=e16]:
+                    - /url: /en/profil/
+                    - generic [ref=e17]: 
+              - link " 0" [ref=e102] [cursor=pointer]:
+                - /url: /en/cart
+                - generic [ref=e19]:  0
+              - text: 
+      - heading "Your basket" [level=1] [ref=e22]
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - img [ref=e29]
+          - generic [ref=e32]: "0"
+        - heading "The product is not available at this time, please consult our openings" [level=3] [ref=e34]: The product is not available at this time, please consult our openings
+        - button "Continue shopping" [ref=e38] [cursor=pointer]
+      - generic [ref=e74]:
+        - text: MONT-BLANC Natural Resort by Compagnie du Mont-Blanc
+        - generic [ref=e75]:
+          - link "" [ref=e76] [cursor=pointer]:
+            - /url: https://www.montblanc.tv/
+            - generic [ref=e77]: 
+          - link "" [ref=e78] [cursor=pointer]:
+            - /url: https://www.facebook.com/MontBlancNaturalResort/
+            - generic [ref=e79]: 
+          - link "" [ref=e80] [cursor=pointer]:
+            - /url: https://twitter.com/MONTBLANC_NR
+            - generic [ref=e81]: 
+          - link "" [ref=e82] [cursor=pointer]:
+            - /url: https://www.instagram.com/montblanc_nr/
+            - generic [ref=e83]: 
+          - link "" [ref=e84] [cursor=pointer]:
+            - /url: https://www.youtube.com/user/CieMtBlanc/videos/
+            - generic [ref=e85]: 
+    - generic [ref=e86]:
+      - text:           
+      - generic [ref=e88]:
+        - generic [ref=e89] [cursor=pointer]: 
+        - list: 
+        - generic [ref=e91]:
+          - link "" [ref=e92] [cursor=pointer]:
+            - /url: https://www.montblanc.tv/
+            - generic [ref=e93]: 
+          - link "" [ref=e94] [cursor=pointer]:
+            - /url: https://www.facebook.com/MontBlancNaturalResort/
+            - generic [ref=e95]: 
+          - link "" [ref=e96] [cursor=pointer]:
+            - /url: https://twitter.com/MONTBLANC_NR
+            - generic [ref=e97]: 
+          - link "" [ref=e98] [cursor=pointer]:
+            - /url: https://www.instagram.com/montblanc_nr/
+            - generic [ref=e99]: 
+          - link "" [ref=e100] [cursor=pointer]:
+            - /url: https://www.youtube.com/user/CieMtBlanc/videos/
+            - generic [ref=e101]: 
+  - dialog [active] [ref=e39]:
+    - document [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - generic [ref=e44]:
+            - strong [ref=e45]: Well done!
+            - text: The product Round trip has been successfully added to the basket
+        - generic [ref=e46]:
+          - generic [ref=e51]:
+            - generic [ref=e52]: INFORMATION
+            - generic [ref=e53]: 
+            - generic [ref=e54]: Did you know?
+            - generic [ref=e55]:
+              - paragraph [ref=e56]:
+                - text: The
+                - strong [ref=e57]: MONT BLANC MultiPass
+                - text: gives you access to the
+                - strong [ref=e58]: Montenvers site
+                - text: ", the"
+                - strong [ref=e59]: Aiguille du Midi
+                - text: ", and the"
+                - strong [ref=e60]: Panoramic Mont Blanc
+                - text: .
+              - paragraph [ref=e61]:
+                - text: If you are planning to visit the
+                - strong [ref=e62]: Panoramic Mont Blanc
+                - text: ", we recommend a departure before"
+                - strong [ref=e63]: 10:00 AM (The gondola lift is scheduled to open on July 25th, 2026).
+              - paragraph [ref=e64]:
+                - strong [ref=e66]: "ATTENTION: the Aiguille du Midi ticket is not valid on the Montenvers site."
+              - paragraph [ref=e67]: We recommend an early morning departure for the Aiguille du Midi and an afternoon visit to the Montenvers Mer de Glace.
+              - paragraph [ref=e68]: "Good plan: visit 2 sites and save money!"
+            - paragraph [ref=e69]: Do you want to benefit from our 1 jour + Réservation Aiguille du Midi package for 46,40 € more (excluding options)?
+            - button "Get it" [ref=e70] [cursor=pointer]
+          - button "No thanks" [ref=e72] [cursor=pointer]

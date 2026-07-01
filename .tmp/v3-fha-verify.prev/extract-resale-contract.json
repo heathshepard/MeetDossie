@@ -1,0 +1,21 @@
+{
+  "buyer_name": "Heath Shepard",
+  "seller_name": "Josh Sissam",
+  "property_address": "123 Main St",
+  "city_state_zip": "Boerne, TX 78006",
+  "county": "Kendall",
+  "sale_price": 500000,
+  "earnest_money": 5000,
+  "option_fee": 100,
+  "option_days": 10,
+  "loan_amount": 482500,
+  "down_payment_pct": 3.5,
+  "down_payment_amt": 17500,
+  "closing_date": "2026-07-28",
+  "close_in_days": 30,
+  "title_company": "Kendall County Abstract",
+  "financing_type": "fha",
+  "hoa_exists": true,
+  "contract_effective_date": "2026-06-28",
+  "possession": "closing"
+}

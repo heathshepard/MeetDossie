@@ -1,0 +1,30 @@
+{
+  "totalIterations": 1,
+  "consecutivePasses": 0,
+  "targetReached": false,
+  "finalBlocker": "fill-via-docuseal failed: documents insert failed: 401 {\"message\":\"No API key fo",
+  "results": [
+    {
+      "iteration": 1,
+      "steps": {
+        "create_tx": {
+          "ok": true,
+          "transactionId": "4b7ae4bd-f603-469a-ba8b-ba6fcbb9ac33"
+        },
+        "fill_form": {
+          "status": 200,
+          "ok": true,
+          "documentId": "13d0d0ef-a124-420d-804a-e0b09380e10a"
+        },
+        "fill_via_docuseal": {
+          "status": 422,
+          "ok": false,
+          "error": "documents insert failed: 401 {\"message\":\"No API key found in request\",\"hint\":\"No `apikey` request header or url param was found.\"}"
+        }
+      },
+      "pass": false,
+      "transactionId": "4b7ae4bd-f603-469a-ba8b-ba6fcbb9ac33",
+      "error": "fill-via-docuseal failed: documents insert failed: 401 {\"message\":\"No API key found in request\",\"hint\":\"No `apikey` request header or url param was found.\"}"
+    }
+  ]
+}

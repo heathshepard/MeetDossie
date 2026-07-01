@@ -1,0 +1,45 @@
+email,name,brokerage,domain,mx_host,probe_code,probe_note
+nathan.koudouris@kw.com,Nathan Koudouris,Keller Williams Heritage,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+rj.reyes@kw.com,RJ Reyes,Keller Williams Heritage,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+beth.bush@kw.com,Beth Bush,Keller Williams Heritage,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+tiffany.linville@kw.com,Tiffany Linville,Keller Williams Heritage,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+alberto.murillo@kw.com,Alberto Murillo,Keller Williams Heritage,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+melanie.ruiz@therealbrokerage.com,Melanie Ruiz,"Real Broker, LLC",therealbrokerage.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+alexis.weigand@therealbrokerage.com,Alexis Weigand,"Real Broker, LLC",therealbrokerage.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+justin.brickman@therealbrokerage.com,Justin Brickman,"Real Broker, LLC",therealbrokerage.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+tami.price@therealbrokerage.com,Tami Price,"Real Broker, LLC",therealbrokerage.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+evan.rayborn@therealbrokerage.com,Evan Rayborn,"Real Broker, LLC",therealbrokerage.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+nadine.berger@lptrealty.com,Nadine Berger,LPT Realty LLC,lptrealty.com,mail.lptrealty.com.,250,OK <nadine.berger@lptrealty.com> Recipient ok
+dallas.pipes@lptrealty.com,Dallas Pipes,LPT Realty LLC,lptrealty.com,mail.lptrealty.com.,250,OK <dallas.pipes@lptrealty.com> Recipient ok
+cheo.chayoh@lptrealty.com,Cheo Cardenas | CHAY-oh,LPT Realty LLC,lptrealty.com,mail.lptrealty.com.,550,<cheo.chayoh@lptrealty.com> No such user here
+jennifer.taylor@lptrealty.com,Jennifer L. Taylor,LPT Realty LLC,lptrealty.com,mail.lptrealty.com.,250,OK <jennifer.taylor@lptrealty.com> Recipient ok
+jewels.pawlik@lptrealty.com,Jewels Pawlik,LPT Realty LLC,lptrealty.com,mail.lptrealty.com.,250,OK <jewels.pawlik@lptrealty.com> Recipient ok
+mark.lemmons@exprealty.com,Mark Lemmons,"eXp Realty, LLC",exprealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+shane.neal@exprealty.com,Shane and Clint Neal,"eXp Realty, LLC",exprealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+christopher.beal@exprealty.com,Christopher Beal,"eXp Realty, LLC",exprealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+kyle.handy@exprealty.com,Kyle Handy,"eXp Realty, LLC",exprealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+rima.bhavsar@exprealty.com,Rima Bhavsar,"eXp Realty, LLC",exprealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+bianca.killey@kw.com,Bianca Killey,Keller Williams Legacy,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+jennifer.ward@kw.com,Jennifer Ward,Keller Williams Legacy,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+scott.jauregui@kw.com,Scott Jauregui,Keller Williams Legacy,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+ashley.realtor@kw.com,"Ashley Donnelly, Realtor",Keller Williams Legacy,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+flower.castillo@kw.com,Flower Castillo,Keller Williams Legacy,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+danny.charbel@kw.com,Danny Charbel,Keller Williams City View,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+heather.elizondo@kw.com,Heather Elizondo,Keller Williams City View,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+m.stephens@kw.com,M D (Doc) Stephens,Keller Williams City View,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+romulo.arroyo@kw.com,Romulo Arroyo,Keller Williams City View,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+tyler.willmann@kw.com,Tyler Willmann,Keller Williams City View,kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+daye.wanat@epiquerealty.com,Daye Wanat,Epique Realty LLC,epiquerealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+laura.grau@epiquerealty.com,Laura Grau,Epique Realty LLC,epiquerealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+linda.pena@epiquerealty.com,Linda Pena,Epique Realty LLC,epiquerealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+nora.uriostegui@epiquerealty.com,Nora Uriostegui,Epique Realty LLC,epiquerealty.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+jan.boyle@kw.com,Jan Boyle,KELLER WILLIAMS NEW BRAUNFELS (S),kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+suzanne.kuntz@kw.com,Suzanne Kuntz,KELLER WILLIAMS NEW BRAUNFELS (S),kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+marsha.kovar@kw.com,Marsha Kovar,KELLER WILLIAMS NEW BRAUNFELS (S),kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+vanessa.martinez@kw.com,Vanessa Martinez,KELLER WILLIAMS NEW BRAUNFELS (S),kw.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+sonia.rene@kupersir.com,"Sonia J Perez-Olivares, GRI, ABR, MRP, RENE",Kuper Sotheby's International Realty,kupersir.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+cat.lodge@kupersir.com,Cat Lodge,Kuper Sotheby's International Realty,kupersir.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+trinie.johnson@kupersir.com,Trinie Johnson,Kuper Sotheby's International Realty,kupersir.com,aspmx.l.google.com.,accept_all,provider=aspmx.l.google.com.
+david.kline@cbharper.com,David Kline,"Coldwell Banker D'ann Harper, Realtors",cbharper.com,cbharper-com.mail.protection.outlook.com.,accept_all,provider=cbharper-com.mail.protection.outlook.com.
+jane.bash@cbharper.com,Jane Bash,"Coldwell Banker D'ann Harper, Realtors",cbharper.com,cbharper-com.mail.protection.outlook.com.,accept_all,provider=cbharper-com.mail.protection.outlook.com.
+trudy.pape@cbharper.com,Trudy Pape,"Coldwell Banker D'ann Harper, Realtors",cbharper.com,cbharper-com.mail.protection.outlook.com.,accept_all,provider=cbharper-com.mail.protection.outlook.com.
