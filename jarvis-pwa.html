@@ -114,6 +114,43 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50%      { opacity: 0.55; transform: scale(1.25); }
     }
+    .heartbeat-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(77, 208, 225, 0.08);
+      border: 1px solid rgba(77, 208, 225, 0.22);
+      font-size: 10px; letter-spacing: 0.12em;
+      color: var(--txt-mute);
+      transition: all 0.3s ease;
+    }
+    .heartbeat-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 6px var(--ok);
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    .heartbeat-pill[data-status="stale"] {
+      background: rgba(232, 185, 100, 0.08);
+      border-color: rgba(232, 185, 100, 0.22);
+      color: var(--warn);
+    }
+    .heartbeat-pill[data-status="stale"] .heartbeat-dot {
+      background: var(--warn);
+      box-shadow: 0 0 6px var(--warn);
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+    .heartbeat-pill[data-status="offline"] {
+      background: rgba(232, 94, 94, 0.08);
+      border-color: rgba(232, 94, 94, 0.22);
+      color: var(--fail);
+    }
+    .heartbeat-pill[data-status="offline"] .heartbeat-dot {
+      background: var(--fail);
+      box-shadow: 0 0 6px var(--fail);
+      animation: none;
+      opacity: 0.6;
+    }
 
     /* ===== MAIN ===== */
     .main {
@@ -2545,6 +2582,11 @@
         </span>
         <span class="live-dot"></span>
         <span id="conn-state">CONNECTED</span>
+        <!-- Heartbeat pill: shows data freshness status -->
+        <span id="heartbeat-pill" class="heartbeat-pill" title="HUD data freshness">
+          <span class="heartbeat-dot" id="heartbeat-dot"></span>
+          <span id="heartbeat-text">LIVE</span>
+        </span>
         <!-- Audio settings cogwheel (atlas_3, 2026-06-20). -->
         <button id="audio-settings-btn" class="audio-settings-btn" type="button" aria-label="Audio settings" title="Audio devices (mic + speaker)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -3780,31 +3822,33 @@
       //   calendar — 5m (slow-changing)
       //   agent ledger — 30s polling backup (realtime is the primary)
       //   instances + projects — 30s polling backup, realtime primary
-      setInterval(() => { loadTickers().catch(() => {}); }, 30000);
-      setInterval(() => { loadTodo().catch(() => {}); }, 60000);
-      setInterval(() => { loadMergeQueue().catch(() => {}); }, 30000);
-      setInterval(() => { loadPendingApprovals().catch(() => {}); }, 30000);
-      setInterval(() => { loadActions().catch(() => {}); }, 30000);
-      setInterval(() => { loadDailyDebrief().catch(() => {}); }, 60000);
-      setInterval(() => { loadCustomerActivity().catch(() => {}); }, 30000);
-      setInterval(() => { loadCalendar().catch(() => {}); }, 300000);
-      setInterval(() => { loadAgentLedger().catch(() => {}); }, 30000);
-      setInterval(() => { loadInstances().catch(() => {}); }, 30000);
-      setInterval(() => { loadProjects().catch(() => {}); }, 60000);
-      setInterval(() => { loadKnowledge().catch(() => {}); }, 90000);
+      setInterval(() => { loadTickers().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadTodo().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
+      setInterval(() => { loadMergeQueue().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadPendingApprovals().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadActions().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadDailyDebrief().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
+      setInterval(() => { loadCustomerActivity().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadCalendar().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
+      setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
+      setInterval(() => { loadKnowledge().then(() => trackPollSuccess()).catch(() => {}); }, 90000);
       // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel
-      loadThroughput().catch(() => {});
-      setInterval(() => { loadThroughput().catch(() => {}); }, 30000);
+      loadThroughput().then(() => trackPollSuccess()).catch(() => {});
+      setInterval(() => { loadThroughput().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       // Future Builds: idea queue panel
       loadFutureBuilds().catch(() => {});
       wireFutureBuildsPanel();
-      setInterval(() => { loadFutureBuilds().catch(() => {}); }, 120000); // 2 min
+      setInterval(() => { loadFutureBuilds().then(() => trackPollSuccess()).catch(() => {}); }, 120000); // 2 min
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
       // Tier 2 wirings
       wireVoiceBrief();
       wireQuickAskCards();
+      // Heartbeat freshness tracking
+      initHeartbeat();
     }
 
     function getDeviceLabel() {
@@ -5883,6 +5927,44 @@
       const h = Math.floor(m / 60);
       if (h < 24) return `${h}h`;
       return `${Math.floor(h / 24)}d`;
+    }
+
+    // ===== HEARTBEAT PILL (Data freshness indicator) =====
+    let lastSuccessfulPollTs = Date.now();
+    let heartbeatCheckInterval = null;
+
+    function trackPollSuccess() {
+      lastSuccessfulPollTs = Date.now();
+      updateHeartbeatStatus();
+    }
+
+    function updateHeartbeatStatus() {
+      const pill = document.getElementById('heartbeat-pill');
+      const textEl = document.getElementById('heartbeat-text');
+      if (!pill || !textEl) return;
+
+      const ms = Date.now() - lastSuccessfulPollTs;
+      const staleThresholdMs = 120000; // 2 min
+      const offlineThresholdMs = 300000; // 5 min
+
+      if (ms > offlineThresholdMs) {
+        pill.setAttribute('data-status', 'offline');
+        textEl.textContent = 'OFFLINE';
+      } else if (ms > staleThresholdMs) {
+        pill.setAttribute('data-status', 'stale');
+        const m = Math.floor(ms / 60000);
+        textEl.textContent = `STALE • ${m}m`;
+      } else {
+        pill.setAttribute('data-status', 'live');
+        const s = Math.floor(ms / 1000);
+        textEl.textContent = `LIVE • ${s}s`;
+      }
+    }
+
+    function initHeartbeat() {
+      // Update heartbeat pill every 5 seconds
+      heartbeatCheckInterval = setInterval(updateHeartbeatStatus, 5000);
+      updateHeartbeatStatus(); // initial render
     }
 
     function renderCustomerFeed(events) {
