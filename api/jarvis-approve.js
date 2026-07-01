@@ -133,6 +133,17 @@ export default async function handler(req, res) {
         updated = await sbPatch(`hadley_unanswered_questions?id=eq.${id}`, patch);
         break;
       }
+      case 'heath_action': {
+        // heath_actions are generic Heath tasks. Approve marks status='done'.
+        newStatus = action === 'approve' ? 'done' : 'dismissed';
+        const patch = {
+          status: newStatus,
+          approved_at: now,
+          completed_at: now,
+        };
+        updated = await sbPatch(`heath_actions?id=eq.${id}&tenant_id=eq.${authUser.userId}`, patch);
+        break;
+      }
       default:
         return res.status(400).json({ ok: false, error: 'unknown_kind', kind });
     }
