@@ -15,6 +15,7 @@
 //   CRON_SECRET
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { isSuppressed } = require('./_lib/check-suppression.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -123,6 +124,13 @@ Heath Shepard | Dossie | meetdossie.com`;
 }
 
 async function sendEmail(to, firstName) {
+  // Check CAN-SPAM suppression list before sending
+  const suppressed = await isSuppressed(to, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  if (suppressed) {
+    console.log('[cron-send-referral-blast] Skipping suppressed recipient:', to);
+    return { ok: false, error: 'recipient_suppressed' };
+  }
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -179,10 +187,15 @@ module.exports = withTelemetry('cron-send-referral-blast', async function handle
     const firstName = buildFirstName(customer.full_name);
 
     try {
-      await sendEmail(customer.email, firstName);
-      await markSent(customer.id);
-      console.log(`[cron-send-referral-blast] sent to ${customer.email}`);
-      results.push({ email: customer.email, status: 'sent' });
+      const sendResult = await sendEmail(customer.email, firstName);
+      if (!sendResult.ok) {
+        console.log(`[cron-send-referral-blast] skipped ${customer.email}: ${sendResult.error}`);
+        results.push({ email: customer.email, status: 'skipped', reason: sendResult.error });
+      } else {
+        await markSent(customer.id);
+        console.log(`[cron-send-referral-blast] sent to ${customer.email}`);
+        results.push({ email: customer.email, status: 'sent' });
+      }
     } catch (err) {
       console.error(`[cron-send-referral-blast] failed for ${customer.email}:`, err && err.message);
       results.push({ email: customer.email, status: 'failed', error: err && err.message });
@@ -194,8 +207,9 @@ module.exports = withTelemetry('cron-send-referral-blast', async function handle
 
   const sent = results.filter((r) => r.status === 'sent').length;
   const failed = results.filter((r) => r.status === 'failed').length;
+  const skipped = results.filter((r) => r.status === 'skipped').length;
 
-  console.log(`[cron-send-referral-blast] done. sent=${sent} failed=${failed}`);
+  console.log(`[cron-send-referral-blast] done. sent=${sent} failed=${failed} skipped=${skipped}`);
 
   return res.status(200).json({
     ok: true,
