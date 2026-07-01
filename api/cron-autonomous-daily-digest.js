@@ -95,6 +95,32 @@ function pluralize(n, singular, plural) {
   return n === 1 ? singular : (plural || (singular + 's'));
 }
 
+// Group candidates by category so the digest can show top 3 per bucket
+// (yesterday's conversation review, overnight capability scan, 7d rule audit).
+// Fallback: candidates without a category column are treated as
+// "conversation_review" so old rows still surface.
+function groupCandidatesByCategory(candidates) {
+  const groups = { conversation_review: [], capability_scan: [], rule_audit: [] };
+  for (const c of (candidates || [])) {
+    const cat = groups[c.category] ? c.category : 'conversation_review';
+    groups[cat].push(c);
+  }
+  // Each group is already ordered by impact_score desc from the SQL query,
+  // but re-sort defensively in case category grouping reordered anything.
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => (b.impact_score || 0) - (a.impact_score || 0));
+  }
+  return groups;
+}
+
+const CATEGORY_LABELS = {
+  conversation_review: 'Yesterday\'s conversation review',
+  capability_scan:     'Overnight capability scan',
+  rule_audit:          'Rule audit (7d rolling)',
+};
+
+let __digestGlobalCounter = 0;
+
 function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates) {
   const shipped = completedTasks.length;
   const attempted = runs.filter(r => r.outcome === 'dispatched').length;
@@ -152,20 +178,37 @@ function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImp
     lines.push('');
   }
 
-  // Self-improvement candidates — top 3 for yes/no
+  // Self-improvement — top 3 per category (conversation / capability / rule)
   if (Array.isArray(selfImprovementCandidates) && selfImprovementCandidates.length > 0) {
-    lines.push('<b>Self-improvement — say yes/no:</b>');
-    for (let i = 0; i < Math.min(3, selfImprovementCandidates.length); i++) {
-      const c = selfImprovementCandidates[i];
-      const shortTitle = String(c.title || 'unnamed').slice(0, 140);
-      lines.push(`${i + 1}. ${shortTitle}`);
-      if (c.rationale) {
-        lines.push(`   <i>why:</i> ${String(c.rationale).slice(0, 200)}`);
+    const grouped = groupCandidatesByCategory(selfImprovementCandidates);
+    let globalIdx = 0;
+    let anyShown = false;
+
+    for (const catKey of ['conversation_review', 'capability_scan', 'rule_audit']) {
+      const items = grouped[catKey].slice(0, 3);
+      if (items.length === 0) continue;
+      if (!anyShown) {
+        lines.push('<b>Self-improvement — say yes/no:</b>');
+        anyShown = true;
+      }
+      lines.push('');
+      lines.push(`<i>${CATEGORY_LABELS[catKey]}</i>`);
+      for (const c of items) {
+        globalIdx += 1;
+        const shortTitle = String(c.title || 'unnamed').slice(0, 140);
+        lines.push(`${globalIdx}. ${shortTitle}`);
+        if (c.rationale) {
+          lines.push(`   <i>why:</i> ${String(c.rationale).slice(0, 200)}`);
+        }
       }
     }
-    lines.push('');
-    lines.push('<i>Reply "yes 1", "no 2", or "defer 3" — I lock it in.</i>');
-    lines.push('');
+
+    if (anyShown) {
+      lines.push('');
+      lines.push('<i>Reply "yes 1", "no 2", or "defer 3" — I lock it in.</i>');
+      lines.push('');
+    }
+    __digestGlobalCounter = globalIdx;
   }
 
   // Closing line
@@ -219,22 +262,47 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
   const blocked = runs.filter(r => r.outcome === 'skipped_guardrail');
   const stuck   = runs.filter(r => r.outcome === 'skipped_stuck');
 
-  // 3) Pull top pending self-improvement candidates (all tiers) for Heath's yes/no.
+  // 3) Pull top pending self-improvement candidates for Heath's yes/no.
   //    Order: highest impact_score first, then oldest drafted_at as tiebreaker.
-  const rCands = await sb(
-    'self_improvement_candidates?select=id,tier,change_kind,title,rationale,impact_score,drafted_at'
-    + '&heath_decision=is.null&order=impact_score.desc,drafted_at.asc&limit=3'
-  );
-  const selfImprovementCandidates = (rCands.ok && Array.isArray(rCands.data)) ? rCands.data : [];
+  //    Pull ≤30 so the renderer can show top 3 per category (3 categories × 3).
+  //    Try selecting the "category" column first; fall back gracefully if the
+  //    column doesn't exist yet.
+  let selfImprovementCandidates = [];
+  {
+    const rCands = await sb(
+      'self_improvement_candidates?select=id,tier,category,change_kind,title,rationale,impact_score,drafted_at'
+      + '&heath_decision=is.null&order=impact_score.desc,drafted_at.asc&limit=30'
+    );
+    if (rCands.ok && Array.isArray(rCands.data)) {
+      selfImprovementCandidates = rCands.data;
+    } else {
+      // Fallback: older schema without category column
+      const rFallback = await sb(
+        'self_improvement_candidates?select=id,tier,change_kind,title,rationale,impact_score,drafted_at'
+        + '&heath_decision=is.null&order=impact_score.desc,drafted_at.asc&limit=30'
+      );
+      if (rFallback.ok && Array.isArray(rFallback.data)) {
+        selfImprovementCandidates = rFallback.data;
+      }
+    }
+  }
 
-  // 4) Stamp surfaced_in_brief_at so we know these were shown
+  // 4) Stamp surfaced_in_brief_at so we know these were shown.
+  //    Only stamp the ones the renderer actually included (top 3 per category).
+  const shownIds = [];
   if (selfImprovementCandidates.length > 0) {
-    const ids = selfImprovementCandidates.map(c => `"${c.id}"`).join(',');
-    await sb(`self_improvement_candidates?id=in.(${ids})`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ surfaced_in_brief_at: new Date().toISOString() }),
-    });
+    const grouped = groupCandidatesByCategory(selfImprovementCandidates);
+    for (const catKey of ['conversation_review', 'capability_scan', 'rule_audit']) {
+      for (const c of grouped[catKey].slice(0, 3)) shownIds.push(c.id);
+    }
+    if (shownIds.length > 0) {
+      const ids = shownIds.map(id => `"${id}"`).join(',');
+      await sb(`self_improvement_candidates?id=in.(${ids})`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ surfaced_in_brief_at: new Date().toISOString() }),
+      });
+    }
   }
 
   // 5) Compose message
@@ -250,13 +318,20 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
     .replace(/\n/g, '<br>\n');
   const emailRes = await email('Morning brief — autonomous loop', emailHtml);
 
+  const grouped = groupCandidatesByCategory(selfImprovementCandidates);
   return res.status(200).json({
     ok: true,
     runs_seen: runs.length,
     shipped_count: completedTasks.length,
     blocked_count: blocked.length,
     stuck_count: stuck.length,
-    self_improvement_candidates_shown: selfImprovementCandidates.length,
+    self_improvement_candidates_pulled: selfImprovementCandidates.length,
+    self_improvement_candidates_shown: shownIds.length,
+    self_improvement_by_category: {
+      conversation_review: Math.min(3, grouped.conversation_review.length),
+      capability_scan:     Math.min(3, grouped.capability_scan.length),
+      rule_audit:          Math.min(3, grouped.rule_audit.length),
+    },
     telegram_ok: tgRes.ok,
     email_ok: emailRes.ok,
   });

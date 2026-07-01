@@ -384,13 +384,7 @@
                                                                   },
                       "api/cron-self-improvement-daily.js":  {
                                                                  "maxDuration":  120
-                                                             },
-                      "api/cron-self-improvement-weekly.js":  {
-                                                                  "maxDuration":  120
-                                                              },
-                      "api/cron-self-improvement-monthly.js":  {
-                                                                   "maxDuration":  120
-                                                               }
+                                                             }
                   },
     "crons":  [
                   {
@@ -708,14 +702,6 @@
                   {
                       "path":  "/api/cron-self-improvement-daily",
                       "schedule":  "0 10 * * *"
-                  },
-                  {
-                      "path":  "/api/cron-self-improvement-weekly",
-                      "schedule":  "0 11 * * 0"
-                  },
-                  {
-                      "path":  "/api/cron-self-improvement-monthly",
-                      "schedule":  "0 13 1 * *"
                   }
               ]
 }
