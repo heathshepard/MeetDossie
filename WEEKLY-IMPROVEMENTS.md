@@ -19,7 +19,13 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Emojis now display correctly on signup page** (customer)
 - We fixed an issue where emoji icons weren't showing up properly on the founding page during signup. Now they'll display correctly across all browsers.
 
-<!-- applied_shas: 419daba,8750343 -->
+**Live heartbeat indicator on your Jarvis command deck** (customer)
+- Your Jarvis panel now shows a small pulsing "LIVE" pill in the header so you can see at a glance that your data is fresh and streaming. If the connection ever stalls, the pill turns amber so you know to refresh.
+
+**Automatic unsubscribe protection on every email** (customer)
+- We added a safety check so that anyone who has ever unsubscribed from Dossie emails will never receive another one — even by accident, even from a different email flow. This keeps us compliant with CAN-SPAM and respects your contacts' inboxes.
+
+<!-- applied_shas: 419daba,8750343,9e3823d,8c6a8b2 -->
 
 ---
 

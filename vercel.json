@@ -133,6 +133,10 @@
                     {
                          "source":  "/team/:path*",
                          "destination":  "/team.html"
+                     },
+                    {
+                         "source":  "/admin-cold-email",
+                         "destination":  "/admin-cold-email.html"
                      }
                  ],
     "headers":  [
