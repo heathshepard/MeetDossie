@@ -1084,9 +1084,6 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Email Address_3', fv.add_escrow_email || '');
   safeSetText(form, 'DateTime_2', fv.add_earnest_datetime || '');
   safeSetText(form, 'Phone_8', fv.add_escrow_phone || '');
-  safeSetText(form, 'is acknowledged', fv.option_fee_acknowledged || '');
-  safeSetText(form, 'is acknowledged_2', fv.earnest_receipt_date || '');
-  safeSetText(form, 'is acknowledged_3', fv.additional_earnest_receipt_date || '');
   safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
 
   // NOTICE ADDRESSES
