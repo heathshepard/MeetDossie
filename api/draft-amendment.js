@@ -240,9 +240,9 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
       : `Seller agrees to complete all repairs using licensed contractors: ${numbered}`;
 
     safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
-    safeSetText(form, 'Text 8', repairText.slice(0, 80));
-    if (repairText.length > 80) safeSetText(form, 'Text 9', repairText.slice(80, 160));
-    if (repairText.length > 160) safeSetText(form, 'Text 10', repairText.slice(160, 240));
+    safeSetText(form, 'Text3.1', repairText.slice(0, 80));
+    if (repairText.length > 80) safeSetText(form, 'Text4.1', repairText.slice(80, 160));
+    if (repairText.length > 160) safeSetText(form, 'Text5.1', repairText.slice(160, 240));
   } else if (amendmentType === 'closing_date') {
     safeCheck(form, FIELDS.closingDateCheckbox);
     // TREC 39-10 closing date section has a "Month Day" text field followed by
@@ -270,13 +270,13 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
 
   // Notes — appended into the "Other Modifications" overflow lines if present.
   // pdf-lib has no reliable way to text-wrap a string into multi-line fields,
-  // so we drop the first ~80 chars into Text 8 and overflow into Text 9/10.
+  // so we drop the first ~80 chars into Text3.1 and overflow into Text4.1/Text5.1.
   if (notes) {
     const trimmed = String(notes).slice(0, 240);
     safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
-    safeSetText(form, 'Text 8', trimmed.slice(0, 80));
-    if (trimmed.length > 80) safeSetText(form, 'Text 9', trimmed.slice(80, 160));
-    if (trimmed.length > 160) safeSetText(form, 'Text 10', trimmed.slice(160, 240));
+    safeSetText(form, 'Text3.1', trimmed.slice(0, 80));
+    if (trimmed.length > 80) safeSetText(form, 'Text4.1', trimmed.slice(80, 160));
+    if (trimmed.length > 160) safeSetText(form, 'Text5.1', trimmed.slice(160, 240));
   }
 
   // Flatten so the agent can sign / print without an interactive PDF reader
