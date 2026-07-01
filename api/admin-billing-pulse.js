@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -156,6 +157,35 @@ export default async function handler(req, res) {
       }
     }
 
+    // 6. Live Stripe balance — our stripe_payment_log misses invoice.paid
+    // events (webhook only handles checkout.session.completed), so recurring
+    // renewals aren't recorded locally. Hit the Balance API directly.
+    let stripeAvailableUsd = null;
+    let stripePendingUsd = null;
+    let stripeBalanceError = null;
+    try {
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (stripeKey) {
+        const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
+        const balance = await stripe.balance.retrieve();
+        let availCents = 0;
+        let pendCents = 0;
+        for (const b of (balance.available || [])) {
+          if (b.currency === 'usd') availCents += b.amount;
+        }
+        for (const b of (balance.pending || [])) {
+          if (b.currency === 'usd') pendCents += b.amount;
+        }
+        stripeAvailableUsd = Number((availCents / 100).toFixed(2));
+        stripePendingUsd = Number((pendCents / 100).toFixed(2));
+      } else {
+        stripeBalanceError = 'STRIPE_SECRET_KEY not configured';
+      }
+    } catch (err) {
+      stripeBalanceError = err.message || String(err);
+      console.warn('[admin-billing-pulse] Stripe balance fetch failed:', stripeBalanceError);
+    }
+
     res.status(200).json({
       success: true,
       billing: {
@@ -165,6 +195,9 @@ export default async function handler(req, res) {
         pastDueCount,
         recentPayments: recentPaymentsEnriched,
         failedPayments,
+        stripeAvailableUsd,
+        stripePendingUsd,
+        stripeBalanceError,
       },
     });
   } catch (error) {

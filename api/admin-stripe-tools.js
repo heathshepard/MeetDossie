@@ -94,7 +94,100 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_coupon | get_coupon | get_subscription' });
+    if (action === 'get_balance') {
+      // Live Stripe balance + last-45-day charge summary. Used by the admin
+      // dashboard BILLING PULSE widget and Cole's Telegram balance check.
+      // Our stripe_payment_log table only captures checkout.session.completed —
+      // recurring invoice.paid events bypass it. So we hit Stripe directly.
+      const balance = await stripe.balance.retrieve();
+
+      const centsToUsd = (cents) => Number((cents / 100).toFixed(2));
+
+      // Sum available/pending across all currencies (we only take USD today,
+      // but this future-proofs and stays honest if a non-USD balance appears).
+      let availableUsdCents = 0;
+      let pendingUsdCents = 0;
+      const availableByCurrency = {};
+      const pendingByCurrency = {};
+      for (const bucket of (balance.available || [])) {
+        availableByCurrency[bucket.currency] = (availableByCurrency[bucket.currency] || 0) + bucket.amount;
+        if (bucket.currency === 'usd') availableUsdCents += bucket.amount;
+      }
+      for (const bucket of (balance.pending || [])) {
+        pendingByCurrency[bucket.currency] = (pendingByCurrency[bucket.currency] || 0) + bucket.amount;
+        if (bucket.currency === 'usd') pendingUsdCents += bucket.amount;
+      }
+
+      // Pull recent successful charges — last 45 days covers month-2/month-3
+      // renewal windows for the founding cohort.
+      const nowSec = Math.floor(Date.now() / 1000);
+      const fortyFiveDaysAgoSec = nowSec - (45 * 24 * 60 * 60);
+      const charges = await stripe.charges.list({
+        limit: 100,
+        created: { gte: fortyFiveDaysAgoSec },
+      });
+
+      // Enrich charges with customer email. Prefer billing_details.email;
+      // fall back to a Stripe customer lookup when it's missing (rare on
+      // subscription invoices but happens on manually-created charges).
+      const customerEmailCache = {};
+      const recentCharges = [];
+      let totalLast45DaysCents = 0;
+      for (const ch of (charges.data || [])) {
+        if (ch.status !== 'succeeded') continue;
+        totalLast45DaysCents += ch.amount;
+
+        let email = ch.billing_details?.email || ch.receipt_email || null;
+        if (!email && ch.customer) {
+          const custId = typeof ch.customer === 'string' ? ch.customer : ch.customer?.id;
+          if (custId) {
+            if (customerEmailCache[custId] !== undefined) {
+              email = customerEmailCache[custId];
+            } else {
+              try {
+                const cust = await stripe.customers.retrieve(custId);
+                email = cust?.email || null;
+                customerEmailCache[custId] = email;
+              } catch (e) {
+                customerEmailCache[custId] = null;
+              }
+            }
+          }
+        }
+
+        recentCharges.push({
+          id: ch.id,
+          amount_usd: centsToUsd(ch.amount),
+          currency: ch.currency,
+          created_iso: new Date(ch.created * 1000).toISOString(),
+          description: ch.description || ch.statement_descriptor || null,
+          customer_email: email,
+          invoice: ch.invoice || null,
+        });
+      }
+
+      // Sort newest-first (charges.list already returns this way but we're
+      // being explicit since we filtered in-place).
+      recentCharges.sort((a, b) => (a.created_iso < b.created_iso ? 1 : -1));
+
+      return res.status(200).json({
+        ok: true,
+        available_usd: centsToUsd(availableUsdCents),
+        pending_usd: centsToUsd(pendingUsdCents),
+        available_by_currency: Object.fromEntries(
+          Object.entries(availableByCurrency).map(([c, amt]) => [c, centsToUsd(amt)])
+        ),
+        pending_by_currency: Object.fromEntries(
+          Object.entries(pendingByCurrency).map(([c, amt]) => [c, centsToUsd(amt)])
+        ),
+        recent_charges: recentCharges.slice(0, 25),
+        recent_charges_count_total: recentCharges.length,
+        total_last_45d_usd: centsToUsd(totalLast45DaysCents),
+        as_of_iso: new Date().toISOString(),
+      });
+    }
+
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_coupon | get_coupon | get_subscription | get_balance' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }
