@@ -25,9 +25,55 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Automatic unsubscribe protection on every email** (customer)
 - We added a safety check so that anyone who has ever unsubscribed from Dossie emails will never receive another one — even by accident, even from a different email flow. This keeps us compliant with CAN-SPAM and respects your contacts' inboxes.
 
-<!-- applied_shas: 419daba,8750343,9e3823d,8c6a8b2 -->
 
 ---
+
+**Emoji support and email compliance updates** (both)
+- We fixed emoji display on the founding page so you see all characters correctly. We also added safety checks to prevent emails from being sent to suppressed addresses, keeping your outreach compliant.
+
+**Send filled documents for signature directly** (customer)
+- After filling out forms in bulk, you can now click 'Send for signature' to have any document signed by your buyers. We handle collecting their email addresses, sending the documents for signature, and tracking the status in real time.
+
+**Better error messages when forms fail to upload** (customer)
+- When a form doesn't fill or upload correctly, you'll now see a specific error message on that form instead of a generic failure message. This makes it easier to spot and fix problems before sending.
+
+**Future builds panel now shows recent shipments** (customer)
+- We fixed the future builds panel to accurately display your recent shipments from the last 30 days, so you can see your actual shipping activity at a glance.
+
+**Fixed HOA resale certificate checkbox logic** (customer)
+- We fixed a bug where resale certificate checkboxes were appearing checked even when they shouldn't be based on your HOA section choices. The form now correctly hides these options until you select the right parent option.
+
+**Amendment 39-11 form filling now works correctly** (customer)
+- We fixed an issue where Amendment 39-11 was filling in the wrong checkboxes due to a paragraph numbering mismatch in the form. Agents can now reliably use Amendment 39-11 for closing date changes, price adjustments, option extensions, and repair items.
+
+**Fixed amendment form text placement** (customer)
+- We fixed a bug where repair notes and closing date notes were appearing in the wrong section of your amendment forms. The text now correctly shows up under the 'Other Modifications' area where it belongs.
+
+**TREC 40-11 financing addendum now works correctly** (customer)
+- We fixed all remaining issues with the TREC 40-11 financing addendum form, including FHA rate caps, buyer approval checkboxes, and loan term defaults. Your financing addendums will now fill out accurately for conventional, FHA, VA, and Texas Veterans loans.
+
+**TREC 20-18 form filling now fully accurate** (customer)
+- We fixed all remaining issues with how Dossie fills out Texas real estate forms, ensuring earnest money, option fees, and financing details now populate correctly every time.
+
+**Fixed option fee and earnest money fields on TREC forms** (customer)
+- We fixed a bug where option fee and earnest money amounts were being incorrectly overwritten on TREC 20-18 forms. Your form data will now save and display correctly.
+
+**Fixed critical TREC 40-11 financing form failures** (customer)
+- We fixed a bug that prevented non-cash financing addendums (Conventional, VA, FHA, and other loan types) from being generated, which was causing errors for agents. Your TREC 40-11 forms now complete successfully for all financing scenarios.
+
+**Fixed critical buyer approval checkbox in TREC 40-11** (customer)
+- We corrected a legal error in the TREC 40-11 form where buyer approval checkboxes were swapped, causing contracts to incorrectly show buyers waiving their financing contingency. Your forms now display the correct options.
+
+**Fill-and-sign forms now load correctly** (customer)
+- We fixed an issue that was preventing fill-and-sign forms from loading in your default buyer package. Your forms should now open without errors.
+
+**Fixed stuck document signatures** (customer)
+- We resolved an issue where some agents' signed documents weren't being marked as complete, preventing them from moving forward in their transactions. Your fill-and-sign workflow now properly tracks document submissions.
+
+**Better error messages in fill-and-sign** (customer)
+- When a form fails to fill or upload, you now see a specific error message on that form instead of a confusing generic error. This makes it easier to understand what went wrong and how to fix it.
+
+<!-- applied_shas: 0354a28,0634d1c,0cea52b,1f34e7e,2fe2b11,3d3b311,419daba,707d92e,8750343,8c6a8b2,93087b6,9e3823d,9fb66ab,a01c4f4,ae81d77,c8c1f89,cd10f24,f25554f,faf4d0f -->
 
 ## Week of June 15, 2026
 
