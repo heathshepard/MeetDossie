@@ -18,6 +18,7 @@
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { customerFirstName } = require('./_lib/personalization.js');
+const { isSuppressed } = require('./_lib/check-suppression.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,6 +69,13 @@ function ageLabel(createdAt) {
 }
 
 async function sendResend(to, subject, html) {
+  // Check CAN-SPAM suppression list before sending
+  const suppressed = await isSuppressed(to, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  if (suppressed) {
+    console.log('[cron-email-digest] Skipping suppressed recipient:', to);
+    return { ok: false, status: 400, error: 'recipient_suppressed' };
+  }
+
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {

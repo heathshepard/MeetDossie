@@ -16,9 +16,13 @@
 // without the user-JWT requirement — CRON_SECRET is enough because this is
 // only callable by trusted internal automation.
 
+const { isSuppressed } = require('./_lib/check-suppression.js');
+
 const CRON_SECRET = process.env.CRON_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const STRIPE_FOUNDING_PAYMENT_LINK = process.env.STRIPE_FOUNDING_PAYMENT_LINK;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
@@ -66,6 +70,12 @@ export default async function handler(req, res) {
   }
   if (typeof text !== 'string' || !text.trim()) {
     return res.status(400).json({ ok: false, error: 'body_required' });
+  }
+
+  // Check CAN-SPAM suppression list
+  const suppressed = await isSuppressed(to, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  if (suppressed) {
+    return res.status(400).json({ ok: false, error: 'recipient_suppressed' });
   }
 
   // Server-side template substitution. Callers can embed `{{FOUNDING_PAYMENT_LINK}}`

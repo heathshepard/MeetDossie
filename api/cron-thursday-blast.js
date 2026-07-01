@@ -13,6 +13,7 @@
 //   CRON_SECRET
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { isSuppressed } = require('./_lib/check-suppression.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -168,9 +169,19 @@ module.exports = withTelemetry('cron-thursday-blast', async function handler(req
   console.log(`[cron-thursday-blast] recipients: ${recipients.length}`);
 
   const results = [];
+  let skipped = 0;
 
   for (const recipient of recipients) {
     const firstName = buildFirstName(recipient.full_name);
+
+    // Check CAN-SPAM suppression list before sending
+    const suppressed = await isSuppressed(recipient.email, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    if (suppressed) {
+      console.log(`[cron-thursday-blast] skipped suppressed ${recipient.email}`);
+      results.push({ email: recipient.email, firstName, status: 'skipped', reason: 'suppressed' });
+      skipped += 1;
+      continue;
+    }
 
     try {
       await sendEmail(recipient.email, firstName);
@@ -187,13 +198,14 @@ module.exports = withTelemetry('cron-thursday-blast', async function handler(req
   const sent = results.filter((r) => r.status === 'sent').length;
   const failed = results.filter((r) => r.status === 'failed').length;
 
-  console.log(`[cron-thursday-blast] done. sent=${sent} failed=${failed}`);
+  console.log(`[cron-thursday-blast] done. sent=${sent} failed=${failed} skipped=${skipped}`);
 
   return res.status(200).json({
     ok: true,
     ran_at: new Date().toISOString(),
     sent,
     failed,
+    skipped,
     results,
   });
 });

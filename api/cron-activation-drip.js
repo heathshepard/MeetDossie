@@ -17,6 +17,7 @@
 // Env vars required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET, RESEND_API_KEY
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { isSuppressed } = require('./_lib/check-suppression.js');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -76,6 +77,13 @@ async function sendEmail({ to, subject, html }) {
   if (!RESEND_API_KEY) {
     console.error('[cron-activation-drip] RESEND_API_KEY not set — skipping email to', to);
     return { ok: false, error: 'RESEND_API_KEY not set' };
+  }
+
+  // Check CAN-SPAM suppression list before sending
+  const suppressed = await isSuppressed(to, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  if (suppressed) {
+    console.log('[cron-activation-drip] Skipping suppressed recipient:', to);
+    return { ok: false, error: 'recipient_suppressed' };
   }
 
   const res = await fetch('https://api.resend.com/emails', {

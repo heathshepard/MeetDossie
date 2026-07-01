@@ -32,6 +32,7 @@
 // upgrade to if volume warranted it.
 
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const { isSuppressed, clearCache } = require('./_lib/check-suppression.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -263,6 +264,8 @@ async function handler(req, res) {
   };
 
   try {
+    clearCache(); // Fresh cache per cron invocation
+
     result.recovered = await recoverStuckSending();
 
     const pending = await fetchPending();
@@ -272,6 +275,14 @@ async function handler(req, res) {
       // Reject obviously-bad rows up front; don't burn Resend quota.
       if (!isValidEmail(row.to_email) || !row.subject || !row.body_text) {
         await markFailed(row.id, 'invalid_row: missing to_email/subject/body_text', row.attempts);
+        result.skipped_invalid += 1;
+        continue;
+      }
+
+      // Check CAN-SPAM suppression list before sending
+      const suppressed = await isSuppressed(row.to_email, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      if (suppressed) {
+        await markFailed(row.id, 'suppressed_send_blocked: recipient on suppression list', row.attempts);
         result.skipped_invalid += 1;
         continue;
       }
