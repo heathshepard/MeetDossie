@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossie Sign — Definition of Done</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231A1A2E'/><text y='.9em' font-size='60' x='15' fill='%23C9A96E'>DS</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --blush: #F5E6E0;
+  --blush-deep: #D4A0A0;
+  --sage: #8BA888;
+  --gold: #C9A96E;
+  --navy: #1A1A2E;
+  --coral: #E8836B;
+  --green: #2E7D32;
+  --yellow: #ED6C02;
+  --red: #C62828;
+  --grey: #757575;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  min-height: 100vh;
+}
+.header {
+  background: var(--navy);
+  color: white;
+  padding: 1.5rem 2rem;
+}
+.header-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand {
+  display:flex; align-items:center; gap:.75rem;
+}
+.brand-circle {
+  width: 40px; height: 40px;
+  background: var(--gold);
+  border-radius: 50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 700;
+  color: var(--navy);
+}
+.brand-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 700;
+}
+.brand-sub { font-size: 13px; opacity:.7; margin-left:.5rem; }
+.back-link {
+  color: white; text-decoration: none; font-size: 14px;
+  opacity: .85;
+}
+.back-link:hover { opacity: 1; }
+
+.container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.stat {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--grey);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #666; margin-bottom: .25rem; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat.green   { border-left-color: var(--green);  }
+.stat.yellow  { border-left-color: var(--yellow); }
+.stat.red     { border-left-color: var(--red);    }
+.stat.mission { border-left-color: var(--gold);   }
+.stat.green   .stat-value { color: var(--green); }
+.stat.yellow  .stat-value { color: var(--yellow); }
+.stat.red     .stat-value { color: var(--red); }
+.stat.mission .stat-value { color: var(--gold); }
+
+.grid-wrap {
+  background: white;
+  border-radius: 12px;
+  overflow: auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  margin-bottom: 2rem;
+}
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1200px;
+}
+.grid th {
+  text-align: left;
+  padding: .75rem .75rem;
+  background: #fafafa;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.grid th.gate-header {
+  text-align: center;
+  min-width: 90px;
+  max-width: 110px;
+}
+.grid th.gate-header .weight {
+  display: block;
+  font-size: 9px;
+  color: #999;
+  font-weight: 400;
+  margin-top: 2px;
+}
+.grid td {
+  padding: .6rem .75rem;
+  border-bottom: 1px solid #f5f5f5;
+  vertical-align: middle;
+}
+.grid td.form-name {
+  font-weight: 600;
+  color: var(--navy);
+  min-width: 260px;
+  max-width: 320px;
+}
+.grid td.form-name .sub {
+  display: block;
+  font-size: 10px;
+  color: #999;
+  font-weight: 400;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  margin-top: 2px;
+}
+.grid td.gate-cell {
+  text-align: center;
+  cursor: help;
+  min-width: 90px;
+}
+.grid tr:last-child td { border-bottom: none; }
+.grid tr:hover td { background: #fafafa; }
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  min-width: 60px;
+  text-align: center;
+}
+.status-pill.green   { background: #E8F5E9; color: var(--green); border: 1px solid #A5D6A7; }
+.status-pill.yellow  { background: #FFF3E0; color: var(--yellow); border: 1px solid #FFCC80; }
+.status-pill.red     { background: #FFEBEE; color: var(--red); border: 1px solid #EF9A9A; }
+.status-pill.human   { background: #F3E5F5; color: #6A1B9A; border: 1px solid #CE93D8; }
+
+.dispatch-badge {
+  display: inline-block;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: #eee;
+  color: #666;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.recent-runs {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.recent-runs h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  margin-bottom: 1rem;
+  color: var(--navy);
+}
+.run-row {
+  padding: .75rem 0;
+  border-bottom: 1px solid #f5f5f5;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 13px;
+}
+.run-row:last-child { border-bottom: none; }
+.run-row .ts { color: #999; font-family: ui-monospace, monospace; font-size: 11px; min-width: 140px; }
+.run-row .out { min-width: 130px; }
+.run-row .detail { flex: 1; color: #333; }
+
+.outcome-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.outcome-badge.dispatched      { background: #E3F2FD; color: #1565C0; }
+.outcome-badge.skipped_all_green { background: #E8F5E9; color: var(--green); }
+.outcome-badge.skipped_cooldown  { background: #F5F5F5; color: #757575; }
+.outcome-badge.skipped_guardrail { background: #FFEBEE; color: var(--red); }
+.outcome-badge.skipped_no_red    { background: #F5F5F5; color: #757575; }
+.outcome-badge.error             { background: #FFEBEE; color: var(--red); }
+
+.footer-note {
+  margin-top: 2rem;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 12px;
+  color: #666;
+  flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: .35rem; }
+.legend-item .dot { width: 12px; height: 12px; border-radius: 50%; }
+.legend-item .dot.green { background: var(--green); }
+.legend-item .dot.yellow { background: var(--yellow); }
+.legend-item .dot.red { background: var(--red); }
+.legend-item .dot.human { background: #9C27B0; }
+
+.mission-banner {
+  background: linear-gradient(135deg, var(--gold), #b8925f);
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  text-align: center;
+  display: none;
+}
+.mission-banner.show { display: block; }
+
+.error-msg {
+  padding: 1rem;
+  background: #FFEBEE;
+  color: var(--red);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.loading {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-circle">DS</div>
+      <div>
+        <div class="brand-title">Dossie Sign — Definition of Done</div>
+        <div class="brand-sub">8 forms x 9 gates = 72 gates to green</div>
+      </div>
+    </div>
+    <a href="/ventures" class="back-link">back to ventures</a>
+  </div>
+</div>
+
+<div id="root" class="container">
+  <div class="loading">Loading Dossie Sign progress...</div>
+</div>
+
+<script>
+// ─── Supabase anon client ─────────────────────────────────────────────────────
+// Fetches URL + publishable key at runtime via /api/get-supabase-public-config
+// (same pattern as ventures-reliability.html). Public-read policies on the two
+// tables allow anon SELECT (safe — no PII, just aggregated gate status).
+
+const SUPABASE_URL_DEFAULT = 'https://pgwoitbdiyubjugwufhk.supabase.co';
+let SUPABASE_URL = SUPABASE_URL_DEFAULT;
+let SUPABASE_ANON_KEY = null;
+
+async function loadSupabaseConfig() {
+  try {
+    const r = await fetch('/api/get-supabase-public-config');
+    if (!r.ok) throw new Error('config endpoint');
+    const c = await r.json();
+    SUPABASE_URL = c.url || SUPABASE_URL_DEFAULT;
+    SUPABASE_ANON_KEY = c.publishableKey || c.anonKey || null;
+  } catch {
+    SUPABASE_ANON_KEY = null;
+  }
+}
+
+// Gate columns — must match keys used in api/cron-dossie-sign-completion-loop.js
+const GATES = [
+  { key: 'fill_accuracy',        label: 'Fill accuracy',   weight: 40 },
+  { key: 'hadley_signed_pass',   label: 'Hadley PASS',     weight: 60 },
+  { key: 'send_button_works',    label: 'Send button',     weight: 100 },
+  { key: 'multi_signer',         label: 'Multi-signer',    weight: 80 },
+  { key: 'signer_email_collect', label: 'Email collect',   weight: 80 },
+  { key: 'envelope_status',      label: 'Envelope status', weight: 60 },
+  { key: 'audit_trail',          label: 'Audit trail',     weight: 60 },
+  { key: 'signed_pdf_stored',    label: 'PDF stored',      weight: 60 },
+  { key: 'real_deal_closed',     label: 'Real deal',       weight: 999 },
+];
+
+async function sbGet(path) {
+  if (!SUPABASE_ANON_KEY) throw new Error('Supabase config not loaded');
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+function humanTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.floor(hr / 24);
+  return `${days}d ago`;
+}
+
+function renderStatusPill(row) {
+  if (row.human_gated && row.status === 'red') {
+    return `<span class="status-pill human" title="Human-gated — loop cannot flip this">HUMAN</span>`;
+  }
+  const cls = row.status || 'red';
+  const label = (row.status || 'red').toUpperCase();
+  let extra = '';
+  if ((row.dispatch_count || 0) > 0) {
+    extra = `<span class="dispatch-badge" title="Dispatched ${row.dispatch_count} time(s)">x${row.dispatch_count}</span>`;
+  }
+  const tooltip = [
+    `Status: ${row.status}`,
+    `Weight: ${row.gate_weight}`,
+    `Dispatched: ${row.dispatch_count || 0} times`,
+    row.last_dispatched_at ? `Last dispatch: ${humanTime(row.last_dispatched_at)} (${row.last_dispatched_agent || '—'})` : null,
+    row.last_evidence ? `Evidence: ${row.last_evidence}` : null,
+    row.cooldown_until ? `Cooldown: until ${new Date(row.cooldown_until).toLocaleString()}` : null,
+  ].filter(Boolean).join('\n');
+  return `<span class="status-pill ${cls}" title="${tooltip.replace(/"/g, '&quot;')}">${label}</span>${extra}`;
+}
+
+async function main() {
+  const root = document.getElementById('root');
+  try {
+    // Fetch all 72 progress rows + last 20 runs in parallel
+    const [progressRows, runs] = await Promise.all([
+      sbGet('dossie_sign_dod_progress?select=*&order=form_code.asc,gate_weight.desc'),
+      sbGet('dossie_sign_dod_runs?select=*&order=run_ts.desc&limit=20'),
+    ]);
+
+    // Aggregate by form
+    const byForm = new Map();
+    for (const row of progressRows) {
+      if (!byForm.has(row.form_code)) {
+        byForm.set(row.form_code, { label: row.form_label, tid: row.docuseal_template_id, gates: {} });
+      }
+      byForm.get(row.form_code).gates[row.gate_key] = row;
+    }
+
+    // Counts
+    const total = progressRows.length;
+    const green = progressRows.filter(r => r.status === 'green').length;
+    const yellow = progressRows.filter(r => r.status === 'yellow').length;
+    const red = progressRows.filter(r => r.status === 'red').length;
+    const missionComplete = green === total && total > 0;
+    const pct = total > 0 ? Math.round((green / total) * 100) : 0;
+
+    // Build HTML
+    const banner = missionComplete
+      ? `<div class="mission-banner show">MISSION COMPLETE. 72/72 gates green. Time to tag GOLD.</div>`
+      : '';
+
+    const summary = `
+      <div class="summary">
+        <div class="stat ${missionComplete ? 'mission' : 'green'}">
+          <div class="stat-label">Green gates</div>
+          <div class="stat-value">${green} / ${total}</div>
+        </div>
+        <div class="stat ${green === total ? 'mission' : ''}">
+          <div class="stat-label">Percent complete</div>
+          <div class="stat-value">${pct}%</div>
+        </div>
+        <div class="stat yellow">
+          <div class="stat-label">Yellow (partial)</div>
+          <div class="stat-value">${yellow}</div>
+        </div>
+        <div class="stat red">
+          <div class="stat-label">Red (blocked)</div>
+          <div class="stat-value">${red}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Loop cadence</div>
+          <div class="stat-value" style="font-size:18px">every 20 min</div>
+        </div>
+      </div>
+    `;
+
+    const legend = `
+      <div class="legend">
+        <div class="legend-item"><span class="dot green"></span>green = passed</div>
+        <div class="legend-item"><span class="dot yellow"></span>yellow = partial evidence</div>
+        <div class="legend-item"><span class="dot red"></span>red = not started or failed</div>
+        <div class="legend-item"><span class="dot human"></span>human = requires Heath action</div>
+        <div class="legend-item" style="margin-left:auto">
+          <a href="/docs/DOSSIE-SIGN-DOD.md" style="color: var(--navy); text-decoration: underline;">read the DoD spec</a>
+        </div>
+      </div>
+    `;
+
+    // Grid header
+    let gridHead = `<tr><th>Form</th>`;
+    for (const g of GATES) {
+      gridHead += `<th class="gate-header">${g.label}<span class="weight">wt ${g.weight}</span></th>`;
+    }
+    gridHead += `</tr>`;
+
+    // Grid body — one row per form, columns per gate
+    let gridBody = '';
+    // Order forms by weight of remaining reds (most urgent form first) then code
+    const forms = [...byForm.entries()].sort((a, b) => {
+      const aReds = Object.values(a[1].gates).filter(g => g.status === 'red' && !g.human_gated).length;
+      const bReds = Object.values(b[1].gates).filter(g => g.status === 'red' && !g.human_gated).length;
+      if (aReds !== bReds) return bReds - aReds;
+      return a[0].localeCompare(b[0]);
+    });
+
+    for (const [code, form] of forms) {
+      gridBody += `<tr>`;
+      gridBody += `<td class="form-name">${form.label}<span class="sub">${code} - DocuSeal ${form.tid}</span></td>`;
+      for (const g of GATES) {
+        const row = form.gates[g.key];
+        if (!row) {
+          gridBody += `<td class="gate-cell"><span class="status-pill red">—</span></td>`;
+        } else {
+          gridBody += `<td class="gate-cell">${renderStatusPill(row)}</td>`;
+        }
+      }
+      gridBody += `</tr>`;
+    }
+
+    const grid = `
+      <div class="grid-wrap">
+        <table class="grid">
+          <thead>${gridHead}</thead>
+          <tbody>${gridBody}</tbody>
+        </table>
+      </div>
+    `;
+
+    // Recent runs
+    let runsHtml = '';
+    if (runs.length === 0) {
+      runsHtml = '<div class="run-row"><span class="detail" style="color:#999">No loop ticks recorded yet. Waiting for first fire.</span></div>';
+    } else {
+      for (const r of runs) {
+        const detail = r.outcome === 'dispatched'
+          ? `Picked <b>${r.picked_form_code || '—'}</b> / <b>${r.picked_gate_key || '—'}</b> to <b>${r.agent_dispatched || '—'}</b> (${r.green_count}/${r.total_gates} green)`
+          : r.outcome === 'skipped_all_green'
+            ? `MISSION COMPLETE (${r.green_count}/${r.total_gates} green)`
+            : r.outcome === 'skipped_cooldown'
+              ? `All red gates on cooldown (${r.green_count}/${r.total_gates} green)`
+              : r.outcome === 'skipped_guardrail'
+                ? `Guardrail: ${(r.outcome_reason || '').replace('guardrail:', '')} (${r.green_count}/${r.total_gates} green)`
+                : r.outcome === 'error'
+                  ? `Error: ${r.outcome_reason || 'unknown'}`
+                  : `${r.outcome} - ${r.outcome_reason || ''}`;
+        runsHtml += `
+          <div class="run-row">
+            <span class="ts">${new Date(r.run_ts).toLocaleString()}</span>
+            <span class="out"><span class="outcome-badge ${r.outcome}">${r.outcome.replace(/_/g, ' ')}</span></span>
+            <span class="detail">${detail}</span>
+          </div>`;
+      }
+    }
+
+    const recent = `
+      <div class="recent-runs">
+        <h3>Recent loop ticks (last 20)</h3>
+        ${runsHtml}
+      </div>
+    `;
+
+    root.innerHTML = banner + summary + legend + grid + recent
+      + `<div class="footer-note">Loop endpoint: <code>/api/cron-dossie-sign-completion-loop</code> - schedule: every 20 minutes - Ridge owns.</div>`;
+  } catch (err) {
+    root.innerHTML = `<div class="error-msg">Failed to load Dossie Sign progress: ${err.message}</div>`;
+    console.error(err);
+  }
+}
+
+(async () => {
+  await loadSupabaseConfig();
+  await main();
+  // Auto-refresh every 60s
+  setInterval(main, 60000);
+})();
+</script>
+
+</body>
+</html>

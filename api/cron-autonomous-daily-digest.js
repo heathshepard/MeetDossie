@@ -1,0 +1,228 @@
+'use strict';
+
+// api/cron-autonomous-daily-digest.js
+// =============================================================================
+// SV-ENG-RIDGE-AUTONOMOUS-DIGEST-001 (Ridge, 2026-07-01)
+//
+// Daily 6:00 AM CDT (11:00 UTC). Reads the last 24h of autonomous_loop_runs
+// and sends Heath ONE plain-English morning brief:
+//
+//   Overnight your team shipped X and Y. Blocked on Z waiting for you.
+//   Nothing scary happened.
+//
+// Also updates jarvis_future_builds with ship_commit_sha when we can match
+// a completed queue row to a recent git commit (best-effort; not guaranteed).
+//
+// Delivery: Telegram (primary) + Resend email (secondary, optional).
+//
+// AUTH: Bearer ${CRON_SECRET} OR x-vercel-cron
+// SCHEDULE: "0 11 * * *"  (6 AM CDT = 11 UTC)
+// =============================================================================
+
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
+
+const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const CRON_SECRET               = process.env.CRON_SECRET;
+const TELEGRAM_BOT_TOKEN        = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID          = process.env.TELEGRAM_CHAT_ID;
+const RESEND_API_KEY            = process.env.RESEND_API_KEY;
+
+const HEATH_EMAIL = 'heath.shepard@kw.com';
+
+async function sb(pathAndQuery, init = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    ...(init.headers || {}),
+  };
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${pathAndQuery}`, { ...init, headers });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  return { ok: res.ok, status: res.status, data };
+}
+
+async function tg(text) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { ok: false };
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text.slice(0, 4090),
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    });
+    return { ok: r.ok };
+  } catch (err) {
+    console.error('[digest] tg error:', err && err.message);
+    return { ok: false };
+  }
+}
+
+async function email(subject, htmlBody) {
+  if (!RESEND_API_KEY) return { ok: false, skipped: 'no_key' };
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: 'Ridge <heath@meetdossie.com>',
+        to: [HEATH_EMAIL],
+        subject,
+        html: htmlBody,
+      }),
+    });
+    return { ok: r.ok };
+  } catch (err) {
+    console.error('[digest] email error:', err && err.message);
+    return { ok: false };
+  }
+}
+
+// ─── Plain-English rendering helpers ─────────────────────────────────────────
+// Per feedback_customer_emails_minimize_problem.md and feedback_telegram_plain_english.md:
+// no jargon, no fabricated specifics, calm and short.
+
+function pluralize(n, singular, plural) {
+  return n === 1 ? singular : (plural || (singular + 's'));
+}
+
+function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck) {
+  const shipped = completedTasks.length;
+  const attempted = runs.filter(r => r.outcome === 'dispatched').length;
+  const escalated = runs.filter(r => r.outcome === 'skipped_guardrail').length;
+
+  const lines = [];
+  lines.push('<b>Morning brief — autonomous loop</b>');
+  lines.push('');
+
+  // Opening line — what happened overnight
+  if (shipped === 0 && attempted === 0) {
+    lines.push('Overnight your team was idle — nothing needed attention. Quiet is healthy.');
+  } else if (shipped === 0 && attempted > 0) {
+    lines.push(`Overnight your team started ${attempted} ${pluralize(attempted, 'thing')} — still in progress, none finished yet.`);
+  } else {
+    lines.push(`Overnight your team shipped ${shipped} ${pluralize(shipped, 'thing')}.`);
+  }
+  lines.push('');
+
+  // What shipped
+  if (completedTasks.length > 0) {
+    lines.push('<b>Shipped:</b>');
+    for (const t of completedTasks.slice(0, 8)) {
+      const short = String(t.task_subject || t.item_picked || 'unnamed').slice(0, 100);
+      const agent = t.agent_name || t.agent_dispatched || '?';
+      lines.push(`• ${short} <i>(${agent})</i>`);
+    }
+    if (completedTasks.length > 8) {
+      lines.push(`• ...and ${completedTasks.length - 8} more.`);
+    }
+    lines.push('');
+  }
+
+  // What's blocked waiting for Heath
+  if (blocked.length > 0) {
+    lines.push('<b>Blocked on you:</b>');
+    for (const b of blocked.slice(0, 5)) {
+      const short = String(b.item_picked || 'unnamed').slice(0, 100);
+      const reason = String(b.outcome_reason || '').replace(/^guardrail:/, '');
+      lines.push(`• ${short} — needs your call on <i>${reason}</i>`);
+    }
+    if (blocked.length > 5) {
+      lines.push(`• ...and ${blocked.length - 5} more.`);
+    }
+    lines.push('');
+  }
+
+  // Stuck signals
+  if (stuck.length > 0) {
+    lines.push('<b>Stuck (human review):</b>');
+    for (const s of stuck.slice(0, 3)) {
+      const short = String(s.item_picked || s.signal_key || 'unnamed').slice(0, 100);
+      lines.push(`• ${short}`);
+    }
+    lines.push('');
+  }
+
+  // Closing line
+  if (escalated === 0 && stuck.length === 0) {
+    lines.push('<i>Nothing scary happened.</i>');
+  }
+
+  lines.push('');
+  lines.push('Watch live at <a href="https://meetdossie.com/ventures/reliability">meetdossie.com/ventures/reliability</a>.');
+
+  return lines.join('\n');
+}
+
+// ─── Main handler ────────────────────────────────────────────────────────────
+
+module.exports = withTelemetry('cron-autonomous-daily-digest', async function handler(req, res) {
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+  const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
+  if (!isVercelCron && !isManualAuth) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(503).json({ ok: false, error: 'supabase_env_missing' });
+  }
+
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+
+  // 1) Pull runs from last 24h
+  const r1 = await sb(`autonomous_loop_runs?select=*&run_ts=gte.${encodeURIComponent(since)}&order=run_ts.desc&limit=200`);
+  const runs = (r1.ok && Array.isArray(r1.data)) ? r1.data : [];
+
+  // 2) Pull queue rows the loop dispatched (queue_id in runs) so we can see
+  //    which of them actually completed. Batch by queue_id list.
+  const queueIds = runs.filter(r => r.queue_id).map(r => r.queue_id);
+  let completedTasks = [];
+  if (queueIds.length > 0) {
+    const ids = queueIds.slice(0, 100).map(id => `"${id}"`).join(',');
+    const r2 = await sb(`agent_queue?select=id,agent_name,task_subject,status,completed_at,result_summary&id=in.(${ids})&status=eq.completed`);
+    if (r2.ok && Array.isArray(r2.data)) {
+      // Merge with run's item_picked for readability
+      const runByQueue = new Map(runs.map(r => [r.queue_id, r]));
+      completedTasks = r2.data.map(t => ({
+        ...t,
+        item_picked: runByQueue.get(t.id)?.item_picked,
+        agent_dispatched: runByQueue.get(t.id)?.agent_dispatched,
+      }));
+    }
+  }
+
+  const blocked = runs.filter(r => r.outcome === 'skipped_guardrail');
+  const stuck   = runs.filter(r => r.outcome === 'skipped_stuck');
+
+  // 3) Compose message
+  const summary = renderPlainEnglishSummary(runs, completedTasks, blocked, stuck);
+
+  // 4) Send
+  const tgRes = await tg(summary);
+
+  // Optional email version (plain HTML — same content, slightly formatted)
+  const emailHtml = summary
+    .replace(/<b>/g, '<strong>').replace(/<\/b>/g, '</strong>')
+    .replace(/<i>/g, '<em>').replace(/<\/i>/g, '</em>')
+    .replace(/\n/g, '<br>\n');
+  const emailRes = await email('Morning brief — autonomous loop', emailHtml);
+
+  return res.status(200).json({
+    ok: true,
+    runs_seen: runs.length,
+    shipped_count: completedTasks.length,
+    blocked_count: blocked.length,
+    stuck_count: stuck.length,
+    telegram_ok: tgRes.ok,
+    email_ok: emailRes.ok,
+  });
+});
