@@ -358,7 +358,14 @@
                       "api/cron-codebase-facts-indexer.js":  {
                                                                  "maxDuration":  60,
                                                                  "includeFiles":  "{vercel.json,*.html,api/**/*.js}"
-                                                             }
+                                                             },
+                      "api/cron-autonomous-loop.js":  {
+                                                          "maxDuration":  300,
+                                                          "includeFiles":  "docs/**/*.md"
+                                                      },
+                      "api/cron-autonomous-daily-digest.js":  {
+                                                                  "maxDuration":  60
+                                                              }
                   },
     "crons":  [
                   {
@@ -660,6 +667,14 @@
                   {
                       "path":  "/api/cron-codebase-facts-indexer",
                       "schedule":  "0 */6 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-autonomous-loop",
+                      "schedule":  "0 */4 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-autonomous-daily-digest",
+                      "schedule":  "0 11 * * *"
                   }
               ]
 }
