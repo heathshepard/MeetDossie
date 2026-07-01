@@ -143,75 +143,126 @@ function extractAgents(html, sourceUrl) {
 
   if (!html || html.length < 1000) return results;
 
-  // Strategy 1: __NEXT_DATA__ JSON blob
+  // Strategy 1: __NEXT_DATA__ JSON blob (older Realtor.com pages)
   const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
   if (nextDataMatch) {
     try {
       const data = JSON.parse(nextDataMatch[1]);
-      const agents = findAgentArraysDeep(data);
-      for (const a of agents) {
-        const record = normalizeAgent(a, sourceUrl);
-        if (record && record.name && !seen.has(record.dedupe_key)) {
-          seen.add(record.dedupe_key);
-          results.push(record);
-        }
+      const arr = findAgentArraysDeep(data);
+      for (const a of arr) {
+        const r = normalizeAgent(a, sourceUrl);
+        if (r && r.name && !seen.has(r.dedupe_key)) { seen.add(r.dedupe_key); results.push(r); }
       }
       if (results.length > 0) return results;
-    } catch (e) {
-      // Fall through to regex strategies
-    }
+    } catch { /* fall through */ }
   }
 
-  // Strategy 2: Inline JSON script blocks (some Next.js pages hydrate via multiple scripts)
-  const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
-  let sm;
-  while ((sm = scriptRegex.exec(html)) !== null) {
-    const script = sm[1];
-    if (!script.includes('agentName') && !script.includes('"person"') && !script.includes('advertiser_id')) continue;
-    // Look for a JSON object hosting an agents array
-    const agentsArrayMatch = script.match(/"agents"\s*:\s*(\[[\s\S]*?\])(?=,\s*"[a-z_]|})/);
-    if (agentsArrayMatch) {
-      try {
-        const arr = JSON.parse(agentsArrayMatch[1]);
-        for (const a of arr) {
+  // Strategy 2: Find "agents":[ ... ] arrays using proper bracket balancing.
+  // Realtor.com (current) uses Apollo GraphQL — the payload is inline JSON in a
+  // <script> tag as a string. The `"agents":[` array holds the actual list.
+  // Occurrence count: usually just 1 per page.
+  let searchFrom = 0;
+  while (searchFrom < html.length) {
+    const startKey = html.indexOf('"agents":[', searchFrom);
+    if (startKey < 0) break;
+    const arrStart = startKey + '"agents":'.length; // points at '['
+    const arrEnd = findMatchingBracket(html, arrStart);
+    if (arrEnd < 0) break;
+    const arrayJson = html.slice(arrStart, arrEnd + 1);
+    searchFrom = arrEnd + 1;
+    // Try to parse
+    try {
+      const parsed = JSON.parse(arrayJson);
+      if (Array.isArray(parsed)) {
+        for (const a of parsed) {
           const r = normalizeAgent(a, sourceUrl);
-          if (r && r.name && !seen.has(r.dedupe_key)) {
-            seen.add(r.dedupe_key);
-            results.push(r);
+          if (r && r.name && !seen.has(r.dedupe_key)) { seen.add(r.dedupe_key); results.push(r); }
+        }
+      }
+    } catch {
+      // Some payloads escape the JSON inside a JS string literal — try unescaping
+      try {
+        const unescaped = arrayJson
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\n/g, '\n');
+        const parsed = JSON.parse(unescaped);
+        if (Array.isArray(parsed)) {
+          for (const a of parsed) {
+            const r = normalizeAgent(a, sourceUrl);
+            if (r && r.name && !seen.has(r.dedupe_key)) { seen.add(r.dedupe_key); results.push(r); }
           }
         }
-      } catch { /* ignore */ }
+      } catch { /* skip this array */ }
     }
   }
   if (results.length > 0) return results;
 
-  // Strategy 3: Regex over the full HTML for individual "agentName" JSON fragments.
-  // Realtor.com sometimes emits each agent as a discrete JSON block.
-  //   "agentName":"Jane Doe","brokerage":{"name":"XYZ Realty",...},"phone":"210-555-1234",...
-  const agentBlockRegex = /"agentName"\s*:\s*"([^"]{2,80})"[\s\S]{0,2500}?(?:"brokerage"\s*:\s*(?:"([^"]{0,150})"|\{[\s\S]{0,500}?"name"\s*:\s*"([^"]{0,150})"))?[\s\S]{0,1500}?(?:"phones?"\s*:\s*(?:\[[\s\S]{0,300}?"number"\s*:\s*"([^"]{7,20})"|"([^"]{7,20})"))?[\s\S]{0,500}?(?:"advertiser_id"\s*:\s*(?:"([^"]{4,40})"|(\d{4,40})))?/g;
+  // Strategy 3: Regex fallback — individual agent JSON objects.
+  // Matches the Realtor.com Apollo shape: {"id":"...","fullname":"...","broker":{"name":"..."},"office":{"name":"..."},"listing_stats":{...}}
+  const objRegex = /"id"\s*:\s*"([a-f0-9]{16,32})"[\s\S]{0,3000}?"fullname"\s*:\s*"([^"]{2,120})"[\s\S]{0,3000}?"(?:broker|office)"\s*:\s*\{[\s\S]{0,300}?"name"\s*:\s*"([^"]{0,150})"/g;
   let m;
-  while ((m = agentBlockRegex.exec(html)) !== null) {
-    const name = m[1].trim();
-    const brokerage = (m[2] || m[3] || '').trim();
-    const phone = (m[4] || m[5] || '').trim();
-    const advId = (m[6] || m[7] || '').trim();
+  while ((m = objRegex.exec(html)) !== null) {
+    const id = m[1];
+    const name = m[2].trim().replace(/\s+/g, ' ');
+    const brokerage = m[3].trim().replace(/\s+/g, ' ');
+    if (!name || name.length < 3) continue;
     const key = `${name.toLowerCase()}|${brokerage.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    // Try to extract for_sale / recently_sold counts + first-listing city from surrounding context
+    const ctx = html.slice(m.index, m.index + 5000);
+    const forSaleMatch = ctx.match(/"for_sale"\s*:\s*\{[^}]*?"count"\s*:\s*(\d{1,4})/);
+    const soldMatch = ctx.match(/"recently_sold_annual"\s*:\s*\{[^}]*?"count"\s*:\s*(\d{1,4})/);
+    const cityMatch = ctx.match(/"city"\s*:\s*"([^"]{2,60})"[^{]*?"state_code"\s*:\s*"TX"/);
+    const zipMatch = ctx.match(/"postal_code"\s*:\s*"?(78\d{3})"?/);
     results.push({
       name,
       brokerage,
-      phone: normalizePhone(phone),
-      city: 'San Antonio',
+      phone: '',
+      city: cityMatch ? cityMatch[1] : '',
+      zip: zipMatch ? zipMatch[1] : '',
       email: '',
-      profile_url: advId ? `https://www.realtor.com/realestateagents/${advId}` : '',
-      agent_id: advId,
+      profile_url: `https://www.realtor.com/realestateagents/${id}`,
+      agent_id: id,
+      bio_first_sentence: '',
+      listings_for_sale: forSaleMatch ? parseInt(forSaleMatch[1], 10) : null,
+      recently_sold_annual: soldMatch ? parseInt(soldMatch[1], 10) : null,
       source: 'zenrows_realtor',
+      scraped_from: sourceUrl,
       dedupe_key: key,
     });
   }
 
   return results;
+}
+
+/**
+ * Find the position of the closing bracket matching the opening bracket at `start`.
+ * Handles nested brackets AND string literals (skips brackets inside strings).
+ * Returns -1 if no match found.
+ */
+function findMatchingBracket(html, start) {
+  const open = html[start];
+  const close = open === '[' ? ']' : open === '{' ? '}' : '';
+  if (!close) return -1;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  const max = Math.min(html.length, start + 5_000_000); // 5 MB safety cap
+  for (let i = start; i < max; i++) {
+    const c = html[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\' && inString) { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === open) depth++;
+    else if (c === close) {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
 }
 
 /**
@@ -253,28 +304,37 @@ function findAgentArraysDeep(node, depth = 0, acc = []) {
 
 function normalizeAgent(a, sourceUrl) {
   if (!a || typeof a !== 'object') return null;
-  const name = (a.agentName || a.full_name || a.name || a.person?.name || '').trim();
+  // Realtor.com Apollo shape uses `fullname`; older shapes use `agentName`, `full_name`, `name`
+  const name = String(
+    a.fullname || a.agentName || a.full_name || a.name ||
+    (a.person && (a.person.name || a.person.fullname)) || ''
+  ).trim().replace(/\s+/g, ' ');
   if (!name || name.length < 3) return null;
 
-  // Brokerage — several shapes
-  let brokerage = '';
-  if (typeof a.brokerage === 'string') brokerage = a.brokerage;
-  else if (a.brokerage?.name) brokerage = a.brokerage.name;
-  else if (a.office?.name) brokerage = a.office.name;
-  else if (a.broker?.name) brokerage = a.broker.name;
-  else if (a.brokerageName) brokerage = a.brokerageName;
-  brokerage = String(brokerage || '').trim();
+  // Filter out teams / groups — cold email is for solo agents
+  const isTeam = /\b(team|group|partners|associates|realty group)\b/i.test(name);
 
-  // Phone — several shapes
+  // Brokerage — Realtor.com Apollo uses `broker.name` (the umbrella) and `office.name`
+  // (the local office). Prefer office.name since it's more specific.
+  let brokerage = '';
+  if (a.office?.name) brokerage = a.office.name;
+  else if (a.broker?.name) brokerage = a.broker.name;
+  else if (a.brokerage?.name) brokerage = a.brokerage.name;
+  else if (typeof a.brokerage === 'string') brokerage = a.brokerage;
+  else if (a.brokerageName) brokerage = a.brokerageName;
+  brokerage = String(brokerage || '').trim().replace(/\s+/g, ' ');
+
+  // Phone — Realtor.com hides on directory pages; check anyway
   let phone = '';
   if (typeof a.phone === 'string') phone = a.phone;
   else if (a.phone?.number) phone = a.phone.number;
   else if (Array.isArray(a.phones) && a.phones[0]) phone = a.phones[0].number || a.phones[0];
   else if (a.office?.phones?.[0]?.number) phone = a.office.phones[0].number;
   else if (a.office?.phone_list?.phone_1?.number) phone = a.office.phone_list.phone_1.number;
+  else if (a.mobile_phone) phone = a.mobile_phone;
   phone = normalizePhone(String(phone || '').trim());
 
-  // City
+  // City — from address, office.address, or nested listings
   let city = '';
   if (a.address?.city) city = a.address.city;
   else if (a.office?.address?.city) city = a.office.address.city;
@@ -288,9 +348,8 @@ function normalizeAgent(a, sourceUrl) {
   else if (a.zip) zip = a.zip;
   zip = String(zip || '').trim();
 
-  // Agent ID / profile URL
-  const advId = String(a.advertiser_id || a.person?.advertiser_id || a.id || '').trim();
-  const slug = a.slogan || a.web_url || '';
+  // Agent ID / profile URL — Apollo shape uses `id` (mongo-style)
+  const advId = String(a.id || a.advertiser_id || a.person?.advertiser_id || a.fulfillment_id || '').trim();
   let profileUrl = '';
   if (a.href) profileUrl = a.href.startsWith('http') ? a.href : `https://www.realtor.com${a.href}`;
   else if (a.web_url) profileUrl = a.web_url.startsWith('http') ? a.web_url : `https://www.realtor.com${a.web_url}`;
@@ -304,6 +363,20 @@ function normalizeAgent(a, sourceUrl) {
   else if (a.person?.bio) bio = a.person.bio;
   bio = String(bio || '').replace(/\s+/g, ' ').trim();
   const bioFirstSentence = (bio.split(/(?<=[.!?])\s+(?=[A-Z])/)[0] || bio).slice(0, 200);
+
+  // Listing stats — great personalization signals from Apollo payload
+  const listingsForSale = a.listing_stats?.for_sale?.count ?? null;
+  const soldAnnual = a.listing_stats?.recently_sold_annual?.count ?? null;
+  // Pull first recently-sold city as a hint for their focus area
+  const soldListings = a.listing_stats?.recently_sold_listing_details?.listings || [];
+  let focusCity = '';
+  if (soldListings.length > 0 && soldListings[0].city) focusCity = soldListings[0].city;
+  if (!city && focusCity) city = focusCity;
+
+  // Rating (peer trust signal, useful for personalization)
+  const avgRating = a.ratings_reviews?.average_rating ?? null;
+  const reviewCount = a.ratings_reviews?.reviews_count ?? null;
+  const recommendationsCount = a.ratings_reviews?.recommendations_count ?? null;
 
   // Email — rarely present in the SSR blob, but check
   const email = String(a.email || a.person?.email || '').trim();
@@ -320,6 +393,12 @@ function normalizeAgent(a, sourceUrl) {
     profile_url: profileUrl,
     agent_id: advId,
     bio_first_sentence: bioFirstSentence,
+    listings_for_sale: listingsForSale,
+    recently_sold_annual: soldAnnual,
+    avg_rating: avgRating,
+    review_count: reviewCount,
+    recommendations_count: recommendationsCount,
+    is_team: isTeam,
     source: 'zenrows_realtor',
     scraped_from: sourceUrl,
     dedupe_key,
