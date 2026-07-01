@@ -1468,11 +1468,15 @@ async function fillHoaAddendum(pdfDoc, fv) {
   safeSetText(form, 'copy of the Subdivision Information to the Seller',
     fv.subdivision_info_copy_days != null ? String(fv.subdivision_info_copy_days) : '3');
 
-  // UPDATED RESALE CERTIFICATE (Para B)
-  if (fv.requires_updated_resale_cert === true) {
-    safeCheck(form, 'does');
-  } else {
-    safeCheck(form, 'does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at');
+  // UPDATED RESALE CERTIFICATE (Para B/A.3)
+  // Gate: only populate if subdivision_method === 'already_received' (A.3 selected).
+  // If buyer chose A.1/A.2/A.4, leave resale cert checkboxes blank (no parent selection = no child widgets).
+  if (subMethod === 'already_received') {
+    if (fv.requires_updated_resale_cert === true) {
+      safeCheck(form, 'does');
+    } else {
+      safeCheck(form, 'does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at');
+    }
   }
 
   // DEPOSITS FOR RESERVES (Para D)
