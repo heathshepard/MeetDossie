@@ -74,6 +74,13 @@ export default async function handler(req, res) {
     /class="[^"]*agent-list-card[^"]*"/g,
     /class="[^"]*agent_card[^"]*"/g,
     /data-testid="agent-name"/g,
+    /"agentName":/g,
+    /"person":\s*\{/g,
+    /itemtype="[^"]*schema\.org\/RealEstateAgent"/g,
+    /class="[^"]*AgentCard[^"]*"/g,
+    /class="[^"]*jsx-\d+ [^"]*agent[^"]*"/gi,
+    /"agent_rating":/g,
+    /"advertiser_id":/g,
   ];
   let agentCount = 0;
   let matchedPattern = null;
@@ -107,6 +114,19 @@ export default async function handler(req, res) {
 
   const pass = !errorMsg && httpStatus === 200 && agentCount > 0;
 
+  // Debug helpers — snippets of the HTML so we can see what selectors to update
+  const titleMatch = html.match(/<title[^>]*>([^<]{0,200})<\/title>/i);
+  const pageTitle = titleMatch ? titleMatch[1].trim() : null;
+  const hasAgentWord = /agent/i.test(html);
+  const looksLikeCaptcha = /captcha|are you a human|blocked|access denied/i.test(html);
+
+  // First 400 chars of body, first 400 chars around first occurrence of "agent"
+  const bodyStart = html.slice(0, 400);
+  const agentIdx = html.toLowerCase().indexOf('agent');
+  const agentSnippet = agentIdx >= 0
+    ? html.slice(Math.max(0, agentIdx - 80), agentIdx + 400)
+    : null;
+
   return res.status(200).json({
     status: pass ? 'PASS' : 'FAIL',
     http_status: httpStatus,
@@ -118,6 +138,11 @@ export default async function handler(req, res) {
     sample_first_3_names: sampleNames,
     target_url: TARGET_URL,
     html_bytes: html.length,
+    page_title: pageTitle,
+    looks_like_captcha: looksLikeCaptcha,
+    has_agent_word: hasAgentWord,
+    body_start_400: bodyStart,
+    agent_snippet_400: agentSnippet,
     note: 'Temporary diagnostic route. Delete after PASS.',
   });
 }
