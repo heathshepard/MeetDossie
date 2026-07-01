@@ -1271,8 +1271,8 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   }
   // D5 fix: For ANY financed deal, subject to buyer approval; ensure Box 2 is unchecked
   if (ft && ft !== 'cash') {
-    safeCheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
-    safeUncheck(form, 'Check Box2');
+    safeCheck(form, 'Check Box2');
+    safeUncheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
     // D6 fix: Wire buyer_approval_days with default 21
   }
   if (fv.second_mortgage === true) {
