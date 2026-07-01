@@ -95,7 +95,7 @@ function pluralize(n, singular, plural) {
   return n === 1 ? singular : (plural || (singular + 's'));
 }
 
-function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck) {
+function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates) {
   const shipped = completedTasks.length;
   const attempted = runs.filter(r => r.outcome === 'dispatched').length;
   const escalated = runs.filter(r => r.outcome === 'skipped_guardrail').length;
@@ -152,6 +152,22 @@ function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck) {
     lines.push('');
   }
 
+  // Self-improvement candidates — top 3 for yes/no
+  if (Array.isArray(selfImprovementCandidates) && selfImprovementCandidates.length > 0) {
+    lines.push('<b>Self-improvement — say yes/no:</b>');
+    for (let i = 0; i < Math.min(3, selfImprovementCandidates.length); i++) {
+      const c = selfImprovementCandidates[i];
+      const shortTitle = String(c.title || 'unnamed').slice(0, 140);
+      lines.push(`${i + 1}. ${shortTitle}`);
+      if (c.rationale) {
+        lines.push(`   <i>why:</i> ${String(c.rationale).slice(0, 200)}`);
+      }
+    }
+    lines.push('');
+    lines.push('<i>Reply "yes 1", "no 2", or "defer 3" — I lock it in.</i>');
+    lines.push('');
+  }
+
   // Closing line
   if (escalated === 0 && stuck.length === 0) {
     lines.push('<i>Nothing scary happened.</i>');
@@ -203,8 +219,26 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
   const blocked = runs.filter(r => r.outcome === 'skipped_guardrail');
   const stuck   = runs.filter(r => r.outcome === 'skipped_stuck');
 
-  // 3) Compose message
-  const summary = renderPlainEnglishSummary(runs, completedTasks, blocked, stuck);
+  // 3) Pull top pending self-improvement candidates (all tiers) for Heath's yes/no.
+  //    Order: highest impact_score first, then oldest drafted_at as tiebreaker.
+  const rCands = await sb(
+    'self_improvement_candidates?select=id,tier,change_kind,title,rationale,impact_score,drafted_at'
+    + '&heath_decision=is.null&order=impact_score.desc,drafted_at.asc&limit=3'
+  );
+  const selfImprovementCandidates = (rCands.ok && Array.isArray(rCands.data)) ? rCands.data : [];
+
+  // 4) Stamp surfaced_in_brief_at so we know these were shown
+  if (selfImprovementCandidates.length > 0) {
+    const ids = selfImprovementCandidates.map(c => `"${c.id}"`).join(',');
+    await sb(`self_improvement_candidates?id=in.(${ids})`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ surfaced_in_brief_at: new Date().toISOString() }),
+    });
+  }
+
+  // 5) Compose message
+  const summary = renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates);
 
   // 4) Send
   const tgRes = await tg(summary);
@@ -222,6 +256,7 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
     shipped_count: completedTasks.length,
     blocked_count: blocked.length,
     stuck_count: stuck.length,
+    self_improvement_candidates_shown: selfImprovementCandidates.length,
     telegram_ok: tgRes.ok,
     email_ok: emailRes.ok,
   });

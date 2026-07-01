@@ -2,6 +2,12 @@
 
 Ridge, 2026-07-01. Owner: Ridge (reliability + observability).
 
+> **Related**: The autonomous loop *ships* work. The self-improvement meta-loop
+> *watches the loop* and proposes rule / capability / prompt changes. See
+> [`docs/SELF-IMPROVEMENT-META-LOOP.md`](SELF-IMPROVEMENT-META-LOOP.md).
+> The 6 AM digest now includes the top 3 pending meta-loop candidates for
+> Heath's yes/no.
+
 ## What it does, in one paragraph
 
 Every 4 hours a cron wakes up, looks at everything that might need attention
