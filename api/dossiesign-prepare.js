@@ -456,18 +456,35 @@ module.exports = async function handler(req, res) {
       let previewUrl = null;
       let storagePath = null;
       let documentId = null;
+      let error = null;
 
-      if (formType) {
+      if (!formType) {
+        error = `Form type mapping not found for short_name="${tmpl.short_name}". Update SHORT_NAME_TO_FORM_TYPE in dossiesign-prepare.js.`;
+        console.warn(`[dossiesign-prepare] ${error}`);
+      } else {
         try {
           const pdfBuffer = await fillFormPreview(formType, fv);
-          if (pdfBuffer) {
-            const uploaded = await uploadPreview(userId, transactionId, formType, tmpl.name, pdfBuffer);
-            previewUrl = uploaded.previewUrl;
-            storagePath = uploaded.storagePath;
-            documentId = uploaded.documentId;
+          if (!pdfBuffer) {
+            error = `Failed to fill form. Template may not be in FORM_B64_MAP.`;
+            console.warn(`[dossiesign-prepare] ${error} for ${formType}`);
+          } else {
+            try {
+              const uploaded = await uploadPreview(userId, transactionId, formType, tmpl.name, pdfBuffer);
+              previewUrl = uploaded.previewUrl;
+              storagePath = uploaded.storagePath;
+              documentId = uploaded.documentId;
+              if (!documentId) {
+                error = 'Failed to create document record in database.';
+                console.warn(`[dossiesign-prepare] ${error}`);
+              }
+            } catch (uploadErr) {
+              error = `Upload failed: ${uploadErr && uploadErr.message ? uploadErr.message : 'unknown error'}`;
+              console.warn(`[dossiesign-prepare] ${error} for ${formType}`);
+            }
           }
-        } catch (e) {
-          console.warn(`[dossiesign-prepare] fill/upload failed for ${formType}:`, e && e.message);
+        } catch (fillErr) {
+          error = `Fill failed: ${fillErr && fillErr.message ? fillErr.message : 'unknown error'}`;
+          console.warn(`[dossiesign-prepare] ${error} for ${formType}`);
         }
       }
 
@@ -479,6 +496,7 @@ module.exports = async function handler(req, res) {
         preview_url: previewUrl,
         storage_path: storagePath,
         document_id: documentId,
+        error: error,
       });
     }
 
