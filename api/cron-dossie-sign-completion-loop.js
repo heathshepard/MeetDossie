@@ -217,20 +217,101 @@ async function loadCompletedAgentQueue() {
 }
 
 // Fetch all signature_requests once per tick (no metadata column exists —
-// use docuseal_submission_id, status, signers jsonb, signed_document_id)
+// use docuseal_submission_id, status, signers jsonb, signed_document_id).
+// ALSO fetches document_id so we can attribute submission → form via
+// documents.document_type + file_name (Ridge 2026-07-01 attribution fix).
 async function loadSignatureRequests() {
-  const r = await sb('signature_requests?select=id,status,docuseal_submission_id,signed_document_id,signers,completed_at,transaction_id&order=created_at.desc&limit=500');
+  const r = await sb('signature_requests?select=id,status,docuseal_submission_id,signed_document_id,signers,completed_at,transaction_id,document_id,created_at,user_id&order=created_at.desc&limit=500');
   if (!r.ok || !Array.isArray(r.data)) return [];
   return r.data;
 }
 
-// Index docuseal_submission_id → form_code by cross-referencing the
-// transaction's document. For now we rely on agent_queue metadata to map
-// submission → form_code (Atlas records `docuseal_submission_id` in metadata
-// when it dispatches a test). Also allow signature_requests.signers[0].form_code
-// hint if present.
-function buildSubmissionFormMap(agentQueueRows, sigRequests) {
+// Fetch document rows for every signature_request so we can attribute
+// submission → form_code via document_type + file_name. This is the primary
+// attribution path — agent_queue metadata rarely carries docuseal_submission_id
+// because Playwright agents run without writing back to their own queue row.
+async function loadDocumentsForSigRequests(sigRequests) {
+  if (!sigRequests || sigRequests.length === 0) return new Map();
+  const docIds = [...new Set(sigRequests.map(sr => sr.document_id).filter(Boolean))];
+  if (docIds.length === 0) return new Map();
+  // In batches of 100 (Supabase URL length safety)
+  const map = new Map();  // document_id → { document_type, file_name }
+  for (let i = 0; i < docIds.length; i += 100) {
+    const batch = docIds.slice(i, i + 100);
+    const inList = batch.map(id => encodeURIComponent(id)).join(',');
+    const r = await sb(`documents?select=id,document_type,file_name&id=in.(${inList})&limit=200`);
+    if (r.ok && Array.isArray(r.data)) {
+      for (const d of r.data) map.set(d.id, { document_type: d.document_type, file_name: d.file_name });
+    }
+  }
+  return map;
+}
+
+// Map a documents row (document_type + file_name) to a TREC form_code.
+// Uses both explicit document_type values AND filename patterns from the
+// Dossie fill pipeline output naming conventions.
+function documentToFormCode(doc) {
+  if (!doc) return null;
+  const type = (doc.document_type || '').toLowerCase();
+  const name = (doc.file_name || '').toLowerCase();
+
+  // Explicit document_type mappings
+  const typeMap = {
+    'resale_contract': 'TREC-20-18',
+    'one_to_four_resale': 'TREC-20-18',
+    'one_to_four': 'TREC-20-18',
+    'financing_addendum': 'TREC-40-11',
+    'third_party_financing': 'TREC-40-11',
+    'appraisal_addendum': 'TREC-49-1',
+    'lender_appraisal': 'TREC-49-1',
+    'hoa_addendum': 'TREC-36-11',
+    'hoa': 'TREC-36-11',
+    'amendment': 'TREC-39-10',
+    'amendment_to_contract': 'TREC-39-10',
+    'backup_addendum': 'TREC-11-7',
+    'backup_contract': 'TREC-11-7',
+    // NOTE: DoD table labels TREC-OP-H = Seller's Disclosure Notice and
+    // TREC-OP-L = Lead-Based Paint. Ridge 2026-07-01 confirmed this against
+    // dossie_sign_dod_progress form_label. Conform mapper to DoD table.
+    'lead_paint_addendum': 'TREC-OP-L',
+    'lead_paint': 'TREC-OP-L',
+    'sellers_disclosure': 'TREC-OP-H',
+    'seller_disclosure': 'TREC-OP-H',
+    'sellers_disclosure_notice': 'TREC-OP-H',
+  };
+  if (typeMap[type]) return typeMap[type];
+
+  // Filename pattern fallbacks — DossieSign preview naming.
+  // ORDER MATTERS: check specific forms before generic "seller disclosure"
+  // which is ambiguous.
+  if (/one to four|resale contract|20-18|20-17/.test(name)) return 'TREC-20-18';
+  if (/third party financing|financing addendum|40-11/.test(name)) return 'TREC-40-11';
+  if (/appraisal|49-1|lender appraisal|right to terminate.*appraisal/.test(name)) return 'TREC-49-1';
+  if (/hoa|mandatory membership|36-11|property owners association/.test(name)) return 'TREC-36-11';
+  if (/amendment to contract|39-10/.test(name)) return 'TREC-39-10';
+  if (/backup contract|11-7|contract concerning backup/.test(name)) return 'TREC-11-7';
+  // Lead paint first (more specific), then seller disclosure fallback
+  if (/lead[- ]based paint|lead paint/.test(name)) return 'TREC-OP-L';
+  if (/seller.?s disclosure|sellers disclosure/.test(name)) return 'TREC-OP-H';
+
+  // Filename prefix from fill pipeline output — e.g. "OP-L-Lead-Paint-*.pdf"
+  const trecPrefix = name.match(/(op-[hl]|11-7|20-1[78]|36-11|39-10|40-11|49-1)/);
+  if (trecPrefix) {
+    const key = trecPrefix[1].toUpperCase();
+    return `TREC-${key}`;
+  }
+
+  return null;
+}
+
+// Index docuseal_submission_id → form_code. Combines 3 sources:
+//   1. agent_queue.metadata.docuseal_submission_id (if any agent set it)
+//   2. signature_requests.document_id → documents.document_type/file_name
+//   3. agent_queue.metadata.signature_request_id → sr → doc mapping
+function buildSubmissionFormMap(agentQueueRows, sigRequests, documentMap) {
   const map = new Map();  // submissionId → form_code
+
+  // Path 1: explicit agent metadata (rare but authoritative)
   for (const q of agentQueueRows) {
     const m = q.metadata || {};
     if (m.docuseal_submission_id && m.dossie_sign_form_code) {
@@ -240,6 +321,19 @@ function buildSubmissionFormMap(agentQueueRows, sigRequests) {
       map.set(`sr:${m.signature_request_id}`, m.dossie_sign_form_code);
     }
   }
+
+  // Path 2: PRIMARY — document attribution via signature_requests.document_id
+  for (const sr of sigRequests) {
+    if (!sr.docuseal_submission_id) continue;
+    if (map.has(String(sr.docuseal_submission_id))) continue;  // agent metadata wins
+    const doc = documentMap.get(sr.document_id);
+    const formCode = documentToFormCode(doc);
+    if (formCode) {
+      map.set(String(sr.docuseal_submission_id), formCode);
+      map.set(`sr:${sr.id}`, formCode);
+    }
+  }
+
   return map;
 }
 
@@ -479,9 +573,10 @@ async function runEvidenceCheck(rows) {
   const { docsDir, files: hadleyFiles } = loadHadleyReports();
   const completedQueue = await loadCompletedAgentQueue();
   const sigRequests = await loadSignatureRequests();
-  const submissionFormMap = buildSubmissionFormMap(completedQueue, sigRequests);
+  const documentMap = await loadDocumentsForSigRequests(sigRequests);
+  const submissionFormMap = buildSubmissionFormMap(completedQueue, sigRequests, documentMap);
 
-  const ctx = { hadleyFiles, docsDir, completedQueue, sigRequests, submissionFormMap };
+  const ctx = { hadleyFiles, docsDir, completedQueue, sigRequests, submissionFormMap, documentMap };
 
   let checked = 0, flipped = 0;
   const flippedGates = [];
@@ -513,6 +608,8 @@ async function runEvidenceCheck(rows) {
       hadley_reports: hadleyFiles.length,
       completed_queue: completedQueue.length,
       signature_requests: sigRequests.length,
+      documents_mapped: documentMap.size,
+      submission_form_map: submissionFormMap.size,
     },
   };
 }
