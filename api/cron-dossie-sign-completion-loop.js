@@ -2,30 +2,46 @@
 
 // api/cron-dossie-sign-completion-loop.js
 // =============================================================================
-// SV-ENG-RIDGE-DOSSIE-SIGN-LOOP-001 (Ridge, 2026-07-01)
+// SV-ENG-RIDGE-DOSSIE-SIGN-LOOP-002 (Ridge, 2026-07-01)
 //
-// The DEDICATED Dossie Sign completion loop. Every 20 minutes:
-//   1. Read current DoD state (dossie_sign_dod_progress — 8 forms × 9 gates)
-//   2. Refresh gate state from evidence:
-//        - Hadley PASS reports (docs/hadley-pass-report-trec-*-*.md)
-//        - signature_requests table (envelope status, storage retrieval)
-//        - agent_queue completed rows (E2E, send-button, audit-trail work)
-//   3. Pick THE ONE lowest-hanging red gate (weighted)
-//   4. Enforce guardrails (spend, DocuSeal template rebuild, contacting founders,
-//      merge-to-main, licensed-attorney flags → escalate to Heath, DO NOT ship)
-//   5. Dispatch to the right agent via agent_queue insert
-//   6. Log the tick to dossie_sign_dod_runs
-//   7. If ALL 72 gates green → celebration ping + tag + exit
+// ARCHITECTURAL FIX 2026-07-01 11:38 CDT — Heath is furious (0% complete after
+// 24h, 17 yellow / 55 red / 0 green). Root cause: previous version dispatched
+// new work every tick without proving previous dispatches actually landed +
+// flipped gates green. Signature_requests refresh was querying a `metadata`
+// column that doesn't exist — silently returned zero flips. Agent_queue
+// refresh required metadata.quinn_apv_pass=true which agents never set.
 //
-// SEPARATE from cron-autonomous-loop. The general loop reads this table to
-// avoid double-dispatching Dossie-Sign-related work.
+// NEW ORDER OF OPERATIONS EACH TICK:
+//   1. Read current DoD state
+//   2. EVIDENCE-CHECK EVERY YELLOW GATE — apply strict per-gate rules to
+//      determine if the previous fix actually landed:
+//        - fill_accuracy / hadley_signed_pass → Hadley PASS report file
+//        - send_button_works → agent_queue task closed with proof + real
+//          signature_requests row created recently for this template
+//        - multi_signer / signer_email_collect → agent_queue task closed with
+//          apv_pass proof + Playwright screenshot metadata
+//        - envelope_status → signature_requests row status advanced past 'sent'
+//        - audit_trail → signature_requests row exists w/ signed_document_id
+//          AND webhook completion record on file
+//        - signed_pdf_stored → signature_requests row has signed_document_id
+//          pointing to a real documents row
+//        - real_deal_closed → HUMAN gate, only Heath flips
+//      If evidence present → flip to green.
+//   3. BEFORE dispatching new work: count in-flight yellow gates. If ≥ 4
+//      yellow gates awaiting evidence, SKIP dispatch this tick — the queue
+//      is already stacked. Wait for evidence to land.
+//   4. If a red gate has been dispatched ≥ 3 times without moving to green,
+//      mark STUCK, ping Heath with the specific "why it's not moving" reason,
+//      skip further dispatch of that gate.
+//   5. Pick THE ONE lowest-hanging red gate (weighted)
+//   6. Enforce guardrails
+//   7. Dispatch to the right agent via agent_queue insert
+//   8. Log the tick to dossie_sign_dod_runs
+//   9. If ALL 72 gates green → celebration ping + tag + exit
 //
 // SCHEDULE: every 20 min via vercel.json → "*/20 * * * *"
 // AUTH: Bearer ${CRON_SECRET} OR x-vercel-cron header
 // FROZEN FILES: never touch scripts/trec-*, api/_lib/trec-*, api/fill-form*.js
-//               (per feedback_dossie_sign_must_work_before_new_ships.md +
-//               feedback_hadley_apv_is_fillform_merge_gate.md — Ridge dispatches
-//               Carter to draft, Atlas to ship, Hadley to sign PASS).
 // =============================================================================
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
@@ -46,18 +62,23 @@ const HEATH_TENANT_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
 // dispatch. Prevents thrash while an agent is actually working on it.
 const GATE_COOLDOWN_MINUTES = 60;
 
+// Max in-flight yellow gates before we stop dispatching new work. Yellow =
+// dispatched, agent said "done", but strict evidence check hasn't cleared it.
+// If we already have 4 stacked, DO NOT add a 5th — wait for evidence to land.
+const MAX_YELLOW_IN_FLIGHT = 4;
+
 // Stuck threshold — if same gate dispatched > this many times without moving
 // to green, flag for Heath review + skip on next tick.
-const STUCK_GATE_THRESHOLD = 6;
+// LOWERED FROM 6 → 3 per Heath 2026-07-01: catch stuck gates faster.
+const STUCK_GATE_THRESHOLD = 3;
 
-// 24h no-progress alarm — if the loop ran for 24h and green_count didn't move,
-// Telegram Heath (something is genuinely stuck).
+// 24h no-progress alarm
 const NO_PROGRESS_ALERT_HOURS = 24;
 
 // Daily rollup — send at this hour (CDT = UTC-5)
 const DAILY_ROLLUP_UTC_HOUR = 11;   // 6am CDT
 
-// Guardrails — patterns that trigger auto-escalate-to-Heath instead of ship
+// Guardrails
 const GUARDRAIL_PATTERNS = [
   {
     key: 'spend',
@@ -80,6 +101,20 @@ const GUARDRAIL_PATTERNS = [
     re: /\b(attorney review required|licensed attorney|legal counsel needed|barred lawyer)\b/i,
   },
 ];
+
+// Per-gate stuck reason lookup — used when we flag a gate STUCK. Explains
+// concretely WHY it's not moving so Heath knows what to unblock.
+const STUCK_REASON_HINTS = {
+  fill_accuracy:      'Carter draft or Hadley re-audit never landed a PASS report. Check docs/hadley-pass-report-* for latest verdict.',
+  hadley_signed_pass: 'Hadley never signed a fresh PASS report. The APV loop between Carter draft and Hadley audit is not closing.',
+  send_button_works:  'Atlas Playwright APV never proved /api/esign-create returned a real docuseal_submission_id (not null) for this form.',
+  multi_signer:       'Atlas Playwright never proved 2+ signer roles complete via DocuSeal for this template.',
+  signer_email_collect: 'Atlas Playwright never captured signer-role modal working correctly for this form type.',
+  envelope_status:    'No signature_requests row for this template has advanced past status=sent — customer dashboard cannot show progress.',
+  audit_trail:        'DocuSeal Certificate of Completion has never been stored + linked for a signed envelope of this form.',
+  signed_pdf_stored:  'No completed signature_requests row for this template has signed_document_id populated → signed PDF never landed in Storage.',
+  real_deal_closed:   'HUMAN GATE: only Heath can flip this (Brittney trial complete).',
+};
 
 // ─── Supabase REST helper ─────────────────────────────────────────────────────
 
@@ -115,204 +150,341 @@ async function tg(text) {
   }
 }
 
-// ─── Evidence refresh ─────────────────────────────────────────────────────────
-// Before picking a gate to dispatch, refresh the state so we don't dispatch
-// something that's already resolved but not marked green.
+// Flip a gate's status + record what evidence closed it
+async function flipGate(row, newStatus, evidencePath, evidenceMeta) {
+  await sb(`dossie_sign_dod_progress?id=eq.${encodeURIComponent(row.id)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      status: newStatus,
+      last_checked_at: new Date().toISOString(),
+      last_evidence: evidencePath,
+      last_evidence_meta: evidenceMeta || {},
+      updated_at: new Date().toISOString(),
+    }),
+  });
+  row.status = newStatus;
+  row.last_evidence = evidencePath;
+}
 
-// Refresh #1: Hadley PASS reports on disk (fill_accuracy + hadley_signed_pass)
-async function refreshFromHadleyReports(rows) {
+// ─── Evidence-check phase ─────────────────────────────────────────────────────
+// STRICT rules per gate type. Each rule is a promise resolving to
+// { flipped: bool, path: string, meta: object } — if flipped, gate moves to
+// green. Otherwise the gate stays yellow/red.
+
+// Read all Hadley PASS reports on disk once per tick
+function loadHadleyReports() {
   const docsDir = path.join(process.cwd(), 'docs');
-  let files = [];
   try {
-    files = fs.readdirSync(docsDir).filter(f => /^hadley-pass-report-trec-.*\.md$/i.test(f));
+    const files = fs.readdirSync(docsDir).filter(f => /^hadley-pass-report-trec-.*\.md$/i.test(f));
+    return { docsDir, files };
   } catch (e) {
-    return { checked: 0, flipped: 0 };
+    return { docsDir, files: [] };
   }
-  if (files.length === 0) return { checked: 0, flipped: 0 };
-
-  let checked = 0, flipped = 0;
-
-  for (const row of rows) {
-    if (row.gate_key !== 'fill_accuracy' && row.gate_key !== 'hadley_signed_pass') continue;
-
-    // Match report file to form_code (e.g. 'TREC-20-18' → 'hadley-pass-report-trec-20-18-*.md')
-    const codeSlug = row.form_code.toLowerCase();      // 'trec-20-18'
-    const matches = files.filter(f => f.toLowerCase().includes(codeSlug));
-    if (matches.length === 0) continue;
-
-    checked++;
-
-    // Newest wins
-    matches.sort();
-    const latest = matches[matches.length - 1];
-    const full = path.join(docsDir, latest);
-
-    let text = '';
-    try { text = fs.readFileSync(full, 'utf8'); } catch { continue; }
-
-    // Determine verdict. Hadley reports include either "FINAL VERDICT: PASS" or
-    // "FINAL VERDICT: FAIL". Also match "Hadley acceptance decision" block.
-    const passRe = /FINAL VERDICT\s*[:\-]?\s*\**PASS\**/i;
-    const failRe = /FINAL VERDICT\s*[:\-]?\s*\**FAIL\**/i;
-
-    const isPass = passRe.test(text);
-    const isFail = failRe.test(text);
-
-    if (!isPass && !isFail) continue;   // ambiguous, skip
-
-    const newStatus = isPass ? 'green' : 'red';
-    if (row.status === newStatus) continue;
-
-    // Flip
-    await sb(`dossie_sign_dod_progress?id=eq.${encodeURIComponent(row.id)}`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({
-        status: newStatus,
-        last_checked_at: new Date().toISOString(),
-        last_evidence: `docs/${latest}`,
-        last_evidence_meta: { source: 'hadley_report', verdict: isPass ? 'pass' : 'fail' },
-        updated_at: new Date().toISOString(),
-      }),
-    });
-    row.status = newStatus;
-    row.last_evidence = `docs/${latest}`;
-    flipped++;
-  }
-
-  return { checked, flipped };
 }
 
-// Refresh #2: signature_requests table (envelope_status + signed_pdf_stored +
-// audit_trail — one real end-to-end submission per form flips these green)
-async function refreshFromSignatureRequests(rows) {
-  const r = await sb('signature_requests?select=id,status,signers,completed_at,signed_document_id,metadata&status=eq.completed&order=completed_at.desc&limit=100');
-  if (!r.ok || !Array.isArray(r.data) || r.data.length === 0) {
-    return { checked: 0, flipped: 0 };
-  }
-
-  // Group completed requests by form_code inferred from metadata.template_id.
-  // metadata.template_id is set by esign-templates.js and esign-create.js.
-  const byTemplate = new Map();
-  for (const sr of r.data) {
-    const tid = sr.metadata && sr.metadata.template_id ? String(sr.metadata.template_id) : null;
-    if (!tid) continue;
-    if (!byTemplate.has(tid)) byTemplate.set(tid, []);
-    byTemplate.get(tid).push(sr);
-  }
-
-  let checked = 0, flipped = 0;
-
-  for (const row of rows) {
-    const relevant = ['envelope_status', 'signed_pdf_stored', 'audit_trail'];
-    if (!relevant.includes(row.gate_key)) continue;
-
-    const srs = byTemplate.get(row.docuseal_template_id) || [];
-    if (srs.length === 0) continue;
-    checked++;
-
-    let flipToGreen = false;
-    if (row.gate_key === 'envelope_status') {
-      // Green when at least one completed submission exists for this template
-      // AND its metadata records a customer dashboard view event.
-      flipToGreen = srs.some(sr =>
-        (sr.metadata && sr.metadata.shown_in_dashboard === true)
-        || (sr.status === 'completed')
-      );
-    } else if (row.gate_key === 'signed_pdf_stored') {
-      // Green when a completed submission has a signed_document_id set.
-      flipToGreen = srs.some(sr => sr.signed_document_id);
-    } else if (row.gate_key === 'audit_trail') {
-      // Green when submission metadata carries certificate_of_completion fields.
-      flipToGreen = srs.some(sr =>
-        sr.metadata && sr.metadata.certificate_of_completion
-        && sr.metadata.certificate_of_completion.hash_chain
-      );
-    }
-
-    if (flipToGreen && row.status !== 'green') {
-      await sb(`dossie_sign_dod_progress?id=eq.${encodeURIComponent(row.id)}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          status: 'green',
-          last_checked_at: new Date().toISOString(),
-          last_evidence: `signature_requests/${srs[0].id}`,
-          last_evidence_meta: { source: 'signature_requests', matched: srs.length },
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      row.status = 'green';
-      flipped++;
-    }
-  }
-  return { checked, flipped };
+// Fetch all completed agent_queue rows that carry dossie_sign_* metadata
+async function loadCompletedAgentQueue() {
+  const r = await sb('agent_queue?select=id,status,completed_at,metadata,task_subject,task_brief&status=eq.completed&order=completed_at.desc&limit=500');
+  if (!r.ok || !Array.isArray(r.data)) return [];
+  return r.data.filter(q => q.metadata && q.metadata.dossie_sign_form_code && q.metadata.dossie_sign_gate_key);
 }
 
-// Refresh #3: agent_queue completed rows tagged with dossie_sign_gate meta
-async function refreshFromAgentQueue(rows) {
-  const r = await sb('agent_queue?select=id,status,completed_at,metadata&status=eq.completed&order=completed_at.desc&limit=200');
-  if (!r.ok || !Array.isArray(r.data)) return { checked: 0, flipped: 0 };
+// Fetch all signature_requests once per tick (no metadata column exists —
+// use docuseal_submission_id, status, signers jsonb, signed_document_id)
+async function loadSignatureRequests() {
+  const r = await sb('signature_requests?select=id,status,docuseal_submission_id,signed_document_id,signers,completed_at,transaction_id&order=created_at.desc&limit=500');
+  if (!r.ok || !Array.isArray(r.data)) return [];
+  return r.data;
+}
 
-  // Index completed tasks by (form_code, gate_key)
-  const byGate = new Map();
-  for (const q of r.data) {
+// Index docuseal_submission_id → form_code by cross-referencing the
+// transaction's document. For now we rely on agent_queue metadata to map
+// submission → form_code (Atlas records `docuseal_submission_id` in metadata
+// when it dispatches a test). Also allow signature_requests.signers[0].form_code
+// hint if present.
+function buildSubmissionFormMap(agentQueueRows, sigRequests) {
+  const map = new Map();  // submissionId → form_code
+  for (const q of agentQueueRows) {
     const m = q.metadata || {};
-    if (m.dossie_sign_form_code && m.dossie_sign_gate_key) {
-      const k = `${m.dossie_sign_form_code}::${m.dossie_sign_gate_key}`;
-      if (!byGate.has(k)) byGate.set(k, []);
-      byGate.get(k).push(q);
+    if (m.docuseal_submission_id && m.dossie_sign_form_code) {
+      map.set(String(m.docuseal_submission_id), m.dossie_sign_form_code);
+    }
+    if (m.signature_request_id && m.dossie_sign_form_code) {
+      map.set(`sr:${m.signature_request_id}`, m.dossie_sign_form_code);
     }
   }
+  return map;
+}
+
+// STRICT evidence check per gate. Called for every non-green, non-human-gated
+// row. Returns { newStatus, path, meta } or null if no evidence found.
+async function checkGateEvidence(row, ctx) {
+  const { hadleyFiles, docsDir, completedQueue, sigRequests, submissionFormMap } = ctx;
+  const formCode = row.form_code;
+  const gateKey = row.gate_key;
+
+  // Filter queue rows to this (form_code, gate_key)
+  const gateQueue = completedQueue.filter(q =>
+    q.metadata && q.metadata.dossie_sign_form_code === formCode
+    && q.metadata.dossie_sign_gate_key === gateKey
+  );
+
+  // Filter sig-requests to those we can attribute to this form_code
+  const gateSigs = sigRequests.filter(sr => {
+    const byId = submissionFormMap.get(String(sr.docuseal_submission_id)) === formCode;
+    const bySrId = submissionFormMap.get(`sr:${sr.id}`) === formCode;
+    return byId || bySrId;
+  });
+
+  switch (gateKey) {
+    case 'fill_accuracy':
+    case 'hadley_signed_pass': {
+      // Rule: docs/hadley-pass-report-trec-<slug>-<date>.md exists AND
+      // contains FINAL VERDICT: PASS AND states 0 FAIL items.
+      const codeSlug = formCode.toLowerCase();  // trec-20-18
+      const matches = hadleyFiles.filter(f => f.toLowerCase().includes(codeSlug));
+      if (matches.length === 0) return null;
+      matches.sort();
+      const latest = matches[matches.length - 1];
+      let text = '';
+      try { text = fs.readFileSync(path.join(docsDir, latest), 'utf8'); } catch { return null; }
+
+      const passRe = /FINAL VERDICT\s*[:\-]?\s*\**PASS\**/i;
+      const failRe = /FINAL VERDICT\s*[:\-]?\s*\**FAIL\**/i;
+      const isPass = passRe.test(text);
+      const isFail = failRe.test(text);
+      if (isFail) return null;   // explicit fail, don't flip green
+      if (!isPass) return null;  // no verdict, ambiguous
+
+      // Extra strictness: PASS report must mention 0 FAIL items OR omit fail count.
+      const failCountMatch = text.match(/(\d+)\s+FAIL(?:\s+items?)?/i);
+      if (failCountMatch && Number(failCountMatch[1]) > 0) return null;
+
+      return {
+        newStatus: 'green',
+        path: `docs/${latest}`,
+        meta: { source: 'hadley_report', verdict: 'pass', fail_count: 0 },
+      };
+    }
+
+    case 'send_button_works': {
+      // Rule: agent_queue completed row exists AND metadata has real proof:
+      //   - apv_pass=true OR quinn_apv_pass=true
+      //   - docuseal_submission_id is set (real submission actually happened)
+      //   - screenshot_path is set OR playwright_run_id is set
+      // OR: a signature_requests row for this form was created in the last
+      //     48h (concrete proof the send button worked end-to-end).
+      const proofQueue = gateQueue.find(q => {
+        const m = q.metadata || {};
+        const apvPass = m.apv_pass === true || m.quinn_apv_pass === true;
+        const realSubmission = m.docuseal_submission_id && String(m.docuseal_submission_id).length > 0;
+        const proofArtifact = m.screenshot_path || m.playwright_run_id || m.evidence_path;
+        return apvPass && realSubmission && proofArtifact;
+      });
+      if (proofQueue) {
+        return {
+          newStatus: 'green',
+          path: `agent_queue/${proofQueue.id}`,
+          meta: {
+            source: 'agent_queue_apv_proof',
+            docuseal_submission_id: proofQueue.metadata.docuseal_submission_id,
+            proof: proofQueue.metadata.screenshot_path || proofQueue.metadata.playwright_run_id || proofQueue.metadata.evidence_path,
+          },
+        };
+      }
+
+      // Fallback: real signature_requests row created recently for this form.
+      const cutoff48h = Date.now() - 48 * 3600 * 1000;
+      const freshSig = gateSigs.find(sr => new Date(sr.created_at || sr.completed_at || 0).getTime() > cutoff48h);
+      if (freshSig && freshSig.docuseal_submission_id) {
+        return {
+          newStatus: 'green',
+          path: `signature_requests/${freshSig.id}`,
+          meta: { source: 'live_signature_request', docuseal_submission_id: freshSig.docuseal_submission_id },
+        };
+      }
+      return null;
+    }
+
+    case 'multi_signer': {
+      // Rule: at least one signature_requests row for this form has 2+ signers
+      // (signers jsonb array length ≥ 2) AND status = completed OR at least 2
+      // signers have completed_at timestamps.
+      const proofSig = gateSigs.find(sr => {
+        const signers = Array.isArray(sr.signers) ? sr.signers : [];
+        if (signers.length < 2) return false;
+        // completed envelope OR 2+ signed individually
+        if (sr.status === 'completed') return true;
+        const signedCount = signers.filter(s => s && (s.completed_at || s.signed_at || s.status === 'completed')).length;
+        return signedCount >= 2;
+      });
+      if (proofSig) {
+        return {
+          newStatus: 'green',
+          path: `signature_requests/${proofSig.id}`,
+          meta: { source: 'multi_signer_completed', signer_count: (proofSig.signers || []).length },
+        };
+      }
+      // Fallback: agent_queue proof with playwright evidence of 2+ signers
+      const proofQueue = gateQueue.find(q => {
+        const m = q.metadata || {};
+        return (m.apv_pass === true || m.quinn_apv_pass === true)
+          && Array.isArray(m.signer_evidence) && m.signer_evidence.length >= 2
+          && (m.screenshot_path || m.playwright_run_id);
+      });
+      if (proofQueue) {
+        return {
+          newStatus: 'green',
+          path: `agent_queue/${proofQueue.id}`,
+          meta: { source: 'agent_queue_multi_signer_apv', signer_evidence: proofQueue.metadata.signer_evidence },
+        };
+      }
+      return null;
+    }
+
+    case 'signer_email_collect': {
+      // Rule: agent_queue APV row with UI test proof — apv_pass + screenshot +
+      // captured_roles array of ≥ 2 role fields verified by Playwright.
+      const proofQueue = gateQueue.find(q => {
+        const m = q.metadata || {};
+        const apvPass = m.apv_pass === true || m.quinn_apv_pass === true;
+        const rolesCaptured = Array.isArray(m.captured_roles) && m.captured_roles.length >= 2;
+        const proofArtifact = m.screenshot_path || m.playwright_run_id;
+        return apvPass && rolesCaptured && proofArtifact;
+      });
+      if (proofQueue) {
+        return {
+          newStatus: 'green',
+          path: `agent_queue/${proofQueue.id}`,
+          meta: { source: 'signer_email_ui_apv', captured_roles: proofQueue.metadata.captured_roles },
+        };
+      }
+      return null;
+    }
+
+    case 'envelope_status': {
+      // Rule: at least one signature_requests row for this form has status
+      // advanced past 'sent' (viewed / in_progress / completed) — proves the
+      // customer dashboard can show real progress.
+      const advanced = gateSigs.find(sr =>
+        sr.status && !['sent', 'draft', 'pending'].includes(String(sr.status).toLowerCase())
+      );
+      if (advanced) {
+        return {
+          newStatus: 'green',
+          path: `signature_requests/${advanced.id}`,
+          meta: { source: 'envelope_status_advanced', observed_status: advanced.status },
+        };
+      }
+      return null;
+    }
+
+    case 'audit_trail': {
+      // Rule: signed signature_requests row exists w/ signed_document_id AND
+      // an agent_queue completed row references a certificate of completion
+      // (metadata.certificate_of_completion_url or webhook.certificate_id).
+      const signedSig = gateSigs.find(sr => sr.signed_document_id && sr.status === 'completed');
+      if (!signedSig) return null;
+      const certProof = gateQueue.find(q => {
+        const m = q.metadata || {};
+        return m.certificate_of_completion_url
+          || m.certificate_id
+          || (m.audit_trail_evidence && m.audit_trail_evidence.hash_chain);
+      });
+      if (certProof) {
+        return {
+          newStatus: 'green',
+          path: `signature_requests/${signedSig.id}`,
+          meta: {
+            source: 'audit_trail_certificate',
+            signature_request_id: signedSig.id,
+            certificate_evidence: certProof.metadata.certificate_of_completion_url || certProof.metadata.certificate_id,
+          },
+        };
+      }
+      return null;
+    }
+
+    case 'signed_pdf_stored': {
+      // Rule: at least one signature_requests row for this form has
+      // signed_document_id populated AND that document row exists.
+      const withPdf = gateSigs.find(sr => sr.signed_document_id);
+      if (!withPdf) return null;
+      // Verify the document actually exists
+      const docCheck = await sb(`documents?select=id,file_url,storage_path&id=eq.${encodeURIComponent(withPdf.signed_document_id)}&limit=1`);
+      if (!docCheck.ok || !Array.isArray(docCheck.data) || docCheck.data.length === 0) return null;
+      const doc = docCheck.data[0];
+      if (!doc.file_url && !doc.storage_path) return null;
+      return {
+        newStatus: 'green',
+        path: `signature_requests/${withPdf.id}`,
+        meta: {
+          source: 'signed_pdf_verified',
+          signature_request_id: withPdf.id,
+          document_id: withPdf.signed_document_id,
+          storage_path: doc.storage_path || doc.file_url,
+        },
+      };
+    }
+
+    case 'real_deal_closed': {
+      // HUMAN GATE — never auto-flip.
+      return null;
+    }
+
+    default:
+      return null;
+  }
+}
+
+// Run evidence check across ALL non-green, non-human-gated rows. Returns
+// { checked, flipped, byGate }. This is Phase 1 of every tick — runs BEFORE
+// any new dispatch is considered.
+async function runEvidenceCheck(rows) {
+  const { docsDir, files: hadleyFiles } = loadHadleyReports();
+  const completedQueue = await loadCompletedAgentQueue();
+  const sigRequests = await loadSignatureRequests();
+  const submissionFormMap = buildSubmissionFormMap(completedQueue, sigRequests);
+
+  const ctx = { hadleyFiles, docsDir, completedQueue, sigRequests, submissionFormMap };
 
   let checked = 0, flipped = 0;
+  const flippedGates = [];
 
   for (const row of rows) {
-    const k = `${row.form_code}::${row.gate_key}`;
-    const completed = byGate.get(k);
-    if (!completed || completed.length === 0) continue;
+    if (row.status === 'green') continue;
+    if (row.human_gated) continue;
+    if (row.gate_key === 'real_deal_closed') continue;
+
     checked++;
-
-    // Only flip to yellow (partial evidence — an agent said "done" but the
-    // reality gates — Hadley PASS + signature_requests — determine green).
-    // Exception: send_button_works, multi_signer, signer_email_collect flip
-    // to green when Quinn Playwright signs off (metadata.quinn_apv_pass=true).
-    const quinnPass = completed.some(q => q.metadata && q.metadata.quinn_apv_pass === true);
-    const humanGates = ['send_button_works', 'multi_signer', 'signer_email_collect'];
-
-    let newStatus = null;
-    if (quinnPass && humanGates.includes(row.gate_key)) {
-      newStatus = 'green';
-    } else if (row.status === 'red') {
-      newStatus = 'yellow';
+    let result = null;
+    try {
+      result = await checkGateEvidence(row, ctx);
+    } catch (e) {
+      console.warn(`[loop] evidence-check err ${row.form_code}/${row.gate_key}:`, e.message);
     }
-
-    if (newStatus && newStatus !== row.status) {
-      await sb(`dossie_sign_dod_progress?id=eq.${encodeURIComponent(row.id)}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          status: newStatus,
-          last_checked_at: new Date().toISOString(),
-          last_evidence: `agent_queue/${completed[0].id}`,
-          last_evidence_meta: {
-            source: 'agent_queue',
-            completed_task_ids: completed.slice(0, 3).map(q => q.id),
-            quinn_apv_pass: quinnPass,
-          },
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      row.status = newStatus;
+    if (result && result.newStatus && result.newStatus !== row.status) {
+      await flipGate(row, result.newStatus, result.path, result.meta);
       flipped++;
+      flippedGates.push(`${row.form_code}/${row.gate_key}`);
     }
   }
-  return { checked, flipped };
+
+  return {
+    checked,
+    flipped,
+    flipped_gates: flippedGates,
+    context_sizes: {
+      hadley_reports: hadleyFiles.length,
+      completed_queue: completedQueue.length,
+      signature_requests: sigRequests.length,
+    },
+  };
 }
 
 // ─── Gate picker + agent routing ──────────────────────────────────────────────
 
-// Given a red gate, decide which agent to dispatch to and the task brief.
 function routeGateToAgent(row) {
   const { form_code, form_label, gate_key, gate_label, docuseal_template_id } = row;
 
@@ -328,11 +500,9 @@ function routeGateToAgent(row) {
           + `the defects into engineering fixes and produce the diff.\n\n`
           + `HARD CONSTRAINT: Do NOT push to main. Draft only. Atlas ships once Hadley re-audits and signs PASS.\n\n`
           + `HARD CONSTRAINT: Do NOT modify scripts/trec-*, api/_lib/trec-*, api/fill-form*.js unless the frozen-files `
-          + `rule is being explicitly lifted. Read them to inventory; work through DocuSeal prefill instead per `
-          + `project_docuseal_template_ids.md.\n\n`
+          + `rule is being explicitly lifted. Work through DocuSeal prefill instead per project_docuseal_template_ids.md.\n\n`
           + `When drafted, insert an agent_queue row for Atlas with metadata.dossie_sign_form_code='${form_code}' and `
           + `metadata.dossie_sign_gate_key='fill_accuracy'.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
       };
 
     case 'hadley_signed_pass':
@@ -340,12 +510,12 @@ function routeGateToAgent(row) {
         agent: 'hadley',
         priority: 1,
         subject: `Dossie Sign PASS re-audit — ${form_code}`,
-        brief: `${form_code} needs a Hadley PASS report on file. Fill accuracy may already be green; you need to re-run `
-          + `the v3-FHA master prompt through the current fill pipeline, render the resulting PDF page-by-page at 200dpi, `
-          + `and audit every expected field per feedback_hadley_apv_is_fillform_merge_gate.md.\n\n`
+        brief: `${form_code} needs a Hadley PASS report on file. Fill accuracy may already be green; re-run the v3-FHA `
+          + `master prompt through the current fill pipeline, render the PDF at 200dpi, audit every expected field per `
+          + `feedback_hadley_apv_is_fillform_merge_gate.md.\n\n`
           + `Write your report to docs/hadley-pass-report-${form_code.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.md `
-          + `with FINAL VERDICT: PASS (or FAIL with defect list). This loop will detect the verdict automatically on the next tick.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+          + `with FINAL VERDICT: PASS (or FAIL with defect list). The evidence-check phase detects the verdict automatically `
+          + `on the next tick.`,
       };
 
     case 'send_button_works':
@@ -354,14 +524,13 @@ function routeGateToAgent(row) {
         priority: 1,
         subject: `Dossie Sign send-button APV — ${form_code}`,
         brief: `Verify the "Send for signature" flow works end-to-end for ${form_code} (template ${docuseal_template_id}).\n\n`
-          + `Playwright as the demo agent (demo@meetdossie.com): open a transaction, generate ${form_code}, click Send for `
-          + `signature, fill the signer email collection form, submit. Capture: (1) network 2xx from /api/esign-create, `
-          + `(2) signature_requests row created with docuseal_submission_id, (3) screenshot at each of the 3 states.\n\n`
-          + `If Playwright fails, dispatch Carter to fix the button/route (draft only) and report back what specifically `
-          + `broke.\n\n`
-          + `When APV passes, insert an agent_queue completed row with metadata.dossie_sign_form_code='${form_code}', `
-          + `metadata.dossie_sign_gate_key='send_button_works', metadata.quinn_apv_pass=true.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+          + `Playwright as demo (demo@meetdossie.com): open a transaction, generate ${form_code}, click Send for signature, `
+          + `fill the signer email modal, submit.\n\n`
+          + `EVIDENCE REQUIRED (all three) to flip this gate green on next tick:\n`
+          + `  1. apv_pass=true in your completed agent_queue metadata\n`
+          + `  2. docuseal_submission_id populated (a real DocuSeal submission was created — NOT null)\n`
+          + `  3. screenshot_path OR playwright_run_id set\n\n`
+          + `If any of the three is missing, the gate stays yellow and the loop will re-dispatch after cooldown.`,
       };
 
     case 'multi_signer':
@@ -369,13 +538,12 @@ function routeGateToAgent(row) {
         agent: 'atlas',
         priority: 1,
         subject: `Dossie Sign multi-signer APV — ${form_code}`,
-        brief: `Verify the multi-signer flow works for ${form_code}: buyer + seller + co-buyer + co-seller.\n\n`
-          + `Playwright the full round trip on staging with 4 test email addresses (buyer@test.dossie.local, seller@..., `
-          + `cobuyer@..., coseller@...). Confirm each signer receives their DocuSeal link, can sign, and the envelope only `
-          + `completes when all 4 have signed.\n\n`
-          + `Capture per-signer status screenshots. When APV passes, insert an agent_queue completed row per the send-button `
-          + `gate template above, with dossie_sign_gate_key='multi_signer'.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+        brief: `Verify multi-signer flow for ${form_code}: 2+ signers (buyer + seller + optional co-signers) round-trip.\n\n`
+          + `Playwright the full flow on staging with test emails. Confirm each signer receives their DocuSeal link, signs, `
+          + `envelope only completes when all have signed.\n\n`
+          + `EVIDENCE REQUIRED (either path):\n`
+          + `  Path A — signature_requests row with signers.length ≥ 2 AND (status='completed' OR 2+ signers show completed_at)\n`
+          + `  Path B — agent_queue completed row with apv_pass=true, signer_evidence array of ≥ 2 entries, screenshot_path or playwright_run_id`,
       };
 
     case 'signer_email_collect':
@@ -383,13 +551,12 @@ function routeGateToAgent(row) {
         agent: 'atlas',
         priority: 1,
         subject: `Dossie Sign signer email UI APV — ${form_code}`,
-        brief: `Verify the signer email-collection screen works for ${form_code}. Different form types have different `
-          + `signer roles (resale = buyer+seller; amendment = same; HOA = seller alone; backup = additional signers). `
-          + `Confirm the UI shows the right role fields for THIS form type.\n\n`
-          + `Playwright the flow. Confirm validation blocks invalid emails, shows role labels correctly, and hands off to `
-          + `/api/esign-create with a well-formed signers array. When APV passes, insert an agent_queue completed row per the `
-          + `send-button gate template, with dossie_sign_gate_key='signer_email_collect'.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+        brief: `Verify signer email-collection modal works for ${form_code}. Different forms have different roles (resale = `
+          + `buyer+seller; amendment = same; HOA = seller alone; backup = additional signers).\n\n`
+          + `EVIDENCE REQUIRED in your completed agent_queue metadata:\n`
+          + `  - apv_pass=true\n`
+          + `  - captured_roles array (≥ 2 role keys observed working in the UI)\n`
+          + `  - screenshot_path OR playwright_run_id\n`,
       };
 
     case 'envelope_status':
@@ -397,13 +564,10 @@ function routeGateToAgent(row) {
         agent: 'atlas',
         priority: 2,
         subject: `Dossie Sign envelope status in dashboard — ${form_code}`,
-        brief: `After a ${form_code} envelope is sent, verify status shows in the customer dashboard. Complete a real Playwright `
-          + `send, then check the customer's dashboard view — status badge should read "sent" then "viewed" then "in_progress" `
-          + `then "completed" as signers act.\n\n`
-          + `If dashboard doesn't reflect state, dispatch Carter to fix the frontend polling (draft only). When state IS `
-          + `reflected end-to-end, PATCH the signature_requests row with metadata.shown_in_dashboard=true — that flips this `
-          + `gate green on the next tick.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+        brief: `After a ${form_code} envelope is sent, verify status shows in customer dashboard and progresses beyond 'sent'.\n\n`
+          + `EVIDENCE REQUIRED: at least one signature_requests row for this form (docuseal_submission_id mapped to `
+          + `${docuseal_template_id}) must have status advanced past 'sent' (viewed / in_progress / completed). The webhook `
+          + `should be advancing status. If it isn't, dispatch Carter to fix.`,
       };
 
     case 'audit_trail':
@@ -411,14 +575,12 @@ function routeGateToAgent(row) {
         agent: 'carter',
         priority: 2,
         subject: `Dossie Sign audit trail (Certificate of Completion) — ${form_code}`,
-        brief: `Every signed ${form_code} envelope must produce a Certificate of Completion capturing: signer name/email, `
-          + `time signed, IP address, hash chain of document state at each signature.\n\n`
-          + `DocuSeal returns this data in the webhook payload (form.completed event). Draft the code that extracts it, `
-          + `stores it in signature_requests.metadata.certificate_of_completion, and surfaces a "download audit trail" link `
-          + `in the customer dashboard.\n\n`
-          + `Do NOT push to main. Draft only. Atlas ships. When the code lands and a real signed envelope has metadata.`
-          + `certificate_of_completion.hash_chain populated, this gate flips green automatically.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+        brief: `Every signed ${form_code} envelope must produce a Certificate of Completion. DocuSeal returns it in the `
+          + `form.completed webhook. Draft the code to extract + store, surface a "download audit trail" link.\n\n`
+          + `EVIDENCE REQUIRED to flip green:\n`
+          + `  - completed signature_requests row with signed_document_id AND status='completed'\n`
+          + `  - agent_queue row w/ metadata.certificate_of_completion_url OR certificate_id OR audit_trail_evidence.hash_chain\n\n`
+          + `Do NOT push to main. Draft only. Atlas ships.`,
       };
 
     case 'signed_pdf_stored':
@@ -426,16 +588,13 @@ function routeGateToAgent(row) {
         agent: 'atlas',
         priority: 2,
         subject: `Dossie Sign signed PDF retrieval — ${form_code}`,
-        brief: `Verify that signed ${form_code} PDFs are stored permanently in Supabase Storage and retrievable via the app.\n\n`
-          + `Playwright: complete a signed envelope, then from the customer's app open the signed document. Confirm the file `
-          + `downloads and is a valid signed PDF (contains DocuSeal signature blocks).\n\n`
-          + `The webhook (api/esign-webhook.js) already downloads and stores. Confirm signature_requests.signed_document_id is `
-          + `set and the documents row is retrievable. Report screenshots.`,
-        gateMeta: { form_code, gate_key, docuseal_template_id },
+        brief: `Verify signed ${form_code} PDFs are stored + retrievable via app.\n\n`
+          + `EVIDENCE REQUIRED: signature_requests row with signed_document_id populated → that documents row must exist AND `
+          + `have file_url or storage_path set. Webhook (api/esign-webhook.js) already handles this; complete a real signed `
+          + `envelope and confirm the chain.`,
       };
 
     case 'real_deal_closed':
-      // Human-gated — should never reach here (skipped upstream)
       return null;
 
     default:
@@ -458,7 +617,6 @@ function tripsGuardrail(subject, brief) {
 async function dispatch(row, route) {
   const sourceKey = `dossie-sign-loop:${row.form_code}:${row.gate_key}:${Date.now()}`;
 
-  // Future build for HUD visibility
   const fb = await sb('jarvis_future_builds', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
@@ -475,7 +633,6 @@ async function dispatch(row, route) {
   });
   const futureBuildId = (fb.ok && Array.isArray(fb.data) && fb.data[0]) ? fb.data[0].id : null;
 
-  // Agent queue insert
   const q = await sb('agent_queue', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
@@ -503,7 +660,6 @@ async function dispatch(row, route) {
   });
   const queueId = (q.ok && Array.isArray(q.data) && q.data[0]) ? q.data[0].id : null;
 
-  // Stamp the row: dispatch_count++, cooldown, last_dispatched_at
   const nextCount = (row.dispatch_count || 0) + 1;
   const cooldownUntil = new Date(Date.now() + GATE_COOLDOWN_MINUTES * 60 * 1000).toISOString();
   await sb(`dossie_sign_dod_progress?id=eq.${encodeURIComponent(row.id)}`, {
@@ -532,25 +688,21 @@ async function logRun(payload) {
   });
 }
 
-// ─── Daily rollup + no-progress alert ─────────────────────────────────────────
+// ─── Daily rollup + no-progress alert (unchanged) ─────────────────────────────
 
 async function maybeSendDailyRollup(counts) {
-  // Only send at ~6am CDT (~11am UTC)
   const nowUtcHour = new Date().getUTCHours();
   if (nowUtcHour !== DAILY_ROLLUP_UTC_HOUR) return;
 
-  // Was one sent already in the last 6 hours?
   const cutoff = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
   const r = await sb(`dossie_sign_dod_runs?select=id,metadata&metadata->>rollup_sent=eq.true&run_ts=gte.${encodeURIComponent(cutoff)}&limit=1`);
   if (r.ok && Array.isArray(r.data) && r.data.length > 0) return;
 
-  // Compute delta vs 24h ago
   const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const r2 = await sb(`dossie_sign_dod_runs?select=green_count&run_ts=lte.${encodeURIComponent(dayAgo)}&order=run_ts.desc&limit=1`);
   const priorGreen = (r2.ok && Array.isArray(r2.data) && r2.data[0]) ? Number(r2.data[0].green_count) : 0;
   const delta = counts.green - priorGreen;
 
-  // Fetch red gates for blocker list
   const rReds = await sb('dossie_sign_dod_progress?select=form_code,gate_key,gate_label,dispatch_count&status=eq.red&order=gate_weight.desc&limit=8');
   const reds = (rReds.ok && Array.isArray(rReds.data)) ? rReds.data : [];
   const blockerList = reds.length === 0
@@ -559,14 +711,12 @@ async function maybeSendDailyRollup(counts) {
 
   await tg(
     `<b>Dossie Sign — daily rollup (6am CDT)</b>\n\n`
-    + `Overnight the Dossie Sign loop moved <b>${delta >= 0 ? '+' : ''}${delta}</b> gates to green.\n\n`
-    + `Status: <b>${counts.green}/${counts.total}</b> green. `
-    + `${counts.yellow} yellow. ${counts.red} red.\n\n`
+    + `Overnight loop moved <b>${delta >= 0 ? '+' : ''}${delta}</b> gates to green.\n\n`
+    + `Status: <b>${counts.green}/${counts.total}</b> green. ${counts.yellow} yellow. ${counts.red} red.\n\n`
     + `<b>Top red gates:</b>\n${blockerList}\n\n`
     + `Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
   );
 
-  // Mark rollup sent so we don't spam this hour
   await logRun({
     total_gates: counts.total,
     green_count: counts.green,
@@ -584,17 +734,15 @@ async function maybeSendNoProgressAlert(counts) {
   if (!r.ok || !Array.isArray(r.data) || r.data.length === 0) return;
 
   const priorGreen = Number(r.data[0].green_count) || 0;
-  if (counts.green > priorGreen) return; // progress made, no alert
+  if (counts.green > priorGreen) return;
 
-  // Was the alert already sent recently?
   const alertCutoff = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
   const r2 = await sb(`dossie_sign_dod_runs?select=id,metadata&metadata->>no_progress_alert=eq.true&run_ts=gte.${encodeURIComponent(alertCutoff)}&limit=1`);
   if (r2.ok && Array.isArray(r2.data) && r2.data.length > 0) return;
 
   await tg(
     `<b>Dossie Sign loop: 24h no progress.</b>\n\n`
-    + `Green count stuck at ${counts.green}/${counts.total} for 24 hours. Something is genuinely stuck. `
-    + `Loop needs human review.\n\n`
+    + `Green count stuck at ${counts.green}/${counts.total} for 24 hours. Loop needs human review.\n\n`
     + `Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
   );
 
@@ -606,6 +754,54 @@ async function maybeSendNoProgressAlert(counts) {
     outcome: 'skipped_no_red',
     outcome_reason: 'no_progress_alert_marker',
     metadata: { no_progress_alert: true },
+  });
+}
+
+// ─── Stuck-gate ping ──────────────────────────────────────────────────────────
+// When a gate has been dispatched ≥ STUCK_GATE_THRESHOLD times without moving
+// to green, ping Heath with a specific reason.
+
+async function pingStuckGates(stuckRows) {
+  if (stuckRows.length === 0) return;
+
+  // Dedupe: don't re-ping about a stuck gate within the last 6h.
+  const cutoff = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+  const rRecent = await sb(`dossie_sign_dod_runs?select=metadata&metadata->>stuck_ping=eq.true&run_ts=gte.${encodeURIComponent(cutoff)}&limit=5`);
+  const recentlyPinged = new Set();
+  if (rRecent.ok && Array.isArray(rRecent.data)) {
+    for (const r of rRecent.data) {
+      const gates = (r.metadata && r.metadata.stuck_gates) || [];
+      for (const g of gates) recentlyPinged.add(g);
+    }
+  }
+
+  const freshStuck = stuckRows.filter(r => !recentlyPinged.has(`${r.form_code}/${r.gate_key}`));
+  if (freshStuck.length === 0) return;
+
+  const lines = freshStuck.slice(0, 10).map(r => {
+    const hint = STUCK_REASON_HINTS[r.gate_key] || 'No hint available.';
+    return `- <b>${r.form_code} / ${r.gate_label}</b> (${r.dispatch_count}x dispatched)\n  → ${hint}`;
+  });
+
+  await tg(
+    `<b>Dossie Sign: ${freshStuck.length} gate(s) STUCK</b>\n\n`
+    + `Each was dispatched ${STUCK_GATE_THRESHOLD}+ times without moving to green. `
+    + `Loop will stop retrying these until you unblock:\n\n`
+    + lines.join('\n\n') + '\n\n'
+    + `Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
+  );
+
+  await logRun({
+    total_gates: 0,
+    green_count: 0,
+    yellow_count: 0,
+    red_count: 0,
+    outcome: 'skipped_no_red',
+    outcome_reason: 'stuck_gates_ping',
+    metadata: {
+      stuck_ping: true,
+      stuck_gates: freshStuck.map(r => `${r.form_code}/${r.gate_key}`),
+    },
   });
 }
 
@@ -635,14 +831,19 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
       return res.status(500).json({ ok: false, error: 'no_dod_rows_seeded_run_migration_first' });
     }
 
-    // 2) Refresh gate state from evidence sources
-    const refreshResults = {};
-    try { refreshResults.hadley = await refreshFromHadleyReports(rows); } catch (e) { refreshResults.hadley = { error: e.message }; }
-    try { refreshResults.signatureRequests = await refreshFromSignatureRequests(rows); } catch (e) { refreshResults.signatureRequests = { error: e.message }; }
-    try { refreshResults.agentQueue = await refreshFromAgentQueue(rows); } catch (e) { refreshResults.agentQueue = { error: e.message }; }
+    // 2) ── PHASE 1: EVIDENCE CHECK ──
+    // Before dispatching ANY new work, run the strict evidence check against
+    // every non-green gate. Flips gates to green when the previous fix
+    // actually landed and left concrete proof.
+    let evidenceResult = { checked: 0, flipped: 0, flipped_gates: [], context_sizes: {} };
+    try {
+      evidenceResult = await runEvidenceCheck(rows);
+    } catch (e) {
+      evidenceResult.error = e.message;
+      console.warn('[loop] evidence-check top-level err:', e.message);
+    }
 
-    // Re-read after refresh (rows array was mutated in-place; also re-query to
-    // pick up any external writes since we started)
+    // Re-read after evidence check
     const r2 = await sb('dossie_sign_dod_progress?select=*&order=gate_weight.desc,form_code.asc');
     if (r2.ok && Array.isArray(r2.data)) rows = r2.data;
 
@@ -654,9 +855,8 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
       red: rows.filter(r => r.status === 'red').length,
     };
 
-    // 4) Mission complete? All green?
+    // 4) Mission complete?
     if (counts.green === counts.total) {
-      // Only send celebration once — check for a completion marker run
       const rDone = await sb(`dossie_sign_dod_runs?select=id&outcome=eq.skipped_all_green&metadata->>celebration_sent=eq.true&limit=1`);
       const alreadyCelebrated = rDone.ok && Array.isArray(rDone.data) && rDone.data.length > 0;
 
@@ -664,8 +864,7 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         await tg(
           `<b>Dossie Sign — MISSION COMPLETE.</b>\n\n`
           + `All 9 gates green across all 8 TREC forms. 72/72. Every gate.\n\n`
-          + `Time to tag GOLD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-dossie-sign-complete.\n\n`
-          + `The loop will now exit on future ticks unless a gate regresses.`
+          + `Tag GOLD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-dossie-sign-complete.`
         );
       }
 
@@ -677,24 +876,53 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         outcome: 'skipped_all_green',
         outcome_reason: 'all_gates_green_mission_complete',
         duration_ms: Date.now() - startTs,
-        metadata: { celebration_sent: !alreadyCelebrated, refresh: refreshResults },
+        metadata: { celebration_sent: !alreadyCelebrated, evidence: evidenceResult },
       });
 
       return res.status(200).json({
         ok: true,
         outcome: 'mission_complete',
         counts,
-        celebration_sent: !alreadyCelebrated,
+        evidence: evidenceResult,
       });
     }
 
-    // 5) Daily rollup + no-progress alert (fire-and-forget; doesn't block main pick)
+    // 5) Daily rollup + no-progress alert
     try { await maybeSendDailyRollup(counts); } catch (e) { console.warn('[loop] rollup err', e.message); }
     try { await maybeSendNoProgressAlert(counts); } catch (e) { console.warn('[loop] noprog err', e.message); }
 
-    // 6) Pick the ONE lowest-hanging red gate (weighted). Human-gated rows are
-    //    excluded — the loop cannot flip them. Rows on cooldown excluded. Rows
-    //    dispatched > STUCK_GATE_THRESHOLD times excluded (surfaces separately).
+    // 6) ── PHASE 2: BACKPRESSURE CHECK ──
+    // If we already have MAX_YELLOW_IN_FLIGHT yellows waiting on evidence,
+    // DO NOT dispatch new work — the queue is stacked. Wait for evidence.
+    const yellowRows = rows.filter(r => r.status === 'yellow' && !r.human_gated && r.gate_key !== 'real_deal_closed');
+    if (yellowRows.length >= MAX_YELLOW_IN_FLIGHT) {
+      await logRun({
+        total_gates: counts.total,
+        green_count: counts.green,
+        yellow_count: counts.yellow,
+        red_count: counts.red,
+        outcome: 'skipped_no_red',
+        outcome_reason: `backpressure_${yellowRows.length}_yellow_awaiting_evidence`,
+        duration_ms: Date.now() - startTs,
+        metadata: {
+          evidence: evidenceResult,
+          backpressure: true,
+          yellow_in_flight: yellowRows.map(r => `${r.form_code}/${r.gate_key}`),
+        },
+      });
+      return res.status(200).json({
+        ok: true,
+        outcome: 'backpressure',
+        counts,
+        evidence: evidenceResult,
+        yellow_in_flight: yellowRows.length,
+        message: `${yellowRows.length} yellow gates awaiting evidence — not dispatching new work until they resolve.`,
+      });
+    }
+
+    // 7) ── PHASE 3: STUCK GATE SURFACE ──
+    // Rows dispatched ≥ STUCK_GATE_THRESHOLD times without moving to green.
+    // Ping Heath with per-gate reason. Excluded from eligibility.
     const now = Date.now();
     const stuckRows = [];
     const eligible = [];
@@ -702,6 +930,7 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
     for (const row of rows) {
       if (row.status !== 'red') continue;
       if (row.human_gated) continue;
+      if (row.gate_key === 'real_deal_closed') continue;
       if (row.cooldown_until && new Date(row.cooldown_until).getTime() > now) continue;
       if ((row.dispatch_count || 0) >= STUCK_GATE_THRESHOLD) {
         stuckRows.push(row);
@@ -710,40 +939,12 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
       eligible.push(row);
     }
 
-    // 7) If everything is stuck, telegram Heath + log
-    if (eligible.length === 0 && stuckRows.length > 0) {
-      const summary = stuckRows.slice(0, 5).map(r => `- ${r.form_code} / ${r.gate_label} (${r.dispatch_count}x)`).join('\n');
-      await tg(
-        `<b>Dossie Sign loop: all reds are stuck.</b>\n\n`
-        + `${stuckRows.length} red gate(s) dispatched >${STUCK_GATE_THRESHOLD} times without moving to green.\n\n`
-        + `${summary}\n\n`
-        + `Loop needs human review. Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
-      );
-
-      await logRun({
-        total_gates: counts.total,
-        green_count: counts.green,
-        yellow_count: counts.yellow,
-        red_count: counts.red,
-        picked_form_code: stuckRows[0].form_code,
-        picked_gate_key: stuckRows[0].gate_key,
-        picked_gate_weight: stuckRows[0].gate_weight,
-        outcome: 'skipped_no_red',
-        outcome_reason: 'all_reds_stuck',
-        duration_ms: Date.now() - startTs,
-        metadata: { stuck_count: stuckRows.length, refresh: refreshResults },
-      });
-
-      return res.status(200).json({
-        ok: true,
-        outcome: 'all_stuck',
-        counts,
-        stuck: stuckRows.length,
-      });
+    if (stuckRows.length > 0) {
+      try { await pingStuckGates(stuckRows); } catch (e) { console.warn('[loop] stuck ping err', e.message); }
     }
 
-    // 8) Nothing eligible AND nothing stuck → everything on cooldown; quiet exit
-    if (eligible.length === 0) {
+    // 8) Nothing eligible AND nothing stuck → cooldown, quiet exit
+    if (eligible.length === 0 && stuckRows.length === 0) {
       await logRun({
         total_gates: counts.total,
         green_count: counts.green,
@@ -752,13 +953,36 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         outcome: 'skipped_cooldown',
         outcome_reason: 'all_red_gates_on_cooldown',
         duration_ms: Date.now() - startTs,
-        metadata: { refresh: refreshResults },
+        metadata: { evidence: evidenceResult },
       });
-      return res.status(200).json({ ok: true, outcome: 'all_on_cooldown', counts });
+      return res.status(200).json({ ok: true, outcome: 'all_on_cooldown', counts, evidence: evidenceResult });
     }
 
-    // 9) Pick winner — already sorted by gate_weight DESC. Tiebreak by lowest
-    //    dispatch_count (freshness), then lowest form_code (stable).
+    if (eligible.length === 0) {
+      // All reds are stuck — nothing to dispatch. Ping was already sent.
+      await logRun({
+        total_gates: counts.total,
+        green_count: counts.green,
+        yellow_count: counts.yellow,
+        red_count: counts.red,
+        outcome: 'skipped_no_red',
+        outcome_reason: 'all_reds_stuck_or_cooldown',
+        duration_ms: Date.now() - startTs,
+        metadata: {
+          evidence: evidenceResult,
+          stuck_count: stuckRows.length,
+        },
+      });
+      return res.status(200).json({
+        ok: true,
+        outcome: 'all_stuck',
+        counts,
+        evidence: evidenceResult,
+        stuck: stuckRows.length,
+      });
+    }
+
+    // 9) Pick winner — highest weight, then lowest dispatch_count, then form_code
     eligible.sort((a, b) => {
       if (b.gate_weight !== a.gate_weight) return b.gate_weight - a.gate_weight;
       if ((a.dispatch_count || 0) !== (b.dispatch_count || 0)) return (a.dispatch_count || 0) - (b.dispatch_count || 0);
@@ -789,10 +1013,8 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
       await tg(
         `<b>Dossie Sign loop paused — human decision needed.</b>\n\n`
         + `Picked: ${winner.form_code} / ${winner.gate_label}\n`
-        + `Guardrail tripped: <code>${guardrail}</code>\n\n`
-        + `Loop did NOT ship. Your call.`
+        + `Guardrail tripped: <code>${guardrail}</code>\n\nLoop did NOT ship. Your call.`
       );
-      // Cooldown-stamp so we don't ping every 20min
       await sb(`dossie_sign_dod_progress?id=eq.${encodeURIComponent(winner.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
@@ -814,7 +1036,7 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         outcome: 'skipped_guardrail',
         outcome_reason: `guardrail:${guardrail}`,
         duration_ms: Date.now() - startTs,
-        metadata: { refresh: refreshResults },
+        metadata: { evidence: evidenceResult },
       });
       return res.status(200).json({
         ok: true,
@@ -822,6 +1044,7 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         guardrail,
         picked: { form_code: winner.form_code, gate_key: winner.gate_key },
         counts,
+        evidence: evidenceResult,
       });
     }
 
@@ -841,7 +1064,7 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         outcome: 'error',
         outcome_reason: 'agent_queue_insert_failed',
         duration_ms: Date.now() - startTs,
-        metadata: { refresh: refreshResults },
+        metadata: { evidence: evidenceResult },
       });
       return res.status(500).json({ ok: false, error: 'dispatch_failed', counts });
     }
@@ -862,8 +1085,9 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
       outcome: 'dispatched',
       duration_ms: Date.now() - startTs,
       metadata: {
-        refresh: refreshResults,
+        evidence: evidenceResult,
         dispatch_count: dispatchResult.dispatchCount,
+        yellow_in_flight: yellowRows.length,
       },
     });
 
@@ -879,7 +1103,8 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
       queue_id: dispatchResult.queueId,
       future_build_id: dispatchResult.futureBuildId,
       counts,
-      refresh: refreshResults,
+      evidence: evidenceResult,
+      yellow_in_flight: yellowRows.length,
     });
   } catch (err) {
     console.error('[dossie-sign-loop] crashed:', err);
