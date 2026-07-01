@@ -6848,19 +6848,12 @@
     async function loadAgentLedger() {
       if (!tenant) return;
       try {
-        // Pull last 50 events for the activity feed + current state.
-        const sbUrl = window.__JARVIS_SB_URL;
-        const sbKey = window.__JARVIS_SB_KEY;
-        if (!sbUrl || !sbKey) return;
-        const url = `${sbUrl}/rest/v1/jarvis_agent_events?select=*&tenant_id=eq.${tenant.id}&order=created_at.desc&limit=50`;
-        const res = await fetch(url, {
-          headers: {
-            apikey: sbKey,
-            Authorization: `Bearer ${session?.access_token || sbKey}`,
-          },
-        });
-        if (!res.ok) return;
-        const events = await res.json();
+        // 2026-07-01: source-swapped from dead jarvis_agent_events (last write
+        // 2026-06-26) to /api/jarvis-activity-log which reads agent_queue —
+        // the authoritative live-agent activity table.
+        const data = await authedFetch('/api/jarvis-activity-log?limit=50&window_hours=48');
+        if (!data?.ok) return;
+        const events = data.events || [];
         // Walk from oldest to newest so latest overwrites in the map.
         const sorted = [...events].reverse();
         sorted.forEach((e) => mergeLedgerEvent(e));

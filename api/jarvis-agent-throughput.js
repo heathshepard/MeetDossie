@@ -85,17 +85,26 @@ export default async function handler(req, res) {
   const since = new Date(Date.now() - windowHours * 3600 * 1000).toISOString();
 
   try {
-    // Parallel fetches
+    // 2026-07-01 source swap — agent_task_queue and agent_workers are DEAD
+    // (last writes 2026-06-22). Live task activity lives in agent_queue.
+    // agent_workers pool concept was retired; workers idle/busy/dead are
+    // no longer surfaced (all zeros).
     const [workers, queued, recentTasks, metrics] = await Promise.all([
-      sbGet(`agent_workers?select=agent_role,status&tenant_id=eq.${tenantId}&limit=2000`),
-      sbGet(`agent_task_queue?select=agent_role&tenant_id=eq.${tenantId}&status=eq.queued&limit=5000`),
+      // Keep agent_workers pull for schema-compat but expect empty.
+      sbGet(`agent_workers?select=agent_role,status&limit=2000`).catch(() => []),
+      // Queue depth = agent_queue rows still queued.
+      sbGet(`agent_queue?select=agent_name&status=eq.queued&limit=5000`).catch(() => []),
+      // Recent tasks (all statuses) in window.
       sbGet(
-        `agent_task_queue?select=agent_role,status,created_at,claimed_at,completed_at&tenant_id=eq.${tenantId}&created_at=gte.${encodeURIComponent(since)}&limit=10000`
-      ),
+        `agent_queue?select=agent_name,status,created_at,started_at,completed_at&created_at=gte.${encodeURIComponent(since)}&limit=10000`
+      ).catch(() => []),
       sbGet(
         `agent_spawn_metrics?select=agent_role,model,cache_hit,cache_read_tokens,cache_creation_tokens,uncached_input_tokens,output_tokens,total_cost_usd,baseline_cost_usd,savings_usd,duration_ms,ts&tenant_id=eq.${tenantId}&ts=gte.${encodeURIComponent(since)}&limit=20000`
-      ),
+      ).catch(() => []),
     ]);
+    // Normalize agent_queue.agent_name -> agent_role (for downstream bucket lookup).
+    for (const q of queued)      q.agent_role = q.agent_name;
+    for (const t of recentTasks) t.agent_role = t.agent_name;
 
     // Build per-role buckets
     const byRole = {};
@@ -135,22 +144,27 @@ export default async function handler(req, res) {
       if (bucket) bucket.queue_depth++;
     }
 
-    // Recent tasks: tally completion + durations
+    // Recent tasks: tally completion + durations.
+    // agent_queue uses status vocab: completed / failed / in_progress /
+    // queued / running (canonical: 'completed' + 'failed'). We accept
+    // both the old ('done') and new ('completed') tokens.
     const durBucket = {}; // role -> [ms,...]
     for (const t of recentTasks) {
       const bucket = byRole[t.agent_role];
       if (!bucket) continue;
-      if (t.status === 'done') {
+      const s = (t.status || '').toLowerCase();
+      if (s === 'done' || s === 'completed') {
         bucket.tasks_completed++;
-        if (t.claimed_at && t.completed_at) {
-          const ms = new Date(t.completed_at).getTime() - new Date(t.claimed_at).getTime();
+        const startTs = t.claimed_at || t.started_at;
+        if (startTs && t.completed_at) {
+          const ms = new Date(t.completed_at).getTime() - new Date(startTs).getTime();
           if (ms >= 0) {
             (durBucket[t.agent_role] = durBucket[t.agent_role] || []).push(ms);
           }
         }
-      } else if (t.status === 'failed') {
+      } else if (s === 'failed' || s === 'error') {
         bucket.tasks_failed++;
-      } else if (t.status === 'in_progress') {
+      } else if (s === 'in_progress' || s === 'running' || s === 'working' || s === 'started') {
         bucket.tasks_in_progress++;
       }
     }
