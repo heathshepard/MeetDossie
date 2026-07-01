@@ -71,12 +71,26 @@ export default async function handler(req, res) {
       }
     });
 
+    // Additionally, count recently-shipped (archived) builds in last 30 days
+    // so the panel doesn't show "shipped: 0" when work is actually being shipped
+    // and auto-archived. This is a metrics-only add — doesn't touch the item list.
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentShippedCount } = await supabase
+      .from('jarvis_future_builds')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', auth.user_id)
+      .eq('status', 'shipped')
+      .gte('updated_at', thirtyDaysAgo);
+
+    const counts = Object.entries(grouped).reduce((acc, [k, v]) => {
+      acc[k] = v.length;
+      return acc;
+    }, {});
+    counts.shipped_recent_30d = recentShippedCount || 0;
+
     return res.status(200).json({
       ok: true,
-      counts: Object.entries(grouped).reduce((acc, [k, v]) => {
-        acc[k] = v.length;
-        return acc;
-      }, {}),
+      counts,
       builds: grouped,
     });
   } catch (err) {
