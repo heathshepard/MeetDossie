@@ -172,15 +172,41 @@ async function flipGate(row, newStatus, evidencePath, evidenceMeta) {
 // { flipped: bool, path: string, meta: object } — if flipped, gate moves to
 // green. Otherwise the gate stays yellow/red.
 
-// Read all Hadley PASS reports on disk once per tick
+// Read all Hadley PASS reports on disk once per tick.
+// Accepts BOTH naming conventions:
+//   - hadley-pass-report-trec-20-18-2026-07-01.md   (full-slug)
+//   - hadley-pass-report-40-11-2026-07-01.md         (short-slug)
+//   - hadley-pass-report-HOA-2026-07-01.md           (form-nickname)
 function loadHadleyReports() {
   const docsDir = path.join(process.cwd(), 'docs');
   try {
-    const files = fs.readdirSync(docsDir).filter(f => /^hadley-pass-report-trec-.*\.md$/i.test(f));
+    const files = fs.readdirSync(docsDir).filter(f => /^hadley-pass-report-.*\.md$/i.test(f));
     return { docsDir, files };
   } catch (e) {
     return { docsDir, files: [] };
   }
+}
+
+// Map a form_code (e.g. "TREC-20-18", "TREC-36-11") to all possible Hadley
+// report filename slugs it could match on.
+function candidateSlugsForForm(formCode) {
+  // TREC-20-18 → ["trec-20-18", "20-18"]
+  // TREC-36-11 → ["trec-36-11", "36-11", "hoa"] (HOA nickname)
+  // TREC-OP-H → ["trec-op-h", "op-h", "lead", "lead-paint"] (nickname)
+  const short = formCode.replace(/^TREC-/i, '').toLowerCase();
+  const nicknames = {
+    'op-h': ['op-h', 'lead', 'lead-paint'],
+    'op-l': ['op-l', 'sellers-disclosure', 'seller-disclosure'],
+    '36-11': ['36-11', 'hoa'],
+    '39-10': ['39-10', 'amendment'],
+    '40-11': ['40-11', 'financing', 'financing-addendum'],
+    '49-1': ['49-1', 'appraisal', 'lender-appraisal'],
+    '11-7': ['11-7', 'backup'],
+    '20-18': ['20-18', 'resale', 'one-to-four'],
+  };
+  const slugs = [formCode.toLowerCase(), short];
+  if (nicknames[short]) slugs.push(...nicknames[short]);
+  return [...new Set(slugs)];
 }
 
 // Fetch all completed agent_queue rows that carry dossie_sign_* metadata
@@ -240,10 +266,18 @@ async function checkGateEvidence(row, ctx) {
   switch (gateKey) {
     case 'fill_accuracy':
     case 'hadley_signed_pass': {
-      // Rule: docs/hadley-pass-report-trec-<slug>-<date>.md exists AND
-      // contains FINAL VERDICT: PASS AND states 0 FAIL items.
-      const codeSlug = formCode.toLowerCase();  // trec-20-18
-      const matches = hadleyFiles.filter(f => f.toLowerCase().includes(codeSlug));
+      // Rule: docs/hadley-pass-report-<slug>-<date>.md exists AND contains
+      // FINAL VERDICT: PASS AND states 0 FAIL items. Accepts full-slug
+      // (trec-20-18), short-slug (20-18), or form-nickname (hoa, financing).
+      const slugs = candidateSlugsForForm(formCode);
+      const matches = hadleyFiles.filter(f => {
+        const lower = f.toLowerCase();
+        return slugs.some(s => {
+          // Match slug bounded by non-alphanumerics so "20-18" doesn't hit "120-18"
+          const bounded = new RegExp(`(^|[^0-9a-z])${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^0-9a-z]|$)`);
+          return bounded.test(lower);
+        });
+      });
       if (matches.length === 0) return null;
       matches.sort();
       const latest = matches[matches.length - 1];
