@@ -697,8 +697,15 @@ async function fillResaleContract(pdfDoc, fv) {
   //   undefined_3 (y=317, w=101)  -> §3.A Cash portion of Sales Price
   //   undefined_4 (y=267, w=101)  -> §3.B Sum of all financing
   //   undefined_5 (y=255, w=101)  -> §3.C Sales Price total (sum of A and B)
-  const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
-  if (isFinanced) safeCheck(form, 'B Sum of all financing described in the attached');
+  // §3.B sub-checkbox selection (Page 1) — financing_type-aware
+  const financingType = String(fv.financing_type || '').toLowerCase();
+  const isTPF = ['conventional','fha','va','usda'].includes(financingType) && Number(fv.loan_amount) > 0;
+  const isAssumption = financingType === 'assumption' && Number(fv.loan_amount) > 0;
+  const isSellerFinancing = financingType === 'seller' && Number(fv.loan_amount) > 0;
+
+  if (isTPF) safeCheck(form, 'B Sum of all financing described in the attached');
+  if (isAssumption) safeCheck(form, 'Loan Assumption Addendum');   // page 1 sub-box
+  if (isSellerFinancing) safeCheck(form, 'Seller');                 // page 1 sub-box
   // §3.A Cash portion — prefer explicit down_payment_amt; fall back to sale_price - loan_amount
   let cashPortion = (fv.down_payment_amt != null && fv.down_payment_amt !== '') ? Number(fv.down_payment_amt) : null;
   if (cashPortion == null && fv.sale_price != null && fv.loan_amount != null) {
@@ -707,7 +714,7 @@ async function fillResaleContract(pdfDoc, fv) {
   // §2.D Exclusions — BLANK by default (only set if explicit exclusions field present)
   safeSetText(form, 'undefined_2', fv.exclusions || '');
   safeSetText(form, 'undefined_3', cashPortion != null ? formatMoney(cashPortion) : '');
-  safeSetText(form, 'undefined_4', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
+  safeSetText(form, 'undefined_4', Number(fv.loan_amount) > 0 ? formatMoney(fv.loan_amount) : '');
   safeSetText(form, 'undefined_5', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
   // Sale price credited: default "will not be credited" (standard resale)
   if (fv.sale_price_credited === true) {
@@ -738,7 +745,8 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'to escrow agent within', fv.additional_earnest_money_days || '');
   // Page-11 receipts: 'Option Fee in the form of' is the receipt description (e.g. "check"), not the $ amount.
   safeSetText(form, 'Option Fee in the form of', fv.option_fee_form_of || '');
-  safeSetText(form, 'Seller or Listing Broker', fv.listing_agent_name || '');
+  const optionFeeRecipient = fv.option_fee_escrow_recipient || fv.title_company || fv.listing_agent_name || '';
+  safeSetText(form, 'Seller or Listing Broker', optionFeeRecipient);
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form_of || fv.earnest_money_form || '');
 
   // TITLE COMPANY / ESCROW (Section 6)
@@ -917,7 +925,7 @@ async function fillResaleContract(pdfDoc, fv) {
   //   'PID'                                     -> Notice of Obligation to Pay PID Assessment
   //   'Addendum for Section 1031'               -> Section 1031 Exchange (visual ✓)
   //   'Other'                                   -> Other (list)
-  if (isFinanced || fv.financing_addendum === true || fv.addendum_financing === true) safeCheck(form, 'Third Party Financing Addendum');
+  if (isTPF || fv.addendum_financing === true) safeCheck(form, 'Third Party Financing Addendum');
   if (fv.seller_financing_addendum === true) safeCheck(form, 'Seller Financing Addendum');
   // RIGHT column — shifted mapping (widget name does NOT match visual row)
   if (fv.seller_leaseback_addendum === true) safeCheck(form, 'Environmental Assessment Threatened or'); // → Sellers Temp Lease
@@ -1070,8 +1078,7 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Fax_2', fv.escrow_fax_2 || '');
   const receivedBy3 = fv.add_earnest_received_by || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
   if (receivedBy3) safeSetText(form, 'Received by_3', receivedBy3);
-  safeSetText(form, 'Address_3', fv.add_escrow_address || '');
-  safeSetText(form, 'City_6', fv.add_escrow_city || '');
+  safeSetText(form, 'is acknowledged', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');  safeSetText(form, 'is acknowledged_2', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');  safeSetText(form, 'is acknowledged_3', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
   safeSetText(form, 'State_6', fv.add_escrow_state || '');
   safeSetText(form, 'Zip_6', fv.add_escrow_zip || '');
   safeSetText(form, 'Email Address_3', fv.add_escrow_email || '');
@@ -2298,7 +2305,8 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   safeSetText(form, 'as earnest money to', fv.earnest_money_to || fv.title_company || '');
   safeSetText(form, 'agent at', fv.escrow_agent_address || '');
   safeSetText(form, 'Option Fee in the form of', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
-  safeSetText(form, 'Seller or Listing Broker', fv.listing_agent_name || '');
+  const optionFeeRecipient = fv.option_fee_escrow_recipient || fv.title_company || fv.listing_agent_name || '';
+  safeSetText(form, 'Seller or Listing Broker', optionFeeRecipient);
   safeSetText(form, 'is acknowledged', fv.option_acknowledged_date || '');
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
   safeSetText(form, 'is acknowledged_2', fv.earnest_acknowledged_date || '');
