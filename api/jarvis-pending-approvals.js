@@ -217,8 +217,8 @@ export default async function handler(req, res) {
         agent: r.source || 'Jarvis',
         waiting_minutes: minutesAgo(r.created_at),
         created_at: r.created_at,
-        approve_endpoint: '/api/jarvis-approve',
-        approve_payload: { kind: 'heath_action', id: r.id },
+        approve_endpoint: '/api/approve-heath-action',
+        approve_payload: { action_id: r.id },
         details: { body: r.body, priority: r.priority, deadline: r.deadline, snoozed_until: r.snoozed_until },
       });
     }
