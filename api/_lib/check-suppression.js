@@ -64,9 +64,11 @@ async function isSuppressed(email, supabaseUrl, serviceRoleKey) {
       }
     }
 
-    // Check email_events for hard bounces or complaints
+    // Check email_events for hard bounces or complaints.
+    // NOTE: table uses recipient_email + event_type (not email + type).
+    // Fixed 2026-06-28 by pierce_5 - prior version silently failed open.
     const eventsRes = await fetch(
-      `${baseUrl}/rest/v1/email_events?email=eq.${encodeURIComponent(normalized)}&type=in.("bounce","complaint")`,
+      `${baseUrl}/rest/v1/email_events?recipient_email=eq.${encodeURIComponent(normalized)}&event_type=in.(bounce,complaint)`,
       {
         headers: {
           apikey: key,

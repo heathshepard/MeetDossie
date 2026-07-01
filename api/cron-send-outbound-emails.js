@@ -91,14 +91,38 @@ async function recoverStuckSending() {
 }
 
 // Fetch the next batch of pending rows ordered FIFO.
+//
+// Scheduled sends: if metadata.send_after is present and in the future, we
+// skip that row until the timestamp passes. This lets Pierce/Sage/etc queue
+// rows now that fire on a specific date (e.g. cold-email batch queued Wed
+// night for Thursday 7am CDT send). We fetch a wider window than MAX_PER_RUN
+// and filter in JS because PostgREST jsonb-timestamp comparisons are
+// brittle across timezones.
 async function fetchPending() {
-  const url = `${SUPABASE_URL}/rest/v1/outbound_email_queue?status=eq.pending&order=created_at.asc&limit=${MAX_PER_RUN}`;
+  const overFetch = MAX_PER_RUN * 3;
+  const url = `${SUPABASE_URL}/rest/v1/outbound_email_queue?status=eq.pending&order=created_at.asc&limit=${overFetch}`;
   const r = await fetch(url, { headers: supabaseHeaders() });
   if (!r.ok) {
     const text = await r.text().catch(() => '');
     throw new Error(`fetchPending failed: ${r.status} ${text.slice(0, 200)}`);
   }
-  return r.json();
+  const rows = await r.json();
+  if (!Array.isArray(rows)) return [];
+  const nowMs = Date.now();
+  const ready = [];
+  for (const row of rows) {
+    const sendAfter = row && row.metadata && row.metadata.send_after;
+    if (sendAfter) {
+      const t = Date.parse(sendAfter);
+      if (Number.isFinite(t) && t > nowMs) {
+        // Not yet — leave for a later cron pass.
+        continue;
+      }
+    }
+    ready.push(row);
+    if (ready.length >= MAX_PER_RUN) break;
+  }
+  return ready;
 }
 
 // Conditional claim: flip to 'sending' only if still 'pending'. Returns the
