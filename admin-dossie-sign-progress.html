@@ -302,13 +302,25 @@ const SUPABASE_URL_DEFAULT = 'https://pgwoitbdiyubjugwufhk.supabase.co';
 let SUPABASE_URL = SUPABASE_URL_DEFAULT;
 let SUPABASE_ANON_KEY = null;
 
+// Defensive sanitizer — strips BOM/CR/LF/control chars so fetch() accepts the
+// value as a header. The server sanitizes too but this is belt-and-suspenders
+// so a future env-var regression can't take the dashboard down.
+function sanitizeKey(v) {
+  if (!v) return null;
+  return String(v)
+    .replace(/^﻿/, '')
+    .replace(/[\r\n\t]/g, '')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .trim() || null;
+}
+
 async function loadSupabaseConfig() {
   try {
     const r = await fetch('/api/get-supabase-public-config');
     if (!r.ok) throw new Error('config endpoint');
     const c = await r.json();
-    SUPABASE_URL = c.url || SUPABASE_URL_DEFAULT;
-    SUPABASE_ANON_KEY = c.publishableKey || c.anonKey || null;
+    SUPABASE_URL = (c.url || SUPABASE_URL_DEFAULT).trim();
+    SUPABASE_ANON_KEY = sanitizeKey(c.publishableKey || c.anonKey);
   } catch {
     SUPABASE_ANON_KEY = null;
   }
