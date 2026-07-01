@@ -78,6 +78,14 @@
                          "source":  "/ventures/reliability",
                          "destination":  "/ventures-reliability.html"
                      },
+                    {
+                         "source":  "/ventures/dossie-sign",
+                         "destination":  "/admin-dossie-sign-progress.html"
+                     },
+                    {
+                         "source":  "/admin/dossie-sign",
+                         "destination":  "/admin-dossie-sign-progress.html"
+                     },
                      {
                          "source":  "/orb-web",
                          "destination":  "/orb-web.html"
@@ -365,7 +373,11 @@
                                                       },
                       "api/cron-autonomous-daily-digest.js":  {
                                                                   "maxDuration":  60
-                                                              }
+                                                              },
+                      "api/cron-dossie-sign-completion-loop.js":  {
+                                                                      "maxDuration":  300,
+                                                                      "includeFiles":  "docs/**/*.md"
+                                                                  }
                   },
     "crons":  [
                   {
@@ -675,6 +687,10 @@
                   {
                       "path":  "/api/cron-autonomous-daily-digest",
                       "schedule":  "0 11 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-dossie-sign-completion-loop",
+                      "schedule":  "*/20 * * * *"
                   }
               ]
 }

@@ -288,8 +288,25 @@ async function gatherTechDebt() {
 }
 
 // 5) Dossie Sign last-mile — HIGHEST priority when Hadley's audit lands
+//    NOTE: as of 2026-07-01 the dedicated cron-dossie-sign-completion-loop runs
+//    every 20min against the dossie_sign_dod_progress table. This function
+//    stays as a fallback for pre-DoD-table audits, but yields to the dedicated
+//    loop if that table exists AND has any pending red gates. Prevents thrash.
 async function gatherDossieSignLastMile() {
   const out = [];
+
+  // Coordinator check — if the dedicated loop is actively picking up dossie
+  // sign work (i.e., the DoD table exists and has red gates), yield.
+  try {
+    const dodCheck = await sb('dossie_sign_dod_progress?select=id&status=eq.red&limit=1');
+    if (dodCheck.ok && Array.isArray(dodCheck.data) && dodCheck.data.length > 0) {
+      // The dedicated loop owns Dossie Sign work right now. Skip.
+      return out;
+    }
+  } catch (e) {
+    // Table doesn't exist yet — fall through to legacy last-mile scan.
+  }
+
   const docsDir = path.join(process.cwd(), 'docs');
   let files = [];
   try {
