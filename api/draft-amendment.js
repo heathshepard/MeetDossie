@@ -168,12 +168,14 @@ function safeCheck(form, name) {
 // in the published TREC 39-11 PDF; many are auto-generated and unhelpful
 // ("undefined", "Text6") so they're documented inline.
 //
-// CRITICAL: 39-11 inserted a new lender-repairs paragraph (5) between the old
-// paragraphs 5 and 6, shifting all paragraph numbers from (6) onward. The
-// AcroForm field NAMES still have the old numbers embedded (e.g. "6 Buyer has
-// paid Seller...") but their VISUAL positions now correspond to the new
-// paragraph layout. Use field names exactly as they appear in the AcroForm,
-// not by paragraph number.
+// NOTE: 39-11 PARAGRAPH RENUMBERING ISSUE (2026-07-01, Hadley_4 audit):
+// The 39-11 revision inserted a new lender-repairs paragraph (6), shifting
+// all subsequent paragraph numbers. AcroForm field names retained old numbers
+// (e.g., "6 Buyer has paid Seller...") but their VISUAL POSITIONS on the
+// rendered form now correspond to the NEW paragraph layout. Result: field
+// "6 Buyer..." renders at visual ¶(6) instead of ¶(7). Full re-coordination
+// required via probe-39-11-positions.js + rendered page inspection. Hadley
+// gate CLOSED pending field coordinate rebuild.
 const FIELDS = {
   propertyAddress: 'Street Address and City',                       // page top
   finalAcceptanceDate: 'DATE OF FINAL ACCEPTANCE',                  // footer
@@ -186,9 +188,8 @@ const FIELDS = {
   closingDateCheckbox: '3 The date in Paragraph 9 of the contract is changed to',
   closingDateText: 'date 5',
   closingDateYearSuffix: '20_25',
-  // Paragraph 7 (visually) — additional option fee + extension
-  // NOTE: Field names still say "(6)" because they retained pre-39-11 nomenclature,
-  // but they now render at visual paragraph (7) due to the inserted lender-repairs ¶(6)
+  // Paragraph 7 (was 6 in 39-10) — additional option fee + extension
+  // ⚠️ FIELD NAMES MISALIGNED — see note above
   optionFeeCheckbox: '6 Buyer has paid Seller an additional Option Fee of',
   optionFeeAmount: 'as follows',                  // dollar amount paid
   optionFeeExtensionDays: 'for an extension of the', // number of days
