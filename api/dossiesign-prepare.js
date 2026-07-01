@@ -304,6 +304,7 @@ async function uploadPreview(userId, transactionId, formSlug, formName, pdfBuffe
     user_id: userId,
     transaction_id: transactionId,
     file_name: `${formName} (DossieSign Preview).pdf`,
+    file_type: 'application/pdf',
     document_type: 'filled_form',
     storage_path: storagePath,
     status: 'filled',
