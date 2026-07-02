@@ -226,17 +226,11 @@ Do NOT guess. If you cannot determine the field, say so.`;
       });
     }
 
-    // Update the field in Supabase transactions table
-    // Convert field_name to camelCase for the transactions table columns
-    const snakeToCamel = (str) => {
-      return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-    };
-
-    const camelFieldName = snakeToCamel(fieldName);
-
+    // transactions columns are snake_case — no case conversion needed.
+    // Also keep a camelCase alias in case any legacy columns use it.
     const { error: updateError } = await supabase
       .from('transactions')
-      .update({ [camelFieldName]: newValue })
+      .update({ [fieldName]: newValue })
       .eq('id', dossierId);
 
     if (updateError) {
@@ -244,14 +238,35 @@ Do NOT guess. If you cannot determine the field, say so.`;
       return res.status(500).json({ ok: false, error: 'Failed to save field update.' });
     }
 
-    // Trigger PDF re-render for the dossier's primary form_type (if any).
-    // Fetches the updated transaction, calls /api/fill-form synchronously,
-    // returns the new signedUrl so the modal can swap the PDF.
+    // Trigger PDF re-render for whichever forms are already filled for this dossier.
+    // We look up form_types from the documents table (transactions has no form_type column),
+    // then call /api/fill-form for the first one and return its signedUrl so the modal can swap.
     let updatedPdfUrl = null;
     let regenerateWarning = null;
     try {
-      const primaryFormType = dealRow.form_type;
-      if (primaryFormType) {
+      const { data: docRows, error: docErr } = await supabase
+        .from('documents')
+        .select('form_type')
+        .eq('transaction_id', dossierId)
+        .not('form_type', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (docErr) {
+        regenerateWarning = `documents lookup error: ${docErr.message}`;
+      } else if (!docRows || docRows.length === 0) {
+        regenerateWarning = 'No filled documents found for this dossier; skipped re-render.';
+      } else {
+        // Dedupe form_types, keep original order (most recent first).
+        const seen = new Set();
+        const formTypes = [];
+        for (const r of docRows) {
+          if (r.form_type && !seen.has(r.form_type)) {
+            seen.add(r.form_type);
+            formTypes.push(r.form_type);
+          }
+        }
+
+        const primaryFormType = formTypes[0];
         const fillFormUrl = `${
           process.env.VERCEL_URL
             ? (process.env.VERCEL_URL.startsWith('http')
@@ -263,7 +278,7 @@ Do NOT guess. If you cannot determine the field, say so.`;
         // Merge the freshly updated field into the transaction for re-fill.
         const updatedTransaction = {
           ...dealRow,
-          [camelFieldName]: newValue,
+          [fieldName]: newValue,
         };
 
         const fillResp = await fetch(fillFormUrl, {
@@ -287,9 +302,6 @@ Do NOT guess. If you cannot determine the field, say so.`;
           regenerateWarning = `fill-form ${fillResp.status}: ${errText.slice(0, 120)}`;
           console.warn('[dossie-voice-fill] PDF re-render non-OK:', regenerateWarning);
         }
-      } else {
-        // No form_type on the transaction — nothing to re-render.
-        regenerateWarning = 'No form_type on transaction; skipped re-render.';
       }
     } catch (regenerateErr) {
       regenerateWarning = regenerateErr.message;
