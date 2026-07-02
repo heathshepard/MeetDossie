@@ -511,6 +511,10 @@
                       "schedule":  "0 14 * * *"
                   },
                   {
+                      "path":  "/api/cron-pc-heartbeat-check",
+                      "schedule":  "*/5 * * * *"
+                  },
+                  {
                       "path":  "/api/cron-activation-drip",
                       "schedule":  "0 15 * * *"
                   },
