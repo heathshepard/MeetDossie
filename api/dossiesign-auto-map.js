@@ -34,7 +34,7 @@ const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const { callFable5, postProcessFieldMap, calculateCost } = require('./_lib/fable5-field-mapper.js');
+const { callFable5Chunked, postProcessFieldMap, calculateCost } = require('./_lib/fable5-field-mapper.js');
 const { pdfToImages } = require('./_lib/pdf-to-images.js');
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -154,11 +154,12 @@ async function processAutoMap(req, res) {
       });
     }
 
-    // Step 3: Call Fable 5 with the PDF document block
+    // Step 3: Call Fable 5 with chunked processing for large PDFs
     console.log(`[dossiesign-auto-map] Calling Fable 5 for ${pageCount}-page PDF`);
-    const fableResult = await callFable5(docBlocks, docName, {
+    const fableResult = await callFable5Chunked(docBlocks, docName, {
       vertical,
       requested_form_number: requestedFormNumber,
+      pageCount,
     });
 
     // Step 4: Post-process field map

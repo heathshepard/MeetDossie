@@ -22,16 +22,57 @@ const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCUSEAL_API_URL = 'https://api.docuseal.co';
 
 async function createDocuSealTemplate(pdfUrl, fields) {
-  // Convert Dossie field map to DocuSeal template format
-  const docusealFields = fields.map((f) => {
-    const typeMap = {
-      text: 'text',
-      checkbox: 'checkbox',
-      date: 'date',
-      signature: 'signature',
-    };
+  const typeMap = {
+    text: 'text',
+    checkbox: 'checkbox',
+    date: 'date',
+    signature: 'signature',
+    initial: 'initials',
+    initials: 'initials',
+    radio: 'radio',
+  };
 
-    return {
+  // Group radio fields by radio_group_name so DocuSeal receives a single
+  // multi-option radio widget instead of independent boxes.
+  const radioGroups = {};
+  const radioProcessed = new Set();
+  fields.forEach((f) => {
+    if (f.type === 'radio' && f.radio_group_name) {
+      if (!radioGroups[f.radio_group_name]) radioGroups[f.radio_group_name] = [];
+      radioGroups[f.radio_group_name].push(f);
+    }
+  });
+
+  const docusealFields = [];
+  fields.forEach((f) => {
+    if (f.type === 'radio' && f.radio_group_name) {
+      if (radioProcessed.has(f.radio_group_name)) return;
+      const group = radioGroups[f.radio_group_name];
+      const options = group
+        .map((g) => ({
+          value: g.name,
+          label: g.name,
+          x: g.x_pct,
+          y: g.y_pct,
+        }))
+        .sort((a, b) => a.y - b.y);
+      docusealFields.push({
+        uuid: f.id,
+        name: f.radio_group_name,
+        type: 'radio',
+        x: f.x_pct,
+        y: f.y_pct,
+        width: f.w_pct,
+        height: f.h_pct,
+        page: f.page,
+        required: f.required !== false,
+        options,
+      });
+      radioProcessed.add(f.radio_group_name);
+      return;
+    }
+
+    docusealFields.push({
       uuid: f.id,
       name: f.name,
       type: typeMap[f.type] || 'text',
@@ -41,7 +82,7 @@ async function createDocuSealTemplate(pdfUrl, fields) {
       height: f.h_pct,
       page: f.page,
       required: f.required !== false,
-    };
+    });
   });
 
   const payload = {
