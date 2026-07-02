@@ -14,27 +14,35 @@
 //
 // State lives in Supabase table `comment_caps_state` (one row per platform per UTC day).
 
+// POST-SHADOWBAN TIGHTENING 2026-07-01 (Heath green-lit):
+// Prior caps (FB 12 / IG 8 / LI 6 / RD 5 / TW 15 = 46/day total) got us
+// shadowbanned in June. Slowed cron to once/day and dropped per-platform
+// caps below platform "human agent" volume. Stays here until Sage delivers
+// an algorithm-safe strategy.
 const PLATFORM_DAILY_CAPS = Object.freeze({
-  facebook: 12,
-  instagram: 8,
-  linkedin: 6,
-  reddit: 5,
-  twitter: 15,
+  facebook: 5,
+  instagram: 5,
+  linkedin: 3,
+  reddit: 3,
+  twitter: 5,
 });
 
-const TOTAL_DAILY_CAP = 46; // sum of the above; hard ceiling across all platforms
+const TOTAL_DAILY_CAP = 21; // sum of the above; hard ceiling across all platforms
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
 
 const PER_AUTHOR_COOLDOWN_DAYS = 7;  // don't comment on the same author twice within 7 days
 
+// POST-SHADOWBAN TIGHTENING 2026-07-01: min-gap between comments per
+// platform. Bursts get spread. Prior 8/15-min gaps let 6 FB comments fire
+// inside 60 min — bot-pattern to any moderation system.
 const MIN_GAP_MINUTES = Object.freeze({
-  facebook: 8,
-  instagram: 8,
-  twitter: 8,
-  linkedin: 15,
-  reddit: 15,
+  facebook: 45,
+  instagram: 20,
+  twitter: 45,
+  linkedin: 90,
+  reddit: 60,
 });
 
 // Substance floor — drafted comments must clear this bar or get auto-rejected.

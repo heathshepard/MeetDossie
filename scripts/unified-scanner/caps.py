@@ -31,15 +31,29 @@ log = logging.getLogger("unified_scanner.caps")
 # Mirror of scripts/_lib/comment-caps.js -- keep in sync. The JS file is the
 # canonical source for the JS crons; this Python mirror exists for the
 # poster only. If caps change, edit BOTH files in the same commit.
+#
+# POST-SHADOWBAN TIGHTENING 2026-07-01 (Heath green-lit): tightened from
+# FB 12 / IG 8 / LI 6 / RD 5 / TW 15 (=46/day) down to the below. Stays
+# here until Sage delivers an algorithm-safe engagement strategy.
 PLATFORM_DAILY_CAPS: Dict[str, int] = {
-    "facebook":  12,
-    "instagram": 8,
-    "linkedin":  6,
-    "reddit":    5,
-    "twitter":   15,
+    "facebook":  5,
+    "instagram": 5,
+    "linkedin":  3,
+    "reddit":    3,
+    "twitter":   5,
 }
-TOTAL_DAILY_CAP = sum(PLATFORM_DAILY_CAPS.values())  # 46
+TOTAL_DAILY_CAP = sum(PLATFORM_DAILY_CAPS.values())  # 21
 PER_AUTHOR_WINDOW_DAYS = 7
+
+# Min-gap-between-comments per platform (minutes). Prevents burst posting
+# even if 5 approvals land at once. Poster consults last posted_at row.
+MIN_GAP_MINUTES: Dict[str, int] = {
+    "facebook":  45,
+    "instagram": 20,
+    "linkedin":  90,
+    "reddit":    60,
+    "twitter":   45,
+}
 
 PLATFORMS = tuple(PLATFORM_DAILY_CAPS.keys())
 
@@ -149,3 +163,37 @@ def load_state() -> CapState:
     total, per_platform = load_daily_counts()
     blocked = load_author_blocklist()
     return CapState(total, per_platform, blocked)
+
+
+def min_gap_elapsed(platform: str) -> Tuple[bool, Optional[float]]:
+    """POST-SHADOWBAN 2026-07-01: enforce min-time-between-comments per platform.
+
+    Queries the most-recent ``posted_at`` for this platform and returns
+    (True, age_minutes) if the min-gap has elapsed, else (False, age_minutes).
+
+    Prevents burst-posting even if 5 approvals land at once. Cadence at the
+    scheduling layer is once/day, but Heath can also manually tap 5 approvals
+    in a row -- this gate spreads those out at the poster.
+    """
+    p = (platform or "").lower()
+    gap_min = MIN_GAP_MINUTES.get(p, 30)
+    path = (
+        "/rest/v1/engagement_candidates"
+        f"?platform=eq.{p}&posted_at=not.is.null"
+        "&order=posted_at.desc&limit=1&select=posted_at"
+    )
+    rows = _get(path)
+    if not rows:
+        return True, None
+    posted_at_str = rows[0].get("posted_at")
+    if not posted_at_str:
+        return True, None
+    try:
+        # Postgres timestamptz -> ISO with tz; datetime.fromisoformat handles it.
+        last = datetime.fromisoformat(posted_at_str.replace("Z", "+00:00"))
+    except Exception as e:
+        log.warning("caps min_gap parse failed: %s -> %s", posted_at_str, e)
+        return True, None
+    now = datetime.now(timezone.utc)
+    age_min = (now - last).total_seconds() / 60.0
+    return (age_min >= gap_min), age_min

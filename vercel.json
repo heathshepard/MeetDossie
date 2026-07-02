@@ -712,11 +712,11 @@
                   },
                   {
                       "path":  "/api/cron-sage-draft-engagements",
-                      "schedule":  "0 */2 * * *"
+                      "schedule":  "37 15 * * *"
                   },
                   {
                       "path":  "/api/cron-send-engagement-approvals",
-                      "schedule":  "15 */2 * * *"
+                      "schedule":  "52 15 * * *"
                   }
               ]
 }

@@ -254,7 +254,8 @@ def run(max_posts: int = MAX_POSTS_PER_RUN) -> int:
         return 0
 
     posted = 0
-    deferred = {"total_daily_cap": 0, "platform_daily_cap": 0, "author_7d_cooldown": 0}
+    deferred = {"total_daily_cap": 0, "platform_daily_cap": 0,
+                "author_7d_cooldown": 0, "min_gap_not_elapsed": 0}
 
     for row in approved:
         if chrome.kill_switch_check():
@@ -265,6 +266,20 @@ def run(max_posts: int = MAX_POSTS_PER_RUN) -> int:
         if cap_state.total_remaining <= 0:
             log.info("total daily cap exhausted -- stopping poster")
             break
+
+        # POST-SHADOWBAN 2026-07-01: min-gap between comments per platform.
+        # Check BEFORE consuming a cap slot so a deferred row doesn't burn
+        # a daily budget entry.
+        platform = row.get("platform") or ""
+        elapsed, age_min = caps.min_gap_elapsed(platform)
+        if not elapsed:
+            deferred["min_gap_not_elapsed"] = deferred["min_gap_not_elapsed"] + 1
+            sb.update_candidate(row["id"], {
+                "last_error": f"deferred_min_gap:{platform}:{age_min:.1f}min_ago",
+            })
+            log.info("deferred row %s: min_gap not elapsed (%.1f min ago)",
+                     row.get("id"), age_min or 0.0)
+            continue
 
         allow, reason = cap_state.try_consume(row)
         if not allow:
