@@ -305,52 +305,187 @@ function calculateCost(usage) {
  * Call Fable 5 with chunked processing for large PDFs.
  *
  * For PDFs ≤ 4 pages: single call (fast path)
- * For PDFs > 4 pages: split into 4-page chunks with 1-page overlap,
- *   call Fable 5 in parallel, merge results with page-offset adjustments,
- *   dedupe fields on boundary pages.
+ * For PDFs > 4 pages: split via pdf-lib into 4-page chunks with 1-page overlap,
+ *   call Fable 5 in parallel per chunk, merge fields with 1-indexed absolute
+ *   page numbers, dedupe overlapping boundary-page fields.
  *
- * @param {Array} contentBlocks - Array of Anthropic content blocks (same as callFable5)
+ * Return shape matches callFable5:
+ *   { parsed: { doc_slug, form_number, form_name, total_pages, fields, notes,
+ *               _chunks_processed }, usage, model_cost_cents }
+ *
+ * The frontend + dossiesign-auto-map.js only read parsed.fields, parsed.total_pages,
+ * parsed.notes, and model_cost_cents — so this is a drop-in replacement.
+ *
+ * @param {Array} contentBlocks - Array of Anthropic content blocks. Expected
+ *   shape from pdfToImages: [{ type:'document', source:{ type:'base64',
+ *   media_type:'application/pdf', data:'<base64>' } }]
  * @param {String} docSlug - Document identifier
- * @param {Object} context - {vertical?, requested_form_number?}
- * @returns {Promise<Object>} Merged field map JSON with all pages' fields
+ * @param {Object} context - {vertical?, requested_form_number?, pageCount?}
+ * @returns {Promise<Object>} Merged field map with all pages' fields
  */
 async function callFable5Chunked(contentBlocks, docSlug, context = {}) {
-  // Single PDF document block — extract page count from pdfToImages wrapper
-  const isPdfDoc = contentBlocks.length === 1 && contentBlocks[0]?.type === 'document';
+  const isPdfDoc =
+    Array.isArray(contentBlocks) &&
+    contentBlocks.length === 1 &&
+    contentBlocks[0] &&
+    contentBlocks[0].type === 'document' &&
+    contentBlocks[0].source &&
+    contentBlocks[0].source.type === 'base64' &&
+    contentBlocks[0].source.media_type === 'application/pdf' &&
+    typeof contentBlocks[0].source.data === 'string';
 
+  // Non-PDF input (already rasterized, or malformed) — no chunking possible.
   if (!isPdfDoc) {
-    // Not a PDF doc block (e.g., already rasterized images) — use single call
     return callFable5(contentBlocks, docSlug, context);
   }
 
-  // For now, detect page count by calling pdfToImages first (which is already done upstream in dossiesign-auto-map)
-  // If this is being called from dossiesign-auto-map, the pageCount is already known and passed separately.
-  // For pure chunking, we'd need to extract pageCount from the PDF. For v1, assume it's passed via context.
+  const pdfBase64 = contentBlocks[0].source.data;
+  let pageCount = context.pageCount || 0;
 
-  const pageCount = context.pageCount || 0;
+  // If caller didn't tell us the page count, probe with pdf-lib.
+  if (!pageCount) {
+    try {
+      const pdfBytes = Buffer.from(pdfBase64, 'base64');
+      const probeDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+      pageCount = probeDoc.getPageCount();
+    } catch (e) {
+      // Can't probe — safest fallback is single-call and let Fable 5 handle it.
+      console.log(`[fable5-field-mapper] callFable5Chunked: page-count probe failed (${e.message}); using single call.`);
+      return callFable5(contentBlocks, docSlug, context);
+    }
+  }
 
-  // Fast path: ≤ 4 pages, use single call
+  // Fast path: small PDFs go straight to a single Fable 5 call.
   if (pageCount <= 4) {
     return callFable5(contentBlocks, docSlug, context);
   }
 
-  // Chunked path: split into 4-page chunks with 1-page overlap
-  // Each chunk = [startPage, endPage] with 1-page overlap with adjacent chunks
-  const chunks = [];
-  for (let start = 1; start <= pageCount; start += 4) {
-    const end = Math.min(start + 4 - 1, pageCount);
-    chunks.push({ start, end });
+  // Chunked path.
+  const CHUNK_SIZE = 4;
+  const OVERLAP = 1;
+  const STRIDE = CHUNK_SIZE - OVERLAP; // = 3
+
+  // Slice the PDF into overlapping 4-page chunks using pdf-lib.
+  // Chunk boundaries below are 0-INDEXED page indices; we convert to 1-indexed
+  // when merging so downstream page numbers match Fable 5's convention.
+  const pdfBytes = Buffer.from(pdfBase64, 'base64');
+  let srcDoc;
+  try {
+    srcDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  } catch (e) {
+    console.log(`[fable5-field-mapper] callFable5Chunked: pdf-lib load failed (${e.message}); using single call.`);
+    return callFable5(contentBlocks, docSlug, context);
   }
 
-  // In a real implementation, we'd need to re-rasterize PDFs per chunk range.
-  // For now, this is a stub that falls back to single call for proper chunking support.
-  // The actual chunking requires pdf-lib or similar to slice the PDF and re-wrap it.
-  // Blocking issue: Vercel has maxDuration 300s; we're relying on Fable 5 to handle full PDF in <60s.
+  const chunks = [];
+  for (let startIdx0 = 0; startIdx0 < pageCount; startIdx0 += STRIDE) {
+    const endIdx0Excl = Math.min(startIdx0 + CHUNK_SIZE, pageCount);
+    const newDoc = await PDFDocument.create();
+    const indices = Array.from({ length: endIdx0Excl - startIdx0 }, (_, i) => startIdx0 + i);
+    const copiedPages = await newDoc.copyPages(srcDoc, indices);
+    copiedPages.forEach((p) => newDoc.addPage(p));
+    const chunkBytes = await newDoc.save();
+    chunks.push({
+      startPage1: startIdx0 + 1, // 1-indexed absolute page number of first page in chunk
+      pageCount: endIdx0Excl - startIdx0,
+      block: {
+        type: 'document',
+        source: {
+          type: 'base64',
+          media_type: 'application/pdf',
+          data: Buffer.from(chunkBytes).toString('base64'),
+        },
+      },
+    });
+    if (endIdx0Excl >= pageCount) break;
+  }
 
-  // TODO: implement proper chunking once we have a PDF slicing utility (e.g., via pdf-lib).
-  // For now, return the non-chunked result and document the future path.
-  console.log(`[fable5-field-mapper] callFable5Chunked: PDF is ${pageCount} pages (>4). Chunking not yet implemented; using single call.`);
-  return callFable5(contentBlocks, docSlug, context);
+  console.log(
+    `[fable5-field-mapper] callFable5Chunked: ${pageCount}p → ${chunks.length} chunks ` +
+      `(${chunks.map((c) => `p${c.startPage1}-${c.startPage1 + c.pageCount - 1}`).join(', ')})`,
+  );
+
+  // Fire all chunks in parallel. Each chunk gets its own callFable5 call with the
+  // same system prompt; downstream we normalize page numbers.
+  const chunkResults = await Promise.all(
+    chunks.map((chunk) =>
+      callFable5([chunk.block], docSlug, {
+        ...context,
+        // Do NOT propagate pageCount — the sub-PDF has its own (small) page count.
+        pageCount: undefined,
+      }).catch((e) => ({ __error: e.message })),
+    ),
+  );
+
+  // If ANY chunk hard-failed, surface the first failure — same as callFable5 would.
+  const firstFail = chunkResults.find((r) => r && r.__error);
+  if (firstFail) {
+    throw new Error(`Fable 5 chunk failed: ${firstFail.__error}`);
+  }
+
+  // Merge fields with absolute page numbers + dedupe boundary overlaps.
+  const allFields = [];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalCostCents = 0;
+  let formNumber = null;
+  let formName = null;
+  let firstNotes = null;
+  let anySalvaged = false;
+
+  const nearlyEqual = (a, b, tol) => Math.abs((a || 0) - (b || 0)) < tol;
+
+  for (let i = 0; i < chunkResults.length; i++) {
+    const chunk = chunks[i];
+    const result = chunkResults[i] || {};
+    const parsed = result.parsed || {};
+    const chunkFields = Array.isArray(parsed.fields) ? parsed.fields : [];
+
+    if (result.usage) {
+      totalInputTokens += result.usage.input_tokens || 0;
+      totalOutputTokens += result.usage.output_tokens || 0;
+    }
+    totalCostCents += result.model_cost_cents || 0;
+    if (!formNumber && parsed.form_number && parsed.form_number !== 'unknown') formNumber = parsed.form_number;
+    if (!formName && parsed.form_name) formName = parsed.form_name;
+    if (!firstNotes && parsed.notes) firstNotes = parsed.notes;
+    if (parsed._salvaged_from_truncated_response) anySalvaged = true;
+
+    for (const field of chunkFields) {
+      if (!field || typeof field !== 'object') continue;
+      // Fable 5 returns 1-indexed page numbers relative to the chunk PDF.
+      // Convert to 1-indexed absolute: absPage = chunk.startPage1 + (chunkPage - 1).
+      const chunkPage1 = Number(field.page) || 1;
+      const absolutePage = chunk.startPage1 + (chunkPage1 - 1);
+
+      // Dedupe: if we already have a very-close field on the same absolute page
+      // from the previous chunk's tail (overlap zone), skip it.
+      const duplicate = allFields.find((f) =>
+        f.page === absolutePage &&
+        nearlyEqual(f.x_pct, field.x_pct, 5) &&
+        nearlyEqual(f.y_pct, field.y_pct, 5) &&
+        (f.name === field.name || nearlyEqual(f.w_pct, field.w_pct, 5)),
+      );
+      if (duplicate) continue;
+
+      allFields.push({ ...field, page: absolutePage });
+    }
+  }
+
+  return {
+    parsed: {
+      doc_slug: docSlug,
+      form_number: formNumber || 'unknown',
+      form_name: formName || '',
+      total_pages: pageCount,
+      fields: allFields,
+      notes: firstNotes || '',
+      _chunks_processed: chunks.length,
+      _salvaged_from_truncated_response: anySalvaged || undefined,
+    },
+    usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
+    model_cost_cents: totalCostCents,
+  };
 }
 
 module.exports = { callFable5, callFable5Chunked, postProcessFieldMap, calculateCost, SYSTEM_PROMPT };
