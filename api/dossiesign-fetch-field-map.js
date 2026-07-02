@@ -42,7 +42,7 @@ async function handler(req, res) {
     user = await verifySupabaseToken(req);
   } catch (err) {
     if (err instanceof AuthError) {
-      return res.status(err.statusCode).json({ ok: false, error: err.message });
+      return res.status(err.status || 401).json({ ok: false, error: err.message });
     }
     return res.status(500).json({ ok: false, error: 'Auth error' });
   }
