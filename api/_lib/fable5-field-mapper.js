@@ -82,7 +82,7 @@ async function callFable5(contentBlocks, docSlug, context = {}) {
 
   const payload = {
     model: 'claude-fable-5',
-    max_tokens: 32000,
+    max_tokens: 64000,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userText }],
   };
@@ -115,14 +115,27 @@ async function callFable5(contentBlocks, docSlug, context = {}) {
             .map(b => b.text)
             .join('\n')
             .trim();
-          
+
           const firstBrace = textContent.indexOf('{');
           const lastBrace = textContent.lastIndexOf('}');
           if (firstBrace < 0 || lastBrace <= firstBrace) {
             return reject(new Error('No JSON found in Fable 5 response'));
           }
-          
-          const parsed = JSON.parse(textContent.slice(firstBrace, lastBrace + 1));
+
+          const candidate = textContent.slice(firstBrace, lastBrace + 1);
+          let parsed;
+          try {
+            parsed = JSON.parse(candidate);
+          } catch (parseErr) {
+            // Truncation recovery: model likely ran out of output tokens mid-array.
+            // Salvage the envelope + the trailing complete field objects.
+            const salvaged = salvageTruncatedFieldMap(textContent, firstBrace);
+            if (!salvaged) {
+              return reject(new Error(`Failed to parse Fable 5 response: ${parseErr.message}`));
+            }
+            parsed = salvaged;
+            parsed._salvaged_from_truncated_response = true;
+          }
           resolve({ parsed, usage: envelope.usage, model_cost_cents: calculateCost(envelope.usage) });
         } catch (e) {
           reject(new Error(`Failed to parse Fable 5 response: ${e.message}`));
@@ -134,6 +147,62 @@ async function callFable5(contentBlocks, docSlug, context = {}) {
     req.write(body);
     req.end();
   });
+}
+
+/**
+ * Salvage a truncated Fable 5 JSON response.
+ *
+ * When the model runs out of output tokens mid-response, the tail JSON is
+ * malformed (unclosed object / array). This function finds the last complete
+ * field object inside the "fields": [ ... ] array and closes the JSON there.
+ *
+ * @param {String} textContent - Full raw text from the model
+ * @param {Number} firstBrace - Index of the first '{'
+ * @returns {Object|null} Parsed envelope with a possibly-truncated fields[] or null
+ */
+function salvageTruncatedFieldMap(textContent, firstBrace) {
+  try {
+    // Find the "fields": [ marker
+    const fieldsMarker = textContent.indexOf('"fields"', firstBrace);
+    if (fieldsMarker < 0) return null;
+    const arrOpen = textContent.indexOf('[', fieldsMarker);
+    if (arrOpen < 0) return null;
+
+    // Walk the array, tracking nested brace depth and string state.
+    // Every time depth returns to 0 at a '}', mark that position as
+    // the end of a complete field object.
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let lastCompleteEnd = -1; // position AFTER last complete top-level '}'
+
+    for (let i = arrOpen + 1; i < textContent.length; i++) {
+      const ch = textContent[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) lastCompleteEnd = i + 1;
+      }
+      else if (ch === ']' && depth === 0) {
+        // Reached array close naturally — array is complete; not truncated
+        return null;
+      }
+    }
+
+    if (lastCompleteEnd < 0) return null;
+
+    // Extract envelope preamble + salvaged array + close
+    const preamble = textContent.slice(firstBrace, arrOpen + 1);
+    const arrayBody = textContent.slice(arrOpen + 1, lastCompleteEnd);
+    const rebuilt = preamble + arrayBody + `]}`;
+    return JSON.parse(rebuilt);
+  } catch {
+    return null;
+  }
 }
 
 /**
