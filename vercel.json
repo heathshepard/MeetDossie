@@ -86,6 +86,10 @@
                          "source":  "/admin/dossie-sign",
                          "destination":  "/admin-dossie-sign-progress.html"
                      },
+                    {
+                         "source":  "/dossie-sign/editor",
+                         "destination":  "/app.html"
+                     },
                      {
                          "source":  "/orb-web",
                          "destination":  "/orb-web.html"
