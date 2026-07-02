@@ -59,18 +59,35 @@ async function supabaseCall(method, path, body) {
   return res.json();
 }
 
+// Whitelist of DB columns we allow writes to via this endpoint.
+// The transactions table uses snake_case column names — do NOT convert to camelCase.
+const ALLOWED_FIELDS = new Set([
+  'sale_price', 'closing_date', 'option_days', 'option_fee', 'earnest_money',
+  'financing_type', 'financing_days', 'loan_amount', 'down_payment',
+  'buyer_name', 'seller_name', 'property_address', 'city_state_zip',
+  'title_company', 'notes', 'land_acreage', 'expected_completion_date',
+  'contract_effective_date', 'possession_date',
+]);
+
+// Map any commonly-used aliases sent by the wizard to real column names.
+const FIELD_ALIASES = {
+  down_payment_amt: 'down_payment',
+  title_policy_paid_by: 'notes', // no dedicated column; stashed in notes for now
+};
+
 /**
  * Update the dossier field in the database.
+ * Column names are snake_case in Postgres — the transactions table uses
+ * property_address, sale_price, etc. Do NOT camelCase.
  */
 async function updateDossierField(dossierId, fieldName, fieldValue) {
-  // Convert snake_case to camelCase for DB column
-  const camelField = fieldName
-    .split('_')
-    .map((part, i) => (i === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)))
-    .join('');
+  const canonical = FIELD_ALIASES[fieldName] || fieldName;
+  if (!ALLOWED_FIELDS.has(canonical)) {
+    throw new Error(`Field '${fieldName}' is not writable via this endpoint`);
+  }
 
   const rows = await supabaseCall('PATCH', `transactions?id=eq.${dossierId}`, {
-    [camelField]: fieldValue,
+    [canonical]: fieldValue,
     updated_at: new Date().toISOString(),
   });
 
@@ -79,6 +96,25 @@ async function updateDossierField(dossierId, fieldName, fieldValue) {
   }
 
   return rows[0];
+}
+
+/**
+ * Look up the form_type of the most recent filled PDF for this dossier.
+ * The transactions table does NOT store form_type; the documents table does.
+ */
+async function getMostRecentFormType(dossierId) {
+  try {
+    const rows = await supabaseCall(
+      'GET',
+      `documents?transaction_id=eq.${dossierId}&document_type=eq.filled_form&select=form_type,created_at&order=created_at.desc&limit=1`,
+    );
+    if (Array.isArray(rows) && rows.length > 0) {
+      return rows[0].form_type || null;
+    }
+  } catch (err) {
+    console.warn('[dossie-update-and-refill] form_type lookup failed:', err.message);
+  }
+  return null;
 }
 
 /**
@@ -94,21 +130,25 @@ async function getTransaction(dossierId) {
 
 /**
  * Queue a PDF re-fill by calling the fill-form API.
+ * fill-form requires a user JWT, so pass the original caller's Authorization
+ * header through instead of the service role key.
  */
-async function requeuePdfRefill(dossierId, formType, transaction) {
-  const fillFormUrl = `${process.env.VERCEL_URL || 'https://meetdossie.com'}/api/fill-form`;
+async function requeuePdfRefill(dossierId, formType, transaction, userToken) {
+  const host = process.env.VERCEL_URL
+    ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
+    : 'https://meetdossie.com';
+  const fillFormUrl = `${host}/api/fill-form`;
 
   const res = await fetch(fillFormUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      // Use service role key to bypass auth (this is internal server-to-server)
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Authorization: `Bearer ${userToken}`,
     },
     body: JSON.stringify({
       transaction_id: dossierId,
       form_type: formType,
-      field_values: transaction, // Pass full transaction so fill-form can extract fields
+      field_values: transaction,
     }),
   });
 
@@ -161,20 +201,33 @@ export default async function handler(req, res) {
     // 3. Update the field in the database
     const updated = await updateDossierField(dossier_id, field_name, field_value);
 
-    // 4. Queue PDF re-fill if there's a filled PDF
-    // (form_type is stored on the transaction record if it was filled)
+    // Extract the caller's user JWT — fill-form requires a user token, not the service role.
+    const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+    const userToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+
+    // 4. Queue PDF re-fill if there's an existing filled PDF for this dossier.
+    // form_type isn't on transactions — look it up from the most recent
+    // documents row of type 'filled_form'.
     let pdfUrl = null;
-    if (transaction.form_type) {
-      try {
-        const fillResult = await requeuePdfRefill(dossier_id, transaction.form_type, {
-          ...transaction,
-          [field_name]: field_value,
-        });
-        pdfUrl = fillResult.signedUrl || null;
-      } catch (fillErr) {
-        console.error('[dossie-update-and-refill] PDF requeue failed:', fillErr.message);
-        // Don't fail the update if PDF requeue fails — the field update succeeded
+    let formTypeUsed = null;
+    try {
+      formTypeUsed = await getMostRecentFormType(dossier_id);
+      if (formTypeUsed && userToken) {
+        try {
+          const fillResult = await requeuePdfRefill(
+            dossier_id,
+            formTypeUsed,
+            { ...transaction, [field_name]: field_value },
+            userToken,
+          );
+          pdfUrl = fillResult.signedUrl || fillResult.pdf_url || null;
+        } catch (fillErr) {
+          console.error('[dossie-update-and-refill] PDF requeue failed:', fillErr.message);
+          // Don't fail the update if PDF requeue fails — the field update succeeded
+        }
       }
+    } catch (lookupErr) {
+      console.warn('[dossie-update-and-refill] form_type lookup failed:', lookupErr.message);
     }
 
     return res.status(200).json({
@@ -182,6 +235,7 @@ export default async function handler(req, res) {
       dossier_id,
       field_name,
       field_value,
+      form_type_used: formTypeUsed,
       pdf_url: pdfUrl,
       updated_at: updated.updated_at,
     });

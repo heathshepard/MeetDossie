@@ -11,8 +11,9 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
  * Returns array of { id, filename, formType, storagePath }.
  */
 async function findFilledPdfsForDossier(dossierId) {
+  // documents.transaction_id joins to transactions.id (there is no dossier_id column).
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/documents?dossier_id=eq.${dossierId}&file_type=eq.application/pdf`,
+    `${SUPABASE_URL}/rest/v1/documents?transaction_id=eq.${dossierId}&file_type=eq.application%2Fpdf`,
     {
       method: 'GET',
       headers: {
