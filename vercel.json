@@ -511,6 +511,10 @@
                       "schedule":  "0 14 * * *"
                   },
                   {
+                      "path":  "/api/cron-pc-heartbeat-check",
+                      "schedule":  "*/5 * * * *"
+                  },
+                  {
                       "path":  "/api/cron-activation-drip",
                       "schedule":  "0 15 * * *"
                   },
@@ -709,6 +713,14 @@
                   {
                       "path":  "/api/cron-self-improvement-daily",
                       "schedule":  "0 10 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-sage-draft-engagements",
+                      "schedule":  "37 15 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-send-engagement-approvals",
+                      "schedule":  "52 15 * * *"
                   }
               ]
 }
