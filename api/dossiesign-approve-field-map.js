@@ -172,12 +172,15 @@ async function handler(req, res) {
     }
 
     // Update the row with template_id and approve status
+    // Note: dossiesign_auto_map_runs has no updated_at column; qa_reviewed_at
+    // records when the map was signed off.
     const { error: updateErr } = await supabase
       .from('dossiesign_auto_map_runs')
       .update({
         template_id: templateId,
         qa_status: 'approved',
-        updated_at: new Date().toISOString(),
+        qa_reviewed_at: new Date().toISOString(),
+        qa_reviewed_by: user.id,
       })
       .eq('id', jobId);
 

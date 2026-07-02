@@ -84,12 +84,14 @@ async function handler(req, res) {
     }
 
     // Update the fields + qa_status
+    // Note: dossiesign_auto_map_runs schema does not include an updated_at column;
+    // qa_reviewed_at doubles as the last-touched timestamp.
     const { error: updateErr } = await supabase
       .from('dossiesign_auto_map_runs')
       .update({
         fields: fields,
         qa_status: 'in_progress',
-        updated_at: new Date().toISOString(),
+        qa_reviewed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
 
