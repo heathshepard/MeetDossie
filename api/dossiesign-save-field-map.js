@@ -83,14 +83,15 @@ async function handler(req, res) {
       return res.status(403).json({ ok: false, error: 'Unauthorized' });
     }
 
-    // Update the fields + qa_status
-    // Note: dossiesign_auto_map_runs schema does not include an updated_at column;
-    // qa_reviewed_at doubles as the last-touched timestamp.
+    // Update the fields + qa_status. Table check constraint valid_qa_status
+    // limits qa_status to: pending, awaiting_hadley_qa, approved, rejected,
+    // revise_requested. Saving a draft keeps the row awaiting_hadley_qa —
+    // the user has edited but not yet approved.
     const { error: updateErr } = await supabase
       .from('dossiesign_auto_map_runs')
       .update({
         fields: fields,
-        qa_status: 'in_progress',
+        qa_status: 'awaiting_hadley_qa',
         qa_reviewed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
@@ -102,7 +103,7 @@ async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       job_id: jobId,
-      status: 'in_progress',
+      status: 'awaiting_hadley_qa',
       field_count: fields.length,
     });
   } catch (err) {

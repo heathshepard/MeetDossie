@@ -161,23 +161,30 @@ async function shot(page, name) {
 
     // STEP 7 — Add a new text field via toolbar
     console.log("[apv] Step 7: add text field via toolbar");
+    // Deselect any active field first so the sidebar click won't interfere
+    await page.mouse.click(50, 400); // sidebar-left / empty area
+    await page.waitForTimeout(300);
+    const overlayCountBeforeAdd = await page.locator('div[style*="cursor: move"]').count();
+
     const addTextBtn = await page.locator('button:has-text("Text")').first();
     if (await addTextBtn.isVisible().catch(() => false)) {
       await addTextBtn.click();
       await page.waitForTimeout(500);
-      // Click somewhere in the middle of the PDF canvas
+      // Click somewhere in the bottom margin of the PDF canvas where no existing
+      // fields overlap. TXR-1501 page 1 bottom has whitespace around y ~800px in the canvas.
       const cbox = await page.$("canvas");
       const box = cbox ? await cbox.boundingBox() : null;
       if (box) {
-        await page.mouse.click(box.x + 200, box.y + 200);
+        // Target bottom-middle of canvas (below all page-1 fields)
+        await page.mouse.click(box.x + box.width * 0.75, box.y + box.height * 0.95);
         await page.waitForTimeout(800);
       }
       const newOverlayCount = await page.locator('div[style*="cursor: move"]').count();
       results.steps.push({
         step: 7,
         name: "add text field",
-        ok: newOverlayCount > overlayCount,
-        before: overlayCount,
+        ok: newOverlayCount > overlayCountBeforeAdd,
+        before: overlayCountBeforeAdd,
         after: newOverlayCount,
       });
       results.screenshots.push(await shot(page, "T7-field-added"));
@@ -194,7 +201,7 @@ async function shot(page, name) {
       const saveOk =
         apiResponses.save?.status === 200 &&
         apiResponses.save?.body?.ok === true &&
-        apiResponses.save?.body?.status === "in_progress";
+        apiResponses.save?.body?.status === "awaiting_hadley_qa";
       results.steps.push({
         step: 8,
         name: "save draft — qa_status=in_progress",
