@@ -290,11 +290,16 @@ Do NOT guess. If you cannot determine the field, say so.`;
             [fieldName]: newValue,
           };
 
+          // Forward the caller's user JWT so /api/fill-form's verifySupabaseToken
+          // treats this as a legitimate user request. Service-role key is NOT a
+          // valid user JWT (Supabase /auth/v1/user rejects it as expired).
+          const forwardedAuth = req.headers.authorization || '';
+
           const fillResp = await fetch(fillFormUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${supabaseServiceKey}`,
+              Authorization: forwardedAuth,
             },
             body: JSON.stringify({
               transaction_id: dossierId,
