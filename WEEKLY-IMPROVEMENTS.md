@@ -73,7 +73,67 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Better error messages in fill-and-sign** (customer)
 - When a form fails to fill or upload, you now see a specific error message on that form instead of a confusing generic error. This makes it easier to understand what went wrong and how to fix it.
 
-<!-- applied_shas: 0354a28,0634d1c,0cea52b,1f34e7e,2fe2b11,3d3b311,419daba,707d92e,8750343,8c6a8b2,93087b6,9e3823d,9fb66ab,a01c4f4,ae81d77,c8c1f89,cd10f24,f25554f,faf4d0f -->
+**Faster document field detection for signing** (customer)
+- We've improved how Dossie automatically identifies and maps fields in your documents for signing, making the fill-and-sign process quicker and more accurate.
+
+**Talk-to-Dossie knows 30 more TREC forms** (customer)
+- We've expanded Talk-to-Dossie's knowledge of Texas real estate forms to cover residential, land, and commercial addenda — plus updated it with the latest July TREC forms. Now when you ask questions about your transaction, Dossie understands even more of the paperwork you're working with.
+
+**Talk-to-Dossie knows more Texas real estate rules** (customer)
+- We've expanded Dossie's knowledge of Texas real estate regulations so Talk-to-Dossie can answer more of your questions about contracts, forms, and compliance.
+
+**Visual editor for fill-and-sign documents** (customer)
+- We've added an easy-to-use editor where you can drag, resize, add, and delete form fields on your documents before sending them to clients for signing. You can now preview exactly how your fill-and-sign forms will look.
+
+**Fixed PDF signing and approval** (customer)
+- We fixed a bug that prevented agents from successfully approving and saving documents in fill-and-sign. PDFs should now process correctly when you sign and submit them.
+
+**Initial and radio field support in form editor** (customer)
+- We've added the ability to mark signature initials and radio button choices directly in the visual form editor, making it easier to set up TREC forms exactly how you need them.
+
+**Large real estate forms now auto-fill correctly** (customer)
+- We fixed form auto-fill for large Texas real estate documents like TAR-1601 that were timing out before. Now all forms, no matter their size, will automatically extract and fill fields correctly.
+
+**Auto-map now handles large PDFs reliably** (customer)
+- We improved our automatic form field detection to work smoothly on long, complex documents without timing out or losing data. This means more of your contracts and disclosures will auto-fill correctly the first time.
+
+**Improved fill-and-sign editor now live** (customer)
+- We've rolled out an updated document editor for fill-and-sign with better support for initial and checkbox fields. Your clients will see a smoother experience when reviewing and signing documents.
+
+**Sign documents faster with improved editor** (customer)
+- We've upgraded our document signing tool with a cleaner interface and new signing options, making it easier for you to prepare and sign contracts on any device. We also increased file upload limits so you can attach larger documents without hitting size restrictions.
+
+**Auto-refill PDFs when you update deal info** (customer)
+- When you fill in a field in your deal, we now automatically refresh your PDF forms so they stay in sync. We also catch missing critical fields and prompt you to fill them in right away.
+
+**Voice fill now shows updated document instantly** (customer)
+- We've made it faster to fill out your transaction documents using voice. After you speak your information, you'll immediately see the updated document in the review window so you can catch any changes right away.
+
+**Fixed voice fill form data handling** (customer)
+- We fixed a bug where voice-filled transaction data wasn't saving correctly and form types weren't loading properly in the fill-and-sign modal. Your voice-filled forms now save reliably and display the right document type each time.
+
+**Fix document review after form filling** (customer)
+- We fixed a bug that prevented agents from reviewing filled documents right after completing forms. The document review screen now opens correctly when a form is successfully filled.
+
+**Voice fill now saves PDF correctly** (customer)
+- We fixed a bug where voice-to-form fills weren't saving your completed PDF. Your filled documents will now generate and save properly when you use voice fill.
+
+**Visual editor for document fields** (customer)
+- We've built a new visual editor that lets you drag, drop, resize, and approve signature and form fields directly on your PDFs. You can now see exactly where fields will appear before your clients sign.
+
+**Fix PDF signing document viewer** (customer)
+- We fixed an issue where PDF documents wouldn't load in the sign-and-fill experience. Your documents now display correctly every time.
+
+**New Initial and Radio button fields for sign documents** (customer)
+- We've added two new field types to the fill-and-sign editor so you can create signature initials and radio button selections on your transaction documents. Both fields are now available in the visual editor with customizable sizing and styling.
+
+**Improved form library and e-signature tools** (customer)
+- We've unified our form management and signing experience so you can access all your templates and signed documents in one smooth workflow. Your uploads and scans now work faster with better file handling.
+
+**Smart gap-filling after form completion** (customer)
+- We now automatically detect missing critical fields after you fill out a form and prompt you to complete them—with your choice of typing or speaking your answers.
+
+<!-- applied_shas: 0354a28,0634d1c,09dd21d,0cea52b,11a1e85,145ab01,194bb4f,1f34e7e,2fe2b11,3cd59ac,3d3b311,419daba,707d92e,7f21e82,8750343,8927906,8c6a8b2,93087b6,9b73f19,9df0eb7,9e3823d,9fb66ab,a01c4f4,ae169d3,ae81d77,b21b8d0,bc07e0b,c8c1f89,c8d6db1,cd10f24,d544e40,dd1e356,e0436ad,e4503eb,ef338c1,eff0053,f15d523,f25554f,faf4d0f -->
 
 ## Week of June 15, 2026
 
