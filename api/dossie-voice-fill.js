@@ -239,68 +239,78 @@ Do NOT guess. If you cannot determine the field, say so.`;
     }
 
     // Trigger PDF re-render for whichever forms are already filled for this dossier.
-    // We look up form_types from the documents table (transactions has no form_type column),
-    // then call /api/fill-form for the first one and return its signedUrl so the modal can swap.
+    // We look up form_types from the documents table (transactions has no form_type column).
+    // Note: fill-form writes documents.document_type (snake_case, e.g. 'resale_contract')
+    // but /api/fill-form's form_type argument is hyphenated ('resale-contract').
+    // So we translate underscore → hyphen when picking the primary form to re-render.
     let updatedPdfUrl = null;
     let regenerateWarning = null;
     try {
       const { data: docRows, error: docErr } = await supabase
         .from('documents')
-        .select('form_type')
+        .select('form_type, document_type, uploaded_at')
         .eq('transaction_id', dossierId)
-        .not('form_type', 'is', null)
-        .order('created_at', { ascending: false });
+        .eq('status', 'filled')
+        .order('uploaded_at', { ascending: false });
 
       if (docErr) {
         regenerateWarning = `documents lookup error: ${docErr.message}`;
       } else if (!docRows || docRows.length === 0) {
         regenerateWarning = 'No filled documents found for this dossier; skipped re-render.';
       } else {
-        // Dedupe form_types, keep original order (most recent first).
+        // Prefer form_type if set; otherwise translate document_type (snake→hyphen).
         const seen = new Set();
         const formTypes = [];
         for (const r of docRows) {
-          if (r.form_type && !seen.has(r.form_type)) {
-            seen.add(r.form_type);
-            formTypes.push(r.form_type);
+          let ft = r.form_type;
+          if (!ft && r.document_type) {
+            ft = String(r.document_type).replace(/_/g, '-');
+          }
+          if (ft && !seen.has(ft)) {
+            seen.add(ft);
+            formTypes.push(ft);
           }
         }
 
         const primaryFormType = formTypes[0];
-        const fillFormUrl = `${
-          process.env.VERCEL_URL
-            ? (process.env.VERCEL_URL.startsWith('http')
-                ? process.env.VERCEL_URL
-                : `https://${process.env.VERCEL_URL}`)
-            : 'https://meetdossie.com'
-        }/api/fill-form`;
-
-        // Merge the freshly updated field into the transaction for re-fill.
-        const updatedTransaction = {
-          ...dealRow,
-          [fieldName]: newValue,
-        };
-
-        const fillResp = await fetch(fillFormUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${supabaseServiceKey}`,
-          },
-          body: JSON.stringify({
-            transaction_id: dossierId,
-            form_type: primaryFormType,
-            field_values: updatedTransaction,
-          }),
-        });
-
-        if (fillResp.ok) {
-          const fillJson = await fillResp.json().catch(() => ({}));
-          updatedPdfUrl = fillJson.signedUrl || fillJson.pdf_url || null;
+        if (!primaryFormType) {
+          regenerateWarning = 'Filled documents exist but no form_type resolvable; skipped re-render.';
         } else {
-          const errText = await fillResp.text().catch(() => '');
-          regenerateWarning = `fill-form ${fillResp.status}: ${errText.slice(0, 120)}`;
-          console.warn('[dossie-voice-fill] PDF re-render non-OK:', regenerateWarning);
+          const fillFormUrl = `${
+            process.env.VERCEL_URL
+              ? (process.env.VERCEL_URL.startsWith('http')
+                  ? process.env.VERCEL_URL
+                  : `https://${process.env.VERCEL_URL}`)
+              : 'https://meetdossie.com'
+          }/api/fill-form`;
+
+          // Merge the freshly updated field into the transaction for re-fill.
+          const updatedTransaction = {
+            ...dealRow,
+            [fieldName]: newValue,
+          };
+
+          const fillResp = await fetch(fillFormUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              transaction_id: dossierId,
+              form_type: primaryFormType,
+              field_values: updatedTransaction,
+            }),
+          });
+
+          if (fillResp.ok) {
+            const fillJson = await fillResp.json().catch(() => ({}));
+            updatedPdfUrl = fillJson.signedUrl || fillJson.pdf_url || null;
+          } else {
+            const errText = await fillResp.text().catch(() => '');
+            regenerateWarning = `fill-form ${fillResp.status}: ${errText.slice(0, 120)}`;
+            console.warn('[dossie-voice-fill] PDF re-render non-OK:', regenerateWarning);
+          }
         }
       }
     } catch (regenerateErr) {
