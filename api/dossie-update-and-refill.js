@@ -45,6 +45,8 @@ async function supabaseCall(method, path, body) {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       'Content-Type': 'application/json',
+      // Ask Supabase to return the updated/inserted rows as JSON.
+      Prefer: 'return=representation',
     },
   };
   if (body) opts.body = JSON.stringify(body);
@@ -56,7 +58,15 @@ async function supabaseCall(method, path, body) {
       `Supabase ${method} ${path} -> ${res.status} ${text.slice(0, 200)}`
     );
   }
-  return res.json();
+  // 204 No Content returns nothing even with Prefer header — handle gracefully.
+  if (res.status === 204) return [];
+  const text = await res.text().catch(() => '');
+  if (!text) return [];
+  try {
+    return JSON.parse(text);
+  } catch {
+    return [];
+  }
 }
 
 // Whitelist of DB columns we allow writes to via this endpoint.
