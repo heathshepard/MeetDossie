@@ -4,7 +4,7 @@
  * Runs every 2 min via vercel cron. Finds documents with scan_status='pending'
  * (up to `limit`, default 10), downloads each from Supabase Storage, runs the
  * Fable 5 field-extraction pipeline, and updates the document row with
- * scan_status='completed' + form_type + scan_result. Documents that fail 3+
+ * scan_status='complete' + form_type + scan_result. Documents that fail 3+
  * times are marked scan_status='failed'.
  *
  * Auth: GET with `Authorization: Bearer $CRON_SECRET` (or Vercel cron infra).
@@ -21,9 +21,9 @@
  *   - PDF corrupt / 0 bytes / not %PDF            → 'failed' immediately
  *   - Fable 5 5xx / timeout / rate-limit          → retry bump; 'failed' at 3
  *   - Fable 5 parse error                         → retry bump; 'failed' at 3
- *   - Fable 5 success                             → 'completed'
+ *   - Fable 5 success                             → 'complete'
  *
- * scan_result JSONB shape on completed:
+ * scan_result JSONB shape on complete:
  *   {
  *     form_number: "TXR-1501",
  *     form_name:   "Buyer Representation Agreement",
@@ -205,7 +205,7 @@ async function processDocument(supabase, doc) {
   const { error: updErr } = await supabase
     .from('documents')
     .update({
-      scan_status: 'completed',
+      scan_status: 'complete',
       form_type: formType,
       scan_result: scanResult,
     })
