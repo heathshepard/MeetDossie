@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { filterCustomerVisible } = require('./_lib/newsletter-filter.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -324,13 +325,30 @@ module.exports = withTelemetry('cron-weekly-newsletter-draft', async function ha
       });
     }
 
-    const { weekHeader, body } = extractLatestWeekSection(contents);
-    if (!body || body.length < 20) {
+    const { weekHeader, body: rawBody } = extractLatestWeekSection(contents);
+    if (!rawBody || rawBody.length < 20) {
       return res.status(200).json({
         ok: true,
         skipped: true,
         reason: 'no entries in latest week section',
         file_path: filePath,
+      });
+    }
+
+    // GATE 1 — hard-filter non-customer bullets BEFORE Haiku sees them.
+    // Blocks Jarvis panel, ops-only future-builds, cron/vercel/supabase mentions, etc.
+    // See api/_lib/newsletter-filter.js.
+    const { filtered: body, dropped } = filterCustomerVisible(rawBody);
+    if (dropped.length > 0) {
+      console.log('[cron-weekly-newsletter-draft] hard-gate dropped', JSON.stringify(dropped, null, 2));
+    }
+    if (!body || body.length < 20) {
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: 'no customer-visible bullets after hard-gate filter',
+        file_path: filePath,
+        dropped_count: dropped.length,
       });
     }
 

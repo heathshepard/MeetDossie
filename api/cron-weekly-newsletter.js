@@ -19,6 +19,11 @@ const fs = require('fs');
 const path = require('path');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { customerFirstName } = require('./_lib/personalization.js');
+const { filterCustomerVisible } = require('./_lib/newsletter-filter.js');
+const { assertApvProof } = require('./_lib/newsletter-apv-proof.js');
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -287,6 +292,24 @@ async function sendResend(to, subject, html) {
   return { ok: r.ok, status: r.status, data, raw: text };
 }
 
+// ─── Telegram alert (used by APV abort path) ─────────────────────────────
+
+async function sendTelegramAlert(text) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { ok: false, skipped: true };
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
+    });
+    return { ok: r.ok, status: r.status };
+  } catch (err) {
+    console.error('[cron-weekly-newsletter] telegram alert failed:', err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
 // ─── Idempotency via audit_logs ──────────────────────────────────────────
 
 async function alreadySentThisWeek(weekKey) {
@@ -363,6 +386,32 @@ module.exports = withTelemetry('cron-weekly-newsletter', async function handler(
 
     // Idempotency check — allow override via ?force=1 alongside Bearer auth.
     const isForce = req.query && (req.query.force === '1' || req.query.force === 'true');
+
+    // GATE 2 — Cole APV proof required. Locked 2026-07-02.
+    // Send aborts if no signed proof file exists for this Friday.
+    // ?force=1 bypass ONLY allowed with Bearer auth (manual override).
+    const skipApv = isForce && isManualAuth;
+    if (!skipApv) {
+      const apv = assertApvProof(now);
+      if (!apv.ok) {
+        console.warn('[cron-weekly-newsletter] APV gate abort:', apv.reason, apv.dateStr);
+        // Best-effort Telegram alert — do not fail if it errors.
+        await sendTelegramAlert(
+          `⚠️ <b>Weekly newsletter aborted</b>\n\n${apv.message}\n\nWeek: ${weekRange}\nDraft (if generated) still in newsletter_drafts + Resend queue for review.\n\nCole: create <code>.newsletter-audit/weekly-apv-${apv.dateStr}.md</code> with <code>APPROVED_BY: cole</code> then re-run.`,
+        );
+        // Return 200 to prevent Vercel cron retry storms.
+        return res.status(200).json({
+          ok: true,
+          aborted: true,
+          reason: apv.reason,
+          date_str: apv.dateStr,
+          message: apv.message,
+          week_key: weekKey,
+        });
+      }
+      console.log('[cron-weekly-newsletter] APV gate PASS:', apv.path);
+    }
+
     if (!isForce) {
       const sent = await alreadySentThisWeek(weekKey);
       if (sent) {
@@ -426,13 +475,30 @@ module.exports = withTelemetry('cron-weekly-newsletter', async function handler(
         });
       }
 
-      const { weekHeader, body } = extractLatestWeekSection(contents);
-      if (!body || body.length < 20) {
+      const { weekHeader, body: rawBody } = extractLatestWeekSection(contents);
+      if (!rawBody || rawBody.length < 20) {
         return res.status(200).json({
           ok: true,
           skipped: true,
           reason: 'no entries in latest week section',
           file_path: filePath,
+        });
+      }
+
+      // GATE 1 — hard-filter non-customer bullets BEFORE Haiku sees them.
+      // Blocks Jarvis panel, ops future-builds, cron/vercel/supabase mentions.
+      // See api/_lib/newsletter-filter.js.
+      const { filtered: body, dropped } = filterCustomerVisible(rawBody);
+      if (dropped.length > 0) {
+        console.log('[cron-weekly-newsletter] hard-gate dropped', JSON.stringify(dropped, null, 2));
+      }
+      if (!body || body.length < 20) {
+        return res.status(200).json({
+          ok: true,
+          skipped: true,
+          reason: 'no customer-visible bullets after hard-gate filter',
+          file_path: filePath,
+          dropped_count: dropped.length,
         });
       }
 
