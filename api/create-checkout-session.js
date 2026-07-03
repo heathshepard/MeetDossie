@@ -18,6 +18,7 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+const { captureServerEvent } = require('./_lib/posthog');
 
 const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
 const SUCCESS_URL = 'https://meetdossie.com/welcome.html?session_id={CHECKOUT_SESSION_ID}';
@@ -116,6 +117,22 @@ module.exports = async function handler(req, res) {
       res.status(502).json({ ok: false, error: 'Could not start checkout. Try again in a moment.' });
       return;
     }
+
+    // Analytics: funnel event fires here (before redirect). Use email as
+    // distinct_id when available so PostHog can join to the identified
+    // person after login; otherwise fall back to a per-session anon id.
+    // No PII in properties.
+    try {
+      await captureServerEvent({
+        distinctId: customerEmail || `anon_${session.id}`,
+        event: 'checkout_session_created',
+        properties: {
+          source: 'founding_landing',
+          has_email_prefill: Boolean(customerEmail),
+          has_affiliate_ref: Boolean(affiliateRef),
+        },
+      });
+    } catch (_) { /* analytics is never load-bearing */ }
 
     res.status(200).json({ ok: true, url: session.url });
   } catch (err) {

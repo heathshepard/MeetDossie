@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="/assets/posthog-loader.js"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -162,6 +163,16 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
   var params = new URLSearchParams(window.location.search);
   var sessionId = params.get("session_id");
 
+  // Analytics: paid-conversion landing. Confirms the funnel step between
+  // Stripe checkout success and onboarding form submit. session_id links
+  // this pageview to the checkout_completed webhook event server-side.
+  try {
+    window.posthog.capture('signup_completed', {
+      has_session_id: Boolean(sessionId),
+      stripe_session_id_prefix: sessionId ? sessionId.slice(0, 8) : null,
+    });
+  } catch (_) { /* analytics never load-bearing */ }
+
   if (!sessionId) {
     status.textContent = "No session found. Please contact support at heath@meetdossie.com";
     status.classList.add("is-error");
@@ -208,6 +219,22 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
   function isValidEmail(e) {
     return typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   }
+
+  // Analytics: fire onboarding_form_started on FIRST field focus. Uses a
+  // single-fire flag so mouse-out/mouse-in doesn't spam events.
+  var formStartedFired = false;
+  [nameInput, phoneInput, brokerageInput, marketInput, heardFromSelect].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('focus', function () {
+      if (formStartedFired) return;
+      formStartedFired = true;
+      try {
+        window.posthog.capture('onboarding_form_started', {
+          has_session_id: Boolean(sessionId),
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    }, { once: false });
+  });
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -256,6 +283,15 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Onboarding failed.");
       }
+
+      // Analytics: onboarding form submitted successfully. The heard_from
+      // value flows into the event so Pierce can attribute paying customers
+      // by their self-reported source. NOT PII — it's a bucket value.
+      try {
+        window.posthog.capture('onboarding_form_submitted', {
+          heard_from: heardFromValue || null,
+        });
+      } catch (_) { /* analytics never load-bearing */ }
 
       showStatus("Account created! Check your email for login instructions.", "success");
       submitButton.textContent = "Setup Complete ✓";

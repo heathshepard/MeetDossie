@@ -23,6 +23,7 @@
 //   TELEGRAM_CHAT_ID               — Heath's Telegram chat ID
 
 const Stripe = require('stripe');
+const { captureServerEvent } = require('./_lib/posthog');
 
 // Stripe requires the raw request body for signature verification, so disable
 // Vercel's default JSON parser on this route.
@@ -470,6 +471,22 @@ async function handleCheckoutSessionCompleted(stripe, session) {
     console.error('[stripe-webhook] subscription upsert failed:', err && err.message, '| userId=', userId, '| stripeCustomerId=', stripeCustomerId);
   }
 
+  // Analytics: paid-conversion event. distinct_id = email so it joins the
+  // pre-signup funnel (which used email once collected) to the identified
+  // user (React app calls posthog.identify(userId, { email }) on login).
+  try {
+    await captureServerEvent({
+      distinctId: customerEmail,
+      event: 'checkout_completed',
+      properties: {
+        stripe_subscription_id: stripeSubscriptionId,
+        plan: tier,
+        amount_cents: 2900,
+        source: 'checkout_session',
+      },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
+
   // Track affiliate referral if ref code present
   // NEW FLOW: referral starts as 'pending_qualification', only locks in rewards after 6 months
   if (affiliateRef) {
@@ -809,6 +826,21 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
   } catch (err) {
     console.warn('[stripe-webhook] logPayment failed in invoice.paid:', err && err.message);
   }
+
+  // 8) Analytics: paid-conversion event for the direct-invoice path.
+  //    Separate event name so Pierce's funnel can distinguish landing-page
+  //    checkouts from Heath-sent invoices in the source breakdown.
+  try {
+    await captureServerEvent({
+      distinctId: customerEmail,
+      event: 'direct_invoice_provisioned',
+      properties: {
+        stripe_subscription_id: stripeSubscriptionId,
+        source: 'direct_invoice',
+        amount_cents: invoice.amount_paid || null,
+      },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
 }
 
 // Handle customer.subscription.created — safety net for the checkout flow gap.
@@ -969,6 +1001,18 @@ async function handleSubscriptionDeleted(subscription, eventId) {
   } else {
     console.warn('[stripe-webhook] subscription deleted but customer email unknown; profile not updated.');
   }
+
+  // Analytics: churn event. distinct_id falls back to Stripe customer id
+  // when we couldn't resolve the email — better than dropping the event.
+  try {
+    await captureServerEvent({
+      distinctId: customerEmail || stripeCustomerId,
+      event: 'subscription_cancelled',
+      properties: {
+        stripe_subscription_id: subscription.id,
+      },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
 }
 
 // Handle invoice.payment_failed — mark subscription as past_due, log event.

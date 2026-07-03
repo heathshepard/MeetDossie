@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="/assets/posthog-loader.js"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -371,6 +372,30 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 </footer>
 
 <script>
+// Analytics: fire founding_page_viewed on landing. UTM params captured
+// so Pierce can attribute conversions back to specific posts / cohorts.
+// Also stash UTM in sessionStorage so the checkout-click event can echo
+// them back after user navigates within the page.
+(function () {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var utmSource = params.get('utm_source') || null;
+    var utmMedium = params.get('utm_medium') || null;
+    var utmCampaign = params.get('utm_campaign') || null;
+    if (utmSource) sessionStorage.setItem('utm_source', utmSource);
+    if (utmMedium) sessionStorage.setItem('utm_medium', utmMedium);
+    if (utmCampaign) sessionStorage.setItem('utm_campaign', utmCampaign);
+
+    // Use the queue-stub or the real SDK — both accept capture().
+    window.posthog.capture('founding_page_viewed', {
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      referrer: document.referrer || null,
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+
 // Live spot count
 (function () {
   var faq = document.getElementById("faq-spots-answer");
@@ -411,11 +436,25 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
   var status = document.getElementById("status-message");
   if (!button) return;
 
+  var pageLoadedAt = Date.now();
+
   button.addEventListener("click", async function () {
     button.disabled = true;
     button.textContent = "Starting checkout...";
     status.textContent = "";
     status.classList.remove("is-error");
+
+    // Analytics: fires BEFORE the network call so we capture intent even
+    // if the API request fails. Echoes UTM captured on page load so the
+    // click event carries the same attribution.
+    try {
+      window.posthog.capture('founding_join_clicked', {
+        time_on_page_seconds: Math.round((Date.now() - pageLoadedAt) / 1000),
+        utm_source: sessionStorage.getItem('utm_source') || null,
+        utm_medium: sessionStorage.getItem('utm_medium') || null,
+        utm_campaign: sessionStorage.getItem('utm_campaign') || null,
+      });
+    } catch (_) { /* analytics never load-bearing */ }
 
     try {
       var res = await fetch("/api/create-checkout-session", {
