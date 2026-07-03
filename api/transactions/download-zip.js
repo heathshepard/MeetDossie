@@ -33,12 +33,13 @@ const ALLOWED_ORIGINS = new Set([
   'https://www.meetdossie.com',
 ]);
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
 function applyCors(req, res) {
   const origin = (req.headers && req.headers.origin) || '';
   const allowed =
     (typeof origin === 'string' && origin.length > 0) &&
-    (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin));
+    (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin));
   if (allowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
