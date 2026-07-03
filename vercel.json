@@ -397,6 +397,12 @@
                                                  },
                       "api/cron-support-ticket-alert.js":  {
                                                      "maxDuration":  60
+                                                 },
+                      "api/cron-automap-pending-documents.js":  {
+                                                     "maxDuration":  300
+                                                 },
+                      "api/cron-quinn-daily-audit.js":  {
+                                                     "maxDuration":  300
                                                  }
                   },
     "crons":  [
@@ -739,6 +745,14 @@
                   {
                       "path":  "/api/cron-support-ticket-alert",
                       "schedule":  "*/30 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-automap-pending-documents",
+                      "schedule":  "*/2 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-quinn-daily-audit",
+                      "schedule":  "7 11 * * *"
                   }
               ]
 }
