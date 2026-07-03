@@ -116,7 +116,13 @@ Reply with ONLY the comment text, nothing else.`,
 
   if (!res.ok) return null;
   const json = await res.json();
-  return json.content?.[0]?.text?.trim() || null;
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const text = ((json?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
+  return text || null;
 }
 
 // ─── Playwright: engage one account ──────────────────────────────────────────

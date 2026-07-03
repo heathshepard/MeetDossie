@@ -248,7 +248,12 @@ export default async function handler(req, res) {
       }
 
       const claudeData = await claudeRes.json();
-      replyText = claudeData.content?.[0]?.text || '';
+      // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+      replyText = ((claudeData?.content || [])
+        .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+        .map((b) => b.text)
+        .join('')
+        .trim());
     } catch (e) {
       console.error('[voice-chat POST] Claude call failed:', e.message);
       return res.status(502).json({ error: 'Claude call failed', detail: e.message });

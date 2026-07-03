@@ -320,7 +320,12 @@ Return STRICT JSON only. No markdown. No commentary.
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${text.slice(0, 200)}`);
 
   const data = JSON.parse(text);
-  const raw = data?.content?.[0]?.text || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const raw = ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
 
   let s = raw.trim();
   if (s.startsWith('```')) s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
@@ -472,7 +477,12 @@ Return STRICT JSON only:
         const retryText = await retryRes.text();
         if (retryRes.ok) {
           const retryData = JSON.parse(retryText);
-          let r = (retryData?.content?.[0]?.text || '').trim();
+          // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+          let r = ((retryData?.content || [])
+            .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+            .map((b) => b.text)
+            .join('')
+            .trim());
           if (r.startsWith('```')) r = r.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
           const fb = r.indexOf('{');
           const lb = r.lastIndexOf('}');

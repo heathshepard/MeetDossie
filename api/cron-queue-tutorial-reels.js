@@ -85,12 +85,22 @@ Return plain text caption, hashtags on same line separated by spaces.`,
     });
 
     const json = await res.json();
-    if (!res.ok || !json.content || !json.content[0]) {
+    if (!res.ok || !Array.isArray(json.content) || json.content.length === 0) {
       console.warn('[cron-queue-tutorial-reels] Claude API error:', json);
       return null;
     }
 
-    return json.content[0].text;
+    // Sonnet 5 extended thinking may prepend a `thinking` block. Concat all text blocks.
+    const caption = (json.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim();
+    if (!caption) {
+      console.warn('[cron-queue-tutorial-reels] Claude API returned no text block:', json);
+      return null;
+    }
+    return caption;
   } catch (err) {
     console.warn('[cron-queue-tutorial-reels] generateCaption failed:', err && err.message);
     return null;

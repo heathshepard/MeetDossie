@@ -47,7 +47,12 @@ async function generateCaption(stem) {
     }
 
     const data  = await resp.json();
-    let caption = (data.content && data.content[0] && data.content[0].text || '').trim();
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    let caption = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
 
     // Enforce 150 char limit
     if (caption.length > 150) {

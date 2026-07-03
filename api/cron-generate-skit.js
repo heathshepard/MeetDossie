@@ -268,7 +268,12 @@ REMEMBER: Beat 3 must name a specific Dossie capability. Beat 3 is the line a vi
     throw new Error('Anthropic returned non-JSON response');
   }
 
-  const rawContent = parsed?.content?.[0]?.text;
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const rawContent = ((parsed?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   if (!rawContent) throw new Error('Anthropic returned empty content');
 
   // Extract JSON from content (strip any markdown fences)

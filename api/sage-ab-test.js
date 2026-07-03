@@ -89,7 +89,12 @@ Reply with JSON only: {"hook": "...", "content": "...", "hashtags": ["..."]}.`;
     throw new Error(`Anthropic ${res.status}: ${text.slice(0, 200)}`);
   }
   const body = await res.json();
-  const text = body?.content?.[0]?.text || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const text = ((body?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   const jsonStart = text.indexOf('{');
   const jsonEnd = text.lastIndexOf('}');
   if (jsonStart === -1 || jsonEnd === -1) {

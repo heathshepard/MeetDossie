@@ -195,7 +195,12 @@ async function classifyCommit({ subject, body, files, repo }) {
     throw new Error(`Anthropic ${r.status}: ${text.slice(0, 240)}`);
   }
   const data = JSON.parse(text);
-  const content = data?.content?.[0]?.text || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const content = ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   const stripped = content.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
   let parsed;
   try { parsed = JSON.parse(stripped); } catch {

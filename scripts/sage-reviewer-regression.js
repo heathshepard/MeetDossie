@@ -184,7 +184,12 @@ async function coleReview(post) {
     }
 
     const data = await res.json();
-    const text = data?.content?.[0]?.text || '';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     const start = text.indexOf('{');
     if (start === -1) return null;
     let depth = 0;

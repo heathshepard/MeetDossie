@@ -220,7 +220,12 @@ REMEMBER: Beat 3 must name a specific Dossie capability. Beat 3 is the line a vi
   const text = await res.text();
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${text.slice(0, 300)}`);
   const parsed = JSON.parse(text);
-  const rawContent = parsed?.content?.[0]?.text;
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const rawContent = ((parsed?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   if (!rawContent) throw new Error('Anthropic empty content');
 
   let s = rawContent.trim();

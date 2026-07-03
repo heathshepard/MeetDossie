@@ -79,7 +79,12 @@ Draft a follow-up comment that continues the discussion (not a sales pitch).`;
     if (!res.ok) return null;
 
     const data = await res.json();
-    const text = data?.content?.[0]?.text || '';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     // Balanced-brace JSON extraction (same fix as cron-sage-autonomous-review).
     const start = text.indexOf('{');
     if (start === -1) return null;

@@ -106,7 +106,12 @@ Write ONLY the script text that Luna will read. No explanations, no meta-comment
     }
 
     const data = await response.json();
-    const script = data.content[0].text;
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const script = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
 
     return res.status(200).json({ script });
 

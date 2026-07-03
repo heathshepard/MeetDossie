@@ -1951,7 +1951,13 @@ async function handleConversationEnd(req, res, requestId, { tenant }) {
       );
       if (summaryRes.ok) {
         const dat = await summaryRes.json();
-        title = (dat.content?.[0]?.text || '').trim().slice(0, 80) || null;
+        // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+        const titleText = ((dat?.content || [])
+          .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+          .map((b) => b.text)
+          .join('')
+          .trim());
+        title = titleText.slice(0, 80) || null;
       }
     } catch (err) {
       console.warn(`[jarvis-voice/end] [${requestId}] title summarization failed: ${err.message}`);

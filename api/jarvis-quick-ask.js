@@ -165,7 +165,13 @@ async function answerWithPersona(specialist, question) {
     throw new Error(`claude ${r.status}: ${t.slice(0, 200)}`);
   }
   const data = await r.json();
-  return { answer: (data.content?.[0]?.text || '').trim() };
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const answer = ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
+  return { answer };
 }
 
 async function renderGeorgeTTS(text) {
