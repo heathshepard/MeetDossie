@@ -137,7 +137,12 @@ Write a 2-4 sentence comment reply. Be helpful and genuine. If Dossie fits natur
   }
 
   const json = await res.json();
-  return json.content?.[0]?.text?.trim() || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  return ((json?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
 }
 
 // ─── Telegram helpers ─────────────────────────────────────────────────────────

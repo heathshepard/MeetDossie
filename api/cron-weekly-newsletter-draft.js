@@ -150,7 +150,12 @@ async function callAnthropic(prompt) {
   }
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('Anthropic non-JSON response'); }
-  const content = data?.content?.[0]?.text;
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const content = ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   if (!content) throw new Error('Anthropic returned no content block');
   const stripped = content.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
   let parsed;

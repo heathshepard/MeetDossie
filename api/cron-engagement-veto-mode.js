@@ -207,7 +207,12 @@ async function draftFor(row) {
       return { draft: null, raw: `claude ${res.status}: ${err.slice(0, 200)}` };
     }
     const json = await res.json();
-    const txt = String(json?.content?.[0]?.text || '').trim();
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const txt = ((json?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     if (!txt || txt.toUpperCase().startsWith('SKIP')) {
       return { draft: null, raw: 'SKIP' };
     }

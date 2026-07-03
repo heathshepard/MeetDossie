@@ -60,7 +60,13 @@ Respond with exactly 2 sentences.`,
       ],
     });
 
-    const brief = msg.content[0]?.text?.trim() || 'Dashboard loaded. Check cron health and activation metrics.';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const briefText = ((msg?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
+    const brief = briefText || 'Dashboard loaded. Check cron health and activation metrics.';
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ brief });
   } catch (e) {

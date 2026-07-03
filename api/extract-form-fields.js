@@ -525,7 +525,12 @@ Extract the form fields. Use ONLY field names from the template above.`;
     messages: [{ role: 'user', content: userPrompt }],
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const text = ((response.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
 
   // Parse JSON from response
   let parsed;

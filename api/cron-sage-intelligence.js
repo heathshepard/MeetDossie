@@ -429,7 +429,13 @@ Be specific. Reference actual numbers when available. No preamble or sign-off.`;
     }
 
     const body = await res.json();
-    return (body?.content?.[0]?.text || '').trim() || 'No brief generated.';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const brief = ((body?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
+    return brief || 'No brief generated.';
   } catch (err) {
     console.warn('[sage-intel] Anthropic fetch error:', err && err.message);
     return 'Intelligence brief unavailable due to API error. Default to evergreen TREC + Control pillar content.';

@@ -112,7 +112,12 @@ Now write the comment. 80-150 words. First-person Heath founder voice. No URL. N
     process.exit(1);
   }
   const j = await res.json();
-  const draft = j.content?.[0]?.text?.trim() || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const draft = ((j?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   if (!draft) {
     console.error('Empty draft');
     process.exit(1);

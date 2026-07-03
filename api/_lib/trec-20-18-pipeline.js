@@ -498,7 +498,12 @@ Return JSON only.`;
     }
   }
 
-  const text = (resp.content[0] && resp.content[0].type === 'text' && resp.content[0].text) || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const text = ((resp?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   let parsed;
   try {
     const cleaned = text.replace(/^```[a-z]*\n?/m, '').replace(/```$/m, '').trim();

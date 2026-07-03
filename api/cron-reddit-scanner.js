@@ -147,7 +147,12 @@ async function draftReply(post, keyword) {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const text = String(data?.content?.[0]?.text || '').trim();
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     if (!text || text.toUpperCase().startsWith('SKIP')) return null;
     return text;
   } catch { return null; }

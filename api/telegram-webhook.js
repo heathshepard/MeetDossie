@@ -77,7 +77,12 @@ Return JSON only: {"hook": N, "platform_fit": N, "cta": N}`;
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const text = data?.content?.[0]?.text || '';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     const match = text.match(/\{[^}]+\}/);
     if (!match) return null;
     const parsed = JSON.parse(match[0]);
@@ -179,7 +184,12 @@ async function verifyRegenPost({ platform, persona, caption }) {
   let raw;
   try {
     const data = JSON.parse(text);
-    raw = data?.content?.[0]?.text;
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    raw = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim()) || null;
   } catch { raw = null; }
 
   if (!raw) {
@@ -335,7 +345,12 @@ async function callAnthropicForRegen(prompt) {
   try { data = JSON.parse(text); } catch (e) {
     throw new Error('Anthropic returned non-JSON: ' + text.slice(0, 200));
   }
-  const content = data?.content?.[0]?.text;
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  const content = ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
   if (!content) throw new Error('Anthropic returned no content block');
   return content;
 }

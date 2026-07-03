@@ -60,7 +60,13 @@ async function testModel(model, prompt) {
       system: `You are testing action intent extraction. Respond with the action and key fields.`,
       messages: [{ role: 'user', content: prompt }]
     });
-    return { success: true, text: response.content[0]?.text || '', model };
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((response?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
+    return { success: true, text, model };
   } catch (error) {
     return { success: false, error: error.message, model };
   }

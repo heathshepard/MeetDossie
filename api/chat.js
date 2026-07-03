@@ -176,7 +176,13 @@ async function callClaude(model, message, systemPrompt, history, metadata = {}) 
     metadata: { endpoint: 'chat', ...metadata },
   });
 
-  return response.content[0].text;
+  // Sonnet 5 extended thinking prepends a `thinking` block to content[].
+  // Read every text block instead of assuming content[0] is text.
+  return ((response.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
 }
 
 // =============================================================================

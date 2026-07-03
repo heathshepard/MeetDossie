@@ -186,7 +186,12 @@ Apply the rules above. Bias toward APPROVE if facts are clean and voice is warm.
     }
 
     const data = await res.json();
-    const text = data?.content?.[0]?.text || '';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     // Balanced-brace JSON extraction for Sonnet's longer-form responses
     const start = text.indexOf('{');
     if (start === -1) {

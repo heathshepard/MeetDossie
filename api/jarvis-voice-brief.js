@@ -212,7 +212,12 @@ Output the brief text only. No prefix, no markdown, no quotes. Plain text the TT
       return buildTemplateScript(state, addressing);
     }
     const data = await r.json();
-    const text = (data.content?.[0]?.text || '').trim();
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     if (!text) return buildTemplateScript(state, addressing);
     return text;
   } catch (err) {

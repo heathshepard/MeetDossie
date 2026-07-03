@@ -326,7 +326,12 @@ async function callSage(history, userText) {
     throw new Error(`Anthropic ${res.status}`);
   }
   const data = JSON.parse(text);
-  return data?.content?.[0]?.text || '';
+  // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+  return ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
 }
 
 // ─── Handler ───────────────────────────────────────────────────────────────

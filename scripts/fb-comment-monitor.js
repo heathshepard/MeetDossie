@@ -166,7 +166,13 @@ Draft a reply for Heath.`;
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return String(data?.content?.[0]?.text || '').trim() || null;
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
+    return text || null;
   } catch (err) {
     console.error('[fb-comment-monitor] draftReply failed:', err && err.message);
     return null;

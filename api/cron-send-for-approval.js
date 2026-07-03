@@ -89,7 +89,12 @@ Return JSON only: {"hook": N, "platform_fit": N, "cta": N}`;
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const text = data?.content?.[0]?.text || '';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((data?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
     // Extract JSON — handle fences or extra whitespace
     const match = text.match(/\{[^}]+\}/);
     if (!match) return null;

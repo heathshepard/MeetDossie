@@ -274,8 +274,13 @@ ${context}`;
     }
 
     const body = await res.json();
-    const text = body?.content?.[0]?.text || '';
-    const summary = text.trim() || 'No summary generated.';
+    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
+    const text = ((body?.content || [])
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim());
+    const summary = text || 'No summary generated.';
     return {
       brief: `${sourceLine}\n\n${summary}`,
       briefSource,
