@@ -391,7 +391,10 @@
                                                              },
                       "api/dossiesign-auto-map.js":  {
                                                          "maxDuration":  300
-                                                     }
+                                                     },
+                      "api/cron-inbox-scan.js":  {
+                                                     "maxDuration":  60
+                                                 }
                   },
     "crons":  [
                   {
@@ -725,6 +728,10 @@
                   {
                       "path":  "/api/cron-send-engagement-approvals",
                       "schedule":  "52 15 * * *"
+                  },
+                  {
+                      "path":  "/api/cron-inbox-scan",
+                      "schedule":  "7 * * * *"
                   }
               ]
 }
