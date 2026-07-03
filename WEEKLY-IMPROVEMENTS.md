@@ -19,8 +19,9 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Emojis now display correctly on signup page** (customer)
 - We fixed an issue where emoji icons weren't showing up properly on the founding page during signup. Now they'll display correctly across all browsers.
 
-**Live heartbeat indicator on your Jarvis command deck** (customer)
+**Live heartbeat indicator on your Jarvis command deck** (internal)
 - Your Jarvis panel now shows a small pulsing "LIVE" pill in the header so you can see at a glance that your data is fresh and streaming. If the connection ever stalls, the pill turns amber so you know to refresh.
+- NOTE: re-tagged internal 2026-07-02 — Jarvis is Heath's internal ops UI, not a customer feature. Do NOT ship in customer newsletter.
 
 **Automatic unsubscribe protection on every email** (customer)
 - We added a safety check so that anyone who has ever unsubscribed from Dossie emails will never receive another one — even by accident, even from a different email flow. This keeps us compliant with CAN-SPAM and respects your contacts' inboxes.
@@ -37,8 +38,9 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Better error messages when forms fail to upload** (customer)
 - When a form doesn't fill or upload correctly, you'll now see a specific error message on that form instead of a generic failure message. This makes it easier to spot and fix problems before sending.
 
-**Future builds panel now shows recent shipments** (customer)
+**Future builds panel now shows recent shipments** (internal)
 - We fixed the future builds panel to accurately display your recent shipments from the last 30 days, so you can see your actual shipping activity at a glance.
+- NOTE: re-tagged internal 2026-07-02 — future-builds panel is a Jarvis ops surface, not customer-facing.
 
 **Fixed HOA resale certificate checkbox logic** (customer)
 - We fixed a bug where resale certificate checkboxes were appearing checked even when they shouldn't be based on your HOA section choices. The form now correctly hides these options until you select the right parent option.
@@ -94,8 +96,8 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Large real estate forms now auto-fill correctly** (customer)
 - We fixed form auto-fill for large Texas real estate documents like TAR-1601 that were timing out before. Now all forms, no matter their size, will automatically extract and fill fields correctly.
 
-**Auto-map now handles large PDFs reliably** (customer)
-- We improved our automatic form field detection to work smoothly on long, complex documents without timing out or losing data. This means more of your contracts and disclosures will auto-fill correctly the first time.
+**Automatic field detection handles large PDFs reliably** (customer)
+- We improved automatic form field detection to work smoothly on long, complex documents without timing out or losing data. This means more of your contracts and disclosures will fill in correctly the first time.
 
 **Improved fill-and-sign editor now live** (customer)
 - We've rolled out an updated document editor for fill-and-sign with better support for initial and checkbox fields. Your clients will see a smoother experience when reviewing and signing documents.
@@ -167,8 +169,9 @@ This file is a running customer-friendly changelog. Items go in **in plain Engli
 **Streamlined portfolio display** (customer)
 - We cleaned up the portfolio section on your dashboard to show only our core products, giving you a cleaner view of what we offer.
 
-**Mobile layout fixes and Jarvis voice upgrade** (customer)
+**Mobile layout fixes and Jarvis voice upgrade** (internal)
 - We fixed the mobile experience on foldable phones so the interactive globe displays correctly without overlapping your header. We also upgraded Jarvis's voice to a richer, deeper British tone that better matches the original character.
+- NOTE: re-tagged internal 2026-07-02 — Jarvis + Earth globe are ops UI, not customer surfaces.
 
 **Fixed mobile layout alignment at 900px width** (customer)
 - We fixed a rare display issue where the app could show desktop and mobile layouts at the same time on devices exactly 900 pixels wide. Now the app consistently shows the correct mobile layout on smaller screens.
