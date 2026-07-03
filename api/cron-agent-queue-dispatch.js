@@ -111,7 +111,17 @@ async function callAgent(agentName, taskSubject, taskBrief, metadata) {
       throw new Error(`anthropic_${res.status}:${text.slice(0, 200)}`);
     }
     const data = JSON.parse(text);
-    const reply = data?.content?.[0]?.text || '';
+    // Sonnet 5 extended thinking returns content = [thinking_block, text_block].
+    // The old code read content[0].text which was undefined when a thinking
+    // block preceded the text — every task starved with _last_error='empty_reply'.
+    // Fix: find the first block with a non-empty .text field (Anthropic's spec
+    // allows multiple content blocks; concatenate all text blocks for safety).
+    const blocks = Array.isArray(data?.content) ? data.content : [];
+    const reply = blocks
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('\n')
+      .trim();
     return reply;
   } finally {
     clearTimeout(timer);
@@ -242,6 +252,29 @@ async function handler(req, res) {
     return res.status(500).json({ ok: false, error: `missing_env:${missing.join(',')}` });
   }
 
+  // ─── Self-healing sweep ──────────────────────────────────────────────────
+  // Any row stuck in 'in_progress' for more than STUCK_THRESHOLD_MIN is a
+  // dead worker (Vercel function timed out, crashed after PATCH, or empty
+  // reply happened while claim was live). Reset to pending so the queue
+  // doesn't starve.
+  const STUCK_THRESHOLD_MIN = 15;
+  const stuckCutoff = new Date(Date.now() - STUCK_THRESHOLD_MIN * 60 * 1000).toISOString();
+  const sweep = await sb(
+    `agent_queue?status=eq.in_progress&started_at=lt.${stuckCutoff}`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({
+        status: 'pending',
+        started_at: null,
+      }),
+    },
+  );
+  const sweptCount = Array.isArray(sweep.data) ? sweep.data.length : 0;
+  if (sweptCount > 0) {
+    console.log(`[cron-agent-queue-dispatch] self-heal swept ${sweptCount} stuck row(s) older than ${STUCK_THRESHOLD_MIN}m`);
+  }
+
   // Pull from the ready view (deps satisfied). Priority ASC so 1 ships before 5.
   const { ok, data, status } = await sb(
     `agent_queue_ready?select=id,agent_name,task_subject,task_brief,priority,depends_on,metadata,venture` +
@@ -269,6 +302,7 @@ async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     processed: results.length,
+    swept: sweptCount,
     results,
     at: new Date().toISOString(),
   });
