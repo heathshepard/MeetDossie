@@ -606,8 +606,18 @@ async function runFullSuite() {
   }
 
   const { chromium } = pw;
-  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  let browser = null;
+  let ctx = null;
+  let playwrightLaunched = false;
+  let launchError = null;
+  try {
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+    ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    playwrightLaunched = true;
+  } catch (e) {
+    launchError = String(e && e.message ? e.message : e).slice(0, 200);
+    // Fall through — API-only tests still run below.
+  }
 
   try {
     for (const t of TEST_CATALOG) {
@@ -615,6 +625,11 @@ async function runFullSuite() {
       const started = Date.now();
       if (!runner) {
         results.push({ name: t.name, sev: t.sev, status: 'skipped', error: 'no_runner', elapsed_ms: 0 });
+        continue;
+      }
+      const isApiOnly = ['T05-talk-to-dossie','T08-upload-automap','T10-trec-citation','T11-morning-brief-dedup','T12-pipeline-dnd','T13-followup-dots'].includes(t.name);
+      if (!playwrightLaunched && !isApiOnly) {
+        results.push({ name: t.name, sev: t.sev, status: 'skipped', error: `playwright_launch_failed:${launchError || 'unknown'}`, elapsed_ms: Date.now() - started });
         continue;
       }
       try {
@@ -625,11 +640,11 @@ async function runFullSuite() {
       }
     }
   } finally {
-    await ctx.close().catch(() => {});
-    await browser.close().catch(() => {});
+    if (ctx) await ctx.close().catch(() => {});
+    if (browser) await browser.close().catch(() => {});
   }
 
-  return { runId, startedAt: new Date(startWall).toISOString(), totalSec: Math.round((Date.now() - startWall) / 1000), results, playwright: true };
+  return { runId, startedAt: new Date(startWall).toISOString(), totalSec: Math.round((Date.now() - startWall) / 1000), results, playwright: playwrightLaunched };
 }
 
 // --------------------------------------------------------------------------
