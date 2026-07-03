@@ -29,7 +29,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SAGE_TRIGGER_SECRET = process.env.SAGE_TRIGGER_SECRET;
 
-const VARIANT_MODEL = 'claude-sonnet-4-6';
+const VARIANT_MODEL = 'claude-sonnet-5';
 
 async function supaFetch(path, opts = {}) {
   const url = `${SUPABASE_URL}/rest/v1/${path}`;

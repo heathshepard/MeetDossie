@@ -106,9 +106,13 @@ module.exports = async function handler(req, res) {
         const fillData = await fillRes.json();
 
         if (fillData.ok) {
+          // fill-form returns `signedUrl` — carry it forward as pdf_url so the
+          // client and the allSuccess check both see it. Also preserve the raw
+          // signedUrl key for callers that ask for it.
           results.push({
             form_type: formType,
-            pdf_url: fillData.pdf_url,
+            pdf_url: fillData.signedUrl || fillData.pdf_url || null,
+            signedUrl: fillData.signedUrl || null,
             documentId: fillData.documentId,
             storagePath: fillData.storagePath
           });

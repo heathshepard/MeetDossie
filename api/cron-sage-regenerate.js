@@ -19,7 +19,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const GENERATOR_MODEL = 'claude-sonnet-4-6';
+const GENERATOR_MODEL = 'claude-sonnet-5';
 const MAX_PER_RUN = 6; // conservative: regeneration is slower than initial generation
 
 async function supabaseFetch(path, init = {}) {

@@ -115,7 +115,7 @@ export default async function handler(req) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 1024,
       system: AGENT_PROMPTS[agent],
       messages: sanitized,

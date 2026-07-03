@@ -30,7 +30,7 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
 const JARVIS_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // George (Iron Man HUD locked)
-const CLAUDE_MODEL = 'claude-sonnet-4-6';
+const CLAUDE_MODEL = 'claude-sonnet-5';
 
 const VALID_SPECIALISTS = new Set(['hadley', 'sterling', 'pierce']);
 

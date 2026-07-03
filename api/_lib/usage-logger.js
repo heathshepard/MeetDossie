@@ -69,7 +69,7 @@ async function logElevenLabs(userId, characterCount, metadata = {}) {
  * @param {string} userId - User ID from auth
  * @param {string} endpoint - 'chat' or 'scan'
  * @param {object} usage - Token usage object from Anthropic response
- * @param {string} model - Model name (e.g., 'claude-sonnet-4-6')
+ * @param {string} model - Model name (e.g., 'claude-sonnet-5')
  * @param {object} metadata - Optional metadata
  */
 async function logAnthropic(userId, endpoint, usage, model, metadata = {}) {

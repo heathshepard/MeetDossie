@@ -30,7 +30,7 @@
 // ============================================================================
 
 const MODEL_OPUS   = 'claude-opus-4-8';
-const MODEL_SONNET = 'claude-sonnet-4-6';
+const MODEL_SONNET = 'claude-sonnet-5';
 const MODEL_HAIKU  = 'claude-haiku-4-5-20251001';
 
 // Role defaults — what the agent uses if no per-task signal applies.

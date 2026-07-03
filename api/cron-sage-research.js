@@ -37,7 +37,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const DRAFTER_MODEL = 'claude-sonnet-4-6';
+const DRAFTER_MODEL = 'claude-sonnet-5';
 const MAX_DRAFTS_PER_RUN = 5;
 const KEEP_TOP_N_HEADLINES = 12; // we score these, drop to MAX_DRAFTS_PER_RUN
 

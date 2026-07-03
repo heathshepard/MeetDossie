@@ -40,7 +40,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY         = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET               = process.env.CRON_SECRET;
 
-const SONNET_MODEL = 'claude-sonnet-4-6';
+const SONNET_MODEL = 'claude-sonnet-5';
 const MAX_PER_RUN  = 4;        // bounded so each cron tick stays under 60s
 const MAX_TOKENS   = 1500;
 const FETCH_TIMEOUT_MS = 45000;

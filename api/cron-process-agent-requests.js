@@ -27,7 +27,7 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_SAGE_BOT_TOKEN = process.env.TELEGRAM_SAGE_BOT_TOKEN;
 
-const SONNET_MODEL = 'claude-sonnet-4-6';
+const SONNET_MODEL = 'claude-sonnet-5';
 const MAX_PER_RUN = 5;            // up to 5 requests per cron tick
 const MAX_REPLY_CHARS = 3800;
 const RATE_LIMIT_PER_HOUR = 10;   // per source_chat_id

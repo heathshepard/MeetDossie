@@ -43,8 +43,8 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // In production, cron uses 'claude-sonnet-4-20250514' (Anthropic-internal alias).
-// Local dev key resolves to 'claude-sonnet-4-6' — same model family, same prompt behavior.
-const REVIEWER_MODEL = process.env.SAGE_REGRESSION_MODEL || 'claude-sonnet-4-6';
+// Local dev key resolves to 'claude-sonnet-5' — same model family, same prompt behavior.
+const REVIEWER_MODEL = process.env.SAGE_REGRESSION_MODEL || 'claude-sonnet-5';
 
 const args = process.argv.slice(2);
 const limitArg = args.indexOf('--limit');

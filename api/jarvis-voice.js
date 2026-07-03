@@ -1234,7 +1234,7 @@ async function handleChat(req, res, requestId, { tenant, jarvisUser }) {
         // 2026-06-27: max_tokens raised 800 -> 4096 so long replies (e.g.
         // "read this entire memo back to me") aren't truncated mid-sentence.
         // Sonnet 4.6 supports up to 8192 output tokens.
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 4096,
         system: systemBlocks,
         messages,
@@ -1631,7 +1631,7 @@ async function handleChatTTSStream(req, res, requestId, { tenant, jarvisUser }) 
           // aren't cut off mid-thought. The sentence-chunked TTS pipeline
           // already handles arbitrary length — each sentence gets its own
           // ElevenLabs call.
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-5',
           max_tokens: 4096,
           stream: true,
           system: systemBlocks,
@@ -1937,7 +1937,7 @@ async function handleConversationEnd(req, res, requestId, { tenant }) {
             'content-type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
+            model: 'claude-sonnet-5',
             max_tokens: 30,
             system: 'You generate a 4-7 word title summarizing the topic of a short conversation. Output the title only — no quotes, no punctuation at the end.',
             messages: [{
