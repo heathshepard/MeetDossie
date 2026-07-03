@@ -10,6 +10,8 @@
 // same URL works for every approved applicant. The applicant's email is
 // pre-filled via the ?prefilled_email= query param.
 
+const { captureServerEvent } = require('./posthog');
+
 const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
 
 async function supabaseGet(path) {
@@ -212,6 +214,22 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
     emailId,
   });
 
+  // Analytics: fires whether Heath approved via Telegram inline button or
+  // via the admin-approve-founding endpoint. Both share this code path.
+  try {
+    const submittedAt = app.created_at ? new Date(app.created_at).getTime() : null;
+    await captureServerEvent({
+      distinctId: app.email,
+      event: 'founding_application_approved',
+      properties: {
+        heard_from: app.heard_from || null,
+        time_since_submitted_minutes: submittedAt
+          ? Math.round((Date.now() - submittedAt) / 60000)
+          : null,
+      },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
+
   return {
     ok: true,
     application: { id: app.id, name: app.name, email: app.email },
@@ -231,6 +249,13 @@ async function rejectFoundingApplication({ applicationId }) {
     `/rest/v1/founding_applications?id=eq.${encodeURIComponent(applicationId)}`,
     { status: 'rejected', decision: 'rejected', reviewed_at: now },
   );
+  try {
+    await captureServerEvent({
+      distinctId: app.email,
+      event: 'founding_application_rejected',
+      properties: { heard_from: app.heard_from || null },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
   return { ok: true, application: { id: app.id, name: app.name, email: app.email } };
 }
 
