@@ -400,6 +400,9 @@
                                                  },
                       "api/cron-automap-pending-documents.js":  {
                                                      "maxDuration":  300
+                                                 },
+                      "api/cron-quinn-daily-audit.js":  {
+                                                     "maxDuration":  300
                                                  }
                   },
     "crons":  [
@@ -746,6 +749,10 @@
                   {
                       "path":  "/api/cron-automap-pending-documents",
                       "schedule":  "*/2 * * * *"
+                  },
+                  {
+                      "path":  "/api/cron-quinn-daily-audit",
+                      "schedule":  "7 11 * * *"
                   }
               ]
 }
