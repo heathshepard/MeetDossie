@@ -230,7 +230,7 @@ async function handleChat(req, res, requestId) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 400,
       system: COLE_SYSTEM_PROMPT,
       messages: finalMessages,

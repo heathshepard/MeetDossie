@@ -109,7 +109,7 @@ function determineModel(message, transactionContext) {
   const needsComplexReasoning = hasTransaction && 
     transactionReasoningKeywords.some(keyword => lowerMessage.includes(keyword));
   
-  return needsComplexReasoning ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+  return needsComplexReasoning ? 'claude-sonnet-5' : 'claude-haiku-4-5-20251001';
 }
 
 function buildSystemPrompt(hasTransaction) {
@@ -158,7 +158,7 @@ Don't force data entry. Just be a helpful coordinator they can talk to.`;
 }
 
 async function callClaude(model, message, systemPrompt, history, metadata = {}) {
-  const maxTokens = model === 'claude-sonnet-4-6' ? 400 : 150;
+  const maxTokens = model === 'claude-sonnet-5' ? 400 : 150;
 
   const messagesArray = Array.isArray(history) && history.length > 0
     ? history
@@ -761,7 +761,7 @@ async function handleActionMode({ message, deals, messages, userId }) {
   console.log('[Chat] messages array len:', finalMessages.length, 'preview:', finalMessages.map((m) => ({ role: m.role, contentLen: typeof m.content === 'string' ? m.content.length : 0, head: typeof m.content === 'string' ? m.content.slice(0, 80) : '<non-string>' })));
 
   const response = await messagesCreateCached(anthropic, {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5',
     max_tokens: 2000,
     systemStatic,
     systemVariable,

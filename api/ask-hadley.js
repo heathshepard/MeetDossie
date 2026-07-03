@@ -295,7 +295,7 @@ Rules:
 - If the question is off-topic or cannot be classified, respond with exactly "UNCLASSIFIED".`;
 
     const response = await messagesCreateCached(anthropic, {
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 20,
       systemStatic,
       messages: [
@@ -351,7 +351,7 @@ Knowledge base (${formName}):
 ${knowledgeContent}`;
 
   const response = await messagesCreateCached(anthropic, {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5',
     max_tokens: 800,
     systemStatic,
     messages: [

@@ -28,7 +28,7 @@ const CRON_SECRET = process.env.CRON_SECRET;
 // approval flow. Set AUTO_APPROVE_POSTS=true in Vercel env to restore auto-publish.
 const AUTO_APPROVE_POSTS = process.env.AUTO_APPROVE_POSTS === 'true';
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+const ANTHROPIC_MODEL = 'claude-sonnet-5';
 // Verifier runs as a cheaper model — it only checks claims against an embedded
 // facts snapshot, doesn't generate copy. Haiku 4.5 is sufficient and adds
 // roughly a few hundred ms + ~$0.001 per post to the batch.

@@ -28,7 +28,7 @@ const { extractMarkers, stripMarkersForHeath } = require('./_lib/agent-markers.j
 const { extractQueryMarkers, stripQueryMarkers, runQuery, formatQueryResult } = require('./_lib/sage-query.js');
 const { extractTriggerMarkers, stripTriggerMarkers } = require('./_lib/sage-triggers.js');
 
-const SAGE_MODEL = 'claude-sonnet-4-6';
+const SAGE_MODEL = 'claude-sonnet-5';
 const HISTORY_LIMIT = 30;   // pull last 30 messages for context
 const MAX_REPLY_CHARS = 3800;
 const CRON_SECRET = process.env.CRON_SECRET;

@@ -174,7 +174,7 @@ Confidence > 0.7 means the field identification is clear. If ambiguous or confid
 Do NOT guess. If you cannot determine the field, say so.`;
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 300,
       system: systemPrompt,
       messages: [

@@ -31,7 +31,7 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+const ANTHROPIC_MODEL = 'claude-sonnet-5';
 // Haiku is sufficient for structured scoring and fact-checking — cheaper and fast.
 const SCORER_MODEL = 'claude-haiku-4-5-20251001';
 const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';

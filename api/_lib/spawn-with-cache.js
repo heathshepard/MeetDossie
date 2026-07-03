@@ -22,7 +22,7 @@
 //   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 //
 //   const result = await messagesCreateCached(client, {
-//     model: 'claude-sonnet-4-6',
+//     model: 'claude-sonnet-5',
 //     systemStatic: BIG_MEMORY_PREFIX,        // cached — keep byte-identical
 //     systemVariable: 'Today is 2026-06-20.', // not cached — per-call dynamic
 //     tools: TOOLS,                           // cached if non-empty
@@ -49,6 +49,7 @@ const PRICING_PER_M = {
   'claude-opus-4-8-1m':        { in: 15.00, out: 75.00 },
   'claude-opus-4-7':           { in: 15.00, out: 75.00 },
   'claude-opus-4-7-1m':        { in: 15.00, out: 75.00 },
+  'claude-sonnet-5':           { in:  2.00, out: 10.00 }, // intro pricing through 2026-08-31
   'claude-sonnet-4-6':         { in:  3.00, out: 15.00 },
   'claude-haiku-4-5-20251001': { in:  0.80, out:  4.00 },
 };
@@ -57,7 +58,7 @@ const CACHE_READ_MULTIPLIER  = 0.10;   // cached read = 10% of normal input pric
 const CACHE_WRITE_MULTIPLIER = 1.25;   // cache write = 125% of normal input price
 
 function pricingFor(model) {
-  return PRICING_PER_M[model] || PRICING_PER_M['claude-sonnet-4-6'];
+  return PRICING_PER_M[model] || PRICING_PER_M['claude-sonnet-5'];
 }
 
 /**
@@ -67,7 +68,7 @@ function pricingFor(model) {
  *
  * @param {Anthropic} client            initialized @anthropic-ai/sdk client
  * @param {object}    opts
- * @param {string}    opts.model        e.g. 'claude-sonnet-4-6'
+ * @param {string}    opts.model        e.g. 'claude-sonnet-5'
  * @param {string}    opts.systemStatic large static system prompt (cached)
  * @param {string}   [opts.systemVariable] small per-call addendum (NOT cached)
  * @param {Array}    [opts.tools]        anthropic tools array (cached if non-empty)
