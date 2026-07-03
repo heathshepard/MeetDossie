@@ -218,8 +218,10 @@ function buildAlertText({ ticket, customer, stage, hoursOld, backfill }) {
 // Classification
 // --------------------------------------------------------------------------
 
-function classify(ticket, hoursOld) {
+function classify(ticket, hoursOld, hoursSinceLastAlert) {
   // Returns the escalation stage to fire NOW, or null if none.
+  // Both the ticket-age threshold AND the time-since-last-alert must be met
+  // so an ancient ticket doesn't burst through every escalation on one cron tick.
   const count = ticket.heath_alert_count || 0;
   const last = ticket.heath_last_escalation_stage || null;
 
@@ -233,10 +235,15 @@ function classify(ticket, hoursOld) {
     if (hoursOld >= T_FIRST) return 'first';
     return null;
   }
-  // Already alerted at least once. Fire the next escalation window if reached.
-  if (last === 'first' && hoursOld >= T_24H) return '24h';
-  if (last === '24h' && hoursOld >= T_72H) return '72h';
-  if (last === '72h' && hoursOld >= T_7D) return '7d';
+  // Already alerted at least once. Fire the next escalation window if BOTH
+  // ticket age AND time-since-last-alert have reached the next threshold.
+  // Time-since-last-alert gaps: first -> 24h needs 22h since 'first'
+  //                             24h  -> 72h needs 48h since '24h'
+  //                             72h  -> 7d  needs 96h since '72h'
+  const since = hoursSinceLastAlert == null ? Infinity : hoursSinceLastAlert;
+  if (last === 'first' && hoursOld >= T_24H && since >= (T_24H - T_FIRST)) return '24h';
+  if (last === '24h'   && hoursOld >= T_72H && since >= (T_72H - T_24H))  return '72h';
+  if (last === '72h'   && hoursOld >= T_7D  && since >= (T_7D  - T_72H))  return '7d';
   return null;
 }
 
@@ -318,6 +325,8 @@ async function handler(req, res) {
     stats.considered++;
     const createdAt = new Date(ticket.created_at).getTime();
     const hoursOld = (now - createdAt) / (1000 * 3600);
+    const lastAlertAt = ticket.heath_alerted_at ? new Date(ticket.heath_alerted_at).getTime() : null;
+    const hoursSinceLastAlert = lastAlertAt == null ? null : (now - lastAlertAt) / (1000 * 3600);
 
     // On backfill, treat every never-alerted open ticket as a 'first' alert
     // regardless of age, but respect the cap.
@@ -329,7 +338,7 @@ async function handler(req, res) {
       }
       stage = 'first';
     } else {
-      stage = classify(ticket, hoursOld);
+      stage = classify(ticket, hoursOld, hoursSinceLastAlert);
     }
 
     if (!stage) continue;
