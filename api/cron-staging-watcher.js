@@ -1,4 +1,5 @@
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { isPaused } = require('./_lib/paused-crons.js');
 
 'use strict';
 
@@ -266,6 +267,14 @@ async function dispatchQuinn(commit) {
 
 async function fireQaLoop() {
   if (!CRON_SECRET) return { ok: false, error: 'no_cron_secret' };
+  // 2026-07-04 (Atlas) — PAUSE-AWARE GUARD.
+  // cron-dossie-qa-loop is on the cost-freeze schedule '0 0 1 1 *'. This
+  // helper used to fire it on every staging push, which re-ran the loop's
+  // Anthropic calls despite the freeze. Skip if paused.
+  if (isPaused('/api/cron-dossie-qa-loop')) {
+    console.log('[staging-watcher] skipped qa-loop fire — target is paused (cost freeze)');
+    return { ok: false, skipped: true, skipped_paused: true, reason: 'cost_freeze' };
+  }
   try {
     // Best-effort — we don't await the Playwright run. The QA loop itself has
     // a 90s maxDuration and its own guardrails (cost cap, demo collision).

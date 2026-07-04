@@ -8,6 +8,8 @@
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
  */
 
+import { isPaused, pauseReason } from '../_lib/paused-crons.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -85,6 +87,20 @@ export default async function handler(req, res) {
 
   if (!CRON_SECRET) {
     return res.status(500).json({ error: 'CRON_SECRET not configured' });
+  }
+
+  // 2026-07-04 (Atlas) — PAUSE-AWARE GUARD.
+  // The ventures dashboard "trigger cron" button used to fire paused crons
+  // silently, defeating the cost freeze. Refuse by default. Heath can still
+  // force through by POSTing { cronName, force: true } if a manual run is
+  // deliberate and cost-approved.
+  if (isPaused(cronPath) && !body.force) {
+    const reason = pauseReason(cronPath) || 'paused';
+    return res.status(423).json({
+      error: `Cron ${cronName} is paused (${reason}). POST { force: true } to override the freeze.`,
+      paused: true,
+      reason,
+    });
   }
 
   try {

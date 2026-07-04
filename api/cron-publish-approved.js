@@ -34,6 +34,7 @@
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const { isPaused } = require('./_lib/paused-crons.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -609,6 +610,17 @@ async function selfHealMissedBatch() {
   }
   const rows = await checkResp.json().catch(() => []);
   if (Array.isArray(rows) && rows.length > 0) return; // batch exists, no heal needed
+
+  // 2026-07-04 (Atlas) — PAUSE-AWARE GUARD.
+  // Self-heal used to unconditionally fire cron-generate-posts +
+  // cron-send-for-approval when no daily batch was present. Both live at the
+  // cost-freeze schedule '0 0 1 1 *' today, so this path was silently burning
+  // Anthropic $ every 30-minute publish tick. Bail early if either target is
+  // paused — the batch will stay missing (intentionally, freeze is on).
+  if (isPaused('/api/cron-generate-posts') || isPaused('/api/cron-send-for-approval')) {
+    console.log('[self-heal] skipped — generate-posts or send-for-approval is paused (cost freeze)');
+    return;
+  }
 
   console.log(`[self-heal] no batch for today (${todayStartUtc}) AND in 11:30–20:00 UTC window — triggering generate + send`);
 
