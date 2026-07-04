@@ -375,9 +375,13 @@
       "maxDuration": 60,
       "includeFiles": "{vercel.json,*.html,api/**/*.js}"
     },
+    "api/cron-agent-queue-tick.js": {
+      "maxDuration": 30,
+      "includeFiles": "vercel.json"
+    },
     "api/cron-autonomous-loop.js": {
       "maxDuration": 300,
-      "includeFiles": "docs/**/*.md"
+      "includeFiles": "{vercel.json,docs/**/*.md}"
     },
     "api/cron-autonomous-daily-digest.js": {
       "maxDuration": 60
