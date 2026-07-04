@@ -320,7 +320,7 @@ const TOOLS = [
         },
         new_value: {
           type: 'string',
-          description: 'For closing_date: YYYY-MM-DD. For option_extension: number of additional days as a string ("7"). For price_change: dollar amount as a string ("325000"). For repair_items: JSON array of repair item strings e.g. ["HVAC filter replacement","Leaking faucet in master bath"].',
+          description: 'For closing_date: YYYY-MM-DD. For option_extension: the NEW TOTAL option period in days as a string ("10" for a 10-day total option period, not "3 more"). If the agent says "extend option by N", first look up the current option_days and compute the new total (current + N), then pass that total. For price_change: dollar amount as a string ("325000"). For repair_items: JSON array of repair item strings e.g. ["HVAC filter replacement","Leaking faucet in master bath"].',
         },
         notes: { type: 'string', description: 'Optional special provisions / explanation written into the Other Modifications block.' },
       },

@@ -253,13 +253,16 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
     safeSetText(form, FIELDS.closingDateText, formatLongDateNoYear(newValue));
     safeSetText(form, FIELDS.closingDateYearSuffix, formatTwoDigitYear(newValue));
   } else if (amendmentType === 'option_extension') {
-    // For an extension, the agent supplies the number of additional days.
-    // We don't presume an additional option fee — many extensions are written
-    // with $0 additional fee — so we leave the dollar field blank for the
-    // agent and buyer to negotiate before signing. The days line is the
-    // load-bearing field.
+    // For an extension, the agent supplies the NEW TOTAL number of option
+    // days (per chat.js schema description). We show the total days on the
+    // amendment line. If the dossier already has an option_fee recorded, we
+    // pre-populate the dollar field so agents don't have to re-enter it.
+    // Agents can still cross it out if the extension is $0 additional.
     safeCheck(form, FIELDS.optionFeeCheckbox);
     safeSetText(form, FIELDS.optionFeeExtensionDays, `${newValue} day${String(newValue).trim() === '1' ? '' : 's'}`);
+    if (tx.option_fee != null && tx.option_fee !== '' && Number(tx.option_fee) > 0) {
+      safeSetText(form, FIELDS.optionFeeAmount, formatMoney(tx.option_fee));
+    }
   } else if (amendmentType === 'price_change') {
     safeCheck(form, FIELDS.salesPriceCheckbox);
     // The form has three numeric inputs (cash / financing / total). Without a
@@ -340,7 +343,7 @@ module.exports = async function handler(req, res) {
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
-      `transactions?id=eq.${safeTx}&user_id=eq.${safeUid}&select=id,property_address,city_state_zip,buyer_name,seller_name,contract_effective_date,closing_date,option_days,sale_price&limit=1`,
+      `transactions?id=eq.${safeTx}&user_id=eq.${safeUid}&select=id,property_address,city_state_zip,buyer_name,seller_name,contract_effective_date,closing_date,option_days,option_fee,sale_price&limit=1`,
       { method: 'GET' },
     );
     if (!txResp.ok) {
@@ -427,14 +430,14 @@ module.exports = async function handler(req, res) {
         const numericPrice = Number(String(newValue).replace(/[^0-9.]/g, ''));
         if (Number.isFinite(numericPrice)) patchBody = { sale_price: numericPrice };
       } else if (amendmentType === 'option_extension') {
-        // Extension days are additive — buyer negotiated N more days on top
-        // of the existing option period. Treat the input as a day count and
-        // add to the current option_days (defaulting to 0 if unset).
-        const extDays = parseInt(String(newValue).replace(/[^0-9]/g, ''), 10);
-        if (Number.isFinite(extDays)) {
-          const currentDays = parseInt(tx.option_days, 10);
-          const total = (Number.isFinite(currentDays) ? currentDays : 0) + extDays;
-          patchBody = { option_days: total };
+        // newValue is the NEW TOTAL option period (per chat.js schema, updated
+        // 2026-07-04). If the AI needs to add days, it calculates the total
+        // itself and passes that total here. This is a SET, not an ADD —
+        // prevents the Bug 2 additive parse where "set option to 10 days"
+        // was compounding (7 → 17 → 24 …).
+        const totalDays = parseInt(String(newValue).replace(/[^0-9]/g, ''), 10);
+        if (Number.isFinite(totalDays)) {
+          patchBody = { option_days: totalDays };
         }
       }
 
