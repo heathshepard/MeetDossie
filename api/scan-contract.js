@@ -1148,7 +1148,7 @@ async function handler(req, res) {
     await checkRateLimit(ip, 'scan-contract', 10, 60 * 60 * 1000);
 
     const body = req.body || {};
-    const { pdfBase64, storagePath } = body;
+    const { pdfBase64, storagePath, transactionId, fileName } = body;
     // userId comes from the verified JWT, not the request body.
     const userId = jwtUserId;
 
@@ -1196,8 +1196,83 @@ async function handler(req, res) {
       });
     }
 
+    // BUG-5 FIX (2026-07-04): persist the scanned PDF to documents table so it
+    // appears in the dossier's Documents section for the e-sign workflow.
+    // Requirements: transactionId + storagePath + userId. Idempotent — if a
+    // documents row for this (user, transaction, storage_path) already exists,
+    // reuse it instead of inserting a duplicate.
+    let documentId = null;
+    if (userId && storagePath && transactionId &&
+        process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        // Look up any existing row for this storage path (avoid dup on re-scan)
+        const lookupUrl = `${process.env.SUPABASE_URL}/rest/v1/documents` +
+          `?user_id=eq.${encodeURIComponent(userId)}` +
+          `&transaction_id=eq.${encodeURIComponent(transactionId)}` +
+          `&storage_path=eq.${encodeURIComponent(storagePath)}` +
+          `&select=id&limit=1`;
+        const lookupResp = await fetch(lookupUrl, {
+          headers: {
+            apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        });
+        if (lookupResp.ok) {
+          const existing = await lookupResp.json();
+          if (Array.isArray(existing) && existing.length > 0 && existing[0].id) {
+            documentId = existing[0].id;
+          }
+        }
+
+        if (!documentId) {
+          const safeFileName = (typeof fileName === 'string' && fileName.trim())
+            ? fileName.trim().slice(0, 200)
+            : `scanned-contract-${Date.now()}.pdf`;
+          const docRow = {
+            user_id: userId,
+            transaction_id: transactionId,
+            file_name: safeFileName,
+            file_type: 'application/pdf',
+            storage_path: storagePath,
+            document_type: 'scanned_contract',
+            form_type: result.documentType || null,
+            scan_status: 'complete',
+            scan_result: {
+              documentType: result.documentType,
+              documentLabel: result.documentLabel,
+              confidence: result.documentTypeConfidence,
+              extractedAt: new Date().toISOString(),
+            },
+            status: 'scanned',
+          };
+          const insertResp = await fetch(`${process.env.SUPABASE_URL}/rest/v1/documents`, {
+            method: 'POST',
+            headers: {
+              apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+            body: JSON.stringify(docRow),
+          });
+          if (insertResp.ok) {
+            const inserted = await insertResp.json();
+            const row = Array.isArray(inserted) ? inserted[0] : inserted;
+            if (row && row.id) documentId = row.id;
+          } else {
+            const errText = await insertResp.text().catch(() => '');
+            console.error('[scan-contract] documents insert failed:', insertResp.status, errText.slice(0, 200));
+          }
+        }
+      } catch (docErr) {
+        // Non-fatal — scan result is still returned to the client
+        console.error('[scan-contract] documents persistence error:', docErr && docErr.message);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
+      documentId,
       documentType: result.documentType,
       documentLabel: result.documentLabel,
       documentTypeConfidence: result.documentTypeConfidence,
