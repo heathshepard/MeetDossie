@@ -43,6 +43,7 @@
 'use strict';
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { isPaused, pauseReason } = require('./_lib/paused-crons.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -573,6 +574,35 @@ async function runCronHeartbeat() {
     const slaMin = cfg.sla;
     const businessHoursOnly = !!cfg.business_hours_only;
     const row = byName.get(cronName);
+
+    // 2026-07-04 (Atlas) — PAUSE-AWARE GUARD.
+    // Cost-freeze crons live on schedule '0 0 1 1 *'. Silence is expected and
+    // required. Without this guard the diagnostic marked them RED critical at
+    // every 5 AM run, which (a) spammed Telegram and (b) suggested to reviewers
+    // that the fix was to un-pause them — restarting the burn. isPaused()
+    // reads vercel.json's crons list; if the target is frozen or unregistered
+    // we skip the SLA check and record a 'skip' row instead of 'fail'.
+    if (isPaused('/api/' + cronName)) {
+      const reason = pauseReason('/api/' + cronName) || 'paused';
+      checks.push({
+        category: 'cron',
+        check_key: `cron.${cronName}`,
+        label: `Cron heartbeat: ${cronName}`,
+        status: 'skip',
+        severity: 'info',
+        duration_ms: 0,
+        evidence: {
+          cron_name: cronName,
+          last_run: row && row.last_run,
+          last_status: row && row.last_status,
+          sla_minutes: slaMin,
+          pause_reason: reason,
+        },
+        error_message: `paused (${reason}) — cost-freeze, SLA check suppressed`,
+      });
+      continue;
+    }
+
     let status = 'pass';
     let severity = 'info';
     let errorMessage = null;
@@ -910,9 +940,11 @@ function deriveImprovements(allChecks) {
     });
   }
 
-  // Silent crons
+  // Silent crons — exclude paused rows (already filtered by status='skip' in
+  // runCronHeartbeat, but double-check to be defensive).
   const silentCrons = allChecks.filter((c) =>
     c.category === 'cron' && c.status === 'fail' && c.error_message && c.error_message.includes('silent')
+      && !(c.evidence && c.evidence.pause_reason)
   );
   for (const c of silentCrons.slice(0, 5)) {
     ideas.push({

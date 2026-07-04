@@ -49,6 +49,7 @@
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const { isPaused, pauseReason } = require('./_lib/paused-crons.js');
 
 const SUPABASE_URL              = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -244,6 +245,17 @@ function paceFor(platform, schedules, clock) {
 // ─── Route-around actions ─────────────────────────────────────────────────
 
 async function fireCron(path) {
+  // 2026-07-04 (Atlas) — PAUSE-AWARE GUARD.
+  // Watchdog historically kicked cron-sage-regenerate + cron-publish-approved
+  // when platforms fell behind pace. During cost-freeze those targets live at
+  // '0 0 1 1 *' but a hot watchdog invocation would still call them and burn
+  // Anthropic $. Refuse to fire anything that's intentionally paused; return a
+  // skipped_paused sentinel so the caller can log it in the digest.
+  if (isPaused(path)) {
+    const reason = pauseReason(path) || 'paused';
+    console.log(`[watchdog] skipped_paused ${path} (${reason}) — freeze-safe, no re-fire`);
+    return { ok: false, skipped: true, skipped_paused: true, reason };
+  }
   try {
     const url = `${SELF_BASE_URL}${path}`;
     const res = await retryFetch(

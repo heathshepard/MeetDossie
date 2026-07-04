@@ -24,6 +24,7 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const { retryFetch } = require('./_lib/retry.js');
 const { logWall, recordCronRun } = require('./_lib/wall-log.js');
+const { isPaused, pauseReason } = require('./_lib/paused-crons.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -152,8 +153,23 @@ module.exports = withTelemetry('cron-cron-fire-verifier', async function handler
   const missed = [];
   const refired = [];
   const skipped = [];
+  const skippedPaused = [];
 
   for (const c of REGISTERED_CRONS) {
+    // 2026-07-04 (Atlas) — PAUSE-AWARE GUARD.
+    // Cost-freeze crons live at schedule '0 0 1 1 *'. Without this guard the
+    // verifier saw them as "silent" and re-fired them at every 5 AM CDT run,
+    // burning Anthropic $ per re-fire. isPaused() reads vercel.json's crons
+    // list — anything on the freeze schedule OR not registered at all is
+    // treated as intentionally paused: skip the re-fire, log telemetry, no
+    // alert. See docs/INCIDENT-LOG.md 2026-07-04 for the burn incident.
+    if (isPaused(c.path)) {
+      const reason = pauseReason(c.path) || 'paused';
+      skippedPaused.push({ name: c.name, reason });
+      console.log(`[fire-verifier] skipped_paused ${c.name} (${reason}) — freeze-safe, no re-fire`);
+      continue;
+    }
+
     const row = lastRuns.get(c.name);
     const lastRun = row && row.lastRun ? new Date(row.lastRun).getTime() : null;
     const ageMin = lastRun ? (now - lastRun) / 60000 : Infinity;
@@ -228,7 +244,8 @@ module.exports = withTelemetry('cron-cron-fire-verifier', async function handler
     checked: REGISTERED_CRONS.length,
     missed: missed.length,
     refired: refired.length,
+    skipped_paused: skippedPaused.length,
     catastrophic: isCatastrophic,
-    detail: { missed, skipped },
+    detail: { missed, skipped, skipped_paused: skippedPaused },
   });
 });
