@@ -71,19 +71,91 @@ async function supabaseCall(method, path, body) {
 
 // Whitelist of DB columns we allow writes to via this endpoint.
 // The transactions table uses snake_case column names — do NOT convert to camelCase.
+// Kept in sync with the update_deal_field field enum in api/chat.js and the
+// fieldMap in Dossie/dossie-app.jsx so any AI-emitted canonical field can be
+// written here without silent failure.
 const ALLOWED_FIELDS = new Set([
+  // Core deal terms
   'sale_price', 'closing_date', 'option_days', 'option_fee', 'earnest_money',
   'financing_type', 'financing_days', 'loan_amount', 'down_payment',
   'buyer_name', 'seller_name', 'property_address', 'city_state_zip',
   'title_company', 'notes', 'land_acreage', 'expected_completion_date',
-  'contract_effective_date', 'possession_date',
+  'contract_effective_date', 'possession_date', 'transaction_type',
+  // Contacts
+  'title_officer_name', 'title_officer_email', 'title_officer_phone',
+  'lender_name', 'loan_officer_name', 'loan_officer_email', 'loan_officer_phone',
+  'hoa_name', 'hoa_phone', 'hoa_management_company', 'hoa_monthly_dues',
+  'inspector_name', 'inspector_phone', 'inspector_email',
+  // Property meta
+  'mls_number', 'bedrooms', 'bathrooms', 'sqft', 'year_built',
+  // Deadlines
+  'appraisal_deadline', 'survey_deadline', 'hoa_document_deadline',
+  'loan_approval_deadline',
+  // Block 3 — Option period
+  'option_fee_amount', 'option_fee_paid_at', 'option_fee_paid_to',
+  'earnest_money_amount', 'earnest_money_deposited_at',
+  'earnest_money_confirmed_at', 'earnest_money_title_company',
+  // Block 4 — Inspection
+  'inspection_scheduled_at', 'inspection_completed_at', 'inspection_report_received',
+  // Block 5 — Appraisal
+  'appraisal_ordered_at', 'appraisal_received_at', 'appraisal_value',
+  // Block 6 — Title + survey + loan
+  'title_commitment_received_at', 'title_commitment_effective_date',
+  'survey_ordered_at', 'survey_received_at', 'survey_clear',
+  'loan_approval_received_at', 'clear_to_close_at',
+  // Block 7 — HOA docs
+  'hoa_docs_requested_at', 'hoa_docs_received_at',
+  // Block 8 — Post-closing
+  'recorded_deed_received_at', 'title_policy_delivered_at',
+  'cda_signed_at', 'closed_at',
 ]);
 
-// Map any commonly-used aliases sent by the wizard to real column names.
+// Map any commonly-used aliases sent by the wizard or by natural-language
+// chat AI (with spaces instead of underscores) to real column names.
 const FIELD_ALIASES = {
   down_payment_amt: 'down_payment',
   title_policy_paid_by: 'notes', // no dedicated column; stashed in notes for now
+  // Natural-language aliases (spaces)
+  'option fee': 'option_fee',
+  'option period': 'option_days',
+  'option days': 'option_days',
+  'sale price': 'sale_price',
+  'earnest money': 'earnest_money',
+  'closing date': 'closing_date',
+  'buyer name': 'buyer_name',
+  'seller name': 'seller_name',
+  'property address': 'property_address',
 };
+
+// Money fields — parsed as numeric before write. Prevents "$200" being stored
+// as the string "$200" instead of the number 200 (Bug 3 fix).
+const MONEY_FIELDS = new Set([
+  'sale_price', 'option_fee', 'earnest_money', 'loan_amount', 'down_payment',
+  'option_fee_amount', 'earnest_money_amount', 'appraisal_value',
+  'hoa_monthly_dues',
+]);
+
+// Integer fields — parsed as integer before write.
+const INTEGER_FIELDS = new Set([
+  'option_days', 'financing_days', 'bedrooms', 'sqft', 'year_built',
+]);
+
+function normalizeNumericValue(canonical, rawValue) {
+  if (rawValue == null || rawValue === '') return rawValue;
+  if (MONEY_FIELDS.has(canonical)) {
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) return rawValue;
+    const cleaned = String(rawValue).replace(/[^\d.-]/g, '');
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : rawValue;
+  }
+  if (INTEGER_FIELDS.has(canonical)) {
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) return Math.trunc(rawValue);
+    const cleaned = String(rawValue).replace(/[^\d-]/g, '');
+    const n = parseInt(cleaned, 10);
+    return Number.isFinite(n) ? n : rawValue;
+  }
+  return rawValue;
+}
 
 /**
  * Update the dossier field in the database.
@@ -91,13 +163,23 @@ const FIELD_ALIASES = {
  * property_address, sale_price, etc. Do NOT camelCase.
  */
 async function updateDossierField(dossierId, fieldName, fieldValue) {
-  const canonical = FIELD_ALIASES[fieldName] || fieldName;
+  // Try the alias map on both raw and lowercased key so "Option Fee",
+  // "option fee", and "option_fee" all resolve to the same column.
+  const canonical = FIELD_ALIASES[fieldName]
+    || FIELD_ALIASES[String(fieldName || '').toLowerCase()]
+    || fieldName;
   if (!ALLOWED_FIELDS.has(canonical)) {
     throw new Error(`Field '${fieldName}' is not writable via this endpoint`);
   }
 
+  // Coerce money and integer fields so "$200" persists as 200, not "$200".
+  const typedValue = normalizeNumericValue(canonical, fieldValue);
+
+  // Targeted PATCH — writes ONLY the single field being changed. This is the
+  // race-clobber-safe path: concurrent updates to other fields on the same
+  // row are preserved (Bug 1 fix).
   const rows = await supabaseCall('PATCH', `transactions?id=eq.${dossierId}`, {
-    [canonical]: fieldValue,
+    [canonical]: typedValue,
     updated_at: new Date().toISOString(),
   });
 
@@ -105,7 +187,7 @@ async function updateDossierField(dossierId, fieldName, fieldValue) {
     throw new Error('Dossier not found or update failed');
   }
 
-  return rows[0];
+  return { row: rows[0], canonical, typedValue };
 }
 
 /**
@@ -208,14 +290,18 @@ export default async function handler(req, res) {
       return res.status(403).json({ ok: false, error: 'Forbidden' });
     }
 
-    // 3. Update the field in the database
-    const updated = await updateDossierField(dossier_id, field_name, field_value);
+    // 3. Update the field in the database (targeted PATCH, race-safe)
+    const { row: updated, canonical, typedValue } = await updateDossierField(
+      dossier_id, field_name, field_value,
+    );
 
     // Extract the caller's user JWT — fill-form requires a user token, not the service role.
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
     const userToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
 
     // 4. Queue PDF re-fill if there's an existing filled PDF for this dossier.
+    // Re-fetch the full transaction AFTER the update so the fill payload has
+    // any concurrent updates from parallel field changes (Bug 1 race fix).
     // form_type isn't on transactions — look it up from the most recent
     // documents row of type 'filled_form'.
     let pdfUrl = null;
@@ -224,10 +310,11 @@ export default async function handler(req, res) {
       formTypeUsed = await getMostRecentFormType(dossier_id);
       if (formTypeUsed && userToken) {
         try {
+          const freshTx = await getTransaction(dossier_id);
           const fillResult = await requeuePdfRefill(
             dossier_id,
             formTypeUsed,
-            { ...transaction, [field_name]: field_value },
+            { ...freshTx, [canonical]: typedValue },
             userToken,
           );
           pdfUrl = fillResult.signedUrl || fillResult.pdf_url || null;
@@ -243,8 +330,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       dossier_id,
-      field_name,
-      field_value,
+      field_name: canonical,
+      field_value: typedValue,
       form_type_used: formTypeUsed,
       pdf_url: pdfUrl,
       updated_at: updated.updated_at,

@@ -57,27 +57,59 @@ function applyCors(req, res) {
 // Maps agent speech -> actual field names
 const FIELD_ALIASES = {
   'option period': 'option_days',
+  'option days': 'option_days',
   'option': 'option_days',
   'days': 'option_days',
+  'option fee': 'option_fee',
+  'option fee amount': 'option_fee',
+  'option money': 'option_fee',
   'earnest money': 'earnest_money',
   'earnest': 'earnest_money',
   'money': 'earnest_money',
   'price': 'sale_price',
+  'sale price': 'sale_price',
   'offer': 'sale_price',
   'purchase price': 'sale_price',
   'closing': 'closing_date',
+  'closing date': 'closing_date',
   'close date': 'closing_date',
   'date': 'closing_date',
   'buyer': 'buyer_name',
+  'buyer name': 'buyer_name',
   'seller': 'seller_name',
+  'seller name': 'seller_name',
   'address': 'property_address',
   'property': 'property_address',
+  'property address': 'property_address',
   'hoa': 'hoa_monthly_dues',
   'dues': 'hoa_monthly_dues',
   'survey': 'survey_existing_or_seller_pays',
   'as-is': 'as_is',
   'condition': 'as_is_with_repairs',
 };
+
+// Money fields — parsed as numeric (strip $, commas) before writing to DB.
+// Prevents "$200" being stored as the string "$200" instead of the number 200.
+const MONEY_FIELDS = new Set([
+  'option_fee',
+  'earnest_money',
+  'sale_price',
+  'hoa_monthly_dues',
+  'option_fee_amount',
+  'earnest_money_amount',
+  'appraisal_value',
+  'loan_amount',
+  'down_payment',
+]);
+
+// Integer fields — parsed as integer (strip everything non-numeric) before write.
+const INTEGER_FIELDS = new Set([
+  'option_days',
+  'financing_days',
+  'bedrooms',
+  'sqft',
+  'year_built',
+]);
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
@@ -149,14 +181,24 @@ ${fieldsContext}
 Given the agent's transcript, identify which contract field they are trying to update and extract the value.
 
 Common field mappings:
-- "option period" / "option" / "days" → option_days (number)
-- "earnest money" / "earnest" → earnest_money (number)
-- "sale price" / "offer" → sale_price (number)
+- "option period" / "option days" / "days" → option_days (number)
+- "option fee" / "option money" → option_fee (number, dollars)
+- "earnest money" / "earnest" → earnest_money (number, dollars)
+- "sale price" / "offer" → sale_price (number, dollars)
 - "closing date" / "close" → closing_date (ISO date YYYY-MM-DD)
 - "buyer" → buyer_name (string)
 - "seller" → seller_name (string)
 - "property" / "address" → property_address (string)
 - "hoa dues" / "hoa" → hoa_monthly_dues (number)
+
+CRITICAL — SET, do not ADD:
+new_value must be the FINAL value the agent wants to SET, not an amount to ADD.
+- "set option to 10 days" → new_value = "10" (final)
+- "option period is 14 days" → new_value = "14" (final)
+- If the agent says "extend it by 5" or "add 5 more days", you MUST compute the final value yourself (existing + 5) and return that final total as new_value. Never return a delta.
+
+CRITICAL — money fields are numeric:
+For option_fee, earnest_money, sale_price, hoa_monthly_dues, strip currency symbols and commas. "set option fee to $200" → new_value = "200" (no dollar sign).
 
 Return a JSON response with ONLY one of these:
 1. {
@@ -215,8 +257,12 @@ Do NOT guess. If you cannot determine the field, say so.`;
       });
     }
 
-    const fieldName = String(parsed.field_name).trim();
-    const newValue = String(parsed.new_value).trim();
+    let fieldName = String(parsed.field_name).trim();
+    // Apply alias mapping (agent may say "option fee" — map to option_fee).
+    if (FIELD_ALIASES[fieldName.toLowerCase()]) {
+      fieldName = FIELD_ALIASES[fieldName.toLowerCase()];
+    }
+    let newValue = String(parsed.new_value).trim();
     const confidence = parsed.confidence || 0;
 
     if (confidence < 0.7) {
@@ -226,16 +272,43 @@ Do NOT guess. If you cannot determine the field, say so.`;
       });
     }
 
-    // transactions columns are snake_case — no case conversion needed.
-    // Also keep a camelCase alias in case any legacy columns use it.
+    // Parse money fields as numbers (strip $, commas). Prevents "$200" being
+    // stored as the string "$200" instead of the numeric 200.
+    let typedValue = newValue;
+    if (MONEY_FIELDS.has(fieldName)) {
+      const cleaned = newValue.replace(/[^\d.-]/g, '');
+      const n = parseFloat(cleaned);
+      typedValue = Number.isFinite(n) ? n : 0;
+    } else if (INTEGER_FIELDS.has(fieldName)) {
+      const cleaned = newValue.replace(/[^\d-]/g, '');
+      const n = parseInt(cleaned, 10);
+      typedValue = Number.isFinite(n) ? n : 0;
+    }
+
+    // Targeted UPDATE — only touches the single field being changed.
+    // Never read-then-write full row; this prevents concurrent field updates
+    // from clobbering each other (Bug 1 race clobber fix).
     const { error: updateError } = await supabase
       .from('transactions')
-      .update({ [fieldName]: newValue })
+      .update({ [fieldName]: typedValue })
       .eq('id', dossierId);
 
     if (updateError) {
       console.error('[dossie-voice-fill] update error:', updateError);
       return res.status(500).json({ ok: false, error: 'Failed to save field update.' });
+    }
+
+    // Re-fetch the transaction after update so the PDF re-render below uses
+    // the FRESH row (including any concurrent updates), not the stale dealRow
+    // that was captured before this update. Prevents stale-row race clobber
+    // in the PDF re-fill payload.
+    const { data: freshRow, error: freshErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', dossierId)
+      .single();
+    if (!freshErr && freshRow) {
+      Object.assign(dealRow, freshRow);
     }
 
     // Trigger PDF re-render for whichever forms are already filled for this dossier.
@@ -284,10 +357,13 @@ Do NOT guess. If you cannot determine the field, say so.`;
               : 'https://meetdossie.com'
           }/api/fill-form`;
 
-          // Merge the freshly updated field into the transaction for re-fill.
+          // Use the freshly re-fetched dealRow (which already includes this
+          // update AND any concurrent updates from parallel field changes).
+          // The [fieldName]: typedValue override is redundant but kept as a
+          // belt-and-suspenders guarantee against stale reads.
           const updatedTransaction = {
             ...dealRow,
-            [fieldName]: newValue,
+            [fieldName]: typedValue,
           };
 
           // Forward the caller's user JWT so /api/fill-form's verifySupabaseToken
@@ -329,7 +405,7 @@ Do NOT guess. If you cannot determine the field, say so.`;
     const responsePayload = {
       ok: true,
       field_name: fieldName,
-      new_value: newValue,
+      new_value: typedValue,
       updated_pdf_url: updatedPdfUrl,
       confidence,
     };
