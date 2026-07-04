@@ -33,6 +33,7 @@
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const fs = require('fs');
 const path = require('path');
+const pausedCrons = require('./_lib/paused-crons.js');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -162,13 +163,29 @@ async function gatherCustomerBugs() {
 async function gatherProdErrors() {
   const out = [];
 
-  // 2a — crons in status='error' for >6h (persistent breakage, not a blip)
+  // 2a — crons in status='error' for >6h (persistent breakage, not a blip).
+  //
+  // PAUSE-AWARE (2026-07-04): skip crons that are intentionally paused
+  // (freeze schedule `0 0 1 1 *` in vercel.json) OR absent from vercel.json
+  // entirely. Either state means the cron can't fire, so a stale error row
+  // in cron_runs is historical noise — not a signal that anything is broken.
   const cutoff6h = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
   const q1 = `cron_runs?select=cron_name,last_run,last_status,last_meta`
            + `&last_status=eq.error&last_run=lt.${encodeURIComponent(cutoff6h)}&limit=20`;
   const r1 = await sb(q1);
   if (r1.ok && Array.isArray(r1.data)) {
     for (const row of r1.data) {
+      // Skip if paused / not registered. The cron literally cannot fire, so
+      // its stale error row is not actionable — filing an Atlas ticket for it
+      // just creates queue noise (and, if the dispatcher is paused, jams the
+      // ready-queue watchdog too).
+      if (pausedCrons.isPaused(row.cron_name)) {
+        console.log(
+          `[autonomous-loop] skipping stale error signal for ${row.cron_name} ` +
+            `(pause_reason=${pausedCrons.pauseReason(row.cron_name)})`,
+        );
+        continue;
+      }
       const key = `prod_error:cron:${row.cron_name}`;
       const errMsg = (row.last_meta && row.last_meta.error) || 'unknown';
       out.push({

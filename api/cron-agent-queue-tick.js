@@ -12,6 +12,14 @@
 //      The OLD "Cole local poller may be down" nudge was retired 2026-06-25
 //      when cron-agent-queue-dispatch took over as the actual claimer.
 //
+//      PAUSE-AWARE (2026-07-04): if the dispatcher cron is INTENTIONALLY
+//      paused (freeze schedule `0 0 1 1 *` or absent from vercel.json), we
+//      DO NOT alert — the stuck rows are waiting for a lane that's closed on
+//      purpose. We log status='paused_expected' to cron_runs and send ONE
+//      handoff message the first time we transition into that state. When the
+//      dispatcher is un-paused and rows are still stuck, the normal alert
+//      fires (real regression).
+//
 // The actual agent execution happens server-side now via
 // cron-agent-queue-dispatch (every 2 min) which calls Anthropic /v1/messages
 // for each ready row. The "local Cole poller" pattern is dead.
@@ -23,6 +31,7 @@
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { createClient } = require('@supabase/supabase-js');
+const pausedCrons = require('./_lib/paused-crons.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -33,6 +42,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7874782923';
 const STALE_HEARTBEAT_MIN = 30;      // minutes
 const DISPATCH_STUCK_MIN = 10;       // ready rows older than this = dispatcher unhealthy
 const DISPATCH_ALERT_THROTTLE_MIN = 60; // alert once per hour for same condition
+const DISPATCH_CRON_PATH = '/api/cron-agent-queue-dispatch';
 
 function checkAuth(req) {
   if (req.headers['x-vercel-cron'] === '1') return true;
@@ -177,6 +187,68 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
     return { alerted: false, reason: 'dispatcher_alive', stuck_ready: oldReady.length };
   }
 
+  // ── PAUSE-AWARE GATE (2026-07-04) ─────────────────────────────────────────
+  // If the dispatch cron itself is paused-on-purpose (freeze schedule OR
+  // absent from vercel.json), the ready rows aren't stuck — they're waiting
+  // for a lane that's intentionally closed. Do NOT alert. Record a
+  // 'paused_expected' row so the state is auditable.
+  //
+  // Only send ONE Telegram note the first time we transition from
+  // "alerting" → "paused_expected", so Heath knows the alert stream stopped
+  // for a real reason. After that, silent.
+  const dispatchPaused = pausedCrons.isPaused(DISPATCH_CRON_PATH);
+  if (dispatchPaused) {
+    const reason = pausedCrons.pauseReason(DISPATCH_CRON_PATH);
+    const pausedMeta = {
+      paused_expected: true,
+      pause_reason: reason,
+      dispatch_cron_path: DISPATCH_CRON_PATH,
+      stuck_ready: oldReady.length,
+      oldest_age_min: Math.round(
+        (Date.now() - new Date(oldReady[0].created_at).getTime()) / 60000,
+      ),
+      last_check_at: new Date().toISOString(),
+    };
+
+    // Look up previous watchdog K/V row. If the previous status was 'alerted'
+    // (i.e. dispatcher used to alert normally), send ONE handoff message so
+    // Heath knows the noise stopped for a legitimate reason. If it was
+    // already 'paused_expected', stay silent.
+    const { data: prev } = await supabase
+      .from('cron_runs')
+      .select('last_status, last_meta')
+      .eq('cron_name', 'cron-agent-queue-tick-watchdog')
+      .maybeSingle();
+
+    const prevStatus = prev && prev.last_status;
+    const alreadyAcknowledged = prev && prev.last_meta && prev.last_meta.pause_acknowledged_at;
+
+    if (prevStatus !== 'paused_expected' && !alreadyAcknowledged) {
+      await tg(
+        `[queue watchdog] Dispatch cron is paused (${reason}). ` +
+          `${oldReady.length} ready task(s) will sit until the dispatcher is un-paused. ` +
+          `Suppressing hourly "stuck dispatcher" alerts. Un-pause /api/cron-agent-queue-dispatch in vercel.json to resume.`,
+      );
+      pausedMeta.pause_acknowledged_at = new Date().toISOString();
+    } else if (alreadyAcknowledged) {
+      pausedMeta.pause_acknowledged_at = prev.last_meta.pause_acknowledged_at;
+    }
+
+    await supabase
+      .from('cron_runs')
+      .upsert(
+        {
+          cron_name: 'cron-agent-queue-tick-watchdog',
+          last_run: new Date().toISOString(),
+          last_status: 'paused_expected',
+          last_meta: pausedMeta,
+        },
+        { onConflict: 'cron_name' },
+      );
+
+    return { alerted: false, reason: 'dispatcher_paused', paused_reason: reason, stuck_ready: oldReady.length };
+  }
+
   // Throttle: read the dedicated watchdog-state row so we don't depend on the
   // wrapper-managed cron_runs row (which gets overwritten every run). We use
   // a separate cron_name key ('cron-agent-queue-tick-watchdog') as a tiny
@@ -184,7 +256,7 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
   const throttleCutoffMs = Date.now() - DISPATCH_ALERT_THROTTLE_MIN * 60 * 1000;
   const { data: watchdogRow } = await supabase
     .from('cron_runs')
-    .select('last_run, last_meta')
+    .select('last_run, last_meta, last_status')
     .eq('cron_name', 'cron-agent-queue-tick-watchdog')
     .maybeSingle();
 
@@ -193,6 +265,10 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
   if (lastAlertMs && lastAlertMs > throttleCutoffMs) {
     return { alerted: false, reason: 'throttled', stuck_ready: oldReady.length };
   }
+
+  // If we were previously in 'paused_expected' and now the dispatcher is
+  // un-paused but ready rows are still stuck, we DO want to alert (real
+  // regression). No special-case needed — we fall through to the alert path.
 
   const oldestAgeMin = Math.round(
     (Date.now() - new Date(oldReady[0].created_at).getTime()) / 60000,
