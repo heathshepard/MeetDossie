@@ -648,13 +648,13 @@ function formatMoney(value) {
 async function fillResaleContract(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // Derive initials from names (first letter of each word, max 3 chars)
-  function initials(name) {
-    if (!name) return '';
-    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
-  }
-  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
-  const sellerInit = fv.seller_initials || initials(fv.seller_name);
+  // 2026-07-04 atlas_29 fix (Bug 4): during the FILL phase, we do NOT pre-populate
+  // initials or signatures. Those field slots must render EMPTY on the PDF so the
+  // signer places them during the send-for-signature phase. buyerInit/sellerInit
+  // retained as empty strings to keep the downstream forEach() safeSetText() calls
+  // no-ops (they will write '' into the initials fields, leaving them blank).
+  const buyerInit = '';
+  const sellerInit = '';
 
   // PARTIES — TREC 20-18 page 1 reads "____ (Seller) and ____ (Buyer)".
   // Widget '1 PARTIES The parties to this contract are' is the SELLER slot (positioned after "are", before "(Seller)" label).
@@ -1169,8 +1169,14 @@ async function fillResaleContract(pdfDoc, fv) {
     'undefined_22',
     'undefined_23',
   ];
-  buyerInitFields.forEach(function(f) { safeSetText(form, f, buyerInit); });
-  sellerInitFields.forEach(function(f) { safeSetText(form, f, sellerInit); });
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): during the FILL phase, initials
+  // are NOT pre-populated. Field slots remain empty. Signature/initial slots
+  // are placed empty on the PDF and filled during the send-for-signature phase.
+  // The buyerInitFields / sellerInitFields arrays above are retained as
+  // documentation of which AcroForm widget names are initials slots.
+  // buyerInitFields.forEach(function(f) { safeSetText(form, f, buyerInit); });
+  // sellerInitFields.forEach(function(f) { safeSetText(form, f, sellerInit); });
+  void buyerInitFields; void sellerInitFields; void buyerInit; void sellerInit;
 
   // UNDEFINED PLACEHOLDER FIELDS (page number + sequence fields auto-populated by TREC)
   // Leave blank — PDF reader fills these from field calculation scripts
@@ -1250,12 +1256,9 @@ async function fillResaleContract(pdfDoc, fv) {
 async function fillFinancingAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  function initials(name) {
-    if (!name) return '';
-    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
-  }
-  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
-  const sellerInit = fv.seller_initials || initials(fv.seller_name);
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): initials NOT pre-populated in fill phase.
+  const buyerInit = '';
+  const sellerInit = '';
 
   // PROPERTY
   const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
@@ -1382,10 +1385,12 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     }
   }
 
-  safeSetText(form, 'Initialed for identification by Buyer', buyerInit);
-  safeSetText(form, 'undefined_2', buyerInit);
-  safeSetText(form, 'and Seller', sellerInit);
-  safeSetText(form, 'undefined_3', sellerInit);
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): initials NOT pre-populated during fill phase.
+  // safeSetText(form, 'Initialed for identification by Buyer', buyerInit);
+  // safeSetText(form, 'undefined_2', buyerInit);
+  // safeSetText(form, 'and Seller', sellerInit);
+  // safeSetText(form, 'undefined_3', sellerInit);
+  void buyerInit; void sellerInit;
 
   return pdfDoc;
 }
@@ -1593,13 +1598,14 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   safeSetText(form, 'Street Address and City', addr);
 
-  // DATE FIELDS — all six signature date slots
-  const signDate = fv.lead_paint_date
-    ? formatDate(fv.lead_paint_date)
-    : formatDate(new Date().toISOString().slice(0, 10));
-  ['Date', 'Date_2', 'Date_3', 'Date_4', 'Date_5', 'Date_6'].forEach(function(f) {
-    safeSetText(form, f, signDate);
-  });
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): signature-page date slots are NOT
+  // pre-populated during the fill phase. Signer fills date next to their signature.
+  // const signDate = fv.lead_paint_date
+  //   ? formatDate(fv.lead_paint_date)
+  //   : formatDate(new Date().toISOString().slice(0, 10));
+  // ['Date', 'Date_2', 'Date_3', 'Date_4', 'Date_5', 'Date_6'].forEach(function(f) {
+  //   safeSetText(form, f, signDate);
+  // });
 
   // SECTION B1 — SELLER KNOWLEDGE OF HAZARDS
   if (fv.seller_aware_of_hazards === true) {
@@ -2241,12 +2247,9 @@ async function fillT47Affidavit(pdfDoc, fv) {
 async function fillUnimprovedProperty(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  function initials(name) {
-    if (!name) return '';
-    return name.split(/\s+/).map(function(w) { return w[0] || ''; }).join('').slice(0, 3).toUpperCase();
-  }
-  const buyerInit = fv.buyer_initials || initials(fv.buyer_name);
-  const sellerInit = fv.seller_initials || initials(fv.seller_name);
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): initials NOT pre-populated in fill phase.
+  const buyerInit = '';
+  const sellerInit = '';
 
   // Load base64 — asset exports { base64Pdf }
   // (Already loaded by fillForm; pdfDoc is passed in)
@@ -2514,14 +2517,15 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
     'and Seller_5',
     'and Seller_6',
   ];
-  buyerInitFields9.forEach(function(f) { safeSetText(form, f, buyerInit); });
-  sellerInitFields9.forEach(function(f) { safeSetText(form, f, sellerInit); });
-
-  // BUYER/SELLER SIGNATURE PAGE FIELDS
-  safeSetText(form, 'Buyer 4', fv.buyer_name || '');
-  safeSetText(form, 'Buyer 5', fv.buyer_name_2 || '');
-  safeSetText(form, 'Seller 4', fv.seller_name || '');
-  safeSetText(form, 'Seller 5', fv.seller_name_2 || '');
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): initials + signature-page name
+  // slots NOT pre-populated in fill phase. Fields remain empty for the signer.
+  // buyerInitFields9.forEach(function(f) { safeSetText(form, f, buyerInit); });
+  // sellerInitFields9.forEach(function(f) { safeSetText(form, f, sellerInit); });
+  // safeSetText(form, 'Buyer 4', fv.buyer_name || '');
+  // safeSetText(form, 'Buyer 5', fv.buyer_name_2 || '');
+  // safeSetText(form, 'Seller 4', fv.seller_name || '');
+  // safeSetText(form, 'Seller 5', fv.seller_name_2 || '');
+  void buyerInitFields9; void sellerInitFields9; void buyerInit; void sellerInit;
 
   return pdfDoc;
 }

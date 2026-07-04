@@ -315,30 +315,16 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
     if (trimmed.length > 160) safeSetText(form, 'Text3.1', trimmed.slice(160, 240));
   }
 
-  // Buyer / seller signature name overlays — the signature widgets can't hold
-  // printed names, so we draw them as page text at the fixed positions above
-  // the pre-printed "Buyer" / "Seller" labels.
+  // 2026-07-04 atlas_29 fix (Bug 4 — Heath): signature-page NAME overlays are
+  // NOT pre-populated during the FILL phase. The Buyer/Seller name slots above
+  // the signature lines are left empty for the signer. Names are only rendered
+  // during the send-for-signature phase (DocuSeal setup).
+  //
+  // Positions (retained as documentation for the signature phase):
   //   Buyer 1  x=40  y=170
   //   Seller 1 x=320 y=170
   //   Buyer 2  x=40  y=127
   //   Seller 2 x=320 y=127
-  try {
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const page = pdfDoc.getPages()[0];
-    const buyerName = tx.buyer_name ? String(tx.buyer_name).slice(0, 60) : '';
-    const sellerName = tx.seller_name ? String(tx.seller_name).slice(0, 60) : '';
-    if (buyerName) {
-      page.drawText(buyerName, { x: 40, y: 170, size: 10, font, color: rgb(0, 0, 0) });
-    }
-    if (sellerName) {
-      page.drawText(sellerName, { x: 320, y: 170, size: 10, font, color: rgb(0, 0, 0) });
-    }
-    // Rows 2 (Buyer 2 / Seller 2) left blank — TREC 39-11 second row is optional
-    // (co-buyer / co-seller). Filling with a duplicated name is misleading;
-    // leaving blank lets the agent hand-fill only if a second party exists.
-  } catch (e) {
-    console.warn('[draft-amendment] signature name overlay failed:', e && e.message);
-  }
 
   // Flatten so the agent can sign / print without an interactive PDF reader
   // re-editing the fields. They still get a clean signable copy.

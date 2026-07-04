@@ -94,9 +94,11 @@ Fields to extract:
 - contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
 
 §6.C SURVEY (set exactly ONE of these to true based on agent's intent):
-- survey_existing_or_seller_pays (boolean): true if "seller will provide existing survey or pay for new one" / "seller will provide T-47 or pay for new survey" — TREC §6C(1).
+- survey_existing_or_seller_pays (boolean): true ONLY if the agent commits to Seller furnishing an EXISTING T-47/survey with NO backup commitment about who pays if it's not available. Example trigger: "seller will provide existing T-47 survey" (no fallback language). — TREC §6C(1).
 - survey_buyer_obtains (boolean): true if "buyer will get new survey at buyer expense" — TREC §6C(2).
-- survey_seller_new (boolean): true if "seller will pay for new survey" — TREC §6C(3).
+- survey_seller_new (boolean): true if SELLER has committed to paying for a NEW survey — whether directly ("seller will pay for a new survey") OR conditionally ("if no survey is available seller will pay for a new one" / "seller will provide T-47 or if unavailable pay for new"). Any language where SELLER pays for a new survey when there is no existing survey → §6C(3). — TREC §6C(3).
+
+CRITICAL disambiguation for the v3-FHA scenario: "seller will provide t47 or survey. If no survey is available seller will pay for a new one" → set survey_seller_new=true (§6C(3)), NOT survey_existing_or_seller_pays. When Seller commits to paying for a new survey in any scenario, §6C(3) is the correct paragraph — do NOT use §6C(1)'s inner fallback for this case.
 
 §7.D PROPERTY CONDITION:
 - as_is (boolean): Default true ("buyer accepts as-is"). Set false only if specific repairs required.
