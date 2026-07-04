@@ -9,7 +9,7 @@
 // amendmentType: 'closing_date' | 'option_extension' | 'price_change'
 // Authorization: Bearer <supabase user JWT>
 
-const { PDFDocument } = require('pdf-lib');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const TREC_39_10_BASE64 = require('./_assets/trec-amendment-39-11-base64.js');
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
@@ -163,29 +163,40 @@ function safeCheck(form, name) {
   }
 }
 
-// Field name aliases — from `scripts/probe-39-11-positions.js` coordinate analysis
-// These names come directly from the AcroForm dictionary in the published TREC 39-11 PDF.
-// The 39-11 revision (05-04-2026) inserted a new lender-repairs paragraph (§5),
-// renumbering all subsequent §. But the PDF field NAMES still use the old numbering scheme.
+// Field name aliases — CORRECTED 2026-07-04 after Quinn APV showed option
+// extension checking the wrong paragraph. The PDF field NAMES are misleading
+// (they come from the OLD 39-10 form's paragraph numbering); the actual
+// visual paragraph each checkbox controls was verified by drawing an "X"
+// inside each checkbox rectangle and comparing to the pre-printed labels.
 //
-// MAPPING (PDF field name → visual paragraph number):
-// § 1 (Sales Price) ← field "1"
-// § 2 (Repairs/treatments) ← field "2"
-// § 3 (Closing date) ← field "3"
-// § 4 (Amount in 12A1b) ← field "4"
-// § 5 (Lender required repairs) ← field "5"  [NEW in 39-11, inserted here]
-// § 6 [NO VISUAL PARAGRAPH 6 — sub-items of §5]
-// § 7 (Buyer paid option fee) ← field "6"  [PDF field name is "6" but renders at visual §7]
-// § 8 (Waives right) ← field "7"
-// § 9 (Buyer approval notice) ← field "8"
-// § 10 (Other modifications) ← field "9"
+// GROUND-TRUTH VISUAL MAPPING (from probe-x-field*.pdf renders):
+// Visual ¶1 (Sales Price)              ← field "1 The Sales Price..."
+// Visual ¶2 (Repairs)                   ← field "2 In addition to any repairs..."
+// Visual ¶3 (Closing date)              ← field "3 The date in Paragraph 9..."
+// Visual ¶4 (Amount in 12A(1)(b))       ← field "4 The amount in Paragraph 12A1b..."
+// Visual ¶5 (Amounts in 12B header)     ← field "5 The cost of lender required repairs..."
+// Visual ¶6 (Lender required repairs)   ← field "6 Buyer has paid Seller..." [name is misleading]
+// Visual ¶7 (Buyer paid additional option fee) ← field "7 Buyer waives..." [name is misleading]
+// Visual ¶8 (Buyer waives right)        ← field "8 The date for Buyer to give written notice..."
+// Visual ¶9 (Buyer approval notice)     ← field "9 Other Modifications..."
+// Visual ¶10 (Other Modifications)      ← field "10"
 //
-// Visual paragraphs skip from §5 directly to §7 because the sub-items of §5
-// (lender pays / seller pays / buyer pays) occupy the space where §6 would be.
+// TEXT FIELDS on ¶7 (Buyer paid additional option fee):
+//   dollar amount:  field "contract"                          (Y=426)
+//   new-end-date:   field "be credited to the Sales Price"    (Y=401)
+//   year suffix:    field "20_2"                              (Y=400)
+//   credit-yes:     checkbox "Fee"                            (Y=403)
+//   credit-no:      checkbox "Fee 2"                          (Y=403)
 //
-// This coordinate map verified via pdftoppm renders of all 4 amendment scenarios
-// (closing_date, price_change, option_extension, repair_items) against the
-// 39-11 base64 asset in `trec-amendment-39-11-base64.js`.
+// TEXT FIELDS on ¶6 (Lender required repairs) — NOT the option fee slot:
+//   by Seller:  field "as follows"                (Y=440)
+//   by Buyer:   field "for an extension of the"   (Y=440)
+//
+// Signature name overlays (drawn as page text since sig widgets can't hold text):
+//   Buyer 1  → x=40,  y=170
+//   Seller 1 → x=320, y=170
+//   Buyer 2  → x=40,  y=127
+//   Seller 2 → x=320, y=127
 const FIELDS = {
   propertyAddress: 'Street Address and City',                       // page top
   finalAcceptanceDate: 'DATE OF FINAL ACCEPTANCE',                  // footer
@@ -198,11 +209,13 @@ const FIELDS = {
   closingDateCheckbox: '3 The date in Paragraph 9 of the contract is changed to',
   closingDateText: 'date 5',
   closingDateYearSuffix: '20_25',
-  // Paragraph 7 — additional option fee + extension [PDF field "6" despite visual §7]
-  optionFeeCheckbox: '6 Buyer has paid Seller an additional Option Fee of',
-  optionFeeAmount: 'as follows',                  // dollar amount paid
-  optionFeeExtensionDays: 'for an extension of the', // number of days
-  optionFeeNewEndDate: 'contract',                // resulting new end date / paragraph reference
+  // Paragraph 7 — additional option fee + extension
+  // Field NAMES are misleading — see comment above. The checkbox that visually
+  // sits next to ¶7 (Buyer paid additional option fee) is named "7 Buyer waives".
+  optionFeeCheckbox: '7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid',
+  optionFeeAmount: 'contract',                    // ¶7 dollar amount slot
+  optionFeeNewEndDateText: 'be credited to the Sales Price', // ¶7 new-end-date line
+  optionFeeNewEndDateYear: '20_2',                // ¶7 year suffix
   optionFeeCreditYes: 'Fee',                      // "will be credited"
   optionFeeCreditNo: 'Fee 2',                     // "will NOT be credited"
 };
@@ -239,10 +252,13 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
       ? `Seller agrees to complete all repairs using licensed contractors by ${deadline}: ${numbered}`
       : `Seller agrees to complete all repairs using licensed contractors: ${numbered}`;
 
-    safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
-    safeSetText(form, 'Text3.1', repairText.slice(0, 80));
+    // Visual ¶10 Other Modifications = field name "10" (NOT "9 Other Modifications",
+    // which visually checks ¶9 Buyer Notice).
+    // Text overflow reads top-to-bottom as Text5.1 → Text4.1 → Text3.1.
+    safeCheck(form, '10');
+    safeSetText(form, 'Text5.1', repairText.slice(0, 80));
     if (repairText.length > 80) safeSetText(form, 'Text4.1', repairText.slice(80, 160));
-    if (repairText.length > 160) safeSetText(form, 'Text5.1', repairText.slice(160, 240));
+    if (repairText.length > 160) safeSetText(form, 'Text3.1', repairText.slice(160, 240));
   } else if (amendmentType === 'closing_date') {
     safeCheck(form, FIELDS.closingDateCheckbox);
     // TREC 39-10 closing date section has a "Month Day" text field followed by
@@ -254,14 +270,29 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
     safeSetText(form, FIELDS.closingDateYearSuffix, formatTwoDigitYear(newValue));
   } else if (amendmentType === 'option_extension') {
     // For an extension, the agent supplies the NEW TOTAL number of option
-    // days (per chat.js schema description). We show the total days on the
-    // amendment line. If the dossier already has an option_fee recorded, we
-    // pre-populate the dollar field so agents don't have to re-enter it.
-    // Agents can still cross it out if the extension is $0 additional.
+    // days (per chat.js schema description). ¶7 of TREC 39-11 does NOT have
+    // a "days" field — it has a dollar amount, a NEW END DATE, and a year
+    // suffix. We check ¶7, populate the dollar amount from the dossier's
+    // option_fee (if any), and compute the new end date as
+    //   contract_effective_date + newValue days
+    // Agents can cross it out at signing if the numbers need tweaking.
     safeCheck(form, FIELDS.optionFeeCheckbox);
-    safeSetText(form, FIELDS.optionFeeExtensionDays, `${newValue} day${String(newValue).trim() === '1' ? '' : 's'}`);
     if (tx.option_fee != null && tx.option_fee !== '' && Number(tx.option_fee) > 0) {
       safeSetText(form, FIELDS.optionFeeAmount, formatMoney(tx.option_fee));
+    }
+    // Compute the new end date. If contract_effective_date is missing we
+    // leave the date field blank rather than fabricating a date — the agent
+    // fills it in by hand.
+    const totalDays = parseInt(String(newValue).replace(/[^0-9]/g, ''), 10);
+    if (tx.contract_effective_date && Number.isFinite(totalDays) && totalDays > 0) {
+      const base = new Date(tx.contract_effective_date + 'T00:00:00Z');
+      if (!Number.isNaN(base.getTime())) {
+        const end = new Date(base.getTime());
+        end.setUTCDate(end.getUTCDate() + totalDays);
+        const isoEnd = end.toISOString().slice(0, 10);
+        safeSetText(form, FIELDS.optionFeeNewEndDateText, formatLongDateNoYear(isoEnd));
+        safeSetText(form, FIELDS.optionFeeNewEndDateYear, formatTwoDigitYear(isoEnd));
+      }
     }
   } else if (amendmentType === 'price_change') {
     safeCheck(form, FIELDS.salesPriceCheckbox);
@@ -273,13 +304,40 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
 
   // Notes — appended into the "Other Modifications" overflow lines if present.
   // pdf-lib has no reliable way to text-wrap a string into multi-line fields,
-  // so we drop the first ~80 chars into Text3.1 and overflow into Text4.1/Text5.1.
+  // so we split into Text5.1 (top line) / Text4.1 / Text3.1 (bottom line).
+  // Visual ¶10 Other Modifications = field name "10" (NOT "9 Other Modifications",
+  // which visually checks ¶9 Buyer Notice).
   if (notes) {
     const trimmed = String(notes).slice(0, 240);
-    safeCheck(form, '9 Other Modifications Insert only factual statements and business details applicable to this sale');
-    safeSetText(form, 'Text3.1', trimmed.slice(0, 80));
+    safeCheck(form, '10');
+    safeSetText(form, 'Text5.1', trimmed.slice(0, 80));
     if (trimmed.length > 80) safeSetText(form, 'Text4.1', trimmed.slice(80, 160));
-    if (trimmed.length > 160) safeSetText(form, 'Text5.1', trimmed.slice(160, 240));
+    if (trimmed.length > 160) safeSetText(form, 'Text3.1', trimmed.slice(160, 240));
+  }
+
+  // Buyer / seller signature name overlays — the signature widgets can't hold
+  // printed names, so we draw them as page text at the fixed positions above
+  // the pre-printed "Buyer" / "Seller" labels.
+  //   Buyer 1  x=40  y=170
+  //   Seller 1 x=320 y=170
+  //   Buyer 2  x=40  y=127
+  //   Seller 2 x=320 y=127
+  try {
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const page = pdfDoc.getPages()[0];
+    const buyerName = tx.buyer_name ? String(tx.buyer_name).slice(0, 60) : '';
+    const sellerName = tx.seller_name ? String(tx.seller_name).slice(0, 60) : '';
+    if (buyerName) {
+      page.drawText(buyerName, { x: 40, y: 170, size: 10, font, color: rgb(0, 0, 0) });
+    }
+    if (sellerName) {
+      page.drawText(sellerName, { x: 320, y: 170, size: 10, font, color: rgb(0, 0, 0) });
+    }
+    // Rows 2 (Buyer 2 / Seller 2) left blank — TREC 39-11 second row is optional
+    // (co-buyer / co-seller). Filling with a duplicated name is misleading;
+    // leaving blank lets the agent hand-fill only if a second party exists.
+  } catch (e) {
+    console.warn('[draft-amendment] signature name overlay failed:', e && e.message);
   }
 
   // Flatten so the agent can sign / print without an interactive PDF reader
