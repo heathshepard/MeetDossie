@@ -187,7 +187,34 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_coupon | get_coupon | get_subscription | get_balance' });
+    if (action === 'list_customer_subs') {
+      // Read-only: list ALL subscriptions on a customer (any status).
+      // Used for reconciliation when a customer's active-in-Stripe sub ID
+      // differs from the one we have in our DB. NO WRITES.
+      const customerId = req.query?.customer_id || (req.body && req.body.customer_id);
+      if (!customerId) return res.status(400).json({ ok: false, error: 'customer_id required' });
+      const subs = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'all',
+        limit: 20,
+      });
+      return res.status(200).json({
+        ok: true,
+        customer: customerId,
+        subscriptions: (subs.data || []).map((s) => ({
+          id: s.id,
+          status: s.status,
+          created_iso: new Date(s.created * 1000).toISOString(),
+          current_period_end_iso: s.current_period_end ? new Date(s.current_period_end * 1000).toISOString() : null,
+          cancel_at_period_end: s.cancel_at_period_end,
+          canceled_at_iso: s.canceled_at ? new Date(s.canceled_at * 1000).toISOString() : null,
+          ended_at_iso: s.ended_at ? new Date(s.ended_at * 1000).toISOString() : null,
+          price_id: s?.items?.data?.[0]?.price?.id || null,
+        })),
+      });
+    }
+
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }

@@ -195,7 +195,55 @@ async function generateRecoveryLink(email) {
   }
 }
 
+// BUG FIX 2026-07-04: The subscriptions table has TWO unique constraints:
+// (user_id) AND (stripe_subscription_id). The old code did `on_conflict=stripe_subscription_id`
+// only, so when a customer resubscribed (new sub_id, same user_id), Postgres
+// tried to INSERT and hit the user_id_key conflict → 409 → silent data drift.
+// Six founding members (Tiffany, Kim, Miki, Cecilia, Amanda, Zelda) stayed on
+// their OLD canceled sub row all summer while their NEW active sub was invisible.
+//
+// New logic: SELECT-first by user_id. If a row exists, UPDATE it by user_id
+// (overwriting stripe_subscription_id + all fields). If not, INSERT with
+// on_conflict=stripe_subscription_id as before.
 async function upsertSubscription(payload) {
+  if (!payload || !payload.user_id) {
+    // Fallback path for the rare no-user-id case (kept for safety, though
+    // subscriptions.user_id is NOT NULL — this branch shouldn't execute).
+    await supabaseFetch('/rest/v1/subscriptions?on_conflict=stripe_subscription_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(payload),
+    });
+    return;
+  }
+
+  const encodedUserId = encodeURIComponent(payload.user_id);
+  let existing = [];
+  try {
+    existing = await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodedUserId}&select=id,stripe_subscription_id,status&limit=1`);
+  } catch (err) {
+    console.warn('[stripe-webhook] upsertSubscription: user_id SELECT failed:', err && err.message, '— falling back to INSERT');
+  }
+
+  if (Array.isArray(existing) && existing.length > 0) {
+    // Row exists for this user — UPDATE by user_id so we replace the stale
+    // stripe_subscription_id (resubscribe case). This is the key fix.
+    const prev = existing[0];
+    if (prev.stripe_subscription_id && payload.stripe_subscription_id
+        && prev.stripe_subscription_id !== payload.stripe_subscription_id) {
+      console.log('[stripe-webhook] upsertSubscription: RESUBSCRIBE detected user_id=', payload.user_id,
+        'old_sub=', prev.stripe_subscription_id, 'new_sub=', payload.stripe_subscription_id);
+    }
+    await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodedUserId}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(payload),
+    });
+    return;
+  }
+
+  // No row for this user_id — INSERT. Still guard against a race on
+  // stripe_subscription_id (two events firing in parallel).
   await supabaseFetch('/rest/v1/subscriptions?on_conflict=stripe_subscription_id', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
@@ -965,13 +1013,21 @@ async function handleSubscriptionDeleted(subscription, eventId) {
     : (subscription.customer && subscription.customer.id) || null;
 
   // Mark subscription row cancelled by stripe_subscription_id.
+  // BUG FIX 2026-07-04: Also write canceled_at so the audit trail is preserved
+  // (previous behavior left canceled_at=NULL, matching the fingerprint of
+  // rows we couldn't distinguish from bad data).
   if (subscription.id) {
     try {
       const encoded = encodeURIComponent(subscription.id);
+      const canceledAtIso = subscription.canceled_at
+        ? new Date(subscription.canceled_at * 1000).toISOString()
+        : (subscription.ended_at
+            ? new Date(subscription.ended_at * 1000).toISOString()
+            : new Date().toISOString());
       await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'cancelled' }),
+        body: JSON.stringify({ status: 'cancelled', canceled_at: canceledAtIso }),
       });
     } catch (err) {
       console.error('[stripe-webhook] subscription cancel patch failed:', err && err.message);
@@ -1133,17 +1189,31 @@ async function handleSubscriptionUpdated(stripe, subscription, eventId) {
     statusToSet = 'past_due'; // Treat unpaid as past_due
   }
 
+  // BUG FIX 2026-07-04: Also mirror canceled_at when Stripe reports cancellation,
+  // and clear it when the sub goes back to active (Stripe UI reactivation flow).
+  const patchBody = {
+    status: statusToSet,
+    current_period_start: currentPeriodStart,
+    current_period_end: currentPeriodEnd,
+    cancel_at_period_end: subscription.cancel_at_period_end || false,
+  };
+  if (statusToSet === 'cancelled') {
+    patchBody.canceled_at = subscription.canceled_at
+      ? new Date(subscription.canceled_at * 1000).toISOString()
+      : (subscription.ended_at
+          ? new Date(subscription.ended_at * 1000).toISOString()
+          : new Date().toISOString());
+  } else if (statusToSet === 'active') {
+    // Reactivation — clear the cancellation timestamp.
+    patchBody.canceled_at = null;
+  }
+
   try {
     const encoded = encodeURIComponent(stripeSubscriptionId);
     await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({
-        status: statusToSet,
-        current_period_start: currentPeriodStart,
-        current_period_end: currentPeriodEnd,
-        cancel_at_period_end: subscription.cancel_at_period_end || false,
-      }),
+      body: JSON.stringify(patchBody),
     });
     console.log('[stripe-webhook] subscription.updated: synced subscription. sub=', stripeSubscriptionId, 'status=', statusToSet);
   } catch (err) {

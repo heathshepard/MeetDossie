@@ -419,7 +419,48 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     });
   }
 
-  console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${skippedDemoAccounts} demo/test accounts skipped, ${errors.length} real errors`);
+  // ---------------------------------------------------------------------------
+  // Phase 2 (NEW 2026-07-04): DB-side drift detection.
+  // The reconciler's INSERT-only logic doesn't catch the case where a DB row
+  // exists for a user but points to an OLD canceled stripe_subscription_id
+  // while a NEWER active sub exists for the same customer (resubscribe pattern
+  // that triggered the July 4 incident). Walk every DB row whose sub_id we did
+  // NOT match in the active-Stripe list and flag it for Heath's attention.
+  // We do NOT auto-heal here — Heath decides which sub_id to keep — but we
+  // surface every drift row so it stops being invisible.
+  const activeStripeSubIds = new Set(allStripeSubs.map((s) => s.id));
+  let dbDrift = [];
+  try {
+    const dbRows = await supabaseFetch(
+      `/rest/v1/subscriptions?status=eq.active&plan=eq.founding&select=user_id,stripe_subscription_id,stripe_customer_id,current_period_end,updated_at`,
+    );
+    if (dbRows.ok && Array.isArray(dbRows.data)) {
+      for (const row of dbRows.data) {
+        if (!row.stripe_subscription_id) continue;
+        if (!activeStripeSubIds.has(row.stripe_subscription_id)) {
+          // DB says active but this sub isn't in Stripe's active list.
+          // Enrich with email for the digest.
+          let email = null;
+          try {
+            const encoded = encodeURIComponent(row.user_id);
+            const p = await supabaseFetch(`/rest/v1/profiles?id=eq.${encoded}&select=email&limit=1`);
+            if (p.ok && Array.isArray(p.data) && p.data.length > 0) email = p.data[0].email;
+          } catch (_) { /* email is nice-to-have */ }
+          dbDrift.push({
+            email,
+            user_id: row.user_id,
+            stale_sub_id: row.stripe_subscription_id,
+            stripe_customer_id: row.stripe_customer_id,
+            db_current_period_end: row.current_period_end,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[cron-stripe-reconcile] Phase 2 drift check failed:', err && err.message);
+  }
+
+  console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${skippedDemoAccounts} demo/test accounts skipped, ${errors.length} real errors, ${dbDrift.length} drift rows`);
 
   // Send Telegram alert.
   // Digest shape (clean — no INSERT-and-catch-409 noise):
@@ -448,6 +489,11 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     lines.push('', `Real errors (need investigation):`, errLines);
   }
 
+  if (dbDrift.length > 0) {
+    const driftLines = dbDrift.map((d) => `  - ${d.email || d.user_id}: DB sub=${d.stale_sub_id} (not active in Stripe), cust=${d.stripe_customer_id}`).join('\n');
+    lines.push('', `🚨 DB DRIFT (${dbDrift.length}) — DB shows active but Stripe sub is not active. Manual review:`, driftLines);
+  }
+
   const telegramText = lines.join('\n');
 
   await sendTelegramAlert(telegramText);
@@ -463,5 +509,7 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     real_errors: errors.length,
     gaps,
     error_details: errors,
+    db_drift_count: dbDrift.length,
+    db_drift: dbDrift,
   });
 });
