@@ -257,12 +257,18 @@ async function handleApply(req, res, userId) {
     const template = templateById[item.form_template_id];
     if (!template) continue;
 
+    // NOTE (2026-07-04): file_type + storage_path are NOT NULL in documents.
+    // Blank package attachments have no rendered PDF yet — stamp a stable
+    // placeholder derived from the template id. Fill-form pipeline reads
+    // storage_path only when status !== 'blank', so the placeholder is inert
+    // until a rendered PDF replaces it.
     const docRow = {
       user_id: userId,
       transaction_id: transactionId,
       file_name: `${template.name}.pdf`,
+      file_type: 'application/pdf',
       document_type: 'form_template',
-      storage_path: template.storage_path || null,
+      storage_path: template.storage_path || `template/${template.id}.pdf`,
       source_url: template.source_url || null,
       form_template_id: template.id,
       status: 'blank',

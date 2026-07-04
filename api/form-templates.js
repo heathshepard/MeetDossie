@@ -148,12 +148,18 @@ async function handleAttach(req, res, userId) {
   const template = tmplRows[0];
 
   // Insert a document row.
+  // NOTE (2026-07-04): file_type + storage_path are NOT NULL in the documents
+  // schema. Blank template attachments have no uploaded file yet, so we stamp
+  // a stable placeholder storage_path derived from the template id — the
+  // fill-form pipeline reads storage_path only when status !== 'blank', so
+  // the placeholder is inert until a rendered PDF replaces it.
   const docRow = {
     user_id: userId,
     transaction_id: transactionId,
     file_name: `${template.name}.pdf`,
+    file_type: 'application/pdf',
     document_type: 'form_template',
-    storage_path: template.storage_path || null,
+    storage_path: template.storage_path || `template/${template.id}.pdf`,
     source_url: template.source_url || null,
     form_template_id: template.id,
     status: 'blank',
