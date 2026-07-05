@@ -361,6 +361,11 @@ module.exports = async function handler(req, res) {
         seller_name: txn.seller_name || null,
         property_address: txn.property_address || null,
         city_state_zip: txn.city_state_zip || null,
+        // 'buyer' when the current user represents the buyer side of the
+        // deal, 'listing' when they represent the seller side. Drives the
+        // party-assignment dropdown filter in the editor so buyer-side
+        // deals never see seller options and vice versa.
+        role: txn.role || null,
       },
       forms,
     });
