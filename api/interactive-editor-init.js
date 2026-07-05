@@ -73,6 +73,16 @@ const FORM_LABELS = {
   'lead-paint-addendum': { code: 'OP-L',  name: 'Lead-Based Paint Addendum' },
 };
 
+// fill-form.js stores documents with a `document_type` column, not
+// `form_type`. Map our canonical form_type key -> the document_type value
+// so we can locate the most recent filled PDF for each form.
+const FORM_TYPE_TO_DOCUMENT_TYPE = {
+  'resale-contract':     'resale_contract',
+  'financing-addendum':  'financing_addendum',
+  'hoa-addendum':        'hoa_addendum',
+  'lead-paint-addendum': 'lead_paint_addendum',
+};
+
 // Extend REQUIRED_FIELDS to include the four target forms plus common optional
 // fields customers may want to review/adjust before signing.
 const EDITABLE_FIELDS_BY_FORM = {
@@ -220,17 +230,30 @@ module.exports = async function handler(req, res) {
     }
 
     // 2. Fetch the most recent filled_form document for each form type.
-    // documents.storage_path is the private path in the 'documents' bucket.
+    // fill-form.js writes documents.document_type as one of
+    //   resale_contract | financing_addendum | hoa_addendum | lead_paint_addendum
+    // (and leaves the legacy form_type column NULL). We match on document_type.
+    const wantedDocTypes = requestedForms
+      .map((f) => FORM_TYPE_TO_DOCUMENT_TYPE[f])
+      .filter(Boolean);
+    const docTypeFilter = wantedDocTypes.length > 0
+      ? `document_type=in.(${wantedDocTypes.map((t) => `"${t}"`).join(',')})`
+      : `document_type=in.("resale_contract","financing_addendum","hoa_addendum","lead_paint_addendum")`;
     const docRows = await supabaseCall(
       'GET',
-      `documents?transaction_id=eq.${transactionId}&document_type=eq.filled_form&select=id,form_type,storage_path,created_at,file_name&order=created_at.desc`
+      `documents?transaction_id=eq.${transactionId}&${docTypeFilter}&select=id,document_type,storage_path,created_at,file_name&order=created_at.desc`
     );
 
-    const latestDocByForm = {};
+    // Latest-per-document_type -> map back to form_type key.
+    const latestDocByFormType = {};
     for (const d of (docRows || [])) {
-      if (!d.form_type) continue;
-      if (!latestDocByForm[d.form_type]) {
-        latestDocByForm[d.form_type] = d;
+      if (!d.document_type) continue;
+      // Reverse-map document_type -> form_type key.
+      const formTypeKey = Object.keys(FORM_TYPE_TO_DOCUMENT_TYPE)
+        .find((k) => FORM_TYPE_TO_DOCUMENT_TYPE[k] === d.document_type);
+      if (!formTypeKey) continue;
+      if (!latestDocByFormType[formTypeKey]) {
+        latestDocByFormType[formTypeKey] = d;
       }
     }
 
@@ -238,7 +261,7 @@ module.exports = async function handler(req, res) {
     const forms = {};
     for (const formType of requestedForms) {
       const editableFields = EDITABLE_FIELDS_BY_FORM[formType] || [];
-      const doc = latestDocByForm[formType] || null;
+      const doc = latestDocByFormType[formType] || null;
       const signedUrl = doc ? await getSignedUrl(doc.storage_path) : null;
 
       const fields = editableFields.map((f) => {

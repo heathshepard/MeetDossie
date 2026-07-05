@@ -154,13 +154,25 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ ok: false, error: 'Forbidden.' });
     }
 
-    // Check which forms actually have a filled_form doc in storage — only
+    // Check which forms actually have a filled document in storage — only
     // validate those (customer may only be sending the resale contract).
+    // fill-form.js writes documents.document_type (e.g. 'resale_contract'),
+    // not the legacy `form_type` column.
+    const DOCUMENT_TYPE_TO_FORM_TYPE = {
+      resale_contract: 'resale-contract',
+      financing_addendum: 'financing-addendum',
+      hoa_addendum: 'hoa-addendum',
+      lead_paint_addendum: 'lead-paint-addendum',
+    };
     const docRows = await supabaseCall(
       'GET',
-      `documents?transaction_id=eq.${transactionId}&document_type=eq.filled_form&select=form_type`
+      `documents?transaction_id=eq.${transactionId}&document_type=in.("resale_contract","financing_addendum","hoa_addendum","lead_paint_addendum")&select=document_type`
     );
-    const availableForms = new Set((docRows || []).map((d) => d.form_type).filter(Boolean));
+    const availableForms = new Set(
+      (docRows || [])
+        .map((d) => DOCUMENT_TYPE_TO_FORM_TYPE[d.document_type])
+        .filter(Boolean)
+    );
 
     const errors = [];
     for (const formType of requestedForms) {
