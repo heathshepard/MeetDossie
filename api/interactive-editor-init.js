@@ -293,14 +293,23 @@ module.exports = async function handler(req, res) {
       const signedUrl = doc ? await getSignedUrl(doc.storage_path) : null;
 
       // Phase 3: load coords + build a lookup by canonical friendly key.
+      // Aliases collapse "friendlyKey_1" / "friendlyKey_2" (duplicates in
+      // the TREC field map) onto the API's canonical key (e.g. buyer_name).
+      const KEY_ALIASES = {
+        buyer_name_1: 'buyer_name',
+        seller_name_1: 'seller_name',
+        earnest_money_amount: 'earnest_money',
+        property_city: 'city_state_zip',
+      };
       const coordsDoc = loadCoords(formType);
       const coordsByKey = {};
       if (coordsDoc && Array.isArray(coordsDoc.fields)) {
         for (const w of coordsDoc.fields) {
           if (!w.key) continue;
+          const canonical = KEY_ALIASES[w.key] || w.key;
           // First widget for a given key wins (later widgets may be
           // duplicate placements — e.g. footer names).
-          if (!coordsByKey[w.key]) coordsByKey[w.key] = w;
+          if (!coordsByKey[canonical]) coordsByKey[canonical] = w;
         }
       }
 
