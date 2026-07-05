@@ -289,6 +289,17 @@ async function getTransactionRow(transactionId, userId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
+// Full transaction row for resale-contract prefill. select=* pulls every
+// column so buildResaleContractPrefill can pick up county, legal_description,
+// earnest_money, option_fee, title_company, closing_date, notice addresses,
+// etc. without a schema-coupled column list.
+async function getFullTransactionRow(transactionId, userId) {
+  const res = await supa(`transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=*`);
+  if (!res.ok) return null;
+  const rows = await res.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
 async function generateSignedUrl(storagePath, expiresIn = 300) {
   const url = `${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${storagePath}`;
   const res = await fetch(url, {
@@ -477,6 +488,94 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   throw new ValidationError(`DocuSeal returned unexpected submission shape.`, 502);
 }
 
+// 2026-07-05 ATLAS ROUND 7 — GOLD-2026-07-05-v11-esign-prefill-fixed
+//
+// PREFILL STRATEGY (clone-per-submission)
+// ---------------------------------------
+// DocuSeal template 4018208 (and 4023463) has a rendering bug where passing
+// `values` in submitters[] returns HTTP 500 whenever the value targets a field
+// OWNED by that submitter (verified: any Buyer 1 field, e.g. buyer_name = 'X',
+// sales_price = '525000', county = 'Bexar' — all 500). Values targeting fields
+// owned by OTHER submitters silently succeed (they hit no field to write to).
+//
+// The only reliable prefill path is `default_value` set via PUT /templates/{id}.
+// But defaults persist and are read LAZILY at signing-page render time — so a
+// customer opening submission A after we changed defaults for B would see B's
+// data. Solution: CLONE the template, set defaults on the CLONE, submit from
+// the CLONE, delete the clone after use. Each customer envelope is isolated.
+//
+// Per-submission cost: 3 extra DocuSeal API calls (clone POST, PUT defaults,
+// DELETE clone). All complete in <2s combined. No rate-limit concerns at
+// current volume.
+async function docusealCloneTemplateWithDefaults(templateId, defaults) {
+  const cloneRes = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}/clone`, {
+    method: 'POST',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: `TREC 20-18 Envelope ${Date.now()}` }),
+  });
+  if (!cloneRes.ok) {
+    const text = await cloneRes.text().catch(() => '');
+    throw new ValidationError(`DocuSeal template clone failed (${cloneRes.status}): ${text.slice(0, 200)}`, 502);
+  }
+  const cloneData = await cloneRes.json();
+  const cloneId = cloneData.id;
+  if (!cloneId) {
+    throw new ValidationError(`DocuSeal template clone returned no id.`, 502);
+  }
+
+  // Set default_value on each field named in `defaults` that exists on the clone.
+  // Fields not in `defaults` are left as-is (no default_value).
+  const existingFields = Array.isArray(cloneData.fields) ? cloneData.fields : [];
+  const patchedFields = existingFields.map((f) => {
+    if (defaults[f.name] != null && defaults[f.name] !== '') {
+      return { ...f, default_value: String(defaults[f.name]) };
+    }
+    return f;
+  });
+  const setCount = patchedFields.filter((f) => f.default_value != null && f.default_value !== '').length;
+
+  const putRes = await fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
+    method: 'PUT',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ fields: patchedFields }),
+  });
+  if (!putRes.ok) {
+    const text = await putRes.text().catch(() => '');
+    // Best-effort delete clone before throwing
+    fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
+      method: 'DELETE',
+      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+    }).catch(() => {});
+    throw new ValidationError(`DocuSeal template defaults PUT failed (${putRes.status}): ${text.slice(0, 200)}`, 502);
+  }
+
+  console.log(`[esign-create] Cloned template ${templateId} -> ${cloneId}, applied ${setCount} default_value(s).`);
+  return cloneId;
+}
+
+async function docusealDeleteTemplate(templateId) {
+  try {
+    const r = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}`, {
+      method: 'DELETE',
+      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.warn(`[esign-create] Clone delete failed for template ${templateId} (${r.status}): ${text.slice(0, 200)}`);
+    } else {
+      console.log(`[esign-create] Deleted clone template ${templateId}`);
+    }
+  } catch (err) {
+    console.warn(`[esign-create] Clone delete threw for ${templateId}:`, err && err.message);
+  }
+}
+
 async function docusealCreateFromTemplate({ templateId, signers, message, prefillData }) {
   // Creates a submission from a pre-built DocuSeal template (fields already placed).
   if (!DOCUSEAL_API_KEY) {
@@ -495,24 +594,26 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
     };
   }
 
-  // Prefill values are attached to the FIRST submitter — DocuSeal writes them
-  // into their owning fields regardless of which submitter is designated as the
-  // owner in Studio. All text/checkbox fields on template 4018208 are owned by
-  // "Buyer 1", so putting values on the Buyer 1 submitter is the correct place.
-  const submitters = signers.map((s, i) => {
-    const base = {
-      name: s.name,
-      email: s.email,
-      role: s.role || 'Signer',
-      // Suppress DocuSeal-native emails; Dossie sends Resend emails via
-      // sendSigningEmail() in the calling handler.
-      send_email: false,
-    };
-    if (i === 0 && prefillData && Object.keys(prefillData).length > 0) {
-      base.values = prefillData;
-    }
-    return base;
-  });
+  // If we have prefill data, clone the template and apply defaults there.
+  // The clone's ID is what we submit against. See long comment above for why.
+  let submissionTemplateId = templateId;
+  let cloneIdForCleanup = null;
+  const hasPrefill = prefillData && Object.keys(prefillData).length > 0;
+  if (hasPrefill) {
+    submissionTemplateId = await docusealCloneTemplateWithDefaults(templateId, prefillData);
+    cloneIdForCleanup = submissionTemplateId;
+  }
+
+  // Submitters carry NO `values` — prefill is via default_value on the clone.
+  // Passing `values` here would trigger the same 500 bug we're working around.
+  const submitters = signers.map((s) => ({
+    name: s.name,
+    email: s.email,
+    role: s.role || 'Signer',
+    // Suppress DocuSeal-native emails; Dossie sends Resend emails via
+    // sendSigningEmail() in the calling handler.
+    send_email: false,
+  }));
 
   // Message shape: DocuSeal expects {subject, body} object, not a bare string.
   let messageObj = null;
@@ -525,7 +626,7 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
   }
 
   const body = {
-    template_id: templateId,
+    template_id: submissionTemplateId,
     send_email: false,
     submitters,
     ...(messageObj ? { message: messageObj } : {}),
@@ -542,10 +643,22 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    // Best-effort clean up the clone before surfacing the error
+    if (cloneIdForCleanup) {
+      docusealDeleteTemplate(cloneIdForCleanup).catch(() => {});
+    }
     throw new ValidationError(`DocuSeal template submission failed (${res.status}): ${text.slice(0, 300)}`, 422);
   }
 
   const data = await res.json();
+
+  // Fire-and-forget delete of the clone. The submission's signing page reads
+  // fields from the clone template lazily, so we must NOT delete the clone
+  // until the customer has finished signing. LEAVE THE CLONE.
+  // (If we delete, the signing URL 404s.) The clone will be cleaned up when
+  // the envelope completes via a future maintenance job.
+  // TODO(atlas): add a cron to reap completed-envelope clones.
+
   // DocuSeal /submissions returns an ARRAY of submitter rows (one per signer),
   // each with a top-level `submission_id`. Normalize to { id, submitters } shape
   // the calling handler expects.
@@ -935,7 +1048,8 @@ module.exports = async function handler(req, res) {
 
     // Fetch the transaction so we have property_address for both email subjects
     // and template prefill. Non-fatal if missing.
-    const tx = transactionId ? await getTransactionRow(transactionId, userId) : null;
+    // Full-column select so buildResaleContractPrefill can access all resale fields.
+    const tx = transactionId ? await getFullTransactionRow(transactionId, userId) : null;
     const propertyAddress = tx ? (tx.property_address || '') : '';
 
     // Build the full ordered signers list.
@@ -950,26 +1064,40 @@ module.exports = async function handler(req, res) {
 
     let submissionResult;
 
-    if (templateId) {
+    // Resolve the template id to use. Resale contracts route through Heath's
+    // hand-mapped template 4018208 (widgets pre-placed in Studio). Any explicit
+    // templateId in the request wins over auto-routing.
+    let effectiveTemplateId = templateId;
+    if (!effectiveTemplateId && doc.document_type === 'resale_contract') {
+      effectiveTemplateId = RESALE_TEMPLATE_ID;
+    }
+
+    if (effectiveTemplateId) {
       // Phase 3 path — template-based submission with optional pre-fill.
+      // Build resale-specific prefill (full field map) if we have a transaction
+      // and this is the resale template; otherwise fall back to the earlier
+      // generic prefill from tx.
       let prefill = prefillData || {};
       if (tx) {
-        // Merge known transaction fields as pre-fill defaults.
-        prefill = {
-          property_address: tx.property_address || '',
-          buyer_name: tx.buyer_name || '',
-          seller_name: tx.seller_name || '',
-          purchase_price: tx.sale_price ? String(tx.sale_price) : '',
-          closing_date: tx.closing_date || '',
-          ...prefill,
-        };
+        if (Number(effectiveTemplateId) === RESALE_TEMPLATE_ID) {
+          prefill = { ...buildResaleContractPrefill(tx), ...prefill };
+        } else {
+          prefill = {
+            property_address: tx.property_address || '',
+            buyer_name: tx.buyer_name || '',
+            seller_name: tx.seller_name || '',
+            purchase_price: tx.sale_price ? String(tx.sale_price) : '',
+            closing_date: tx.closing_date || '',
+            ...prefill,
+          };
+        }
       }
-      submissionResult = await docusealCreateFromTemplate({ templateId, signers: allSigners, message, prefillData: prefill });
+      const prefillKeys = Object.keys(prefill).filter((k) => prefill[k] != null && prefill[k] !== '');
+      console.log(`[esign-create] v12 template ${effectiveTemplateId} with ${prefillKeys.length} prefill field(s): ${prefillKeys.slice(0, 8).join(', ')}${prefillKeys.length > 8 ? '...' : ''}`);
+      submissionResult = await docusealCreateFromTemplate({ templateId: effectiveTemplateId, signers: allSigners, message, prefillData: prefill });
     } else {
-      // 2026-07-05 v11 (ATLAS ROUND 6) — resale contracts (and all other PDFs)
-      // go through /templates/pdf with per-signer field maps derived from the
-      // raw TREC AcroForm widgets. This bypasses the broken pre-mapped
-      // template 4018208 whose Studio widget positions were wrong.
+      // Non-resale PDFs (Seller's Disclosure ack, addendums added ad-hoc, etc.)
+      // still go through /templates/pdf with per-signer AcroForm sig widgets.
       const signedUrl = await generateSignedUrl(doc.storage_path, 300);
 
       let autoFieldMap = null;
