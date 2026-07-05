@@ -103,176 +103,104 @@ async function getDocumentRow(documentId, userId) {
   return rows[0];
 }
 
-// TREC 20-18 (One to Four Family Residential Contract — Resale) field placement.
-// Coordinates are fractions of page dimensions (0-1). Page numbers are 1-indexed
-// (DocuSeal /templates/pdf expects 1-indexed pages).
-// Initials: bottom of pages 1-8 on the "Initialed for Identification by Buyer __ and Seller __" line.
-// Signature block: page 9 execution section.
+// TREC 20-18 (One to Four Family Residential Contract — Resale) routing.
 //
-// 2026-07-05 ATLAS FIX — GOLD-2026-07-05-v9-esign-correct-positions
-// Prior v8 used naive right-margin stack coordinates (BUYER_INITIAL_X = [0.06, 0.155, 0.25]
-// with y=0.945). Result: initial blocks stacked in right margin, NOT on the actual
-// "Initialed for Identification by Buyer __ and Seller __" line. Envelope 9023419
-// visually broken — see esign-v8-gate2-prod.png.
+// 2026-07-05 ATLAS FIX — GOLD-2026-07-05-v10-esign-use-heaths-template
+// Prior v9 built a NEW transient DocuSeal template on every send via /templates/pdf,
+// trying to manually place signature/initial widgets with hand-coded coordinates.
+// Result: widgets landed in the wrong spots (right/left margin) — Heath's phone
+// screenshots proved it. See envelope 9023419.
 //
-// Path A: reuse Heath's hand-mapped DocuSeal template 4018208 field coordinates.
-// Heath mapped every initial + signature position by hand in DocuSeal Studio.
-// We extract those exact coords and apply them to per-signer field maps here.
+// v10 approach: use Heath's PRE-MAPPED template 4018208 directly via /submissions
+// with template_id. Template has 4 submitters (Buyer 1, Buyer 2, Seller 1, Seller 2)
+// with 32 initials (8 pages × 4 submitters) + 4 signatures + 100 text/checkbox
+// fields hand-placed in DocuSeal Studio by Heath. No manual coordinate math.
 //
-// Buyer 1 initials: x=0.34 (on the Buyer line, before "and Seller")
-// Buyer 2 initials: x=0.41 (stacked right of Buyer 1)
-// Seller 1 initials: x=0.57 (on the Seller line, after "and Seller")
-// Seller 2 initials: x=0.64 (stacked right of Seller 1)
-// Signatures on page 9: Buyer col x=0.117, Seller col x=0.513
-//                       Row 1 (Buyer/Seller): y=0.475
-//                       Row 2 (Buyer 2/Seller 2): y=0.620
+// Role mapping (Dossie signer.role → template submitter name):
+//   'Buyer', 'buyer'                            → 'Buyer 1'
+//   'Co-Buyer', 'Co-Buyer 1', 'co-buyer'        → 'Buyer 2'
+//   'Co-Buyer 2', 'Co-Buyer 3', …               → dropped (only 2 buyer roles in template)
+//   'Seller'                                     → 'Seller 1'
+//   'Co-Seller'                                  → 'Seller 2'
+//   'Agent', 'Realtor', 'Listing Agent', …      → dropped (template has no Agent submitter)
+//                                                  Buyer-only signing flow per DossieSignModal.
+const RESALE_TEMPLATE_ID = 4018208;
 
 function classifyRole(roleRaw) {
   const role = String(roleRaw || '').toLowerCase().trim();
   if (!role) return 'unknown';
-  if (role === 'agent' || role.includes('agent')) return 'agent';
-  if (role.startsWith('buyer') || role === 'co-buyer' || role === 'cobuyer') return 'buyer';
-  if (role.startsWith('seller') || role === 'co-seller' || role === 'coseller') return 'seller';
+  if (role === 'agent' || role.includes('agent') || role.includes('realtor')) return 'agent';
+  if (role.startsWith('buyer') || role === 'co-buyer' || role === 'cobuyer' || role.startsWith('co-buyer')) return 'buyer';
+  if (role.startsWith('seller') || role === 'co-seller' || role === 'coseller' || role.startsWith('co-seller')) return 'seller';
   return 'unknown';
 }
 
-// TREC 20-18 initial + signature coordinates from Heath's hand-mapped template 4018208.
-// Extracted 2026-07-05 via GET /templates/4018208. Pages here are 1-indexed
-// (template returned 0-indexed; we +1 for /templates/pdf submission).
-//
-// Structure: RESALE_COORDS[sideKey][index] = { initials: [{page,x,y,w,h}...], signature: {page,x,y,w,h} }
-// sideKey: 'buyer' | 'seller'
-// index: 0 (first party) or 1 (co-buyer/co-seller)
-const INITIAL_W = 0.07;
-const INITIAL_H = 0.022;
-const SIG_W = 0.35;
-const SIG_H = 0.035;
-
-const RESALE_COORDS = {
-  buyer: [
-    // Buyer 1
-    {
-      initials: [
-        { page: 1, x: 0.34,   y: 0.957 },
-        { page: 2, x: 0.341,  y: 0.957 },
-        { page: 3, x: 0.34,   y: 0.957 },
-        { page: 4, x: 0.34,   y: 0.957 },
-        { page: 5, x: 0.34,   y: 0.957 },
-        { page: 6, x: 0.34,   y: 0.957 },
-        { page: 7, x: 0.34,   y: 0.957 },
-        { page: 8, x: 0.34,   y: 0.957 },
-      ],
-      signature: { page: 9, x: 0.117, y: 0.475 },
-    },
-    // Buyer 2
-    {
-      initials: [
-        { page: 1, x: 0.408, y: 0.957 },
-        { page: 2, x: 0.411, y: 0.957 },
-        { page: 3, x: 0.413, y: 0.955 },
-        { page: 4, x: 0.409, y: 0.955 },
-        { page: 5, x: 0.411, y: 0.954 },
-        { page: 6, x: 0.411, y: 0.951 },
-        { page: 7, x: 0.411, y: 0.957 },
-        { page: 8, x: 0.410, y: 0.957 },
-      ],
-      signature: { page: 9, x: 0.117, y: 0.620 },
-    },
-  ],
-  seller: [
-    // Seller 1
-    {
-      initials: [
-        { page: 1, x: 0.57,   y: 0.957 },
-        { page: 2, x: 0.570,  y: 0.957 },
-        { page: 3, x: 0.57,   y: 0.957 },
-        { page: 4, x: 0.570,  y: 0.958 },
-        { page: 5, x: 0.57,   y: 0.957 },
-        { page: 6, x: 0.570,  y: 0.958 },
-        { page: 7, x: 0.57,   y: 0.957 },
-        { page: 8, x: 0.57,   y: 0.957 },
-      ],
-      signature: { page: 9, x: 0.513, y: 0.475 },
-    },
-    // Seller 2
-    {
-      initials: [
-        { page: 1, x: 0.642, y: 0.953 },
-        { page: 2, x: 0.643, y: 0.953 },
-        { page: 3, x: 0.641, y: 0.956 },
-        { page: 4, x: 0.644, y: 0.957 },
-        { page: 5, x: 0.641, y: 0.959 },
-        { page: 6, x: 0.643, y: 0.957 },
-        { page: 7, x: 0.644, y: 0.954 },
-        { page: 8, x: 0.642, y: 0.957 },
-      ],
-      signature: { page: 9, x: 0.513, y: 0.620 },
-    },
-  ],
-};
-
-// Agent signature: page 9, below the buyer/seller signature block (execution section).
-// Kept from prior version — no template mapping since Heath's template has no Agent role.
-const AGENT_SIG = { page: 9, x: 0.05, y: 0.75 };
-const AGENT_DATE = { page: 9, x: 0.5, y: 0.75 };
-
-function buildFieldsForSigner(roleName, side, sideIndex) {
-  const fields = [];
-  if (side === 'agent') {
-    fields.push({
-      name: `${roleName} Signature`,
-      type: 'signature',
-      areas: [{ page: AGENT_SIG.page, x: AGENT_SIG.x, y: AGENT_SIG.y, w: SIG_W, h: SIG_H }],
-    });
-    fields.push({
-      name: `${roleName} Date`,
-      type: 'date',
-      areas: [{ page: AGENT_DATE.page, x: AGENT_DATE.x, y: AGENT_DATE.y, w: 0.18, h: SIG_H }],
-    });
-    return fields;
+// Map a Dossie signer to a template 4018208 submitter role name.
+// Returns null if the signer does not belong on this template (e.g. Agent — the
+// template has no Agent submitter, buyers sign, agent later signs on a separate flow).
+function mapToTemplateRole(role, sideCounters) {
+  const side = classifyRole(role);
+  if (side === 'buyer') {
+    const idx = sideCounters.buyer++;
+    if (idx === 0) return 'Buyer 1';
+    if (idx === 1) return 'Buyer 2';
+    return null; // Only 2 buyer slots in the template.
   }
-
-  // Buyer/Seller: use hand-mapped coordinates from template 4018208.
-  // sideIndex 0 = first party, 1 = co-party. Cap at 1 (only 2 columns available on the line).
-  const idx = Math.min(sideIndex, 1);
-  const coords = RESALE_COORDS[side][idx];
-
-  for (const ini of coords.initials) {
-    fields.push({
-      name: `${roleName} Initials P${ini.page}`,
-      type: 'initials',
-      areas: [{ page: ini.page, x: ini.x, y: ini.y, w: INITIAL_W, h: INITIAL_H }],
-    });
+  if (side === 'seller') {
+    const idx = sideCounters.seller++;
+    if (idx === 0) return 'Seller 1';
+    if (idx === 1) return 'Seller 2';
+    return null;
   }
-
-  fields.push({
-    name: `${roleName} Signature`,
-    type: 'signature',
-    areas: [{ page: coords.signature.page, x: coords.signature.x, y: coords.signature.y, w: SIG_W, h: SIG_H }],
-  });
-
-  return fields;
+  // Agent, unknown: not part of the buyer-side resale template.
+  return null;
 }
 
-// Build a fieldMap keyed by exact signer role. Handles buyer-only, seller-only,
-// mixed, and agent-last. Returns null when NO signer has a recognized side role
-// (in which case the caller should let DocuSeal auto-place the default sig+date).
-function buildResaleContractFieldMap(signers) {
-  const buyerCounter = { i: 0 };
-  const sellerCounter = { i: 0 };
-  const fieldMap = {};
-  let recognized = 0;
-  for (const s of signers) {
-    const role = s.role || 'Signer';
-    const side = classifyRole(role);
-    let sideIndex = 0;
-    if (side === 'buyer') { sideIndex = buyerCounter.i++; recognized++; }
-    else if (side === 'seller') { sideIndex = sellerCounter.i++; recognized++; }
-    else if (side === 'agent') { sideIndex = 0; recognized++; }
-    else { continue; }
-    fieldMap[role] = buildFieldsForSigner(role, side, sideIndex);
+// Build a values object (prefill for the template's named text/checkbox fields)
+// from the transactions row. Only sets fields where we have real data — DocuSeal
+// leaves unset fields blank for the signer to fill in.
+function buildResaleContractPrefill(tx) {
+  if (!tx) return {};
+  const v = {};
+
+  // §1 PARTIES + property
+  if (tx.buyer_name) v.buyer_name = tx.buyer_name;
+  if (tx.seller_name) v.seller_name = tx.seller_name;
+  if (tx.property_address) {
+    v.property_address = tx.property_address;
+    for (let p = 2; p <= 11; p++) v[`property_address_header_p${p}`] = tx.property_address;
   }
-  return recognized > 0 ? fieldMap : null;
+  if (tx.county) v.county = tx.county;
+  if (tx.legal_description) v.Legal_Description = tx.legal_description;
+
+  // §3 sales price
+  if (tx.sale_price != null) v.sales_price = String(tx.sale_price);
+  if (tx.down_payment != null) v.down_payment = String(tx.down_payment);
+  if (tx.loan_amount != null) v.loan_amount = String(tx.loan_amount);
+
+  // §5 earnest money + option
+  if (tx.earnest_money_amount != null) v.earnest_money_amount = String(tx.earnest_money_amount);
+  else if (tx.earnest_money != null) v.earnest_money_amount = String(tx.earnest_money);
+  if (tx.option_fee_amount != null) v.option_fee = String(tx.option_fee_amount);
+  else if (tx.option_fee != null) v.option_fee = String(tx.option_fee);
+  if (tx.option_days != null) v.option_period_days = String(tx.option_days);
+
+  // §6 title / escrow
+  if (tx.title_company) v.title_company_name = tx.title_company;
+  if (tx.escrow_officer_name) v.escrow_agent_name = tx.escrow_officer_name;
+
+  // §9 closing
+  if (tx.closing_date) v.closing_date = tx.closing_date;
+
+  // §21 notice addresses
+  if (tx.buyer_email) v.buyer_email = tx.buyer_email;
+  if (tx.buyer_phone) v.buyer_phone = tx.buyer_phone;
+  if (tx.seller_email) v.seller_email = tx.seller_email;
+  if (tx.seller_phone) v.seller_phone = tx.seller_phone;
+  if (tx.buyer_notice_name) v.buyer_notice_address = tx.buyer_notice_name;
+  if (tx.seller_notice_name) v.seller_notice_address = tx.seller_notice_name;
+
+  return v;
 }
 
 async function getTransactionRow(transactionId, userId) {
@@ -471,8 +399,7 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
 }
 
 async function docusealCreateFromTemplate({ templateId, signers, message, prefillData }) {
-  // Phase 3: creates a submission from a pre-built DocuSeal template.
-  // TODO: Replace stub with real call once DOCUSEAL_API_KEY is set.
+  // Creates a submission from a pre-built DocuSeal template (fields already placed).
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub template submission.');
     return {
@@ -489,15 +416,40 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
     };
   }
 
-  const body = {
-    template_id: templateId,
-    send_email: false,
-    submitters: signers.map((s) => ({
+  // Prefill values are attached to the FIRST submitter — DocuSeal writes them
+  // into their owning fields regardless of which submitter is designated as the
+  // owner in Studio. All text/checkbox fields on template 4018208 are owned by
+  // "Buyer 1", so putting values on the Buyer 1 submitter is the correct place.
+  const submitters = signers.map((s, i) => {
+    const base = {
       name: s.name,
       email: s.email,
       role: s.role || 'Signer',
-    })),
-    ...(prefillData ? { values: prefillData } : {}),
+      // Suppress DocuSeal-native emails; Dossie sends Resend emails via
+      // sendSigningEmail() in the calling handler.
+      send_email: false,
+    };
+    if (i === 0 && prefillData && Object.keys(prefillData).length > 0) {
+      base.values = prefillData;
+    }
+    return base;
+  });
+
+  // Message shape: DocuSeal expects {subject, body} object, not a bare string.
+  let messageObj = null;
+  if (message) {
+    if (typeof message === 'object' && (message.subject || message.body)) {
+      messageObj = message;
+    } else if (typeof message === 'string' && message.trim()) {
+      messageObj = { subject: 'Please sign', body: message };
+    }
+  }
+
+  const body = {
+    template_id: templateId,
+    send_email: false,
+    submitters,
+    ...(messageObj ? { message: messageObj } : {}),
   };
 
   const res = await fetch(`${DOCUSEAL_BASE}/submissions`, {
@@ -511,10 +463,21 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new ValidationError(`DocuSeal template submission failed (${res.status}): ${text.slice(0, 200)}`, 422);
+    throw new ValidationError(`DocuSeal template submission failed (${res.status}): ${text.slice(0, 300)}`, 422);
   }
 
-  return res.json();
+  const data = await res.json();
+  // DocuSeal /submissions returns an ARRAY of submitter rows (one per signer),
+  // each with a top-level `submission_id`. Normalize to { id, submitters } shape
+  // the calling handler expects.
+  if (Array.isArray(data) && data.length > 0) {
+    return {
+      id: data[0].submission_id,
+      submitters: data,
+    };
+  }
+  if (data && data.id) return data;
+  throw new ValidationError('DocuSeal template submission returned unexpected shape.', 502);
 }
 
 async function sendSigningEmail({ signerName, signerEmail, documentName, propertyAddress, signingUrl }) {
@@ -923,23 +886,47 @@ module.exports = async function handler(req, res) {
         };
       }
       submissionResult = await docusealCreateFromTemplate({ templateId, signers: allSigners, message, prefillData: prefill });
-    } else {
-      // Phase 1 path — direct PDF submission.
-      // Generate a 5-minute signed URL so DocuSeal can pull the PDF.
-      const signedUrl = await generateSignedUrl(doc.storage_path, 300);
-
-      // Auto-apply TREC 20-17 field placements when the document is a resale contract
-      // and the caller has not provided their own explicit field placements.
-      //
-      // 2026-07-05 ATLAS FIX: previous logic only fired when BOTH buyer AND seller
-      // signers were present. Buyer-only submissions (the standard Dossie flow)
-      // fell through to DocuSeal's default 1-sig+1-date auto-placement and had NO
-      // initials. Now: fire whenever any recognized side role (Buyer / Seller /
-      // Agent variants) is present, and build a per-signer fieldMap.
-      let autoFieldMap = null;
-      if (!fields && doc.document_type === 'resale_contract') {
-        autoFieldMap = buildResaleContractFieldMap(allSigners);
+    } else if (doc.document_type === 'resale_contract' && !fields) {
+      // 2026-07-05 v10 — resale contracts route to Heath's pre-mapped template 4018208.
+      // Do NOT build a transient template from the PDF; the template already has
+      // signature/initial/text/checkbox fields hand-placed correctly.
+      const sideCounters = { buyer: 0, seller: 0 };
+      const templateSubmitters = [];
+      for (const s of allSigners) {
+        const templateRole = mapToTemplateRole(s.role || 'Signer', sideCounters);
+        if (!templateRole) continue; // Agent / overflow signers dropped.
+        templateSubmitters.push({
+          name: s.name,
+          email: s.email,
+          role: templateRole,
+        });
       }
+
+      if (templateSubmitters.length === 0) {
+        throw new ValidationError('Resale contract needs at least one Buyer or Seller signer.', 422);
+      }
+
+      // Prefill DISABLED 2026-07-05 v10 — template 4018208 currently returns
+      // HTTP 500 from /submissions when any real field name is passed in `values`
+      // (fake field names silently succeed; buyer_name / sales_price / etc. crash
+      // the DocuSeal server). Root cause is a template-side data type or field
+      // constraint that Heath configured in Studio and needs re-saved. Filed
+      // for v11. Signing widgets STILL land in the correct positions (that was
+      // the acute failure); customers just type field values manually for now.
+      // const prefill = buildResaleContractPrefill(tx);
+
+      console.log('[esign-create] Routing resale_contract via template ' + RESALE_TEMPLATE_ID + ' with ' + templateSubmitters.length + ' submitter(s):', templateSubmitters.map((s) => s.role + '<' + s.email + '>').join(', '));
+
+      submissionResult = await docusealCreateFromTemplate({
+        templateId: RESALE_TEMPLATE_ID,
+        signers: templateSubmitters,
+        message,
+        prefillData: null,
+      });
+    } else {
+      // Fallback path — direct PDF submission (non-resale docs, or when caller
+      // supplied their own explicit field placements).
+      const signedUrl = await generateSignedUrl(doc.storage_path, 300);
 
       submissionResult = await docusealCreateFromPdf({
         documentUrl: signedUrl,
@@ -947,7 +934,7 @@ module.exports = async function handler(req, res) {
         signers: allSigners,
         message,
         fields,
-        fieldMap: autoFieldMap,
+        fieldMap: null,
       });
     }
 
