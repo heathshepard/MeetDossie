@@ -105,26 +105,105 @@ async function getDocumentRow(documentId, userId) {
 
 // TREC 20-18 (One to Four Family Residential Contract — Resale) routing.
 //
-// 2026-07-05 ATLAS FIX — GOLD-2026-07-05-v10-esign-use-heaths-template
-// Prior v9 built a NEW transient DocuSeal template on every send via /templates/pdf,
-// trying to manually place signature/initial widgets with hand-coded coordinates.
-// Result: widgets landed in the wrong spots (right/left margin) — Heath's phone
-// screenshots proved it. See envelope 9023419.
+// 2026-07-05 ATLAS ROUND 6 — GOLD-2026-07-05-v11-esign-coords-from-acroform
+// v10 (template 4018208) shipped with widgets in the wrong position — Heath's
+// phone screenshots showed sig widgets floating in the left margin on page 9
+// and initial widgets ABOVE the "Initialed for identification" line on page 8.
+// The template's widget positions in DocuSeal Studio are broken.
 //
-// v10 approach: use Heath's PRE-MAPPED template 4018208 directly via /submissions
-// with template_id. Template has 4 submitters (Buyer 1, Buyer 2, Seller 1, Seller 2)
-// with 32 initials (8 pages × 4 submitters) + 4 signatures + 100 text/checkbox
-// fields hand-placed in DocuSeal Studio by Heath. No manual coordinate math.
+// v11 approach (Path B): BYPASS the broken template. Build a fresh transient
+// template from the raw PDF on every send, placing signature/initial widgets
+// at coordinates extracted DIRECTLY from the AcroForm widgets in
+// trec-20-18-raw.pdf. The extraction script (.tmp/atlas26-build-coord-map.js)
+// reads pdf-lib widget rectangles and emits
+// api/_assets/trec-20-18-esign-coords.json.
 //
-// Role mapping (Dossie signer.role → template submitter name):
-//   'Buyer', 'buyer'                            → 'Buyer 1'
-//   'Co-Buyer', 'Co-Buyer 1', 'co-buyer'        → 'Buyer 2'
-//   'Co-Buyer 2', 'Co-Buyer 3', …               → dropped (only 2 buyer roles in template)
-//   'Seller'                                     → 'Seller 1'
-//   'Co-Seller'                                  → 'Seller 2'
-//   'Agent', 'Realtor', 'Listing Agent', …      → dropped (template has no Agent submitter)
-//                                                  Buyer-only signing flow per DossieSignModal.
+// Visual verification: red rectangles at these coords overlap the "Buyer"
+// underline on page 9 and the "Initialed for identification by Buyer __" line
+// on page 8 in the raw PDF render (see .tmp/atlas26-p9-overlay-09.png).
+//
+// RESALE_TEMPLATE_ID (4018208) is kept as a legacy id in case a caller still
+// passes it explicitly, but the resale-contract default path no longer touches it.
 const RESALE_TEMPLATE_ID = 4018208;
+
+// Load AcroForm-derived signing widget coordinates for TREC 20-18.
+// Structure: RESALE_COORDS[side][index] = { initials: [{page,x,y,w,h}...], signature: {page,x,y,w,h} }
+// side: 'buyer' | 'seller'; index: 0 (first party) or 1 (co-party).
+// y is TOP-origin (0=top, 1=bottom of page). DocuSeal uses top-origin per
+// its area.vue: `top: y * 100 + '%'`.
+const _path = require('path');
+const _fs = require('fs');
+let RESALE_COORDS_CACHE = null;
+function loadResaleCoords() {
+  if (RESALE_COORDS_CACHE) return RESALE_COORDS_CACHE;
+  try {
+    const p = _path.join(__dirname, '_assets', 'trec-20-18-esign-coords.json');
+    RESALE_COORDS_CACHE = JSON.parse(_fs.readFileSync(p, 'utf8'));
+    console.log(`[esign-create] Loaded TREC 20-18 esign coord map from ${p}`);
+    for (const side of ['buyer', 'seller']) {
+      for (let idx = 0; idx < RESALE_COORDS_CACHE[side].length; idx += 1) {
+        const c = RESALE_COORDS_CACHE[side][idx];
+        const label = `${side}${idx + 1}`;
+        console.log(`[esign-create]   ${label} sig p${c.signature.page}: x=${c.signature.x} y=${c.signature.y} w=${c.signature.w} h=${c.signature.h}`);
+        for (const ini of c.initials) {
+          console.log(`[esign-create]   ${label} p${ini.page} initial: x=${ini.x} y=${ini.y} w=${ini.w} h=${ini.h}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[esign-create] Failed to load TREC 20-18 coord map:', err && err.message);
+    RESALE_COORDS_CACHE = { buyer: [], seller: [] };
+  }
+  return RESALE_COORDS_CACHE;
+}
+
+function buildResaleFieldsForSigner(roleName, side, sideIndex) {
+  if (side === 'agent') {
+    // Agent gets a signature + date on page 9 below the buyer/seller block.
+    return [
+      { name: `${roleName} Signature`, type: 'signature',
+        areas: [{ page: 9, x: 0.05, y: 0.75, w: 0.35, h: 0.035 }] },
+      { name: `${roleName} Date`, type: 'date',
+        areas: [{ page: 9, x: 0.5, y: 0.75, w: 0.18, h: 0.035 }] },
+    ];
+  }
+  const coords = loadResaleCoords();
+  const idx = Math.min(sideIndex, 1);
+  const partyCoords = (coords[side] && coords[side][idx]) || null;
+  if (!partyCoords) return [];
+  const out = [];
+  for (const ini of partyCoords.initials) {
+    out.push({
+      name: `${roleName} Initials P${ini.page}`,
+      type: 'initials',
+      areas: [{ page: ini.page, x: ini.x, y: ini.y, w: ini.w, h: ini.h }],
+    });
+  }
+  out.push({
+    name: `${roleName} Signature`,
+    type: 'signature',
+    areas: [{ page: partyCoords.signature.page, x: partyCoords.signature.x, y: partyCoords.signature.y, w: partyCoords.signature.w, h: partyCoords.signature.h }],
+  });
+  return out;
+}
+
+function buildResaleContractFieldMap(signers) {
+  const buyerCounter = { i: 0 };
+  const sellerCounter = { i: 0 };
+  const fieldMap = {};
+  let recognized = 0;
+  for (const s of signers) {
+    const role = s.role || 'Signer';
+    const side = classifyRole(role);
+    let sideIndex = 0;
+    if (side === 'buyer') { sideIndex = buyerCounter.i++; recognized++; }
+    else if (side === 'seller') { sideIndex = sellerCounter.i++; recognized++; }
+    else if (side === 'agent') { sideIndex = 0; recognized++; }
+    else { continue; }
+    fieldMap[role] = buildResaleFieldsForSigner(role, side, sideIndex);
+  }
+  return recognized > 0 ? fieldMap : null;
+}
 
 function classifyRole(roleRaw) {
   const role = String(roleRaw || '').toLowerCase().trim();
@@ -886,47 +965,21 @@ module.exports = async function handler(req, res) {
         };
       }
       submissionResult = await docusealCreateFromTemplate({ templateId, signers: allSigners, message, prefillData: prefill });
-    } else if (doc.document_type === 'resale_contract' && !fields) {
-      // 2026-07-05 v10 — resale contracts route to Heath's pre-mapped template 4018208.
-      // Do NOT build a transient template from the PDF; the template already has
-      // signature/initial/text/checkbox fields hand-placed correctly.
-      const sideCounters = { buyer: 0, seller: 0 };
-      const templateSubmitters = [];
-      for (const s of allSigners) {
-        const templateRole = mapToTemplateRole(s.role || 'Signer', sideCounters);
-        if (!templateRole) continue; // Agent / overflow signers dropped.
-        templateSubmitters.push({
-          name: s.name,
-          email: s.email,
-          role: templateRole,
-        });
-      }
-
-      if (templateSubmitters.length === 0) {
-        throw new ValidationError('Resale contract needs at least one Buyer or Seller signer.', 422);
-      }
-
-      // Prefill DISABLED 2026-07-05 v10 — template 4018208 currently returns
-      // HTTP 500 from /submissions when any real field name is passed in `values`
-      // (fake field names silently succeed; buyer_name / sales_price / etc. crash
-      // the DocuSeal server). Root cause is a template-side data type or field
-      // constraint that Heath configured in Studio and needs re-saved. Filed
-      // for v11. Signing widgets STILL land in the correct positions (that was
-      // the acute failure); customers just type field values manually for now.
-      // const prefill = buildResaleContractPrefill(tx);
-
-      console.log('[esign-create] Routing resale_contract via template ' + RESALE_TEMPLATE_ID + ' with ' + templateSubmitters.length + ' submitter(s):', templateSubmitters.map((s) => s.role + '<' + s.email + '>').join(', '));
-
-      submissionResult = await docusealCreateFromTemplate({
-        templateId: RESALE_TEMPLATE_ID,
-        signers: templateSubmitters,
-        message,
-        prefillData: null,
-      });
     } else {
-      // Fallback path — direct PDF submission (non-resale docs, or when caller
-      // supplied their own explicit field placements).
+      // 2026-07-05 v11 (ATLAS ROUND 6) — resale contracts (and all other PDFs)
+      // go through /templates/pdf with per-signer field maps derived from the
+      // raw TREC AcroForm widgets. This bypasses the broken pre-mapped
+      // template 4018208 whose Studio widget positions were wrong.
       const signedUrl = await generateSignedUrl(doc.storage_path, 300);
+
+      let autoFieldMap = null;
+      if (!fields && doc.document_type === 'resale_contract') {
+        autoFieldMap = buildResaleContractFieldMap(allSigners);
+        if (autoFieldMap) {
+          const total = Object.values(autoFieldMap).reduce((acc, arr) => acc + arr.length, 0);
+          console.log(`[esign-create] v11 resale_contract auto-fieldmap built for ${Object.keys(autoFieldMap).length} signer(s), ${total} fields total.`);
+        }
+      }
 
       submissionResult = await docusealCreateFromPdf({
         documentUrl: signedUrl,
@@ -934,7 +987,7 @@ module.exports = async function handler(req, res) {
         signers: allSigners,
         message,
         fields,
-        fieldMap: null,
+        fieldMap: autoFieldMap,
       });
     }
 
