@@ -103,21 +103,29 @@ async function getDocumentRow(documentId, userId) {
   return rows[0];
 }
 
-// TREC 20-17 (One to Four Family Residential Contract — Resale) field placement.
-// Coordinates are fractions of page dimensions (0-1). Page numbers are 1-indexed.
-// Initials: bottom of pages 1-8. Signature block: page 9, execution section.
+// TREC 20-18 (One to Four Family Residential Contract — Resale) field placement.
+// Coordinates are fractions of page dimensions (0-1). Page numbers are 1-indexed
+// (DocuSeal /templates/pdf expects 1-indexed pages).
+// Initials: bottom of pages 1-8 on the "Initialed for Identification by Buyer __ and Seller __" line.
+// Signature block: page 9 execution section.
 //
-// 2026-07-05 ATLAS FIX — GOLD-2026-07-05-v8-esign-signature-blocks
-// Prior version required BOTH a Buyer and Seller signer before firing
-// (`if (buyerSigner && sellerSigner)`) which meant buyer-only submissions
-// (the common Dossie flow — the buyer-side app) got only DocuSeal's default
-// 1 signature + 1 date per role and NO initials. Envelopes 9021538-9021541 and
-// 9022960 all fell into this gap.
+// 2026-07-05 ATLAS FIX — GOLD-2026-07-05-v9-esign-correct-positions
+// Prior v8 used naive right-margin stack coordinates (BUYER_INITIAL_X = [0.06, 0.155, 0.25]
+// with y=0.945). Result: initial blocks stacked in right margin, NOT on the actual
+// "Initialed for Identification by Buyer __ and Seller __" line. Envelope 9023419
+// visually broken — see esign-v8-gate2-prod.png.
 //
-// New: build a per-signer field pack keyed off role classification so every
-// signer role (Buyer / Buyer 2 / Co-Buyer / Seller / Seller 2 / Agent) gets
-// its own initials + sig block. Buyer-side signers stack left→right on the
-// initials line; seller-side signers stack right→left. Agent is signature-only.
+// Path A: reuse Heath's hand-mapped DocuSeal template 4018208 field coordinates.
+// Heath mapped every initial + signature position by hand in DocuSeal Studio.
+// We extract those exact coords and apply them to per-signer field maps here.
+//
+// Buyer 1 initials: x=0.34 (on the Buyer line, before "and Seller")
+// Buyer 2 initials: x=0.41 (stacked right of Buyer 1)
+// Seller 1 initials: x=0.57 (on the Seller line, after "and Seller")
+// Seller 2 initials: x=0.64 (stacked right of Seller 1)
+// Signatures on page 9: Buyer col x=0.117, Seller col x=0.513
+//                       Row 1 (Buyer/Seller): y=0.475
+//                       Row 2 (Buyer 2/Seller 2): y=0.620
 
 function classifyRole(roleRaw) {
   const role = String(roleRaw || '').toLowerCase().trim();
@@ -128,16 +136,85 @@ function classifyRole(roleRaw) {
   return 'unknown';
 }
 
-// Initial-line stacking. Up to 3 buyer-side + 3 seller-side signers.
-const BUYER_INITIAL_X = [0.06, 0.155, 0.25];
-const SELLER_INITIAL_X = [0.78, 0.685, 0.59];
-
-// Signature block placement — two columns on page 9, three rows per side.
-const BUYER_SIG_X = 0.05;
-const SELLER_SIG_X = 0.55;
+// TREC 20-18 initial + signature coordinates from Heath's hand-mapped template 4018208.
+// Extracted 2026-07-05 via GET /templates/4018208. Pages here are 1-indexed
+// (template returned 0-indexed; we +1 for /templates/pdf submission).
+//
+// Structure: RESALE_COORDS[sideKey][index] = { initials: [{page,x,y,w,h}...], signature: {page,x,y,w,h} }
+// sideKey: 'buyer' | 'seller'
+// index: 0 (first party) or 1 (co-buyer/co-seller)
+const INITIAL_W = 0.07;
+const INITIAL_H = 0.022;
 const SIG_W = 0.35;
 const SIG_H = 0.035;
-const SIG_ROW_YS = [0.35, 0.44, 0.53];
+
+const RESALE_COORDS = {
+  buyer: [
+    // Buyer 1
+    {
+      initials: [
+        { page: 1, x: 0.34,   y: 0.957 },
+        { page: 2, x: 0.341,  y: 0.957 },
+        { page: 3, x: 0.34,   y: 0.957 },
+        { page: 4, x: 0.34,   y: 0.957 },
+        { page: 5, x: 0.34,   y: 0.957 },
+        { page: 6, x: 0.34,   y: 0.957 },
+        { page: 7, x: 0.34,   y: 0.957 },
+        { page: 8, x: 0.34,   y: 0.957 },
+      ],
+      signature: { page: 9, x: 0.117, y: 0.475 },
+    },
+    // Buyer 2
+    {
+      initials: [
+        { page: 1, x: 0.408, y: 0.957 },
+        { page: 2, x: 0.411, y: 0.957 },
+        { page: 3, x: 0.413, y: 0.955 },
+        { page: 4, x: 0.409, y: 0.955 },
+        { page: 5, x: 0.411, y: 0.954 },
+        { page: 6, x: 0.411, y: 0.951 },
+        { page: 7, x: 0.411, y: 0.957 },
+        { page: 8, x: 0.410, y: 0.957 },
+      ],
+      signature: { page: 9, x: 0.117, y: 0.620 },
+    },
+  ],
+  seller: [
+    // Seller 1
+    {
+      initials: [
+        { page: 1, x: 0.57,   y: 0.957 },
+        { page: 2, x: 0.570,  y: 0.957 },
+        { page: 3, x: 0.57,   y: 0.957 },
+        { page: 4, x: 0.570,  y: 0.958 },
+        { page: 5, x: 0.57,   y: 0.957 },
+        { page: 6, x: 0.570,  y: 0.958 },
+        { page: 7, x: 0.57,   y: 0.957 },
+        { page: 8, x: 0.57,   y: 0.957 },
+      ],
+      signature: { page: 9, x: 0.513, y: 0.475 },
+    },
+    // Seller 2
+    {
+      initials: [
+        { page: 1, x: 0.642, y: 0.953 },
+        { page: 2, x: 0.643, y: 0.953 },
+        { page: 3, x: 0.641, y: 0.956 },
+        { page: 4, x: 0.644, y: 0.957 },
+        { page: 5, x: 0.641, y: 0.959 },
+        { page: 6, x: 0.643, y: 0.957 },
+        { page: 7, x: 0.644, y: 0.954 },
+        { page: 8, x: 0.642, y: 0.957 },
+      ],
+      signature: { page: 9, x: 0.513, y: 0.620 },
+    },
+  ],
+};
+
+// Agent signature: page 9, below the buyer/seller signature block (execution section).
+// Kept from prior version — no template mapping since Heath's template has no Agent role.
+const AGENT_SIG = { page: 9, x: 0.05, y: 0.75 };
+const AGENT_DATE = { page: 9, x: 0.5, y: 0.75 };
 
 function buildFieldsForSigner(roleName, side, sideIndex) {
   const fields = [];
@@ -145,44 +222,35 @@ function buildFieldsForSigner(roleName, side, sideIndex) {
     fields.push({
       name: `${roleName} Signature`,
       type: 'signature',
-      areas: [{ page: 9, x: 0.05, y: 0.75, w: SIG_W, h: SIG_H }],
+      areas: [{ page: AGENT_SIG.page, x: AGENT_SIG.x, y: AGENT_SIG.y, w: SIG_W, h: SIG_H }],
     });
     fields.push({
       name: `${roleName} Date`,
       type: 'date',
-      areas: [{ page: 9, x: 0.5, y: 0.75, w: 0.18, h: SIG_H }],
+      areas: [{ page: AGENT_DATE.page, x: AGENT_DATE.x, y: AGENT_DATE.y, w: 0.18, h: SIG_H }],
     });
     return fields;
   }
 
-  const initialXArr = side === 'seller' ? SELLER_INITIAL_X : BUYER_INITIAL_X;
-  const initialX = initialXArr[Math.min(sideIndex, initialXArr.length - 1)];
-  const sigX = side === 'seller' ? SELLER_SIG_X : BUYER_SIG_X;
-  const sigY = SIG_ROW_YS[Math.min(sideIndex, SIG_ROW_YS.length - 1)];
+  // Buyer/Seller: use hand-mapped coordinates from template 4018208.
+  // sideIndex 0 = first party, 1 = co-party. Cap at 1 (only 2 columns available on the line).
+  const idx = Math.min(sideIndex, 1);
+  const coords = RESALE_COORDS[side][idx];
 
-  for (let page = 1; page <= 8; page++) {
+  for (const ini of coords.initials) {
     fields.push({
-      name: `${roleName} Initials P${page}`,
+      name: `${roleName} Initials P${ini.page}`,
       type: 'initials',
-      areas: [{ page, x: initialX, y: 0.945, w: 0.075, h: 0.022 }],
+      areas: [{ page: ini.page, x: ini.x, y: ini.y, w: INITIAL_W, h: INITIAL_H }],
     });
   }
 
   fields.push({
     name: `${roleName} Signature`,
     type: 'signature',
-    areas: [{ page: 9, x: sigX, y: sigY, w: SIG_W, h: SIG_H }],
+    areas: [{ page: coords.signature.page, x: coords.signature.x, y: coords.signature.y, w: SIG_W, h: SIG_H }],
   });
-  fields.push({
-    name: `${roleName} Printed Name`,
-    type: 'text',
-    areas: [{ page: 9, x: sigX, y: sigY + 0.05, w: SIG_W, h: 0.028 }],
-  });
-  fields.push({
-    name: `${roleName} Date`,
-    type: 'date',
-    areas: [{ page: 9, x: sigX + 0.37, y: sigY, w: 0.14, h: SIG_H }],
-  });
+
   return fields;
 }
 
