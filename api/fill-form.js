@@ -796,17 +796,22 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'as earnest money to 2', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'earnest money of', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
   safeSetText(form, 'to escrow agent within', fv.additional_earnest_money_days || '');
-  // Page-11 receipts: 'Option Fee in the form of' is the receipt description (e.g. "check"), not the $ amount.
-  safeSetText(form, 'Option Fee in the form of', fv.option_fee_form_of || '');
-  const optionFeeRecipient = fv.option_fee_escrow_recipient || fv.title_company || fv.listing_agent_name || '';
-  safeSetText(form, 'Seller or Listing Broker', optionFeeRecipient);
-  safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form_of || fv.earnest_money_form || '');
+  // 2026-07-05 ROUND4 fix (Bug 1 — title company domain rule): ALL Page-11 receipt sections
+  // are title-company-only fields, filled at closing when funds actually arrive.
+  // NEVER pre-populate at contract origination — legally incorrect and misleading.
+  // Blanking: Option Fee "form of", Option Fee recipient, Earnest Money "form of".
+  safeSetText(form, 'Option Fee in the form of', '');
+  safeSetText(form, 'Seller or Listing Broker', '');
+  safeSetText(form, 'Earnest Money in the form of', '');
 
-  // TITLE COMPANY / ESCROW (Section 6)
+  // TITLE COMPANY / ESCROW (Section 6, page 2)
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent_2', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent_3', fv.title_company || '');
+  // 2026-07-05 ROUND4 fix (Bug 1): "Escrow Agent" / "Escrow Agent_2" / "Escrow Agent_3" widgets
+  // are on Page 11 receipt sections (rendered as footer labels under "Receipt of $__" in each of
+  // the 4 receipt boxes). These are title-company-only fields — blanked at contract origination.
+  safeSetText(form, 'Escrow Agent', '');
+  safeSetText(form, 'Escrow Agent_2', '');
+  safeSetText(form, 'Escrow Agent_3', '');
   // NOTE: 'Received by' / 'Received by_2' / 'Received by_3' on the page-11 escrow
   // receipts = ESCROW OFFICER name (Ashley Phiffer). Wired below in the ESCROW
   // RECEIPT FIELDS block (search for 'receivedBy =') with fv.escrow_agent_name
@@ -1040,11 +1045,11 @@ async function fillResaleContract(pdfDoc, fv) {
     safeSetText(form, 'Text3 2', provText);
   }
 
-  // EXECUTION DATE
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
+  // 2026-07-05 ROUND4 fix (Bug 1): the "Date" widget is MISLABELED — visual verification shows
+  // it renders on Page 11's OPTION FEE RECEIPT ("Date" on right side of receipt box), NOT the
+  // execution date. The actual execution date uses "EXECUTED the" / "day of" / "20_2" widgets
+  // below. So we blank "Date" — receipt date is title-company-only.
+  safeSetText(form, 'Date', '');
   // EXECUTED block: if execution_date provided, use it; otherwise fall back to contract_effective_date.
   const execISO = fv.execution_date || fv.contract_effective_date;
   if (execISO) {
@@ -1118,47 +1123,46 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'State_3', fv.selling_broker_state || '');
   if (fv.buyer_only_agent === true) safeCheck(form, 'Buyer only');
 
-  // ESCROW RECEIPT FIELDS (filled with title company info)
-  // 'Received by' / 'Received by_2' / 'Received by_3' = the ESCROW OFFICER name
-  // (the human at the title company, e.g. "Ashley Phiffer"). Falls back to
-  // escrow_agent_name set up above. Only set when this filler's escrowOfficer
-  // value is non-empty so we don't blank what was written earlier in fillResaleContract.
-  const receivedBy = fv.earnest_received_by || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
-  if (receivedBy) safeSetText(form, 'Received by', receivedBy);
-  safeSetText(form, 'Address', fv.escrow_address || '');
-  safeSetText(form, 'City_4', fv.escrow_city || '');
-  safeSetText(form, 'State_4', fv.escrow_state || '');
-  safeSetText(form, 'Zip_4', fv.escrow_zip || '');
-  safeSetText(form, 'Email Address', fv.escrow_email || '');
-  safeSetText(form, 'DateTime', fv.earnest_receipt_datetime || '');
-  safeSetText(form, 'Phone_6', fv.escrow_phone || '');
-  safeSetText(form, 'Fax', fv.escrow_fax || '');
-  const receivedBy2 = fv.earnest_received_by_2 || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
-  if (receivedBy2) safeSetText(form, 'Received by_2', receivedBy2);
-  safeSetText(form, 'Address_2', fv.escrow_address_2 || '');
-  safeSetText(form, 'City_5', fv.escrow_city_2 || '');
-  safeSetText(form, 'State_5', fv.escrow_state_2 || '');
-  safeSetText(form, 'Zip_5', fv.escrow_zip_2 || '');
-  safeSetText(form, 'Email Address_2', fv.escrow_email_2 || '');
-  // 2026-07-05 atlas ROUND3 fix (Bug 12): page-11 Contract Receipt Date (widget "Date_2"
-  // at p10 y=446 x=463 w=93) defaults to contract_effective_date to parallel the Option Fee
-  // Receipt date (widget "Date" at p10 y=644). Round-2 left this blank on v3-FHA.
-  const contractReceiptDate = fv.contract_receipt_date || fv.earnest_date_2 || fv.contract_effective_date || '';
-  safeSetText(form, 'Date_2',
-    contractReceiptDate && String(contractReceiptDate).includes('-')
-      ? formatDate(contractReceiptDate)
-      : (contractReceiptDate || ''));
-  safeSetText(form, 'Phone_7', fv.escrow_phone_2 || '');
-  safeSetText(form, 'Fax_2', fv.escrow_fax_2 || '');
-  const receivedBy3 = fv.add_earnest_received_by || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
-  if (receivedBy3) safeSetText(form, 'Received by_3', receivedBy3);
-  safeSetText(form, 'is acknowledged', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');  safeSetText(form, 'is acknowledged_2', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');  safeSetText(form, 'is acknowledged_3', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
-  safeSetText(form, 'State_6', fv.add_escrow_state || '');
-  safeSetText(form, 'Zip_6', fv.add_escrow_zip || '');
-  safeSetText(form, 'Email Address_3', fv.add_escrow_email || '');
-  safeSetText(form, 'DateTime_2', fv.add_earnest_datetime || '');
-  safeSetText(form, 'Phone_8', fv.add_escrow_phone || '');
-  safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
+  // 2026-07-05 ROUND4 fix (Bug 1 — title company domain rule): ALL Page-11 receipt sections
+  // are title-company-only. These are filled by the escrow officer AFTER funds/documents
+  // are received at closing — NEVER by the buyer's agent at contract origination.
+  // Explicitly blanking every widget in all 4 receipt sections:
+  //   OPTION FEE RECEIPT: Received by, Address, City_4, State_4, Zip_4, Email Address, DateTime, Phone_6, Fax, is acknowledged
+  //   EARNEST MONEY RECEIPT: Received by_2, Address_2, City_5, State_5, Zip_5, Email Address_2, Date_2, Phone_7, Fax_2, is acknowledged_2
+  //   CONTRACT RECEIPT: (Date_2 was the round-3 "contract receipt date" — now blank)
+  //   ADDITIONAL EARNEST MONEY RECEIPT: Received by_3, Address_3, City_6, State_6, Zip_6, Email Address_3, DateTime_2, Phone_8, Fax_3, is acknowledged_3, additional Earnest Money in the form of
+  // Page 2 §5.A contract body ($100 option fee, $5,000 earnest money) is NOT touched — see lines 795-797.
+  safeSetText(form, 'Received by', '');
+  safeSetText(form, 'Address', '');
+  safeSetText(form, 'City_4', '');
+  safeSetText(form, 'State_4', '');
+  safeSetText(form, 'Zip_4', '');
+  safeSetText(form, 'Email Address', '');
+  safeSetText(form, 'DateTime', '');
+  safeSetText(form, 'Phone_6', '');
+  safeSetText(form, 'Fax', '');
+  safeSetText(form, 'Received by_2', '');
+  safeSetText(form, 'Address_2', '');
+  safeSetText(form, 'City_5', '');
+  safeSetText(form, 'State_5', '');
+  safeSetText(form, 'Zip_5', '');
+  safeSetText(form, 'Email Address_2', '');
+  safeSetText(form, 'Date_2', '');
+  safeSetText(form, 'Phone_7', '');
+  safeSetText(form, 'Fax_2', '');
+  safeSetText(form, 'Received by_3', '');
+  safeSetText(form, 'is acknowledged', '');
+  safeSetText(form, 'is acknowledged_2', '');
+  safeSetText(form, 'is acknowledged_3', '');
+  safeSetText(form, 'State_6', '');
+  safeSetText(form, 'Zip_6', '');
+  safeSetText(form, 'Email Address_3', '');
+  safeSetText(form, 'DateTime_2', '');
+  safeSetText(form, 'Phone_8', '');
+  safeSetText(form, 'additional Earnest Money in the form of', '');
+  safeSetText(form, 'Address_3', '');
+  safeSetText(form, 'City_6', '');
+  safeSetText(form, 'Fax_3', '');
 
   // §21 NOTICE ADDRESSES (2026-07-05 atlas ROUND3 fix — Bug 7)
   // Left column ("To Buyer at:") + right column ("To Seller at:") on displayed page 8.
@@ -1174,8 +1178,15 @@ async function fillResaleContract(pdfDoc, fv) {
   //   y=622 x=135 w=160 "Phone 52"                              → Buyer email/fax
   //   y=622 x=388 w=162 "undefined numb 21"                     → Seller email/fax
   // Falls back to legacy fv.notice_address for backward compatibility.
+  // 2026-07-05 ROUND4 fix (Bug 2 — §21 buyer notice blank): when both direct fields are empty,
+  // fall back to the buyer's agent address ("c/o [buyer_agent_name], KW City View, San Antonio, TX").
+  // Master prompt "I will represent myself" means buyer_agent = buyer_name; the KW office address
+  // is the standard notice fallback per REALTOR practice.
+  const buyerAgentName = fv.buyer_agent_name || fv.other_broker_assoc_name || fv.selling_agent_name || fv.buyer_name || '';
+  const buyerNoticeAddr = fv.buyer_notice_address || fv.notice_address ||
+    (buyerAgentName ? `c/o ${buyerAgentName}, KW City View, San Antonio, TX` : '');
   safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows',
-    fv.buyer_notice_address || fv.notice_address || '');
+    buyerNoticeAddr);
   safeSetText(form, 'undefined_19', fv.seller_notice_address || '');
   // Continuation lines — only fill if a 2-part address was provided
   if (fv.buyer_notice_address_line2) safeSetText(form, 'at', fv.buyer_notice_address_line2);
