@@ -79,6 +79,7 @@ const KEY_MAP = {
     title_buyer_pays: 'title_buyer_pays',
     third_party_financing: 'third_party_financing',
     addendum_financing: 'addendum_financing',
+    addendum_hoa: 'addendum_hoa',
     addendum_lead_paint: 'addendum_lead_paint',
     county: 'county',
     city_state_zip: 'city_state_zip',
@@ -90,11 +91,24 @@ const KEY_MAP = {
     buyer_phone: 'buyer_phone',
     buyer_email: 'buyer_email',
     buyer_notice_address: 'buyer_notice_address',
+    buyer_notice_phone: 'buyer_notice_phone',
+    buyer_notice_email: 'buyer_notice_email',
     seller_phone: 'seller_phone',
     seller_email: 'seller_email',
     seller_notice_address: 'seller_notice_address',
+    seller_notice_phone: 'seller_notice_phone',
+    seller_notice_email: 'seller_notice_email',
     listing_broker_firm: 'listing_broker_firm',
+    listing_broker_firm_license: 'listing_broker_firm_license',
     listing_agent_name: 'listing_agent_name',
+    listing_agent_license: 'listing_agent_license',
+    // §10 Possession
+    possession: 'possession',
+    // §12.A concessions + commissions
+    seller_concessions: 'seller_concessions_amount',
+    seller_concessions_amount: 'seller_concessions_amount',
+    buyer_agent_commission_pct: 'buyer_agent_commission_pct',
+    buyer_agent_commission_amt: 'buyer_agent_commission_amt',
     as_is: 'as_is',
     sdn_received: 'sdn_received',
   },
@@ -163,6 +177,10 @@ const KEY_MAP = {
     loan_amount: 'first_loan_amount',
     interest_rate_max: 'first_interest_rate',
     loan_term_years: 'first_loan_term_years',
+    // §1.C FHA-specific rate cap + §2.A buyer approval days (2026-07-05 round 3 additions)
+    fha_interest_rate_cap: 'fha_interest_rate_cap',
+    buyer_approval_days: 'buyer_approval_days',
+    property_full: 'property_address_p2',
   },
   // 2026-06-27 ATLAS: full HOA field map verified via
   // GET /templates/4111321 — 17 fields. DocuSeal scraped some field names

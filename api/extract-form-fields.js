@@ -94,11 +94,12 @@ Fields to extract:
 - contract_effective_date (string): ISO date YYYY-MM-DD of contract execution.
 
 §6.C SURVEY (set exactly ONE of these to true based on agent's intent):
-- survey_existing_or_seller_pays (boolean): true ONLY if the agent commits to Seller furnishing an EXISTING T-47/survey with NO backup commitment about who pays if it's not available. Example trigger: "seller will provide existing T-47 survey" (no fallback language). — TREC §6C(1).
+- survey_existing_or_seller_pays (boolean): true if Seller furnishes an EXISTING T-47/survey — WITH OR WITHOUT a "Seller pays for new if unavailable" fallback. Example triggers: "seller will provide existing T-47 survey" OR "seller will provide t47 or survey. If no survey is available seller will pay for a new one" — both are §6C(1). The inner "Seller pays for new" fallback is captured by the survey_seller_pays_fallback boolean below. — TREC §6C(1).
 - survey_buyer_obtains (boolean): true if "buyer will get new survey at buyer expense" — TREC §6C(2).
-- survey_seller_new (boolean): true if SELLER has committed to paying for a NEW survey — whether directly ("seller will pay for a new survey") OR conditionally ("if no survey is available seller will pay for a new one" / "seller will provide T-47 or if unavailable pay for new"). Any language where SELLER pays for a new survey when there is no existing survey → §6C(3). — TREC §6C(3).
+- survey_seller_new (boolean): true ONLY if the agent explicitly commits Seller to a BRAND NEW survey with NO mention of an existing/T-47 alternative. Example trigger: "seller will pay for a new survey" (no "existing", no "T-47", no "or"). — TREC §6C(3).
+- survey_seller_pays_fallback (boolean): pairs with survey_existing_or_seller_pays. true when the master prompt indicates Seller (not Buyer) pays for the fallback new survey if existing is unavailable. Default true for the v3-FHA-style prompt.
 
-CRITICAL disambiguation for the v3-FHA scenario: "seller will provide t47 or survey. If no survey is available seller will pay for a new one" → set survey_seller_new=true (§6C(3)), NOT survey_existing_or_seller_pays. When Seller commits to paying for a new survey in any scenario, §6C(3) is the correct paragraph — do NOT use §6C(1)'s inner fallback for this case.
+CRITICAL disambiguation for the v3-FHA scenario: "seller will provide t47 or survey. If no survey is available seller will pay for a new one" → set survey_existing_or_seller_pays=true AND survey_seller_pays_fallback=true (§6C(1) with Seller-pays-fallback). Do NOT set survey_seller_new=true — §6C(3) is only for hard commitments to a brand new survey with no existing option.
 
 §7.D PROPERTY CONDITION:
 - as_is (boolean): Default true ("buyer accepts as-is"). Set false only if specific repairs required.
@@ -138,7 +139,15 @@ BROKER SECTION (§8):
 - seller_agent_commission_pct (number): Listing agent commission % if stated.
 
 POSSESSION:
-- possession (string): "closing" (default), "lease_after", "lease_before". §10.
+- possession (string): "closing" (default — §10.A "upon closing and funding"), "lease_after" (§10.A "according to a temporary residential lease"), "lease_before". §10.
+
+§21 NOTICES:
+- buyer_notice_address (string): Buyer's mailing address for statutory notices under §21 (address line + city/state/zip). Default from buyer's profile mailing address; leave blank if unknown.
+- seller_notice_address (string): Seller's mailing address for §21 notices. Default to "c/o [listing_broker_firm], [listing_broker_address]" when Seller's direct address is unknown at contract time.
+- buyer_notice_phone (string): Buyer's phone.
+- buyer_notice_email (string): Buyer's email.
+- seller_notice_phone (string): Seller's phone.
+- seller_notice_email (string): Seller's email.
 
 EFFECTIVE / EXECUTION:
 - contract_effective_date (string): ISO date YYYY-MM-DD. Defaults to today if not stated.
@@ -148,14 +157,17 @@ Extract these fields for the Third Party Financing Addendum.
 Return ONLY fields that are present or can be inferred.
 
 Fields to extract:
-- property_address (string): Street address.
+- property_address (string): Street address only. Example: "123 Main St"
+- property_full (string): Full property address including city/state/zip. Example: "123 Main St, Boerne, TX 78006"
 - city_state_zip (string): City, state, zip.
 - buyer_name (string): Buyer's full name.
 - financing_type (string): One of: "conventional", "fha", "va", "usda". Required.
 - loan_amount (number): Principal loan amount in dollars.
 - down_payment_pct (number): Down payment percentage.
-- interest_rate_max (number): Maximum interest rate (e.g., 8.0 for 8%).
+- interest_rate_max (number): Maximum interest rate ceiling (e.g., 8.0 for 8%). Required for §1.C — leaving blank voids the financing contingency per TREC 40-11.
+- fha_interest_rate_cap (number): FHA-specific rate cap %. Defaults to 8.0 when financing_type=fha and no rate is stated.
 - loan_term_years (number): Loan term in years (default 30).
+- buyer_approval_days (number): §2.A days-to-terminate after Effective Date for buyer's loan-approval right. Default 21 when not stated.
 `,
   'termination-notice': `
 Extract these fields for the Notice of Sellers Termination of Contract.
@@ -317,12 +329,15 @@ const CANONICAL_FIELDS = {
     'loan_amount', 'down_payment_pct', 'down_payment_amt', 'closing_date', 'close_in_days',
     'title_company', 'escrow_officer', 'title_company_address',
     'financing_type', 'contract_effective_date',
-    // §6.C survey options (exactly one)
-    'survey_existing_or_seller_pays', 'survey_buyer_obtains', 'survey_seller_new',
+    // §6.C survey options (exactly one primary; survey_seller_pays_fallback pairs with §6C(1))
+    'survey_existing_or_seller_pays', 'survey_buyer_obtains', 'survey_seller_new', 'survey_seller_pays_fallback',
     // §7.D property condition
     'as_is', 'as_is_with_repairs', 'required_repairs', 'service_contract_amount',
     // §11 special provisions
     'special_provisions', 'seller_concessions',
+    // §21 notices
+    'buyer_notice_address', 'buyer_notice_phone', 'buyer_notice_email',
+    'seller_notice_address', 'seller_notice_phone', 'seller_notice_email',
     // §22 addenda
     'addendum_financing', 'addendum_hoa', 'addendum_lead_paint', 'addendum_sellers_disclosure',
     // HOA
@@ -330,7 +345,7 @@ const CANONICAL_FIELDS = {
     // lead paint trigger
     'property_built_year',
     // broker section
-    'listing_broker_firm', 'listing_broker_address',
+    'listing_broker_firm', 'listing_broker_firm_license', 'listing_broker_address',
     'listing_agent_name', 'listing_agent_license',
     'other_broker_firm', 'selling_agent_name',
     'buyer_only_agent', 'listing_only_seller_agent',
@@ -339,8 +354,9 @@ const CANONICAL_FIELDS = {
     'possession',
   ],
   'financing-addendum': [
-    'property_address', 'city_state_zip', 'buyer_name', 'financing_type',
-    'loan_amount', 'down_payment_pct', 'interest_rate_max', 'loan_term_years'
+    'property_address', 'property_full', 'city_state_zip', 'buyer_name', 'financing_type',
+    'loan_amount', 'down_payment_pct', 'interest_rate_max', 'fha_interest_rate_cap',
+    'loan_term_years', 'buyer_approval_days'
   ],
   'termination-notice': [
     'property_address', 'city_state_zip', 'seller_name', 'buyer_name',
@@ -598,6 +614,53 @@ function postProcess(formType, fields, message) {
 
   // Default possession
   if (!fv.possession) fv.possession = 'closing';
+
+  // §6.C survey default — when nothing is set, prefer §6C(1) existing-or-seller-pays with
+  // seller-pays-fallback. Master prompt "seller will provide T-47/survey. If not available seller
+  // pays for new" language should extract as survey_existing_or_seller_pays=true; if the extractor
+  // failed to set anything, still default to (1) rather than leave all three false (which the fill
+  // logic treats as "no survey chosen").
+  if (fv.survey_existing_or_seller_pays !== true &&
+      fv.survey_buyer_obtains !== true &&
+      fv.survey_seller_new !== true) {
+    fv.survey_existing_or_seller_pays = true;
+    if (fv.survey_seller_pays_fallback === undefined) fv.survey_seller_pays_fallback = true;
+  }
+  // If §6C(1) is chosen and fallback preference isn't explicit, default to Seller pays (matches
+  // v3-FHA master prompt intent "seller will pay for a new one if none available").
+  if (fv.survey_existing_or_seller_pays === true && fv.survey_seller_pays_fallback === undefined) {
+    fv.survey_seller_pays_fallback = true;
+  }
+
+  // §21 seller notice fallback — when seller's mailing address is unknown at contract time,
+  // fall back to "c/o [listing broker firm], [listing broker address]" (Texas standard pattern).
+  if (formType === 'resale-contract' && !fv.seller_notice_address) {
+    const brokerParts = [];
+    if (fv.listing_broker_firm) brokerParts.push('c/o ' + String(fv.listing_broker_firm));
+    if (fv.listing_broker_address) brokerParts.push(String(fv.listing_broker_address));
+    if (brokerParts.length > 0) fv.seller_notice_address = brokerParts.join(', ');
+  }
+  // Buyer notice fallback — if not extracted, use city_state_zip prefixed with property_address.
+  if (formType === 'resale-contract' && !fv.buyer_notice_address && fv.buyer_name) {
+    // No profile lookup available here; leave blank rather than fabricate an address.
+    // The buyer_notice_address should be populated by the frontend from profiles when available.
+  }
+
+  // §2.A financing-addendum defaults — leaving these blank voids the buyer's contingency.
+  if (formType === 'financing-addendum') {
+    if (!fv.buyer_approval_days) fv.buyer_approval_days = 21;
+    // FHA-specific rate cap default (per Hadley 40-11 KB: blank voids §1.C contingency)
+    if ((String(fv.financing_type || '').toLowerCase() === 'fha') && !fv.fha_interest_rate_cap && !fv.interest_rate_max) {
+      fv.fha_interest_rate_cap = 8.0;
+    }
+    // Ensure property_full has city/state/zip for the page-2 header widget.
+    if (!fv.property_full) {
+      const parts = [];
+      if (fv.property_address) parts.push(String(fv.property_address));
+      if (fv.city_state_zip) parts.push(String(fv.city_state_zip));
+      if (parts.length > 0) fv.property_full = parts.join(', ');
+    }
+  }
 
   // Auto-detect HOA from message context (Cibolo Canyons, mandatory membership, dues mentioned)
   if (fv.hoa_exists === undefined || fv.hoa_exists === null) {
