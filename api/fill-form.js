@@ -695,10 +695,16 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Block', fv.legal_block || '');
   safeSetText(form, 'undefined', fv.legal_lot || '');
   // 'Addition City of' widget holds subdivision + city. If addition_name is provided
-  // (e.g. "Cibolo Canyons"), prefer it; otherwise fall back to city_state_zip.
+  // (e.g. "Cibolo Canyons"), prefer it; otherwise fall back to city name only.
+  // 2026-07-05 atlas ROUND3 fix (Bug 11): widget is city-only; do NOT dump full
+  // city_state_zip (which produces "Boerne, TX 78006" overflow). Extract the city
+  // portion from city_state_zip when addition_name is absent.
+  const cityOnly = fv.city || (fv.city_state_zip
+    ? String(fv.city_state_zip).split(',')[0].trim()
+    : '');
   safeSetText(form, 'Addition City of', fv.addition_name
     ? (fv.addition_city ? (fv.addition_name + ', ' + fv.addition_city) : fv.addition_name)
-    : (fv.city_state_zip || ''));
+    : cityOnly);
   safeSetText(form, 'County of', fv.county || '');
 
   // SALES PRICE (Section 3 — TREC 20-18)
@@ -726,13 +732,50 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'undefined_3', cashPortion != null ? formatMoney(cashPortion) : '');
   safeSetText(form, 'undefined_4', Number(fv.loan_amount) > 0 ? formatMoney(fv.loan_amount) : '');
   safeSetText(form, 'undefined_5', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
-  // Sale price credited: default "will not be credited" (standard resale)
-  if (fv.sale_price_credited === true) {
-    safeCheck(form, 'will');
-  } else {
+  // 2026-07-05 atlas ROUND3 fix (Bugs 1, 2): The widgets NAMED "will" (p5 y=657 x=351)
+  // and "will not be credited..." (p5 y=657 x=499) are POSITIONALLY the §10.A POSSESSION
+  // checkboxes ("upon closing and funding" vs. "according to a temporary residential lease"),
+  // NOT §3 sale-price-credited boxes as the widget names suggest. Wiring them to
+  // sale_price_credited caused the "temporary lease" box to be checked by default on
+  // v3-FHA — a legally material wrong-box selection. Fixed by driving them from
+  // fv.possession instead.
+  // Similarly, the widget "acknowledged by Seller and Buyers agreement to pay Seller"
+  // (p5 y=293 x=250 w=79) is POSITIONALLY §12.A(1)(c) "amount not to exceed $___ to be
+  // applied to other Buyer's Expenses" — NOT a sales-price acknowledgement field.
+  // Wiring it to sale_price caused the $500K sale price to appear as a Seller
+  // concession-cap, a ~100x overpromise. Fixed to write seller_concessions (or blank).
+
+  // §10.A POSSESSION — default to "upon closing and funding" (widget "will")
+  const possession = String(fv.possession || 'closing').toLowerCase();
+  if (possession === 'lease_after' || possession === 'lease' || possession === 'temporary_lease') {
     safeCheck(form, 'will not be credited to the Sales Price at closing Time is of the');
+  } else {
+    // Default: possession="closing" or unspecified → "upon closing and funding"
+    safeCheck(form, 'will');
   }
-  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
+
+  // §12.A(1)(c) "not to exceed $___" cap — write seller_concessions if provided; never sale_price.
+  // Master prompt v3-FHA: seller_concessions=$5,000 → this field shows "$5,000"; leave blank
+  // when no concession is provided (Hadley: blank is legally fine; $500,000 is a lawsuit).
+  safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller',
+    (fv.seller_concessions != null && fv.seller_concessions !== '' && Number(fv.seller_concessions) > 0)
+      ? formatMoney(fv.seller_concessions) : '');
+
+  // §12.A(1)(b) buyer's-agent commission ($ or %). Widget "acknowledged by Seller and Buyers
+  // agreement to pay Seller 1" (p5 y=303 x=129 w=92) = $ blank; "...Seller2" (p5 y=304 x=250 w=31)
+  // = % blank. Companion checkboxes "will 1.1" ($ marker) and "will not be credited...1" (% marker).
+  // Master prompt v3-FHA: buyer_agent_commission_pct=3 → check %-marker, write "3" in %-blank.
+  if (fv.buyer_agent_commission_amt != null && fv.buyer_agent_commission_amt !== ''
+      && Number(fv.buyer_agent_commission_amt) > 0) {
+    safeCheck(form, 'will 1.1');
+    safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller 1',
+      formatMoney(fv.buyer_agent_commission_amt));
+  } else if (fv.buyer_agent_commission_pct != null && fv.buyer_agent_commission_pct !== ''
+      && Number(fv.buyer_agent_commission_pct) > 0) {
+    safeCheck(form, 'will not be credited to the Sales Price at closing Time is of the 1');
+    safeSetText(form, 'acknowledged by Seller and Buyers agreement to pay Seller2',
+      String(fv.buyer_agent_commission_pct));
+  }
 
   // EARNEST MONEY / OPTION FEE (Section 5 — TREC 20-18 page 2)
   // Widget positions (Hadley 2026-06-27 verification):
@@ -798,8 +841,13 @@ async function fillResaleContract(pdfDoc, fv) {
   //
   // Accept legacy (survey_seller_new, survey_buyer_new) and new extractor field
   // names (survey_buyer_obtains, survey_existing_or_seller_pays).
+  // 2026-07-05 atlas ROUND3 fix (Bug 8): §6C(1) is the correct selection when the master
+  // prompt says "seller will provide existing T-47/survey OR pay for new if not available".
+  // §6C(3) is ONLY for a hard commitment to Seller paying for a brand new survey (no existing
+  // option mentioned). Round-2 mapped the v3-FHA "T-47 or seller pays if unavailable" language
+  // to §6C(3), which committed Seller to always pay for a new survey. That was wrong.
   if (fv.survey_seller_new === true) {
-    // §6.C(3) Seller pays for new survey
+    // §6.C(3) Seller pays for new survey (hard commitment, no existing option)
     safeCheck(form, 'Within four');
   } else if (fv.survey_buyer_new === true || fv.survey_buyer_obtains === true) {
     // §6.C(2) Buyer obtains new at Buyer's expense
@@ -807,21 +855,23 @@ async function fillResaleContract(pdfDoc, fv) {
     if (fv.survey_buyer_pays === true) safeCheck(form, 'Buyer');
   } else {
     // DEFAULT (v3-FHA / survey_existing_or_seller_pays):
-    //   §6.C(1) Seller furnishes existing T-47 survey.
+    //   §6.C(1) Seller furnishes existing T-47 survey with optional Seller-pays-fallback.
     //   No primary widget exists; overlay an "X" at the (1) checkbox visual position.
     try {
       const pages = pdfDoc.getPages();
       const page3 = pages[2]; // 0-indexed: displayed page 3
       // §6.C(1) primary checkbox sits at left edge below the "(1)" label.
-      // Visual measurement (1700px page at 200dpi for 11in PDF = 1 PDF pt ≈ 1.55 px).
-      // Section §6.C "(1) Within ___ days" line is the first line of §6.C body
-      // starting around displayed y=~145 px (PDF coord y≈697 from bottom).
       page3.drawText('X', { x: 60, y: 709, size: 11 });
       const c1Days = (fv.survey_furnish_days != null && fv.survey_furnish_days !== '')
         ? String(fv.survey_furnish_days) : '7';
       page3.drawText(c1Days, { x: 128, y: 709, size: 10 });
     } catch (e) { console.warn('[fill-form] §6.C(1) overlay failed:', e && e.message); }
-    // Inner fallback "Seller pays for new" → leave 'Buyer' checkbox UNchecked.
+    // §6.C(1) inner-fallback "Buyer's expense" checkbox — the widget "Buyer" (p2 y=706)
+    // when CHECKED means Buyer pays for the fallback new survey. When UNCHECKED (default
+    // for v3-FHA "seller will pay for new if unavailable"), Seller pays.
+    if (fv.survey_seller_pays_fallback === false || fv.survey_buyer_pays_fallback === true) {
+      safeCheck(form, 'Buyer');
+    }
   }
   // §6.C days fields — default to 7 days for (1) Seller-furnishes-existing window,
   // 3 days for the "no later than 3 days prior to Closing" Buyer-obtains-fallback window.
@@ -1014,8 +1064,15 @@ async function fillResaleContract(pdfDoc, fv) {
 
   // BROKER / AGENT SECTION
   // Listing broker (agent representing seller)
+  // 2026-07-05 atlas ROUND3 fix (Bug 6): License No_4 is the FIRM license slot; use
+  // listing_broker_firm_license (a distinct 6-digit TREC firm license, e.g. 9004523 for
+  // Phyllis Browning Company). License No_5 is the ASSOCIATE license slot; use
+  // listing_agent_license (e.g. 123964 for Bizzy Darling). Prior fill used
+  // listing_broker_license (an ambiguous alias) for the firm slot which conflated
+  // firm-vs-agent licensure. In the v3-FHA scenario firm license is unknown, so this
+  // slot stays blank — correct.
   safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
-  safeSetText(form, 'License No_4', fv.listing_broker_license || '');
+  safeSetText(form, 'License No_4', fv.listing_broker_firm_license || fv.listing_broker_license || '');
   safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
   safeSetText(form, 'List Assoc Name', fv.listing_agent_name || '');
   safeSetText(form, 'License No_5', fv.listing_agent_license || '');
@@ -1083,7 +1140,14 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'State_5', fv.escrow_state_2 || '');
   safeSetText(form, 'Zip_5', fv.escrow_zip_2 || '');
   safeSetText(form, 'Email Address_2', fv.escrow_email_2 || '');
-  safeSetText(form, 'Date_2', fv.earnest_date_2 || '');
+  // 2026-07-05 atlas ROUND3 fix (Bug 12): page-11 Contract Receipt Date (widget "Date_2"
+  // at p10 y=446 x=463 w=93) defaults to contract_effective_date to parallel the Option Fee
+  // Receipt date (widget "Date" at p10 y=644). Round-2 left this blank on v3-FHA.
+  const contractReceiptDate = fv.contract_receipt_date || fv.earnest_date_2 || fv.contract_effective_date || '';
+  safeSetText(form, 'Date_2',
+    contractReceiptDate && String(contractReceiptDate).includes('-')
+      ? formatDate(contractReceiptDate)
+      : (contractReceiptDate || ''));
   safeSetText(form, 'Phone_7', fv.escrow_phone_2 || '');
   safeSetText(form, 'Fax_2', fv.escrow_fax_2 || '');
   const receivedBy3 = fv.add_earnest_received_by || fv.escrow_agent_name || fv.escrow_officer_name || fv.escrow_officer || '';
@@ -1096,8 +1160,32 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Phone_8', fv.add_escrow_phone || '');
   safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
 
-  // NOTICE ADDRESSES
-  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
+  // §21 NOTICE ADDRESSES (2026-07-05 atlas ROUND3 fix — Bug 7)
+  // Left column ("To Buyer at:") + right column ("To Seller at:") on displayed page 8.
+  // Positional map (p7 = 0-indexed page 8):
+  //   y=697 x=133 w=161 "when mailed to handdelivered..."      → Buyer at: address line
+  //   y=696 x=386 w=162 "undefined_19"                          → Seller at: address line
+  //   y=672 x=62  w=233 "at"                                    → Buyer address continuation
+  //   y=672 x=317 w=232 "at_2"                                  → Seller address continuation
+  //   y=648 x=139 w=25  "AC1" (maxLen=3)                        → Buyer phone area code
+  //   y=648 x=166 w=129 "Phone 51"                              → Buyer phone
+  //   y=647 x=394 w=24  "AC4" (maxLen=3)                        → Seller phone area code
+  //   y=647 x=421 w=128 "Fax 52"                                → Seller phone
+  //   y=622 x=135 w=160 "Phone 52"                              → Buyer email/fax
+  //   y=622 x=388 w=162 "undefined numb 21"                     → Seller email/fax
+  // Falls back to legacy fv.notice_address for backward compatibility.
+  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows',
+    fv.buyer_notice_address || fv.notice_address || '');
+  safeSetText(form, 'undefined_19', fv.seller_notice_address || '');
+  // Continuation lines — only fill if a 2-part address was provided
+  if (fv.buyer_notice_address_line2) safeSetText(form, 'at', fv.buyer_notice_address_line2);
+  if (fv.seller_notice_address_line2) safeSetText(form, 'at_2', fv.seller_notice_address_line2);
+  // Phone / email
+  if (fv.buyer_notice_phone) safeSetText(form, 'Phone 51', String(fv.buyer_notice_phone));
+  if (fv.seller_notice_phone) safeSetText(form, 'Fax 52', String(fv.seller_notice_phone));
+  if (fv.buyer_notice_email) safeSetText(form, 'Phone 52', String(fv.buyer_notice_email));
+  if (fv.seller_notice_email) safeSetText(form, 'undefined numb 21', String(fv.seller_notice_email));
+  // Legacy secondary notice slot — kept for backward compatibility
   safeSetText(form, 'when mailed to', fv.notice_address_2 || '');
 
   // INITIALS — every page has a footer "Initialed for identification by Buyer ___ ___ and Seller ___ ___".
@@ -1263,7 +1351,10 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   // PROPERTY
   const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   safeSetText(form, 'Street Address and City', propertyFull);
-  safeSetText(form, 'Address of Property', fv.property_address || '');
+  // 2026-07-05 atlas ROUND3 fix (Bug 9): page 2 header widget "Address of Property"
+  // takes the FULL address (street + city/state/zip), not just the street. Round-2
+  // truncated to "123 Main St" only.
+  safeSetText(form, 'Address of Property', propertyFull || fv.property_address || '');
 
   const ft = String(fv.financing_type || '').toLowerCase();
   const loanAmt = fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '';
@@ -1272,11 +1363,19 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   if (ft === 'conventional') {
     safeCheck(form, 'a A first mortgage loan in the principal amount of');
   }
-  // D5 fix: For ANY financed deal, subject to buyer approval; ensure Box 2 is unchecked
+  // D5 fix: For ANY financed deal, subject to buyer approval; ensure §2.B property-approval
+  // box stays unchecked (Check Box2 = §2.A buyer-approval Yes box). Also wire the §2.A
+  // "days after Effective Date" blank — leaving it blank makes the buyer's termination
+  // right unenforceable (Hadley 40-11 KB).
   if (ft && ft !== 'cash') {
     safeCheck(form, 'Check Box2');
     safeUncheck(form, 'This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer');
-    // D6 fix: Wire buyer_approval_days with default 21
+    // 2026-07-05 atlas ROUND3 fix (Bug 4): §2.A days-to-terminate default 21.
+    // Widget "Conversion Mortgage loan in the original principal amount of" is positionally
+    // (p1 y=681 x=361 w=31) the §2.A days blank on page 2 — a MISLABELED widget name.
+    const buyerApprovalDays = fv.buyer_approval_days != null && fv.buyer_approval_days !== ''
+      ? String(fv.buyer_approval_days) : '21';
+    safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', buyerApprovalDays);
   }
   if (fv.second_mortgage === true) {
     safeCheck(form, 'b A second mortgage loan in the principal amount of');
@@ -1310,8 +1409,10 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeSetText(form, 'excluding any financed MIP amortizable monthly for not less', loanAmt);
     // D3 fix: Use loan_term_years as fallback for fha_amortization_years, default to 30
     safeSetText(form, 'than', fv.fha_amortization_years || fv.loan_term_years || '30');
-    // D4 fix: Use interest_rate_cap as fallback, default rate cap period to 30 years, origination cap to 1.00
-    safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || fv.interest_rate_cap || '');
+    // 2026-07-05 atlas ROUND3 fix (Bug 3): §1.C interest rate cap defaults to 8.0% when
+    // not specified. Per Hadley 40-11 KB gotcha #1: leaving §1.C rate cap blank VOIDS the
+    // FHA financing contingency. Round-2 shipped this field blank.
+    safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || fv.interest_rate_max || fv.interest_rate_cap || '8.0');
     safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '1.00');
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.fha_appraised_value != null && fv.fha_appraised_value !== '' ? formatMoney(fv.fha_appraised_value) : (fv.sale_price != null ? formatMoney(fv.sale_price) : ''));
     if (fv.fha_conversion_amount) {
