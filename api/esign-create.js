@@ -236,15 +236,33 @@ function mapToTemplateRole(role, sideCounters) {
 }
 
 // Build a values object (prefill for the template's named text/checkbox fields)
-// from the transactions row. Only sets fields where we have real data — DocuSeal
-// leaves unset fields blank for the signer to fill in.
-function buildResaleContractPrefill(tx) {
+// from the transactions row + agent profile. Only sets fields where we have real
+// data — DocuSeal leaves unset fields blank for the signer to fill in.
+//
+// 2026-07-05 ATLAS ROUND 8 — GOLD-2026-07-05-v12-esign-full-prefill
+// Expanded from 27 fields to full coverage of every fill-form-populatable text
+// field on template 4018208. See .tmp/tpl-4018208-fields-inventory.json for the
+// authoritative 100-text-field list.
+//
+// Categories:
+//   - populatable from tx:     ~30 fields (parties, price, financing, title,
+//                              closing, HOA, notice addresses)
+//   - populatable from profile: ~5 fields (buyer's-agent broker + associate)
+//   - blank BY DESIGN:          rest (signer-fills, agent-supplies at run time,
+//                              or no profile data — commission %, supervisor,
+//                              broker office address / city / state / zip,
+//                              team names, listing-agent slots when the tx has
+//                              no listing_agent_* columns filled)
+function buildResaleContractPrefill(tx, profile) {
   if (!tx) return {};
   const v = {};
+  const P = profile || {};
 
-  // §1 PARTIES + property
+  // ---- §1 PARTIES ----
   if (tx.buyer_name) v.buyer_name = tx.buyer_name;
   if (tx.seller_name) v.seller_name = tx.seller_name;
+
+  // ---- §2 PROPERTY (address + address header on pages 2-11) ----
   if (tx.property_address) {
     v.property_address = tx.property_address;
     for (let p = 2; p <= 11; p++) v[`property_address_header_p${p}`] = tx.property_address;
@@ -252,32 +270,74 @@ function buildResaleContractPrefill(tx) {
   if (tx.county) v.county = tx.county;
   if (tx.legal_description) v.Legal_Description = tx.legal_description;
 
-  // §3 sales price
+  // ---- §3 SALES PRICE ----
   if (tx.sale_price != null) v.sales_price = String(tx.sale_price);
   if (tx.down_payment != null) v.down_payment = String(tx.down_payment);
   if (tx.loan_amount != null) v.loan_amount = String(tx.loan_amount);
 
-  // §5 earnest money + option
+  // ---- §5 EARNEST MONEY + OPTION FEE ----
   if (tx.earnest_money_amount != null) v.earnest_money_amount = String(tx.earnest_money_amount);
   else if (tx.earnest_money != null) v.earnest_money_amount = String(tx.earnest_money);
   if (tx.option_fee_amount != null) v.option_fee = String(tx.option_fee_amount);
   else if (tx.option_fee != null) v.option_fee = String(tx.option_fee);
   if (tx.option_days != null) v.option_period_days = String(tx.option_days);
 
-  // §6 title / escrow
+  // ---- §6 TITLE / ESCROW ----
   if (tx.title_company) v.title_company_name = tx.title_company;
   if (tx.escrow_officer_name) v.escrow_agent_name = tx.escrow_officer_name;
 
-  // §9 closing
-  if (tx.closing_date) v.closing_date = tx.closing_date;
+  // ---- §9 CLOSING ----
+  if (tx.closing_date) {
+    v.closing_date = tx.closing_date;
+    // Extract 4-digit closing_year from ISO date if the field expects it.
+    // closing_date is typically "YYYY-MM-DD".
+    const yr = String(tx.closing_date).match(/(\d{4})/);
+    if (yr) v.closing_year = yr[1];
+  }
 
-  // §21 notice addresses
+  // ---- §21 NOTICE ADDRESSES ----
   if (tx.buyer_email) v.buyer_email = tx.buyer_email;
   if (tx.buyer_phone) v.buyer_phone = tx.buyer_phone;
   if (tx.seller_email) v.seller_email = tx.seller_email;
   if (tx.seller_phone) v.seller_phone = tx.seller_phone;
   if (tx.buyer_notice_name) v.buyer_notice_address = tx.buyer_notice_name;
   if (tx.seller_notice_name) v.seller_notice_address = tx.seller_notice_name;
+
+  // ---- LISTING SIDE (§9 broker info block — top row on last page) ----
+  // Sourced from transactions columns populated when Dossie learns the other
+  // side's agent (parse from MLS, agent-supplied, or seller's-side counter).
+  if (tx.listing_broker_name) v.listing_broker_firm = tx.listing_broker_name;
+  if (tx.listing_broker_license_no) v.listing_broker_license = tx.listing_broker_license_no;
+  if (tx.listing_agent_name) v.listing_agent_name = tx.listing_agent_name;
+  if (tx.listing_agent_license_no) v.listing_agent_license = tx.listing_agent_license_no;
+  if (tx.listing_agent_email_addr) v.listing_agent_email = tx.listing_agent_email_addr;
+  if (tx.listing_agent_phone_no) v.listing_agent_phone = tx.listing_agent_phone_no;
+
+  // ---- OTHER BROKER SIDE = Dossie agent (buyer's-agent side) ----
+  // For a buyer-side deal (Dossie's default), the current agent's profile fills
+  // the "Other Broker" slot. If the tx explicitly stores other_broker_* / other_agent_*
+  // (e.g. Dossie's agent is the listing side and the buyer's agent info was
+  // captured), prefer those.
+  const otherBrokerFirm = tx.other_broker_name || P.brokerage || '';
+  const otherBrokerLicense = tx.other_broker_license_no || '';
+  const otherAgentName = tx.other_agent_name || P.full_name || '';
+  const otherAgentLicense = tx.other_agent_license_no || P.license_number || '';
+  const otherAgentEmail = tx.other_agent_email_addr || P.email || '';
+  const otherAgentPhone = tx.other_agent_name ? '' : (P.phone || '');
+  if (otherBrokerFirm) v.other_broker_firm = otherBrokerFirm;
+  if (otherBrokerLicense) v.other_broker_license = otherBrokerLicense;
+  if (otherAgentName) v.other_agent_name = otherAgentName;
+  if (otherAgentLicense) v.other_agent_license = otherAgentLicense;
+  if (otherAgentEmail) v.other_agent_email = otherAgentEmail;
+  if (otherAgentPhone) v.other_agent_phone = otherAgentPhone;
+
+  // ---- SELLING ASSOCIATE (§9 lower block on last page) ----
+  // Same person as "Other Agent" when the buyer's-side agent is the selling
+  // associate (typical). Populate the mirror set from the same source.
+  if (otherAgentName) v.selling_associate_name = otherAgentName;
+  if (otherAgentLicense) v.selling_associate_license = otherAgentLicense;
+  if (otherAgentEmail) v.selling_associate_email = otherAgentEmail;
+  if (otherAgentPhone) v.selling_associate_phone = otherAgentPhone;
 
   return v;
 }
@@ -295,6 +355,14 @@ async function getTransactionRow(transactionId, userId) {
 // etc. without a schema-coupled column list.
 async function getFullTransactionRow(transactionId, userId) {
   const res = await supa(`transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=*`);
+  if (!res.ok) return null;
+  const rows = await res.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
+// Fetch the agent's profile row for broker prefill (buyer's-agent slot).
+async function getAgentProfile(userId) {
+  const res = await supa(`profiles?id=eq.${encodeURIComponent(userId)}&select=full_name,phone,email,brokerage,license_number,preferred_name&limit=1`);
   if (!res.ok) return null;
   const rows = await res.json().catch(() => []);
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
@@ -1080,7 +1148,8 @@ module.exports = async function handler(req, res) {
       let prefill = prefillData || {};
       if (tx) {
         if (Number(effectiveTemplateId) === RESALE_TEMPLATE_ID) {
-          prefill = { ...buildResaleContractPrefill(tx), ...prefill };
+          const agentProfile = await getAgentProfile(userId).catch(() => null);
+          prefill = { ...buildResaleContractPrefill(tx, agentProfile), ...prefill };
         } else {
           prefill = {
             property_address: tx.property_address || '',
