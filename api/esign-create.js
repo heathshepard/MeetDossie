@@ -105,39 +105,106 @@ async function getDocumentRow(documentId, userId) {
 
 // TREC 20-17 (One to Four Family Residential Contract — Resale) field placement.
 // Coordinates are fractions of page dimensions (0-1). Page numbers are 1-indexed.
-// Buyer initials: bottom-left of pages 1-8 (matching "Initialed for identification by Buyer" line).
-// Seller initials: bottom-right of pages 1-8 (matching "and Seller" line).
-// Signature block: page 9, execution section.
-function buildResaleContractFields(buyerRole, sellerRole) {
-  const buyerFields = [];
-  const sellerFields = [];
+// Initials: bottom of pages 1-8. Signature block: page 9, execution section.
+//
+// 2026-07-05 ATLAS FIX — GOLD-2026-07-05-v8-esign-signature-blocks
+// Prior version required BOTH a Buyer and Seller signer before firing
+// (`if (buyerSigner && sellerSigner)`) which meant buyer-only submissions
+// (the common Dossie flow — the buyer-side app) got only DocuSeal's default
+// 1 signature + 1 date per role and NO initials. Envelopes 9021538-9021541 and
+// 9022960 all fell into this gap.
+//
+// New: build a per-signer field pack keyed off role classification so every
+// signer role (Buyer / Buyer 2 / Co-Buyer / Seller / Seller 2 / Agent) gets
+// its own initials + sig block. Buyer-side signers stack left→right on the
+// initials line; seller-side signers stack right→left. Agent is signature-only.
+
+function classifyRole(roleRaw) {
+  const role = String(roleRaw || '').toLowerCase().trim();
+  if (!role) return 'unknown';
+  if (role === 'agent' || role.includes('agent')) return 'agent';
+  if (role.startsWith('buyer') || role === 'co-buyer' || role === 'cobuyer') return 'buyer';
+  if (role.startsWith('seller') || role === 'co-seller' || role === 'coseller') return 'seller';
+  return 'unknown';
+}
+
+// Initial-line stacking. Up to 3 buyer-side + 3 seller-side signers.
+const BUYER_INITIAL_X = [0.06, 0.155, 0.25];
+const SELLER_INITIAL_X = [0.78, 0.685, 0.59];
+
+// Signature block placement — two columns on page 9, three rows per side.
+const BUYER_SIG_X = 0.05;
+const SELLER_SIG_X = 0.55;
+const SIG_W = 0.35;
+const SIG_H = 0.035;
+const SIG_ROW_YS = [0.35, 0.44, 0.53];
+
+function buildFieldsForSigner(roleName, side, sideIndex) {
+  const fields = [];
+  if (side === 'agent') {
+    fields.push({
+      name: `${roleName} Signature`,
+      type: 'signature',
+      areas: [{ page: 9, x: 0.05, y: 0.75, w: SIG_W, h: SIG_H }],
+    });
+    fields.push({
+      name: `${roleName} Date`,
+      type: 'date',
+      areas: [{ page: 9, x: 0.5, y: 0.75, w: 0.18, h: SIG_H }],
+    });
+    return fields;
+  }
+
+  const initialXArr = side === 'seller' ? SELLER_INITIAL_X : BUYER_INITIAL_X;
+  const initialX = initialXArr[Math.min(sideIndex, initialXArr.length - 1)];
+  const sigX = side === 'seller' ? SELLER_SIG_X : BUYER_SIG_X;
+  const sigY = SIG_ROW_YS[Math.min(sideIndex, SIG_ROW_YS.length - 1)];
 
   for (let page = 1; page <= 8; page++) {
-    buyerFields.push({
-      name: `Buyer Initials P${page}`,
+    fields.push({
+      name: `${roleName} Initials P${page}`,
       type: 'initials',
-      areas: [{ page, x: 0.08, y: 0.94, w: 0.08, h: 0.025 }],
-    });
-    sellerFields.push({
-      name: `Seller Initials P${page}`,
-      type: 'initials',
-      areas: [{ page, x: 0.65, y: 0.94, w: 0.08, h: 0.025 }],
+      areas: [{ page, x: initialX, y: 0.945, w: 0.075, h: 0.022 }],
     });
   }
 
-  buyerFields.push(
-    { name: 'Buyer Signature', type: 'signature', areas: [{ page: 9, x: 0.05, y: 0.35, w: 0.35, h: 0.04 }] },
-    { name: 'Buyer Printed Name', type: 'text',      areas: [{ page: 9, x: 0.05, y: 0.42, w: 0.35, h: 0.03 }] },
-    { name: 'Buyer Date',        type: 'date',       areas: [{ page: 9, x: 0.45, y: 0.35, w: 0.15, h: 0.04 }] }
-  );
+  fields.push({
+    name: `${roleName} Signature`,
+    type: 'signature',
+    areas: [{ page: 9, x: sigX, y: sigY, w: SIG_W, h: SIG_H }],
+  });
+  fields.push({
+    name: `${roleName} Printed Name`,
+    type: 'text',
+    areas: [{ page: 9, x: sigX, y: sigY + 0.05, w: SIG_W, h: 0.028 }],
+  });
+  fields.push({
+    name: `${roleName} Date`,
+    type: 'date',
+    areas: [{ page: 9, x: sigX + 0.37, y: sigY, w: 0.14, h: SIG_H }],
+  });
+  return fields;
+}
 
-  sellerFields.push(
-    { name: 'Seller Signature', type: 'signature', areas: [{ page: 9, x: 0.55, y: 0.35, w: 0.35, h: 0.04 }] },
-    { name: 'Seller Printed Name', type: 'text',   areas: [{ page: 9, x: 0.55, y: 0.42, w: 0.35, h: 0.03 }] },
-    { name: 'Seller Date',        type: 'date',    areas: [{ page: 9, x: 0.55, y: 0.50, w: 0.15, h: 0.04 }] }
-  );
-
-  return { buyerRole, sellerRole, buyerFields, sellerFields };
+// Build a fieldMap keyed by exact signer role. Handles buyer-only, seller-only,
+// mixed, and agent-last. Returns null when NO signer has a recognized side role
+// (in which case the caller should let DocuSeal auto-place the default sig+date).
+function buildResaleContractFieldMap(signers) {
+  const buyerCounter = { i: 0 };
+  const sellerCounter = { i: 0 };
+  const fieldMap = {};
+  let recognized = 0;
+  for (const s of signers) {
+    const role = s.role || 'Signer';
+    const side = classifyRole(role);
+    let sideIndex = 0;
+    if (side === 'buyer') { sideIndex = buyerCounter.i++; recognized++; }
+    else if (side === 'seller') { sideIndex = sellerCounter.i++; recognized++; }
+    else if (side === 'agent') { sideIndex = 0; recognized++; }
+    else { continue; }
+    fieldMap[role] = buildFieldsForSigner(role, side, sideIndex);
+  }
+  return recognized > 0 ? fieldMap : null;
 }
 
 async function getTransactionRow(transactionId, userId) {
@@ -795,25 +862,15 @@ module.exports = async function handler(req, res) {
 
       // Auto-apply TREC 20-17 field placements when the document is a resale contract
       // and the caller has not provided their own explicit field placements.
-      // Determine buyer/seller roles from the signers list: first non-Agent signer with
-      // role 'Buyer' maps to buyerRole; first with role 'Seller' maps to sellerRole.
-      // Falls back to positional order if roles are not explicitly set.
+      //
+      // 2026-07-05 ATLAS FIX: previous logic only fired when BOTH buyer AND seller
+      // signers were present. Buyer-only submissions (the standard Dossie flow)
+      // fell through to DocuSeal's default 1-sig+1-date auto-placement and had NO
+      // initials. Now: fire whenever any recognized side role (Buyer / Seller /
+      // Agent variants) is present, and build a per-signer fieldMap.
       let autoFieldMap = null;
       if (!fields && doc.document_type === 'resale_contract') {
-        const buyerSigner = allSigners.find((s) => (s.role || '').toLowerCase() === 'buyer')
-          || allSigners.find((s) => (s.role || '').toLowerCase() !== 'seller' && (s.role || '').toLowerCase() !== 'agent');
-        const sellerSigner = allSigners.find((s) => (s.role || '').toLowerCase() === 'seller');
-
-        if (buyerSigner && sellerSigner) {
-          const { buyerRole, sellerRole, buyerFields, sellerFields } = buildResaleContractFields(
-            buyerSigner.role || 'Buyer',
-            sellerSigner.role || 'Seller'
-          );
-          autoFieldMap = {
-            [buyerRole]: buyerFields,
-            [sellerRole]: sellerFields,
-          };
-        }
+        autoFieldMap = buildResaleContractFieldMap(allSigners);
       }
 
       submissionResult = await docusealCreateFromPdf({
