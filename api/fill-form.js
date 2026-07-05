@@ -804,11 +804,14 @@ async function fillResaleContract(pdfDoc, fv) {
   safeSetText(form, 'Seller or Listing Broker', '');
   safeSetText(form, 'Earnest Money in the form of', '');
 
-  // TITLE COMPANY / ESCROW (Section 6)
+  // TITLE COMPANY / ESCROW (Section 6, page 2)
   safeSetText(form, 'insurance Title Policy issued by', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent_2', fv.title_company || '');
-  safeSetText(form, 'Escrow Agent_3', fv.title_company || '');
+  // 2026-07-05 ROUND4 fix (Bug 1): "Escrow Agent" / "Escrow Agent_2" / "Escrow Agent_3" widgets
+  // are on Page 11 receipt sections (rendered as footer labels under "Receipt of $__" in each of
+  // the 4 receipt boxes). These are title-company-only fields — blanked at contract origination.
+  safeSetText(form, 'Escrow Agent', '');
+  safeSetText(form, 'Escrow Agent_2', '');
+  safeSetText(form, 'Escrow Agent_3', '');
   // NOTE: 'Received by' / 'Received by_2' / 'Received by_3' on the page-11 escrow
   // receipts = ESCROW OFFICER name (Ashley Phiffer). Wired below in the ESCROW
   // RECEIPT FIELDS block (search for 'receivedBy =') with fv.escrow_agent_name
@@ -1042,11 +1045,11 @@ async function fillResaleContract(pdfDoc, fv) {
     safeSetText(form, 'Text3 2', provText);
   }
 
-  // EXECUTION DATE
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
+  // 2026-07-05 ROUND4 fix (Bug 1): the "Date" widget is MISLABELED — visual verification shows
+  // it renders on Page 11's OPTION FEE RECEIPT ("Date" on right side of receipt box), NOT the
+  // execution date. The actual execution date uses "EXECUTED the" / "day of" / "20_2" widgets
+  // below. So we blank "Date" — receipt date is title-company-only.
+  safeSetText(form, 'Date', '');
   // EXECUTED block: if execution_date provided, use it; otherwise fall back to contract_effective_date.
   const execISO = fv.execution_date || fv.contract_effective_date;
   if (execISO) {
