@@ -160,11 +160,13 @@ function loadResaleCoords() {
 function buildResaleFieldsForSigner(roleName, side, sideIndex) {
   if (side === 'agent') {
     // Agent gets a signature + date on page 9 below the buyer/seller block.
+    // Auto-timestamp the date on sign via preferences.format.
     return [
       { name: `${roleName} Signature`, type: 'signature',
         areas: [{ page: 9, x: 0.05, y: 0.75, w: 0.35, h: 0.035 }] },
       { name: `${roleName} Date`, type: 'date',
-        areas: [{ page: 9, x: 0.5, y: 0.75, w: 0.18, h: 0.035 }] },
+        preferences: { format: 'MM/DD/YYYY' },
+        areas: [{ page: 9, x: 0.42, y: 0.75, w: 0.18, h: 0.035 }] },
     ];
   }
   const coords = loadResaleCoords();
@@ -179,10 +181,26 @@ function buildResaleFieldsForSigner(roleName, side, sideIndex) {
       areas: [{ page: ini.page, x: ini.x, y: ini.y, w: ini.w, h: ini.h }],
     });
   }
+  const sig = partyCoords.signature;
   out.push({
     name: `${roleName} Signature`,
     type: 'signature',
-    areas: [{ page: partyCoords.signature.page, x: partyCoords.signature.x, y: partyCoords.signature.y, w: partyCoords.signature.w, h: partyCoords.signature.h }],
+    areas: [{ page: sig.page, x: sig.x, y: sig.y, w: sig.w, h: sig.h }],
+  });
+  // Date widget directly below the signature line. Auto-populates on sign.
+  // DocuSeal 'date' field with preferences.format renders as MM/DD/YYYY and
+  // requires the signer to click once (auto-fills with today's date).
+  out.push({
+    name: `${roleName} Date`,
+    type: 'date',
+    preferences: { format: 'MM/DD/YYYY' },
+    areas: [{
+      page: sig.page,
+      x: sig.x,
+      y: Math.min(sig.y + sig.h + 0.005, 0.99),
+      w: Math.min(sig.w * 0.5, 0.18),
+      h: 0.022,
+    }],
   });
   return out;
 }
@@ -434,12 +452,16 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
 
     if (signerFields.length > 0) {
       for (const f of signerFields) {
-        allFields.push({
+        const built = {
           name: f.name,
           type: f.type,
           role,
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
-        });
+        };
+        if (f.preferences && typeof f.preferences === 'object') {
+          built.preferences = f.preferences;
+        }
+        allFields.push(built);
       }
     } else {
       // Default: a signature + date field per submitter, DocuSeal auto-places them.
@@ -1132,13 +1154,30 @@ module.exports = async function handler(req, res) {
 
     let submissionResult;
 
-    // Resolve the template id to use. Resale contracts route through Heath's
-    // hand-mapped template 4018208 (widgets pre-placed in Studio). Any explicit
-    // templateId in the request wins over auto-routing.
+    // 2026-07-05 ATLAS ROUND 13 — GOLD-2026-07-05-v13-signer-only-widgets
+    //
+    // Resale contracts NO LONGER route through template 4018208 (Path B rollback).
+    // Rationale: the template-based path forces prefill to render as pink editable
+    // widgets on the DocuSeal signing page. Buyers can accidentally erase contract
+    // terms. Heath's requirement: contract text baked into PDF, only signer
+    // widgets (initial + signature + date) interactive.
+    //
+    // New flow for resale_contract documents:
+    //   1. fill-form.js has already baked all contract text into the PDF via
+    //      pdf-lib and uploaded it to Supabase Storage (doc.storage_path).
+    //   2. esign-create downloads that filled PDF, POSTs to /templates/pdf
+    //      with ONLY signer widgets — initials 8x per party + signature + date.
+    //   3. DocuSeal renders the PDF text as static content (baked, unchangeable)
+    //      and only shows the signer-only widgets as interactive pink boxes.
+    //
+    // The old template-clone-with-defaults path (`docusealCreateFromTemplate`)
+    // remains available for any explicit `templateId` passed in the request body,
+    // but the resale-contract default route no longer sets one.
+    //
+    // Widget coordinates: api/_assets/trec-20-18-esign-coords.json (built from
+    // AcroForm widget rectangles in trec-20-18-raw.pdf, atlas26 round).
     let effectiveTemplateId = templateId;
-    if (!effectiveTemplateId && doc.document_type === 'resale_contract') {
-      effectiveTemplateId = RESALE_TEMPLATE_ID;
-    }
+    // NOTE: intentionally NOT setting effectiveTemplateId for resale_contract.
 
     if (effectiveTemplateId) {
       // Phase 3 path — template-based submission with optional pre-fill.
@@ -1165,8 +1204,10 @@ module.exports = async function handler(req, res) {
       console.log(`[esign-create] v12 template ${effectiveTemplateId} with ${prefillKeys.length} prefill field(s): ${prefillKeys.slice(0, 8).join(', ')}${prefillKeys.length > 8 ? '...' : ''}`);
       submissionResult = await docusealCreateFromTemplate({ templateId: effectiveTemplateId, signers: allSigners, message, prefillData: prefill });
     } else {
-      // Non-resale PDFs (Seller's Disclosure ack, addendums added ad-hoc, etc.)
-      // still go through /templates/pdf with per-signer AcroForm sig widgets.
+      // resale_contract (and other non-template PDFs like Seller's Disclosure
+      // ack, addendums, etc.) go through /templates/pdf with signer-only widgets.
+      // The PDF text is baked in by fill-form.js; only initial/signature/date
+      // widgets are added on top.
       const signedUrl = await generateSignedUrl(doc.storage_path, 300);
 
       let autoFieldMap = null;
@@ -1174,7 +1215,14 @@ module.exports = async function handler(req, res) {
         autoFieldMap = buildResaleContractFieldMap(allSigners);
         if (autoFieldMap) {
           const total = Object.values(autoFieldMap).reduce((acc, arr) => acc + arr.length, 0);
-          console.log(`[esign-create] v11 resale_contract auto-fieldmap built for ${Object.keys(autoFieldMap).length} signer(s), ${total} fields total.`);
+          console.log(`[esign-create] v13 resale_contract signer-only widgets built for ${Object.keys(autoFieldMap).length} signer(s), ${total} widgets total.`);
+          // Log actual widget coordinates for APV verification.
+          for (const [role, roleFields] of Object.entries(autoFieldMap)) {
+            for (const f of roleFields) {
+              const a = (f.areas && f.areas[0]) || {};
+              console.log(`[esign-create]   ${role} ${f.type} "${f.name}" p${a.page}: x=${a.x} y=${a.y} w=${a.w} h=${a.h}`);
+            }
+          }
         }
       }
 
