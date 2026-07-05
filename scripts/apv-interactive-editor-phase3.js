@@ -170,23 +170,53 @@ function step(name, ok, detail) {
     // Find and click "Text" button in the toolbar
     const addTextBtn = page.locator('button:has-text("+ Text")').first();
     const addTextExists = await addTextBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    let dropDetail = 'skipped';
     if (addTextExists) {
       await addTextBtn.click();
-      await page.waitForTimeout(400);
-      // Click somewhere on the PDF canvas (middle area)
-      const canvasBox = await pdfCanvas.boundingBox();
-      if (canvasBox) {
-        // Click at canvas center-ish (empty region ideally, but any click adds
-        // the field at that pct location).
-        await page.mouse.click(canvasBox.x + canvasBox.width * 0.6, canvasBox.y + canvasBox.height * 0.6);
-        await page.waitForTimeout(1200);
+      await page.waitForTimeout(500);
+      // Find FieldOverlay container to click into — it sits on top of pdf
+      // canvas and owns the crosshair handler. Click into a KNOWN empty
+      // region: page 1's earnest_money slot is on page 2, so on page 1
+      // (post-auto-jump) there is empty space at ~40% x, 50% y.
+      const overlayHandle = await page.evaluateHandle(() => {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return null;
+        // FieldOverlay is the absolutely-positioned sibling with cursor:crosshair
+        const parent = canvas.parentElement;
+        if (!parent) return null;
+        const kids = parent.children;
+        for (let i = 0; i < kids.length; i++) {
+          const el = kids[i];
+          if (el.tagName === 'DIV' && el.style && el.style.position === 'absolute') {
+            const cs = window.getComputedStyle(el);
+            if (cs.cursor === 'crosshair') return el;
+          }
+        }
+        return null;
+      });
+      const overlayEl = overlayHandle && overlayHandle.asElement && overlayHandle.asElement();
+      let overlayBox = null;
+      if (overlayEl) overlayBox = await overlayEl.boundingBox();
+      if (overlayBox) {
+        // Click at 40% x, 50% y of the overlay (below all page-1 top-band mapped fields).
+        await page.mouse.click(overlayBox.x + overlayBox.width * 0.4, overlayBox.y + overlayBox.height * 0.5);
+        await page.waitForTimeout(1500);
+        dropDetail = `overlay_click=(${Math.round(overlayBox.x + overlayBox.width*0.4)},${Math.round(overlayBox.y + overlayBox.height*0.5)}) overlay_box=${JSON.stringify(overlayBox)}`;
+      } else {
+        // Fallback: click canvas center.
+        const canvasBox = await pdfCanvas.boundingBox();
+        if (canvasBox) {
+          await page.mouse.click(canvasBox.x + canvasBox.width * 0.4, canvasBox.y + canvasBox.height * 0.5);
+          await page.waitForTimeout(1500);
+          dropDetail = `canvas_fallback_click=(${Math.round(canvasBox.x + canvasBox.width*0.4)},${Math.round(canvasBox.y + canvasBox.height*0.5)})`;
+        }
       }
     }
     const afterCount = await page.evaluate(() => {
       return document.querySelectorAll('[data-testid="field-overlay"]').length;
     });
     step('T6-drag-drop-new-field', afterCount > beforeCount,
-      `before=${beforeCount} after=${afterCount} clicked_add_text=${addTextExists}`);
+      `before=${beforeCount} after=${afterCount} clicked_add_text=${addTextExists} ${dropDetail}`);
     await shot(page, 'T6-after-drop');
 
     // T7: toggle "Show list"
