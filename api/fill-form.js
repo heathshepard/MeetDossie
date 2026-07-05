@@ -657,11 +657,13 @@ async function fillResaleContract(pdfDoc, fv) {
   const sellerInit = '';
 
   // PARTIES — TREC 20-18 page 1 reads "____ (Seller) and ____ (Buyer)".
-  // Widget '1 PARTIES The parties to this contract are' is the SELLER slot (positioned after "are", before "(Seller)" label).
-  // Widget 'Seller and' is the BUYER slot (positioned after "(Seller) and", before "(Buyer)" label).
-  // Field-name strings are misleading; positions are ground truth (verified 2026-06-27 by Hadley via pdf-lib widget rectangles + pdftoppm render).
-  safeSetText(form, '1 PARTIES The parties to this contract are', fv.seller_name || '');
-  safeSetText(form, 'Seller and', fv.buyer_name || '');
+  // 2026-07-05 atlas ROUND5 fix: reverting the 2026-06-28 Hadley swap. Dossier 022
+  // (submission 9021539) rendered "Heath Shepard (Seller) and Test Seller (Buyer)"
+  // because the swap wrote buyer_name into the '(Seller)' widget. Field names on
+  // the AcroForm ARE the ground truth — widget '1 PARTIES ...' is the BUYER slot
+  // and 'Seller and' is the SELLER slot (matches TREC 20-17 handler line ~2370).
+  safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
+  safeSetText(form, 'Seller and', fv.seller_name || '');
 
   // PROPERTY — address repeats across all pages
   const addr = fv.property_address || '';
