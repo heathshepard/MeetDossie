@@ -1180,9 +1180,9 @@ async function fillResaleContract(pdfDoc, fv) {
   // Falls back to legacy fv.notice_address for backward compatibility.
   // 2026-07-05 ROUND4 fix (Bug 2 — §21 buyer notice blank): when both direct fields are empty,
   // fall back to the buyer's agent address ("c/o [buyer_agent_name], KW City View, San Antonio, TX").
-  // Master prompt "I will represent myself" means buyer_agent = buyer; the KW office address is
-  // the standard notice fallback per REALTOR practice.
-  const buyerAgentName = fv.buyer_agent_name || fv.other_broker_assoc_name || fv.selling_agent_name || '';
+  // Master prompt "I will represent myself" means buyer_agent = buyer_name; the KW office address
+  // is the standard notice fallback per REALTOR practice.
+  const buyerAgentName = fv.buyer_agent_name || fv.other_broker_assoc_name || fv.selling_agent_name || fv.buyer_name || '';
   const buyerNoticeAddr = fv.buyer_notice_address || fv.notice_address ||
     (buyerAgentName ? `c/o ${buyerAgentName}, KW City View, San Antonio, TX` : '');
   safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows',
