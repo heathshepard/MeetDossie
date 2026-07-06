@@ -83,10 +83,6 @@
       "destination": "/ventures-heath-actions.html"
     },
     {
-      "source": "/ventures/social-analytics",
-      "destination": "/ventures-social-analytics.html"
-    },
-    {
       "source": "/ventures/dossie-sign",
       "destination": "/admin-dossie-sign-progress.html"
     },
