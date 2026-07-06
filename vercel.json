@@ -420,6 +420,13 @@
     },
     "api/cron-stale-action-escalation.js": {
       "maxDuration": 30
+    },
+    "api/cron-cold-email-daily-batch.js": {
+      "maxDuration": 60,
+      "includeFiles": "data/sa-realtor-leads-final-v2.csv"
+    },
+    "api/cron-unsubscribe-spike-monitor.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -778,6 +785,14 @@
     {
       "path": "/api/cron-stale-action-escalation",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron-cold-email-daily-batch",
+      "schedule": "0 14 * * 1-5"
+    },
+    {
+      "path": "/api/cron-unsubscribe-spike-monitor",
+      "schedule": "0 * * * *"
     }
   ]
 }
