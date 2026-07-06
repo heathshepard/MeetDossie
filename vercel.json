@@ -79,6 +79,10 @@
       "destination": "/ventures-reliability.html"
     },
     {
+      "source": "/ventures/heath-actions",
+      "destination": "/ventures-heath-actions.html"
+    },
+    {
       "source": "/ventures/dossie-sign",
       "destination": "/admin-dossie-sign-progress.html"
     },

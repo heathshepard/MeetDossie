@@ -121,7 +121,60 @@ const CATEGORY_LABELS = {
 
 let __digestGlobalCounter = 0;
 
-function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates) {
+// Format age as [Nh], [Nd], with 🟡 flag for 72h–7d and 🔴 for >7d.
+// Locked 2026-07-06 — prevents Heath action items from silently rotting past 3+ days.
+function formatHeathActionAge(createdAtIso) {
+  if (!createdAtIso) return { label: '[?]', hours: 0, flag: '' };
+  const ageMs  = Date.now() - new Date(createdAtIso).getTime();
+  const ageHrs = Math.floor(ageMs / (3600 * 1000));
+  const ageDays = Math.floor(ageHrs / 24);
+  let label;
+  if (ageHrs < 24) {
+    label = `${ageHrs}h`;
+  } else {
+    label = `${ageDays}d`;
+  }
+  let flag = '';
+  if (ageHrs >= 24 * 7) {
+    flag = ' 🔴';
+  } else if (ageHrs >= 72) {
+    flag = ' 🟡';
+  }
+  return { label: `[${label}${flag}]`, hours: ageHrs, flag: flag.trim() };
+}
+
+function renderHeathActionsBlock(pendingActions) {
+  if (!Array.isArray(pendingActions) || pendingActions.length === 0) return [];
+  // Sort oldest first so stalest items are on top.
+  const sorted = [...pendingActions].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return ta - tb;
+  });
+  const shown = sorted.slice(0, 10);
+  const lines = [];
+  lines.push('<b>Heath action items (by age):</b>');
+  for (const a of shown) {
+    const age = formatHeathActionAge(a.created_at);
+    const title = String(a.title || 'unnamed').slice(0, 90);
+    // brief = first line of body, trimmed
+    let brief = '';
+    if (a.body) {
+      const firstLine = String(a.body).split('\n')[0].trim();
+      if (firstLine && firstLine.length > 3) {
+        brief = ' — ' + firstLine.slice(0, 90);
+      }
+    }
+    lines.push(`• ${age.label} ${title}${brief}`);
+  }
+  if (sorted.length > shown.length) {
+    lines.push(`<i>...${sorted.length - shown.length} more at <a href="https://meetdossie.com/ventures/heath-actions">meetdossie.com/ventures/heath-actions</a></i>`);
+  }
+  lines.push('');
+  return lines;
+}
+
+function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates, heathActions) {
   const shipped = completedTasks.length;
   const attempted = runs.filter(r => r.outcome === 'dispatched').length;
   const escalated = runs.filter(r => r.outcome === 'skipped_guardrail').length;
@@ -177,6 +230,11 @@ function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImp
     }
     lines.push('');
   }
+
+  // Heath action items — surfaces stale pending items so nothing rots.
+  // Sorted oldest first; yellow flag at 72h, red flag at 7d.
+  const heathActionLines = renderHeathActionsBlock(heathActions);
+  for (const l of heathActionLines) lines.push(l);
 
   // Self-improvement — top 3 per category (conversation / capability / rule)
   if (Array.isArray(selfImprovementCandidates) && selfImprovementCandidates.length > 0) {
@@ -287,6 +345,24 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
     }
   }
 
+  // 3b) Pull all pending heath_actions so we can surface stale items in the digest.
+  //     Ordered oldest first at render-time (regardless of DB order).
+  //     Skip snoozed items whose snoozed_until is still in the future.
+  let heathActions = [];
+  {
+    const rHA = await sb(
+      'heath_actions?select=id,title,body,source,priority,created_at,snoozed_until,deadline'
+      + '&status=eq.pending&order=created_at.asc&limit=100'
+    );
+    if (rHA.ok && Array.isArray(rHA.data)) {
+      const nowMs = Date.now();
+      heathActions = rHA.data.filter(a => {
+        if (!a.snoozed_until) return true;
+        return new Date(a.snoozed_until).getTime() <= nowMs;
+      });
+    }
+  }
+
   // 4) Stamp surfaced_in_brief_at so we know these were shown.
   //    Only stamp the ones the renderer actually included (top 3 per category).
   const shownIds = [];
@@ -306,7 +382,7 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
   }
 
   // 5) Compose message
-  const summary = renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates);
+  const summary = renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates, heathActions);
 
   // 5a) Persist the numbered → UUID surface mapping so the Telegram webhook
   //     can parse Heath's "approve 1" / "defer 3" reply. shownIds is already
@@ -348,6 +424,15 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
     shipped_count: completedTasks.length,
     blocked_count: blocked.length,
     stuck_count: stuck.length,
+    heath_actions_pending: heathActions.length,
+    heath_actions_red_count: heathActions.filter(a => {
+      const h = a.created_at ? Math.floor((Date.now() - new Date(a.created_at).getTime()) / 3600000) : 0;
+      return h >= 24 * 7;
+    }).length,
+    heath_actions_yellow_count: heathActions.filter(a => {
+      const h = a.created_at ? Math.floor((Date.now() - new Date(a.created_at).getTime()) / 3600000) : 0;
+      return h >= 72 && h < 24 * 7;
+    }).length,
     self_improvement_candidates_pulled: selfImprovementCandidates.length,
     self_improvement_candidates_shown: shownIds.length,
     self_improvement_by_category: {
