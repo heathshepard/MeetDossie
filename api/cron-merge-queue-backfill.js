@@ -48,7 +48,7 @@ const GITHUB_TOKEN              = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = 'heathshepard/MeetDossie';
 const MAIN_BRANCH = 'main';
 const POLL_NAME   = 'cron-merge-queue-backfill';
-const MAX_ROWS_PER_TICK = 200; // hard cap so a bloat can't run us out of budget
+const MAX_ROWS_PER_TICK = 100; // hard cap; ~50s worst case at ~500ms/GH call
 
 // ─── Supabase ─────────────────────────────────────────────────────────────────
 

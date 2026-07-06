@@ -425,9 +425,6 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
-    },
-    "api/cron-merge-queue-backfill.js": {
-      "maxDuration": 60
     }
   },
   "crons": [
