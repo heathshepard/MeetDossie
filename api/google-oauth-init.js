@@ -97,7 +97,11 @@ export default async function handler(req, res) {
     return res.status(err.status || 401).json({ ok: false, error: err.message });
   }
 
-  const redirectAfter = (req.query.redirect_after || '/myjarvis').toString().slice(0, 200);
+  // Same-origin path only (open-redirect prevention).
+  let redirectAfter = (req.query.redirect_after || '/myjarvis').toString().slice(0, 200);
+  if (!redirectAfter.startsWith('/') || redirectAfter.startsWith('//')) {
+    redirectAfter = '/myjarvis';
+  }
   const state = randomBytes(32).toString('base64url');
 
   try {

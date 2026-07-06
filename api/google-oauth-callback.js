@@ -79,13 +79,17 @@ async function sbUpsert(path, body, onConflict) {
 }
 
 function bounceUrl(redirectAfter, params) {
-  // Redirect back to the app. Prefer a same-origin path; otherwise treat as
-  // absolute URL only if it starts with https://.
-  let base = redirectAfter && typeof redirectAfter === 'string'
-    ? redirectAfter
-    : '/myjarvis';
-  if (!base.startsWith('/') && !base.startsWith('https://')) {
-    base = '/myjarvis';
+  // Redirect back to the app. Same-origin paths ONLY (must start with a single
+  // "/" and not "//" — the latter is a protocol-relative URL that could
+  // redirect off-site). This prevents open-redirect abuse of ?redirect_after.
+  let base = '/myjarvis';
+  if (
+    redirectAfter &&
+    typeof redirectAfter === 'string' &&
+    redirectAfter.startsWith('/') &&
+    !redirectAfter.startsWith('//')
+  ) {
+    base = redirectAfter;
   }
   const qp = new URLSearchParams(params).toString();
   return base + (base.includes('?') ? '&' : '?') + qp;
