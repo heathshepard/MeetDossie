@@ -126,7 +126,7 @@ async function enqueueAgentTask(candidate, agent) {
       task_subject: subject,
       task_brief: briefLines,
       priority: priorityFromImpact(candidate.impact_score),
-      venture: 'meetdossie',
+      venture: 'dossie',
       status: 'pending',
       metadata: {
         source: 'self_improvement_candidate',
@@ -160,12 +160,13 @@ async function createHeathAction(candidate) {
       title,
       body,
       source: 'self_improvement_apply',
-      priority: 'medium',
+      priority: 'soon',
       status: 'pending',
-      action_type: 'tool_enablement',
+      action_type: 'manual',
       payload: {
         candidate_id: candidate.id,
         change_kind: candidate.change_kind,
+        original_kind: 'tool_enablement',
       },
     }),
   });
