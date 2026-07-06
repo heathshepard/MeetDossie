@@ -1458,7 +1458,63 @@
       overflow: hidden; text-overflow: ellipsis;
       display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
     }
-    .pending-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+    .pending-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 4px; }
+    .pending-card.waiting-detail {
+      border-color: var(--cyan-dim);
+      background: rgba(0, 229, 255, 0.05);
+    }
+    .pending-detail-flag {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cyan-bright);
+      padding: 4px 6px;
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.30);
+      border-radius: 4px;
+      text-align: center;
+    }
+    .pending-reply-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 8px;
+      background: rgba(5, 8, 16, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .pending-reply-input {
+      width: 100%;
+      resize: vertical;
+      min-height: 60px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--txt-primary);
+      background: rgba(5, 8, 16, 0.7);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+    }
+    .pending-reply-input:focus {
+      outline: none;
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.20);
+    }
+    .pending-reply-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .pending-btn.ask-detail {
+      color: var(--cyan-bright);
+      border-color: var(--cyan-bright);
+    }
+    .pending-btn.ask-detail:hover {
+      background: rgba(0, 229, 255, 0.10);
+    }
     .pending-btn {
       font-family: inherit;
       font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -5814,8 +5870,16 @@
         const card = document.createElement('div');
         const wait = it.waiting_minutes != null ? it.waiting_minutes : 0;
         const urgent = wait >= 120; // 2h+ = urgent
-        card.className = 'pending-card' + (urgent ? ' urgent' : '');
+        // Reply support: hadley_question / heath_action / decision — items that
+        // are actually QUESTIONS (Heath answers), not straight approvals.
+        const replySupported = it.reply_supported === true;
+        const askDetailSupported = it.ask_detail_supported !== false;
+        const askedForDetail = !!it.heath_ask_for_detail_at;
+        card.className = 'pending-card' + (urgent ? ' urgent' : '') + (askedForDetail ? ' waiting-detail' : '');
         const waitText = wait < 60 ? `${wait}m waiting` : `${Math.floor(wait/60)}h waiting`;
+
+        const primaryLabel = replySupported ? 'Reply' : 'Approve';
+        const primaryAct = replySupported ? 'reply' : 'approve';
         card.innerHTML = `
           <div class="pending-meta-row">
             <span class="pending-agent" data-agent></span>
@@ -5823,37 +5887,91 @@
           </div>
           <div class="pending-title" data-title></div>
           <div class="pending-subtitle" data-subtitle></div>
+          ${askedForDetail ? `<div class="pending-detail-flag">Asked for detail · waiting for expand</div>` : ''}
           <div class="pending-actions">
-            <button class="pending-btn approve" data-act="approve">Approve</button>
+            <button class="pending-btn approve" data-act="${primaryAct}">${primaryLabel}</button>
+            ${askDetailSupported ? `<button class="pending-btn ask-detail" data-act="ask-detail" ${askedForDetail ? 'disabled' : ''}>Ask Detail</button>` : ''}
+            <button class="pending-btn" data-act="reject">Reject</button>
             <button class="pending-btn" data-act="details">Details</button>
+          </div>
+          <div class="pending-reply-panel" data-reply-panel hidden>
+            <textarea class="pending-reply-input" data-reply-input rows="3" placeholder="${replySupported ? 'Type your answer to send back...' : 'Optional reason for rejecting...'}" maxlength="8000"></textarea>
+            <div class="pending-reply-actions">
+              <button class="pending-btn approve" data-reply-submit>Send</button>
+              <button class="pending-btn" data-reply-cancel>Cancel</button>
+            </div>
           </div>
         `;
         card.querySelector('[data-agent]').textContent = it.agent || it.source || '';
         card.querySelector('[data-wait]').textContent = waitText;
         card.querySelector('[data-title]').textContent = it.title || '(no title)';
         card.querySelector('[data-subtitle]').textContent = it.subtitle || '';
-        card.querySelector('[data-act="approve"]').addEventListener('click', () => onPendingAction(it, 'approve'));
+
+        const replyPanel = card.querySelector('[data-reply-panel]');
+        const replyInput = card.querySelector('[data-reply-input]');
+        const openReplyPanel = () => {
+          replyPanel.hidden = false;
+          setTimeout(() => replyInput?.focus(), 0);
+        };
+        const closeReplyPanel = () => {
+          replyPanel.hidden = true;
+          replyInput.value = '';
+        };
+
+        const primaryBtn = card.querySelector(`[data-act="${primaryAct}"]`);
+        if (primaryAct === 'reply') {
+          primaryBtn.addEventListener('click', openReplyPanel);
+        } else {
+          primaryBtn.addEventListener('click', () => onPendingAction(it, 'approve'));
+        }
+
+        const rejectBtn = card.querySelector('[data-act="reject"]');
+        if (rejectBtn) rejectBtn.addEventListener('click', openReplyPanel);
+
+        const askBtn = card.querySelector('[data-act="ask-detail"]');
+        if (askBtn) askBtn.addEventListener('click', () => onPendingAskDetail(it, card));
+
         card.querySelector('[data-act="details"]').addEventListener('click', () => openPendingModal(it));
+
+        card.querySelector('[data-reply-cancel]').addEventListener('click', closeReplyPanel);
+        card.querySelector('[data-reply-submit]').addEventListener('click', () => {
+          const text = (replyInput.value || '').trim();
+          if (!text) {
+            showToast('Type a message first.');
+            replyInput.focus();
+            return;
+          }
+          // If reply is supported, this is an answer to a question.
+          // Otherwise, it's a reject-with-reason.
+          if (replySupported) {
+            onPendingReply(it, text);
+          } else {
+            onPendingAction(it, 'reject', text);
+          }
+        });
+
         list.appendChild(card);
       }
     }
 
-    async function onPendingAction(item, action) {
+    async function onPendingAction(item, action, reason) {
       const list = document.getElementById('pending-list');
       const btns = list ? list.querySelectorAll('.pending-btn') : [];
       btns.forEach(b => { b.disabled = true; });
       try {
+        const body = {
+          kind: item.approve_payload?.kind,
+          id: item.approve_payload?.id,
+          action,
+        };
+        if (reason) body.reason = reason;
         const res = await fetch(`${API_BASE}/api/jarvis-approve`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: await getAuthHeader(),
           },
-          body: JSON.stringify({
-            kind: item.approve_payload?.kind,
-            id: item.approve_payload?.id,
-            action,
-          }),
+          body: JSON.stringify(body),
         });
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}));
@@ -5876,6 +5994,80 @@
         setTimeout(() => loadPendingApprovals().catch(() => {}), 1500);
       } catch (err) {
         console.warn('[jarvis] pending action failed', err);
+        btns.forEach(b => { b.disabled = false; });
+        showToast('Network error');
+      }
+    }
+
+    async function onPendingReply(item, text) {
+      const list = document.getElementById('pending-list');
+      const btns = list ? list.querySelectorAll('.pending-btn') : [];
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-approval-reply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({
+            kind: item.approve_payload?.kind,
+            id: item.approve_payload?.id,
+            text,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          showToast(`Reply failed: ${errBody.error || res.status}`);
+          btns.forEach(b => { b.disabled = false; });
+          return;
+        }
+        showToast(`Reply sent to ${item.agent || item.source || 'agent'}`);
+        pendingCache = pendingCache.filter(p => p.id !== item.id);
+        renderPending(pendingCache);
+        const badge = document.getElementById('pending-count');
+        if (badge) {
+          const n = pendingCache.length;
+          badge.textContent = String(n);
+          badge.className = 'pending-count-badge' + (n === 0 ? ' zero' : '');
+        }
+        setTimeout(() => loadPendingApprovals().catch(() => {}), 1500);
+      } catch (err) {
+        console.warn('[jarvis] pending reply failed', err);
+        btns.forEach(b => { b.disabled = false; });
+        showToast('Network error');
+      }
+    }
+
+    async function onPendingAskDetail(item, cardEl) {
+      const btns = cardEl ? cardEl.querySelectorAll('.pending-btn') : [];
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-approval-ask-detail`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({
+            kind: item.approve_payload?.kind,
+            id: item.approve_payload?.id,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          showToast(`Ask for detail failed: ${errBody.error || res.status}`);
+          btns.forEach(b => { b.disabled = false; });
+          return;
+        }
+        showToast(`${item.agent || 'Agent'} will expand this. Stay tuned.`);
+        // Reflect state locally so Heath can see "asked" without a refresh.
+        item.heath_ask_for_detail_at = new Date().toISOString();
+        pendingCache = pendingCache.map(p => p.id === item.id ? item : p);
+        renderPending(pendingCache);
+        setTimeout(() => loadPendingApprovals().catch(() => {}), 2000);
+      } catch (err) {
+        console.warn('[jarvis] pending ask-detail failed', err);
         btns.forEach(b => { b.disabled = false; });
         showToast('Network error');
       }

@@ -78,9 +78,9 @@ export default async function handler(req, res) {
       sbGet(`email_queue?select=id,to_email,to_name,subject,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`outbound_email_queue?select=id,to_email,subject,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`founding_applications?select=id,name,email,brokerage,market,transactions_12mo,why,created_at,status&status=eq.pending&order=created_at.asc&limit=25`).catch(() => []),
-      sbGet(`decision_queue?select=id,decision_type,title,description,required_by,created_at,status&status=eq.open&order=created_at.asc&limit=25`).catch(() => []),
-      sbGet(`hadley_unanswered_questions?select=id,question_text,form_context,asked_at,answered_at&answered_at=is.null&order=asked_at.asc&limit=25`).catch(() => []),
-      sbGet(`heath_actions?select=id,title,body,source,priority,created_at,snoozed_until,status,deadline&${heathActionsFilter}&order=created_at.asc&limit=50`).catch(() => []),
+      sbGet(`decision_queue?select=id,decision_type,title,description,required_by,created_at,status,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&status=eq.open&order=created_at.asc&limit=25`).catch(() => []),
+      sbGet(`hadley_unanswered_questions?select=id,question_text,form_context,asked_at,answered_at,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&answered_at=is.null&order=asked_at.asc&limit=25`).catch(() => []),
+      sbGet(`heath_actions?select=id,title,body,source,priority,created_at,snoozed_until,status,deadline,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&${heathActionsFilter}&order=created_at.asc&limit=50`).catch(() => []),
     ]);
 
     // Filter heath_actions: pending now, plus snoozed actions whose snoozed_until has passed.
@@ -113,6 +113,8 @@ export default async function handler(req, res) {
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'social_post', id: r.id },
+        reply_supported: false,
+        ask_detail_supported: true,
         details: {
           full_content: r.content,
           platform: r.platform,
@@ -138,6 +140,8 @@ export default async function handler(req, res) {
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'email_queue', id: r.id },
+        reply_supported: false,
+        ask_detail_supported: true,
         details: { to_email: r.to_email, subject: r.subject, template_type: r.template_type },
       });
     }
@@ -154,6 +158,8 @@ export default async function handler(req, res) {
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'outbound_email', id: r.id },
+        reply_supported: false,
+        ask_detail_supported: true,
         details: { to_email: r.to_email, subject: r.subject },
       });
     }
@@ -170,6 +176,8 @@ export default async function handler(req, res) {
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'founding_application', id: r.id },
+        reply_supported: false,
+        ask_detail_supported: true,
         details: { name: r.name, email: r.email, brokerage: r.brokerage, market: r.market, why: r.why, transactions_12mo: r.transactions_12mo },
       });
     }
@@ -186,6 +194,11 @@ export default async function handler(req, res) {
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'decision', id: r.id },
+        reply_supported: true,
+        ask_detail_supported: true,
+        heath_reply_text: r.heath_reply_text || null,
+        heath_reply_at: r.heath_reply_at || null,
+        heath_ask_for_detail_at: r.heath_ask_for_detail_at || null,
         details: { description: r.description, required_by: r.required_by },
       });
     }
@@ -202,6 +215,11 @@ export default async function handler(req, res) {
         created_at: r.asked_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'hadley_question', id: r.id },
+        reply_supported: true,
+        ask_detail_supported: true,
+        heath_reply_text: r.heath_reply_text || null,
+        heath_reply_at: r.heath_reply_at || null,
+        heath_ask_for_detail_at: r.heath_ask_for_detail_at || null,
         details: { question: r.question_text, form_context: r.form_context },
       });
     }
@@ -219,6 +237,11 @@ export default async function handler(req, res) {
         created_at: r.created_at,
         approve_endpoint: '/api/jarvis-approve',
         approve_payload: { kind: 'heath_action', id: r.id },
+        reply_supported: true,
+        ask_detail_supported: true,
+        heath_reply_text: r.heath_reply_text || null,
+        heath_reply_at: r.heath_reply_at || null,
+        heath_ask_for_detail_at: r.heath_ask_for_detail_at || null,
         details: { body: r.body, priority: r.priority, deadline: r.deadline, snoozed_until: r.snoozed_until },
       });
     }
