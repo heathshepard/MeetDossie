@@ -252,7 +252,7 @@
       loading.style.display = 'block';
       try {
         // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
+        const raw = localStorage.getItem("supabase.auth.token");
         if (!raw) {
           throw new Error("Not authenticated. Please sign in first.");
         }
