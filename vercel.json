@@ -79,6 +79,10 @@
       "destination": "/ventures-reliability.html"
     },
     {
+      "source": "/ventures/heath-actions",
+      "destination": "/ventures-heath-actions.html"
+    },
+    {
       "source": "/ventures/dossie-sign",
       "destination": "/admin-dossie-sign-progress.html"
     },
@@ -410,6 +414,12 @@
     },
     "api/cron-apply-approved-improvements.js": {
       "maxDuration": 60
+    },
+    "api/cron-friday-action-summary.js": {
+      "maxDuration": 30
+    },
+    "api/cron-stale-action-escalation.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -760,6 +770,14 @@
     {
       "path": "/api/cron-apply-approved-improvements",
       "schedule": "17 * * * *"
+    },
+    {
+      "path": "/api/cron-friday-action-summary",
+      "schedule": "0 22 * * 5"
+    },
+    {
+      "path": "/api/cron-stale-action-escalation",
+      "schedule": "0 15 * * *"
     }
   ]
 }

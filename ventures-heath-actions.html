@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heath Action Items — Shepard Ventures</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231A1A2E'/><text y='.9em' font-size='70' x='15' fill='%23C9A96E'>H</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --blush: #F5E6E0;
+  --blush-deep: #D4A0A0;
+  --sage: #8BA888;
+  --gold: #C9A96E;
+  --navy: #1A1A2E;
+  --coral: #E8836B;
+  --green: #2E7D32;
+  --yellow: #ED6C02;
+  --red: #C62828;
+  --grey: #757575;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  min-height: 100vh;
+}
+.header {
+  background: var(--navy);
+  color: white;
+  padding: 1.5rem 2rem;
+}
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand { display:flex; align-items:center; gap:.75rem; }
+.brand-circle {
+  width: 36px; height: 36px;
+  background: var(--gold);
+  border-radius: 50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 700;
+  color: var(--navy);
+}
+.brand-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 700;
+}
+.brand-sub { font-size: 13px; opacity:.7; margin-left:.5rem; }
+.back-link {
+  color: white; text-decoration: none; font-size: 14px;
+  opacity: .85;
+}
+.back-link:hover { opacity: 1; }
+
+.container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+@media (max-width: 640px) {
+  .summary { grid-template-columns: repeat(2, 1fr); }
+}
+.stat {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--grey);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #666; margin-bottom: .25rem; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat.red    { border-left-color: var(--red); }
+.stat.red    .stat-value { color: var(--red); }
+.stat.yellow { border-left-color: var(--yellow); }
+.stat.yellow .stat-value { color: var(--yellow); }
+.stat.green  { border-left-color: var(--green); }
+.stat.green  .stat-value { color: var(--green); }
+.stat.grey   { border-left-color: var(--grey); }
+.stat.grey   .stat-value { color: var(--grey); }
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar select {
+  padding: .5rem .75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+}
+.refresh-btn {
+  background: var(--navy);
+  color: white;
+  border: none;
+  padding: .5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.refresh-btn:hover { background: #2a2a44; }
+
+.action-list { display: flex; flex-direction: column; gap: .75rem; }
+.action-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  border-left: 4px solid var(--grey);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+}
+.action-card.red    { border-left-color: var(--red); }
+.action-card.yellow { border-left-color: var(--yellow); }
+.action-card.green  { border-left-color: var(--green); }
+
+.action-title { font-weight: 600; font-size: 15px; line-height: 1.4; margin-bottom: .25rem; }
+.action-brief { font-size: 13px; color: #555; line-height: 1.5; white-space: pre-wrap; }
+.action-meta { font-size: 12px; color: #888; margin-top: .5rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+.action-meta .badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: #f0f0f0; color: #555;
+}
+.action-meta .badge.urgent   { background: #FFEBEE; color: var(--red); }
+.action-meta .badge.soon     { background: #FFF3E0; color: var(--yellow); }
+.action-meta .badge.whenever { background: #E8F5E9; color: var(--green); }
+.action-meta .badge.age-red    { background: #FFEBEE; color: var(--red); }
+.action-meta .badge.age-yellow { background: #FFF3E0; color: var(--yellow); }
+.action-meta .badge.age-green  { background: #E8F5E9; color: var(--green); }
+
+.action-controls { display: flex; gap: .5rem; flex-shrink: 0; }
+.action-controls button {
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.action-controls button:hover { background: #f5f5f5; }
+.action-controls button.done   { background: var(--green); color: white; border-color: var(--green); }
+.action-controls button.done:hover   { background: #256428; }
+.action-controls button.snooze { background: white; color: #555; }
+.action-controls button.dismiss{ background: white; color: var(--red); border-color: #ffdad4; }
+.action-controls button.dismiss:hover { background: #FFEBEE; }
+
+.body-toggle { font-size: 12px; color: var(--navy); cursor: pointer; user-select: none; margin-top: .5rem; display: inline-block; }
+.body-toggle:hover { text-decoration: underline; }
+.action-body-full { display: none; margin-top: .5rem; padding: .75rem; background: #fafafa; border-radius: 8px; font-size: 13px; white-space: pre-wrap; line-height: 1.5; max-height: 300px; overflow-y: auto; }
+.action-body-full.open { display: block; }
+
+.empty {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #888;
+}
+.empty h2 { font-family: 'Cormorant Garamond', serif; font-size: 24px; color: var(--green); margin-bottom: .5rem; }
+
+.muted { color: #999; font-size: 12px; }
+
+.login-prompt {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  max-width: 480px;
+  margin: 4rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.login-prompt h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  margin-bottom: 1rem;
+  color: var(--navy);
+}
+.login-prompt input {
+  width: 100%;
+  padding: .75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: .75rem;
+  font-size: 14px;
+}
+.login-prompt button {
+  background: var(--navy);
+  color: white;
+  border: none;
+  padding: .75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+.error-msg { color: var(--red); margin-top: .5rem; font-size: 13px; }
+
+@media (max-width: 640px) {
+  .action-card { grid-template-columns: 1fr; }
+  .action-controls { justify-content: flex-end; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-circle">H</div>
+      <div>
+        <div class="brand-title">Heath Action Items</div>
+        <div class="brand-sub">Triage — nothing rots past a week</div>
+      </div>
+    </div>
+    <a href="/ventures" class="back-link">back to ventures</a>
+  </div>
+</div>
+
+<div id="root" class="container">
+  <div class="login-prompt">
+    <h2>Loading…</h2>
+  </div>
+</div>
+
+<script type="module">
+const SUPABASE_URL_DEFAULT = 'https://pgwoitbdiyubjugwufhk.supabase.co';
+
+async function getSupabasePublicConfig() {
+  try {
+    const r = await fetch('/api/get-supabase-public-config');
+    if (!r.ok) throw new Error('config endpoint');
+    const c = await r.json();
+    return { url: c.url || SUPABASE_URL_DEFAULT, anon: c.publishableKey || c.anonKey };
+  } catch {
+    return { url: SUPABASE_URL_DEFAULT, anon: null };
+  }
+}
+
+let SB_URL = SUPABASE_URL_DEFAULT;
+let SB_ANON = null;
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem('sb-pgwoitbdiyubjugwufhk-auth-token');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.access_token || null;
+  } catch { return null; }
+}
+
+async function authFetch(url, opts = {}) {
+  const token = getStoredSession();
+  if (!token) return { status: 401, json: async () => ({ error: 'no-session' }) };
+  return fetch(url, {
+    ...opts,
+    headers: {
+      ...(opts.headers || {}),
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+async function signInWithPassword(email, password) {
+  const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!r.ok) return null;
+  const data = await r.json();
+  localStorage.setItem('sb-pgwoitbdiyubjugwufhk-auth-token', JSON.stringify({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    user: data.user,
+  }));
+  return data.access_token;
+}
+
+function renderLogin(msg) {
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <div class="login-prompt">
+      <h2>Heath only</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:1.5rem;">Sign in with your Dossie account.</p>
+      <input id="email" type="email" placeholder="email" autocomplete="email">
+      <input id="password" type="password" placeholder="password" autocomplete="current-password">
+      <button id="signin">Sign in</button>
+      ${msg ? `<div class="error-msg">${msg}</div>` : ''}
+    </div>`;
+  document.getElementById('signin').onclick = async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const tok = await signInWithPassword(email, password);
+    if (!tok) { renderLogin('Sign in failed.'); return; }
+    bootstrap();
+  };
+}
+
+let state = { actions: { urgent: [], soon: [], whenever: [] }, stale: [], filter: 'all' };
+
+function ageBucket(createdAtIso) {
+  if (!createdAtIso) return { key: 'grey', label: '?', hours: 0 };
+  const h = Math.floor((Date.now() - new Date(createdAtIso).getTime()) / 3600000);
+  const d = Math.floor(h / 24);
+  const label = h < 24 ? `${h}h` : `${d}d`;
+  if (h >= 24 * 7) return { key: 'red', label, hours: h };
+  if (h >= 72)     return { key: 'yellow', label, hours: h };
+  return { key: 'green', label, hours: h };
+}
+
+function briefOf(body) {
+  if (!body) return '';
+  const first = String(body).split('\n')[0].trim();
+  return first.length > 220 ? first.slice(0, 220) + '…' : first;
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[m]));
+}
+
+function render() {
+  const all = [
+    ...state.actions.urgent,
+    ...state.actions.soon,
+    ...state.actions.whenever,
+    ...state.stale,
+  ];
+
+  // Sort by age — oldest first (stalest at top)
+  all.sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return ta - tb;
+  });
+
+  // Filter
+  const filtered = all.filter(a => {
+    if (state.filter === 'all') return true;
+    const b = ageBucket(a.created_at);
+    return b.key === state.filter;
+  });
+
+  const redCount    = all.filter(a => ageBucket(a.created_at).key === 'red').length;
+  const yellowCount = all.filter(a => ageBucket(a.created_at).key === 'yellow').length;
+  const greenCount  = all.filter(a => ageBucket(a.created_at).key === 'green').length;
+
+  const root = document.getElementById('root');
+
+  if (all.length === 0) {
+    root.innerHTML = `
+      <div class="summary">
+        <div class="stat red"><div class="stat-label">Red (>7d)</div><div class="stat-value">0</div></div>
+        <div class="stat yellow"><div class="stat-label">Yellow (72h+)</div><div class="stat-value">0</div></div>
+        <div class="stat green"><div class="stat-label">Fresh (<72h)</div><div class="stat-value">0</div></div>
+        <div class="stat grey"><div class="stat-label">Total pending</div><div class="stat-value">0</div></div>
+      </div>
+      <div class="empty">
+        <h2>Inbox zero</h2>
+        <p>No pending action items. Nothing rotting.</p>
+      </div>`;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="summary">
+      <div class="stat red"><div class="stat-label">Red (over 7 days)</div><div class="stat-value">${redCount}</div></div>
+      <div class="stat yellow"><div class="stat-label">Yellow (72h to 7d)</div><div class="stat-value">${yellowCount}</div></div>
+      <div class="stat green"><div class="stat-label">Fresh (under 72h)</div><div class="stat-value">${greenCount}</div></div>
+      <div class="stat grey"><div class="stat-label">Total pending</div><div class="stat-value">${all.length}</div></div>
+    </div>
+
+    <div class="toolbar">
+      <select id="filter">
+        <option value="all"${state.filter==='all'?' selected':''}>All (${all.length})</option>
+        <option value="red"${state.filter==='red'?' selected':''}>Red only (${redCount})</option>
+        <option value="yellow"${state.filter==='yellow'?' selected':''}>Yellow only (${yellowCount})</option>
+        <option value="green"${state.filter==='green'?' selected':''}>Fresh only (${greenCount})</option>
+      </select>
+      <button class="refresh-btn" id="refresh">Refresh</button>
+      <div class="muted">Sorted oldest first. Actions: Done | Snooze 4h | Dismiss.</div>
+    </div>
+
+    <div class="action-list">
+      ${filtered.map(a => {
+        const bucket = ageBucket(a.created_at);
+        const priority = a.priority || 'whenever';
+        return `
+          <div class="action-card ${bucket.key}" data-id="${escapeHtml(a.id)}">
+            <div>
+              <div class="action-title">${escapeHtml(a.title || 'unnamed')}</div>
+              <div class="action-brief">${escapeHtml(briefOf(a.body))}</div>
+              ${a.body && a.body.length > 220 ? `
+                <span class="body-toggle" data-id="${escapeHtml(a.id)}">show full</span>
+                <div class="action-body-full" data-id="${escapeHtml(a.id)}">${escapeHtml(a.body)}</div>
+              ` : ''}
+              <div class="action-meta">
+                <span class="badge age-${bucket.key}">${bucket.label} old</span>
+                <span class="badge ${priority}">${priority}</span>
+                <span>source: ${escapeHtml(a.source || 'unknown')}</span>
+                ${a.deadline ? `<span>deadline: ${new Date(a.deadline).toLocaleDateString()}</span>` : ''}
+              </div>
+            </div>
+            <div class="action-controls">
+              <button class="done" data-action="done" data-id="${escapeHtml(a.id)}">Done</button>
+              <button class="snooze" data-action="snooze_4h" data-id="${escapeHtml(a.id)}">Snooze 4h</button>
+              <button class="dismiss" data-action="dismiss" data-id="${escapeHtml(a.id)}">Dismiss</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('filter').onchange = (e) => { state.filter = e.target.value; render(); };
+  document.getElementById('refresh').onclick = bootstrap;
+
+  document.querySelectorAll('.action-controls button').forEach(btn => {
+    btn.onclick = async (e) => {
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {
+        const r = await authFetch('/api/heath-actions-update', {
+          method: 'POST',
+          body: JSON.stringify({ id, action }),
+        });
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          alert('Update failed: ' + (j.error || r.status));
+          btn.disabled = false;
+          btn.textContent = btn.getAttribute('data-action') === 'done' ? 'Done'
+            : btn.getAttribute('data-action') === 'snooze_4h' ? 'Snooze 4h' : 'Dismiss';
+          return;
+        }
+        // Remove from state and re-render
+        for (const k of ['urgent', 'soon', 'whenever']) {
+          state.actions[k] = state.actions[k].filter(a => a.id !== id);
+        }
+        state.stale = state.stale.filter(a => a.id !== id);
+        render();
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    };
+  });
+
+  document.querySelectorAll('.body-toggle').forEach(t => {
+    t.onclick = () => {
+      const id = t.getAttribute('data-id');
+      const full = document.querySelector(`.action-body-full[data-id="${id}"]`);
+      if (!full) return;
+      const isOpen = full.classList.toggle('open');
+      t.textContent = isOpen ? 'hide' : 'show full';
+    };
+  });
+}
+
+async function loadActions() {
+  const r = await authFetch('/api/heath-actions-list');
+  if (r.status === 401) { renderLogin('Session expired or unauthorized.'); return; }
+  if (!r.ok) {
+    document.getElementById('root').innerHTML = `<div class="login-prompt"><h2>Error</h2><p>Status ${r.status}</p></div>`;
+    return;
+  }
+  const data = await r.json();
+  state.actions = data.actions || { urgent: [], soon: [], whenever: [] };
+  state.stale = data.stale || [];
+  render();
+}
+
+async function bootstrap() {
+  const cfg = await getSupabasePublicConfig();
+  SB_URL = cfg.url; SB_ANON = cfg.anon;
+  if (!getStoredSession()) { renderLogin(); return; }
+  await loadActions();
+}
+
+bootstrap();
+</script>
+</body>
+</html>
