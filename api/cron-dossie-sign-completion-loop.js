@@ -838,17 +838,26 @@ async function maybeSendDailyRollup(counts) {
   const priorGreen = (r2.ok && Array.isArray(r2.data) && r2.data[0]) ? Number(r2.data[0].green_count) : 0;
   const delta = counts.green - priorGreen;
 
-  const rReds = await sb('dossie_sign_dod_progress?select=form_code,gate_key,gate_label,dispatch_count&status=eq.red&order=gate_weight.desc&limit=8');
-  const reds = (rReds.ok && Array.isArray(rReds.data)) ? rReds.data : [];
-  const blockerList = reds.length === 0
-    ? 'None — all gates green or yellow.'
-    : reds.map(r => `- ${r.form_code} / ${r.gate_label} (dispatched ${r.dispatch_count}x)`).join('\n');
+  // FIX 2026-07-06 (atlas): exclude human_gated rows from the "top red gates"
+  // list. Those need Heath to flip after a real deal closes — not blockers
+  // the loop can move. Surface them in a separate summary line.
+  const rReds = await sb('dossie_sign_dod_progress?select=form_code,gate_key,gate_label,dispatch_count,human_gated&status=eq.red&order=gate_weight.desc&limit=16');
+  const allReds = (rReds.ok && Array.isArray(rReds.data)) ? rReds.data : [];
+  const automatedReds = allReds.filter(r => !r.human_gated && r.gate_key !== 'real_deal_closed');
+  const humanGatedReds = allReds.filter(r => r.human_gated || r.gate_key === 'real_deal_closed');
+  const blockerList = automatedReds.length === 0
+    ? 'None — all automated gates green or yellow.'
+    : automatedReds.slice(0, 8).map(r => `- ${r.form_code} / ${r.gate_label} (dispatched ${r.dispatch_count}x)`).join('\n');
+  const humanGatedLine = humanGatedReds.length > 0
+    ? `\n\n<i>${humanGatedReds.length} human-gated row(s) also red — waiting on real deals to close (you flip).</i>`
+    : '';
 
   await tg(
     `<b>Dossie Sign — daily rollup (6am CDT)</b>\n\n`
     + `Overnight loop moved <b>${delta >= 0 ? '+' : ''}${delta}</b> gates to green.\n\n`
-    + `Status: <b>${counts.green}/${counts.total}</b> green. ${counts.yellow} yellow. ${counts.red} red.\n\n`
-    + `<b>Top red gates:</b>\n${blockerList}\n\n`
+    + `Status: <b>${counts.automated_green}/${counts.automated_total}</b> automated green. `
+    + `${counts.automated_yellow} yellow. ${counts.automated_red} red.\n\n`
+    + `<b>Top red automated gates:</b>\n${blockerList}${humanGatedLine}\n\n`
     + `Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
   );
 
@@ -859,25 +868,45 @@ async function maybeSendDailyRollup(counts) {
     red_count: counts.red,
     outcome: 'skipped_no_red',
     outcome_reason: 'daily_rollup_marker',
-    metadata: { rollup_sent: true },
+    metadata: {
+      rollup_sent: true,
+      automated_green_count: counts.automated_green,
+      automated_total: counts.automated_total,
+      human_gated_red: counts.human_gated_red,
+    },
   });
 }
 
 async function maybeSendNoProgressAlert(counts) {
+  // FIX 2026-07-06 (atlas): compare AUTOMATED-only progress, not full count.
+  // Human-gated rows (real_deal_closed × 8) can never advance via cron —
+  // only Heath flips them after a founder closes a real deal. Comparing full
+  // green count means the alert fires forever once automation completes.
+  // Bail out entirely if automation has already reached its ceiling.
+  if (counts.automated_red === 0 && counts.automated_yellow === 0) return;
+
   const cutoff = new Date(Date.now() - NO_PROGRESS_ALERT_HOURS * 3600 * 1000).toISOString();
-  const r = await sb(`dossie_sign_dod_runs?select=green_count&run_ts=lte.${encodeURIComponent(cutoff)}&order=run_ts.desc&limit=1`);
+  const r = await sb(`dossie_sign_dod_runs?select=green_count,metadata&run_ts=lte.${encodeURIComponent(cutoff)}&order=run_ts.desc&limit=1`);
   if (!r.ok || !Array.isArray(r.data) || r.data.length === 0) return;
 
-  const priorGreen = Number(r.data[0].green_count) || 0;
-  if (counts.green > priorGreen) return;
+  // Prefer automated_green_count when available (post-fix runs); fall back to
+  // legacy green_count for older run rows.
+  const prior = r.data[0];
+  const priorAutomatedGreen = (prior.metadata && Number.isFinite(Number(prior.metadata.automated_green_count)))
+    ? Number(prior.metadata.automated_green_count)
+    : Number(prior.green_count) || 0;
+
+  if (counts.automated_green > priorAutomatedGreen) return;
 
   const alertCutoff = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
   const r2 = await sb(`dossie_sign_dod_runs?select=id,metadata&metadata->>no_progress_alert=eq.true&run_ts=gte.${encodeURIComponent(alertCutoff)}&limit=1`);
   if (r2.ok && Array.isArray(r2.data) && r2.data.length > 0) return;
 
   await tg(
-    `<b>Dossie Sign loop: 24h no progress.</b>\n\n`
-    + `Green count stuck at ${counts.green}/${counts.total} for 24 hours. Loop needs human review.\n\n`
+    `<b>Dossie Sign loop: 24h no automated progress.</b>\n\n`
+    + `Automated gates stuck at <b>${counts.automated_green}/${counts.automated_total}</b> for 24 hours. `
+    + `${counts.human_gated_red} human-gated row(s) (real deals) require you to flip — automation can't advance them.\n\n`
+    + `Loop needs human review.\n\n`
     + `Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
   );
 
@@ -888,7 +917,12 @@ async function maybeSendNoProgressAlert(counts) {
     red_count: counts.red,
     outcome: 'skipped_no_red',
     outcome_reason: 'no_progress_alert_marker',
-    metadata: { no_progress_alert: true },
+    metadata: {
+      no_progress_alert: true,
+      automated_green_count: counts.automated_green,
+      automated_total: counts.automated_total,
+      human_gated_red: counts.human_gated_red,
+    },
   });
 }
 
@@ -983,24 +1017,53 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
     if (r2.ok && Array.isArray(r2.data)) rows = r2.data;
 
     // 3) Count buckets
+    // FIX 2026-07-06 (atlas): also count AUTOMATED-only buckets. Human-gated
+    // rows (real_deal_closed × 8) can never advance via cron — automation
+    // mission-complete = automated_green === automated_total.
+    const automatedRows = rows.filter(r => !r.human_gated && r.gate_key !== 'real_deal_closed');
+    const humanGatedRows = rows.filter(r => r.human_gated || r.gate_key === 'real_deal_closed');
     const counts = {
       total: rows.length,
       green: rows.filter(r => r.status === 'green').length,
       yellow: rows.filter(r => r.status === 'yellow').length,
       red: rows.filter(r => r.status === 'red').length,
+      // Automated-only (what the loop can actually move)
+      automated_total: automatedRows.length,
+      automated_green: automatedRows.filter(r => r.status === 'green').length,
+      automated_yellow: automatedRows.filter(r => r.status === 'yellow').length,
+      automated_red: automatedRows.filter(r => r.status === 'red').length,
+      // Human-gated visibility (Heath must flip)
+      human_gated_total: humanGatedRows.length,
+      human_gated_green: humanGatedRows.filter(r => r.status === 'green').length,
+      human_gated_red: humanGatedRows.filter(r => r.status !== 'green').length,
     };
 
     // 4) Mission complete?
-    if (counts.green === counts.total) {
+    // Automation is done when every automated gate is green. Human-gated rows
+    // (real_deal_closed) still show red on the dashboard until Heath flips
+    // them, but the loop has nothing left to do.
+    if (counts.automated_green === counts.automated_total) {
       const rDone = await sb(`dossie_sign_dod_runs?select=id&outcome=eq.skipped_all_green&metadata->>celebration_sent=eq.true&limit=1`);
       const alreadyCelebrated = rDone.ok && Array.isArray(rDone.data) && rDone.data.length > 0;
 
+      // Full mission = automation done AND every human gate flipped too.
+      const fullMission = counts.green === counts.total;
+
       if (!alreadyCelebrated) {
-        await tg(
-          `<b>Dossie Sign — MISSION COMPLETE.</b>\n\n`
-          + `All 9 gates green across all 8 TREC forms. 72/72. Every gate.\n\n`
-          + `Tag GOLD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-dossie-sign-complete.`
-        );
+        if (fullMission) {
+          await tg(
+            `<b>Dossie Sign — MISSION COMPLETE.</b>\n\n`
+            + `All 9 gates green across all 8 TREC forms. 72/72. Every gate.\n\n`
+            + `Tag GOLD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-dossie-sign-complete.`
+          );
+        } else {
+          await tg(
+            `<b>Dossie Sign — automation complete.</b>\n\n`
+            + `All ${counts.automated_total}/${counts.automated_total} automated gates green. `
+            + `${counts.human_gated_red} human-gated row(s) (real deals) waiting on you to flip.\n\n`
+            + `Loop is idle. Dashboard: https://meetdossie.com/admin-dossie-sign-progress.html`
+          );
+        }
       }
 
       await logRun({
@@ -1009,14 +1072,21 @@ module.exports = withTelemetry('cron-dossie-sign-completion-loop', async functio
         yellow_count: counts.yellow,
         red_count: counts.red,
         outcome: 'skipped_all_green',
-        outcome_reason: 'all_gates_green_mission_complete',
+        outcome_reason: fullMission ? 'all_gates_green_mission_complete' : 'automation_complete_awaiting_human_gates',
         duration_ms: Date.now() - startTs,
-        metadata: { celebration_sent: !alreadyCelebrated, evidence: evidenceResult },
+        metadata: {
+          celebration_sent: !alreadyCelebrated,
+          evidence: evidenceResult,
+          automated_green_count: counts.automated_green,
+          automated_total: counts.automated_total,
+          human_gated_red: counts.human_gated_red,
+          full_mission: fullMission,
+        },
       });
 
       return res.status(200).json({
         ok: true,
-        outcome: 'mission_complete',
+        outcome: fullMission ? 'mission_complete' : 'automation_complete',
         counts,
         evidence: evidenceResult,
       });
