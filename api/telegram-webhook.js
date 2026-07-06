@@ -1432,6 +1432,144 @@ async function handleTextMessage(msg, logStep) {
 
   const command = messageText.trim().toLowerCase();
 
+  // ─── heath_actions commands: kill / doing / snooze / list ──────────────────
+  // Layer 3 supporting parser. IDs can be full uuid or first 8 chars.
+  // Examples:
+  //   kill 3f8a1b2c
+  //   doing 3f8a1b2c
+  //   snooze 3f8a1b2c 7d
+  //   list  (dumps top 15 pending)
+  {
+    const actionMatch = command.match(/^(kill|doing|snooze)\s+([a-f0-9]{8}[a-f0-9-]*)(?:\s+(\d+)(d|h|w))?\s*$/i);
+    if (actionMatch) {
+      const verb    = actionMatch[1].toLowerCase();
+      const idInput = actionMatch[2].toLowerCase();
+      const durNum  = actionMatch[3] ? parseInt(actionMatch[3], 10) : null;
+      const durUnit = actionMatch[4] ? actionMatch[4].toLowerCase() : null;
+
+      try {
+        // Look up the row by id-prefix (first 8+ chars). Full uuid also works
+        // because Postgres LIKE on uuid needs cast to text.
+        const isFullUuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(idInput);
+        const lookupQuery = isFullUuid
+          ? `/rest/v1/heath_actions?id=eq.${encodeURIComponent(idInput)}&select=id,title,status,payload&limit=1`
+          : `/rest/v1/heath_actions?id=like.${encodeURIComponent(idInput)}%25&select=id,title,status,payload&limit=2`;
+
+        const { data: rows } = await supabaseFetch(lookupQuery);
+        if (!rows || rows.length === 0) {
+          await sendMessage(chatId, `No action item matches id \`${idInput}\`.`, null, null, logStep);
+          return;
+        }
+        if (rows.length > 1) {
+          await sendMessage(chatId, `Prefix \`${idInput}\` matches multiple items — use more characters.`, null, null, logStep);
+          return;
+        }
+        const row = rows[0];
+
+        if (verb === 'kill') {
+          const nextPayload = Object.assign({}, row.payload || {}, {
+            killed_at: new Date().toISOString(),
+            killed_via: 'telegram',
+          });
+          const upd = await supabaseFetch(`/rest/v1/heath_actions?id=eq.${encodeURIComponent(row.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              status: 'killed',
+              completed_at: new Date().toISOString(),
+              payload: nextPayload,
+            }),
+          });
+          if (!upd.ok) {
+            await sendMessage(chatId, `Failed to kill: HTTP ${upd.status}`, null, null, logStep);
+            return;
+          }
+          await sendMessage(chatId, `Killed: ${row.title || row.id}`, null, null, logStep);
+          if (logStep) logStep({ step: 'heath_action_killed', id: row.id });
+          return;
+        }
+
+        if (verb === 'doing') {
+          const nextPayload = Object.assign({}, row.payload || {}, {
+            heath_committed_at: new Date().toISOString(),
+          });
+          const upd = await supabaseFetch(`/rest/v1/heath_actions?id=eq.${encodeURIComponent(row.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              status: 'in_progress',
+              payload: nextPayload,
+            }),
+          });
+          if (!upd.ok) {
+            await sendMessage(chatId, `Failed to mark doing: HTTP ${upd.status}`, null, null, logStep);
+            return;
+          }
+          await sendMessage(chatId, `Marked in-progress: ${row.title || row.id}`, null, null, logStep);
+          if (logStep) logStep({ step: 'heath_action_doing', id: row.id });
+          return;
+        }
+
+        if (verb === 'snooze') {
+          const n = durNum || 7;
+          const unit = durUnit || 'd';
+          const multMs = unit === 'h' ? 3600000 : unit === 'w' ? 7 * 86400000 : 86400000;
+          const snoozeUntil = new Date(Date.now() + n * multMs).toISOString();
+          const nextPayload = Object.assign({}, row.payload || {}, {
+            snoozed_via: 'telegram',
+            snoozed_at: new Date().toISOString(),
+          });
+          const upd = await supabaseFetch(`/rest/v1/heath_actions?id=eq.${encodeURIComponent(row.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              status: 'snoozed',
+              snoozed_until: snoozeUntil,
+              payload: nextPayload,
+            }),
+          });
+          if (!upd.ok) {
+            await sendMessage(chatId, `Failed to snooze: HTTP ${upd.status}`, null, null, logStep);
+            return;
+          }
+          await sendMessage(chatId, `Snoozed ${n}${unit}: ${row.title || row.id}`, null, null, logStep);
+          if (logStep) logStep({ step: 'heath_action_snoozed', id: row.id, until: snoozeUntil });
+          return;
+        }
+      } catch (err) {
+        console.error('[telegram-webhook] heath_action command failed:', err);
+        await sendMessage(chatId, `Error: ${err.message}`, null, null, logStep);
+        return;
+      }
+    }
+  }
+
+  // "list" — full pending Heath action set (top 15 stalest)
+  if (command === 'list' || command === '/list' || command === 'list actions' || command === 'actions') {
+    try {
+      const { data: rows } = await supabaseFetch(
+        `/rest/v1/heath_actions?status=eq.pending&select=id,title,created_at&order=created_at.asc&limit=15`
+      );
+      if (!rows || rows.length === 0) {
+        await sendMessage(chatId, 'No pending action items.', null, null, logStep);
+        return;
+      }
+      const now = Date.now();
+      const lines = ['Pending action items (top 15 stalest):', ''];
+      for (const r of rows) {
+        const d = r.created_at ? Math.floor((now - new Date(r.created_at).getTime()) / 86400000) : 0;
+        const idShort = String(r.id).slice(0, 8);
+        const title = String(r.title || '(untitled)').slice(0, 100);
+        lines.push(`${d}d [${idShort}] ${title}`);
+      }
+      await sendMessage(chatId, lines.join('\n'), null, null, logStep);
+      if (logStep) logStep({ step: 'heath_actions_list_sent', count: rows.length });
+    } catch (err) {
+      await sendMessage(chatId, `Error fetching list: ${err.message}`, null, null, logStep);
+    }
+    return;
+  }
+
   // /status - today's social post counts
   if (command === '/status' || command === 'status') {
     try {
@@ -1596,6 +1734,12 @@ Cron schedule:
 /members — founding member count
 /health — cron job status
 /score 1-5 [note] — rate this session
+
+Action items:
+list — pending action items (top 15 stalest)
+kill <id> — mark item killed
+doing <id> — mark item in-progress
+snooze <id> <7d|24h|2w> — snooze item
 
 Also:
 • Approve/Reject buttons on posts
