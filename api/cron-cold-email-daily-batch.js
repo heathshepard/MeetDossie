@@ -330,6 +330,18 @@ async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: 'daily_target=0', cadence });
     }
 
+    // Per-week day-of-week skip list. Week 1 skips Monday because Heath's
+    // batch-3 blast already fired Mon 2026-07-06; ramp is Tue-Fri only.
+    const skipDow = Array.isArray(cadence.skip_dow) ? cadence.skip_dow : [];
+    if (!forceRun && skipDow.includes(dow)) {
+      recordCronRun('cron-cold-email-daily-batch', 'ok', {
+        skipped: 'skip_dow_configured', dow, week_num: cadence.week_num,
+      }).catch(() => {});
+      return res.status(200).json({
+        ok: true, skipped: 'skip_dow_configured', dow, week_num: cadence.week_num,
+      });
+    }
+
     const excluded = await loadExclusionSet();
     const { selected, tier1_avail, tier2_avail, tier3_avail } = await selectLeads(dailyTarget, excluded);
 

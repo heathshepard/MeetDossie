@@ -107,6 +107,7 @@ async function logAlert(unsubCount, latestEmails, messageSent) {
 async function handler(req, res) {
   const forceRun    = req.query && (req.query.force === '1' || req.query.force === 'true');
   const forceIgnore = req.query && (req.query.ignore_dedup === '1');
+  const dryTg       = req.query && (req.query.dry_tg === '1');
 
   const auth = req.headers.authorization || '';
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
@@ -157,8 +158,12 @@ async function handler(req, res) {
       'Investigate: batch quality, subject line, list source.',
     ].join('\n');
 
-    const sendResult = await tg(msg);
-    result.pinged = !!sendResult.ok;
+    if (dryTg) {
+      result.pinged = 'dry_tg_skipped';
+    } else {
+      const sendResult = await tg(msg);
+      result.pinged = !!sendResult.ok;
+    }
 
     await logAlert(count, latest, msg).catch(() => {});
 
