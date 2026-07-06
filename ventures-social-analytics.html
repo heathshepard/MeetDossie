@@ -247,6 +247,10 @@
     async function loadAnalytics() {
       const authError = document.getElementById('auth-error');
       const loading = document.getElementById('loading');
+      const content = document.getElementById('content');
+      authError.style.display = 'none';
+      loading.style.display = 'block';
+      try {
         // Get auth token from Supabase localStorage format
         const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
         if (!raw) {
@@ -254,100 +258,8 @@
         }
         const parsed = JSON.parse(raw);
         const token = parsed.access_token;
-
         if (!token) {
           throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        // Get auth token from Supabase localStorage format
-        const raw = localStorage.getItem("sb-pgwoitbdiyubjugwufhk-auth-token");
-        if (!raw) {
-          throw new Error("Not authenticated. Please sign in first.");
-        }
-        const parsed = JSON.parse(raw);
-        const token = parsed.access_token;
-
-        if (!token) {
-          throw new Error("Invalid authentication token. Please sign in again.");
-        }
-        if (!token) {
-          throw new Error('Not authenticated. Please sign in first.');
         }
 
         const response = await fetch('/api/social-analytics-snapshot', {
@@ -380,13 +292,13 @@
     }
 
     function renderDashboard(data) {
-      if (!data.ok) {
-        alert('Error loading analytics: ' + (data.error || 'Unknown error'));
+      if (!data || !data.summary) {
+        alert('Error loading analytics: ' + (data && data.error ? data.error : 'Empty response'));
         return;
       }
 
       // Summary cards
-      document.getElementById('total-posts').textContent = data.summary.total_posts_sent;
+      document.getElementById('total-posts').textContent = data.summary.posts_sent;
       document.getElementById('total-likes').textContent = data.summary.total_likes.toLocaleString();
       document.getElementById('total-comments').textContent = data.summary.total_comments.toLocaleString();
       document.getElementById('total-reshares').textContent = data.summary.total_shares.toLocaleString();
