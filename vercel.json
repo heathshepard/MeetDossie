@@ -366,9 +366,6 @@
     "api/cron-fanout-builds-to-agent-queues.js": {
       "maxDuration": 60
     },
-    "api/cron-agent-queue-dispatch.js": {
-      "maxDuration": 60
-    },
     "api/cron-agent-queue-orphan-reset.js": {
       "maxDuration": 30
     },
@@ -424,9 +421,6 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
-    },
-    "api/cron-unsubscribe-spike-monitor.js": {
-      "maxDuration": 30
     }
   },
   "crons": [
