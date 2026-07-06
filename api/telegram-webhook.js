@@ -1262,6 +1262,121 @@ async function handleCallbackQuery(cb) {
   }
 }
 
+// ─── Self-improvement candidate approval capture ─────────────────────────────
+// Heath's daily digest ("Morning brief") surfaces numbered candidates. This
+// parses replies like:
+//   "approve 1"        → 1 candidate
+//   "yes 1 3 5"        → 3 candidates approved
+//   "reject 2"         → 1 candidate rejected
+//   "defer 4 6"        → 2 candidates deferred
+//   "skip 1"           → alias for defer
+//   "no 2"             → alias for reject
+// The mapping (position → UUID) lives in improvement_digest_surfaces, keyed
+// by chat_id + surfaced_at (48h TTL).
+const IMPROVEMENT_VERBS = {
+  approve: 'approved', yes: 'approved', y: 'approved', ok: 'approved',
+  reject:  'rejected', no: 'rejected',  n: 'rejected',
+  defer:   'deferred', skip: 'deferred', later: 'deferred',
+};
+
+function parseImprovementCommand(text) {
+  const trimmed = String(text || '').trim().toLowerCase();
+  // Must start with one of the verbs. Extra tokens must be digits or whitespace.
+  const m = trimmed.match(/^([a-z]+)\s+([\d\s,]+)$/);
+  if (!m) return null;
+  const verb = m[1];
+  const decision = IMPROVEMENT_VERBS[verb];
+  if (!decision) return null;
+  const numbers = (m[2].match(/\d+/g) || []).map(n => parseInt(n, 10)).filter(n => n >= 1 && n <= 30);
+  if (numbers.length === 0) return null;
+  return { decision, numbers: Array.from(new Set(numbers)) };
+}
+
+async function handleImprovementApproval(msg, decision, numbers, logStep) {
+  const chatId = msg?.chat?.id;
+  const messageId = msg?.message_id;
+
+  // Look up most recent digest surface for this chat, within 48h.
+  const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+  const surfRes = await supabaseFetch(
+    `/rest/v1/improvement_digest_surfaces?chat_id=eq.${encodeURIComponent(String(chatId))}`
+    + `&surfaced_at=gte.${encodeURIComponent(since)}`
+    + `&order=surfaced_at.desc&limit=1`
+  );
+  const surfaces = surfRes && Array.isArray(surfRes.data) ? surfRes.data : [];
+  if (surfaces.length === 0) {
+    await sendMessage(chatId, 'No recent morning brief found to map those numbers to. Wait for tomorrow\'s digest.', messageId, null, logStep);
+    return;
+  }
+  const surface = surfaces[0];
+  const ids = Array.isArray(surface.candidate_ids) ? surface.candidate_ids : [];
+
+  const resolved = [];
+  const oob = [];
+  for (const n of numbers) {
+    const uuid = ids[n - 1];
+    if (uuid) resolved.push({ n, uuid });
+    else oob.push(n);
+  }
+  if (resolved.length === 0) {
+    await sendMessage(
+      chatId,
+      `Those numbers (${oob.join(', ')}) don't map to anything in the last digest — it had ${ids.length} item${ids.length === 1 ? '' : 's'}.`,
+      messageId, null, logStep
+    );
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const updated = [];
+  const alreadyDecided = [];
+  for (const { n, uuid } of resolved) {
+    // PATCH only if heath_decision is still null (idempotent — avoids overwriting).
+    const patchRes = await supabaseFetch(
+      `/rest/v1/self_improvement_candidates?id=eq.${uuid}&heath_decision=is.null`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          heath_decision: decision,
+          heath_decided_at: nowIso,
+          heath_decision_source: 'telegram',
+          heath_decision_message_id: messageId,
+        }),
+      }
+    );
+    if (patchRes && Array.isArray(patchRes.data) && patchRes.data.length > 0) {
+      updated.push({ n, uuid, title: patchRes.data[0].title });
+    } else {
+      alreadyDecided.push({ n, uuid });
+    }
+  }
+
+  const verbPast = decision === 'approved' ? 'Approved' : decision === 'rejected' ? 'Rejected' : 'Deferred';
+  const lines = [];
+  if (updated.length > 0) {
+    lines.push(`${verbPast} ${updated.length} item${updated.length === 1 ? '' : 's'}:`);
+    for (const u of updated) {
+      lines.push(`• #${u.n} — ${String(u.title || '').slice(0, 80)}`);
+    }
+  }
+  if (alreadyDecided.length > 0) {
+    lines.push('');
+    lines.push(`Already decided (skipped): ${alreadyDecided.map(a => '#' + a.n).join(', ')}`);
+  }
+  if (oob.length > 0) {
+    lines.push('');
+    lines.push(`Out of range (ignored): ${oob.join(', ')}`);
+  }
+  if (decision === 'approved' && updated.length > 0) {
+    lines.push('');
+    lines.push('_Dispatcher will pick these up on the next hourly tick._');
+  }
+
+  await sendMessage(chatId, lines.join('\n'), messageId, null, logStep);
+  if (logStep) logStep({ step: 'improvement_decision_recorded', decision, updated: updated.length });
+}
+
 async function handleTextMessage(msg, logStep) {
   const chatId = msg?.chat?.id;
   const messageText = String(msg?.text || '');
@@ -1270,6 +1385,14 @@ async function handleTextMessage(msg, logStep) {
 
   if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
     if (logStep) logStep({ step: 'text_message_unauthorized', chatId });
+    return;
+  }
+
+  // Self-improvement candidate decisions ("approve 1", "defer 3 5", etc.)
+  // Checked BEFORE reply-to and command handlers so it wins on plain messages.
+  const improvementCmd = parseImprovementCommand(messageText);
+  if (improvementCmd) {
+    await handleImprovementApproval(msg, improvementCmd.decision, improvementCmd.numbers, logStep);
     return;
   }
 

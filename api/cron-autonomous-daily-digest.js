@@ -205,7 +205,7 @@ function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImp
 
     if (anyShown) {
       lines.push('');
-      lines.push('<i>Reply "yes 1", "no 2", or "defer 3" — I lock it in.</i>');
+      lines.push('<i>Reply "approve 1", "reject 2", "defer 3" (yes/no/skip also work). Multi-select OK: "approve 1 3 5".</i>');
       lines.push('');
     }
     __digestGlobalCounter = globalIdx;
@@ -308,7 +308,30 @@ module.exports = withTelemetry('cron-autonomous-daily-digest', async function ha
   // 5) Compose message
   const summary = renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImprovementCandidates);
 
-  // 4) Send
+  // 5a) Persist the numbered → UUID surface mapping so the Telegram webhook
+  //     can parse Heath's "approve 1" / "defer 3" reply. shownIds is already
+  //     in the order the renderer uses (conversation_review, capability_scan,
+  //     rule_audit — top 3 each).
+  if (shownIds.length > 0 && TELEGRAM_CHAT_ID) {
+    const grouped2 = groupCandidatesByCategory(selfImprovementCandidates);
+    await sb('improvement_digest_surfaces', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        chat_id: String(TELEGRAM_CHAT_ID),
+        candidate_ids: shownIds,
+        metadata: {
+          category_counts: {
+            conversation_review: Math.min(3, grouped2.conversation_review.length),
+            capability_scan:     Math.min(3, grouped2.capability_scan.length),
+            rule_audit:          Math.min(3, grouped2.rule_audit.length),
+          },
+        },
+      }),
+    });
+  }
+
+  // 6) Send
   const tgRes = await tg(summary);
 
   // Optional email version (plain HTML — same content, slightly formatted)
