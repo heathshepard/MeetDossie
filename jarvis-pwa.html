@@ -1268,6 +1268,22 @@
       margin-top: 4px;
     }
 
+    /* ===== WEBSITE TRAFFIC (today) — shares money-* styles ===== */
+    .traffic-title-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .traffic-link {
+      color: var(--cyan-bright, #00e5ff);
+      font-size: 9px; letter-spacing: 0.15em;
+      text-decoration: none;
+    }
+    .traffic-link:hover { text-decoration: underline; }
+    .traffic-delta {
+      font-size: 10px; margin-left: 4px; letter-spacing: 0;
+    }
+    .traffic-delta.up { color: var(--ok, #8ba888); }
+    .traffic-delta.down { color: #e57373; }
+
     /* ===== ACTIVITY FEED ===== */
     .activity-feed {
       display: flex; flex-direction: column; gap: 6px;
@@ -2845,6 +2861,34 @@
           </div>
         </div>
 
+        <!-- WEBSITE TRAFFIC (today): live pageviews, uniques, top source, /founding hits.
+             Data: /api/webpage-analytics-today (PostHog Query API). Deep-dive link:
+             /ventures/webpage-analytics. Added 2026-07-06. -->
+        <div class="panel" id="traffic-panel">
+          <div class="panel-title traffic-title-row">
+            <span>WEBSITE TRAFFIC (TODAY)</span>
+            <a href="/ventures/webpage-analytics" class="traffic-link" target="_blank" rel="noopener">DETAILS →</a>
+          </div>
+          <div class="money-grid" style="grid-template-columns:repeat(2,1fr);">
+            <div class="money-cell">
+              <div class="money-val" id="traffic-pv">—</div>
+              <div class="money-lbl">Pageviews <span id="traffic-delta" class="traffic-delta"></span></div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="traffic-uniques">—</div>
+              <div class="money-lbl">Unique Visitors</div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="traffic-source" style="font-size:14px;">—</div>
+              <div class="money-lbl">Top Source</div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="traffic-founding">—</div>
+              <div class="money-lbl">/founding hits</div>
+            </div>
+          </div>
+        </div>
+
         <!-- PENDING APPROVALS (heath_actions approval UI — 2026-06-25, atlas_carter_ship) -->
         <div class="panel" id="approvals-panel">
           <div class="panel-title pending-approvals-title-row">
@@ -3798,6 +3842,7 @@
       loadActions().catch(() => {});
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
+      loadTrafficToday().catch(() => {});
       loadMergeQueue().catch(() => {});
       loadPendingApprovals().catch(() => {});
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
@@ -3823,6 +3868,7 @@
       //   agent ledger — 30s polling backup (realtime is the primary)
       //   instances + projects — 30s polling backup, realtime primary
       setInterval(() => { loadTickers().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadTrafficToday().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
       setInterval(() => { loadTodo().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadMergeQueue().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadPendingApprovals().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
@@ -5490,6 +5536,44 @@
       set('money-mrr',  h.mrr_usd != null ? `$${h.mrr_usd}` : '—');
       set('money-cust', h.customer_count != null ? String(h.customer_count) : '—');
       set('money-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
+    }
+
+    // ===== WEBSITE TRAFFIC (today) =====
+    // Top-line numbers from PostHog for the Jarvis card. Full dashboard at
+    // /ventures/webpage-analytics. Endpoint caches 60s server-side so this
+    // is cheap to poll.
+    async function loadTrafficToday() {
+      try {
+        const res = await fetch(`${API_BASE}/api/webpage-analytics-today`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderTrafficToday(data);
+      } catch (err) {
+        console.warn('[jarvis] loadTrafficToday failed', err);
+      }
+    }
+
+    function renderTrafficToday(d) {
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('traffic-pv',       d.pageviews_today != null ? Number(d.pageviews_today).toLocaleString() : '—');
+      set('traffic-uniques',  d.unique_visitors_today != null ? Number(d.unique_visitors_today).toLocaleString() : '—');
+      set('traffic-source',   d.top_source_today || '—');
+      set('traffic-founding', d.founding_pageviews_today != null ? Number(d.founding_pageviews_today).toLocaleString() : '—');
+      // Delta chip vs yesterday.
+      const delta = document.getElementById('traffic-delta');
+      if (delta) {
+        if (d.delta_pct_vs_yesterday == null) {
+          delta.textContent = '';
+          delta.className = 'traffic-delta';
+        } else {
+          const dp = Number(d.delta_pct_vs_yesterday);
+          const sign = dp > 0 ? '+' : '';
+          delta.textContent = `(${sign}${dp}%)`;
+          delta.className = 'traffic-delta ' + (dp >= 0 ? 'up' : 'down');
+        }
+      }
     }
 
     function renderActivity(activity) {
