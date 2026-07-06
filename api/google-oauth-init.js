@@ -83,10 +83,14 @@ export default async function handler(req, res) {
     return res.status(503).json({ ok: false, error: 'supabase_env_missing' });
   }
   if (!GOOGLE_CLIENT_ID || !GOOGLE_OAUTH_REDIRECT_URI) {
+    const missing = [];
+    if (!GOOGLE_CLIENT_ID) missing.push('GOOGLE_CLIENT_ID');
+    if (!GOOGLE_OAUTH_REDIRECT_URI) missing.push('GOOGLE_OAUTH_REDIRECT_URI');
     return res.status(503).json({
       ok: false,
       error: 'google_oauth_not_configured',
-      hint: 'Missing GOOGLE_CLIENT_ID or GOOGLE_OAUTH_REDIRECT_URI env var.',
+      missing,
+      hint: 'Set these env vars in Vercel and redeploy.',
     });
   }
 
