@@ -112,6 +112,8 @@ module.exports = async function handler(req, res) {
   const candidates = (r.data || []).filter((a) => {
     // Skip active snoozes
     if (a.snoozed_until && new Date(a.snoozed_until).getTime() > nowMs) return false;
+    // Skip items Heath has committed to via "doing <id>"
+    if (a.payload && a.payload.heath_committed_at) return false;
     if (forceId) return true;
     // Skip if escalated within RE_ESCALATE_MS
     const last = a.payload && a.payload.last_escalated_at ? new Date(a.payload.last_escalated_at).getTime() : 0;

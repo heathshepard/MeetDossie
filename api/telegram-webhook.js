@@ -1467,6 +1467,8 @@ async function handleTextMessage(msg, logStep) {
         const row = rows[0];
 
         if (verb === 'kill') {
+          // heath_actions.status check constraint: 'pending' | 'done' | 'dismissed' | 'snoozed'
+          // "kill" maps to 'dismissed' (Heath's decision that this item is dead).
           const nextPayload = Object.assign({}, row.payload || {}, {
             killed_at: new Date().toISOString(),
             killed_via: 'telegram',
@@ -1475,7 +1477,7 @@ async function handleTextMessage(msg, logStep) {
             method: 'PATCH',
             headers: { Prefer: 'return=minimal' },
             body: JSON.stringify({
-              status: 'killed',
+              status: 'dismissed',
               completed_at: new Date().toISOString(),
               payload: nextPayload,
             }),
@@ -1490,6 +1492,9 @@ async function handleTextMessage(msg, logStep) {
         }
 
         if (verb === 'doing') {
+          // status check constraint has no 'in_progress' — keep status='pending' and
+          // stamp payload.heath_committed_at. The stale-escalation cron treats any row
+          // with heath_committed_at as active (skip re-escalation).
           const nextPayload = Object.assign({}, row.payload || {}, {
             heath_committed_at: new Date().toISOString(),
           });
@@ -1497,7 +1502,6 @@ async function handleTextMessage(msg, logStep) {
             method: 'PATCH',
             headers: { Prefer: 'return=minimal' },
             body: JSON.stringify({
-              status: 'in_progress',
               payload: nextPayload,
             }),
           });
@@ -1544,26 +1548,31 @@ async function handleTextMessage(msg, logStep) {
     }
   }
 
-  // "list" — full pending Heath action set (top 15 stalest)
+  // "list" — full pending Heath action set (top 15 stalest, skipping snoozed + committed)
   if (command === 'list' || command === '/list' || command === 'list actions' || command === 'actions') {
     try {
       const { data: rows } = await supabaseFetch(
-        `/rest/v1/heath_actions?status=eq.pending&select=id,title,created_at&order=created_at.asc&limit=15`
+        `/rest/v1/heath_actions?status=eq.pending&select=id,title,created_at,snoozed_until,payload&order=created_at.asc&limit=50`
       );
-      if (!rows || rows.length === 0) {
+      const now = Date.now();
+      const filtered = (rows || []).filter((a) => {
+        if (a.snoozed_until && new Date(a.snoozed_until).getTime() > now) return false;
+        if (a.payload && a.payload.heath_committed_at) return false;
+        return true;
+      }).slice(0, 15);
+      if (filtered.length === 0) {
         await sendMessage(chatId, 'No pending action items.', null, null, logStep);
         return;
       }
-      const now = Date.now();
       const lines = ['Pending action items (top 15 stalest):', ''];
-      for (const r of rows) {
+      for (const r of filtered) {
         const d = r.created_at ? Math.floor((now - new Date(r.created_at).getTime()) / 86400000) : 0;
         const idShort = String(r.id).slice(0, 8);
         const title = String(r.title || '(untitled)').slice(0, 100);
         lines.push(`${d}d [${idShort}] ${title}`);
       }
       await sendMessage(chatId, lines.join('\n'), null, null, logStep);
-      if (logStep) logStep({ step: 'heath_actions_list_sent', count: rows.length });
+      if (logStep) logStep({ step: 'heath_actions_list_sent', count: filtered.length });
     } catch (err) {
       await sendMessage(chatId, `Error fetching list: ${err.message}`, null, null, logStep);
     }
