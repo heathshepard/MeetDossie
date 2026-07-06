@@ -1458,7 +1458,63 @@
       overflow: hidden; text-overflow: ellipsis;
       display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
     }
-    .pending-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+    .pending-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 4px; }
+    .pending-card.waiting-detail {
+      border-color: var(--cyan-dim);
+      background: rgba(0, 229, 255, 0.05);
+    }
+    .pending-detail-flag {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cyan-bright);
+      padding: 4px 6px;
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.30);
+      border-radius: 4px;
+      text-align: center;
+    }
+    .pending-reply-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 8px;
+      background: rgba(5, 8, 16, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .pending-reply-input {
+      width: 100%;
+      resize: vertical;
+      min-height: 60px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--txt-primary);
+      background: rgba(5, 8, 16, 0.7);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+    }
+    .pending-reply-input:focus {
+      outline: none;
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.20);
+    }
+    .pending-reply-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .pending-btn.ask-detail {
+      color: var(--cyan-bright);
+      border-color: var(--cyan-bright);
+    }
+    .pending-btn.ask-detail:hover {
+      background: rgba(0, 229, 255, 0.10);
+    }
     .pending-btn {
       font-family: inherit;
       font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -1744,6 +1800,41 @@
       background: rgba(232, 185, 100, 0.05);
       border: 1px dashed var(--warn);
       border-radius: 8px;
+    }
+    .cal-connect-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cal-connect-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.28);
+    }
+    .cal-connect-btn:disabled {
+      opacity: 0.6; cursor: wait;
+    }
+    .cal-toast {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 84px; z-index: 9999;
+      padding: 10px 18px; border-radius: 999px;
+      background: rgba(52, 168, 83, 0.94); color: #fff;
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      animation: cal-toast-in 0.28s ease-out;
+    }
+    .cal-toast.err { background: rgba(219, 68, 55, 0.94); }
+    @keyframes cal-toast-in {
+      from { opacity: 0; transform: translate(-50%, 12px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
     }
     .cal-day-header {
       font-family: 'Cormorant Garamond', Georgia, serif;
@@ -5814,8 +5905,16 @@
         const card = document.createElement('div');
         const wait = it.waiting_minutes != null ? it.waiting_minutes : 0;
         const urgent = wait >= 120; // 2h+ = urgent
-        card.className = 'pending-card' + (urgent ? ' urgent' : '');
+        // Reply support: hadley_question / heath_action / decision — items that
+        // are actually QUESTIONS (Heath answers), not straight approvals.
+        const replySupported = it.reply_supported === true;
+        const askDetailSupported = it.ask_detail_supported !== false;
+        const askedForDetail = !!it.heath_ask_for_detail_at;
+        card.className = 'pending-card' + (urgent ? ' urgent' : '') + (askedForDetail ? ' waiting-detail' : '');
         const waitText = wait < 60 ? `${wait}m waiting` : `${Math.floor(wait/60)}h waiting`;
+
+        const primaryLabel = replySupported ? 'Reply' : 'Approve';
+        const primaryAct = replySupported ? 'reply' : 'approve';
         card.innerHTML = `
           <div class="pending-meta-row">
             <span class="pending-agent" data-agent></span>
@@ -5823,37 +5922,91 @@
           </div>
           <div class="pending-title" data-title></div>
           <div class="pending-subtitle" data-subtitle></div>
+          ${askedForDetail ? `<div class="pending-detail-flag">Asked for detail · waiting for expand</div>` : ''}
           <div class="pending-actions">
-            <button class="pending-btn approve" data-act="approve">Approve</button>
+            <button class="pending-btn approve" data-act="${primaryAct}">${primaryLabel}</button>
+            ${askDetailSupported ? `<button class="pending-btn ask-detail" data-act="ask-detail" ${askedForDetail ? 'disabled' : ''}>Ask Detail</button>` : ''}
+            <button class="pending-btn" data-act="reject">Reject</button>
             <button class="pending-btn" data-act="details">Details</button>
+          </div>
+          <div class="pending-reply-panel" data-reply-panel hidden>
+            <textarea class="pending-reply-input" data-reply-input rows="3" placeholder="${replySupported ? 'Type your answer to send back...' : 'Optional reason for rejecting...'}" maxlength="8000"></textarea>
+            <div class="pending-reply-actions">
+              <button class="pending-btn approve" data-reply-submit>Send</button>
+              <button class="pending-btn" data-reply-cancel>Cancel</button>
+            </div>
           </div>
         `;
         card.querySelector('[data-agent]').textContent = it.agent || it.source || '';
         card.querySelector('[data-wait]').textContent = waitText;
         card.querySelector('[data-title]').textContent = it.title || '(no title)';
         card.querySelector('[data-subtitle]').textContent = it.subtitle || '';
-        card.querySelector('[data-act="approve"]').addEventListener('click', () => onPendingAction(it, 'approve'));
+
+        const replyPanel = card.querySelector('[data-reply-panel]');
+        const replyInput = card.querySelector('[data-reply-input]');
+        const openReplyPanel = () => {
+          replyPanel.hidden = false;
+          setTimeout(() => replyInput?.focus(), 0);
+        };
+        const closeReplyPanel = () => {
+          replyPanel.hidden = true;
+          replyInput.value = '';
+        };
+
+        const primaryBtn = card.querySelector(`[data-act="${primaryAct}"]`);
+        if (primaryAct === 'reply') {
+          primaryBtn.addEventListener('click', openReplyPanel);
+        } else {
+          primaryBtn.addEventListener('click', () => onPendingAction(it, 'approve'));
+        }
+
+        const rejectBtn = card.querySelector('[data-act="reject"]');
+        if (rejectBtn) rejectBtn.addEventListener('click', openReplyPanel);
+
+        const askBtn = card.querySelector('[data-act="ask-detail"]');
+        if (askBtn) askBtn.addEventListener('click', () => onPendingAskDetail(it, card));
+
         card.querySelector('[data-act="details"]').addEventListener('click', () => openPendingModal(it));
+
+        card.querySelector('[data-reply-cancel]').addEventListener('click', closeReplyPanel);
+        card.querySelector('[data-reply-submit]').addEventListener('click', () => {
+          const text = (replyInput.value || '').trim();
+          if (!text) {
+            showToast('Type a message first.');
+            replyInput.focus();
+            return;
+          }
+          // If reply is supported, this is an answer to a question.
+          // Otherwise, it's a reject-with-reason.
+          if (replySupported) {
+            onPendingReply(it, text);
+          } else {
+            onPendingAction(it, 'reject', text);
+          }
+        });
+
         list.appendChild(card);
       }
     }
 
-    async function onPendingAction(item, action) {
+    async function onPendingAction(item, action, reason) {
       const list = document.getElementById('pending-list');
       const btns = list ? list.querySelectorAll('.pending-btn') : [];
       btns.forEach(b => { b.disabled = true; });
       try {
+        const body = {
+          kind: item.approve_payload?.kind,
+          id: item.approve_payload?.id,
+          action,
+        };
+        if (reason) body.reason = reason;
         const res = await fetch(`${API_BASE}/api/jarvis-approve`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: await getAuthHeader(),
           },
-          body: JSON.stringify({
-            kind: item.approve_payload?.kind,
-            id: item.approve_payload?.id,
-            action,
-          }),
+          body: JSON.stringify(body),
         });
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}));
@@ -5876,6 +6029,80 @@
         setTimeout(() => loadPendingApprovals().catch(() => {}), 1500);
       } catch (err) {
         console.warn('[jarvis] pending action failed', err);
+        btns.forEach(b => { b.disabled = false; });
+        showToast('Network error');
+      }
+    }
+
+    async function onPendingReply(item, text) {
+      const list = document.getElementById('pending-list');
+      const btns = list ? list.querySelectorAll('.pending-btn') : [];
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-approval-reply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({
+            kind: item.approve_payload?.kind,
+            id: item.approve_payload?.id,
+            text,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          showToast(`Reply failed: ${errBody.error || res.status}`);
+          btns.forEach(b => { b.disabled = false; });
+          return;
+        }
+        showToast(`Reply sent to ${item.agent || item.source || 'agent'}`);
+        pendingCache = pendingCache.filter(p => p.id !== item.id);
+        renderPending(pendingCache);
+        const badge = document.getElementById('pending-count');
+        if (badge) {
+          const n = pendingCache.length;
+          badge.textContent = String(n);
+          badge.className = 'pending-count-badge' + (n === 0 ? ' zero' : '');
+        }
+        setTimeout(() => loadPendingApprovals().catch(() => {}), 1500);
+      } catch (err) {
+        console.warn('[jarvis] pending reply failed', err);
+        btns.forEach(b => { b.disabled = false; });
+        showToast('Network error');
+      }
+    }
+
+    async function onPendingAskDetail(item, cardEl) {
+      const btns = cardEl ? cardEl.querySelectorAll('.pending-btn') : [];
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-approval-ask-detail`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: await getAuthHeader(),
+          },
+          body: JSON.stringify({
+            kind: item.approve_payload?.kind,
+            id: item.approve_payload?.id,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          showToast(`Ask for detail failed: ${errBody.error || res.status}`);
+          btns.forEach(b => { b.disabled = false; });
+          return;
+        }
+        showToast(`${item.agent || 'Agent'} will expand this. Stay tuned.`);
+        // Reflect state locally so Heath can see "asked" without a refresh.
+        item.heath_ask_for_detail_at = new Date().toISOString();
+        pendingCache = pendingCache.map(p => p.id === item.id ? item : p);
+        renderPending(pendingCache);
+        setTimeout(() => loadPendingApprovals().catch(() => {}), 2000);
+      } catch (err) {
+        console.warn('[jarvis] pending ask-detail failed', err);
         btns.forEach(b => { b.disabled = false; });
         showToast('Network error');
       }
@@ -6595,6 +6822,78 @@
     // TIER 2 — CALENDAR (Widget #2)
     // =========================================================================
     let calLastEvents = [];
+
+    function showCalToast(msg, isError) {
+      const existing = document.querySelector('.cal-toast');
+      if (existing) existing.remove();
+      const el = document.createElement('div');
+      el.className = 'cal-toast' + (isError ? ' err' : '');
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    async function connectGoogleCalendar() {
+      const btn = document.getElementById('cal-connect-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
+      try {
+        const authHeader = await getAuthHeader();
+        // Fetch the consent URL as JSON so we can redirect the top window (avoids
+        // Bearer-token exposure via 302 with no auth header on a full-page nav).
+        const res = await fetch(`${API_BASE}/api/google-oauth-init?redirect_after=/myjarvis&format=json`, {
+          headers: { Authorization: authHeader, Accept: 'application/json' },
+        });
+        if (!res.ok) {
+          const body = await res.text().catch(() => '');
+          console.error('[cal-connect] init failed', res.status, body);
+          showCalToast(`Couldn't start Google sign-in (${res.status}).`, true);
+          if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
+          return;
+        }
+        const data = await res.json();
+        if (!data.ok || !data.url) {
+          showCalToast('Google OAuth not configured yet.', true);
+          if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
+          return;
+        }
+        window.location.href = data.url;
+      } catch (err) {
+        console.error('[cal-connect] error', err);
+        showCalToast('Network error starting Google sign-in.', true);
+        if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
+      }
+    }
+
+    // On page load: check ?connected=google_calendar and clear from URL.
+    function handleCalendarConnectCallback() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const connected = params.get('connected');
+        if (!connected) return;
+        if (connected === 'google_calendar') {
+          showCalToast('Google Calendar connected.');
+          // Re-fetch events so panel populates immediately.
+          setTimeout(() => { try { loadCalendar(); } catch {} }, 400);
+        } else if (connected === 'error') {
+          const reason = params.get('reason') || 'unknown';
+          showCalToast(`Google connect failed: ${reason}`, true);
+        }
+        // Strip the query params so refresh doesn't re-fire.
+        params.delete('connected');
+        params.delete('reason');
+        const qs = params.toString();
+        const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+      } catch (err) {
+        console.warn('[cal-connect] callback handling failed', err);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', handleCalendarConnectCallback);
+    } else {
+      handleCalendarConnectCallback();
+    }
+
     async function loadCalendar() {
       const list = document.getElementById('cal-list');
       if (!list) return;
@@ -6621,7 +6920,9 @@
       const events = data.events || [];
       if (!events.length) {
         if (data.needs_oauth) {
-          list.innerHTML = `<div class="cal-needs-oauth">${escapeHtml(data.message || 'Connect Google Calendar to see events.')}</div>`;
+          list.innerHTML = `<div class="cal-needs-oauth">${escapeHtml(data.message || 'Connect your Google Calendar to see today and tomorrow here.')}<br><button class="cal-connect-btn" id="cal-connect-btn" type="button">Connect Google Calendar</button></div>`;
+          const btn = document.getElementById('cal-connect-btn');
+          if (btn) btn.addEventListener('click', connectGoogleCalendar);
         } else {
           list.innerHTML = `<div class="cal-empty">${escapeHtml(data.message || 'No events today or tomorrow.')}</div>`;
         }
