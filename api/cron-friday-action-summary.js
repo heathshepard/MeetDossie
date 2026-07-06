@@ -75,10 +75,10 @@ module.exports = async function handler(req, res) {
   const dryRun = String(req.query?.dryRun || '') === '1';
 
   // Pull pending actions ordered oldest-first so slice(0,5) = 5 stalest.
-  // Skip anything that's actively snoozed into the future.
+  // Skip snoozed-into-the-future items and items Heath committed to via "doing".
   const nowIso = new Date().toISOString();
   const r = await sb(
-    'heath_actions?select=id,title,body,priority,created_at,snoozed_until'
+    'heath_actions?select=id,title,body,priority,created_at,snoozed_until,payload'
     + '&status=eq.pending'
     + '&order=created_at.asc'
     + '&limit=200'
@@ -88,8 +88,9 @@ module.exports = async function handler(req, res) {
   }
 
   const all = (r.data || []).filter((a) => {
-    if (!a.snoozed_until) return true;
-    return new Date(a.snoozed_until).getTime() <= Date.now();
+    if (a.snoozed_until && new Date(a.snoozed_until).getTime() > Date.now()) return false;
+    if (a.payload && a.payload.heath_committed_at) return false;
+    return true;
   });
 
   if (all.length === 0) {
