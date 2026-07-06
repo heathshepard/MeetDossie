@@ -213,37 +213,55 @@ async function selectLeads(count, excluded) {
   const selected = [];
   const seen = new Set();
 
-  // Tier 1: existing verified emails first (best deliverability signal).
+  const isValidLead = r =>
+    isValidEmail(r.email) &&
+    !KNOWN_BOUNCES.has((r.email || '').toLowerCase()) &&
+    !excluded.has((r.email || '').toLowerCase());
+
+  // Tier 1: ZenRows-verified existing emails (highest deliverability signal).
   const tier1 = all.filter(r =>
     r.confidence_tier === 'tier_b_zenrows_no_phone' &&
     r.email_source === 'existing' &&
-    isValidEmail(r.email) &&
-    !KNOWN_BOUNCES.has((r.email || '').toLowerCase()) &&
-    !excluded.has((r.email || '').toLowerCase())
+    isValidLead(r)
   );
 
-  // Tier 2: KW pattern-guess (proven ~95% probe rate).
+  // Tier 2: ZenRows-scoped + any brokerage-scoped pattern guess (kw, exp, jpar,
+  // etc). Broader than v3's KW-only rule — small pattern-guess pools starve
+  // the ramp within a week. Deliverability is comparable to KW across major
+  // brokerages we've probed.
   const tier2 = all.filter(r =>
     r.confidence_tier === 'tier_b_zenrows_no_phone' &&
-    r.email_source === 'pattern_guess:kw.com' &&
-    isValidEmail(r.email) &&
-    !KNOWN_BOUNCES.has((r.email || '').toLowerCase()) &&
-    !excluded.has((r.email || '').toLowerCase())
+    typeof r.email_source === 'string' &&
+    r.email_source.startsWith('pattern_guess:') &&
+    isValidLead(r)
   );
 
-  for (const r of tier1) {
-    const k = r.email.toLowerCase();
-    if (seen.has(k)) continue;
-    selected.push(r); seen.add(k);
-    if (selected.length >= count) return { selected, tier1_avail: tier1.length, tier2_avail: tier2.length };
-  }
-  for (const r of tier2) {
-    const k = r.email.toLowerCase();
-    if (seen.has(k)) continue;
-    selected.push(r); seen.add(k);
-    if (selected.length >= count) break;
-  }
-  return { selected, tier1_avail: tier1.length, tier2_avail: tier2.length };
+  // Tier 3: TREC-scoped pattern guess (much larger pool: 4200+). Lower
+  // deliverability signal than Tier 1/2 but the volume is what unblocks the
+  // ramp beyond ~week 1. Reserve for when Tier 1+2 exhausted.
+  const tier3 = all.filter(r =>
+    r.confidence_tier === 'tier_c_trec_pattern_guess' &&
+    isValidLead(r)
+  );
+
+  const take = (pool) => {
+    for (const r of pool) {
+      const k = r.email.toLowerCase();
+      if (seen.has(k)) continue;
+      selected.push(r); seen.add(k);
+      if (selected.length >= count) return true;
+    }
+    return false;
+  };
+
+  take(tier1) || take(tier2) || take(tier3);
+
+  return {
+    selected,
+    tier1_avail: tier1.length,
+    tier2_avail: tier2.length,
+    tier3_avail: tier3.length,
+  };
 }
 
 async function insertRow(row) {
@@ -313,7 +331,7 @@ async function handler(req, res) {
     }
 
     const excluded = await loadExclusionSet();
-    const { selected, tier1_avail, tier2_avail } = await selectLeads(dailyTarget, excluded);
+    const { selected, tier1_avail, tier2_avail, tier3_avail } = await selectLeads(dailyTarget, excluded);
 
     // send_after = today at 15:00 UTC (10:00 CDT) — 1h after 09:00 CDT cron fire.
     const sendAfter = new Date(now);
@@ -328,6 +346,7 @@ async function handler(req, res) {
       errors: 0,
       tier1_avail,
       tier2_avail,
+      tier3_avail,
       send_after: sendAfter.toISOString(),
       dry_run: !!forceDryRun,
       week_num: cadence.week_num,
