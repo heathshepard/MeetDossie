@@ -407,6 +407,9 @@
     },
     "api/cron-quinn-daily-audit.js": {
       "maxDuration": 300
+    },
+    "api/cron-apply-approved-improvements.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -753,6 +756,10 @@
     {
       "path": "/api/cron-quinn-daily-audit",
       "schedule": "0 0 1 1 *"
+    },
+    {
+      "path": "/api/cron-apply-approved-improvements",
+      "schedule": "17 * * * *"
     }
   ]
 }
