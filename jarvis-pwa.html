@@ -1801,6 +1801,41 @@
       border: 1px dashed var(--warn);
       border-radius: 8px;
     }
+    .cal-connect-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cal-connect-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.28);
+    }
+    .cal-connect-btn:disabled {
+      opacity: 0.6; cursor: wait;
+    }
+    .cal-toast {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 84px; z-index: 9999;
+      padding: 10px 18px; border-radius: 999px;
+      background: rgba(52, 168, 83, 0.94); color: #fff;
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      animation: cal-toast-in 0.28s ease-out;
+    }
+    .cal-toast.err { background: rgba(219, 68, 55, 0.94); }
+    @keyframes cal-toast-in {
+      from { opacity: 0; transform: translate(-50%, 12px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
     .cal-day-header {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 11px; letter-spacing: 0.2em;
@@ -6787,6 +6822,78 @@
     // TIER 2 — CALENDAR (Widget #2)
     // =========================================================================
     let calLastEvents = [];
+
+    function showCalToast(msg, isError) {
+      const existing = document.querySelector('.cal-toast');
+      if (existing) existing.remove();
+      const el = document.createElement('div');
+      el.className = 'cal-toast' + (isError ? ' err' : '');
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    async function connectGoogleCalendar() {
+      const btn = document.getElementById('cal-connect-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
+      try {
+        const authHeader = await getAuthHeader();
+        // Fetch the consent URL as JSON so we can redirect the top window (avoids
+        // Bearer-token exposure via 302 with no auth header on a full-page nav).
+        const res = await fetch(`${API_BASE}/api/google-oauth-init?redirect_after=/myjarvis&format=json`, {
+          headers: { Authorization: authHeader, Accept: 'application/json' },
+        });
+        if (!res.ok) {
+          const body = await res.text().catch(() => '');
+          console.error('[cal-connect] init failed', res.status, body);
+          showCalToast(`Couldn't start Google sign-in (${res.status}).`, true);
+          if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
+          return;
+        }
+        const data = await res.json();
+        if (!data.ok || !data.url) {
+          showCalToast('Google OAuth not configured yet.', true);
+          if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
+          return;
+        }
+        window.location.href = data.url;
+      } catch (err) {
+        console.error('[cal-connect] error', err);
+        showCalToast('Network error starting Google sign-in.', true);
+        if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
+      }
+    }
+
+    // On page load: check ?connected=google_calendar and clear from URL.
+    function handleCalendarConnectCallback() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const connected = params.get('connected');
+        if (!connected) return;
+        if (connected === 'google_calendar') {
+          showCalToast('Google Calendar connected.');
+          // Re-fetch events so panel populates immediately.
+          setTimeout(() => { try { loadCalendar(); } catch {} }, 400);
+        } else if (connected === 'error') {
+          const reason = params.get('reason') || 'unknown';
+          showCalToast(`Google connect failed: ${reason}`, true);
+        }
+        // Strip the query params so refresh doesn't re-fire.
+        params.delete('connected');
+        params.delete('reason');
+        const qs = params.toString();
+        const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+      } catch (err) {
+        console.warn('[cal-connect] callback handling failed', err);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', handleCalendarConnectCallback);
+    } else {
+      handleCalendarConnectCallback();
+    }
+
     async function loadCalendar() {
       const list = document.getElementById('cal-list');
       if (!list) return;
@@ -6813,7 +6920,9 @@
       const events = data.events || [];
       if (!events.length) {
         if (data.needs_oauth) {
-          list.innerHTML = `<div class="cal-needs-oauth">${escapeHtml(data.message || 'Connect Google Calendar to see events.')}</div>`;
+          list.innerHTML = `<div class="cal-needs-oauth">${escapeHtml(data.message || 'Connect your Google Calendar to see today and tomorrow here.')}<br><button class="cal-connect-btn" id="cal-connect-btn" type="button">Connect Google Calendar</button></div>`;
+          const btn = document.getElementById('cal-connect-btn');
+          if (btn) btn.addEventListener('click', connectGoogleCalendar);
         } else {
           list.innerHTML = `<div class="cal-empty">${escapeHtml(data.message || 'No events today or tomorrow.')}</div>`;
         }
