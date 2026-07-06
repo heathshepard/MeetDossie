@@ -474,6 +474,25 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   const submitterPlaceholders = signers.map((s) => ({ name: s.role || 'Signer' }));
 
   // Step 3: Create a template from the PDF with multi-role fields.
+  //
+  // 2026-07-06 ATLAS — Suppressing DocuSeal's default post-sign emails
+  // (documents_copy_email + completed_email) is NOT possible via the public
+  // DocuSeal Cloud API. Both flags live on template.preferences, but the API's
+  // strong-params whitelist rejects preferences at template creation and
+  // silently drops them on PUT /templates/{id} (verified via GET after —
+  // preferences stays {}). The only settable path is the session-authed
+  // dashboard route POST /templates/{id}/preferences, which requires a
+  // browser cookie we don't hold from a serverless function.
+  //
+  // Suppression is done ONE-TIME by Heath in the DocuSeal dashboard:
+  // Settings → Emails → toggle OFF "Send document copies to signers" and
+  // "Send completed notifications". Those account-level flags gate both
+  // emails for the entire DocuSeal account.
+  //
+  // Regardless, api/esign-webhook.js sends a Dossie-branded completion
+  // email with the signed PDF attached — so even before Heath flips the
+  // dashboard toggle, customers receive our email; they may also receive
+  // DocuSeal's until then.
   const tmplBody = {
     name: fileName || 'Document',
     documents: [
