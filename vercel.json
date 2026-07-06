@@ -730,7 +730,7 @@
     },
     {
       "path": "/api/cron-autonomous-loop",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 11 * * *"
     },
     {
       "path": "/api/cron-autonomous-daily-digest",

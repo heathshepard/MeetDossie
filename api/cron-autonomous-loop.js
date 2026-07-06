@@ -3,16 +3,22 @@
 // api/cron-autonomous-loop.js
 // =============================================================================
 // SV-ENG-RIDGE-AUTONOMOUS-LOOP-001 (Ridge, 2026-07-01)
+// Dedup + daily cadence patch (Atlas, 2026-07-06)
 //
-// The self-improvement loop. Every 4 hours:
+// The self-improvement loop. Once daily at 11:00 UTC (~6 AM CDT, alongside
+// the digest):
 //   1. Read all signal sources (customer bugs, prod errors, KPI drift, tech
 //      debt, Dossie Sign last-mile blockers, agent backlogs)
 //   2. Score every candidate and pick THE ONE highest-priority item
 //   3. Enforce guardrails (spend, legal, strategy → escalate, don't ship)
-//   4. Dispatch to the right agent via direct agent_queue insert
+//   4. Dedup: skip insert if an equivalent pending/blocked agent_queue row
+//      already exists (matched via signal_key OR task_brief 200-char prefix
+//      scoped to the same agent). Stamp cooldown on dedup so we don't
+//      re-check the same signal on the next run.
+//   5. Otherwise dispatch to the right agent via direct agent_queue insert
 //      + create a jarvis_future_builds row so the HUD shows it
-//   5. Log the run to autonomous_loop_runs
-//   6. Set cooldown so we don't re-pick this signal for 24h (short cooldown
+//   6. Log the run to autonomous_loop_runs
+//   7. Set cooldown so we don't re-pick this signal for 24h (short cooldown
 //      for customer bugs — 4h — so we can iterate fast)
 //
 // GUARDRAILS (auto-escalate, don't ship):
@@ -26,7 +32,9 @@
 //   - If a signal has dispatched >3 times without cooldown expiry, mark
 //     'skipped_stuck' + Telegram-alert Heath. Human review required.
 //
-// SCHEDULE: every 4h via vercel.json → "0 */4 * * *"
+// SCHEDULE: daily at 11:00 UTC via vercel.json → "0 11 * * *". Prior 4h
+// cadence (0 */4 * * *) generated ~6 duplicate TECH-DEBT inserts per day
+// with no dispatcher popping them off; daily aligns with the digest.
 // AUTH: Bearer ${CRON_SECRET} OR x-vercel-cron header
 // =============================================================================
 
@@ -499,11 +507,76 @@ async function stampCooldown(signalKey, signalSource) {
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────────
 
+// Dedup guard (added 2026-07-06 by atlas).
+//
+// Before inserting a new agent_queue row, check for an existing pending or
+// blocked row with the same task_brief signature. If found, skip the insert
+// and log the skip on the loop run.
+//
+// Two-key dedup:
+//   1) signal_key metadata match — catches loop-generated duplicates whose
+//      copy drifts slightly (e.g. TECH-DEBT.md line numbering shifts).
+//   2) task_brief prefix match (first 200 chars, agent-scoped) — catches
+//      hand-authored dupes and any signal_key that shifted.
+//
+// Returns { isDupe: bool, existingId?: uuid, dupeVia?: string }.
+async function checkAgentQueueDupe(candidate) {
+  // Key 1 — signal_key exact match (fastest, most reliable for loop items).
+  if (candidate.signal_key) {
+    const sk = encodeURIComponent(candidate.signal_key);
+    const r1 = await sb(
+      `agent_queue?select=id,status&metadata->>signal_key=eq.${sk}` +
+      `&status=in.(pending,blocked)&limit=1`
+    );
+    if (r1.ok && Array.isArray(r1.data) && r1.data.length > 0) {
+      return { isDupe: true, existingId: r1.data[0].id, dupeVia: 'signal_key' };
+    }
+  }
+
+  // Key 2 — task_brief prefix (first 200 chars), scoped to the same agent so
+  // we don't collide across-agents on generic phrasing.
+  const prefix = String(candidate.description || '').slice(0, 200);
+  if (prefix.length >= 20) {
+    // PostgREST `like` supports % and _ wildcards. Escape existing % and _
+    // in the prefix, then append % to match any suffix.
+    const escaped = prefix.replace(/[\\%_]/g, ch => `\\${ch}`);
+    const pattern = encodeURIComponent(`${escaped}%`);
+    const r2 = await sb(
+      `agent_queue?select=id,status&task_brief=like.${pattern}` +
+      `&agent_name=eq.${encodeURIComponent(candidate.agent)}` +
+      `&status=in.(pending,blocked)&limit=1`
+    );
+    if (r2.ok && Array.isArray(r2.data) && r2.data.length > 0) {
+      return { isDupe: true, existingId: r2.data[0].id, dupeVia: 'task_brief_prefix' };
+    }
+  }
+
+  return { isDupe: false };
+}
+
 async function dispatch(candidate) {
   const priority = candidate.signal_score >= 80 ? 1
                  : candidate.signal_score >= 60 ? 2
                  : candidate.signal_score >= 40 ? 3
                  : 4;
+
+  // Dedup gate — skip insert if an equivalent pending/blocked row already exists.
+  const dupe = await checkAgentQueueDupe(candidate);
+  if (dupe.isDupe) {
+    console.log(
+      `[autonomous-loop] dedup skip: existing=${dupe.existingId} ` +
+      `via=${dupe.dupeVia} signal_key=${candidate.signal_key || 'n/a'}`
+    );
+    return {
+      queueId: null,
+      futureBuildId: null,
+      queueOk: true,
+      futureBuildOk: true,
+      dedupSkipped: true,
+      dedupExistingId: dupe.existingId,
+      dedupVia: dupe.dupeVia,
+    };
+  }
 
   // Create the jarvis_future_builds row first
   const sourceKey = `autonomous-loop:${candidate.signal_key}:${Date.now()}`;
@@ -732,6 +805,39 @@ module.exports = withTelemetry('cron-autonomous-loop', async function handler(re
 
     // 5) Dispatch
     const dispatchResult = await dispatch(winner);
+
+    // 5a) Dedup skip — an equivalent pending/blocked row already exists.
+    // Stamp cooldown so we don't re-check every run, log the skip, and exit.
+    if (dispatchResult.dedupSkipped) {
+      await stampCooldown(winner.signal_key, winner.signal_source);
+      await logRun({
+        run_ts: runTs,
+        signal_source: winner.signal_source,
+        signal_key: winner.signal_key,
+        signal_score: winner.signal_score,
+        signal_snapshot: {
+          candidates_seen: allCandidates.length,
+          eligible: eligible.length,
+          dedup_existing_id: dispatchResult.dedupExistingId,
+          dedup_via: dispatchResult.dedupVia,
+        },
+        item_picked: winner.title,
+        item_details: winner.meta || {},
+        agent_dispatched: winner.agent,
+        outcome: 'skipped_dupe',
+        outcome_reason: `dedup:${dispatchResult.dedupVia}:existing=${dispatchResult.dedupExistingId}`,
+        duration_ms: Date.now() - startTs,
+      });
+      clearTimeout(bailTimer);
+      return res.status(200).json({
+        ok: true,
+        outcome: 'skipped_dupe',
+        dedup_existing_id: dispatchResult.dedupExistingId,
+        dedup_via: dispatchResult.dedupVia,
+        signal_key: winner.signal_key,
+      });
+    }
+
     if (!dispatchResult.queueOk) {
       await logRun({
         run_ts: runTs,
