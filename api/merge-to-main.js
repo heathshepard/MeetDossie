@@ -185,16 +185,52 @@ module.exports = async function handler(req, res) {
         });
     } catch {}
 
-    // 6. Mark merge_queue row as merged (if it exists)
+    // 6. Mark merge_queue row(s) as merged.
+    //    Two paths:
+    //      a. Direct match on this SHA.
+    //      b. Any pending queue row whose SHA is now an ancestor of main
+    //         (fast-forward brings intermediate commits with it). Walk the
+    //         commits list returned by /compare/main~1...fullSha earlier is
+    //         expensive here — instead we hit /compare/<row.sha>...main and
+    //         flip if the row is now "identical" or "ahead". Bounded to 50
+    //         rows to keep this call cheap.
     try {
+      const nowIso = new Date().toISOString();
+      // (a) direct
       await supabase
         .from('merge_queue')
         .update({
           merged_to_main: true,
-          merged_at: new Date().toISOString(),
+          merged_at: nowIso,
           merged_by_user_id: user.id,
         })
         .eq('commit_sha', fullSha);
+
+      // (b) sweep other pending rows that may now be ancestors of main
+      const { data: pending } = await supabase
+        .from('merge_queue')
+        .select('id, commit_sha')
+        .eq('merged_to_main', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (Array.isArray(pending) && pending.length > 0) {
+        for (const row of pending) {
+          const c = await githubFetch(`/repos/${GITHUB_REPO}/compare/${row.commit_sha}...${fullSha}`);
+          if (!c.ok || !c.json) continue;
+          const s = c.json.status;
+          if (s === 'identical' || s === 'ahead') {
+            await supabase
+              .from('merge_queue')
+              .update({
+                merged_to_main: true,
+                merged_at: nowIso,
+                merged_by_user_id: user.id,
+              })
+              .eq('id', row.id);
+          }
+        }
+      }
     } catch {}
 
     return res.status(200).json({
