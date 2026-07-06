@@ -277,6 +277,95 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
   }
 }
 
+// 2026-07-06 ATLAS — Dossie-branded post-sign email to each signer.
+// Replaces DocuSeal's default documents_copy_email (impersonal, wrong sender,
+// broken sandbox download link). Attaches the signed PDF directly so no
+// external link is needed. If the signer email matches a Dossie profile,
+// links to their workspace; otherwise emits a plain closing line.
+async function sendSignerCompletionEmail({ signerName, signerEmail, fileName, pdfBuffer, propertyAddress, dossieUserEmail }) {
+  if (!RESEND_API_KEY) {
+    console.warn('[esign-webhook] RESEND_API_KEY not set — skipping signer completion email.');
+    return;
+  }
+  if (!signerEmail || !signerEmail.includes('@')) {
+    console.warn(`[esign-webhook] Invalid signer email "${signerEmail}" — skipping completion email.`);
+    return;
+  }
+  if (!pdfBuffer) {
+    console.warn(`[esign-webhook] No PDF buffer for ${signerEmail} — sending completion email without attachment.`);
+  }
+
+  const firstName = String(signerName || '').trim().split(/\s+/)[0] || 'there';
+  const contractLabel = propertyAddress
+    ? `contract for ${propertyAddress}`
+    : (fileName || 'contract');
+  const subjectLabel = propertyAddress ? propertyAddress : (fileName || 'your contract');
+  const subject = `Your signed contract - ${subjectLabel}`;
+  const attachmentName = (fileName || 'signed-contract.pdf').endsWith('.pdf')
+    ? (fileName || 'signed-contract.pdf')
+    : `${fileName || 'signed-contract'}.pdf`;
+
+  // Warm, on-brand HTML mirroring the Dossie signing-invite email style.
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9f9f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f9;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#F5E6E0;padding:24px 32px;text-align:center;">
+          <span style="font-family:'Georgia',serif;font-size:22px;font-weight:bold;color:#1A1A2E;letter-spacing:0.5px;">Dossie</span>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Hi ${firstName},</p>
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Thanks for reviewing and signing the ${contractLabel}.</p>
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Your signed copy is attached to this email for your records. Everything's on file, and your agent will follow up with next steps.</p>
+          <p style="margin:0 0 24px;font-size:16px;color:#333;">If you need help finding this later, just reply to this email and your agent can send it again.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:0 0 20px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#555;">Warmly,</p>
+          <p style="margin:0 0 20px;font-size:14px;color:#555;">Dossie</p>
+          <p style="margin:0;font-size:12px;color:#aaa;">Dossie - Your deals. Her job. Transaction management for Texas REALTORS.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const body = {
+    from: 'Dossie <sign@meetdossie.com>',
+    to: [signerEmail],
+    ...(dossieUserEmail && dossieUserEmail !== signerEmail ? { reply_to: dossieUserEmail } : {}),
+    subject,
+    html,
+  };
+  if (pdfBuffer) {
+    body.attachments = [{ filename: attachmentName, content: pdfBuffer.toString('base64') }];
+  }
+
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.error(`[esign-webhook] Signer completion email failed for ${signerEmail} (${r.status}): ${text.slice(0, 200)}`);
+      return null;
+    }
+    const j = await r.json().catch(() => ({}));
+    console.log(`[esign-webhook] Signer completion email sent to ${signerEmail} (resend id: ${j?.id || 'unknown'})`);
+    return j?.id || null;
+  } catch (err) {
+    console.error(`[esign-webhook] Signer completion Resend threw for ${signerEmail}:`, err && err.message);
+    return null;
+  }
+}
+
 async function sendCompletionEmail(agentEmail, agentName, fileName) {
   if (!RESEND_API_KEY || !agentEmail) return;
   try {
@@ -448,6 +537,35 @@ module.exports = async function handler(req, res) {
       // Fetch the Dossie user's profile (transaction owner) for notifications + reply_to.
       const dossieUser = await fetchAgentEmailForUser(sr.user_id);
       await sendCompletionEmail(dossieUser?.email, dossieUser?.full_name, fileName);
+
+      // 2026-07-06 ATLAS — Dossie-branded post-sign email to each signer with
+      // the executed PDF attached. Replaces DocuSeal's default documents_copy_email
+      // (which was showing the account owner's name as sender and a 404 sandbox link).
+      // DocuSeal's default is now suppressed via template preferences set at
+      // creation/clone time in api/esign-create.js.
+      //
+      // Skip the transaction owner's own email if it's in the signer list (rare
+      // — usually only the agent's *external* signer flow), to avoid a duplicate
+      // with the sendCompletionEmail() above.
+      const signersForEmail = Array.isArray(sr.signers) ? sr.signers : [];
+      if (signersForEmail.length > 0) {
+        await Promise.all(
+          signersForEmail
+            .filter((s) => s && s.email && s.email !== dossieUser?.email)
+            .map((s) =>
+              sendSignerCompletionEmail({
+                signerName: s.name || '',
+                signerEmail: s.email,
+                fileName,
+                pdfBuffer: signedPdfBuffer,
+                propertyAddress,
+                dossieUserEmail: dossieUser?.email || null,
+              }).catch((err) => {
+                console.error(`[esign-webhook] Signer completion email failed for ${s.email}:`, err && err.message);
+              })
+            )
+        );
+      }
 
       // If a seller's agent email is on the signature request, send them the executed PDF.
       // reply_to is set to the Dossie user's own email so the seller's agent can reply directly to them.

@@ -474,6 +474,11 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   const submitterPlaceholders = signers.map((s) => ({ name: s.role || 'Signer' }));
 
   // Step 3: Create a template from the PDF with multi-role fields.
+  //
+  // 2026-07-06 ATLAS — suppress DocuSeal's default post-sign emails.
+  // preferences.documents_copy_email_enabled = false     → no "please check the copy of your PDF"
+  // preferences.completed_notification_email_enabled = false → no "completed" nudge
+  // Dossie sends its own branded completion email from api/esign-webhook.js.
   const tmplBody = {
     name: fileName || 'Document',
     documents: [
@@ -484,6 +489,10 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
       },
     ],
     submitters: submitterPlaceholders,
+    preferences: {
+      documents_copy_email_enabled: false,
+      completed_notification_email_enabled: false,
+    },
   };
 
   const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
@@ -502,6 +511,34 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
   const templateId = tmplData.id;
   if (!templateId) {
     throw new ValidationError(`DocuSeal template missing id.`, 502);
+  }
+
+  // Belt-and-suspenders: PUT the template preferences explicitly in case
+  // /templates/pdf silently dropped them. The DocuSeal source shows
+  // maybe_enqueue_copy_emails reads template.preferences.documents_copy_email_enabled
+  // at the moment of enqueuing — so this MUST be persisted before submission.
+  try {
+    const prefRes = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}`, {
+      method: 'PUT',
+      headers: {
+        'X-Auth-Token': DOCUSEAL_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        preferences: {
+          documents_copy_email_enabled: false,
+          completed_notification_email_enabled: false,
+        },
+      }),
+    });
+    if (!prefRes.ok) {
+      const text = await prefRes.text().catch(() => '');
+      console.warn(`[esign-create] Template ${templateId} preferences PUT failed (${prefRes.status}): ${text.slice(0, 200)} — DocuSeal default emails may fire.`);
+    } else {
+      console.log(`[esign-create] Template ${templateId} preferences PUT ok — DocuSeal default post-sign emails suppressed.`);
+    }
+  } catch (err) {
+    console.warn(`[esign-create] Template ${templateId} preferences PUT threw:`, err && err.message);
   }
 
   // Step 4: Create the submission from the template. Map roles to submitter emails.
@@ -627,13 +664,22 @@ async function docusealCloneTemplateWithDefaults(templateId, defaults) {
   });
   const setCount = patchedFields.filter((f) => f.default_value != null && f.default_value !== '').length;
 
+  // 2026-07-06 ATLAS — suppress DocuSeal default post-sign emails on the clone too.
+  // See long comment in docusealCreateFromPdf() for rationale. Dossie sends its
+  // own branded completion email from api/esign-webhook.js.
   const putRes = await fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
     method: 'PUT',
     headers: {
       'X-Auth-Token': DOCUSEAL_API_KEY,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ fields: patchedFields }),
+    body: JSON.stringify({
+      fields: patchedFields,
+      preferences: {
+        documents_copy_email_enabled: false,
+        completed_notification_email_enabled: false,
+      },
+    }),
   });
   if (!putRes.ok) {
     const text = await putRes.text().catch(() => '');
