@@ -8354,7 +8354,7 @@
         console.warn('[jarvis] lessons fetch failed', err.message);
       }
       const backdrop = document.createElement('div');
-      backdrop.className = 'modal-backdrop';
+      backdrop.className = 'detail-modal-backdrop';
       backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
       const list = lessons.length === 0
         ? '<div class="ledger-empty">No lessons yet for this role.</div>'
