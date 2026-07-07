@@ -647,7 +647,6 @@
       font-size: 11px; line-height: 1.4;
       color: var(--txt-mute);
       white-space: pre-wrap; word-wrap: break-word;
-      max-height: 80px; overflow-y: auto;
       padding-right: 4px;
     }
     .action-source {
@@ -5368,7 +5367,7 @@
         const prioClass = action.priorityKey === 'urgent' ? 'urgent' :
                          action.priorityKey === 'soon' ? 'soon' : 'whenever';
         const prioLabel = action.priorityKey.toUpperCase();
-        const bodyText = action.body ? action.body.substring(0, 100) : '';
+        const bodyText = action.body || '';
         const sourceLabel = (action.source || 'unknown').toUpperCase();
         const isEmailAction = action.action_type === 'send_email' && action.payload;
 
@@ -5396,7 +5395,7 @@
               <div class="action-title">${escapeHtml(action.title)}</div>
               <span class="action-priority-badge ${prioClass}">${prioLabel}</span>
             </div>
-            ${bodyText ? `<div class="action-body">${escapeHtml(bodyText)}${action.body.length > 100 ? '…' : ''}</div>` : ''}
+            ${bodyText ? `<div class="action-body">${escapeHtml(bodyText)}</div>` : ''}
             <div class="action-source">From: ${sourceLabel}</div>
             ${buttonsHtml}
           </div>
