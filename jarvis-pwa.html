@@ -3557,6 +3557,22 @@
     // --- config: loaded from /api/config at boot ---
     const API_BASE = ''; // same-origin
 
+    // --- Capacitor context helper (module-scope shim, atlas 2026-07-07) ---
+    // The classic <script> block below (line ~9154) also declares
+    // isCapacitorNativeCtx(). That declaration is invisible to this module
+    // scope, so any call from module code (e.g. useNativeOutput at ~4663)
+    // threw "isCapacitorNativeCtx is not defined" and killed the send
+    // handler. This local copy fixes that. Returns true only inside the
+    // Capacitor APK, false in the PWA/browser. Depends on no plugins.
+    function isCapacitorNativeCtx() {
+      return !!(
+        typeof window !== 'undefined' &&
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform()
+      );
+    }
+
     // --- state ---
     let supabase = null;
     let session = null;
