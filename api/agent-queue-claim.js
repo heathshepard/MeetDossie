@@ -144,9 +144,39 @@ module.exports = async function handler(req, res) {
 
   const sessionId = String(body.session_id || `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
+  // Explicit task_id claim path (Atlas, 2026-07-07 SV-CLAUDE-CODE-CLI-WORKER).
+  // Lets the claude-code-worker request a SPECIFIC row after peek-filtering
+  // by metadata.task_type instead of taking whatever the highest-priority
+  // agent-scoped ready row happens to be (which could belong to the sister
+  // agent-queue-poller flow). Additive — normal usage unchanged.
+  const taskIdRaw = body.task_id ? String(body.task_id).trim() : null;
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
+    if (taskIdRaw) {
+      // Load the row to confirm it's still pending + agent matches (or agent==='any')
+      const { data: row, error: loadErr } = await supabase
+        .from('agent_queue')
+        .select('id, agent_name, task_subject, task_brief, priority, venture, depends_on, metadata, status, created_at')
+        .eq('id', taskIdRaw)
+        .single();
+      if (loadErr || !row) {
+        return res.status(404).json({ ok: true, task: null, note: 'task_id not found' });
+      }
+      if (row.status !== 'pending') {
+        return res.status(200).json({ ok: true, task: null, note: `task already ${row.status}` });
+      }
+      if (agent !== 'any' && row.agent_name !== agent) {
+        return res.status(200).json({ ok: true, task: null, note: `agent mismatch: row=${row.agent_name}` });
+      }
+      const claimed = await claimTask(supabase, row, sessionId);
+      if (claimed) {
+        return res.status(200).json({ ok: true, task: claimed, session_id: sessionId });
+      }
+      return res.status(200).json({ ok: true, task: null, note: 'claim race (row moved between load and update)' });
+    }
+
     // We try up to 3 times in case of claim race. In practice with one poller
     // this never loops, but the cron-tick can hit 9 agents in a burst.
     for (let attempt = 0; attempt < 3; attempt++) {

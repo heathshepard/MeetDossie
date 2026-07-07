@@ -191,11 +191,13 @@ async function peekMyTasks() {
   return tasks.filter((t) => t && t.metadata && typeof t.metadata.task_type === 'string');
 }
 
-async function claim(agentName) {
-  const r = await post('/api/agent-queue-claim', {
-    agent: agentName,
-    session_id: SESSION_ID,
-  });
+async function claim(agentName, taskId) {
+  // Prefer explicit task_id claim (added 2026-07-07) so we grab the row we
+  // peeked at instead of "whatever's at the top of this agent's queue" —
+  // which could be a non-task_type row belonging to the agent-queue-poller.
+  const body = { agent: agentName, session_id: SESSION_ID };
+  if (taskId) body.task_id = taskId;
+  const r = await post('/api/agent-queue-claim', body);
   return r.task || null;
 }
 
@@ -336,22 +338,22 @@ async function tick() {
 
     let claimed;
     try {
-      claimed = await claim(c.agent_name);
+      // Explicit task_id claim — we peeked this row specifically because it
+      // has metadata.task_type. Grab that exact row, not "top of agent queue".
+      claimed = await claim(c.agent_name, c.id);
     } catch (err) {
-      log(`claim error agent=${c.agent_name}: ${err.message}`, 'WARN');
+      log(`claim error agent=${c.agent_name} task=${c.id}: ${err.message}`, 'WARN');
       continue;
     }
     if (!claimed) continue;
 
-    // Verify the claimed row is ACTUALLY one of our task_type rows — the
-    // claim endpoint pulls the highest-priority ready row for the agent,
-    // which could be a non-task_type row if the queue is mixed. If so,
-    // release it back so the agent-queue-poller can take it.
+    // Defense in depth — if for any reason claim returned a row that lost its
+    // task_type (shouldn't happen with explicit id claim, but…), release it.
     const claimedType = claimed.metadata && claimed.metadata.task_type;
     if (!claimedType) {
-      log(`released agent=${c.agent_name} task=${claimed.id} — not a task_type row (belongs to agent-queue-poller)`, 'WARN');
+      log(`released agent=${c.agent_name} task=${claimed.id} — no task_type (defense-in-depth)`, 'WARN');
       try {
-        await complete(claimed.id, 'blocked', 'Released by claude-code-worker — no task_type set. Cole/Heath to re-enqueue if intended for the agent-queue-poller.', {
+        await complete(claimed.id, 'blocked', 'Released by claude-code-worker — no task_type set.', {
           _released_by: 'claude-code-worker',
           _released_at: new Date().toISOString(),
         });
