@@ -794,7 +794,7 @@
     },
     {
       "path": "/api/cron-merge-queue-backfill",
-      "schedule": "0 11 * * *"
+      "schedule": "10 * * * *"
     }
   ]
 }
