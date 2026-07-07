@@ -245,7 +245,10 @@
       content.style.display = 'none';
 
       try {
-        const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+        // Read Supabase session from either legacy or project-scoped storage key
+        const rawToken = localStorage.getItem('supabase.auth.token') || localStorage.getItem('sb-pgwoitbdiyubjugwufhk-auth-token');
+        const parsed = rawToken ? JSON.parse(rawToken) : null;
+        const token = parsed?.currentSession?.access_token || parsed?.access_token || null;
         if (!token) throw new Error('Not authenticated. Sign in first at /app.');
         const response = await fetch('/api/webpage-analytics-snapshot', {
           method: 'GET',
