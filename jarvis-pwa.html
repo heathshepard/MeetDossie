@@ -9136,6 +9136,242 @@
     window.__jarvisNativeGetInputDevices = nativeGetInputDevices;
     window.__jarvisNativeGetCurrentInputDevice = nativeGetCurrentInputDevice;
 
+    // ============================================================
+    // NATIVE AUDIO CAPTURE BRIDGE (atlas_10, 2026-07-07)
+    // ============================================================
+    // For USB devices (DJI Mic, USB headsets, USB accessories), the
+    // WebView's Chromium audio capture ignores the OS-level input
+    // preference and picks the wrong mic. We bypass Chromium: the
+    // native AudioModePlugin opens AudioRecord bound to the exact
+    // device Heath picked, streams PCM chunks to JS via 'audioChunk'
+    // plugin events, and we reconstruct a MediaStream on this side
+    // that the existing getUserMedia consumers (MediaRecorder, VAD)
+    // see as an ordinary mic stream.
+    //
+    // Routing rule (per mission spec):
+    //   - USB / usb_device / usb_headset / usb_accessory   → native bridge
+    //   - builtin_mic / bluetooth_* / wired_*              → default gUM
+    // ============================================================
+
+    const NATIVE_CAPTURE_USB_TYPES = new Set([
+      'usb_device', 'usb_headset', 'usb_accessory'
+    ]);
+    const LS_INPUT_NATIVE_TYPE = 'jarvis:audio:inputNativeType';
+
+    // ---------- native capture state ----------
+    let nativeCaptureListenerHandle = null;
+    let nativeCaptureAudioCtx = null;
+    let nativeCaptureDestNode = null;
+    let nativeCaptureSampleRate = 16000;
+    let nativeCaptureRunning = false;
+    let nativeCaptureBytesLastSec = 0;
+    let nativeCaptureBytesLastSecReset = Date.now();
+    let nativeCaptureBytesPerSec = 0;
+    let nativeCaptureSeqLast = -1;
+    let nativeCaptureDrops = 0;
+    let nativeCaptureNextPlaybackTime = 0;
+
+    function base64ToUint8(b64) {
+      const bin = atob(b64);
+      const len = bin.length;
+      const out = new Uint8Array(len);
+      for (let i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    function pcm16ToFloat32(bytes) {
+      // Little-endian signed 16-bit PCM → Float32 [-1, 1].
+      const nSamples = bytes.length >>> 1;
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const out = new Float32Array(nSamples);
+      for (let i = 0; i < nSamples; i++) {
+        const s = dv.getInt16(i * 2, true);
+        out[i] = s < 0 ? s / 0x8000 : s / 0x7FFF;
+      }
+      return out;
+    }
+
+    function ensureNativeCaptureAudioCtx(sampleRate) {
+      if (nativeCaptureAudioCtx && nativeCaptureAudioCtx.state !== 'closed'
+          && nativeCaptureAudioCtx.sampleRate === sampleRate) {
+        return nativeCaptureAudioCtx;
+      }
+      try { if (nativeCaptureAudioCtx) nativeCaptureAudioCtx.close(); } catch (e) {}
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      // Passing sampleRate hint helps Chrome match the native output rate.
+      nativeCaptureAudioCtx = new Ctx({ sampleRate });
+      nativeCaptureDestNode = nativeCaptureAudioCtx.createMediaStreamDestination();
+      nativeCaptureNextPlaybackTime = 0;
+      return nativeCaptureAudioCtx;
+    }
+
+    function handleAudioChunk(evt) {
+      if (!nativeCaptureRunning) return;
+      try {
+        if (typeof evt.seq === 'number') {
+          if (nativeCaptureSeqLast >= 0 && evt.seq !== nativeCaptureSeqLast + 1) {
+            nativeCaptureDrops += Math.max(1, evt.seq - nativeCaptureSeqLast - 1);
+          }
+          nativeCaptureSeqLast = evt.seq;
+        }
+        if (typeof evt.bytes === 'number') {
+          nativeCaptureBytesLastSec += evt.bytes;
+          const now = Date.now();
+          if (now - nativeCaptureBytesLastSecReset >= 1000) {
+            nativeCaptureBytesPerSec = nativeCaptureBytesLastSec;
+            nativeCaptureBytesLastSec = 0;
+            nativeCaptureBytesLastSecReset = now;
+          }
+        }
+        if (!evt.pcm || !nativeCaptureAudioCtx || !nativeCaptureDestNode) return;
+        const bytes = base64ToUint8(evt.pcm);
+        const f32 = pcm16ToFloat32(bytes);
+        const ctx = nativeCaptureAudioCtx;
+        const buf = ctx.createBuffer(1, f32.length, evt.sampleRate || nativeCaptureSampleRate);
+        buf.copyToChannel(f32, 0, 0);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(nativeCaptureDestNode);
+        // Schedule playback in-order so downstream MediaRecorder gets a
+        // continuous PCM signal. If we fall behind (JS event loop stall),
+        // snap forward to now so we don't accumulate latency indefinitely.
+        const now = ctx.currentTime;
+        if (nativeCaptureNextPlaybackTime < now) nativeCaptureNextPlaybackTime = now;
+        src.start(nativeCaptureNextPlaybackTime);
+        nativeCaptureNextPlaybackTime += buf.duration;
+      } catch (e) {
+        console.warn('[jarvis-audio-native] chunk handler error:', e && e.message);
+      }
+    }
+
+    async function nativeStartCapture(nativeId, sampleRate) {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.startNativeCapture !== 'function') {
+        throw new Error('AudioMode.startNativeCapture unavailable — rebuild the APK');
+      }
+      // Wire event listener BEFORE start so we don't miss frames.
+      if (nativeCaptureListenerHandle && typeof nativeCaptureListenerHandle.remove === 'function') {
+        try { await nativeCaptureListenerHandle.remove(); } catch (e) {}
+        nativeCaptureListenerHandle = null;
+      }
+      nativeCaptureSampleRate = sampleRate || 16000;
+      nativeCaptureBytesLastSec = 0;
+      nativeCaptureBytesPerSec = 0;
+      nativeCaptureBytesLastSecReset = Date.now();
+      nativeCaptureSeqLast = -1;
+      nativeCaptureDrops = 0;
+      ensureNativeCaptureAudioCtx(nativeCaptureSampleRate);
+      if (nativeCaptureAudioCtx && nativeCaptureAudioCtx.state === 'suspended') {
+        try { await nativeCaptureAudioCtx.resume(); } catch (e) {}
+      }
+      nativeCaptureListenerHandle = await p.addListener('audioChunk', handleAudioChunk);
+      const startRes = await p.startNativeCapture({
+        deviceId: Number(nativeId),
+        sampleRate: nativeCaptureSampleRate,
+        frameMs: 50,
+      });
+      console.log('[jarvis-audio-native] startNativeCapture:', startRes);
+      nativeCaptureRunning = !!(startRes && startRes.started);
+      if (!nativeCaptureRunning) {
+        if (nativeCaptureListenerHandle && typeof nativeCaptureListenerHandle.remove === 'function') {
+          try { await nativeCaptureListenerHandle.remove(); } catch (e) {}
+          nativeCaptureListenerHandle = null;
+        }
+        throw new Error('startNativeCapture returned started=false: ' + (startRes && startRes.reason || 'unknown'));
+      }
+      return startRes;
+    }
+
+    async function nativeStopCapture() {
+      const p = getAudioModePlugin();
+      nativeCaptureRunning = false;
+      if (nativeCaptureListenerHandle && typeof nativeCaptureListenerHandle.remove === 'function') {
+        try { await nativeCaptureListenerHandle.remove(); } catch (e) {}
+        nativeCaptureListenerHandle = null;
+      }
+      if (p && typeof p.stopNativeCapture === 'function') {
+        try { return await p.stopNativeCapture(); }
+        catch (e) { console.warn('[jarvis-audio-native] stopNativeCapture failed:', e && e.message); }
+      }
+      return null;
+    }
+
+    async function nativeGetCaptureStatus() {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.getNativeCaptureStatus !== 'function') return null;
+      try { return await p.getNativeCaptureStatus(); }
+      catch (e) { return null; }
+    }
+
+    function shouldRouteNative() {
+      if (!isCapacitorNativeCtx()) return false;
+      let nativeId = '', nativeType = '';
+      try {
+        nativeId   = localStorage.getItem(LS_INPUT_NATIVE_ID)   || '';
+        nativeType = localStorage.getItem(LS_INPUT_NATIVE_TYPE) || '';
+      } catch (e) {}
+      if (!nativeId) return false;
+      return NATIVE_CAPTURE_USB_TYPES.has(nativeType);
+    }
+
+    // Wrap getUserMedia (again — layered on top of the earlier patch) so
+    // when Heath's saved device is a USB input, gUM callers get the
+    // synthetic stream backed by the native AudioRecord bridge instead of
+    // the WebView's own mic pipeline. Other devices fall through to the
+    // existing patch (which already handles the deviceId constraint).
+    if (
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function' &&
+      !navigator.mediaDevices.__jarvisNativeCapturePatch
+    ) {
+      const upstream = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.getUserMedia = async function nativeAwareGUM(constraints) {
+        if (!(constraints && constraints.audio) || !shouldRouteNative()) {
+          return upstream(constraints);
+        }
+        try {
+          let nativeId = '';
+          try { nativeId = localStorage.getItem(LS_INPUT_NATIVE_ID) || ''; } catch (e) {}
+          if (!nativeId) return upstream(constraints);
+          // Sample rate hint from caller's constraint if any.
+          const audioObj = (typeof constraints.audio === 'object') ? constraints.audio : {};
+          let requestedRate = 16000;
+          if (audioObj.sampleRate) {
+            requestedRate = typeof audioObj.sampleRate === 'object'
+              ? (audioObj.sampleRate.ideal || audioObj.sampleRate.exact || 16000)
+              : audioObj.sampleRate;
+          }
+          await nativeStartCapture(nativeId, requestedRate);
+          const stream = nativeCaptureDestNode.stream;
+          // Attach a stop-hook so callers who stop tracks also halt the
+          // native AudioRecord — otherwise the mic LED stays on and the
+          // process holds RECORD_AUDIO forever.
+          stream.getTracks().forEach((t) => {
+            const origStop = t.stop.bind(t);
+            t.stop = function patchedStop() {
+              try { origStop(); } catch (e) {}
+              // Only stop the native side once — multiple tracks may
+              // reference the same underlying AudioRecord.
+              if (nativeCaptureRunning) {
+                nativeStopCapture().catch(() => {});
+              }
+            };
+          });
+          console.log('[jarvis-audio-native] gUM served synthetic MediaStream from native bridge');
+          return stream;
+        } catch (err) {
+          console.error('[jarvis-audio-native] native gUM failed, falling back to WebView:', err && err.message);
+          return upstream(constraints);
+        }
+      };
+      navigator.mediaDevices.__jarvisNativeCapturePatch = true;
+    }
+
+    // Expose helpers so debug overlay + external testers can poke.
+    window.__jarvisNativeStartCapture = nativeStartCapture;
+    window.__jarvisNativeStopCapture  = nativeStopCapture;
+    window.__jarvisNativeGetCaptureStatus = nativeGetCaptureStatus;
+
     // ===== Modal =====
     let activeBackdrop = null;
     let cachedDevices = { inputs: [], outputs: [], nativeInputs: [], canForceInput: false, apiLevel: 0 };
@@ -9437,9 +9673,12 @@
         if (nativeInputId) {
           localStorage.setItem(LS_INPUT_NATIVE_ID, nativeInputId);
           localStorage.setItem(LS_INPUT_NATIVE_LABEL, inputLabel + (nativeInputType ? ' [' + nativeInputType + ']' : ''));
+          if (nativeInputType) localStorage.setItem(LS_INPUT_NATIVE_TYPE, nativeInputType);
+          else localStorage.removeItem(LS_INPUT_NATIVE_TYPE);
         } else {
           localStorage.removeItem(LS_INPUT_NATIVE_ID);
           localStorage.removeItem(LS_INPUT_NATIVE_LABEL);
+          localStorage.removeItem(LS_INPUT_NATIVE_TYPE);
         }
       } catch (e) {
         status.classList.add('is-err');
@@ -9492,11 +9731,14 @@
         localStorage.removeItem(LS_OUTPUT_LABEL);
         localStorage.removeItem(LS_INPUT_NATIVE_ID);
         localStorage.removeItem(LS_INPUT_NATIVE_LABEL);
+        localStorage.removeItem(LS_INPUT_NATIVE_TYPE);
       } catch (e) {}
       // atlas_9 2026-07-07 — also release any native pin so the OS
       // reverts to its default input priority.
       if (isCapacitorNativeCtx()) {
         try { await nativeClearPreferredInputDevice(); } catch (e) {}
+        // atlas_10 2026-07-07 — halt any running native AudioRecord too.
+        try { await nativeStopCapture(); } catch (e) {}
       }
       updateRoutingChip();
       populateSelects(modal);
@@ -9514,7 +9756,7 @@
     function fmtNum(n) { return (n == null || Number.isNaN(n)) ? '—' : String(n); }
     async function refreshDebugOverlay() {
       if (!debugOverlay) return;
-      let statusRes = null, currentIn = null, inList = null;
+      let statusRes = null, currentIn = null, inList = null, captureRes = null;
       try {
         const p = getAudioModePlugin();
         if (p && typeof p.getStatus === 'function') {
@@ -9526,29 +9768,44 @@
         if (p && typeof p.getInputDevices === 'function') {
           try { inList = await p.getInputDevices(); } catch (e) {}
         }
+        if (p && typeof p.getNativeCaptureStatus === 'function') {
+          try { captureRes = await p.getNativeCaptureStatus(); } catch (e) {}
+        }
       } catch (e) {}
       const lsIn = (function(){ try { return localStorage.getItem(LS_INPUT) || ''; } catch(e){return ''} })();
       const lsInNative = (function(){ try { return localStorage.getItem(LS_INPUT_NATIVE_ID) || ''; } catch(e){return ''} })();
+      const lsInNativeType = (function(){ try { return localStorage.getItem(LS_INPUT_NATIVE_TYPE) || ''; } catch(e){return ''} })();
       const lsInLabel = (function(){ try { return localStorage.getItem(LS_INPUT_LABEL) || ''; } catch(e){return ''} })();
       const lsOut = (function(){ try { return localStorage.getItem(LS_OUTPUT) || ''; } catch(e){return ''} })();
       const inCount = inList && Array.isArray(inList.devices) ? inList.devices.length : 0;
       const nativeCtx = isCapacitorNativeCtx();
+      const routeNative = shouldRouteNative();
+      const bytesPerSec = nativeCaptureBytesPerSec || 0;
       const html = [
-        '<div style="font:600 12px system-ui;margin-bottom:6px;color:#8ef;">audio debug (atlas_9)</div>',
+        '<div style="font:600 12px system-ui;margin-bottom:6px;color:#8ef;">audio debug (atlas_10)</div>',
         '<div><b>native ctx:</b> ' + (nativeCtx ? 'YES (APK)' : 'no (browser)') + '</div>',
+        '<div style="margin-top:4px;padding:4px 6px;background:rgba(140,220,255,0.12);border-left:2px solid #8ef;border-radius:4px;">',
+        '  <div><b>route via native:</b> ' + (routeNative ? 'YES (USB bridge active)' : 'no (WebView gUM)') + '</div>',
+        '  <div><b>capture running:</b> ' + (captureRes && captureRes.running ? 'yes' : 'no') + '</div>',
+        captureRes ? '  <div><b>capture dev:</b> ' + (captureRes.deviceName || '—') + ' (id=' + fmtNum(captureRes.deviceId) + ')</div>' : '',
+        captureRes ? '  <div><b>capture rate:</b> ' + fmtNum(captureRes.sampleRate) + ' Hz</div>' : '',
+        captureRes ? '  <div><b>bytes total:</b> ' + fmtNum(captureRes.totalBytes) + '</div>' : '',
+        '  <div><b>bytes/sec (JS):</b> ' + bytesPerSec + '</div>',
+        '  <div><b>underruns:</b> ' + fmtNum(captureRes && captureRes.underruns) + ' · drops (seq): ' + nativeCaptureDrops + '</div>',
+        '</div>',
         statusRes ? '<div><b>mode:</b> ' + statusRes.modeName + '</div>' : '',
         statusRes ? '<div><b>bt sco on:</b> ' + statusRes.bluetoothScoOn + '</div>' : '',
         statusRes ? '<div><b>a2dp:</b> ' + statusRes.a2dpConnected + '</div>' : '',
         statusRes ? '<div><b>speaker:</b> ' + statusRes.speakerphoneOn + '</div>' : '',
         statusRes ? '<div><b>output dev:</b> ' + statusRes.activeDevice + '</div>' : '',
-        currentIn ? '<div><b>input dev (native):</b> ' + (currentIn.name || currentIn.typeName || '?') + ' (id=' + fmtNum(currentIn.id) + ' t=' + currentIn.typeName + ')</div>' : '',
+        currentIn ? '<div><b>input dev (comm-dev):</b> ' + (currentIn.name || currentIn.typeName || '?') + ' (id=' + fmtNum(currentIn.id) + ' t=' + currentIn.typeName + ')</div>' : '',
         inList ? '<div><b>api level:</b> ' + fmtNum(inList.apiLevel) + ' · pin support: ' + (inList.canForceInput ? 'yes' : 'no') + '</div>' : '',
         '<div><b>input devices (' + inCount + '):</b></div>',
         inList && inList.devices ? '<div style="max-height:110px;overflow:auto;font:11px monospace;background:rgba(0,0,0,0.25);padding:4px;">' +
           inList.devices.map(d => '· ' + (d.name || d.typeName || '?') + ' [' + d.typeName + '] id=' + d.id).join('<br/>') + '</div>' : '',
         '<div style="margin-top:6px;"><b>LS input:</b> ' + (lsInLabel || '—') + '</div>',
         '<div><b>LS deviceId:</b> ' + (lsIn ? lsIn.slice(0,14)+'…' : '—') + '</div>',
-        '<div><b>LS native pin id:</b> ' + (lsInNative || '—') + '</div>',
+        '<div><b>LS native pin id:</b> ' + (lsInNative || '—') + ' · type: ' + (lsInNativeType || '—') + '</div>',
         '<div><b>LS output:</b> ' + (lsOut ? lsOut.slice(0,14)+'…' : '—') + '</div>',
         '<div style="margin-top:6px;font-size:10px;opacity:0.7;">refreshed ' + new Date().toLocaleTimeString() + '</div>',
       ].filter(Boolean).join('');
