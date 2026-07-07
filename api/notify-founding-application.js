@@ -56,6 +56,7 @@ function escTelegram(s) {
 }
 
 const HEARD_FROM_LABELS = {
+  facebook: 'Facebook',
   facebook_group: 'Facebook group post',
   facebook_page: 'Facebook page',
   instagram: 'Instagram',
@@ -63,6 +64,8 @@ const HEARD_FROM_LABELS = {
   twitter_x: 'Twitter/X',
   google_search: 'Google search',
   word_of_mouth: 'Word of mouth / another agent',
+  referral_friend: 'Referral from a friend',
+  referral_kw: 'Referral from a KW colleague',
   trec_calculator: 'TREC deadline calculator',
   linkedin: 'LinkedIn',
   other: 'Other',
@@ -73,31 +76,45 @@ function prettyHeardFrom(v) {
   return HEARD_FROM_LABELS[String(v).toLowerCase()] || String(v);
 }
 
-function buildMessage(app) {
-  const sidesPretty = (function (s) {
-    var v = String(s || '').toLowerCase();
-    if (v === 'buyer') return 'Buyer side';
-    if (v === 'listing') return 'Listing side';
-    if (v === 'both') return 'Both sides';
-    return s || '—';
-  })(app.sides);
+function dealsBucket(n) {
+  var v = parseInt(n, 10);
+  if (Number.isNaN(v)) return '—';
+  if (v < 5) return 'Less than 5';
+  if (v < 10) return '5-10';
+  if (v < 20) return '10-20';
+  return '20+';
+}
 
+function buildMessage(app) {
+  // Prefer the new 7-field form values; fall back to legacy long-form fields
+  // for any pre-existing rows (brokerage / sides / why / market).
   const lines = [
     '📝 <b>New Founding Member Application</b>',
     '',
     `<b>Name:</b> ${escTelegram(app.name)}`,
     `<b>Email:</b> ${escTelegram(app.email)}`,
-    `<b>Brokerage:</b> ${escTelegram(app.brokerage)}`,
-    `<b>Market:</b> ${escTelegram(app.market)}`,
-    `<b>Transactions (last 12mo):</b> ${escTelegram(String(app.transactions_12mo))}`,
-    `<b>Sides:</b> ${escTelegram(sidesPretty)}`,
-    `<b>How they found us:</b> ${escTelegram(prettyHeardFrom(app.heard_from))}`,
-    '',
-    '<b>Why Dossie:</b>',
-    escTelegram(app.why),
-    '',
-    `<i>Application id: ${escTelegram(app.id)}</i>`,
   ];
+  if (app.phone) lines.push(`<b>Phone:</b> ${escTelegram(app.phone)}`);
+  const city = app.city || app.market;
+  if (city) lines.push(`<b>City:</b> ${escTelegram(city)}`);
+  if (app.trec_license) lines.push(`<b>TREC license:</b> ${escTelegram(app.trec_license)}`);
+  if (app.brokerage) lines.push(`<b>Brokerage:</b> ${escTelegram(app.brokerage)}`);
+  lines.push(`<b>Deals/year:</b> ${escTelegram(dealsBucket(app.transactions_12mo))}`);
+  if (app.sides) {
+    const sidesPretty = (function (s) {
+      var v = String(s || '').toLowerCase();
+      if (v === 'buyer') return 'Buyer side';
+      if (v === 'listing') return 'Listing side';
+      if (v === 'both') return 'Both sides';
+      return s || '—';
+    })(app.sides);
+    lines.push(`<b>Sides:</b> ${escTelegram(sidesPretty)}`);
+  }
+  lines.push(`<b>How they found us:</b> ${escTelegram(prettyHeardFrom(app.heard_from))}`);
+  if (app.why) {
+    lines.push('', '<b>Why Dossie:</b>', escTelegram(app.why));
+  }
+  lines.push('', `<i>Application id: ${escTelegram(app.id)}</i>`);
   return lines.join('\n');
 }
 
