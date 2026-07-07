@@ -166,12 +166,17 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
   // Analytics: paid-conversion landing. Confirms the funnel step between
   // Stripe checkout success and onboarding form submit. session_id links
   // this pageview to the checkout_completed webhook event server-side.
-  try {
-    window.posthog.capture('signup_completed', {
-      has_session_id: Boolean(sessionId),
-      stripe_session_id_prefix: sessionId ? sessionId.slice(0, 8) : null,
-    });
-  } catch (_) { /* analytics never load-bearing */ }
+  //
+  // Wrapped in posthog:ready — this IIFE runs on load, before the SDK
+  // boots. Firing against the stub queue can silently drop events in prod.
+  document.addEventListener('posthog:ready', function () {
+    try {
+      window.posthog.capture('signup_completed', {
+        has_session_id: Boolean(sessionId),
+        stripe_session_id_prefix: sessionId ? sessionId.slice(0, 8) : null,
+      });
+    } catch (_) { /* analytics never load-bearing */ }
+  });
 
   if (!sessionId) {
     status.textContent = "No session found. Please contact support at heath@meetdossie.com";

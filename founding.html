@@ -131,6 +131,43 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 .status-message { margin-top: 14px; padding: 12px 18px; border-radius: 12px; font-size: 14px; text-align: center; display: none; }
 .status-message.is-error { display: block; background: var(--coral-light); color: var(--coral-deep); }
 
+/* Application modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(45,42,38,0.55); backdrop-filter: blur(4px); z-index: 500; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 16px; }
+.modal-overlay.is-open { display: flex; }
+.modal-card { position: relative; background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 30px 80px rgba(45,42,38,0.28); max-width: 560px; width: 100%; padding: 36px 32px 32px; margin: auto; }
+.modal-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; background: var(--bg-warm); border: none; cursor: pointer; font-size: 18px; color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
+.modal-close:hover { background: var(--coral-light); color: var(--coral-deep); }
+.modal-title { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; color: var(--text-primary); line-height: 1.15; margin-bottom: 6px; }
+.modal-title em { font-style: italic; color: var(--blush-deep); }
+.modal-sub { font-size: 14px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 22px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-secondary); }
+.field label .req { color: var(--coral-deep); margin-left: 3px; }
+.field input, .field select { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; width: 100%; }
+.field input:focus, .field select:focus { outline: none; border-color: var(--blush-deep); box-shadow: 0 0 0 3px var(--blush-light); }
+.field.has-error input, .field.has-error select { border-color: var(--coral-deep); background: var(--coral-light); }
+.field-error { font-size: 12px; color: var(--coral-deep); font-weight: 600; display: none; }
+.field.has-error .field-error { display: block; }
+.modal-submit-row { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.modal-submit { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 32px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 15px; font-weight: 700; border: none; cursor: pointer; width: 100%; box-shadow: 0 14px 34px rgba(232,131,107,0.28); transition: transform 0.2s, background 0.2s; }
+.modal-submit:hover:not(:disabled) { background: var(--coral-deep); transform: translateY(-1px); }
+.modal-submit:disabled { opacity: 0.7; cursor: progress; }
+.modal-legal { font-size: 12px; color: var(--text-light); text-align: center; line-height: 1.5; }
+.modal-status { padding: 12px 16px; border-radius: 12px; font-size: 14px; text-align: center; display: none; }
+.modal-status.is-error { display: block; background: var(--coral-light); color: var(--coral-deep); }
+.modal-success { text-align: center; padding: 20px 0 8px; }
+.modal-success-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--sage-light); color: var(--sage-deep); font-size: 32px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+.modal-success-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+.modal-success-body { font-size: 15px; color: var(--text-secondary); line-height: 1.6; max-width: 420px; margin: 0 auto; }
+
+@media (max-width: 760px) {
+  .modal-card { padding: 28px 22px 24px; border-radius: 20px; }
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+  .modal-title { font-size: 26px; }
+}
+
 @media (max-width: 760px) {
   nav { padding: 12px 18px; }
   .nav-link { display: none; }
@@ -356,6 +393,94 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
   </div>
 </section>
 
+<!-- Founding Member application modal -->
+<div class="modal-overlay" id="app-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card">
+    <button type="button" class="modal-close" id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-form-view">
+      <h2 class="modal-title" id="modal-title">Apply as a <em>founding member.</em></h2>
+      <p class="modal-sub">Seven quick questions. Heath reviews every application personally — you'll hear back within 24 hours.</p>
+      <form id="founding-form" novalidate>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="f-name">Full name<span class="req">*</span></label>
+            <input id="f-name" name="name" type="text" autocomplete="name" required>
+            <div class="field-error">Required.</div>
+          </div>
+          <div class="field">
+            <label for="f-email">Email<span class="req">*</span></label>
+            <input id="f-email" name="email" type="email" autocomplete="email" required>
+            <div class="field-error">Enter a valid email.</div>
+          </div>
+          <div class="field">
+            <label for="f-phone">Phone<span class="req">*</span></label>
+            <input id="f-phone" name="phone" type="tel" autocomplete="tel" required placeholder="(210) 555-0123">
+            <div class="field-error">Enter a valid phone.</div>
+          </div>
+          <div class="field">
+            <label for="f-city">City<span class="req">*</span></label>
+            <select id="f-city" name="city" required>
+              <option value="">Select…</option>
+              <option value="San Antonio">San Antonio</option>
+              <option value="Boerne">Boerne</option>
+              <option value="Austin">Austin</option>
+              <option value="Dallas">Dallas</option>
+              <option value="Houston">Houston</option>
+              <option value="Other">Other</option>
+            </select>
+            <div class="field-error">Required.</div>
+          </div>
+          <div class="field">
+            <label for="f-license">TREC license #<span class="req">*</span></label>
+            <input id="f-license" name="trec_license" type="text" required placeholder="Ex: 0654321">
+            <div class="field-error">Required.</div>
+          </div>
+          <div class="field">
+            <label for="f-deals">Deals per year<span class="req">*</span></label>
+            <select id="f-deals" name="deals" required>
+              <option value="">Select…</option>
+              <option value="3">Less than 5</option>
+              <option value="7">5-10</option>
+              <option value="15">10-20</option>
+              <option value="25">20+</option>
+            </select>
+            <div class="field-error">Required.</div>
+          </div>
+          <div class="field full">
+            <label for="f-heard">How did you hear about Dossie?<span class="req">*</span></label>
+            <select id="f-heard" name="heard_from" required>
+              <option value="">Select…</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="referral_friend">Referral from a friend</option>
+              <option value="referral_kw">Referral from a KW colleague</option>
+              <option value="google_search">Google search</option>
+              <option value="other">Other</option>
+            </select>
+            <div class="field-error">Required.</div>
+          </div>
+        </div>
+        <div class="modal-submit-row">
+          <div class="modal-status" id="modal-status"></div>
+          <button type="submit" class="modal-submit" id="modal-submit">
+            <span>Submit application</span>
+            <span>→</span>
+          </button>
+          <div class="modal-legal">By submitting you agree to be contacted about your Dossie founding membership.</div>
+        </div>
+      </form>
+    </div>
+    <div id="modal-success-view" style="display:none;">
+      <div class="modal-success">
+        <div class="modal-success-icon">✓</div>
+        <h2 class="modal-success-title">Application received.</h2>
+        <p class="modal-success-body">Heath reviews every founding application personally. You'll hear back within 24 hours with next steps — including your Stripe checkout link if approved.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-logo">
     <div class="nav-mark" style="width:30px;height:30px;font-size:13px;">D</div>
@@ -376,6 +501,10 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
 // so Pierce can attribute conversions back to specific posts / cohorts.
 // Also stash UTM in sessionStorage so the checkout-click event can echo
 // them back after user navigates within the page.
+//
+// Wrapped in posthog:ready to guarantee the SDK is initialized before
+// capture() fires. The pre-boot stub queue (_q) is not read by the loaded
+// array.js SDK in all cases — safest to defer until init lands.
 (function () {
   try {
     var params = new URLSearchParams(window.location.search);
@@ -386,12 +515,15 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     if (utmMedium) sessionStorage.setItem('utm_medium', utmMedium);
     if (utmCampaign) sessionStorage.setItem('utm_campaign', utmCampaign);
 
-    // Use the queue-stub or the real SDK — both accept capture().
-    window.posthog.capture('founding_page_viewed', {
-      utm_source: utmSource,
-      utm_medium: utmMedium,
-      utm_campaign: utmCampaign,
-      referrer: document.referrer || null,
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('founding_page_viewed', {
+          utm_source: utmSource,
+          utm_medium: utmMedium,
+          utm_campaign: utmCampaign,
+          referrer: document.referrer || null,
+        });
+      } catch (_) { /* analytics never load-bearing */ }
     });
   } catch (err) { /* analytics is never load-bearing */ }
 })();
@@ -430,52 +562,189 @@ footer { padding: 56px 28px 48px; text-align: center; border-top: 1px solid var(
     .catch(function () { /* keep SSR fallbacks */ });
 })();
 
-// Join button → Stripe checkout
-(async function () {
-  var button = document.getElementById("join-button");
-  var status = document.getElementById("status-message");
-  if (!button) return;
-
+// Join button → open 7-field application modal → POST to Supabase +
+// /api/notify-founding-application → Heath approves in Telegram → Stripe
+// checkout link + approval email delivered by admin-approve pipeline.
+(function () {
   var pageLoadedAt = Date.now();
 
-  button.addEventListener("click", async function () {
-    button.disabled = true;
-    button.textContent = "Starting checkout...";
-    status.textContent = "";
-    status.classList.remove("is-error");
+  var joinBtn = document.getElementById("join-button");
+  var modal = document.getElementById("app-modal");
+  var closeBtn = document.getElementById("modal-close");
+  var form = document.getElementById("founding-form");
+  var submitBtn = document.getElementById("modal-submit");
+  var statusEl = document.getElementById("modal-status");
+  var formView = document.getElementById("modal-form-view");
+  var successView = document.getElementById("modal-success-view");
 
-    // Analytics: fires BEFORE the network call so we capture intent even
-    // if the API request fails. Echoes UTM captured on page load so the
-    // click event carries the same attribution.
+  if (!joinBtn || !modal || !form) return;
+
+  function openModal() {
+    modal.classList.add("is-open");
+    document.body.style.overflow = "hidden";
     try {
-      window.posthog.capture('founding_join_clicked', {
+      window.posthog.capture('founding_apply_click', {
         time_on_page_seconds: Math.round((Date.now() - pageLoadedAt) / 1000),
         utm_source: sessionStorage.getItem('utm_source') || null,
         utm_medium: sessionStorage.getItem('utm_medium') || null,
         utm_campaign: sessionStorage.getItem('utm_campaign') || null,
       });
     } catch (_) { /* analytics never load-bearing */ }
+    // Focus first field for keyboard flow
+    setTimeout(function () { var n = document.getElementById("f-name"); if (n) n.focus(); }, 60);
+  }
+
+  function closeModal() {
+    modal.classList.remove("is-open");
+    document.body.style.overflow = "";
+  }
+
+  joinBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", function (ev) { if (ev.target === modal) closeModal(); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && modal.classList.contains("is-open")) closeModal(); });
+
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var PHONE_RE = /^[0-9()+\-.\s]{7,}$/;
+
+  function setFieldError(inputId, hasErr) {
+    var el = document.getElementById(inputId);
+    if (!el) return;
+    var wrap = el.closest(".field");
+    if (!wrap) return;
+    wrap.classList.toggle("has-error", !!hasErr);
+  }
+
+  function readForm() {
+    return {
+      name: (document.getElementById("f-name").value || "").trim(),
+      email: (document.getElementById("f-email").value || "").trim().toLowerCase(),
+      phone: (document.getElementById("f-phone").value || "").trim(),
+      city: document.getElementById("f-city").value || "",
+      trec_license: (document.getElementById("f-license").value || "").trim(),
+      deals: document.getElementById("f-deals").value || "",
+      heard_from: document.getElementById("f-heard").value || "",
+    };
+  }
+
+  function validate(data) {
+    var errs = [];
+    if (!data.name) { errs.push("f-name"); }
+    if (!EMAIL_RE.test(data.email)) { errs.push("f-email"); }
+    if (!PHONE_RE.test(data.phone)) { errs.push("f-phone"); }
+    if (!data.city) { errs.push("f-city"); }
+    if (!data.trec_license) { errs.push("f-license"); }
+    if (!data.deals) { errs.push("f-deals"); }
+    if (!data.heard_from) { errs.push("f-heard"); }
+    ["f-name","f-email","f-phone","f-city","f-license","f-deals","f-heard"].forEach(function (id) {
+      setFieldError(id, errs.indexOf(id) !== -1);
+    });
+    return errs.length === 0;
+  }
+
+  async function submitApplication(data) {
+    // 1. Fetch anon supabase key from /api/config (already in-use pattern).
+    var cfg;
+    try {
+      var cfgRes = await fetch("/api/config", { headers: { Accept: "application/json" } });
+      cfg = await cfgRes.json();
+    } catch (err) {
+      throw new Error("Could not load config. Try again in a moment.");
+    }
+    if (!cfg || !cfg.supabaseUrl || !cfg.supabaseKey) {
+      throw new Error("Application service unavailable. Contact heath@meetdossie.com.");
+    }
+
+    // 2. Insert row into founding_applications (anon RLS allows INSERT only).
+    var row = {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      city: data.city,
+      trec_license: data.trec_license,
+      transactions_12mo: parseInt(data.deals, 10) || 0,
+      heard_from: data.heard_from,
+      market: data.city,
+      status: "pending",
+    };
+
+    var insertRes = await fetch(cfg.supabaseUrl + "/rest/v1/founding_applications", {
+      method: "POST",
+      headers: {
+        apikey: cfg.supabaseKey,
+        Authorization: "Bearer " + cfg.supabaseKey,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(row),
+    });
+    if (!insertRes.ok) {
+      var errText = await insertRes.text().catch(function () { return ""; });
+      console.error("[founding] insert failed", insertRes.status, errText);
+      throw new Error("Could not save your application. Try again in a moment.");
+    }
+
+    // 3. Ping the notify endpoint — reads the row by email + notifies Heath.
+    var notifyRes = await fetch("/api/notify-founding-application", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email }),
+    });
+    // notify failure is non-fatal for the applicant — Heath can still see the
+    // row in Supabase and approve via /api/admin-approve-founding. Log it.
+    if (!notifyRes.ok) {
+      var nText = await notifyRes.text().catch(function () { return ""; });
+      console.warn("[founding] notify non-200", notifyRes.status, nText.slice(0, 200));
+    }
+    return true;
+  }
+
+  form.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    statusEl.style.display = "none";
+    statusEl.classList.remove("is-error");
+    statusEl.textContent = "";
+
+    var data = readForm();
+    if (!validate(data)) {
+      statusEl.textContent = "Please fix the highlighted fields.";
+      statusEl.classList.add("is-error");
+      statusEl.style.display = "block";
+      return;
+    }
 
     try {
-      var res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+      window.posthog.capture('founding_apply_submit', {
+        city: data.city,
+        heard_from: data.heard_from,
+        deals_bucket: data.deals,
       });
+    } catch (_) { /* analytics never load-bearing */ }
 
-      var data = await res.json();
-      if (!res.ok || !data.ok || !data.url) {
-        throw new Error(data.error || "Checkout failed.");
-      }
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = "<span>Submitting…</span>";
 
-      // Redirect to Stripe checkout
-      window.location.href = data.url;
+    try {
+      await submitApplication(data);
+
+      try {
+        window.posthog.capture('founding_apply_success', {
+          city: data.city,
+          heard_from: data.heard_from,
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+
+      // Swap to success view. Keep modal open — closing it defeats the
+      // confirmation. User can dismiss via ✕ or Esc.
+      formView.style.display = "none";
+      successView.style.display = "block";
     } catch (err) {
-      console.error("[founding] checkout error:", err && err.message);
-      status.textContent = err && err.message || "Could not start checkout. Try again in a moment.";
-      status.classList.add("is-error");
-      button.disabled = false;
-      button.innerHTML = '<span class="cta-label">Join as Founding Member — $29/mo</span><span class="cta-arrow">→</span>';
+      console.error("[founding] submit error:", err && err.message);
+      statusEl.textContent = (err && err.message) || "Could not submit. Try again in a moment.";
+      statusEl.classList.add("is-error");
+      statusEl.style.display = "block";
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = "<span>Submit application</span><span>→</span>";
     }
   });
 })();

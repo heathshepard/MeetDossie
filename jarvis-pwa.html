@@ -8924,6 +8924,12 @@
     const LS_OUTPUT = 'jarvis:audio:outputDeviceId';
     const LS_INPUT_LABEL  = 'jarvis:audio:inputDeviceLabel';
     const LS_OUTPUT_LABEL = 'jarvis:audio:outputDeviceLabel';
+    // atlas_9 2026-07-07: native input device pinning (Android APK only).
+    // Stores the numeric AudioDeviceInfo.getId() returned by the native
+    // AudioMode.getInputDevices() plugin call — used to force
+    // AudioManager.setCommunicationDevice() at API 31+.
+    const LS_INPUT_NATIVE_ID    = 'jarvis:audio:inputNativeId';
+    const LS_INPUT_NATIVE_LABEL = 'jarvis:audio:inputNativeLabel';
 
     // Feature detection — setSinkId on <audio>.
     const SINK_ID_SUPPORTED =
@@ -9074,9 +9080,65 @@
       spkEl.textContent = isCustomOut ? shorten(outLabel, 18) : 'Default';
     }
 
+    // ===== Native input device helpers (atlas_9, 2026-07-07) =====
+    // Call the AudioMode plugin's new input methods when we're running
+    // inside the Capacitor APK. All are no-ops in the browser.
+    function isCapacitorNativeCtx() {
+      return !!(
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform()
+      );
+    }
+    function getAudioModePlugin() {
+      if (!isCapacitorNativeCtx()) return null;
+      return (window.Capacitor.Plugins && window.Capacitor.Plugins.AudioMode) || null;
+    }
+    async function nativeGetInputDevices() {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.getInputDevices !== 'function') return null;
+      try { return await p.getInputDevices(); }
+      catch (e) { console.warn('[jarvis-audio-native] getInputDevices failed:', e && e.message); return null; }
+    }
+    async function nativeSetPreferredInputDevice(nativeId) {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.setPreferredInputDevice !== 'function') return null;
+      try {
+        const r = await p.setPreferredInputDevice({ deviceId: Number(nativeId) });
+        console.log('[jarvis-audio-native] setPreferredInputDevice:', r);
+        return r;
+      } catch (e) {
+        console.warn('[jarvis-audio-native] setPreferredInputDevice failed:', e && e.message);
+        return null;
+      }
+    }
+    async function nativeClearPreferredInputDevice() {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.clearPreferredInputDevice !== 'function') return null;
+      try { return await p.clearPreferredInputDevice(); }
+      catch (e) { return null; }
+    }
+    async function nativeGetCurrentInputDevice() {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.getCurrentInputDevice !== 'function') return null;
+      try { return await p.getCurrentInputDevice(); }
+      catch (e) { return null; }
+    }
+    // Re-apply Heath's saved input pin on app boot so it survives reload.
+    (async function reapplyNativeInputPinOnBoot() {
+      if (!isCapacitorNativeCtx()) return;
+      await new Promise(r => setTimeout(r, 300)); // let Capacitor register plugins
+      try {
+        const savedNativeId = localStorage.getItem(LS_INPUT_NATIVE_ID);
+        if (savedNativeId) await nativeSetPreferredInputDevice(savedNativeId);
+      } catch (e) {}
+    })();
+    window.__jarvisNativeGetInputDevices = nativeGetInputDevices;
+    window.__jarvisNativeGetCurrentInputDevice = nativeGetCurrentInputDevice;
+
     // ===== Modal =====
     let activeBackdrop = null;
-    let cachedDevices = { inputs: [], outputs: [] };
+    let cachedDevices = { inputs: [], outputs: [], nativeInputs: [], canForceInput: false, apiLevel: 0 };
     let hasLabelPermission = false;
 
     async function ensurePermissionForLabels() {
@@ -9100,13 +9162,16 @@
 
     async function loadDevices() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        cachedDevices = { inputs: [], outputs: [] };
+        cachedDevices = { inputs: [], outputs: [], nativeInputs: [], canForceInput: false, apiLevel: 0 };
         return cachedDevices;
       }
       const all = await navigator.mediaDevices.enumerateDevices();
       cachedDevices = {
         inputs:  all.filter(d => d.kind === 'audioinput'),
         outputs: all.filter(d => d.kind === 'audiooutput'),
+        nativeInputs: [],
+        canForceInput: false,
+        apiLevel: 0,
       };
       const labelsBlank = cachedDevices.inputs.every(d => !d.label) &&
                           cachedDevices.outputs.every(d => !d.label);
@@ -9114,13 +9179,49 @@
         const granted = await ensurePermissionForLabels();
         if (granted) {
           const all2 = await navigator.mediaDevices.enumerateDevices();
-          cachedDevices = {
-            inputs:  all2.filter(d => d.kind === 'audioinput'),
-            outputs: all2.filter(d => d.kind === 'audiooutput'),
-          };
+          cachedDevices.inputs  = all2.filter(d => d.kind === 'audioinput');
+          cachedDevices.outputs = all2.filter(d => d.kind === 'audiooutput');
         }
       }
+      // atlas_9 2026-07-07 — pull the native input list too (APK only).
+      const nativeRes = await nativeGetInputDevices();
+      if (nativeRes) {
+        cachedDevices.nativeInputs  = Array.isArray(nativeRes.devices) ? nativeRes.devices : [];
+        cachedDevices.canForceInput = !!nativeRes.canForceInput;
+        cachedDevices.apiLevel      = nativeRes.apiLevel || 0;
+      }
       return cachedDevices;
+    }
+
+    /**
+     * atlas_9 2026-07-07 — Match a WebView audioinput MediaDeviceInfo
+     * label to a native AudioDeviceInfo by fuzzy label / type. Returns
+     * the numeric native id or null if no match. WebView labels on
+     * Android look like "Bluetooth mic" / "DJI Mic" / "Default"; native
+     * product names look like "WH-1000XM4" / "DJI Mic Mini" / "Galaxy
+     * Z Fold Microphone". Score by substring + type hint.
+     */
+    function matchNativeInput(webviewLabel, nativeInputs) {
+      if (!Array.isArray(nativeInputs) || nativeInputs.length === 0) return null;
+      const lbl = String(webviewLabel || '').toLowerCase();
+      const brandHints = [
+        { keys: ['dji'],                          types: ['usb_device','usb_headset','usb_accessory','bluetooth_sco'] },
+        { keys: ['sony','wh-1000','wh-','1000xm'],types: ['bluetooth_sco','bluetooth_a2dp'] },
+        { keys: ['bluetooth','bt','headset'],     types: ['bluetooth_sco','bluetooth_a2dp'] },
+        { keys: ['wired'],                        types: ['wired_headset','wired_headphones'] },
+        { keys: ['default','built','phone','internal'], types: ['builtin_mic'] },
+      ];
+      for (const nd of nativeInputs) {
+        const name = String(nd.name || '').toLowerCase();
+        if (lbl && name && (lbl.includes(name) || name.includes(lbl))) return nd.id;
+      }
+      for (const hint of brandHints) {
+        if (hint.keys.some(k => lbl.includes(k))) {
+          const match = nativeInputs.find(nd => hint.types.includes(String(nd.typeName || '')));
+          if (match) return match.id;
+        }
+      }
+      return null;
     }
 
     function buildOption(d, savedId) {
@@ -9152,7 +9253,35 @@
         const savedIn  = localStorage.getItem(LS_INPUT)  || '';
         const savedOut = localStorage.getItem(LS_OUTPUT) || '';
 
-        devices.inputs.forEach(d => inSel.appendChild(buildOption(d, savedIn)));
+        // atlas_9 2026-07-07 — WebView options carry a data-native-id
+        // when we can match them to a native AudioDeviceInfo, so onSave
+        // can call setPreferredInputDevice() on Android.
+        const seenNativeIds = new Set();
+        devices.inputs.forEach(d => {
+          const opt = buildOption(d, savedIn);
+          const nativeId = matchNativeInput(d.label, devices.nativeInputs);
+          if (nativeId != null) {
+            opt.dataset.nativeId = String(nativeId);
+            seenNativeIds.add(nativeId);
+            const nd = devices.nativeInputs.find(x => x.id === nativeId);
+            if (nd && nd.typeName) opt.dataset.nativeType = nd.typeName;
+          }
+          inSel.appendChild(opt);
+        });
+        // atlas_9 2026-07-07 — expose native-only inputs the WebView
+        // didn't enumerate (DJI Mic / BT SCO). Synthetic value +
+        // dataset.nativeOnly=1 so onSave routes to native pin only.
+        devices.nativeInputs.forEach(nd => {
+          if (seenNativeIds.has(nd.id)) return;
+          const opt = document.createElement('option');
+          opt.value = 'native:' + nd.id;
+          opt.textContent = (nd.name || nd.typeName || ('Device ' + nd.id)) + ' [' + (nd.typeName || 'input') + ']';
+          opt.dataset.nativeId = String(nd.id);
+          opt.dataset.nativeOnly = '1';
+          if (nd.typeName) opt.dataset.nativeType = nd.typeName;
+          if (('native:' + nd.id) === savedIn) opt.selected = true;
+          inSel.appendChild(opt);
+        });
         devices.outputs.forEach(d => outSel.appendChild(buildOption(d, savedOut)));
 
         if (!hasLabelPermission && devices.inputs.length > 0 && !devices.inputs[0].label) {
@@ -9161,8 +9290,13 @@
           status.classList.add('is-err');
           status.textContent = 'No audio devices found.';
         } else {
+          let nativeMsg = '';
+          if (isCapacitorNativeCtx()) {
+            if (devices.canForceInput) nativeMsg = ' · native pin supported (API ' + devices.apiLevel + ')';
+            else if (devices.apiLevel) nativeMsg = ' · native pin unavailable (API ' + devices.apiLevel + ' < 31)';
+          }
           status.textContent =
-            'Detected ' + devices.inputs.length + ' input · ' + devices.outputs.length + ' output device(s).';
+            'Detected ' + devices.inputs.length + ' input · ' + devices.outputs.length + ' output device(s)' + nativeMsg + '.';
         }
 
         if (!SINK_ID_SUPPORTED) {
@@ -9277,18 +9411,56 @@
 
       const inputId  = inSel.value || '';
       const outputId = outSel.value || '';
-      const inputLabel  = inputId  ? (inSel.options[inSel.selectedIndex].text  || '') : '';
-      const outputLabel = outputId ? (outSel.options[outSel.selectedIndex].text || '') : '';
+      const selInOpt  = inSel.options[inSel.selectedIndex];
+      const selOutOpt = outSel.options[outSel.selectedIndex];
+      const inputLabel  = inputId  ? (selInOpt  && selInOpt.text  || '') : '';
+      const outputLabel = outputId ? (selOutOpt && selOutOpt.text || '') : '';
+      // atlas_9 2026-07-07 — native input pin id + type from option dataset.
+      const nativeInputId =
+        selInOpt && selInOpt.dataset && selInOpt.dataset.nativeId
+          ? selInOpt.dataset.nativeId : '';
+      const nativeInputType =
+        selInOpt && selInOpt.dataset && selInOpt.dataset.nativeType
+          ? selInOpt.dataset.nativeType : '';
+      const isNativeOnly =
+        selInOpt && selInOpt.dataset && selInOpt.dataset.nativeOnly === '1';
 
       try {
-        if (inputId)  localStorage.setItem(LS_INPUT,  inputId);  else localStorage.removeItem(LS_INPUT);
+        // A synthetic 'native:N' value can't be passed to getUserMedia's
+        // deviceId constraint (would reject). For native-only picks,
+        // clear LS_INPUT so the WebView uses default + we lean on native
+        // pinning to actually route the audio.
+        if (inputId && !isNativeOnly)  localStorage.setItem(LS_INPUT,  inputId);  else localStorage.removeItem(LS_INPUT);
         if (outputId) localStorage.setItem(LS_OUTPUT, outputId); else localStorage.removeItem(LS_OUTPUT);
         if (inputLabel)  localStorage.setItem(LS_INPUT_LABEL,  inputLabel);  else localStorage.removeItem(LS_INPUT_LABEL);
         if (outputLabel) localStorage.setItem(LS_OUTPUT_LABEL, outputLabel); else localStorage.removeItem(LS_OUTPUT_LABEL);
+        if (nativeInputId) {
+          localStorage.setItem(LS_INPUT_NATIVE_ID, nativeInputId);
+          localStorage.setItem(LS_INPUT_NATIVE_LABEL, inputLabel + (nativeInputType ? ' [' + nativeInputType + ']' : ''));
+        } else {
+          localStorage.removeItem(LS_INPUT_NATIVE_ID);
+          localStorage.removeItem(LS_INPUT_NATIVE_LABEL);
+        }
       } catch (e) {
         status.classList.add('is-err');
         status.textContent = 'Could not save preferences (localStorage blocked).';
         return;
+      }
+
+      // atlas_9 2026-07-07 — actually pin the input at the Android
+      // AudioManager level. This is what makes the DJI Mic win when
+      // Heath is also wearing Bluetooth headphones.
+      let nativePinResult = null;
+      if (isCapacitorNativeCtx()) {
+        try {
+          if (nativeInputId) {
+            nativePinResult = await nativeSetPreferredInputDevice(nativeInputId);
+          } else {
+            await nativeClearPreferredInputDevice();
+          }
+        } catch (e) {
+          console.warn('[jarvis-audio] native pin apply failed:', e && e.message);
+        }
       }
 
       // If user picked an output and setSinkId IS supported, route any
@@ -9302,22 +9474,134 @@
 
       updateRoutingChip();
       status.classList.remove('is-err');
-      status.textContent = 'Saved. Jarvis will use these devices on the next mic + speak.';
-      setTimeout(() => closeModal(), 900);
+      let msg = 'Saved. Jarvis will use these devices on the next mic + speak.';
+      if (nativePinResult && nativePinResult.success === false && nativePinResult.reason) {
+        msg = 'Saved. Native pin: ' + nativePinResult.reason;
+      } else if (nativePinResult && nativePinResult.success === true) {
+        msg = 'Saved + native input pinned to ' + (nativePinResult.appliedName || nativePinResult.appliedType || 'device') + '.';
+      }
+      status.textContent = msg;
+      setTimeout(() => closeModal(), 1400);
     }
 
-    function onReset(modal) {
+    async function onReset(modal) {
       try {
         localStorage.removeItem(LS_INPUT);
         localStorage.removeItem(LS_OUTPUT);
         localStorage.removeItem(LS_INPUT_LABEL);
         localStorage.removeItem(LS_OUTPUT_LABEL);
+        localStorage.removeItem(LS_INPUT_NATIVE_ID);
+        localStorage.removeItem(LS_INPUT_NATIVE_LABEL);
       } catch (e) {}
+      // atlas_9 2026-07-07 — also release any native pin so the OS
+      // reverts to its default input priority.
+      if (isCapacitorNativeCtx()) {
+        try { await nativeClearPreferredInputDevice(); } catch (e) {}
+      }
       updateRoutingChip();
       populateSelects(modal);
       const status = modal.querySelector('#audio-modal-status');
       status.classList.remove('is-err');
       status.textContent = 'Reset to System Default.';
+    }
+
+    // ===== Debug overlay (atlas_9, 2026-07-07) =====
+    // Long-press the routing chip (or #audio-settings-btn) for ~1.2s to
+    // toggle a floating overlay that shows live audio state. Makes
+    // future BT / DJI routing debug possible without ADB.
+    let debugPollTimer = null;
+    let debugOverlay = null;
+    function fmtNum(n) { return (n == null || Number.isNaN(n)) ? '—' : String(n); }
+    async function refreshDebugOverlay() {
+      if (!debugOverlay) return;
+      let statusRes = null, currentIn = null, inList = null;
+      try {
+        const p = getAudioModePlugin();
+        if (p && typeof p.getStatus === 'function') {
+          try { statusRes = await p.getStatus(); } catch (e) {}
+        }
+        if (p && typeof p.getCurrentInputDevice === 'function') {
+          try { currentIn = await p.getCurrentInputDevice(); } catch (e) {}
+        }
+        if (p && typeof p.getInputDevices === 'function') {
+          try { inList = await p.getInputDevices(); } catch (e) {}
+        }
+      } catch (e) {}
+      const lsIn = (function(){ try { return localStorage.getItem(LS_INPUT) || ''; } catch(e){return ''} })();
+      const lsInNative = (function(){ try { return localStorage.getItem(LS_INPUT_NATIVE_ID) || ''; } catch(e){return ''} })();
+      const lsInLabel = (function(){ try { return localStorage.getItem(LS_INPUT_LABEL) || ''; } catch(e){return ''} })();
+      const lsOut = (function(){ try { return localStorage.getItem(LS_OUTPUT) || ''; } catch(e){return ''} })();
+      const inCount = inList && Array.isArray(inList.devices) ? inList.devices.length : 0;
+      const nativeCtx = isCapacitorNativeCtx();
+      const html = [
+        '<div style="font:600 12px system-ui;margin-bottom:6px;color:#8ef;">audio debug (atlas_9)</div>',
+        '<div><b>native ctx:</b> ' + (nativeCtx ? 'YES (APK)' : 'no (browser)') + '</div>',
+        statusRes ? '<div><b>mode:</b> ' + statusRes.modeName + '</div>' : '',
+        statusRes ? '<div><b>bt sco on:</b> ' + statusRes.bluetoothScoOn + '</div>' : '',
+        statusRes ? '<div><b>a2dp:</b> ' + statusRes.a2dpConnected + '</div>' : '',
+        statusRes ? '<div><b>speaker:</b> ' + statusRes.speakerphoneOn + '</div>' : '',
+        statusRes ? '<div><b>output dev:</b> ' + statusRes.activeDevice + '</div>' : '',
+        currentIn ? '<div><b>input dev (native):</b> ' + (currentIn.name || currentIn.typeName || '?') + ' (id=' + fmtNum(currentIn.id) + ' t=' + currentIn.typeName + ')</div>' : '',
+        inList ? '<div><b>api level:</b> ' + fmtNum(inList.apiLevel) + ' · pin support: ' + (inList.canForceInput ? 'yes' : 'no') + '</div>' : '',
+        '<div><b>input devices (' + inCount + '):</b></div>',
+        inList && inList.devices ? '<div style="max-height:110px;overflow:auto;font:11px monospace;background:rgba(0,0,0,0.25);padding:4px;">' +
+          inList.devices.map(d => '· ' + (d.name || d.typeName || '?') + ' [' + d.typeName + '] id=' + d.id).join('<br/>') + '</div>' : '',
+        '<div style="margin-top:6px;"><b>LS input:</b> ' + (lsInLabel || '—') + '</div>',
+        '<div><b>LS deviceId:</b> ' + (lsIn ? lsIn.slice(0,14)+'…' : '—') + '</div>',
+        '<div><b>LS native pin id:</b> ' + (lsInNative || '—') + '</div>',
+        '<div><b>LS output:</b> ' + (lsOut ? lsOut.slice(0,14)+'…' : '—') + '</div>',
+        '<div style="margin-top:6px;font-size:10px;opacity:0.7;">refreshed ' + new Date().toLocaleTimeString() + '</div>',
+      ].filter(Boolean).join('');
+      const body = debugOverlay.querySelector('.jarvis-audio-debug-body');
+      if (body) body.innerHTML = html;
+    }
+    function openDebugOverlay() {
+      if (debugOverlay) return;
+      debugOverlay = document.createElement('div');
+      debugOverlay.className = 'jarvis-audio-debug';
+      debugOverlay.style.cssText = [
+        'position:fixed','top:20px','right:12px','z-index:2000',
+        'width:min(320px,88vw)','background:rgba(10,15,30,0.94)',
+        'color:#dff','border:1px solid rgba(140,220,255,0.4)',
+        'border-radius:10px','padding:10px 12px',
+        'box-shadow:0 8px 24px rgba(0,0,0,0.5)',
+        'font:12px system-ui','backdrop-filter:blur(6px)',
+      ].join(';');
+      debugOverlay.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<div style="font:600 12px system-ui;color:#8ef;">audio debug</div>' +
+          '<button type="button" style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:2px 8px;font:12px system-ui;cursor:pointer;">×</button>' +
+        '</div>' +
+        '<div class="jarvis-audio-debug-body">loading…</div>';
+      const closeBtn = debugOverlay.querySelector('button');
+      closeBtn.addEventListener('click', closeDebugOverlay);
+      document.body.appendChild(debugOverlay);
+      refreshDebugOverlay();
+      debugPollTimer = setInterval(refreshDebugOverlay, 1500);
+    }
+    function closeDebugOverlay() {
+      if (debugPollTimer) { clearInterval(debugPollTimer); debugPollTimer = null; }
+      if (debugOverlay) { debugOverlay.remove(); debugOverlay = null; }
+    }
+    function toggleDebugOverlay() {
+      if (debugOverlay) closeDebugOverlay(); else openDebugOverlay();
+    }
+    window.__jarvisAudioDebug = toggleDebugOverlay;
+    function wireLongPress(el) {
+      if (!el || el.__jarvisLongPress) return;
+      let timer = null;
+      const start = (e) => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { toggleDebugOverlay(); timer = null; }, 1200);
+      };
+      const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      el.addEventListener('touchstart', start, { passive: true });
+      el.addEventListener('touchend', cancel, { passive: true });
+      el.addEventListener('touchmove', cancel, { passive: true });
+      el.addEventListener('mousedown', start);
+      el.addEventListener('mouseup', cancel);
+      el.addEventListener('mouseleave', cancel);
+      el.__jarvisLongPress = true;
     }
 
     // ===== Bootstrap =====
@@ -9327,6 +9611,10 @@
         btn.addEventListener('click', openModal);
         btn.__jarvisWired = true;
       }
+      // atlas_9 2026-07-07: long-press the cog OR the routing chip to
+      // toggle the debug overlay.
+      wireLongPress(btn);
+      wireLongPress(document.getElementById('audio-routing-chip'));
       updateRoutingChip();
     }
     if (document.readyState === 'loading') {
