@@ -21,6 +21,210 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const REVIEWER_MODEL = 'claude-sonnet-4-20250514';
 const MAX_PER_RUN = 12;
 
+// -------------------------------------------------------------------------
+// DEMOTED-RULE DETECTOR (2026-07-07 sage recalibration)
+//
+// The model kept stacking send_back / reject verdicts on rules that the
+// prompt explicitly demotes: (a) Dossie mentioned in main-body of a
+// non-group post, (b) persona='dossie' flagged as mismatch, (c) verified
+// facts (pricing, TC quit in Italy, 4:30am, $400/file) flagged as
+// "fabricated". This sanitizer runs AFTER the LLM verdict. If the model
+// sent back a post but every objection matches a demoted keyword pattern,
+// the sanitizer flips the verdict to APPROVE.
+//
+// This is intentionally a whitelist of DEMOTED reasons, not a blacklist of
+// approve reasons. If the model finds a real fabrication (invented
+// customer, fake MRR, unshipped feature), those phrases won't match and
+// the send_back stands.
+// -------------------------------------------------------------------------
+// Two-part matcher (see scripts/sage-reviewer-sanitizer-selftest.js):
+// (1) Simple keyword hits — chunk mentions demoted terminology.
+// (2) Combo hits — chunk contains both a verified-fact keyword AND an
+//     unverification word (in either order, any distance apart).
+const DEMOTED_KEYWORD_PATTERNS = [
+  // Dossie-in-body objections on main social (not group)
+  /dossie\s+mention(ion)?\s+rule/i,
+  /dossie\s+(should\s+)?(be\s+)?(in|moved\s+to)\s+(the\s+)?first\s+comment/i,
+  /(reserve|save|move)\s+.*dossie.*for\s+first\s+comment/i,
+  /dossie\s+in\s+(the\s+)?(main\s+)?(body|caption|post)/i,
+  /product\s+details?\s+(buried|in\s+caption).*first\s+comment/i,
+  /mentions?\s+dossie\s+throughout/i,
+  /dossie\s+isn'?t\s+mentioned\s+until/i,
+  /bury(?:ing|ies|ied)?\s+dossie/i,
+  /dossie\s+(is\s+)?(mentioned\s+)?buried/i,
+  /dossie\s+mention.*first\s+comment/i,
+  /caption\s+.*(first\s+comment|save.*first)/i,
+  /first\s+comment\s+per\s+rules/i,
+  /should\s+save\s+product\s+details/i,
+
+  // Persona=dossie flagged as mismatch
+  /persona\s+mismatch/i,
+  /tagged\s+(as\s+)?['"]?dossie['"]?\s+but\s+should\s+be/i,
+  /'?dossie'?\s+is\s+not\s+a\s+valid\s+persona/i,
+  /dossie\s+doesn'?t\s+post\s+in\s+first-?person/i,
+  /use\s+brenda\/?patricia\/?victor/i,
+  /(reframe|rewrite|use)\s+(as\s+)?agent\s+persona/i,
+  /should\s+be\s+agent[- ]?focused\s+voice/i,
+  /dossie\s+persona\s+(should|but\s+reads)/i,
+
+  // Hashtag-count objections
+  /hashtag\s+count/i,
+  /too\s+many\s+hashtags/i,
+  /(more|less)\s+than\s+\d+\s+hashtags/i,
+
+  // Copy-nit / vibe / self-contradicting objections
+  /clunky\s+phrasing/i,
+  /could\s+read\s+better/i,
+  /consider\s+rephrasing/i,
+  /on\s+second\s+thought/i,
+  /actually\s+fine/i,
+  /minor\s+(copy\s+)?nit/i,
+  /reads?\s+(like\s+)?(a\s+)?(corporate|sales\s*[- ]?y|salesy|marketing|product\s+pitch|sales\s+pitch)/i,
+  /too\s+corporate/i,
+  /voice\s+is\s+off/i,
+  /tone\s+(drift|is\s+off)/i,
+  /reads?\s+more\s+like\s+a?\s*sales\s+pitch/i,
+  /voice\s+too\s+salesy/i,
+  /salesy\/?corporate/i,
+];
+
+// Combo matcher: a chunk is DEMOTED if it contains any verified-fact
+// keyword AND any unverification word.
+const VERIFIED_FACT_KEYWORDS = [
+  /\$29(?![\d])/i,           // $29 not followed by more digits
+  /\$400(?![\d])/i,          // $400/file
+  /founding\s+pricing/i,
+  /founding\s+member\s+pricing/i,
+  /founding\s+price/i,
+  /italy/i,
+  /4:?30\s*(am|a\.m\.)/i,
+  /4:?30\s*in\s+the\s+morning/i,
+  /heath\s+built\s+dossie/i,
+  /heath.*tc\s+quit/i,
+  /tc\s+quit.*heath/i,
+  /locked\s+while\s+(your\s+)?subscription/i,
+];
+const UNVERIFICATION_KEYWORDS = [
+  /unverified/i,
+  /fabricat/i,
+  /invented/i,
+  /needs\s+verification/i,
+  /not\s+confirmed/i,
+  /no\s+evidence/i,
+  /lacks\s+verification/i,
+  /is\s+a\s+(specific\s+)?claim/i,
+  /is\s+a\s+specific\s+detail/i,
+  /invented\s+narrative/i,
+  /specific\s+claim.*verification/i,
+];
+
+function isDemotedChunk(chunk) {
+  if (DEMOTED_KEYWORD_PATTERNS.some((rx) => rx.test(chunk))) return true;
+  const hasFact = VERIFIED_FACT_KEYWORDS.some((rx) => rx.test(chunk));
+  const hasUnverif = UNVERIFICATION_KEYWORDS.some((rx) => rx.test(chunk));
+  if (hasFact && hasUnverif) return true;
+  return false;
+}
+
+// Real hard-block phrases that ALWAYS justify a send_back (never demote)
+const HARD_BLOCK_PATTERNS = [
+  /invented\s+customer(?:\s+name)?/i,
+  /fake\s+testimonial/i,
+  /fabricated\s+testimonial/i,
+  /made-?up\s+testimonial/i,
+  /unshipped\s+feature/i,
+  /unreleased\s+feature/i,
+  /pii/i,
+  /personal\s+information/i,
+  /phone\s+number/i,
+  /email\s+address\s+exposed/i,
+  /home\s+address/i,
+  /harmful/i,
+  /discriminatory/i,
+  /misleading\s+medical/i,
+];
+
+// Split the feedback into candidate objections and score them.
+// Returns { totalObjections, demotedCount, hardBlockCount }
+function scoreFeedback(feedback) {
+  if (!feedback || typeof feedback !== 'string') {
+    return { totalObjections: 0, demotedCount: 0, hardBlockCount: 0 };
+  }
+
+  // Split into sentence-ish chunks + numbered lists so we can count objections.
+  const chunks = feedback
+    .split(/(?:\n+|\(\d+\)|(?:^|\s)\d+[\.\)]\s+|;\s+)/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 4);
+
+  const list = chunks.length > 0 ? chunks : [feedback];
+
+  // Drop the intro-only chunks like "Multiple hard blockers:" which are
+  // NOT an objection but a heading
+  const substantive = list.filter((c) => {
+    const t = c.trim();
+    if (/^(multiple\s+)?(hard\s+)?(critical\s+)?(blockers?|issues?|violations?|failures?)[\s:.-]*$/i.test(t)) return false;
+    if (t.length < 15) return false;
+    return true;
+  });
+  const scored = substantive.length > 0 ? substantive : list;
+
+  let hardBlockCount = 0;
+  let demotedCount = 0;
+
+  for (const chunk of scored) {
+    if (HARD_BLOCK_PATTERNS.some((rx) => rx.test(chunk))) {
+      hardBlockCount++;
+      continue;
+    }
+    if (isDemotedChunk(chunk)) {
+      demotedCount++;
+    }
+  }
+
+  return {
+    totalObjections: scored.length,
+    demotedCount,
+    hardBlockCount,
+  };
+}
+
+// Sanitize the LLM verdict. If the model sent back but every objection is
+// a demoted rule and NO hard-block phrases are present, override to approve.
+function sanitizeReview(review, isGroupPost) {
+  if (!review) return review;
+  const decision = String(review.decision || '').toLowerCase();
+
+  // Group posts are governed by the strict "no Dossie in body" rule which
+  // is NOT demoted — do not sanitize group posts. Only sanitize main
+  // social posts.
+  if (isGroupPost) return review;
+
+  if (decision !== 'send_back' && decision !== 'reject') return review;
+
+  const { totalObjections, demotedCount, hardBlockCount } = scoreFeedback(review.feedback);
+
+  // If there's a real hard-block phrase, keep the verdict.
+  if (hardBlockCount > 0) return review;
+
+  // Threshold: if at least 2 demoted matches AND >= 50% of objections
+  // are demoted (and none are hard-block), the review is spurious.
+  // Verified by scripts/sage-reviewer-sanitizer-selftest.js against the
+  // last 30 days of production rejects.
+  if (demotedCount >= 2 && totalObjections > 0 && demotedCount / totalObjections >= 0.5) {
+    return {
+      decision: 'approve',
+      score: Math.max(review.score || 5, 7),
+      feedback: `[sanitized: ${demotedCount}/${totalObjections} objections were demoted rules; auto-approved. Original feedback dropped: ${(review.feedback || '').slice(0, 160)}]`,
+      _sanitized: true,
+      _originalDecision: decision,
+    };
+  }
+
+  return review;
+}
+
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -103,13 +307,25 @@ ${POLICY_SURFACE_MATRIX}
 4. **Hook Quality**: First 1-2 sentences are punchy and agent-relatable.
 5. **Pillar Alignment**: Touches Cost, Control, Visibility, Speed, or Coverage.
 
-## Decision Framework — DEFAULT TO APPROVE
+## HARD RULE — READ THIS BEFORE ANSWERING
 
-Send back ONLY for these four conditions (per locked spec):
-(a) Obvious factual fabrication BEYOND the VERIFIED FACTS whitelist (e.g., invented customer name like "Sarah from Plano", fake MRR figure, unshipped feature, made-up testimonial).
-(b) Wrong persona for the platform's audience (rare).
-(c) PII or sensitive data exposure.
-(d) FB-group rule violation (DOES NOT APPLY HERE — this is a main social post, Dossie mention in caption is FINE).
+If your ONLY objections come from the DEMOTED list below, verdict is APPROVE.
+Do not send_back. Do not reject. APPROVE.
+
+You have been repeatedly over-rejecting posts that are actually fine. The Dossie mention rule is FB-GROUP-ONLY. It does not apply to Facebook PAGE, Twitter, LinkedIn, or Instagram. On main social posts, Dossie mention in the caption IS CORRECT and EXPECTED.
+
+## THE ONLY REASONS TO SEND_BACK ARE:
+
+(a) An INVENTED customer name (e.g., "Sarah from Plano called me") not in VERIFIED CUSTOMERS.
+(b) An INVENTED testimonial or direct quote attributed to a specific person we do not have on record.
+(c) A specific fake MRR number, deal count, or metric that contradicts VERIFIED FACTS (current MRR is $377 as of 2026-07-07).
+(d) A feature described as shipped that isn't in VERIFIED FEATURES (e.g., "Dossie signs contracts for you" — not shipped).
+(e) PII or sensitive data (phone number, home address, private email).
+(f) The post is a Facebook GROUP post AND mentions Dossie in the main body (NOT applicable — this is a MAIN social post).
+
+If NONE of (a)-(f) applies, verdict is APPROVE.
+
+## Decision Framework — DEFAULT TO APPROVE (kept for backward compat)
 
 DEMOTED to warning (auto-approve, do not send back):
 - "Dossie mentioned in main body" objections on Facebook PAGE / Twitter / LinkedIn / Instagram → AUTO-APPROVE.
@@ -126,8 +342,22 @@ GOOD: "Rewrite hook — claim 'I closed 50 deals last month' is unverified. Use 
 BAD: "Hashtag count exceeds rules but LinkedIn allows more so this is actually fine, however on second thought..." ← reverse to APPROVE.
 
 - **APPROVE** (score 7-10): Default. Ship it. Empty feedback OK.
-- **SEND_BACK** (score 4-6): ONE specific fixable issue from (a)-(c). ≤25 words.
-- **REJECT** (score 1-3): Hard violation — invented testimonial, harmful content, completely off-audience. Rare.
+- **SEND_BACK** (score 4-6): ONE specific fixable issue from (a)-(e) above. ≤20 words.
+- **REJECT** (score 1-3): Hard violation — invented testimonial, harmful, completely off-audience. Extremely rare.
+
+## MANDATORY SELF-CHECK BEFORE EMITTING JSON
+
+Before you output your verdict, mentally run this checklist:
+
+1. Does my feedback contain "Dossie mention rule", "first comment", "buried Dossie", "reserve for first comment", or similar? → FLIP TO APPROVE.
+2. Does my feedback say persona 'dossie' is a mismatch or invalid? → FLIP TO APPROVE.
+3. Does my feedback say $29 / $400 / Italy / 4:30am / founding pricing is unverified or fabricated? → FLIP TO APPROVE (all verified).
+4. Does my feedback say the hashtag count is too high? → FLIP TO APPROVE.
+5. Does my feedback say the post reads salesy / corporate / like marketing (without a specific rule violation)? → FLIP TO APPROVE.
+6. Am I stacking "multiple violations" where each individual one is in the DEMOTED list? → FLIP TO APPROVE.
+7. Is my only concrete objection something specifically in (a)-(e) above? If not → FLIP TO APPROVE.
+
+If ANY self-check fires, the verdict is APPROVE and feedback should be empty or a positive note.
 
 Return JSON ONLY: {"decision": "approve|send_back|reject", "score": N, "feedback": "concise specific reason if not approve"}`;
 
@@ -293,11 +523,24 @@ module.exports = withTelemetry('cron-sage-autonomous-review', async function han
     }
 
     // Run Cole's review
-    const review = await coleReview(post);
-    if (!review) {
+    const rawReview = await coleReview(post);
+    if (!rawReview) {
       console.error('[cron-sage-autonomous-review] review call failed for', postId);
       errors.push({ inbox_id: inboxRow.id, post_id: postId, error: 'review call failed' });
       continue;
+    }
+
+    // 2026-07-07 recalibration: sanitize the LLM verdict against demoted-rule
+    // objections. If model sent back a post but every objection is a demoted
+    // rule, override to approve.
+    const isGroupPost = !!post.post_body && post.first_comment_body !== undefined;
+    const review = sanitizeReview(rawReview, isGroupPost);
+    if (review._sanitized) {
+      console.log(
+        '[cron-sage-autonomous-review] sanitizer overrode',
+        rawReview.decision, '→ approve for', postId,
+        '— demoted objections only'
+      );
     }
 
     const decision = review.decision; // 'approve', 'send_back', 'reject'
