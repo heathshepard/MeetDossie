@@ -4644,11 +4644,24 @@
         try {
           while (audioQueue.length) {
             const it = audioQueue.shift();
-            try { URL.revokeObjectURL(it.url); } catch {}
+            try { if (it.url) URL.revokeObjectURL(it.url); } catch {}
           }
+        } catch {}
+        // atlas_11 v4: also halt native AudioTrack immediately so Heath
+        // can cut Jarvis off mid-word without the buffered PCM continuing
+        // to play from the Sony WH.
+        try {
+          if (nativePlaybackOpen) nativeStopPlayback().catch(() => {});
         } catch {}
         try { playbackCompletedResolve && playbackCompletedResolve(); } catch {}
       };
+
+      // atlas_11 2026-07-07 (v4): route decision. If "Force output via
+      // native bridge" is on AND we're in the APK, TTS MP3 chunks are
+      // decoded to PCM and streamed to the native AudioTrack (USAGE_MEDIA
+      // + CONTENT_TYPE_SPEECH → routes through A2DP to Sony WH even
+      // with HSP off). Otherwise, fall back to the WebView <audio> chain.
+      const useNativeOutput = isCapacitorNativeCtx() && isForceNativeOutputOn();
 
       // When an audio MP3 arrives, build an <audio> element and queue it.
       // If nothing is currently playing AND this is the next-expected seq,
@@ -4657,11 +4670,20 @@
         const byteStr = atob(base64);
         const bytes = new Uint8Array(byteStr.length);
         for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
-        const blob = new Blob([bytes], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.preload = 'auto';
-        audioQueue.push({ seq, url, audio });
+        if (useNativeOutput) {
+          // Native bridge path — no <audio> element, no <blob> URL. We
+          // still queue an item so the sequence gate + interrupt hooks
+          // work uniformly. The 'audio' slot is null; playback dispatch
+          // recognizes { seq, native:true, bytes } and drives the native
+          // AudioTrack directly.
+          audioQueue.push({ seq, native: true, bytes });
+        } else {
+          const blob = new Blob([bytes], { type: 'audio/mpeg' });
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          audio.preload = 'auto';
+          audioQueue.push({ seq, url, audio });
+        }
         audioQueue.sort((a, b) => a.seq - b.seq);
         tryPlayNext();
       }
@@ -4673,25 +4695,16 @@
         if (idx === -1) return; // next-expected not yet arrived
         const item = audioQueue.splice(idx, 1)[0];
         currentlyPlayingSeq = item.seq;
-        activeAudio = item.audio;
+        activeAudio = item.audio || null;
 
-        // 2026-06-27 auto-resume hardening — Heath reported having to tap
-        // "tap to start" after every reply because the conversation didn't
-        // auto-flip back to listening. Root cause: on Android WebView and
-        // some browsers, audio.onended never fires for short MP3 chunks
-        // (~1-2s ElevenLabs sentences), so the chain stalls. We now use:
-        //   1. BOTH onended + addEventListener('ended') for redundancy
-        //   2. A duration-based safety timeout (audio.duration + 1.5s)
-        //   3. play() rejection handler that advances the chain
-        //   4. Idempotent advance() so multiple triggers don't double-fire
         let advanced = false;
         let durationTimer = null;
         function advance(reason) {
           if (advanced) return;
           advanced = true;
           if (durationTimer) { clearTimeout(durationTimer); durationTimer = null; }
-          try { URL.revokeObjectURL(item.url); } catch {}
-          if (activeAudio === item.audio) activeAudio = null;
+          try { if (item.url) URL.revokeObjectURL(item.url); } catch {}
+          if (item.audio && activeAudio === item.audio) activeAudio = null;
           currentlyPlayingSeq = -1;
           nextPlaySeq = item.seq + 1;
           if (reason && reason !== 'ended') {
@@ -4709,6 +4722,61 @@
           }
         }
 
+        anyAudioPlayed = true;
+        setPttState('speaking');
+        pttLabel.textContent = 'TAP TO INTERRUPT';
+        pttStatus.textContent = 'Speaking… (tap to cut in)';
+
+        // ---- Native bridge path (v4, atlas_11) ----
+        if (item.native) {
+          // Hard ceiling — never sit on a native clip longer than 20s.
+          const hardCeiling = setTimeout(() => advance('hard-ceiling-native'), 20000);
+          nativePlayMp3Bytes(item.bytes).then((durationSec) => {
+            clearTimeout(hardCeiling);
+            // AudioTrack.write is blocking — when nativePlayMp3Bytes
+            // resolves, all frames are in the track's buffer. Wait for
+            // the track to finish rendering (durationSec + 0.4s slack)
+            // then advance.
+            const wait = Math.max(120, ((durationSec || 0) + 0.4) * 1000);
+            setTimeout(() => advance('native-ended'), wait);
+          }).catch((err) => {
+            clearTimeout(hardCeiling);
+            console.warn('[jarvis] nativePlayMp3Bytes failed:', err && err.message);
+            // Fall back to WebView playback for THIS clip: build an
+            // <audio> element from the raw bytes on the fly. If that
+            // also fails, advance so the chain doesn't stall.
+            try {
+              const blob = new Blob([item.bytes], { type: 'audio/mpeg' });
+              const url = URL.createObjectURL(blob);
+              const audio = new Audio(url);
+              item.url = url;
+              item.audio = audio;
+              activeAudio = audio;
+              audio.onended = () => advance('fallback-ended');
+              audio.onerror = () => advance('fallback-error');
+              const hard2 = setTimeout(() => advance('fallback-hard-ceiling'), 15000);
+              audio.addEventListener('ended', () => clearTimeout(hard2));
+              audio.play().catch((e) => {
+                console.warn('[jarvis] fallback audio.play() rejected:', e);
+                advance('fallback-play-rejected');
+              });
+            } catch (e) {
+              advance('native-and-fallback-failed');
+            }
+          });
+          return;
+        }
+
+        // ---- WebView <audio> path (unchanged v3 behavior) ----
+        // 2026-06-27 auto-resume hardening — Heath reported having to tap
+        // "tap to start" after every reply because the conversation didn't
+        // auto-flip back to listening. Root cause: on Android WebView and
+        // some browsers, audio.onended never fires for short MP3 chunks
+        // (~1-2s ElevenLabs sentences), so the chain stalls. We now use:
+        //   1. BOTH onended + addEventListener('ended') for redundancy
+        //   2. A duration-based safety timeout (audio.duration + 1.5s)
+        //   3. play() rejection handler that advances the chain
+        //   4. Idempotent advance() so multiple triggers don't double-fire
         item.audio.onended = () => advance('ended');
         item.audio.addEventListener('ended', () => advance('ended-listener'));
         item.audio.onerror = () => advance('error');
@@ -4730,10 +4798,6 @@
         const hardCeiling = setTimeout(() => advance('hard-ceiling'), 15000);
         item.audio.addEventListener('ended', () => clearTimeout(hardCeiling));
 
-        anyAudioPlayed = true;
-        setPttState('speaking');
-        pttLabel.textContent = 'TAP TO INTERRUPT';
-        pttStatus.textContent = 'Speaking… (tap to cut in)';
         item.audio.play().catch((err) => {
           console.warn('[jarvis] audio.play() rejected:', err);
           // If the browser blocked playback (autoplay policy etc), don't
@@ -4909,6 +4973,11 @@
         // stale callback can't fire on the next conversation turn. Each
         // streaming call owns its own __jarvisInterruptTTS.
         try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        // atlas_11 v4: release the native AudioTrack at end of turn so
+        // system audio focus returns to WebView for chimes/etc. Idempotent.
+        if (useNativeOutput) {
+          try { await nativeStopPlayback(); } catch {}
+        }
       }
     }
 
@@ -9158,6 +9227,20 @@
     ]);
     const LS_INPUT_NATIVE_TYPE = 'jarvis:audio:inputNativeType';
 
+    // atlas_11 2026-07-07 (v4): "Force output via native bridge" toggle.
+    // When on (default in APK), TTS MP3 chunks are decoded to PCM and fed
+    // to the native AudioTrack with USAGE_MEDIA + CONTENT_TYPE_SPEECH so
+    // playback flows through A2DP (Sony WH-1000XM3) even with HSP off.
+    const LS_FORCE_NATIVE_OUTPUT = 'jarvis:audio:forceNativeOutput';
+    function isForceNativeOutputOn() {
+      if (!isCapacitorNativeCtx()) return false;
+      try {
+        const v = localStorage.getItem(LS_FORCE_NATIVE_OUTPUT);
+        // Default ON in APK, unless explicitly set to '0'.
+        return v !== '0';
+      } catch (e) { return true; }
+    }
+
     // ---------- native capture state ----------
     let nativeCaptureListenerHandle = null;
     let nativeCaptureAudioCtx = null;
@@ -9302,6 +9385,155 @@
       try { return await p.getNativeCaptureStatus(); }
       catch (e) { return null; }
     }
+
+    // ============================================================
+    // NATIVE AUDIO PLAYBACK BRIDGE (atlas_11, 2026-07-07)  --  v4
+    // ============================================================
+    // TTS response MP3 chunks → OfflineAudioContext.decodeAudioData →
+    // Float32 PCM → int16 LE → base64 → AudioMode.writePcm → AudioTrack
+    // tagged USAGE_MEDIA + CONTENT_TYPE_SPEECH → routes through A2DP
+    // to Sony WH even with the HSP toggle OFF.
+    //
+    // The native track auto-opens on first writePcm attempt for a turn
+    // and closes on TTS end / interrupt.
+    // ============================================================
+
+    let nativePlaybackAudioCtx = null;
+    let nativePlaybackOpen = false;
+    let nativePlaybackTotalBytesJS = 0; // JS-side count (native has its own)
+
+    function ensureNativePlaybackDecodeCtx() {
+      if (nativePlaybackAudioCtx && nativePlaybackAudioCtx.state !== 'closed') {
+        return nativePlaybackAudioCtx;
+      }
+      try { if (nativePlaybackAudioCtx) nativePlaybackAudioCtx.close(); } catch (e) {}
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      // Only used for MP3 → PCM decode. No output — decoded buffers are
+      // shipped straight to the native AudioTrack, so this ctx never
+      // routes any audio to the WebView's own output.
+      nativePlaybackAudioCtx = new Ctx();
+      return nativePlaybackAudioCtx;
+    }
+
+    // Convert an AudioBuffer (mono or stereo) to interleaved PCM_16LE bytes
+    // at the buffer's own sampleRate. Mono kept mono; stereo downmixed to
+    // mono via (L+R)/2 to keep the write side + AudioTrack config simple.
+    function audioBufferToPcm16Mono(audioBuffer) {
+      const chans = audioBuffer.numberOfChannels;
+      const len   = audioBuffer.length;
+      let f32;
+      if (chans === 1) {
+        f32 = audioBuffer.getChannelData(0);
+      } else {
+        const left  = audioBuffer.getChannelData(0);
+        const right = audioBuffer.getChannelData(1);
+        f32 = new Float32Array(len);
+        for (let i = 0; i < len; i++) f32[i] = (left[i] + right[i]) * 0.5;
+      }
+      const out = new Int16Array(len);
+      for (let i = 0; i < len; i++) {
+        let s = f32[i];
+        if (s > 1)  s = 1;
+        if (s < -1) s = -1;
+        out[i] = s < 0 ? (s * 0x8000) | 0 : (s * 0x7FFF) | 0;
+      }
+      // Little-endian byte view.
+      return new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+    }
+
+    function uint8ToBase64(u8) {
+      // Chunked to avoid apply-arg-limit on huge buffers.
+      let out = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < u8.length; i += chunk) {
+        out += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+      }
+      return btoa(out);
+    }
+
+    async function nativeOpenPlayback(sampleRate, channels) {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.startNativePlayback !== 'function') {
+        throw new Error('AudioMode.startNativePlayback unavailable — rebuild the APK');
+      }
+      const r = await p.startNativePlayback({
+        sampleRate: sampleRate || 24000,
+        channels: channels || 1,
+      });
+      nativePlaybackOpen = !!(r && r.started);
+      if (!nativePlaybackOpen) {
+        throw new Error('startNativePlayback returned started=false');
+      }
+      console.log('[jarvis-audio-native] startNativePlayback:', r);
+      return r;
+    }
+
+    async function nativeWritePcmBytes(u8) {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.writePcm !== 'function') return null;
+      const b64 = uint8ToBase64(u8);
+      const r = await p.writePcm({ base64Frame: b64 });
+      if (r && typeof r.bytesWritten === 'number') {
+        nativePlaybackTotalBytesJS += r.bytesWritten;
+      }
+      return r;
+    }
+
+    async function nativeStopPlayback() {
+      const p = getAudioModePlugin();
+      nativePlaybackOpen = false;
+      if (!p || typeof p.stopNativePlayback !== 'function') return null;
+      try { return await p.stopNativePlayback(); }
+      catch (e) { console.warn('[jarvis-audio-native] stopNativePlayback failed:', e && e.message); return null; }
+    }
+
+    async function nativeGetPlaybackStatus() {
+      const p = getAudioModePlugin();
+      if (!p || typeof p.getNativePlaybackStatus !== 'function') return null;
+      try { return await p.getNativePlaybackStatus(); }
+      catch (e) { return null; }
+    }
+
+    /**
+     * Decode an ElevenLabs (or similar) MP3 chunk to PCM and stream it
+     * through the native AudioTrack. Returns duration (seconds) of the
+     * decoded audio so callers can time out queue advance if native ended
+     * events don't fire.
+     */
+    async function nativePlayMp3Bytes(mp3Bytes) {
+      const ctx = ensureNativePlaybackDecodeCtx();
+      // decodeAudioData wants an ArrayBuffer (copy, not a view over shared).
+      const ab = mp3Bytes.buffer.slice(
+        mp3Bytes.byteOffset,
+        mp3Bytes.byteOffset + mp3Bytes.byteLength);
+      const buf = await new Promise((resolve, reject) => {
+        try { ctx.decodeAudioData(ab, resolve, reject); }
+        catch (e) { reject(e); }
+      });
+      const sr = buf.sampleRate | 0;
+      if (!nativePlaybackOpen) {
+        await nativeOpenPlayback(sr, 1);
+      }
+      const pcm = audioBufferToPcm16Mono(buf);
+      // Slice into ~50ms frames to keep bridge calls small + smooth.
+      const frameBytes = Math.max(1600, (sr * 2 * 50) / 1000) | 0; // 2 bytes/sample × 50ms
+      for (let off = 0; off < pcm.length; off += frameBytes) {
+        const end = Math.min(off + frameBytes, pcm.length);
+        const slice = pcm.subarray(off, end);
+        try {
+          await nativeWritePcmBytes(slice);
+        } catch (e) {
+          // Bail on the first hard write failure — caller falls back.
+          throw new Error('writePcm failed: ' + (e && e.message || e));
+        }
+      }
+      return buf.duration;
+    }
+
+    window.__jarvisNativeOpenPlayback   = nativeOpenPlayback;
+    window.__jarvisNativeStopPlayback   = nativeStopPlayback;
+    window.__jarvisNativeGetPlaybackStatus = nativeGetPlaybackStatus;
+    window.__jarvisNativePlayMp3Bytes   = nativePlayMp3Bytes;
 
     function shouldRouteNative() {
       if (!isCapacitorNativeCtx()) return false;
@@ -9602,6 +9834,21 @@
 
           <div id="audio-modal-status" class="audio-status">Loading audio devices…</div>
 
+          <div class="audio-row" id="audio-force-native-row" style="display:none;flex-direction:column;align-items:stretch;gap:6px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;">
+              <input type="checkbox" id="audio-force-native-toggle" style="width:18px;height:18px;accent-color:#8ef;">
+              <span style="flex:1;">
+                <div style="font-weight:600;">Force output via native bridge</div>
+                <div style="font-size:11px;opacity:0.75;line-height:1.35;">
+                  Routes Jarvis's voice through Android's media stream
+                  (USAGE_MEDIA + CONTENT_TYPE_SPEECH) so A2DP Bluetooth
+                  headphones play the audio even when the "Calls"/HSP
+                  toggle is off. Recommended for USB + Bluetooth users.
+                </div>
+              </span>
+            </label>
+          </div>
+
           <div class="audio-modal-actions">
             <button class="audio-btn" id="audio-modal-reset" type="button">Reset</button>
             <button class="audio-btn audio-btn-primary" id="audio-modal-save" type="button">Save</button>
@@ -9618,6 +9865,15 @@
       backdrop.querySelector('#audio-modal-close').addEventListener('click', closeModal);
       backdrop.querySelector('#audio-modal-save').addEventListener('click', () => onSave(backdrop));
       backdrop.querySelector('#audio-modal-reset').addEventListener('click', () => onReset(backdrop));
+
+      // atlas_11 v4: show + wire the "Force output via native bridge"
+      // toggle only in the Capacitor APK context. The default is ON.
+      if (isCapacitorNativeCtx()) {
+        const row = backdrop.querySelector('#audio-force-native-row');
+        const cb  = backdrop.querySelector('#audio-force-native-toggle');
+        if (row) row.style.display = 'flex';
+        if (cb)  cb.checked = isForceNativeOutputOn();
+      }
 
       // Device-change listener so newly plugged DJI / Sony shows up live.
       if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
@@ -9661,6 +9917,10 @@
       const isNativeOnly =
         selInOpt && selInOpt.dataset && selInOpt.dataset.nativeOnly === '1';
 
+      // atlas_11 v4: read the "Force output via native bridge" toggle
+      const forceNativeCb = modal.querySelector('#audio-force-native-toggle');
+      const forceNativeOn = forceNativeCb ? !!forceNativeCb.checked : true;
+
       try {
         // A synthetic 'native:N' value can't be passed to getUserMedia's
         // deviceId constraint (would reject). For native-only picks,
@@ -9679,6 +9939,10 @@
           localStorage.removeItem(LS_INPUT_NATIVE_ID);
           localStorage.removeItem(LS_INPUT_NATIVE_LABEL);
           localStorage.removeItem(LS_INPUT_NATIVE_TYPE);
+        }
+        // Persist toggle: '1' = on, '0' = off. Default (unset) treated as ON.
+        if (isCapacitorNativeCtx()) {
+          localStorage.setItem(LS_FORCE_NATIVE_OUTPUT, forceNativeOn ? '1' : '0');
         }
       } catch (e) {
         status.classList.add('is-err');
@@ -9732,6 +9996,9 @@
         localStorage.removeItem(LS_INPUT_NATIVE_ID);
         localStorage.removeItem(LS_INPUT_NATIVE_LABEL);
         localStorage.removeItem(LS_INPUT_NATIVE_TYPE);
+        // atlas_11 v4: also drop the force-native-output override so the
+        // default (ON in APK) applies again.
+        localStorage.removeItem(LS_FORCE_NATIVE_OUTPUT);
       } catch (e) {}
       // atlas_9 2026-07-07 — also release any native pin so the OS
       // reverts to its default input priority.
@@ -9739,7 +10006,14 @@
         try { await nativeClearPreferredInputDevice(); } catch (e) {}
         // atlas_10 2026-07-07 — halt any running native AudioRecord too.
         try { await nativeStopCapture(); } catch (e) {}
+        // atlas_11 v4 — halt any running native AudioTrack playback too.
+        try { await nativeStopPlayback(); } catch (e) {}
       }
+      // Reset toggle UI back to default (ON).
+      try {
+        const cb = modal.querySelector('#audio-force-native-toggle');
+        if (cb) cb.checked = true;
+      } catch (e) {}
       updateRoutingChip();
       populateSelects(modal);
       const status = modal.querySelector('#audio-modal-status');
@@ -9756,7 +10030,7 @@
     function fmtNum(n) { return (n == null || Number.isNaN(n)) ? '—' : String(n); }
     async function refreshDebugOverlay() {
       if (!debugOverlay) return;
-      let statusRes = null, currentIn = null, inList = null, captureRes = null;
+      let statusRes = null, currentIn = null, inList = null, captureRes = null, playbackRes = null;
       try {
         const p = getAudioModePlugin();
         if (p && typeof p.getStatus === 'function') {
@@ -9771,6 +10045,9 @@
         if (p && typeof p.getNativeCaptureStatus === 'function') {
           try { captureRes = await p.getNativeCaptureStatus(); } catch (e) {}
         }
+        if (p && typeof p.getNativePlaybackStatus === 'function') {
+          try { playbackRes = await p.getNativePlaybackStatus(); } catch (e) {}
+        }
       } catch (e) {}
       const lsIn = (function(){ try { return localStorage.getItem(LS_INPUT) || ''; } catch(e){return ''} })();
       const lsInNative = (function(){ try { return localStorage.getItem(LS_INPUT_NATIVE_ID) || ''; } catch(e){return ''} })();
@@ -9781,17 +10058,27 @@
       const nativeCtx = isCapacitorNativeCtx();
       const routeNative = shouldRouteNative();
       const bytesPerSec = nativeCaptureBytesPerSec || 0;
+      const forceOutOn = isForceNativeOutputOn();
       const html = [
-        '<div style="font:600 12px system-ui;margin-bottom:6px;color:#8ef;">audio debug (atlas_10)</div>',
+        '<div style="font:600 12px system-ui;margin-bottom:6px;color:#8ef;">audio debug (atlas_11 v4)</div>',
         '<div><b>native ctx:</b> ' + (nativeCtx ? 'YES (APK)' : 'no (browser)') + '</div>',
         '<div style="margin-top:4px;padding:4px 6px;background:rgba(140,220,255,0.12);border-left:2px solid #8ef;border-radius:4px;">',
-        '  <div><b>route via native:</b> ' + (routeNative ? 'YES (USB bridge active)' : 'no (WebView gUM)') + '</div>',
+        '  <div><b>route via native (input):</b> ' + (routeNative ? 'YES (USB bridge active)' : 'no (WebView gUM)') + '</div>',
         '  <div><b>capture running:</b> ' + (captureRes && captureRes.running ? 'yes' : 'no') + '</div>',
         captureRes ? '  <div><b>capture dev:</b> ' + (captureRes.deviceName || '—') + ' (id=' + fmtNum(captureRes.deviceId) + ')</div>' : '',
         captureRes ? '  <div><b>capture rate:</b> ' + fmtNum(captureRes.sampleRate) + ' Hz</div>' : '',
         captureRes ? '  <div><b>bytes total:</b> ' + fmtNum(captureRes.totalBytes) + '</div>' : '',
         '  <div><b>bytes/sec (JS):</b> ' + bytesPerSec + '</div>',
         '  <div><b>underruns:</b> ' + fmtNum(captureRes && captureRes.underruns) + ' · drops (seq): ' + nativeCaptureDrops + '</div>',
+        '</div>',
+        // v4 native PLAYBACK panel
+        '<div style="margin-top:4px;padding:4px 6px;background:rgba(140,255,180,0.10);border-left:2px solid #8fe;border-radius:4px;">',
+        '  <div><b>force native output:</b> ' + (forceOutOn ? 'YES' : 'no') + '</div>',
+        '  <div><b>playback open:</b> ' + (playbackRes && playbackRes.open ? 'yes' : 'no') + '</div>',
+        playbackRes ? '  <div><b>playback rate:</b> ' + fmtNum(playbackRes.sampleRate) + ' Hz</div>' : '',
+        playbackRes ? '  <div><b>usage tag:</b> ' + (playbackRes.usage || '?') + ' / ' + (playbackRes.contentType || '?') + '</div>' : '',
+        playbackRes ? '  <div><b>bytes played:</b> ' + fmtNum(playbackRes.totalBytes) + '</div>' : '',
+        playbackRes ? '  <div><b>write errors:</b> ' + fmtNum(playbackRes.writeErrors) + '</div>' : '',
         '</div>',
         statusRes ? '<div><b>mode:</b> ' + statusRes.modeName + '</div>' : '',
         statusRes ? '<div><b>bt sco on:</b> ' + statusRes.bluetoothScoOn + '</div>' : '',
