@@ -425,24 +425,6 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
-    },
-    "api/cron-social-cadence.js": {
-      "maxDuration": 30
-    },
-    "api/cron-weekly-post-review.js": {
-      "maxDuration": 60
-    },
-    "api/cron-competitor-scan-weekly.js": {
-      "maxDuration": 30
-    },
-    "api/cron-trending-audio-scan.js": {
-      "maxDuration": 30
-    },
-    "api/cron-comment-monitor.js": {
-      "maxDuration": 120
-    },
-    "api/cron-heath-cameo-reminder.js": {
-      "maxDuration": 30
     }
   },
   "crons": [
