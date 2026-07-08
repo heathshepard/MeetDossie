@@ -254,7 +254,8 @@ module.exports = async function handler(req, res) {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Query: status='posted' AND posted_at >= 7 days ago AND zernio_post_id IS NOT NULL
-    const filter = `status=eq.posted&posted_at=gte.${encodeURIComponent(sevenDaysAgo)}&zernio_post_id=not.is.null&zernio_verified_at=not.is.null&select=id,post_id,platform,zernio_post_id,actual_platform_url,posted_at,content`;
+    // SELECT now includes hook, cta, hook_type, cta_type, topic, persona for analytics enrichment
+    const filter = `status=eq.posted&posted_at=gte.${encodeURIComponent(sevenDaysAgo)}&zernio_post_id=not.is.null&zernio_verified_at=not.is.null&select=id,post_id,platform,zernio_post_id,actual_platform_url,posted_at,content,hook,cta,hook_type,cta_type,topic,persona`;
 
     const { data: items, ok: loadOk } = await supabaseFetch(
       `/rest/v1/social_posts?${filter}&order=posted_at.desc&limit=500`
@@ -334,6 +335,12 @@ module.exports = async function handler(req, res) {
         link_clicks: normalized.link_clicks,
         engagement_rate: normalized.engagement_rate,
         raw_response: normalized.raw_response,
+        // ADDED: content enrichment fields for Sage A/B ranking
+        hook: post.hook || null,
+        hook_type: post.hook_type || null,
+        cta_type: post.cta_type || null,
+        topic: post.topic || null,
+        persona: post.persona || null,
       };
 
       const insertResp = await supabaseFetch(

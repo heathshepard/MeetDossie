@@ -1340,6 +1340,32 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
 
   console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'slots:', plan.map((p) => `${p.format || 'PERSONA_STORY'}/${p.platform}`).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'top_performer_hooks:', topHooks.length, 'at', now.toISOString());
 
+// ─── Hook Type Classification ─────────────────────────────────────────────
+// Map hook formulas to standardized hook_type for Sage A/B ranking.
+function classifyHookType(formulaName) {
+  const map = {
+    'STAT': 'number',
+    'QUESTION': 'question',
+    'CONTRAST': 'before_after',
+    'STORY_OPEN': 'story',
+    'BOLD_CLAIM': 'bold_claim',
+  };
+  return map[formulaName] || 'unknown';
+}
+
+// Map CTA patterns to standardized cta_type for engagement tracking.
+// These are heuristics based on CTA field from generation.
+function classifyCTA(ctaText) {
+  if (!ctaText) return 'none';
+  const lower = String(ctaText).toLowerCase();
+  if (lower.includes('comment') || lower.includes('reply') || lower.includes('ask')) return 'comment';
+  if (lower.includes('link') || lower.includes('click') || lower.includes('tap')) return 'link_click';
+  if (lower.includes('save') || lower.includes('bookmark')) return 'save';
+  if (lower.includes('share') || lower.includes('forward')) return 'share';
+  if (lower.includes('follow') || lower.includes('subscribe')) return 'follow';
+  return 'other';
+}
+
   let raw;
   try {
     raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock), founding));
@@ -1557,13 +1583,20 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
       }
     }
 
+    // Classify hook formula (STAT, QUESTION, CONTRAST, etc) into standardized type
+    const hookFormula = pickHookFormula(dayOfYear, i);
+    const hookType = classifyHookType(hookFormula.name);
+    const ctaType = classifyCTA(cta);
+
     const row = {
       post_id: postId,
       platform,
       content: caption, // Full post text for social media
       content_hash: require('crypto').createHash('md5').update(caption).digest('hex'),
       hook: hook || caption.slice(0, 120),
+      hook_type: hookType, // ADDED: standardized hook classification for Sage A/B ranking
       cta,
+      cta_type: ctaType, // ADDED: standardized CTA classification for engagement tracking
       hashtags,
       status: finalStatus,
       telegram_sent_at: null,
