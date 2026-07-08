@@ -59,6 +59,12 @@ const CRON_SECRET               = process.env.CRON_SECRET;
 const VALID_TASK_TYPES = new Set([
   'fable_script_gen',
   'echo',   // testing/smoke — echoes the payload back
+  // Social content overhaul (Phase 5/6) — added 2026-07-08 by Atlas.
+  // Handlers in scripts/claude-code-task-handlers/<task_type>.js.
+  'sage_weekly_review',   // Analyze last 7d of post_analytics, rank hooks/CTAs/sounds.
+  'comment_reply_gen',    // Draft warm 1-2 sentence replies to inbound comments.
+  'competitor_scan',      // Weekly deep-scan of tracked competitor accounts.
+  'trending_audio_scan',  // Daily scrape of TikTok trending sounds.
 ]);
 
 // Valid queue agents. We default to 'atlas' since the worker is Atlas-owned
