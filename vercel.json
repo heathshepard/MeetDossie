@@ -425,6 +425,24 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
+    },
+    "api/cron-social-cadence.js": {
+      "maxDuration": 30
+    },
+    "api/cron-weekly-post-review.js": {
+      "maxDuration": 60
+    },
+    "api/cron-competitor-scan-weekly.js": {
+      "maxDuration": 30
+    },
+    "api/cron-trending-audio-scan.js": {
+      "maxDuration": 30
+    },
+    "api/cron-comment-monitor.js": {
+      "maxDuration": 120
+    },
+    "api/cron-heath-cameo-reminder.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -795,6 +813,30 @@
     {
       "path": "/api/cron-merge-queue-backfill",
       "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/cron-social-cadence",
+      "schedule": "0 12,15,18,23 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-post-review",
+      "schedule": "0 11 * * 1"
+    },
+    {
+      "path": "/api/cron-competitor-scan-weekly",
+      "schedule": "0 1 * * 1"
+    },
+    {
+      "path": "/api/cron-trending-audio-scan",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron-comment-monitor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron-heath-cameo-reminder",
+      "schedule": "0 13 * * 5"
     }
   ]
 }
