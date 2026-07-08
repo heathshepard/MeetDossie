@@ -461,10 +461,6 @@
       "schedule": "30 11 * * *"
     },
     {
-      "path": "/api/cron-sage-autonomous-review",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-sage-regenerate",
       "schedule": "0 0 1 1 *"
     },
@@ -541,10 +537,6 @@
       "schedule": "45 * * * *"
     },
     {
-      "path": "/api/cron-generate-skit",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-elevenlabs-monitor",
       "schedule": "0 14 * * *"
     },
@@ -601,24 +593,12 @@
       "schedule": "0 14 * * 0"
     },
     {
-      "path": "/api/cron-daily-fb-posts",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-social-digest",
       "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron-competitor-monitor",
       "schedule": "0 12 * * 1"
-    },
-    {
-      "path": "/api/cron-sage-trends",
-      "schedule": "0 0 1 1 *"
-    },
-    {
-      "path": "/api/cron-sage-research",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-fb-unlock-alerts",
@@ -663,10 +643,6 @@
     {
       "path": "/api/cron-pull-post-analytics",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron-sage-intelligence-update",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-auto-populate-weekly-improvements",
@@ -795,6 +771,30 @@
     {
       "path": "/api/cron-merge-queue-backfill",
       "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/cron-social-cadence",
+      "schedule": "0 12,15,18,23 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-post-review",
+      "schedule": "0 11 * * 1"
+    },
+    {
+      "path": "/api/cron-competitor-scan-weekly",
+      "schedule": "0 1 * * 1"
+    },
+    {
+      "path": "/api/cron-trending-audio-scan",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron-comment-monitor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron-heath-cameo-reminder",
+      "schedule": "0 13 * * 5"
     }
   ]
 }
