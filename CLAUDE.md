@@ -113,10 +113,10 @@ After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quin
 
 | Tier | Monthly | Annual |
 |---|---|---|
-| Solo | $79 (rising to $149 on 2026-07-20 for new signups; existing subs unaffected) | $39 |
-| Team | $199 (3 seats; max 8 at $35/seat) — rising to $349 on 2026-07-20 for new signups; existing subs unaffected | $119 |
+| Solo | $79 (rising to $149 on 2026-07-31 for new signups; existing subs unaffected) | $39 |
+| Team | $199 (3 seats; max 8 at $35/seat) — rising to $349 on 2026-07-31 for new signups; existing subs unaffected | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (25 spots, 12 taken, 13 remaining, LOCKED for LIFE of membership) | — |
+| **Founding Member** | **$29** (25 spots, 11 taken, 14 remaining, LOCKED for LIFE of membership) | — |
 
 Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
@@ -124,7 +124,7 @@ Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $349/month** (12 founding @ $29 + Suzanne @ $1 founding friend). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
+**MRR: $320/month** (11 founding @ $29 + Suzanne @ $1 founding friend). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
 
 ---
 

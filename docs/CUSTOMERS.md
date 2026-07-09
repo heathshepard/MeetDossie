@@ -1,6 +1,6 @@
 # Current Customers
 
-**MRR: $349/month** (12 founding @ $29 + 1 friend @ $1)
+**MRR: $320/month** (11 founding @ $29 + 1 friend @ $1)
 
 Update this file on every onboard or cancel. Static count in CLAUDE.md (Section 5 Founding spots) must stay in sync.
 
