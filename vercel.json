@@ -766,7 +766,7 @@
     },
     {
       "path": "/api/cron-cold-email-daily-batch",
-      "schedule": "0 14 * * 1-6"
+      "schedule": "0 14 * * 1-5"
     },
     {
       "path": "/api/cron-unsubscribe-spike-monitor",

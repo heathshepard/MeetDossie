@@ -12,9 +12,11 @@
 //   Week 4+ (2026-07-27+): 25/day steady
 //
 // Auth:     Authorization: Bearer ${CRON_SECRET}
-// Schedule: vercel.json — 0 14 * * 1-6 (Mon-Sat 14:00 UTC = 09:00 CDT).
-//           Saturday cron only fires for KW override dates (2026-07-11);
-//           all other Saturdays hit the weekend guard and skip.
+// Schedule: vercel.json — 0 14 * * 1-5 (Mon-Fri 14:00 UTC = 09:00 CDT).
+//           Heath decision 2026-07-09: Option 2 = KW touch-2 fires ONLY on
+//           Friday 2026-07-10. Saturday 2026-07-11 send skipped. CSV file
+//           kw-only-friday-2026-07-11.csv retained on disk for possible
+//           post-migration reuse but not referenced by cron logic.
 //
 // Behaviour:
 //   1. Look up current week's daily_target from cold_email_cadence.
@@ -52,17 +54,17 @@ const KNOWN_BOUNCES = new Set(['cheo.chayoh@lptrealty.com']);
 // Lead CSV path — bundled via vercel.json includeFiles.
 const LEADS_CSV = path.join(process.cwd(), 'data/sa-realtor-leads-final-v2.csv');
 
-// ── KW-only touch-2 override (2026-07-10 + 2026-07-11) ────────────────────
+// ── KW-only touch-2 override (2026-07-10) ─────────────────────────────────
 // Heath decision 2026-07-09: for the DocuSign migration window (Jul 14 KW
-// cutover to Lone Wolf Transact), the Thursday + Friday sends target KW
-// REALTORs ONLY. Distinct pool + subject + copy. Cron reverts to normal
-// behaviour Monday 2026-07-14.
-const KW_OVERRIDE_DATES = new Set(['2026-07-10', '2026-07-11']);
-// Per-date CSVs prevent Friday cron re-picking Thursday's 15 leads (queue
-// membership isn't in the KW exclusion set — only suppression list is).
+// cutover to Lone Wolf Transact), the Friday send targets KW REALTORs ONLY.
+// Distinct pool + subject + copy. Cron reverts to normal behaviour Monday
+// 2026-07-14.
+// Option 2 confirmed 2026-07-09: Saturday 2026-07-11 send removed.
+// kw-only-friday-2026-07-11.csv stays on disk but is NOT referenced here.
+const KW_OVERRIDE_DATES = new Set(['2026-07-10']);
+// Per-date CSVs (only 2026-07-10 armed).
 const KW_OVERRIDE_CSV_BY_DATE = {
   '2026-07-10': path.join(process.cwd(), 'data/kw-only-thursday-2026-07-10.csv'),
-  '2026-07-11': path.join(process.cwd(), 'data/kw-only-friday-2026-07-11.csv'),
 };
 const KW_OVERRIDE_SUBJECT = "Your DocuSign is dying in 5 days — here's a TX-native alternative I built";
 const KW_OVERRIDE_TARGET  = 15;
@@ -425,7 +427,7 @@ async function handler(req, res) {
   const isKwOverride = KW_OVERRIDE_DATES.has(today);
 
   // Weekend skip (unless force=1 OR KW override date — Heath's DocuSign
-  // migration window intentionally spans Fri 2026-07-10 + Sat 2026-07-11).
+  // migration touch-2 is Fri 2026-07-10 only; weekends otherwise blocked).
   if (!forceRun && !isKwOverride && (dow === 0 || dow === 6)) {
     return res.status(200).json({ ok: true, skipped: 'weekend', dow });
   }
@@ -441,7 +443,7 @@ async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: 'batch_already_queued', batch: batchId });
     }
 
-    // ── KW touch-2 override branch (2026-07-10 + 2026-07-11) ────────────
+    // ── KW touch-2 override branch (2026-07-10 only) ────────────────────
     if (isKwOverride) {
       const excluded = await loadKwExclusionSet();
       const { selected, kw_avail } = selectKwLeads(KW_OVERRIDE_TARGET, excluded, today);
