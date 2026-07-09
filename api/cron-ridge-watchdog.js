@@ -873,3 +873,10 @@ async function handler(req, res) {
 }
 
 module.exports = withTelemetry(SELF_NAME, handler);
+
+// Vercel per-function config — declared inline so we stay under the 50-entry
+// vercel.json `functions` cap. maxDuration = 300s to allow the Playwright walk
+// + link crawler + API probes to complete within a single serverless invocation.
+module.exports.config = {
+  maxDuration: 300,
+};
