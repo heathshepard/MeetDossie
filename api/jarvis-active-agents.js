@@ -65,16 +65,19 @@ export default async function handler(req, res) {
 
   try {
     const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
+    // 30-minute recently-completed window. Long enough that a CEO opening the panel
+    // an hour after breakfast still sees the morning's completions; short enough
+    // that "recently" isn't misleading. (Atlas fix on Carter draft, 2026-07-09.)
+    const recentWindowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
 
     // Fetch running agents (status='running')
     const runningRows = await sbGet(
       `active_agents?select=id,agent_id,agent_name,task_description,spawned_at,updated_at,last_notification,last_notification_at&status=eq.running&order=spawned_at.desc&limit=50`
     );
 
-    // Fetch recently completed (status != 'running' and completed_at > now-5min)
+    // Fetch recently completed (status != 'running' and completed_at within window)
     const completedRows = await sbGet(
-      `active_agents?select=id,agent_id,agent_name,task_description,spawned_at,updated_at,completed_at,last_notification,result_summary&status=neq.running&completed_at=gte.${encodeURIComponent(fiveMinutesAgo)}&order=completed_at.desc&limit=20`
+      `active_agents?select=id,agent_id,agent_name,task_description,spawned_at,updated_at,completed_at,last_notification,result_summary&status=neq.running&completed_at=gte.${encodeURIComponent(recentWindowStart)}&order=completed_at.desc&limit=20`
     );
 
     // Enrich running rows with elapsed_seconds
