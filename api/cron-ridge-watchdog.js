@@ -235,7 +235,25 @@ async function signInAsDemoViaAuthApi() {
     });
     const data = await r.json();
     if (!r.ok || !data.access_token) {
-      return { ok: false, reason: 'auth_failure', error: `sign-in ${r.status}: ${JSON.stringify(data).slice(0, 200)}` };
+      // Fix 3 extension — a 400 invalid_credentials on the DEMO account is a
+      // stale/wrong DEMO_PASSWORD (Ridge config problem), NOT a customer-facing
+      // outage. Customers auth with their own passwords, not this one.
+      // Route to config_gap so it dedups + is labeled correctly, not spammed.
+      const dataStr = JSON.stringify(data);
+      const isInvalidCred =
+        r.status === 400 &&
+        (/invalid_credentials/i.test(dataStr) ||
+         /invalid.?login/i.test(dataStr) ||
+         /invalid.?password/i.test(dataStr));
+      const errMsg = `sign-in ${r.status}: ${dataStr.slice(0, 200)}`;
+      if (isInvalidCred) {
+        return {
+          ok: false,
+          reason: 'config_gap',
+          error: `DEMO_PASSWORD env var is set but rejected by Supabase (${errMsg}) — likely stale after a rotation. Update DEMO_PASSWORD in Vercel env to restore Watchdog signed-in coverage. Real customer sign-ins are unaffected.`,
+        };
+      }
+      return { ok: false, reason: 'auth_failure', error: errMsg };
     }
     return {
       ok: true,
