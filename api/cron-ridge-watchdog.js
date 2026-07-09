@@ -214,6 +214,19 @@ async function runDiagnostic(runId, injectMode) {
   const consoleErrorsGlobal = [];
   const startedAt = Date.now();
 
+  // Synthetic injection runs BEFORE the browser walk so it happens even when
+  // auth fails (this is how we prove the alert path works in staging where the
+  // Preview env has a different DEMO_PASSWORD than Production).
+  if (injectMode && INJECT_MODES.has(injectMode)) {
+    incidents.push(makeIncident(
+      injectMode,
+      'critical',
+      '__synthetic_injection__',
+      { note: `Ridge Watchdog synthetic failure injected via ?inject=${injectMode}`, injected_at: new Date().toISOString() },
+      null
+    ));
+  }
+
   // ----- Sign in via Supabase Auth API to inject storage
   const demoSession = await signInAsDemoViaAuthApi();
   if (!demoSession.ok) {
@@ -608,18 +621,8 @@ async function runDiagnostic(runId, injectMode) {
       }
     }
 
-    // ========================================================================
-    // Synthetic-failure injection (post signed-in walk, before browser close)
-    // ========================================================================
-    if (injectMode && INJECT_MODES.has(injectMode)) {
-      incidents.push(makeIncident(
-        injectMode,
-        'critical',
-        '__synthetic_injection__',
-        { note: `Ridge Watchdog synthetic failure injected via ?inject=${injectMode}`, injected_at: new Date().toISOString() },
-        null
-      ));
-    }
+    // Synthetic injection moved to top of runDiagnostic so it runs even when
+    // signed-in walk is short-circuited by auth failure.
 
     await ctx.close();
   } finally {
