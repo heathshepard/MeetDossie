@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ridge Watchdog — Customer Experience Incidents</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root {
+      --blush: #F5E6E0;
+      --blush-deep: #D4A0A0;
+      --sage: #8BA888;
+      --gold: #C9A96E;
+      --navy: #1A1A2E;
+      --coral: #E8836B;
+      --bg: #FAFAF7;
+      --card: #FFFFFF;
+      --text: #1A1A2E;
+      --muted: #6B6B7B;
+      --border: #E5E5E0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      line-height: 1.5;
+    }
+    h1 { font-family: "Cormorant Garamond", Georgia, serif; font-size: 32px; margin-bottom: 8px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button, select {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.primary { background: var(--navy); color: white; border-color: var(--navy); }
+    button:hover { opacity: 0.85; }
+    .signin-box {
+      max-width: 360px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .signin-box input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .stat .num { font-size: 28px; font-weight: 600; }
+    .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat.critical .num { color: #C0392B; }
+    .stat.major .num { color: var(--coral); }
+    .stat.minor .num { color: var(--gold); }
+    .stat.resolved .num { color: var(--sage); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; }
+    th { background: var(--blush); color: var(--navy); font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge.critical { background: #FDECEA; color: #C0392B; }
+    .badge.major { background: #FCE4DC; color: var(--coral); }
+    .badge.minor { background: #FEF7E1; color: var(--gold); }
+    .badge.type { background: var(--blush); color: var(--navy); }
+    .detail-pre { background: #F5F5F0; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; max-width: 400px; overflow-x: auto; margin-top: 4px; }
+    .empty { text-align: center; padding: 48px; color: var(--muted); }
+    .loading { text-align: center; padding: 32px; color: var(--muted); }
+    .err { color: #C0392B; padding: 12px; background: #FDECEA; border-radius: 6px; margin-bottom: 16px; }
+    .resolve-btn { padding: 4px 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<div id="signin" class="signin-box" style="display:none;">
+  <h1>Ridge Watchdog</h1>
+  <p class="subtitle">Admin sign-in</p>
+  <input id="signin-email" type="email" placeholder="Email" autocomplete="username" />
+  <input id="signin-password" type="password" placeholder="Password" autocomplete="current-password" />
+  <button class="primary" onclick="signIn()" style="width:100%;">Sign in</button>
+  <div id="signin-err" class="err" style="display:none;margin-top:12px;"></div>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <h1>Ridge Watchdog — Customer Experience Incidents</h1>
+  <p class="subtitle">Continuous customer-flow diagnostic. Runs every 4 hours against production. Fill Heath's inbox before customers do.</p>
+
+  <div class="stats" id="stats">
+    <div class="stat critical"><div class="num" id="stat-critical">0</div><div class="label">Critical (unresolved)</div></div>
+    <div class="stat major"><div class="num" id="stat-major">0</div><div class="label">Major (unresolved)</div></div>
+    <div class="stat minor"><div class="num" id="stat-minor">0</div><div class="label">Minor (unresolved)</div></div>
+    <div class="stat resolved"><div class="num" id="stat-resolved">0</div><div class="label">Resolved (last 7d)</div></div>
+  </div>
+
+  <div class="filters">
+    <label>Show:
+      <select id="filter" onchange="loadIncidents()">
+        <option value="false">Unresolved only</option>
+        <option value="true">Resolved only</option>
+        <option value="all">All</option>
+      </select>
+    </label>
+    <button onclick="loadIncidents()">Refresh</button>
+    <button onclick="signOut()">Sign out</button>
+  </div>
+
+  <div id="incidents-container">
+    <div class="loading">Loading incidents...</div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+  let supabase = null;
+  let currentToken = null;
+
+  async function initSupabase() {
+    const r = await fetch('/api/get-supabase-public-config');
+    const cfg = await r.json();
+    supabase = createClient(cfg.url, cfg.anonKey);
+  }
+
+  async function checkSession() {
+    if (!supabase) await initSupabase();
+    const { data } = await supabase.auth.getSession();
+    if (data && data.session && data.session.access_token) {
+      const email = data.session.user && data.session.user.email;
+      if (email === 'heath.shepard@kw.com') {
+        currentToken = data.session.access_token;
+        document.getElementById('signin').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadIncidents();
+        loadStats();
+        return true;
+      }
+    }
+    document.getElementById('signin').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+    return false;
+  }
+
+  window.signIn = async function () {
+    const email = document.getElementById('signin-email').value.trim();
+    const password = document.getElementById('signin-password').value;
+    const errBox = document.getElementById('signin-err');
+    errBox.style.display = 'none';
+    if (!supabase) await initSupabase();
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      errBox.textContent = error.message;
+      errBox.style.display = 'block';
+      return;
+    }
+    if (data.user && data.user.email !== 'heath.shepard@kw.com') {
+      errBox.textContent = 'This dashboard is admin-only.';
+      errBox.style.display = 'block';
+      await supabase.auth.signOut();
+      return;
+    }
+    await checkSession();
+  };
+
+  window.signOut = async function () {
+    await supabase.auth.signOut();
+    currentToken = null;
+    await checkSession();
+  };
+
+  window.loadIncidents = async function () {
+    const filter = document.getElementById('filter').value;
+    const container = document.getElementById('incidents-container');
+    container.innerHTML = '<div class="loading">Loading incidents...</div>';
+    try {
+      const r = await fetch(`/api/admin-ridge-incidents?resolved=${filter}&limit=200`, {
+        headers: { Authorization: 'Bearer ' + currentToken }
+      });
+      if (!r.ok) {
+        container.innerHTML = `<div class="err">Failed to load: HTTP ${r.status}</div>`;
+        return;
+      }
+      const data = await r.json();
+      renderIncidents(data.incidents || []);
+    } catch (err) {
+      container.innerHTML = `<div class="err">Load error: ${err.message}</div>`;
+    }
+  };
+
+  async function loadStats() {
+    try {
+      const [unresR, resR] = await Promise.all([
+        fetch(`/api/admin-ridge-incidents?resolved=false&limit=500`, { headers: { Authorization: 'Bearer ' + currentToken } }),
+        fetch(`/api/admin-ridge-incidents?resolved=true&limit=500`, { headers: { Authorization: 'Bearer ' + currentToken } }),
+      ]);
+      const unres = await unresR.json();
+      const res = await resR.json();
+      const unresolved = unres.incidents || [];
+      const resolved = res.incidents || [];
+      document.getElementById('stat-critical').textContent = unresolved.filter(i => i.severity === 'critical').length;
+      document.getElementById('stat-major').textContent = unresolved.filter(i => i.severity === 'major').length;
+      document.getElementById('stat-minor').textContent = unresolved.filter(i => i.severity === 'minor').length;
+      const weekAgo = Date.now() - 7 * 86400 * 1000;
+      document.getElementById('stat-resolved').textContent = resolved.filter(i => i.resolved_at && new Date(i.resolved_at).getTime() > weekAgo).length;
+    } catch { /* silent */ }
+  }
+
+  function renderIncidents(list) {
+    const container = document.getElementById('incidents-container');
+    if (list.length === 0) {
+      container.innerHTML = '<div class="empty">No incidents to show. All systems healthy or filter is empty.</div>';
+      return;
+    }
+    const rows = list.map(inc => `
+      <tr>
+        <td><span class="badge ${inc.severity}">${inc.severity}</span></td>
+        <td><span class="badge type">${escapeHtml(inc.incident_type)}</span></td>
+        <td>${escapeHtml(inc.path || '')}</td>
+        <td>
+          <div>${new Date(inc.created_at).toLocaleString()}</div>
+          <div class="detail-pre">${escapeHtml(JSON.stringify(inc.detail || {}, null, 2))}</div>
+        </td>
+        <td>${inc.resolved
+          ? `<span style="color:var(--sage);">Resolved</span>`
+          : `<button class="resolve-btn primary" onclick="resolveIncident('${inc.id}')">Mark resolved</button>`}
+        </td>
+      </tr>
+    `).join('');
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Severity</th><th>Type</th><th>Path</th><th>Detail</th><th>Action</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  window.resolveIncident = async function (id) {
+    const notes = prompt('Resolution notes (optional):', '') || '';
+    const r = await fetch('/api/admin-ridge-incidents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + currentToken },
+      body: JSON.stringify({ id, resolved: true, resolved_notes: notes }),
+    });
+    if (r.ok) {
+      loadIncidents();
+      loadStats();
+    } else {
+      alert('Failed to resolve: HTTP ' + r.status);
+    }
+  };
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+  }
+
+  checkSession();
+</script>
+
+</body>
+</html>

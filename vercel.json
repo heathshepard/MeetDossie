@@ -157,6 +157,10 @@
     {
       "source": "/admin-cold-email",
       "destination": "/admin-cold-email.html"
+    },
+    {
+      "source": "/admin/ridge-incidents",
+      "destination": "/admin-ridge-incidents.html"
     }
   ],
   "headers": [
@@ -425,6 +429,9 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
+    },
+    "api/cron-ridge-watchdog.js": {
+      "maxDuration": 300
     }
   },
   "crons": [
@@ -795,6 +802,10 @@
     {
       "path": "/api/cron-heath-cameo-reminder",
       "schedule": "0 13 * * 5"
+    },
+    {
+      "path": "/api/cron-ridge-watchdog",
+      "schedule": "0 */4 * * *"
     }
   ]
 }
