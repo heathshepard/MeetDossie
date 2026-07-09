@@ -988,6 +988,29 @@
       color: #7dd3fc;
     }
 
+    /* ===== TREC WATCH PANEL ===== */
+    .trec-watch-list { display: flex; flex-direction: column; gap: 8px; }
+    .trec-watch-empty { font-size: 12px; color: var(--txt-faint); text-align: center; padding: 12px; }
+    .trec-watch-item {
+      padding: 10px 12px;
+      background: rgba(201, 169, 110, 0.05);
+      border: 1px solid rgba(201, 169, 110, 0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .trec-watch-item:hover { background: rgba(201, 169, 110, 0.08); border-color: #C9A96E; }
+    .trec-watch-item.unread { border-left: 3px solid #C9A96E; }
+    .trec-watch-item-title { font-size: 12px; font-weight: 600; color: var(--txt-primary); margin-bottom: 4px; }
+    .trec-watch-item-meta { font-size: 10px; color: var(--txt-mute); display: flex; justify-content: space-between; gap: 8px; }
+    .trec-watch-severity {
+      display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      border-radius: 3px; padding: 2px 6px;
+    }
+    .trec-watch-severity.critical { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239,68,68,0.4); color: #f87171; }
+    .trec-watch-severity.action_required { background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251,191,36,0.4); color: #fbbf24; }
+    .trec-watch-severity.informational { background: rgba(201, 169, 110, 0.1); border: 1px solid rgba(201,169,110,0.3); color: #C9A96E; }
+
     /* ===== FUTURE BUILDS PANEL ===== */
     .panel-title.future-builds-title-row {
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -3151,6 +3174,14 @@
           <div id="throughput-rows" class="throughput-rows"></div>
         </div>
 
+        <!-- TREC WATCH: nightly TREC.gov scans + member-alert queue. SV-TREC-SCANNER-001. -->
+        <div class="panel" id="trec-watch-panel">
+          <div class="panel-title">TREC WATCH</div>
+          <div id="trec-watch-list" class="trec-watch-list">
+            <div class="trec-watch-empty">Loading TREC updates…</div>
+          </div>
+        </div>
+
         <!-- FUTURE BUILDS: Idea queue → DoD drafting → building → shipped. -->
         <div class="panel" id="future-builds-panel">
           <div class="panel-title future-builds-title-row">
@@ -4099,6 +4130,9 @@
       loadFutureBuilds().catch(() => {});
       wireFutureBuildsPanel();
       setInterval(() => { loadFutureBuilds().then(() => trackPollSuccess()).catch(() => {}); }, 120000); // 2 min
+      // TREC WATCH: nightly TREC.gov scans (SV-TREC-SCANNER-001)
+      loadTrecWatch().catch(() => {});
+      setInterval(() => { loadTrecWatch().then(() => trackPollSuccess()).catch(() => {}); }, 300000); // 5 min
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -8316,6 +8350,52 @@
         }
         c3.appendChild(c3v); c3.appendChild(mix); row.appendChild(c3);
         rowsEl.appendChild(row);
+      }
+    }
+
+    // ===== TREC WATCH FUNCTIONS (SV-TREC-SCANNER-001, atlas 2026-07-08) =====
+    async function loadTrecWatch() {
+      const listEl = document.getElementById('trec-watch-list');
+      if (!listEl) return;
+      try {
+        const data = await authedFetch('/api/trec-updates');
+        if (!data || !data.ok) {
+          listEl.innerHTML = '<div class="trec-watch-empty">Failed to load TREC updates.</div>';
+          return;
+        }
+        const items = Array.isArray(data.updates) ? data.updates : [];
+        if (items.length === 0) {
+          listEl.innerHTML = '<div class="trec-watch-empty">No TREC updates yet. Scanner runs nightly at 3am CT.</div>';
+          return;
+        }
+        listEl.innerHTML = items.slice(0, 10).map(u => {
+          const sev = (u.severity || 'informational').toLowerCase();
+          const sevLabel = sev === 'critical' ? 'Critical' : sev === 'action_required' ? 'Action' : 'Info';
+          const unread = !u.read_at ? 'unread' : '';
+          const eff = u.effective_date ? ` · eff ${u.effective_date}` : '';
+          const forms = (u.affects_forms && u.affects_forms.length) ? ` · ${u.affects_forms.join(', ')}` : '';
+          return `<div class="trec-watch-item ${unread}" data-url="${escapeHtml(u.source_url || '')}" data-notif-id="${u.notification_id || ''}">
+            <div class="trec-watch-item-title">${escapeHtml(u.title || '')}</div>
+            <div class="trec-watch-item-meta">
+              <span class="trec-watch-severity ${sev}">${sevLabel}</span>
+              <span>${escapeHtml((u.source_type || '').replace('trec_', ''))}${eff}${forms}</span>
+            </div>
+          </div>`;
+        }).join('');
+        listEl.querySelectorAll('.trec-watch-item').forEach(el => {
+          el.addEventListener('click', async () => {
+            const url = el.getAttribute('data-url');
+            const notifId = el.getAttribute('data-notif-id');
+            if (notifId) {
+              try { await authedFetch('/api/trec-updates/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: notifId }) }); } catch {}
+              el.classList.remove('unread');
+            }
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+          });
+        });
+      } catch (err) {
+        console.warn('[jarvis] loadTrecWatch failed', err && err.message);
+        listEl.innerHTML = '<div class="trec-watch-empty">Offline.</div>';
       }
     }
 

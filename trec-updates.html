@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TREC Watch · Dossie</title>
+<link rel="icon" href="/favicon.ico" />
+<style>
+  :root {
+    --blush: #F5E6E0;
+    --gold: #C9A96E;
+    --navy: #1A1A2E;
+    --sage: #8BA888;
+    --coral: #E8836B;
+    --ink: #111827;
+    --mute: #6B7280;
+    --line: #E5E7EB;
+    --bg: #FDFBF9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 80px; }
+  .hero {
+    background: linear-gradient(135deg, var(--blush) 0%, #f9ede6 100%);
+    border-radius: 14px;
+    padding: 28px 24px;
+    margin-bottom: 24px;
+  }
+  .kicker { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mute); margin-bottom: 4px; }
+  .hero h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 32px; margin: 0 0 8px 0; color: var(--navy); }
+  .hero p { margin: 0; color: var(--ink); line-height: 1.5; }
+  .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .mark-all-btn {
+    background: transparent; border: 1px solid var(--line); color: var(--mute);
+    border-radius: 6px; padding: 8px 12px; font-size: 12px; cursor: pointer;
+  }
+  .mark-all-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .list { display: flex; flex-direction: column; gap: 12px; }
+  .empty { padding: 40px 24px; text-align: center; color: var(--mute); background: #fff; border-radius: 10px; border: 1px dashed var(--line); }
+  .item {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .item.unread { border-left: 4px solid var(--gold); }
+  .item:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .item-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--mute); margin-bottom: 8px; }
+  .sev { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; font-weight: 600; }
+  .sev.critical { background: #FEE2E2; color: #B91C1C; }
+  .sev.action_required { background: #FEF3C7; color: #92400E; }
+  .sev.informational { background: var(--blush); color: #7A5A3F; }
+  .item-title { font-size: 17px; font-weight: 600; color: var(--navy); margin: 0 0 8px 0; }
+  .item-summary { font-size: 14px; color: var(--ink); line-height: 1.55; margin: 0 0 12px 0; }
+  .item-forms { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .form-chip { background: #F3F4F6; color: var(--ink); font-size: 11px; padding: 3px 8px; border-radius: 3px; }
+  .item-actions { display: flex; gap: 12px; align-items: center; }
+  .source-link { color: var(--gold); text-decoration: none; font-weight: 600; font-size: 13px; }
+  .source-link:hover { text-decoration: underline; }
+  .mark-read-btn {
+    background: transparent; border: none; color: var(--mute); font-size: 12px; cursor: pointer;
+  }
+  .mark-read-btn:hover { color: var(--ink); }
+  .disclaimer { margin-top: 32px; padding: 16px 20px; background: #F9FAFB; border-radius: 8px; font-size: 12px; color: var(--mute); line-height: 1.6; }
+  .signin-gate { text-align: center; padding: 60px 20px; }
+  .signin-gate a { color: var(--gold); text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="kicker">TREC Watch</div>
+      <h1>Changes to TREC that affect your contracts</h1>
+      <p>Dossie scans TREC.gov every night and flags rule updates, form changes, and effective dates. When something touches an active dossier of yours, you hear about it here first. Every update links to the TREC source page.</p>
+    </div>
+
+    <div id="signed-out" class="signin-gate" style="display:none">
+      <p>Please <a href="/signin">sign in</a> to see your TREC Watch feed.</p>
+    </div>
+
+    <div id="signed-in" style="display:none">
+      <div class="header-row">
+        <div style="font-size:13px;color:var(--mute)"><span id="unread-count">0</span> unread</div>
+        <button class="mark-all-btn" id="mark-all-btn">Mark all read</button>
+      </div>
+      <div id="list" class="list">
+        <div class="empty">Loading TREC updates…</div>
+      </div>
+      <div class="disclaimer">
+        Dossie relays publicly available Texas Real Estate Commission (TREC) content so you can react quickly to rule and form changes. This feed is not legal advice. Always confirm details at the linked TREC source and consult your broker or attorney before changing how you handle a live contract.
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    let supabase, session;
+
+    // Client config comes from /api/public-config so we never hardcode
+    // secrets in the tracked HTML file.
+    async function getConfig() {
+      const r = await fetch('/api/public-config');
+      if (!r.ok) throw new Error('config unavailable');
+      return await r.json();
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function boot() {
+      let cfg;
+      try { cfg = await getConfig(); } catch (e) {
+        document.getElementById('list').innerHTML = '<div class="empty">Could not load config.</div>';
+        return;
+      }
+      const url = cfg.supabaseUrl || cfg.supabase_url;
+      const key = cfg.supabaseAnonKey || cfg.supabase_anon_key;
+      if (!url || !key) {
+        document.getElementById('list').innerHTML = '<div class="empty">Missing Supabase config.</div>';
+        return;
+      }
+      supabase = createClient(url, key);
+      const { data } = await supabase.auth.getSession();
+      session = data && data.session;
+      if (!session) {
+        document.getElementById('signed-out').style.display = 'block';
+        return;
+      }
+      document.getElementById('signed-in').style.display = 'block';
+      await loadFeed();
+      document.getElementById('mark-all-btn').addEventListener('click', markAllRead);
+    }
+
+    async function apiGet(path) {
+      const r = await fetch(path, { headers: { Authorization: `Bearer ${session.access_token}` } });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    }
+
+    async function apiPost(path, body) {
+      const r = await fetch(path, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    }
+
+    function render(updates, unreadCount) {
+      document.getElementById('unread-count').textContent = unreadCount || 0;
+      const list = document.getElementById('list');
+      if (!updates || updates.length === 0) {
+        list.innerHTML = '<div class="empty">No TREC updates yet. The scanner runs nightly at 3am CT — you will see anything that changes here.</div>';
+        return;
+      }
+      list.innerHTML = updates.map(u => {
+        const sev = (u.severity || 'informational').toLowerCase();
+        const sevLabel = sev === 'critical' ? 'Critical' : sev === 'action_required' ? 'Action recommended' : 'Heads-up';
+        const unread = !u.read_at ? 'unread' : '';
+        const eff = u.effective_date ? `<span>Effective ${escapeHtml(u.effective_date)}</span>` : '';
+        const scanned = u.scanned_at ? `<span>Scanned ${new Date(u.scanned_at).toLocaleDateString()}</span>` : '';
+        const forms = (u.affects_forms || []).map(f => `<span class="form-chip">TREC ${escapeHtml(f)}</span>`).join('');
+        return `<div class="item ${unread}" data-notif-id="${escapeHtml(u.notification_id || '')}">
+          <div class="item-meta">
+            <span class="sev ${sev}">${sevLabel}</span>
+            ${eff}${scanned}
+          </div>
+          <h3 class="item-title">${escapeHtml(u.title)}</h3>
+          ${forms ? `<div class="item-forms">${forms}</div>` : ''}
+          <p class="item-summary">${escapeHtml(u.summary)}</p>
+          <div class="item-actions">
+            <a class="source-link" href="${escapeHtml(u.source_url || '#')}" target="_blank" rel="noopener noreferrer">Read TREC source →</a>
+            ${!u.read_at ? '<button class="mark-read-btn" data-mark="1">Mark read</button>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('[data-mark="1"]').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const card = btn.closest('.item');
+          const id = card && card.getAttribute('data-notif-id');
+          if (!id) return;
+          try { await apiPost('/api/trec-updates/mark-read', { id }); } catch {}
+          card.classList.remove('unread');
+          btn.remove();
+          const cnt = document.getElementById('unread-count');
+          cnt.textContent = Math.max(0, parseInt(cnt.textContent, 10) - 1);
+        });
+      });
+    }
+
+    async function loadFeed() {
+      try {
+        const data = await apiGet('/api/trec-updates');
+        render(data.updates || [], data.unread_count || 0);
+      } catch (e) {
+        document.getElementById('list').innerHTML = '<div class="empty">Could not load TREC feed. Please try again.</div>';
+      }
+    }
+
+    async function markAllRead() {
+      try { await apiPost('/api/trec-updates/mark-all-read', {}); } catch {}
+      await loadFeed();
+    }
+
+    boot();
+  </script>
+</body>
+</html>
