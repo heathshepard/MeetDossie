@@ -1,7 +1,10 @@
 // Vercel Serverless Function: /api/founding-count
 // Returns the number of founding-member spots remaining.
 //
-// GET → { ok: true, total: 50, taken: <n>, remaining: <50-n> }
+// GET → { ok: true, total: 25, taken: <n>, remaining: <25-n> }
+//
+// FOUNDING CAP REDUCED 2026-07-09: cap was 50, now 25. All 25 founding
+// members are locked at $29/mo for LIFE of membership. Never revised.
 //
 // "Taken" is read from the subscriptions table (source of truth for billing
 // state) where plan='founding' AND status='active', then filtered to EXCLUDE:
@@ -9,7 +12,7 @@
 //   - Shepard Ventures internal accounts (profiles.is_founder = true) — Heath's
 //     own logins / test accounts. Same exclusion pattern as is_demo.
 //   - the $1 founding-friend (Suzanne — k.suzanne.page@gmail.com)
-// This keeps the homepage "X of 50 taken" honest — only real paying $29 founders.
+// This keeps the homepage "X of 25 taken" honest — only real paying $29 founders.
 //
 // Heath's internal subscriptions are ALSO flipped to status='internal' on the
 // subscriptions row, so the raw status=eq.active query won't return them even
@@ -24,7 +27,7 @@
 //   SUPABASE_URL              — Supabase project URL
 //   SUPABASE_SERVICE_ROLE_KEY — service-role JWT (server-side only)
 
-const FOUNDING_TOTAL = 50;
+const FOUNDING_TOTAL = 25;
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
