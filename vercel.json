@@ -157,6 +157,10 @@
     {
       "source": "/admin-cold-email",
       "destination": "/admin-cold-email.html"
+    },
+    {
+      "source": "/admin/ridge-incidents",
+      "destination": "/admin-ridge-incidents.html"
     }
   ],
   "headers": [
@@ -795,6 +799,10 @@
     {
       "path": "/api/cron-heath-cameo-reminder",
       "schedule": "0 13 * * 5"
+    },
+    {
+      "path": "/api/cron-ridge-watchdog",
+      "schedule": "0 */4 * * *"
     }
   ]
 }
