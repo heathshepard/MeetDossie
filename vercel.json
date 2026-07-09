@@ -428,7 +428,7 @@
     },
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
-      "includeFiles": "data/sa-realtor-leads-final-v2.csv"
+      "includeFiles": "data/{sa-realtor-leads-final-v2.csv,kw-only-thursday-2026-07-10.csv,kw-only-friday-2026-07-11.csv}"
     }
   },
   "crons": [

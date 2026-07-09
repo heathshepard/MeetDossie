@@ -50,6 +50,22 @@ const KNOWN_BOUNCES = new Set(['cheo.chayoh@lptrealty.com']);
 // Lead CSV path — bundled via vercel.json includeFiles.
 const LEADS_CSV = path.join(process.cwd(), 'data/sa-realtor-leads-final-v2.csv');
 
+// ── KW-only touch-2 override (2026-07-10 + 2026-07-11) ────────────────────
+// Heath decision 2026-07-09: for the DocuSign migration window (Jul 14 KW
+// cutover to Lone Wolf Transact), the Thursday + Friday sends target KW
+// REALTORs ONLY. Distinct pool + subject + copy. Cron reverts to normal
+// behaviour Monday 2026-07-14.
+const KW_OVERRIDE_DATES = new Set(['2026-07-10', '2026-07-11']);
+// Per-date CSVs prevent Friday cron re-picking Thursday's 15 leads (queue
+// membership isn't in the KW exclusion set — only suppression list is).
+const KW_OVERRIDE_CSV_BY_DATE = {
+  '2026-07-10': path.join(process.cwd(), 'data/kw-only-thursday-2026-07-10.csv'),
+  '2026-07-11': path.join(process.cwd(), 'data/kw-only-friday-2026-07-11.csv'),
+};
+const KW_OVERRIDE_SUBJECT = "Your DocuSign is dying in 5 days — here's a TX-native alternative I built";
+const KW_OVERRIDE_TARGET  = 15;
+const KW_OVERRIDE_CAMPAIGN = 'kw-docusign-migration-touch2';
+
 function isValidEmail(e) {
   return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 }
@@ -107,6 +123,91 @@ function loadLeads() {
   }
   const text = fs.readFileSync(LEADS_CSV, 'utf8');
   return parseCsv(text);
+}
+
+function loadKwLeads(dateKey) {
+  const csvPath = KW_OVERRIDE_CSV_BY_DATE[dateKey];
+  if (!csvPath || !fs.existsSync(csvPath)) {
+    console.warn('[daily-batch] KW override CSV not bundled for', dateKey, ':', csvPath);
+    return [];
+  }
+  const text = fs.readFileSync(csvPath, 'utf8');
+  return parseCsv(text);
+}
+
+// KW touch-2 copy — Heath's approved final wording locked 2026-07-09 17:35 CDT.
+// Numbers: 11 Texas REALTORS paying / 14 founding seats remaining / 25 cap /
+// $29/mo LOCKED FOR LIFE / Solo goes $149 on July 31.
+function buildKwText(firstName, email) {
+  const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
+  return `Hey ${firstName},
+
+KW REALTOR to KW REALTOR.
+
+You know the drill. Every deal = TC service, DocuSign, CRM, deadline tracker. Different apps, different bills, different UIs.
+
+I got tired of it. So I built Dossie - one app for TX REALTORs that auto-picks the right TREC forms, e-signs, tracks deadlines, drafts your follow-up emails. Does what a $400/file TC does. 11 Texas REALTORS pay for her today.
+
+Bonus: DocuSign leaves KW Monday. Dossie has e-sign built in.
+
+Founding: $29/mo for LIFE. 14 seats left. Solo goes $149 on July 31.
+
+Reply 'demo' for a 5-min video + a call.
+
+Heath Shepard
+KW City View, SA
+Founder, Dossie
+
+---
+Unsubscribe: ${unsub}
+${NW_ADDRESS}
+`;
+}
+
+function buildKwHtml(firstName, email) {
+  const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
+  return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
+<p>Hey ${firstName},</p>
+
+<p>KW REALTOR to KW REALTOR.</p>
+
+<p>You know the drill. Every deal = TC service, DocuSign, CRM, deadline tracker. Different apps, different bills, different UIs.</p>
+
+<p>I got tired of it. So I built Dossie &mdash; one app for TX REALTORs that auto-picks the right TREC forms, e-signs, tracks deadlines, drafts your follow-up emails. Does what a $400/file TC does. 11 Texas REALTORS pay for her today.</p>
+
+<p>Bonus: DocuSign leaves KW Monday. Dossie has e-sign built in.</p>
+
+<p>Founding: $29/mo for LIFE. 14 seats left. Solo goes $149 on July 31.</p>
+
+<p>Reply 'demo' for a 5-min video + a call.</p>
+
+<p>Heath Shepard<br>
+KW City View, SA<br>
+Founder, <a href="${FOUNDING_URL}">Dossie</a></p>
+
+<hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
+<p style="font-size: 11px; color: #888;">
+<a href="${unsub}" style="color: #888;">Unsubscribe</a> | ${NW_ADDRESS}
+</p>
+</div>`;
+}
+
+function selectKwLeads(count, excluded, dateKey) {
+  const all = loadKwLeads(dateKey);
+  const selected = [];
+  const seen = new Set();
+  const isValidLead = r =>
+    isValidEmail(r.email) &&
+    !KNOWN_BOUNCES.has((r.email || '').toLowerCase()) &&
+    !excluded.has((r.email || '').toLowerCase());
+  for (const r of all) {
+    if (!isValidLead(r)) continue;
+    const k = r.email.toLowerCase();
+    if (seen.has(k)) continue;
+    selected.push(r); seen.add(k);
+    if (selected.length >= count) break;
+  }
+  return { selected, kw_avail: all.length };
 }
 
 function buildText(city, email) {
@@ -264,6 +365,19 @@ async function selectLeads(count, excluded) {
   };
 }
 
+// KW touch-2 exclusion: only suppression list (allows re-contacting touch-1
+// recipients, which is the entire point of a touch-2 blast).
+async function loadKwExclusionSet() {
+  const excluded = new Set();
+  const sUrl = `${SUPABASE_URL}/rest/v1/email_suppression_list?select=email&limit=5000`;
+  const sr = await fetch(sUrl, { headers: sbHeaders() });
+  if (sr.ok) {
+    const rows = await sr.json();
+    if (Array.isArray(rows)) rows.forEach(x => { if (x && x.email) excluded.add(String(x.email).toLowerCase()); });
+  }
+  return excluded;
+}
+
 async function insertRow(row) {
   const url = `${SUPABASE_URL}/rest/v1/outbound_email_queue`;
   const r = await fetch(url, {
@@ -312,6 +426,7 @@ async function handler(req, res) {
 
   const today = now.toISOString().slice(0, 10);
   const batchId = `daily-${today}`;
+  const isKwOverride = KW_OVERRIDE_DATES.has(today);
 
   try {
     clearCache();
@@ -322,6 +437,73 @@ async function handler(req, res) {
         skipped: 'batch_already_queued', batch: batchId,
       }).catch(() => {});
       return res.status(200).json({ ok: true, skipped: 'batch_already_queued', batch: batchId });
+    }
+
+    // ── KW touch-2 override branch (2026-07-10 + 2026-07-11) ────────────
+    if (isKwOverride) {
+      const excluded = await loadKwExclusionSet();
+      const { selected, kw_avail } = selectKwLeads(KW_OVERRIDE_TARGET, excluded, today);
+
+      const sendAfter = new Date(now);
+      sendAfter.setUTCHours(15, 0, 0, 0);
+
+      const result = {
+        batch: batchId,
+        target: KW_OVERRIDE_TARGET,
+        selected: selected.length,
+        queued: 0,
+        suppressed: 0,
+        errors: 0,
+        kw_avail,
+        send_after: sendAfter.toISOString(),
+        dry_run: !!forceDryRun,
+        campaign: KW_OVERRIDE_CAMPAIGN,
+        override: 'kw-only-touch2',
+      };
+
+      for (const lead of selected) {
+        const to = String(lead.email).trim().toLowerCase();
+        if (await isSuppressed(to, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)) {
+          result.suppressed += 1;
+          continue;
+        }
+        const firstName = titleFirstName(lead.name);
+        const row = {
+          to_email: to,
+          from_email: FROM_EMAIL,
+          subject: KW_OVERRIDE_SUBJECT,
+          body_text: buildKwText(firstName, to),
+          body_html: buildKwHtml(firstName, to),
+          reply_to: REPLY_TO,
+          status: 'pending',
+          metadata: {
+            send_after: sendAfter.toISOString(),
+            campaign: KW_OVERRIDE_CAMPAIGN,
+            batch: batchId,
+            touch: 2,
+            hook: 'docusign-migration-window',
+            first_name: firstName,
+            city: cityOrDefault(lead.city),
+            brokerage: (lead.brokerage || '').trim(),
+            confidence_tier: lead.confidence_tier,
+            email_source: lead.email_source,
+            queued_by: 'cron-cold-email-daily-batch',
+            override: 'kw-only-touch2',
+          },
+        };
+        if (forceDryRun) { result.queued += 1; continue; }
+        try {
+          await insertRow(row);
+          result.queued += 1;
+        } catch (err) {
+          result.errors += 1;
+          console.warn('[daily-batch-kw] insert failed', to, err && err.message);
+        }
+      }
+
+      const duration_ms = Date.now() - startedAt;
+      recordCronRun('cron-cold-email-daily-batch', 'ok', { duration_ms, ...result }).catch(() => {});
+      return res.status(200).json({ ok: true, duration_ms, ...result });
     }
 
     const cadence = await getDailyTarget(now);
