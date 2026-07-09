@@ -410,6 +410,10 @@ async function handler(req, res) {
   // Optional query overrides for staging APV.
   const forceDryRun = req.query && (req.query.dry === '1' || req.query.dry === 'true');
   const forceRun    = req.query && (req.query.force === '1' || req.query.force === 'true');
+  // Date-override for staging APV — ONLY honored when dry=1 so it can never
+  // trigger real inserts with a fabricated date. Format YYYY-MM-DD.
+  const dateOverride = req.query && typeof req.query.today === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(req.query.today) ? req.query.today : null;
 
   const auth = req.headers.authorization || '';
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
@@ -421,8 +425,10 @@ async function handler(req, res) {
 
   const startedAt = Date.now();
   const now = new Date();
-  const dow = now.getUTCDay(); // 0=Sun, 6=Sat
-  const today = now.toISOString().slice(0, 10);
+  // Effective "today" = dateOverride when present and dry-run, else real UTC date.
+  const today = (dateOverride && forceDryRun) ? dateOverride : now.toISOString().slice(0, 10);
+  // Recompute dow from effective today (UTC-based Date parse).
+  const dow = (dateOverride && forceDryRun) ? new Date(today + 'T00:00:00Z').getUTCDay() : now.getUTCDay();
   const batchId = `daily-${today}`;
   const isKwOverride = KW_OVERRIDE_DATES.has(today);
 
