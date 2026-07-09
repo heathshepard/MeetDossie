@@ -3573,6 +3573,22 @@
       );
     }
 
+    // --- Force native audio output toggle (module-scope shim, atlas 2026-07-08) ---
+    // The classic <script> block below (line ~9250) also declares
+    // isForceNativeOutputOn(). That declaration is invisible to this module
+    // scope, so any call from module code (e.g. line 4679 useNativeOutput)
+    // threw "isForceNativeOutputOn is not defined" and killed the send
+    // handler. This local copy fixes that. Returns false by default (web PWA
+    // mode), true in APK unless explicitly disabled via localStorage.
+    function isForceNativeOutputOn() {
+      if (!isCapacitorNativeCtx()) return false;
+      try {
+        const v = localStorage.getItem('jarvis:audio:forceNativeOutput');
+        // Default ON in APK, unless explicitly set to '0'.
+        return v !== '0';
+      } catch (e) { return true; }
+    }
+
     // --- state ---
     let supabase = null;
     let session = null;
