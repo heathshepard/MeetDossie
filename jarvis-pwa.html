@@ -1916,6 +1916,83 @@
       line-height: 1.2;
     }
 
+
+    /* ===== AGENTS IN FLIGHT PANEL (Tier 2) — live agent-status display ===== */
+    .agent-panel {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .agent-panel-header {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--cyan-bright);
+    }
+    .agent-panel-count {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      background: rgba(0, 229, 255, 0.12);
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      color: var(--cyan-bright);
+      font-family: 'Courier New', monospace;
+    }
+    .agent-card {
+      cursor: pointer;
+      padding: 8px 10px;
+      background: rgba(5, 8, 16, 0.4);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--cyan-bright);
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      display: flex; flex-direction: column; gap: 5px;
+      min-height: 0;
+    }
+    .agent-card:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.08); }
+    .agent-card.completed {
+      border-left-color: var(--ok);
+      opacity: 0.78;
+    }
+    .agent-card.completed .agent-card-name { color: var(--ok); }
+    .agent-card.failed {
+      border-left-color: var(--fail);
+    }
+    .agent-card.failed .agent-card-name { color: var(--fail); }
+    .agent-card-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .agent-card-name {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--cyan-bright);
+      flex: 1; min-width: 0;
+    }
+    .agent-card-elapsed {
+      font-size: 9px; color: var(--txt-faint);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .agent-card-task {
+      font-size: 10px; line-height: 1.3;
+      color: var(--txt-primary);
+      word-break: break-word;
+      max-height: 30px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .agent-card-notification {
+      font-size: 9px; color: var(--txt-mute);
+      letter-spacing: 0.06em;
+      line-height: 1.25;
+    }
+    .agent-panel-empty {
+      font-size: 11px; color: var(--txt-faint);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      text-align: center; padding: 12px 6px;
+    }
+
     /* ===== AGENT STATUS UPGRADE (Tier 2 + DoD ADDENDUM) ===== */
     .agent-row {
       grid-template-columns: auto 1fr auto !important;
@@ -2856,7 +2933,18 @@
           </div>
         </div>
 
-        <!-- CALENDAR (Tier 2 Widget #2) — today + tomorrow events from Google / local. -->
+        <!-- AGENTS IN FLIGHT (Tier 2 Widget) — live agent status panel -->
+        <div class="panel" id="agents-panel">
+          <div class="panel-title agent-panel-header">
+            <span>AGENTS IN FLIGHT</span>
+            <span class="agent-panel-count" id="agent-count">0</span>
+          </div>
+          <div id="agent-list" class="agent-panel">
+            <div class="agent-panel-empty">No agents running. Ask me for anything.</div>
+          </div>
+        </div>
+
+                <!-- CALENDAR (Tier 2 Widget #2) — today + tomorrow events from Google / local. -->
         <div class="panel" id="calendar-panel">
           <div class="panel-title">CALENDAR</div>
           <div id="cal-list" class="cal-list">
@@ -3967,6 +4055,7 @@
       loadTrafficToday().catch(() => {});
       loadMergeQueue().catch(() => {});
       loadPendingApprovals().catch(() => {});
+      loadActiveAgents().catch(() => {});
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
       try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
       loadDailyDebrief().catch(() => {});
@@ -3998,6 +4087,7 @@
       setInterval(() => { loadDailyDebrief().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
+      setInterval(() => { loadActiveAgents().then(() => trackPollSuccess()).catch(() => {}); }, 15000);
       setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
@@ -5937,6 +6027,88 @@
         badge.textContent = String(items.length);
       }
     }
+
+    // ===== AGENTS IN FLIGHT (Tier 2 Widget) =====
+    // Shows running agents + recently completed (last 5 min).
+    // Auto-refresh every 15s.
+    let agentCache = [];
+    async function loadActiveAgents() {
+      const list = document.getElementById('agent-list');
+      const badge = document.getElementById('agent-count');
+      if (!list) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-active-agents`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          list.innerHTML = `<div class="agent-panel-empty">Couldn't load (${res.status}).</div>`;
+          return;
+        }
+        const data = await res.json();
+        agentCache = data.running || [];
+        renderActiveAgents(data.running, data.recently_completed || []);
+        if (badge) {
+          badge.textContent = String(data.agent_count || 0);
+        }
+      } catch (err) {
+        console.warn('[jarvis] loadActiveAgents failed', err);
+        list.innerHTML = `<div class="agent-panel-empty">Offline.</div>`;
+      }
+    }
+
+    function formatElapsed(seconds) {
+      if (seconds < 60) return `${seconds}s`;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}m ${secs}s`;
+    }
+
+    function renderActiveAgents(running, completed) {
+      const list = document.getElementById('agent-list');
+      if (!list) return;
+      
+      if (running.length === 0 && completed.length === 0) {
+        list.innerHTML = `<div class="agent-panel-empty">No agents running. Ask me for anything.</div>`;
+        return;
+      }
+
+      let html = '';
+      
+      // Render running agents
+      for (const agent of running) {
+        const elapsed = formatElapsed(agent.elapsed_seconds || 0);
+        const notif = agent.last_notification ? agent.last_notification.split(' ').slice(-2).join(' ') : '';
+        html += `
+          <div class="agent-card running" data-agent-id="${escapeHtml(agent.id)}">
+            <div class="agent-card-header">
+              <span class="agent-card-name">${escapeHtml(agent.agent_name)}</span>
+              <span class="agent-card-elapsed">${elapsed}</span>
+            </div>
+            <div class="agent-card-task">${escapeHtml(agent.task_description || '')}</div>
+            ${notif ? `<div class="agent-card-notification">${escapeHtml(notif)}</div>` : ''}
+          </div>
+        `;
+      }
+      
+      // Render recently completed agents
+      for (const agent of completed) {
+        const elapsed = formatElapsed(agent.elapsed_seconds || 0);
+        const statusClass = agent.status === 'completed' ? 'completed' : 'failed';
+        html += `
+          <div class="agent-card ${statusClass}" data-agent-id="${escapeHtml(agent.id)}">
+            <div class="agent-card-header">
+              <span class="agent-card-name">${escapeHtml(agent.agent_name)}</span>
+              <span class="agent-card-elapsed">✓ ${elapsed}</span>
+            </div>
+            <div class="agent-card-task">${escapeHtml(agent.task_description || '')}</div>
+            ${agent.result_summary ? `<div class="agent-card-notification">${escapeHtml(agent.result_summary)}</div>` : ''}
+          </div>
+        `;
+      }
+      
+      list.innerHTML = html;
+    }
+
 
     async function mergeStagingToMain(item) {
       const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}`);
