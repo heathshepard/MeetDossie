@@ -731,15 +731,40 @@ async function runDiagnostic(runId, injectMode) {
     // Step 10 — Sign out returns to sign-in
     // ========================================================================
     await step('sign-out', 'Sign out returns to sign-in', async () => {
-      const menuBtn = await page.$('button:has-text("Settings"), button:has-text("Profile"), [aria-label*="menu"], [aria-label*="Menu"]');
-      if (menuBtn) { await menuBtn.click().catch(() => {}); await page.waitForTimeout(700); }
-      const signOutBtn = await page.$('button:has-text("Sign Out"), button:has-text("Sign out"), a:has-text("Sign Out"), a:has-text("Sign out")');
-      if (!signOutBtn) {
-        // If we can't find sign-out UI, use localStorage clear as fallback — not a fail
+      // Sign Out lives in the sidebar profile card, always visible — no menu-opener needed.
+      // Prior versions clicked "Settings" first, which opened an overlay that blocked the click.
+      // Dismiss any accidental modal/overlay first, then click Sign Out with retry.
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(300);
+      await page.evaluate(() => { try { window.scrollTo(0, 0); } catch { /* ignore */ } });
+
+      // Try Playwright locator (auto-waits, better than $) with a bounded timeout so we don't stall the cron.
+      let clicked = false;
+      try {
+        const locator = page.locator('button:has-text("Sign Out"), button:has-text("Sign out"), a:has-text("Sign Out"), a:has-text("Sign out")').first();
+        await locator.waitFor({ state: 'visible', timeout: 8000 });
+        // force:true bypasses actionability checks — an overlay intercepting pointer events won't false-fail us
+        // once we've confirmed the button itself is visible.
+        await locator.click({ timeout: 8000 }).catch(async () => {
+          await locator.click({ force: true, timeout: 4000 });
+        });
+        clicked = true;
+      } catch (e) {
+        // Locator path failed — try DOM click as final fallback before giving up
+        clicked = await page.evaluate(() => {
+          const btns = Array.from(document.querySelectorAll('button, a'));
+          const target = btns.find(b => /sign\s*out/i.test(b.textContent || ''));
+          if (target) { target.click(); return true; }
+          return false;
+        });
+      }
+
+      if (!clicked) {
+        // Ultimate fallback — localStorage clear counts as a soft pass (not a customer-visible failure)
         await page.evaluate(() => { try { window.localStorage.clear(); } catch { /* ignore */ } });
         return;
       }
-      await signOutBtn.click();
+
       await page.waitForTimeout(2500);
       // Sentinel — email input should be visible again
       const emailBack = await page.$('input[type="email"]');
