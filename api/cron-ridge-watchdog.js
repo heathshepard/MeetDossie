@@ -680,11 +680,11 @@ async function crawlLinks(linkQueue) {
 // API health probes
 // ============================================================================
 
+// API endpoints verified live 2026-07-09.
 const API_PROBES = [
   '/api/health',
   '/api/get-supabase-public-config',
-  '/api/waitlist-count',
-  '/api/founding-slot-count',
+  '/api/founding-count',
 ];
 
 async function probeApiHealth() {
