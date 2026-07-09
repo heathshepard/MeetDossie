@@ -113,10 +113,10 @@ After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quin
 
 | Tier | Monthly | Annual |
 |---|---|---|
-| Solo | $79 | $39 |
-| Team | $199 (3 seats; max 8 at $35/seat) | $119 |
+| Solo | $79 (rising to $149 on 2026-07-20 for new signups; existing subs unaffected) | $39 |
+| Team | $199 (3 seats; max 8 at $35/seat) — rising to $349 on 2026-07-20 for new signups; existing subs unaffected | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (50 spots, 13 taken, 37 remaining) | — |
+| **Founding Member** | **$29** (25 spots, 12 taken, 13 remaining, LOCKED for LIFE of membership) | — |
 
 Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
@@ -124,13 +124,13 @@ Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
 ## 6. CURRENT CUSTOMERS
 
-**MRR: $377/month** (13 founding @ $29). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
+**MRR: $349/month** (12 founding @ $29 + Suzanne @ $1 founding friend). Full roster + notes → `docs/CUSTOMERS.md`. Update that file on every onboard/cancel and keep the Section 5 spot count in sync.
 
 ---
 
 ## 14. DISTRIBUTION STRATEGY (summary)
 
-Source of truth: `DISTRIBUTION-STRATEGY.md`. 4 pillars: **Cost, Control, Visibility, Speed** (Control = strongest for high-volume agents). URL strategy: `/founding` until 45/50 filled, then `meetdossie.com`. Platforms FB/Twitter/IG/LinkedIn live; LinkedIn gets Victor's Friday slot via `cron-generate-posts.js`. Personas Brenda/Patricia/Victor, algorithm-optimized per platform.
+Source of truth: `DISTRIBUTION-STRATEGY.md`. 4 pillars: **Cost, Control, Visibility, Speed** (Control = strongest for high-volume agents). URL strategy: `/founding` until 22/25 filled, then `meetdossie.com`. Platforms FB/Twitter/IG/LinkedIn live; LinkedIn gets Victor's Friday slot via `cron-generate-posts.js`. Personas Brenda/Patricia/Victor, algorithm-optimized per platform.
 
 ---
 

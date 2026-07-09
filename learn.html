@@ -300,7 +300,8 @@ loadTutorials();
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){
       if (j && typeof j.remaining === 'number' && j.remaining >= 0) {
-        el.textContent = j.remaining + ' of 50';
+        var t = (typeof j.total === 'number' && j.total > 0) ? j.total : 25;
+        el.textContent = j.remaining + ' of ' + t;
       }
     })
     .catch(function(){});
