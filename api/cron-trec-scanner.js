@@ -383,4 +383,47 @@ async function handler(req, res) {
   });
 }
 
-module.exports = withTelemetry('cron-trec-scanner', handler);
+// Chained handler: scan, then call alerts fan-out. One registered cron.
+async function chainedHandler(req, res) {
+  const scanResults = { scan: null, alerts: null };
+  // Capture scan output
+  const captured = { status: 200, body: null };
+  const fauxRes = {
+    status(c) { captured.status = c; return this; },
+    json(body) { captured.body = body; return this; },
+  };
+  try {
+    await handler(req, fauxRes);
+  } catch (e) {
+    captured.status = 500;
+    captured.body = { ok: false, error: e.message };
+  }
+  scanResults.scan = captured.body;
+
+  // Call alerts inline (raw handler, not the wrapped export)
+  try {
+    const alertsMod = require('./cron-trec-member-alerts.js');
+    const alertReq = {
+      method: 'GET',
+      headers: { authorization: `Bearer ${process.env.CRON_SECRET || ''}` },
+      query: {},
+    };
+    const alertCaptured = { status: 200, body: null };
+    const alertRes = {
+      status(c) { alertCaptured.status = c; return this; },
+      json(body) { alertCaptured.body = body; return this; },
+    };
+    await alertsMod(alertReq, alertRes);
+    scanResults.alerts = alertCaptured.body;
+  } catch (e) {
+    scanResults.alerts = { ok: false, error: e.message };
+  }
+
+  return res.status(200).json({ ok: true, ...scanResults });
+}
+
+module.exports = withTelemetry('cron-trec-scanner', chainedHandler);
+
+module.exports.config = {
+  maxDuration: 180,
+};

@@ -296,3 +296,9 @@ async function handler(req, res) {
 }
 
 module.exports = withTelemetry('cron-trec-member-alerts', handler);
+
+// Vercel per-function config — declared inline so we stay under the 50-entry
+// vercel.json `functions` cap (bd7b4c7f pattern).
+module.exports.config = {
+  maxDuration: 60,
+};

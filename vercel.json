@@ -437,12 +437,6 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/{sa-realtor-leads-final-v2.csv,kw-only-thursday-2026-07-10.csv,kw-only-friday-2026-07-11.csv}"
-    },
-    "api/cron-trec-scanner.js": {
-      "maxDuration": 120
-    },
-    "api/cron-trec-member-alerts.js": {
-      "maxDuration": 60
     }
   },
   "crons": [
@@ -821,10 +815,6 @@
     {
       "path": "/api/cron-trec-scanner",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron-trec-member-alerts",
-      "schedule": "30 8 * * *"
     }
   ]
 }
