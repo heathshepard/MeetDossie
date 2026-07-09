@@ -1,12 +1,24 @@
 // api/cron-ridge-watchdog.js
 // ============================================================================
-// SV-ENG-RIDGE-WATCHDOG-001 (Ridge, 2026-07-09)
+// SV-ENG-RIDGE-WATCHDOG-002 (Ridge, 2026-07-09 — dedup + drill + config_gap)
 //
 // CONTINUOUS CUSTOMER-EXPERIENCE DIAGNOSTIC.
 //
 // Runs every 4 hours (0 * / 4 * * *). Signs in as Sarah Whitley demo, walks the
 // full customer happy-path against PRODUCTION (https://meetdossie.com), and
 // records anything broken to customer_experience_incidents.
+//
+// v002 — Heath's inbox-spam fix (2026-07-09):
+//   * DEDUP: unresolved incidents with SAME (incident_type, path) within 24h
+//     do not re-alert. record_watchdog_incident() RPC returns inserted=false
+//     when it merges onto an existing row (repeat_count++, last_seen_at=NOW()).
+//     Telegram fires ONLY on inserted=true rows with severity ∈ {critical,major}.
+//   * DRILL suppression: incidents with incident_type='synthetic_injection' OR
+//     path/detail contains 'synthetic'/'?inject=' → severity='drill'. Never
+//     alerts Telegram unless caller passes ?notify=true.
+//   * CONFIG_GAP: missing DEMO_PASSWORD does not crash the walk. It logs ONE
+//     severity='config_gap' incident and continues API/link probes.
+//   * sbInsert now returns {ok,data,error} with real error surfacing.
 //
 // This fills the gap between:
 //   - Atlas APV (merge-time only)
@@ -75,7 +87,27 @@ const CHROMIUM_REMOTE = 'https://github.com/Sparticuz/chromium/releases/download
 // Helpers
 // ============================================================================
 
+// Redact obvious secrets before logging a row payload. Best-effort — never log
+// bearer tokens, service-role keys, or the DEMO_PASSWORD if they ever leak into
+// a detail blob.
+function redactForLog(row) {
+  try {
+    const s = JSON.stringify(row);
+    return s
+      .replace(/"(access_token|refresh_token|password|apikey|Authorization|service_role_key|DEMO_PASSWORD)"\s*:\s*"[^"]*"/gi, '"$1":"[REDACTED]"')
+      .slice(0, 800);
+  } catch { return '[unserializable]'; }
+}
+
+// sbInsert — real error surfacing. Returns {ok, data, error, status}.
+// Fix 4 (bonus): logs exact Supabase error, the (redacted) row we tried to
+// insert, and RETURNS the error so callers can act on it. Never swallows.
 async function sbInsert(table, row) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    const err = 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing';
+    console.error(`[ridge-watchdog] sbInsert(${table}) env-gap: ${err}`);
+    return { ok: false, data: null, error: err, status: 0 };
+  }
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
@@ -89,15 +121,75 @@ async function sbInsert(table, row) {
     });
     if (!res.ok) {
       const text = await res.text();
-      console.warn(`[ridge-watchdog] sbInsert(${table}) failed: ${res.status} ${text.slice(0, 300)}`);
-      return null;
+      console.error(
+        `[ridge-watchdog] sbInsert(${table}) FAILED status=${res.status} body=${text.slice(0, 500)} row=${redactForLog(row)}`
+      );
+      return { ok: false, data: null, error: `${res.status}: ${text.slice(0, 300)}`, status: res.status };
     }
     const data = await res.json();
-    return Array.isArray(data) ? data[0] : data;
+    const first = Array.isArray(data) ? data[0] : data;
+    return { ok: true, data: first, error: null, status: res.status };
   } catch (err) {
-    console.warn(`[ridge-watchdog] sbInsert(${table}) crashed: ${err.message}`);
-    return null;
+    const msg = err && err.message ? err.message : String(err);
+    console.error(
+      `[ridge-watchdog] sbInsert(${table}) CRASHED: ${msg} row=${redactForLog(row)}`
+    );
+    return { ok: false, data: null, error: msg, status: 0 };
   }
+}
+
+// sbRpc — call a Postgres RPC via PostgREST. Same error surfacing as sbInsert.
+async function sbRpc(fnName, args) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return { ok: false, data: null, error: 'SUPABASE creds missing', status: 0 };
+  }
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify(args || {}),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(
+        `[ridge-watchdog] sbRpc(${fnName}) FAILED status=${res.status} body=${text.slice(0, 500)} args=${redactForLog(args)}`
+      );
+      return { ok: false, data: null, error: `${res.status}: ${text.slice(0, 300)}`, status: res.status };
+    }
+    const data = await res.json();
+    return { ok: true, data, error: null, status: res.status };
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    console.error(
+      `[ridge-watchdog] sbRpc(${fnName}) CRASHED: ${msg} args=${redactForLog(args)}`
+    );
+    return { ok: false, data: null, error: msg, status: 0 };
+  }
+}
+
+// upsertIncident — writes via record_watchdog_incident RPC.
+// Returns { ok, id, inserted, error }. inserted=true means NEW row (Telegram
+// eligible); inserted=false means we deduped onto an existing unresolved
+// row (Telegram suppressed).
+async function upsertIncident(inc, runId) {
+  const args = {
+    p_incident_type: inc.incident_type,
+    p_severity: inc.severity,
+    p_path: inc.path || null,
+    p_detail: inc.detail || {},
+    p_screenshot: inc.screenshot_path || null,
+    p_run_id: runId,
+  };
+  const rpc = await sbRpc('record_watchdog_incident', args);
+  if (!rpc.ok) return { ok: false, id: null, inserted: false, error: rpc.error };
+  // RPC returns array [{ out_id, inserted }]
+  const first = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  const id = first && (first.out_id || first.id) || null;
+  return { ok: true, id, inserted: !!(first && first.inserted), error: null };
 }
 
 async function tg(text) {
@@ -121,7 +213,16 @@ async function tg(text) {
 }
 
 async function signInAsDemoViaAuthApi() {
-  if (!DEMO_PASSWORD) return { ok: false, error: 'DEMO_PASSWORD env var missing' };
+  // Fix 3 — DEMO_PASSWORD guard: emit a distinct config_gap signal instead of
+  // treating this as a customer-facing auth_failure. Caller inspects reason to
+  // route to the right severity (config_gap = ONE alert, then deduped).
+  if (!DEMO_PASSWORD) {
+    return {
+      ok: false,
+      reason: 'config_gap',
+      error: 'DEMO_PASSWORD env var not set on this Vercel environment — Watchdog cannot run the signed-in walk. Set DEMO_PASSWORD in Vercel Project Settings > Environment Variables to restore full coverage.',
+    };
+  }
   try {
     const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
@@ -134,7 +235,25 @@ async function signInAsDemoViaAuthApi() {
     });
     const data = await r.json();
     if (!r.ok || !data.access_token) {
-      return { ok: false, error: `sign-in ${r.status}: ${JSON.stringify(data).slice(0, 200)}` };
+      // Fix 3 extension — a 400 invalid_credentials on the DEMO account is a
+      // stale/wrong DEMO_PASSWORD (Ridge config problem), NOT a customer-facing
+      // outage. Customers auth with their own passwords, not this one.
+      // Route to config_gap so it dedups + is labeled correctly, not spammed.
+      const dataStr = JSON.stringify(data);
+      const isInvalidCred =
+        r.status === 400 &&
+        (/invalid_credentials/i.test(dataStr) ||
+         /invalid.?login/i.test(dataStr) ||
+         /invalid.?password/i.test(dataStr));
+      const errMsg = `sign-in ${r.status}: ${dataStr.slice(0, 200)}`;
+      if (isInvalidCred) {
+        return {
+          ok: false,
+          reason: 'config_gap',
+          error: `DEMO_PASSWORD env var is set but rejected by Supabase (${errMsg}) — likely stale after a rotation. Update DEMO_PASSWORD in Vercel env to restore Watchdog signed-in coverage. Real customer sign-ins are unaffected.`,
+        };
+      }
+      return { ok: false, reason: 'auth_failure', error: errMsg };
     }
     return {
       ok: true,
@@ -143,7 +262,7 @@ async function signInAsDemoViaAuthApi() {
       user: data.user,
     };
   } catch (err) {
-    return { ok: false, error: err.message };
+    return { ok: false, reason: 'auth_failure', error: err.message };
   }
 }
 
@@ -217,12 +336,22 @@ async function runDiagnostic(runId, injectMode) {
   // Synthetic injection runs BEFORE the browser walk so it happens even when
   // auth fails (this is how we prove the alert path works in staging where the
   // Preview env has a different DEMO_PASSWORD than Production).
+  //
+  // Fix 2 — mark synthetics as 'drill' so they log-only by default. Telegram is
+  // suppressed for drill severity in the alert-router below. Real customer
+  // failures on the same paths still fire normally (they arrive with
+  // severity='critical'/'major', not 'drill').
   if (injectMode && INJECT_MODES.has(injectMode)) {
     incidents.push(makeIncident(
-      injectMode,
-      'critical',
-      '__synthetic_injection__',
-      { note: `Ridge Watchdog synthetic failure injected via ?inject=${injectMode}`, injected_at: new Date().toISOString() },
+      'synthetic_injection',
+      'drill',
+      `__synthetic_injection__/${injectMode}`,
+      {
+        note: `Ridge Watchdog synthetic failure injected via ?inject=${injectMode}`,
+        injected_mode: injectMode,
+        injected_at: new Date().toISOString(),
+        synthetic: true,
+      },
       null
     ));
   }
@@ -230,13 +359,35 @@ async function runDiagnostic(runId, injectMode) {
   // ----- Sign in via Supabase Auth API to inject storage
   const demoSession = await signInAsDemoViaAuthApi();
   if (!demoSession.ok) {
-    incidents.push(makeIncident(
-      'auth_failure',
-      'critical',
-      '/auth/v1/token',
-      { error: demoSession.error },
-      null
-    ));
+    // Fix 3 — CONFIG_GAP vs AUTH_FAILURE routing.
+    // A missing env var is a Ridge-config problem, not a customer-facing outage.
+    // Log ONE incident of the right type and CONTINUE the rest of the walk
+    // (API probes + link crawler still run). The 'signed_in_walk_skipped'
+    // step-result surfaces in the summary so Ridge knows coverage is degraded.
+    if (demoSession.reason === 'config_gap') {
+      incidents.push(makeIncident(
+        'config_gap',
+        'config_gap',
+        '/auth/v1/token',
+        { error: demoSession.error, env_var: 'DEMO_PASSWORD', ridge_config_issue: true },
+        null
+      ));
+    } else {
+      incidents.push(makeIncident(
+        'auth_failure',
+        'critical',
+        '/auth/v1/token',
+        { error: demoSession.error },
+        null
+      ));
+    }
+    stepResults.push({
+      slug: 'signed_in_walk_skipped',
+      description: 'Signed-in browser walk skipped (auth unavailable)',
+      status: 'skipped',
+      reason: demoSession.reason || 'unknown',
+      error: demoSession.error,
+    });
     return { incidents, stepResults, consoleErrorsGlobal, linkQueue };
   }
 
@@ -814,41 +965,119 @@ async function handler(req, res) {
     ...probeIncidents,
   ];
 
-  // Persist incidents to DB
-  const insertedIds = [];
+  // Fix 2 support — is this incident a synthetic/drill?
+  // We classify by incident_type OR path/detail markers so injected failures
+  // and any other drill-tagged events all suppress by default.
+  const isDrill = (inc) => {
+    if (!inc) return false;
+    if (inc.severity === 'drill') return true;
+    if (inc.incident_type === 'synthetic_injection') return true;
+    const pathStr = String(inc.path || '');
+    if (pathStr.includes('synthetic') || pathStr.includes('__synthetic')) return true;
+    try {
+      const d = inc.detail && typeof inc.detail === 'object' ? inc.detail : {};
+      if (d.synthetic === true) return true;
+      const flat = JSON.stringify(d).toLowerCase();
+      if (flat.includes('?inject=') || flat.includes('synthetic')) return true;
+    } catch { /* ignore */ }
+    return false;
+  };
+
+  // Persist incidents via dedup RPC. Track which ones are freshly-inserted
+  // (Telegram-eligible) vs deduped onto an existing unresolved row (repeat_count++).
+  const insertedIds = [];       // NEW rows
+  const dedupedIds = [];        // EXISTING rows we bumped repeat_count on
+  const failedRows = [];        // Rows we couldn't write — surfaced in summary
+  const freshIncidents = [];    // Full incident objects for freshly-inserted rows
+  // freshTelegramCandidates = ONLY the incidents that (a) were NEW inserts and
+  // (b) are severity ∈ {critical, major} AND (c) are NOT drills.
+  const freshTelegramCandidates = [];
   for (const inc of allIncidents) {
-    const row = await sbInsert('customer_experience_incidents', {
-      cron_run_id: null, // legacy field — we use the runId in detail instead
-      incident_type: inc.incident_type,
-      severity: inc.severity,
-      path: inc.path,
-      detail: { ...(inc.detail || {}), run_id: runId },
-      screenshot_path: inc.screenshot_path,
-    });
-    if (row && row.id) insertedIds.push(row.id);
+    const result = await upsertIncident(inc, runId);
+    if (!result.ok) {
+      failedRows.push({ incident_type: inc.incident_type, path: inc.path, error: result.error });
+      continue;
+    }
+    if (result.inserted) {
+      insertedIds.push(result.id);
+      freshIncidents.push({ ...inc, id: result.id });
+      const drillFlag = isDrill(inc);
+      const alertable = (inc.severity === 'critical' || inc.severity === 'major') && !drillFlag;
+      if (alertable) freshTelegramCandidates.push({ ...inc, id: result.id });
+    } else {
+      dedupedIds.push(result.id);
+    }
   }
 
-  // Classify severity for alert routing
+  // Classify severity for summary display
   const critical = allIncidents.filter(i => i.severity === 'critical').length;
   const major = allIncidents.filter(i => i.severity === 'major').length;
   const minor = allIncidents.filter(i => i.severity === 'minor').length;
+  const drill = allIncidents.filter(i => i.severity === 'drill').length;
+  const configGap = allIncidents.filter(i => i.severity === 'config_gap').length;
+
+  // Fix 1 + Fix 2 combined — Telegram gates:
+  //   * fire ONLY when there's at least one FRESH (newly-inserted) critical/major
+  //     non-drill incident. Deduplicated re-fires are silent (repeat_count++ only).
+  //   * config_gap fires ONE alert on the first insert (labeled as Watchdog config,
+  //     not customer issue). Subsequent runs dedup silently.
+  //   * drill fires ONLY when explicit ?notify=true is passed.
+  const notifyOverride = req.query && (req.query.notify === 'true' || req.query.notify === '1');
 
   let telegramSent = false;
-  if (critical + major > 0) {
-    // Compose alert — plain English, decision-oriented
-    const worst = allIncidents.find(i => i.severity === 'critical') || allIncidents.find(i => i.severity === 'major');
+  let telegramReason = 'no_alert_needed';
+
+  // 1) Freshly-inserted critical/major real incidents
+  if (freshTelegramCandidates.length > 0) {
+    const worst = freshTelegramCandidates.find(i => i.severity === 'critical')
+      || freshTelegramCandidates.find(i => i.severity === 'major');
     const worstDetail = worst && worst.detail
       ? (worst.detail.error || worst.detail.description || worst.detail.note || JSON.stringify(worst.detail).slice(0, 120))
       : 'see admin dashboard';
     const alertText = [
-      `🚨 Prod diagnostic FAIL`,
+      `Prod diagnostic FAIL`,
       `${worst ? worst.path : 'unknown'}: ${worstDetail}`,
-      `Severity: ${critical > 0 ? 'critical' : 'major'}`,
-      `Totals: ${critical} crit / ${major} major / ${minor} minor`,
+      `Severity: ${worst.severity}`,
+      `New this run: ${freshTelegramCandidates.length} (${critical} crit / ${major} major total, ${dedupedIds.length} deduped)`,
       `Details at /admin/ridge-incidents`,
     ].join('\n');
     const tgResult = await tg(alertText);
     telegramSent = !!(tgResult && tgResult.ok);
+    telegramReason = telegramSent ? 'fresh_critical_or_major' : 'telegram_send_failed';
+  }
+  // 2) Freshly-inserted config_gap — informational, ONE alert.
+  // If the config_gap already exists (deduped), stay silent — repeat_count++ only.
+  else {
+    const freshConfigGap = freshIncidents.find(i => i.severity === 'config_gap');
+    if (freshConfigGap) {
+      const detail = freshConfigGap.detail || {};
+      const alertText = [
+        `Watchdog config gap (NOT a customer issue)`,
+        `${freshConfigGap.path || ''}: ${detail.error || 'DEMO_PASSWORD missing'}`,
+        `Signed-in walk skipped this run. API + link probes still ran.`,
+        `Fix: set DEMO_PASSWORD in Vercel env. Next run will resume full coverage.`,
+      ].join('\n');
+      const tgResult = await tg(alertText);
+      telegramSent = !!(tgResult && tgResult.ok);
+      telegramReason = telegramSent ? 'fresh_config_gap' : 'telegram_send_failed';
+    }
+  }
+
+  // 3) Drill — only send if explicit ?notify=true override AND the drill was
+  // freshly inserted (otherwise dedup handles the noise).
+  if (!telegramSent && notifyOverride) {
+    const freshDrill = freshIncidents.find(i => i.severity === 'drill');
+    if (freshDrill) {
+      const d = freshDrill;
+      const alertText = [
+        `Watchdog DRILL (notify=true)`,
+        `${d.path || ''}: ${d.detail && d.detail.note ? d.detail.note : 'synthetic'}`,
+        `This was a self-test. No customer impact.`,
+      ].join('\n');
+      const tgResult = await tg(alertText);
+      telegramSent = !!(tgResult && tgResult.ok);
+      telegramReason = telegramSent ? 'drill_notify_override' : 'telegram_send_failed';
+    }
   }
 
   const summary = {
@@ -857,6 +1086,7 @@ async function handler(req, res) {
     elapsed_ms: Date.now() - startedAt,
     steps_run: diagnostic.stepResults.length,
     steps_failed: diagnostic.stepResults.filter(s => s.status === 'fail').length,
+    steps_skipped: diagnostic.stepResults.filter(s => s.status === 'skipped').length,
     console_errors_total: diagnostic.consoleErrorsGlobal.length,
     links_crawled: crawlCount,
     api_probes: probeResults.length,
@@ -865,11 +1095,19 @@ async function handler(req, res) {
       critical,
       major,
       minor,
+      drill,
+      config_gap: configGap,
       db_inserted: insertedIds.length,
-      ids: insertedIds,
+      db_deduped: dedupedIds.length,
+      db_failed: failedRows.length,
+      inserted_ids: insertedIds,
+      deduped_ids: dedupedIds,
+      failed_rows: failedRows.slice(0, 5), // cap for response size
     },
     telegram_sent: telegramSent,
+    telegram_reason: telegramReason,
     inject_mode: injectMode,
+    notify_override: !!notifyOverride,
   };
 
   res.status(200).json(summary);
