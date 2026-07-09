@@ -12,7 +12,9 @@
 //   Week 4+ (2026-07-27+): 25/day steady
 //
 // Auth:     Authorization: Bearer ${CRON_SECRET}
-// Schedule: vercel.json — 0 14 * * 1-5 (Mon-Fri 14:00 UTC = 09:00 CDT)
+// Schedule: vercel.json — 0 14 * * 1-6 (Mon-Sat 14:00 UTC = 09:00 CDT).
+//           Saturday cron only fires for KW override dates (2026-07-11);
+//           all other Saturdays hit the weekend guard and skip.
 //
 // Behaviour:
 //   1. Look up current week's daily_target from cold_email_cadence.
@@ -418,15 +420,15 @@ async function handler(req, res) {
   const startedAt = Date.now();
   const now = new Date();
   const dow = now.getUTCDay(); // 0=Sun, 6=Sat
-
-  // Weekend skip (unless force=1).
-  if (!forceRun && (dow === 0 || dow === 6)) {
-    return res.status(200).json({ ok: true, skipped: 'weekend', dow });
-  }
-
   const today = now.toISOString().slice(0, 10);
   const batchId = `daily-${today}`;
   const isKwOverride = KW_OVERRIDE_DATES.has(today);
+
+  // Weekend skip (unless force=1 OR KW override date — Heath's DocuSign
+  // migration window intentionally spans Fri 2026-07-10 + Sat 2026-07-11).
+  if (!forceRun && !isKwOverride && (dow === 0 || dow === 6)) {
+    return res.status(200).json({ ok: true, skipped: 'weekend', dow });
+  }
 
   try {
     clearCache();
