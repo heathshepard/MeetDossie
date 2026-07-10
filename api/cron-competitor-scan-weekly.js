@@ -24,6 +24,14 @@
 // Schedule: "0 1 * * 1" (00:00 CDT Sun→01:00 UTC Mon actually 20:00 CDT Sun).
 //   Cron notation: "0 1 * * 1" = 01:00 UTC every Monday = 20:00 CDT Sunday.
 // Owner: Atlas 2026-07-08.
+//
+// 2026-07-10 (Sage): extended payload for per-account scan_targets. Accounts
+// whose metadata.scan_targets is populated (e.g., coordi.me — web +
+// instagram + meta_ads) get a dedicated deep-scan: homepage capture, pricing
+// page diff vs prior week, Meta Ad Library creative pull, and per-creative
+// hook analysis. Snapshots land in Supabase Storage bucket
+// `competitor-snapshots/<handle>/<YYYY-MM-DD>/`. Change events routed to
+// sage_weekly_reviews with severity {critical|notable|informational}.
 // =============================================================================
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
@@ -71,8 +79,9 @@ async function handler(req, res) {
   }
 
   // Load the active tracked list. Handler will re-scan each + hunt neighbors.
+  // metadata included so worker sees per-account scan_targets (Coordi et al.).
   const trackedR = await sb(
-    `competitor_tracked_accounts?select=id,platform,handle,category,followers,last_scanned_at,last_post_at,discovery_source&status=eq.active&limit=200`
+    `competitor_tracked_accounts?select=id,platform,handle,category,followers,last_scanned_at,last_post_at,discovery_source,metadata&status=eq.active&limit=200`
   );
   if (!trackedR.ok) {
     return res.status(500).json({ ok: false, error: `tracked_query_failed:${trackedR.status}` });
@@ -91,12 +100,32 @@ async function handler(req, res) {
   const weekOfIso = new Date().toISOString().slice(0, 10);
   const host = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`;
 
+  // Per-account scan directives. Any account whose metadata.scan_targets is
+  // set gets a dedicated deep-scan pass (homepage/pricing/ad-library/etc).
+  // Worker must:
+  //   1. Fetch each scan_target URL, capture the fields listed in `capture`.
+  //   2. Save raw HTML + captured JSON to Supabase Storage bucket
+  //      `competitor-snapshots/<handle>/<YYYY-MM-DD>/<target_type>.{html,json}`.
+  //   3. If `diff: true`, load prior-week snapshot for same target; compute
+  //      diff; on any change (or when `diff_alert_on` is set), insert a row
+  //      into sage_weekly_reviews with recommendations text prefixed
+  //      "[competitor_change:<handle>]" and week_start/week_end for this run.
+  //      Severity heuristic: pricing change or new tier = critical;
+  //      new creative/copy = notable; anything else = informational.
+  //   4. For meta_ads targets with analyze.output='hook_adaptations_for_dossie',
+  //      run per-creative Claude analysis (pain lead, positioning, CTA,
+  //      emotional beat) and insert one row per creative into
+  //      sage_intelligence.recommendations JSON (or the accepted follow-up
+  //      table if agent_suggestions ships) with author='sage' and
+  //      source_handle=<handle>.
+  const snapshot_bucket = 'competitor-snapshots';
+
   const enq = await enqueueClaudeCodeTask(host, {
     task_type: 'competitor_scan',
     agent_name: 'sage',
     priority: 3,
     title: `Sage competitor scan ${weekOfIso}`,
-    description: 'Weekly deep-scan of tracked competitor accounts + hashtag discovery. Update tracked list, seed viral remixes.',
+    description: 'Weekly deep-scan of tracked competitor accounts + hashtag discovery. Update tracked list, seed viral remixes. For accounts with metadata.scan_targets (e.g., coordi.me), run homepage/pricing/Meta-Ad-Library capture + diff vs prior week + hook analysis per creative.',
     idempotency_key: `competitor_scan:${weekOfIso}`,
     payload: {
       week_of: weekOfIso,
@@ -106,6 +135,18 @@ async function handler(req, res) {
       dormant_threshold_days: 30,
       viral_min_likes: 500,
       viral_min_share_ratio: 0.02,
+      snapshot_bucket,
+      snapshot_path_template: `${snapshot_bucket}/<handle>/${weekOfIso}/<target_type>`,
+      diff_review_table: 'sage_weekly_reviews',
+      diff_severity_rules: {
+        critical: ['pricing_change', 'new_tier', 'tier_removed'],
+        notable: ['new_ad_creative', 'new_headline', 'homepage_h1_change'],
+        informational: ['bio_change', 'follower_delta', 'copy_tweak'],
+      },
+      // Safety guardrails per mission spec.
+      never_scrape_authenticated: true,
+      never_signup_real_identity: true,
+      never_copy_verbatim: true,
     },
   });
 
