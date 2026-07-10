@@ -2,7 +2,7 @@
 // Fills a TREC form PDF with field values and uploads to Supabase Storage.
 //
 // PIVOT (2026-06-17): Uses DocuSeal Prefill API for forms Heath pre-mapped in DocuSeal.
-// - resale-contract (TREC 20-17) → DocuSeal 4018208
+// - resale-contract (TREC 20-19) → DocuSeal 4018208
 // - financing-addendum (TREC 40-11) → DocuSeal 4023463
 // - hoa-addendum (TREC 36-11) → DocuSeal 4111321
 // - lead-paint-addendum (OP-L) → DocuSeal 4023469
@@ -32,14 +32,14 @@ const BUCKET = 'documents';
 
 // Module-scope requires — loaded at cold-start, not per-request.
 // Prevents 500 errors on first request to a cold Vercel instance.
-const TREC_RESALE_B64 = require('./_assets/trec-resale-base64.js');
-const TREC_FINANCING_B64 = require('./_assets/trec-financing-base64.js');
+const TREC_RESALE_B64 = require('./_assets/trec-resale-20-19-base64.js');
+const TREC_FINANCING_B64 = require('./_assets/trec-financing-40-11-base64.js');
 const TREC_TERMINATION_B64 = require('./_assets/trec-termination-base64.js');
 const TAR_WIRE_FRAUD_B64 = require('./_assets/tar-wire-fraud-base64.js');
-const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-base64.js');
+const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-36-11-base64.js');
 const TREC_LEAD_PAINT_B64 = require('./_assets/trec-lead-paint-base64.js');
 const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-base64.js');
-const TREC_39_10_B64 = require('./_assets/trec-39-10-base64.js');
+const TREC_39_11_B64 = require('./_assets/trec-amendment-39-11-base64.js');
 const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
 const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
 const T47_AFFIDAVIT_B64 = require('./_assets/t47-affidavit-base64.js');
@@ -98,9 +98,9 @@ const FORM_CONFIGS = {
     getBase64: () => TAR_WIRE_FRAUD_B64,
     documentType: 'wire_fraud_warning',
   },
-  // Block 9B — HOA Addendum (TREC 36-10)
+  // Block 9B — HOA Addendum (TREC 36-11)
   'hoa-addendum': {
-    name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-10)',
+    name: 'Addendum for Property Subject to Mandatory Membership (TREC 36-11)',
     shortName: 'TREC-HOA-Addendum',
     getBase64: () => TREC_HOA_ADDENDUM_B64,
     documentType: 'hoa_addendum',
@@ -119,11 +119,11 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_SELLERS_DISCLOSURE_B64,
     documentType: 'sellers_disclosure',
   },
-  // Amendment to Contract (TREC 39-10)
+  // Amendment to Contract (TREC 39-11)
   'amendment': {
-    name: 'Amendment to Contract (TREC 39-10)',
+    name: 'Amendment to Contract (TREC 39-11)',
     shortName: 'TREC-39-Amendment',
-    getBase64: () => TREC_39_10_B64,
+    getBase64: () => TREC_39_11_B64,
     documentType: 'amendment',
   },
   // Block 9E — Buyer Representation Agreement (TAR 1501)
@@ -1287,7 +1287,7 @@ async function fillResaleContract(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// THIRD PARTY FINANCING ADDENDUM (TREC 40-9/40-11) — 64 AcroForm fields
+// THIRD PARTY FINANCING ADDENDUM (TREC 40-11) — 64 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 // Every field wired; agent can override via field_values.
 //
@@ -1595,7 +1595,7 @@ async function fillWireFraudWarning(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// HOA ADDENDUM (TREC 36-10) — 17 AcroForm fields
+// HOA ADDENDUM (TREC 36-11) — 17 AcroForm fields
 // Field map verified via scripts/inspect_all_fields.js.
 //
 // [TextField] "Street Address and City" -> property_full
@@ -3399,9 +3399,13 @@ module.exports = async function handler(req, res) {
       '20-16': 'resale-contract',
       '20-17': 'resale-contract',
       '40-9':  'financing-addendum',
+      '20-19': 'resale-contract',
       '40-11': 'financing-addendum',
       '38-7':  'termination-notice',
+      '36-10': 'hoa-addendum',
+      '36-11': 'hoa-addendum',
       '39-10': 'amendment',
+      '39-11': 'amendment',
       '9-17':  'unimproved-property',
       '23-18': 'new-home-incomplete',
       '24-18': 'new-home-complete',

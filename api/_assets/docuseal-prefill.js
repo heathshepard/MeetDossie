@@ -41,7 +41,7 @@ const DOCUSEAL_TEMPLATES = {
   },
   'amendment': {
     templateId: 4111320,
-    formName: 'Amendment to Contract (TREC 39-10)',
+    formName: 'Amendment to Contract (TREC 39-11)',
     roles: ['Buyer', 'Seller'],
   },
   'backup-contract': {

@@ -37,7 +37,7 @@ const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 // ---------------------------------------------------------------------------
 const FORM_B64_MAP = {
   'resale-contract':       () => require('./_assets/trec-resale-20-19-base64.js'),
-  'financing-addendum':    () => require('./_assets/trec-financing-base64.js'),
+  'financing-addendum':    () => require('./_assets/trec-financing-40-11-base64.js'),
   'termination-notice':    () => require('./_assets/trec-termination-base64.js'),
   'wire-fraud-warning':    () => require('./_assets/tar-wire-fraud-base64.js'),
   'hoa-addendum':          () => require('./_assets/trec-hoa-addendum-36-11-base64.js'),
