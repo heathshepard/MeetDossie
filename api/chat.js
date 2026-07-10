@@ -202,6 +202,11 @@ const TOOLS = [
         sale_price: { type: 'number', description: 'Sale price in dollars' },
         closing_date: { type: 'string', description: 'Closing date as YYYY-MM-DD' },
         role: { type: 'string', enum: ['buyer', 'seller', 'both'], description: "Agent's role in transaction" },
+        transaction_type: {
+          type: 'string',
+          enum: ['buyer_purchase', 'seller_listing', 'new_home_purchase', 'land', 'residential_lease_landlord', 'residential_lease_tenant'],
+          description: 'The kind of transaction. Infer from the agent language: "listing"/"I represent the seller"/"seller side" = seller_listing; "buyer purchase"/"resale"/"I represent the buyer" = buyer_purchase; "new construction"/"builder"/"new home" = new_home_purchase; "land"/"acreage"/"unimproved property"/"farm and ranch" = land; "landlord"/"rental listing"/"I represent the landlord" = residential_lease_landlord; "tenant"/"renter"/"I represent the tenant" = residential_lease_tenant. Always set this when the agent gives any signal.',
+        },
       },
       required: ['property_address'],
     },
@@ -670,6 +675,16 @@ CANONICAL ROLE VALUES for create_dossier.role:
 - buyer (agent represents the buyer)
 - seller (agent represents the seller / listing side)
 - both (agent represents both sides)
+
+CANONICAL TRANSACTION TYPE VALUES for create_dossier.transaction_type — ALWAYS set this on create_dossier when the agent gives any signal about the deal type:
+- buyer_purchase — resale buyer purchase. Triggers: "buyer purchase", "resale", "buying a home", "I represent the buyer", "buyer side" (with no other qualifier).
+- seller_listing — listing / seller side. Triggers: "listing", "listing dossier", "new listing", "I represent the seller", "seller side", "we listed", "just listed", "list a property".
+- new_home_purchase — new construction from a builder. Triggers: "new construction", "new home", "builder contract", "buying from a builder", "spec home", "TREC 23"/"TREC 24".
+- land — land / unimproved / farm & ranch. Triggers: "land", "acreage", "acres", "unimproved property", "farm and ranch", "ranch", "raw land", "TREC 9-17", "TREC 25-14".
+- residential_lease_landlord — landlord side of a rental. Triggers: "rental listing", "I represent the landlord", "landlord side", "listing a rental", "leasing out".
+- residential_lease_tenant — tenant side of a rental. Triggers: "tenant", "renter", "I represent the tenant", "renting for", "lease for a tenant".
+
+The transaction_type param is critical — it drives which section layout, which TREC forms auto-fill, and which stages appear. Never omit it when the agent's phrasing signals the type.
 
 DATE FORMAT: When the agent says relative dates, resolve them to YYYY-MM-DD format.
 - "June 26th" → "2026-06-26"
