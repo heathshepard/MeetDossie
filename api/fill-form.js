@@ -79,6 +79,14 @@ const FORM_CONFIGS = {
     shortName: 'TREC-Resale-Contract',
     getBase64: () => TREC_RESALE_B64,
     documentType: 'resale_contract',
+    // 2026-07-08 CARTER: explicit version tag. The base64 asset points to
+    // trec-resale-20-19-base64.js (a flat PDF with 0 AcroForm fields). The
+    // router uses this tag to pick fillResaleContractCoordinate() over
+    // fillResaleContract() (the AcroForm 20-17 handler). Do NOT rely on
+    // form.getFields().length as version detection — pdf-lib can silently
+    // return >0 fields on parse quirks, which would misroute to the wrong
+    // handler and silently drop every value.
+    formVersion: '20-19',
   },
   'financing-addendum': {
     name: 'Third Party Financing Addendum (TREC 40)',
@@ -1353,6 +1361,280 @@ async function fillResaleContract(pdfDoc, fv) {
 //   [TextField] "Estimate for the loan not to exceed" -> estimate_misc
 //   [CheckBox] "will" -> will_checkbox
 //   [CheckBox] "will-1","will-2" -> will_checkbox variants
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// RESALE CONTRACT (TREC 20-19) — FLAT PDF with coordinate-based fill
+// 2026-07-10: 20-19 became TREC-effective 2026-07-01. Published as a flat PDF
+// with 0 AcroForm fields. Handler uses pdf-lib drawText() at predefined
+// coordinates to overlay field values. Coordinates loaded from
+// api/_assets/trec-20-19-field-coords.json.
+//
+// This handler mirrors fillResaleContract() field mapping but uses page.drawText()
+// instead of form.getTextField() for each value. Text is drawn at the PDF origin
+// (bottom-left), so y coordinates are inverted from the visual reading order.
+// ---------------------------------------------------------------------------
+
+const TREC_20_19_COORDS = (() => {
+  try {
+    return require('./_assets/trec-20-19-field-coords.json');
+  } catch (e) {
+    console.warn('[fill-form] Failed to load 20-19 coordinates:', e && e.message);
+    return { fields: {} };
+  }
+})();
+
+async function fillResaleContractCoordinate(pdfDoc, fv) {
+  const pages = pdfDoc.getPages();
+  const coordMap = TREC_20_19_COORDS.fields || {};
+
+  function drawFieldText(fieldName, value, options = {}) {
+    if (!value || value === '') return;
+    const coord = coordMap[fieldName];
+    if (!coord) {
+      console.warn('[fill-form] No coordinate for field:', fieldName);
+      return;
+    }
+    if (coord.page < 1 || coord.page > pages.length) {
+      console.warn('[fill-form] Page out of range for field:', fieldName, 'page:', coord.page);
+      return;
+    }
+    const page = pages[coord.page - 1]; // Convert 1-indexed to 0-indexed
+    const fontSize = options.fontSize || coord.fontSize || 10;
+    try {
+      page.drawText(String(value).slice(0, 200), {
+        x: coord.x,
+        y: coord.y,
+        size: fontSize,
+        ...options,
+      });
+    } catch (e) {
+      console.warn('[fill-form] drawText failed for', fieldName + ':', e && e.message);
+    }
+  }
+
+  // PARTIES — buyer_name, seller_name
+  drawFieldText('buyer_name', fv.buyer_name);
+  drawFieldText('seller_name', fv.seller_name);
+
+  // PROPERTY
+  const addr = fv.property_address || '';
+  const fullAddr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  drawFieldText('property_address', addr);
+  drawFieldText('city_state_zip', fv.city_state_zip);
+  drawFieldText('county', fv.county);
+
+  // LEGAL DESCRIPTION
+  drawFieldText('legal_description', fv.legal_description);
+  drawFieldText('legal_lot', fv.legal_lot);
+  drawFieldText('legal_block', fv.legal_block);
+  drawFieldText('addition_name', fv.addition_name);
+  drawFieldText('exclusions', fv.exclusions);
+
+  // SALES PRICE (Section 3)
+  let cashPortion = (fv.down_payment_amt != null && fv.down_payment_amt !== '') ? Number(fv.down_payment_amt) : null;
+  if (cashPortion == null && fv.sale_price != null && fv.loan_amount != null) {
+    cashPortion = Number(fv.sale_price) - Number(fv.loan_amount);
+  }
+  drawFieldText('down_payment_amt', cashPortion != null ? formatMoney(cashPortion) : '');
+  drawFieldText('loan_amount', Number(fv.loan_amount) > 0 ? formatMoney(fv.loan_amount) : '');
+  drawFieldText('sale_price', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
+  drawFieldText('additional_cash_closing', fv.additional_cash_closing);
+
+  // POSSESSION (Section 10.A) — text or checkbox indication
+  const possession = String(fv.possession || 'closing').toLowerCase();
+  if (possession === 'lease' || possession === 'lease_after' || possession === 'temporary_lease') {
+    drawFieldText('possession', 'Lease');
+  } else {
+    drawFieldText('possession', 'Upon Closing');
+  }
+
+  // EARNEST MONEY / TITLE (Section 5)
+  drawFieldText('earnest_money', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
+  // earnest_money_form: SILENCED 2026-07-08 (Hadley round 5 domain-rule review).
+  // Page 12 receipt block is title-company-only at origination (dossie_domain_essentials.md locked 2026-07-05).
+  // Coord retained in trec-20-19-field-coords.json for documentation.
+  drawFieldText('escrow_agent_name', fv.escrow_agent_name || fv.title_company || '');
+  drawFieldText('escrow_agent_address_line1', fv.escrow_agent_address_line1 || fv.escrow_agent_address || fv.title_company_address || '');
+  drawFieldText('title_company', fv.title_company || '');
+  drawFieldText('title_company_address', fv.title_company_address || '');
+  drawFieldText('earnest_receipt_date', fv.earnest_receipt_date ? formatDate(fv.earnest_receipt_date) : '');
+
+  // ¶5A(1) Additional earnest money
+  drawFieldText('additional_earnest_money',
+    fv.additional_earnest_money != null && fv.additional_earnest_money !== ''
+      ? formatMoney(fv.additional_earnest_money) : '');
+  drawFieldText('additional_earnest_days',
+    fv.additional_earnest_days != null && fv.additional_earnest_days !== ''
+      ? String(fv.additional_earnest_days) : '');
+
+  // OPTION FEE / OPTION PERIOD
+  drawFieldText('option_fee', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
+  const optPeriod = (fv.option_period_days != null && fv.option_period_days !== '') ? String(fv.option_period_days)
+    : (fv.option_days != null && fv.option_days !== '') ? String(fv.option_days) : '';
+  drawFieldText('option_period_days', optPeriod);
+
+  // TITLE OBJECTION / SURVEY (Section 6)
+  const titleObjDays = fv.title_objection_days != null && fv.title_objection_days !== ''
+    ? String(fv.title_objection_days) : '10';
+  drawFieldText('title_objection_days', titleObjDays);
+
+  drawFieldText('title_objection_activity', fv.title_objection_activity || fv.permitted_use || '');
+
+  // ¶6C Survey — three separate days blanks (seller / buyer / new)
+  const surveyDaysSeller = fv.survey_days_seller != null && fv.survey_days_seller !== ''
+    ? String(fv.survey_days_seller) : (fv.survey_furnish_days != null && fv.survey_furnish_days !== ''
+      ? String(fv.survey_furnish_days) : '');
+  drawFieldText('survey_days_seller', surveyDaysSeller);
+
+  const surveyDaysBuyer = fv.survey_days_buyer != null && fv.survey_days_buyer !== ''
+    ? String(fv.survey_days_buyer) : '';
+  drawFieldText('survey_days_buyer', surveyDaysBuyer);
+
+  const surveyDaysNew = fv.survey_days_new != null && fv.survey_days_new !== ''
+    ? String(fv.survey_days_new) : '';
+  drawFieldText('survey_days_new', surveyDaysNew);
+
+  // PROPERTY CONDITION (Section 7)
+  drawFieldText('required_repairs', fv.required_repairs || '');
+  drawFieldText('repairs_additional', fv.repairs_additional || '');
+  drawFieldText('service_contract_amount', fv.service_contract_amount ? formatMoney(fv.service_contract_amount) : '');
+
+  // ¶7B(2) Seller's Disclosure Notice days
+  drawFieldText('seller_disclosure_days',
+    fv.seller_disclosure_days != null && fv.seller_disclosure_days !== ''
+      ? String(fv.seller_disclosure_days) : '');
+  // ¶7I(2) Seller's Water Disclosure days
+  drawFieldText('water_disclosure_days',
+    fv.water_disclosure_days != null && fv.water_disclosure_days !== ''
+      ? String(fv.water_disclosure_days) : '');
+
+  // ¶8 Broker relationship disclosure
+  drawFieldText('broker_relationship_disclosure', fv.broker_relationship_disclosure || '');
+
+  // CLOSING (Section 9)
+  const closingDate = fv.closing_date ? formatDate(fv.closing_date) : '';
+  drawFieldText('closing_date', closingDate);
+  if (fv.closing_date) {
+    const yearMatch = /^(\d{4})/.exec(String(fv.closing_date));
+    if (yearMatch) {
+      drawFieldText('closing_year', yearMatch[1].slice(2));
+    }
+  }
+
+  // ¶12A(2)(b) Settlement expense cap (Seller for Buyer)
+  drawFieldText('settlement_expense_cap',
+    fv.settlement_expense_cap != null && fv.settlement_expense_cap !== ''
+      ? formatMoney(fv.settlement_expense_cap) : '');
+
+  // ATTORNEYS (Section 23) — name/phone/email each
+  drawFieldText('buyer_attorney', fv.buyer_attorney || '');
+  drawFieldText('seller_attorney', fv.seller_attorney || '');
+  drawFieldText('buyer_attorney_phone', fv.buyer_attorney_phone || '');
+  drawFieldText('seller_attorney_phone', fv.seller_attorney_phone || '');
+  drawFieldText('buyer_attorney_email', fv.buyer_attorney_email || '');
+  drawFieldText('seller_attorney_email', fv.seller_attorney_email || '');
+
+  // ¶21 Notice addresses / phones / emails
+  drawFieldText('buyer_notice_address', fv.buyer_notice_address || '');
+  drawFieldText('seller_notice_address', fv.seller_notice_address || '');
+  drawFieldText('buyer_notice_phone', fv.buyer_notice_phone || '');
+  drawFieldText('seller_notice_phone', fv.seller_notice_phone || '');
+  drawFieldText('buyer_notice_email', fv.buyer_notice_email || '');
+  drawFieldText('seller_notice_email', fv.seller_notice_email || '');
+
+  // ¶21 Agent notice — address / phone / email each side
+  drawFieldText('sellers_agent_address', fv.sellers_agent_address || fv.listing_broker_address || '');
+  drawFieldText('buyers_agent_address', fv.buyers_agent_address || fv.other_broker_address || '');
+  drawFieldText('sellers_agent_phone', fv.sellers_agent_phone || fv.listing_agent_phone || '');
+  drawFieldText('buyers_agent_phone', fv.buyers_agent_phone || fv.other_broker_phone || '');
+  drawFieldText('sellers_agent_email', fv.sellers_agent_email || fv.listing_agent_email || '');
+  drawFieldText('buyers_agent_email', fv.buyers_agent_email || fv.other_broker_assoc_email || '');
+
+  // FUNDING / CLOSING STATEMENT NOTICE (Section 15)
+  const fundingDays = fv.funding_notice_days != null && fv.funding_notice_days !== ''
+    ? String(fv.funding_notice_days) : '2';
+  drawFieldText('funding_notice_days', fundingDays);
+
+  const closingStmtDays = fv.closing_statement_days != null && fv.closing_statement_days !== ''
+    ? String(fv.closing_statement_days) : '3';
+  drawFieldText('closing_statement_days', closingStmtDays);
+
+  // SELLER CONCESSIONS / BUYER AGENT COMMISSION (Section 12)
+  drawFieldText('seller_concessions',
+    (fv.seller_concessions != null && fv.seller_concessions !== '' && Number(fv.seller_concessions) > 0)
+      ? formatMoney(fv.seller_concessions) : '');
+
+  if (fv.buyer_agent_commission_amt != null && fv.buyer_agent_commission_amt !== ''
+      && Number(fv.buyer_agent_commission_amt) > 0) {
+    drawFieldText('buyer_agent_commission_amt', formatMoney(fv.buyer_agent_commission_amt));
+  } else if (fv.buyer_agent_commission_pct != null && fv.buyer_agent_commission_pct !== ''
+      && Number(fv.buyer_agent_commission_pct) > 0) {
+    drawFieldText('buyer_agent_commission_pct', String(fv.buyer_agent_commission_pct));
+  }
+
+  // HOA (Section 2)
+  if (fv.hoa_exists === true) {
+    drawFieldText('hoa_exists', 'Yes');
+  }
+  drawFieldText('hoa_description', fv.hoa_description || '');
+
+  // EXECUTION BLOCK
+  if (fv.closing_date || fv.contract_effective_date) {
+    const execDateStr = fv.contract_effective_date || fv.closing_date || '';
+    const execMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(execDateStr));
+    if (execMatch) {
+      drawFieldText('execution_day', execMatch[3]); // DD
+      drawFieldText('execution_month', ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'][parseInt(execMatch[2], 10) - 1]);
+      drawFieldText('execution_year_2digit', execMatch[1].slice(2)); // YY
+    }
+  }
+  // contract_effective_date: SILENCED 2026-07-08 (Hadley round 5 domain-rule review).
+  // Redundant — execution_day/execution_month/execution_year_2digit above already fill the
+  // signature-block date per TREC convention. Coord retained in JSON for documentation.
+  drawFieldText('buyer_email', fv.buyer_email || '');
+  drawFieldText('seller_email', fv.seller_email || '');
+
+  // INITIALS (empty by design per 2026-07-04 atlas_29 fix)
+  drawFieldText('buyer_initials', '');
+  drawFieldText('seller_initials', '');
+
+  // 20-19 RESTRUCTURED BROKER COMPENSATION (¶12B page 7)
+  if (fv.broker_compensation_buyer_agent_pct != null && fv.broker_compensation_buyer_agent_pct !== '') {
+    drawFieldText('broker_compensation_buyer_agent_pct', String(fv.broker_compensation_buyer_agent_pct));
+  }
+  if (fv.broker_compensation_buyer_agent_amt != null && fv.broker_compensation_buyer_agent_amt !== '') {
+    drawFieldText('broker_compensation_buyer_agent_amt', formatMoney(fv.broker_compensation_buyer_agent_amt));
+  }
+  if (fv.broker_compensation_other_broker_pct != null && fv.broker_compensation_other_broker_pct !== '') {
+    drawFieldText('broker_compensation_other_broker_pct', String(fv.broker_compensation_other_broker_pct));
+  }
+  if (fv.broker_compensation_other_broker_amt != null && fv.broker_compensation_other_broker_amt !== '') {
+    drawFieldText('broker_compensation_other_broker_amt', formatMoney(fv.broker_compensation_other_broker_amt));
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2026-07-08 CARTER DRAFT — INTENTIONALLY BLANK AT ORIGINATION:
+  //
+  // 1. §6E TITLE NOTICES informational prose items (previously wired via
+  //    seller_disclosure_insurance / _private_roads / _storage_tanks). These
+  //    aren't fill fields — they're standing regulatory prose in the printed
+  //    form. Removed to stop no-op drawText calls at nonexistent coords.
+  //
+  // 2. PAGE 11 BROKER SECTION (listing_broker_firm, listing_agent_*,
+  //    other_broker_*, selling_agent_*). Per DOSSIE DOMAIN ESSENTIALS memory
+  //    (locked 2026-07-05): page 11 broker section is title-company/
+  //    agent-signature-only, ALWAYS blank at origination.
+  //
+  // 3. PAGE 12 ESCROW RECEIPT (escrow_agent_address, _city, _state, _zip,
+  //    _email, _phone, _fax). Per DOSSIE DOMAIN ESSENTIALS memory: page 12
+  //    escrow receipt is title-company-only, ALWAYS blank at origination.
+  //
+  // Do NOT re-add these without an explicit Hadley sign-off.
+  // ---------------------------------------------------------------------------
+}
+
 // ---------------------------------------------------------------------------
 async function fillFinancingAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
@@ -3220,7 +3502,33 @@ async function fillForm(formType, fieldValues) {
   }
 
   switch (formType) {
-    case 'resale-contract':       await fillResaleContract(pdfDoc, fv); break;
+    case 'resale-contract': {
+      // 2026-07-08 CARTER: route by explicit config.formVersion, NOT by
+      // form.getFields().length. pdf-lib can silently return >0 fields on
+      // parse quirks (or the flat 20-19 gaining widgets in a future revision),
+      // which would misroute to the AcroForm handler and silently drop every
+      // value. Anchor version detection to what the config asset actually is.
+      const version = String(config.formVersion || '').trim();
+      if (version === '20-19') {
+        await fillResaleContractCoordinate(pdfDoc, fv);
+      } else if (version === '20-17' || version === '20-16') {
+        await fillResaleContract(pdfDoc, fv);
+      } else {
+        // Unknown / missing version tag — fail loudly rather than silently
+        // routing to the wrong handler. Legacy fallback checks field count
+        // as a last resort so unversioned deploys don't 500 outright.
+        const form = pdfDoc.getForm();
+        const fields = form.getFields();
+        if (fields.length === 0) {
+          console.warn('[fill-form] resale-contract missing config.formVersion; falling back to coord handler (0 fields detected)');
+          await fillResaleContractCoordinate(pdfDoc, fv);
+        } else {
+          console.warn('[fill-form] resale-contract missing config.formVersion; falling back to AcroForm handler (' + fields.length + ' fields detected)');
+          await fillResaleContract(pdfDoc, fv);
+        }
+      }
+      break;
+    }
     case 'financing-addendum':    await fillFinancingAddendum(pdfDoc, fv); break;
     case 'hoa-addendum':          await fillHoaAddendum(pdfDoc, fv); break;
     case 'lead-paint-addendum':   await fillLeadPaintAddendum(pdfDoc, fv); break;
@@ -3353,6 +3661,9 @@ async function fillForm(formType, fieldValues) {
 
 // ---------------------------------------------------------------------------
 // Main handler
+// ---------------------------------------------------------------------------
+// Test-only exports — attached below module.exports = handler assignment. See
+// the block after handler definition.
 // ---------------------------------------------------------------------------
 module.exports = async function handler(req, res) {
   const corsAllowed = applyCors(req, res);
@@ -3671,4 +3982,11 @@ module.exports = async function handler(req, res) {
     console.error('[fill-form] error:', msg);
     return res.status(422).json({ ok: false, error: msg || 'Could not fill that form.' });
   }
+};
+
+// Test-only surface (not part of the HTTP contract). Used by
+// scripts/test-20-19-handler-fill-v3.js for local coord verification.
+module.exports.__testing = {
+  fillForm,
+  FORM_CONFIGS,
 };
