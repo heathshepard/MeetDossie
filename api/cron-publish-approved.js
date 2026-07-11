@@ -226,6 +226,77 @@ function inferMediaItem(url) {
   return { url, type };
 }
 
+// Belt-and-suspenders media backfill (Atlas 2026-07-11).
+// Root cause: Phase 5/6 rollout introduced several post-seeding paths
+// (remix_hook_v2, community_movement_v1, dossiesign_showcase_v1,
+// competitor_remix) that write rows directly into social_posts without
+// calling renderSocialCard(). cron-generate-posts.js (the only path that
+// attaches HCTI cards) is paused at "0 0 1 1 *". Result: last 2 posted
+// FB Page posts went out text-only, get crushed by algorithm.
+//
+// Fix strategy: intercept at the publisher — for image-card platforms
+// (facebook, instagram), if media_url is still null when we reach the
+// publish loop, render an HCTI card inline before calling Zernio.
+// This handles ALL generator paths (present and future) without requiring
+// each one to remember the HCTI step. Idempotent + safe: if the render
+// fails, we PATCH the row to 'failed' with a diagnostic, don't publish
+// text-only (algorithm penalty > temporary skip).
+const IMAGE_CARD_PLATFORMS = new Set(['facebook', 'instagram']);
+
+async function backfillMediaIfMissing(post) {
+  if (!post || post.media_url) return { skipped: true, reason: 'media already attached' };
+  if (!IMAGE_CARD_PLATFORMS.has(post.platform)) return { skipped: true, reason: 'not a card platform' };
+
+  const payload = {
+    platform: post.platform,
+    hook: post.hook || String(post.content || '').split('\n')[0].slice(0, 120),
+    content: String(post.content || '').slice(0, 400),
+    persona: post.persona || 'dossie',
+    post_id: post.post_id || post.id,
+  };
+
+  console.log(`[media-backfill] rendering card for ${post.id} (${post.platform})`);
+  try {
+    const cardRes = await retryFetch(
+      'https://meetdossie.com/api/generate-card',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${CRON_SECRET}`,
+        },
+        body: JSON.stringify(payload),
+      },
+      { name: 'media-backfill', maxAttempts: 2, baseDelay: 1500 }
+    );
+    const text = await cardRes.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+    if (!cardRes.ok || !data?.publicUrl) {
+      const err = `generate-card ${cardRes.status}: ${text.slice(0, 300)}`;
+      console.warn(`[media-backfill] failed for ${post.id}: ${err}`);
+      return { ok: false, error: err };
+    }
+    // Persist the URL so we don't re-render if this row is picked up again.
+    const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ media_url: data.publicUrl }),
+    });
+    if (!patch.ok) {
+      console.warn(`[media-backfill] card rendered but DB patch failed for ${post.id}: status=${patch.status}`);
+      // Still return ok — publish can proceed with the URL in memory.
+    }
+    post.media_url = data.publicUrl; // mutate in place so pushToZernio sees it
+    console.log(`[media-backfill] ok ${post.id} → ${data.publicUrl}`);
+    return { ok: true, publicUrl: data.publicUrl };
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    console.warn(`[media-backfill] threw for ${post.id}: ${msg}`);
+    return { ok: false, error: msg };
+  }
+}
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -268,8 +339,29 @@ function buildPostBody(post) {
   return text.trim();
 }
 
+// Fallback account lookup — Phase 5/6 seeders sometimes ship rows without
+// zernio_account_id populated. Query zernio_accounts by platform + is_active.
+async function lookupZernioAccountId(platform) {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/zernio_accounts?platform=eq.${encodeURIComponent(platform)}&is_active=eq.true&select=zernio_account_id&limit=1`
+    );
+    if (ok && Array.isArray(data) && data.length > 0) return data[0].zernio_account_id || null;
+  } catch (_) { /* swallow */ }
+  return null;
+}
+
 async function pushToZernio(post) {
-  if (!post.zernio_account_id) return { ok: false, error: 'no zernio_account_id on row' };
+  if (!post.zernio_account_id) {
+    // Try inline fallback lookup before failing (Atlas 2026-07-11).
+    const fallback = await lookupZernioAccountId(post.platform);
+    if (fallback) {
+      console.log(`[zernio-account-fallback] post ${post.id} (${post.platform}): using ${fallback} from zernio_accounts table`);
+      post.zernio_account_id = fallback;
+    } else {
+      return { ok: false, error: 'no zernio_account_id on row (and no fallback in zernio_accounts)' };
+    }
+  }
   const text = buildPostBody(post);
 
   // Real Zernio schema (per docs.zernio.com/platforms/{twitter,instagram}):
@@ -919,7 +1011,32 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    console.log(`[cron-publish-approved] Publishing post ${post.id} (${post.platform}, ${post.persona})`);
+    // Belt-and-suspenders media gate for FB Page + IG (Atlas 2026-07-11).
+    // Text-only posts get algorithmically crushed on Facebook Pages. If a
+    // card-platform row reaches publish without media_url, render HCTI
+    // inline. On render failure, DO NOT publish text-only — mark failed +
+    // alert Heath so he can escalate to the generator owner.
+    if (IMAGE_CARD_PLATFORMS.has(post.platform) && !post.media_url) {
+      const bf = await backfillMediaIfMissing(post);
+      if (!bf.skipped && !bf.ok) {
+        const blockReason = `no media_url on ${post.platform} row + inline card render failed (${bf.error || 'unknown'}). Refusing to publish text-only to a card platform — algorithm penalty.`;
+        console.error(`[cron-publish-approved] BLOCKING ${post.platform} post ${post.id} — ${blockReason}`);
+        await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            status: 'failed',
+            publishing_started_at: null,
+            error_message: blockReason.slice(0, 500),
+          }),
+        });
+        await sendFailureAlert(post, blockReason);
+        errors.push({ id: post.id, platform: post.platform, error: 'media_backfill_failed' });
+        continue;
+      }
+    }
+
+    console.log(`[cron-publish-approved] Publishing post ${post.id} (${post.platform}, ${post.persona}) media_url=${post.media_url ? 'yes' : 'no'}`);
 
     let result;
     try {
