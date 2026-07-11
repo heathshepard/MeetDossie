@@ -88,16 +88,39 @@ const FRONTEND_URLS = [
 // Public read-only endpoints. We don't mutate. Each probe asserts a status
 // code (200/2xx) and a minimum response shape. Endpoints verified live
 // against meetdossie.com on 2026-06-20.
+//
+// `resolve_query` (optional): async fn(demoSession) → querystring to append.
+// Used when the endpoint requires a runtime-resolved parameter (e.g. /api/documents
+// requires ?transactionId=... — we pull a real demo transaction id at run time
+// instead of the probe hitting 400 for missing param). Returns '' to skip probe.
 const API_PROBES = [
   // Public
   { slug: 'health',                path: '/api/health',                method: 'GET', auth: 'none', expect_keys: ['status'] },
   { slug: 'get-supabase-config',   path: '/api/get-supabase-public-config', method: 'GET', auth: 'none', expect_keys: ['url'] },
   { slug: 'config',                path: '/api/config',                method: 'GET', auth: 'none' },
   // Authed (demo JWT) — read-only
-  { slug: 'documents',             path: '/api/documents',             method: 'GET', auth: 'demo' },
+  //
+  // 2026-07-11 (Atlas, Bug 1 fix): /api/documents requires ?transactionId=... query
+  // param — probe now resolves a demo transaction id at run time. Prior version
+  // sent no query param and got 400 → Ridge Watchdog `api.documents: 4xx http 400`
+  // false-positive for 24h+. resolve_query returns '' if no demo tx exists → probe
+  // skips gracefully instead of failing.
+  { slug: 'documents',             path: '/api/documents',             method: 'GET', auth: 'demo', resolve_query: resolveDemoTransactionQuery },
   { slug: 'action-items',          path: '/api/action-items',          method: 'GET', auth: 'demo' },
   { slug: 'jarvis-tickers',        path: '/api/jarvis-tickers',        method: 'GET', auth: 'demo' },
 ];
+
+// Resolve a demo transaction id from Supabase for probes that need one.
+// Called once per diagnostic run; result is passed to the probe as the query.
+async function resolveDemoTransactionQuery(demoSession) {
+  if (!demoSession || !demoSession.ok || !demoSession.user) return '';
+  const uid = encodeURIComponent(demoSession.user.id);
+  const { ok, data } = await sb(
+    `/rest/v1/transactions?select=id&user_id=eq.${uid}&order=created_at.desc&limit=1`
+  );
+  if (!ok || !Array.isArray(data) || data.length === 0) return '';
+  return `?transactionId=${encodeURIComponent(data[0].id)}`;
+}
 
 // ----- Crons that should fire at least every N minutes ---------------------
 // Pulled live from cron_runs at runtime; this object is just the SLA.
@@ -477,7 +500,32 @@ async function runApiProbe(demoSession) {
         }
         headers.Authorization = `Bearer ${demoSession.accessToken}`;
       }
-      const url = PROD_ORIGIN + probe.path;
+
+      // Resolve query params for probes that need runtime lookup (e.g. documents
+      // requires transactionId). Skip probe if resolver returns ''.
+      let queryString = '';
+      if (typeof probe.resolve_query === 'function') {
+        try {
+          queryString = await probe.resolve_query(demoSession);
+        } catch (resolveErr) {
+          queryString = '';
+        }
+        if (!queryString) {
+          checks.push({
+            category: 'api',
+            check_key: `api.${probe.slug}`,
+            label: `API: ${probe.method} ${probe.path} (resolver skip)`,
+            status: 'skip',
+            severity: 'info',
+            duration_ms: Date.now() - startedAt,
+            evidence: { path: probe.path, reason: 'no resolvable query params (e.g. no demo transaction)' },
+            error_message: null,
+          });
+          continue;
+        }
+      }
+
+      const url = PROD_ORIGIN + probe.path + queryString;
       const resp = await fetch(url, { method: probe.method, headers });
       httpStatus = resp.status;
       const text = await resp.text();
