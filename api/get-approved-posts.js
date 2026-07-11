@@ -120,7 +120,17 @@ export default async function handler(req, res) {
     // Filter posts to only include platforms with remaining capacity
     const allPosts = Array.isArray(posts) ? posts : [];
     const REQUIRES_MEDIA = ['tiktok'];  // Only TikTok truly requires pre-existing media; Instagram gets HCTI cards generated below
+    // Atlas 2026-07-11 (R2): CONSOLIDATE TO ONE PUBLISHER.
+    // Root cause of today's text-only FB bleed: n8n polls this endpoint and
+    // publishes FB posts directly, bypassing cron-publish-approved's HCTI
+    // backfill guard. Result: text-only posts, algorithm crush, empty
+    // zernio_post_id. Fix: never serve facebook or instagram here — those
+    // platforms belong exclusively to cron-publish-approved (which does the
+    // HCTI card render + Zernio publish). n8n retains twitter/linkedin/tiktok.
+    const N8N_BLOCKED_PLATFORMS = new Set(['facebook', 'instagram']);
     const items = allPosts.filter(post => {
+      if (N8N_BLOCKED_PLATFORMS.has(post.platform)) return false;
+
       const cap = platformCaps[post.platform];
       if (!cap || cap.remaining <= 0) return false;
 

@@ -25,6 +25,11 @@ const PLATFORM_DIMS = {
   facebook: { width: 1200, height: 630 },
 };
 
+// Founding cohort is CAPPED AT 25 spots for LIFE of membership.
+// Canonical per CLAUDE.md Section 5 and memory feedback_founding_25_locked_forever.
+// Do NOT change this number without an explicit instruction from Heath.
+const FOUNDING_COHORT_CAP = 25;
+
 /**
  * Query live founding member count from Supabase
  */
@@ -34,7 +39,7 @@ async function getFoundingMemberCount() {
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.warn('Cannot query founding count - Supabase not configured');
-    return { count: 0, remaining: 50 };
+    return { count: 0, remaining: FOUNDING_COHORT_CAP };
   }
 
   try {
@@ -51,17 +56,17 @@ async function getFoundingMemberCount() {
 
     if (!response.ok) {
       console.warn('Failed to query founding count:', response.status);
-      return { count: 0, remaining: 50 };
+      return { count: 0, remaining: FOUNDING_COHORT_CAP };
     }
 
     const data = await response.json();
     const count = Array.isArray(data) ? data.length : 0;
-    const remaining = Math.max(0, 50 - count);
+    const remaining = Math.max(0, FOUNDING_COHORT_CAP - count);
 
     return { count, remaining };
   } catch (error) {
     console.warn('Error querying founding count:', error.message);
-    return { count: 0, remaining: 50 };
+    return { count: 0, remaining: FOUNDING_COHORT_CAP };
   }
 }
 
