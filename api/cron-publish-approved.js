@@ -538,6 +538,109 @@ async function tryAcquirePublishLock(postId) {
   return Array.isArray(res.data) && res.data.length > 0;
 }
 
+// ─── orphan-schedule backfill ─────────────────────────────────────────────
+// Ridge Watchdog SV-ENG-RIDGE-DIAGNOSTIC-001 raises `data.approved-no-schedule`
+// (critical) when any row is status='approved' AND scheduled_for IS NULL. Such
+// rows technically match the publish filter (line 699), but they fall to the
+// end of the queue via nullslast + get starved by MAX_PER_RUN. This function
+// assigns a fresh scheduled_for on the fly so the row exits the alert cohort
+// AND publishes on schedule.
+//
+// Slot policy (fallback when posting_schedule is empty):
+//   - 9am / 1pm / 5pm CT — matches human-preferred posting windows
+//   - Round-robin across next 7 days by platform
+//   - Cap 2 orphan-backfills per platform per day (avoids burst)
+//
+// Owner: Atlas 2026-07-11 (Ridge Watchdog Bug 2 fix).
+const FALLBACK_SLOTS_CT = ['09:00', '13:00', '17:00'];
+const FALLBACK_MAX_PER_PLATFORM_PER_DAY = 2;
+
+async function assignFreshScheduleForOrphans() {
+  const { data: orphans, ok } = await supabaseFetch(
+    '/rest/v1/social_posts?select=id,platform,created_at&status=eq.approved&scheduled_for=is.null&order=created_at.asc&limit=50'
+  );
+  if (!ok || !Array.isArray(orphans) || orphans.length === 0) return { assigned: 0 };
+
+  const schedules = await loadSchedules(); // empty array is fine
+  const now = DateTime.now().setZone('America/Chicago');
+
+  // Per-platform slot cursor: how many orphans we've already assigned to each
+  // platform in this run (starts at 0). Combined with count-of-existing-approved
+  // rows per platform per day, we avoid stacking too many into any one day.
+  const platformCursor = {};
+
+  const assignments = [];
+
+  for (const orphan of orphans) {
+    const platform = orphan.platform || 'twitter';
+    if (!platformCursor[platform]) platformCursor[platform] = 0;
+
+    // Try to find a slot from posting_schedule for this platform first.
+    // If none exist (current state — Ridge Bug 2 root cause), use fallback slots.
+    let scheduledFor = null;
+
+    // Search next 7 days for the first available slot on this platform.
+    for (let dayOffset = 0; dayOffset < 7 && !scheduledFor; dayOffset++) {
+      const candidateDay = now.plus({ days: dayOffset });
+      const dow = candidateDay.weekday % 7; // luxon: Mon=1..Sun=7, we want Sun=0..Sat=6
+      const dowIndex = dow === 7 ? 0 : dow;
+
+      const scheduleRow = schedules.find((s) => s.platform === platform && s.day_of_week === dowIndex);
+      const slots = scheduleRow && Array.isArray(scheduleRow.time_slots) && scheduleRow.time_slots.length > 0
+        ? scheduleRow.time_slots.map((t) => String(t).slice(0, 5)).sort()
+        : FALLBACK_SLOTS_CT;
+
+      for (const slot of slots) {
+        const [h, m] = slot.split(':').map(Number);
+        const candidate = candidateDay.set({ hour: h, minute: m, second: 0, millisecond: 0 });
+        // Must be strictly in the future by at least 5 min
+        if (candidate.diffNow('minutes').minutes < 5) continue;
+
+        // Cap orphan-backfills per platform per day (avoid burst).
+        const dayKey = `${platform}|${candidate.toISODate()}`;
+        const alreadyAssignedThisRun = assignments.filter(a => a.dayKey === dayKey).length;
+        if (alreadyAssignedThisRun >= FALLBACK_MAX_PER_PLATFORM_PER_DAY) continue;
+
+        scheduledFor = candidate.toUTC().toISO();
+        assignments.push({ id: orphan.id, platform, scheduledFor, dayKey });
+        break;
+      }
+    }
+
+    if (!scheduledFor) {
+      // Should be unreachable given 7-day window × 3 slots × 2 posts/platform/day = 42 capacity.
+      console.warn(`[orphan-schedule] could not slot orphan ${orphan.id} (${platform}) — falling back to now+1h`);
+      const fallback = now.plus({ hours: 1 }).toUTC().toISO();
+      assignments.push({ id: orphan.id, platform, scheduledFor: fallback, dayKey: `${platform}|fallback` });
+    }
+  }
+
+  // PATCH each row. Conditional filter `status=eq.approved&scheduled_for=is.null`
+  // prevents overwriting if state changed between SELECT + PATCH.
+  let assignedCount = 0;
+  for (const a of assignments) {
+    const res = await supabaseFetch(
+      `/rest/v1/social_posts?id=eq.${encodeURIComponent(a.id)}&status=eq.approved&scheduled_for=is.null`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ scheduled_for: a.scheduledFor }),
+      }
+    );
+    if (res.ok) {
+      assignedCount++;
+      console.log(`[orphan-schedule] assigned ${a.id} (${a.platform}) → ${a.scheduledFor}`);
+    } else {
+      console.warn(`[orphan-schedule] PATCH failed for ${a.id}: status=${res.status}`);
+    }
+  }
+
+  if (assignedCount > 0) {
+    console.log(`[orphan-schedule] backfilled ${assignedCount}/${orphans.length} orphan approved rows`);
+  }
+  return { assigned: assignedCount, total_orphans: orphans.length };
+}
+
 // Recover rows stuck in 'publishing' for >10 min. Either the cron crashed
 // after the lock or the Zernio call hung. Returning to 'approved' lets the
 // next run retry. Risk window: if a delayed Zernio call eventually
@@ -685,6 +788,16 @@ module.exports = async function handler(req, res) {
   try {
     // Recover any rows stuck in 'publishing' from a crashed prior run.
     await recoverStuckPublishing();
+
+    // Ridge Watchdog Bug 2 fix (2026-07-11): backfill scheduled_for on any
+    // status='approved' AND scheduled_for IS NULL rows so they don't sit
+    // forever at the tail of the queue. Ridge's data.approved-no-schedule
+    // check goes GREEN once this runs.
+    try {
+      await assignFreshScheduleForOrphans();
+    } catch (err) {
+      console.error('[orphan-schedule] uncaught error:', err && err.message);
+    }
 
     // Self-heal: if today's daily batch never landed (Vercel missed the trigger),
     // kick generate + send before we look for approved-and-due rows. Wrapped so
