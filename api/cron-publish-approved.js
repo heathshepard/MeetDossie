@@ -226,76 +226,16 @@ function inferMediaItem(url) {
   return { url, type };
 }
 
-// Belt-and-suspenders media backfill (Atlas 2026-07-11).
-// Root cause: Phase 5/6 rollout introduced several post-seeding paths
-// (remix_hook_v2, community_movement_v1, dossiesign_showcase_v1,
-// competitor_remix) that write rows directly into social_posts without
-// calling renderSocialCard(). cron-generate-posts.js (the only path that
-// attaches HCTI cards) is paused at "0 0 1 1 *". Result: last 2 posted
-// FB Page posts went out text-only, get crushed by algorithm.
+// Video-first strategy for FB/IG (Atlas 2026-07-11 R2 — reversed from R1).
+// R1 rendered HCTI cards inline for missing-media FB/IG rows. Heath killed
+// that approach: video-first, no HCTI cards for FB/IG under any circumstance.
+// If a card-platform row reaches publish without a video media_url, we hold
+// the row (mark 'pending_video') and DO NOT publish. Text-only bleeds cost
+// more than a temporary skip.
 //
-// Fix strategy: intercept at the publisher — for image-card platforms
-// (facebook, instagram), if media_url is still null when we reach the
-// publish loop, render an HCTI card inline before calling Zernio.
-// This handles ALL generator paths (present and future) without requiring
-// each one to remember the HCTI step. Idempotent + safe: if the render
-// fails, we PATCH the row to 'failed' with a diagnostic, don't publish
-// text-only (algorithm penalty > temporary skip).
+// Video rotation from the 14 MP4 library in Media/remix-videos/ is wired
+// via the generator paths (not here) — this cron only enforces the gate.
 const IMAGE_CARD_PLATFORMS = new Set(['facebook', 'instagram']);
-
-async function backfillMediaIfMissing(post) {
-  if (!post || post.media_url) return { skipped: true, reason: 'media already attached' };
-  if (!IMAGE_CARD_PLATFORMS.has(post.platform)) return { skipped: true, reason: 'not a card platform' };
-
-  const payload = {
-    platform: post.platform,
-    hook: post.hook || String(post.content || '').split('\n')[0].slice(0, 120),
-    content: String(post.content || '').slice(0, 400),
-    persona: post.persona || 'dossie',
-    post_id: post.post_id || post.id,
-  };
-
-  console.log(`[media-backfill] rendering card for ${post.id} (${post.platform})`);
-  try {
-    const cardRes = await retryFetch(
-      'https://meetdossie.com/api/generate-card',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${CRON_SECRET}`,
-        },
-        body: JSON.stringify(payload),
-      },
-      { name: 'media-backfill', maxAttempts: 2, baseDelay: 1500 }
-    );
-    const text = await cardRes.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-    if (!cardRes.ok || !data?.publicUrl) {
-      const err = `generate-card ${cardRes.status}: ${text.slice(0, 300)}`;
-      console.warn(`[media-backfill] failed for ${post.id}: ${err}`);
-      return { ok: false, error: err };
-    }
-    // Persist the URL so we don't re-render if this row is picked up again.
-    const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ media_url: data.publicUrl }),
-    });
-    if (!patch.ok) {
-      console.warn(`[media-backfill] card rendered but DB patch failed for ${post.id}: status=${patch.status}`);
-      // Still return ok — publish can proceed with the URL in memory.
-    }
-    post.media_url = data.publicUrl; // mutate in place so pushToZernio sees it
-    console.log(`[media-backfill] ok ${post.id} → ${data.publicUrl}`);
-    return { ok: true, publicUrl: data.publicUrl };
-  } catch (err) {
-    const msg = err && err.message ? err.message : String(err);
-    console.warn(`[media-backfill] threw for ${post.id}: ${msg}`);
-    return { ok: false, error: msg };
-  }
-}
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -1011,29 +951,25 @@ module.exports = async function handler(req, res) {
       continue;
     }
 
-    // Belt-and-suspenders media gate for FB Page + IG (Atlas 2026-07-11).
-    // Text-only posts get algorithmically crushed on Facebook Pages. If a
-    // card-platform row reaches publish without media_url, render HCTI
-    // inline. On render failure, DO NOT publish text-only — mark failed +
-    // alert Heath so he can escalate to the generator owner.
+    // Video-first hard gate for FB Page + IG (Atlas 2026-07-11 R2).
+    // Text-only publishes get crushed by the algorithm; HCTI card render was
+    // reversed by Heath 2026-07-11. If a card-platform row reaches publish
+    // without a media_url, hold it — mark 'pending_video' + release the lock.
+    // Video attachment happens upstream (generator + video_library rotation).
     if (IMAGE_CARD_PLATFORMS.has(post.platform) && !post.media_url) {
-      const bf = await backfillMediaIfMissing(post);
-      if (!bf.skipped && !bf.ok) {
-        const blockReason = `no media_url on ${post.platform} row + inline card render failed (${bf.error || 'unknown'}). Refusing to publish text-only to a card platform — algorithm penalty.`;
-        console.error(`[cron-publish-approved] BLOCKING ${post.platform} post ${post.id} — ${blockReason}`);
-        await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
-          method: 'PATCH',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({
-            status: 'failed',
-            publishing_started_at: null,
-            error_message: blockReason.slice(0, 500),
-          }),
-        });
-        await sendFailureAlert(post, blockReason);
-        errors.push({ id: post.id, platform: post.platform, error: 'media_backfill_failed' });
-        continue;
-      }
+      const blockReason = `${post.platform} row has no media_url — video-first policy holds until a video is attached (no HCTI card fallback, no text-only publish).`;
+      console.warn(`[cron-publish-approved] HOLDING ${post.platform} post ${post.id} — ${blockReason}`);
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'pending_video',
+          publishing_started_at: null,
+          error_message: blockReason.slice(0, 500),
+        }),
+      });
+      skips.push({ id: post.id, platform: post.platform, reason: blockReason });
+      continue;
     }
 
     console.log(`[cron-publish-approved] Publishing post ${post.id} (${post.platform}, ${post.persona}) media_url=${post.media_url ? 'yes' : 'no'}`);
