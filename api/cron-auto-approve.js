@@ -13,6 +13,7 @@
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { assignNextScheduledFor } = require('./_lib/scheduling.js');
+const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -85,12 +86,36 @@ module.exports = withTelemetry('cron-auto-approve', async function handler(req, 
   // treats as "publish immediately" — bypassing platform daily caps.
   // Ridge caught this twice in 24h (10 + 7 unscheduled approved rows).
   let autoApproved = 0;
+  let sanitizerBlocked = 0;
   for (const id of allIds) {
     // Need platform/persona to assign a slot. Fetch the row.
+    // Also pull content/hook/voiceover_script so the caption sanitizer can gate
+    // promotion — locked 2026-07-12 after the [COMPETITOR REMIX SEED] IG leak.
     const { ok: rowOk, data: rowData } = await supabaseFetch(
-      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}&select=id,platform,persona,scheduled_for&limit=1`,
+      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}&select=id,platform,persona,scheduled_for,content,hook,voiceover_script&limit=1`,
     );
     const row = rowOk && Array.isArray(rowData) ? rowData[0] : null;
+
+    // Caption sanitizer — block promotion to 'approved' if leak markers present.
+    // Belt-and-suspenders with the check in cron-publish-approved.js — if it's
+    // caught here, it never enters the publish queue and never gets rehearsed
+    // through Zernio's schedule window.
+    const sanitizerResult = row ? sanitizerCheckPost(row) : { ok: true };
+    if (!sanitizerResult.ok) {
+      const blockReason = `CAPTION_SANITIZER_BLOCK: ${sanitizerResult.reason}`;
+      console.error(`[cron-auto-approve] ${blockReason} — post ${id}`);
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'rejected',
+          rejection_reason: blockReason.slice(0, 500),
+        }),
+      });
+      sanitizerBlocked++;
+      continue;
+    }
+
     let scheduledFor = null;
     if (row && row.platform && !row.scheduled_for) {
       try {
@@ -118,6 +143,9 @@ module.exports = withTelemetry('cron-auto-approve', async function handler(req, 
   }
   if (autoApproved > 0) {
     console.log('[cron-auto-approve] auto-approved', autoApproved, 'social posts total');
+  }
+  if (sanitizerBlocked > 0) {
+    console.warn('[cron-auto-approve] SANITIZER blocked', sanitizerBlocked, 'social posts from promotion (marked rejected)');
   }
 
   // ── Approve fb_comment_replies and notify Heath to post them ────────────
