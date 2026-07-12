@@ -19,33 +19,14 @@ const {
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
 const { captureServerEvent } = require('./_lib/posthog');
+const { applyCorsHeaders } = require('./_middleware/cors');
 
 const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
 const SUCCESS_URL = 'https://meetdossie.com/welcome.html?session_id={CHECKOUT_SESSION_ID}';
 const CANCEL_URL = 'https://meetdossie.com/founding.html';
 
-const ALLOWED_ORIGINS = new Set([
-  'https://meetdossie.com',
-  'https://www.meetdossie.com',
-]);
-const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
-
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  let allowOrigin = null;
-  if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin)) {
-      allowOrigin = origin;
-    }
-  }
-  if (allowOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  }
-  return Boolean(allowOrigin);
+  return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type' });
 }
 
 module.exports = async function handler(req, res) {

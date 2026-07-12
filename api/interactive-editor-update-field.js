@@ -20,31 +20,13 @@ const fetch = require('node-fetch');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { fieldNameToPrompt } = require('./_lib/fill-form-required-fields');
+const { applyCorsHeaders } = require('./_middleware/cors');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const ALLOWED_ORIGINS = new Set([
-  'https://meetdossie.com',
-  'https://www.meetdossie.com',
-]);
-const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
-
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  if (!origin) return true;
-  if (
-    ALLOWED_ORIGINS.has(origin) ||
-    LOCALHOST_ORIGIN_RE.test(origin) ||
-    VERCEL_PREVIEW_RE.test(origin)
-  ) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return true;
+  return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS' });
 }
 
 const ALLOWED_FIELDS = new Set([

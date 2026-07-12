@@ -16,10 +16,45 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+const { resolveBlankTemplatePdf } = require('./_lib/resolve-blank-template-pdf');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'documents';
+
+// 2026-07-13 CARTER — SHORT_NAME → canonical form_type key, for the
+// blank-template early-return path. Mirrors _lib/resolve-blank-template-pdf.js
+// (kept local so we don't pay a round trip to re-fetch form_templates when
+// the resolver already did).
+const SHORT_NAME_TO_FORM_TYPE = {
+  '1-4 Family Contract':           'resale-contract',
+  'Financing Addendum':            'financing-addendum',
+  'HOA Addendum':                  'hoa-addendum',
+  'OP-L':                          'lead-paint-addendum',
+  'Amendment':                     'amendment',
+  'TREC 49-1':                     'appraisal-termination',
+  'OP-H':                          'sellers-disclosure',
+  'Seller Financing':              'seller-financing',
+  'Sale of Other Property':        'sale-other-property',
+  'Back-Up Contract':              'backup-contract',
+  'Seller Disclosure':             'sellers-disclosure',
+  'T-47':                          't47-affidavit',
+  'TREC 9':                        'unimproved-property',
+  'Buyer Rep Agreement':           'buyer-rep-agreement',
+  'TAR 1501':                      'buyer-rep-agreement',
+  'TAR 2001':                      'residential-leases',
+  'TAR 2517':                      'wire-fraud-warning',
+};
+
+async function fetchFormTemplateShortName(formTemplateId) {
+  if (!formTemplateId) return null;
+  const r = await supa(
+    `form_templates?id=eq.${encodeURIComponent(formTemplateId)}&select=short_name`
+  );
+  if (!r.ok) return null;
+  const rows = await r.json().catch(() => []);
+  return (Array.isArray(rows) && rows[0]?.short_name) || null;
+}
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -63,7 +98,7 @@ function supa(path, opts = {}) {
 
 async function fetchDocumentRow(documentId, userId) {
   const res = await supa(
-    `documents?id=eq.${encodeURIComponent(documentId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,storage_path,file_name,document_type`
+    `documents?id=eq.${encodeURIComponent(documentId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,storage_path,file_name,document_type,status,form_template_id`
   );
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -226,6 +261,25 @@ module.exports = async function handler(req, res) {
     if (!documentId) throw new ValidationError('document_id is required.');
 
     const doc = await fetchDocumentRow(documentId, userId);
+
+    // 2026-07-13 CARTER — Blank form_template placeholders (storage_path like
+    // "template/{id}.pdf") 404 from Storage. We already know the form type
+    // from form_templates.short_name, so skip Claude entirely and return the
+    // canonical key with confidence 1.0. Falls through to Storage fetch for
+    // normal user-uploaded docs.
+    const resolvedBlank = await resolveBlankTemplatePdf(doc);
+    if (resolvedBlank) {
+      const shortName = await fetchFormTemplateShortName(doc.form_template_id);
+      const canonical = SHORT_NAME_TO_FORM_TYPE[shortName] || 'unknown';
+      console.log(`[detect-form-type] Blank template ${doc.form_template_id} short_name="${shortName}" → form_type="${canonical}" (Claude skipped).`);
+      return res.status(200).json({
+        ok: true,
+        form_type: canonical,
+        trec_number: shortName || '',
+        confidence: canonical === 'unknown' ? 0 : 1,
+        detected_title: shortName || '',
+      });
+    }
 
     if (!doc.storage_path) {
       throw new ValidationError('Document has no storage path — cannot detect form type.', 422);

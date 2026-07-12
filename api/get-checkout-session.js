@@ -6,29 +6,10 @@
 //   STRIPE_SECRET_KEY — Stripe secret API key
 
 const Stripe = require('stripe');
-
-const ALLOWED_ORIGINS = new Set([
-  'https://meetdossie.com',
-  'https://www.meetdossie.com',
-]);
-const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+const { applyCorsHeaders } = require('./_middleware/cors');
 
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  let allowOrigin = null;
-  if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin)) {
-      allowOrigin = origin;
-    }
-  }
-  if (allowOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  }
-  return Boolean(allowOrigin);
+  return applyCorsHeaders(req, res, { methods: 'GET, OPTIONS', headers: 'Content-Type' });
 }
 
 module.exports = async function handler(req, res) {
