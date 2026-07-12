@@ -91,7 +91,7 @@ function supa(path, opts = {}) {
 }
 
 async function getDocumentRow(documentId, userId) {
-  const res = await supa(`documents?id=eq.${encodeURIComponent(documentId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,transaction_id,storage_path,file_name,document_type`);
+  const res = await supa(`documents?id=eq.${encodeURIComponent(documentId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,transaction_id,storage_path,file_name,document_type,status,form_template_id`);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`documents fetch failed (${res.status}): ${text.slice(0, 200)}`);
@@ -101,6 +101,102 @@ async function getDocumentRow(documentId, userId) {
     throw new ValidationError('Document not found or does not belong to you.', 404);
   }
   return rows[0];
+}
+
+// 2026-07-12 ATLAS — Simple Send fix for blank form_template documents.
+//
+// When a user attaches a TREC/TAR form via /api/form-templates (action=attach),
+// documents.storage_path is stamped as "template/{tmplId}.pdf" — a PLACEHOLDER
+// that does NOT exist in Supabase Storage (form_templates.storage_path is null
+// for these library entries). status='blank' signals this state.
+//
+// If the user then hits Simple Send on that blank document without filling it
+// first, generateSignedUrl() 404s from Storage → esign-create 500s → user sees
+// "Could not send document for signature." (Heath 2026-07-12 10:53 CT — Wire
+// Fraud Warning.pdf blocked ahead of Amy Clifton MC pitch.)
+//
+// Fix: when a document is a blank form_template with a valid form_template_id,
+// resolve the underlying PDF from the same base64 assets dossiesign-prepare.js
+// uses. The map here mirrors SHORT_NAME_TO_FORM_TYPE + FORM_B64_MAP in that
+// file — keep them in sync if adding new forms.
+const FORM_TEMPLATE_B64 = {
+  'resale-contract':       () => require('./_assets/trec-resale-20-19-base64.js'),
+  'financing-addendum':    () => require('./_assets/trec-financing-40-11-base64.js'),
+  'termination-notice':    () => require('./_assets/trec-termination-base64.js'),
+  'wire-fraud-warning':    () => require('./_assets/tar-wire-fraud-base64.js'),
+  'hoa-addendum':          () => require('./_assets/trec-hoa-addendum-36-11-base64.js'),
+  'lead-paint-addendum':   () => require('./_assets/trec-lead-paint-base64.js'),
+  'sellers-disclosure':    () => require('./_assets/trec-sellers-disclosure-55-1-base64.js'),
+  'amendment':             () => require('./_assets/trec-amendment-39-11-base64.js'),
+  'buyer-rep-agreement':   () => require('./_assets/tar-buyer-rep-base64.js'),
+  'appraisal-termination': () => require('./_assets/trec-49-1-base64.js'),
+  't47-affidavit':         () => require('./_assets/t47-affidavit-base64.js'),
+  'unimproved-property':   () => require('./_assets/trec-unimproved-property-base64.js'),
+  'seller-financing':      () => require('./_assets/trec-seller-financing-base64.js'),
+  'buyers-temp-lease':     () => require('./_assets/trec-buyers-temp-lease-base64.js'),
+  'sellers-temp-lease':    () => require('./_assets/trec-sellers-temp-lease-base64.js'),
+  'sale-other-property':   () => require('./_assets/trec-sale-other-property-base64.js'),
+  'oil-gas-minerals':      () => require('./_assets/trec-oil-gas-minerals-base64.js'),
+  'backup-contract':       () => require('./_assets/trec-backup-contract-11-9-base64.js'),
+  'coastal-area':          () => require('./_assets/trec-coastal-area-base64.js'),
+  'hydrostatic-testing':   () => require('./_assets/trec-hydrostatic-testing-base64.js'),
+  'environmental':         () => require('./_assets/trec-environmental-base64.js'),
+  'short-sale':            () => require('./_assets/trec-short-sale-base64.js'),
+  'gulf-waterway':         () => require('./_assets/trec-gulf-waterway-base64.js'),
+  'propane-gas':           () => require('./_assets/trec-propane-gas-base64.js'),
+  'residential-leases':    () => require('./_assets/trec-residential-leases-base64.js'),
+  'fixture-leases':        () => require('./_assets/trec-fixture-leases-base64.js'),
+  'loan-assumption':       () => require('./_assets/trec-loan-assumption-base64.js'),
+  'improvement-district':  () => require('./_assets/trec-improvement-district-base64.js'),
+};
+
+const SHORT_NAME_TO_FORM_TYPE = {
+  '1-4 Family Contract':           'resale-contract',
+  'Financing Addendum':            'financing-addendum',
+  'HOA Addendum':                  'hoa-addendum',
+  'OP-L':                          'lead-paint-addendum',
+  'Amendment':                     'amendment',
+  'TREC 49-1':                     'appraisal-termination',
+  'OP-H':                          'sellers-disclosure',
+  'Seller Financing':              'seller-financing',
+  'Sale of Other Property':        'sale-other-property',
+  'Back-Up Contract':              'backup-contract',
+  'Seller Disclosure':             'sellers-disclosure',
+  'T-47':                          't47-affidavit',
+  'TREC 9':                        'unimproved-property',
+  'Buyer Rep Agreement':           'buyer-rep-agreement',
+  'TAR 1501':                      'buyer-rep-agreement',
+  'TAR 2001':                      'residential-leases',
+  'TAR 2517':                      'wire-fraud-warning',
+};
+
+async function resolveBlankTemplatePdf(formTemplateId) {
+  if (!formTemplateId) return null;
+  const r = await supa(
+    `form_templates?id=eq.${encodeURIComponent(formTemplateId)}&is_active=eq.true&select=short_name,name`
+  );
+  if (!r.ok) return null;
+  const rows = await r.json().catch(() => []);
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const shortName = rows[0].short_name;
+  const slug = SHORT_NAME_TO_FORM_TYPE[shortName] || null;
+  if (!slug) {
+    console.warn(`[esign-create] blank form_template short_name="${shortName}" has no SHORT_NAME_TO_FORM_TYPE mapping.`);
+    return null;
+  }
+  const loader = FORM_TEMPLATE_B64[slug];
+  if (!loader) {
+    console.warn(`[esign-create] blank form_template slug="${slug}" has no FORM_TEMPLATE_B64 loader.`);
+    return null;
+  }
+  try {
+    const b64 = loader();
+    if (!b64 || typeof b64 !== 'string') return null;
+    return Buffer.from(b64, 'base64');
+  } catch (err) {
+    console.warn(`[esign-create] resolveBlankTemplatePdf failed for slug="${slug}":`, err && err.message);
+    return null;
+  }
 }
 
 // TREC 20-18 (One to Four Family Residential Contract — Resale) routing.
@@ -404,7 +500,7 @@ async function generateSignedUrl(storagePath, expiresIn = 300) {
   return `${SUPABASE_URL}/storage/v1${p}`;
 }
 
-async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, fields, fieldMap }) {
+async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, fileName, signers, message, fields, fieldMap }) {
   // TODO: Replace stub with real call once DOCUSEAL_API_KEY is added to Vercel.
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub submission.');
@@ -424,18 +520,27 @@ async function docusealCreateFromPdf({ documentUrl, fileName, signers, message, 
 
   // 2026-06-27 ATLAS FIX: /submissions/pdf silently drops submitters past the first.
   // The reliable multi-signer path is:
-  //   1. Download the PDF bytes (from signed URL)
+  //   1. Download the PDF bytes (from signed URL) — or use provided pdfBuffer
   //   2. POST /templates/pdf to create a transient template w/ per-role fields
   //   3. POST /submissions with template_id + submitters[role,email,name]
   //
   // This matches the pattern used by sendForAcknowledgment() earlier in this file.
+  //
+  // 2026-07-12: Accept an in-memory pdfBuffer for blank form_template documents
+  // (no Storage-backed file). resolveBlankTemplatePdf() supplies the buffer;
+  // caller falls back to documentUrl for user-uploaded PDFs.
 
-  // Step 1: Download the PDF bytes so we can base64-encode them for /templates/pdf.
-  const pdfRes = await fetch(documentUrl);
-  if (!pdfRes.ok) {
-    throw new ValidationError(`Could not fetch document for signing (${pdfRes.status}).`, 502);
+  // Step 1: Obtain PDF bytes.
+  let pdfBuffer;
+  if (providedBuffer) {
+    pdfBuffer = providedBuffer;
+  } else {
+    const pdfRes = await fetch(documentUrl);
+    if (!pdfRes.ok) {
+      throw new ValidationError(`Could not fetch document for signing (${pdfRes.status}).`, 502);
+    }
+    pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
   }
-  const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
   const base64Pdf = pdfBuffer.toString('base64');
 
   // Step 2: Build the flattened fields array (top-level on document) with `role`
@@ -1227,7 +1332,22 @@ module.exports = async function handler(req, res) {
       // ack, addendums, etc.) go through /templates/pdf with signer-only widgets.
       // The PDF text is baked in by fill-form.js; only initial/signature/date
       // widgets are added on top.
-      const signedUrl = await generateSignedUrl(doc.storage_path, 300);
+      //
+      // 2026-07-12 ATLAS: Blank form_template documents (Wire Fraud Warning,
+      // static TAR/TREC forms attached but never filled) have a placeholder
+      // storage_path that 404s. Resolve their PDF from base64 assets instead.
+      let signedUrl = null;
+      let pdfBuffer = null;
+      const isBlankTemplate = doc.document_type === 'form_template' && doc.status === 'blank';
+      if (isBlankTemplate && doc.form_template_id) {
+        pdfBuffer = await resolveBlankTemplatePdf(doc.form_template_id);
+        if (!pdfBuffer) {
+          throw new ValidationError('This form template PDF is not available. Please contact support.', 422);
+        }
+        console.log(`[esign-create] Blank form_template ${doc.form_template_id} resolved from base64 assets (${pdfBuffer.length} bytes).`);
+      } else {
+        signedUrl = await generateSignedUrl(doc.storage_path, 300);
+      }
 
       let autoFieldMap = null;
       if (!fields && doc.document_type === 'resale_contract') {
@@ -1247,6 +1367,7 @@ module.exports = async function handler(req, res) {
 
       submissionResult = await docusealCreateFromPdf({
         documentUrl: signedUrl,
+        pdfBuffer,
         fileName,
         signers: allSigners,
         message,
