@@ -1,6 +1,6 @@
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
-const TEMPLATE_ID = 4111319; // TREC 20-19 template
+const TEMPLATE_ID = 4952172; // TREC 20-19 template (fillable, 280 auto-imported fields; replaces archived 4111319 on 2026-07-12)
 
 async function inspectTemplate() {
   if (!DOCUSEAL_API_KEY) {
