@@ -738,11 +738,11 @@
     },
     {
       "path": "/api/cron-sage-draft-engagements",
-      "schedule": "0 0 1 1 *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron-send-engagement-approvals",
-      "schedule": "0 0 1 1 *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron-inbox-scan",
