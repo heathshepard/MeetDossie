@@ -156,8 +156,41 @@ module.exports = async function handler(req, res) {
     }
 
     const canonical = FIELD_ALIASES[fieldKeyRaw] || fieldKeyRaw;
+    // Phase 1 Interactive Form Editor for TREC 20-19 emits ~200 field keys
+    // (Fable5 auto-mapped). Only ~30 of those correspond to canonical
+    // `transactions` columns; the rest are contract-only fields that don't
+    // have a home on the transactions row yet. Return ok:true with skipped=true
+    // so the UI's auto-save indicator shows "Saved" and stays out of an error
+    // state — the values live in the client's snapshot and get written into
+    // the verification event + DocuSeal prefill at Send time. Locked 2026-07-11.
     if (!ALLOWED_FIELDS.has(canonical)) {
-      throw new ValidationError(`Field '${fieldKeyRaw}' cannot be edited via this endpoint.`);
+      // 1. Still verify ownership so we don't leak transaction membership.
+      const ownRows = await supabaseCall('GET', `transactions?id=eq.${transactionId}&select=user_id&limit=1`);
+      if (!ownRows || ownRows.length === 0) {
+        return res.status(404).json({ ok: false, error: 'Transaction not found.' });
+      }
+      if (ownRows[0].user_id !== userId) {
+        return res.status(403).json({ ok: false, error: 'Forbidden.' });
+      }
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: 'field_not_persisted_to_transactions',
+        pdfUrl: null,
+        field: {
+          id: `${formType}:${fieldKeyRaw}`,
+          form: formType,
+          key: fieldKeyRaw,
+          label: fieldKeyRaw,
+          value: newValue == null ? '' : String(newValue),
+          autoFilledValue: null,
+          type: 'text',
+          required: false,
+          valid: true,
+          source,
+        },
+        validationErrors: [],
+      });
     }
 
     // 1. Verify ownership.
