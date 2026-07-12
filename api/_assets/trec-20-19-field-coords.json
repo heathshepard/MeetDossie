@@ -1,0 +1,605 @@
+{
+  "description": "TREC 20-19 flat PDF coordinate field mapping. DETERMINISTICALLY computed from label anchors extracted via pdfjs-dist. Used by fillResaleContractCoordinate() in /api/fill-form.js. 2026-07-08 v4 (round 5): added 10 orphan-field coord entries — possession, hoa_exists, hoa_description, city_state_zip, legal_description, contract_effective_date, earnest_money_form, title_company_address, funding_notice_days, closing_statement_days. Handler drawFieldText calls already exist for all.",
+  "pdfDimensions": {
+    "width": 612,
+    "height": 792
+  },
+  "pageCount": 12,
+  "method": "Extract text runs with pdfjs-dist v5 (legacy build), find label needles inside per-line joined-normalized text, compute blank position via right_of / left_of / right_of_until / right_of_after_phrase_on_line / below. y = label baseline in PDF coords (bottom-left origin).",
+  "fields": {
+    "seller_name": {
+      "page": 1,
+      "x": 280.79,
+      "y": 689.86,
+      "fontSize": 10,
+      "maxWidth": 285,
+      "align": "left",
+      "notes": "¶1 Seller name (right of \"are\" — same line as label)"
+    },
+    "buyer_name": {
+      "page": 1,
+      "x": 124.46,
+      "y": 679.18,
+      "fontSize": 10,
+      "maxWidth": 385.72,
+      "align": "left",
+      "notes": "¶1 Buyer name (between \"(Seller) and\" and \"(Buyer)\")"
+    },
+    "legal_lot": {
+      "page": 1,
+      "x": 128.9,
+      "y": 616.66,
+      "fontSize": 10,
+      "maxWidth": 62.51,
+      "align": "left",
+      "notes": "¶2A Lot number (between \"Lot\" and \"Block\")"
+    },
+    "legal_block": {
+      "page": 1,
+      "x": 226.18,
+      "y": 616.66,
+      "fontSize": 10,
+      "maxWidth": 82,
+      "align": "left",
+      "notes": "¶2A Block number (right of \"Block\", extends to \",\")"
+    },
+    "addition_name": {
+      "page": 1,
+      "x": 158.72,
+      "y": 605.98,
+      "fontSize": 10,
+      "maxWidth": 164.95,
+      "align": "left",
+      "notes": "¶2A City name (between \"City of\" and \", County of\")"
+    },
+    "county": {
+      "page": 1,
+      "x": 387.49,
+      "y": 605.98,
+      "fontSize": 10,
+      "maxWidth": 175,
+      "align": "left",
+      "notes": "¶2A County (right of \"County of\", extends to right margin \",\")"
+    },
+    "property_address": {
+      "page": 1,
+      "x": 161.72,
+      "y": 595.3,
+      "fontSize": 10,
+      "maxWidth": 400,
+      "align": "left",
+      "notes": "¶2A Property address"
+    },
+    "exclusions": {
+      "page": 1,
+      "x": 326.31,
+      "y": 381.31,
+      "fontSize": 9,
+      "maxWidth": 260,
+      "align": "left",
+      "notes": "¶2D EXCLUSIONS"
+    },
+    "down_payment_amt": {
+      "page": 1,
+      "x": 459.38,
+      "y": 318.41,
+      "fontSize": 10,
+      "maxWidth": 90,
+      "align": "left",
+      "notes": "¶3A Cash portion of Sales Price $ (renamed from cash_portion to match handler)"
+    },
+    "loan_amount": {
+      "page": 1,
+      "x": 459.38,
+      "y": 268.97,
+      "fontSize": 10,
+      "maxWidth": 90,
+      "align": "left",
+      "notes": "¶3B Sum of financing $ (renamed from financed_portion to match handler)"
+    },
+    "sale_price": {
+      "page": 1,
+      "x": 459.38,
+      "y": 257.57,
+      "fontSize": 10,
+      "maxWidth": 90,
+      "align": "left",
+      "notes": "¶3C Sales Price total $ (renamed from sales_price_total to match handler)"
+    },
+    "escrow_agent_name": {
+      "page": 2,
+      "x": 155.26,
+      "y": 706.78,
+      "fontSize": 10,
+      "maxWidth": 151.31,
+      "align": "left",
+      "notes": "¶5A Escrow Agent name"
+    },
+    "escrow_agent_address_line1": {
+      "page": 2,
+      "x": 400.69,
+      "y": 706.78,
+      "fontSize": 10,
+      "maxWidth": 165,
+      "align": "left",
+      "notes": "¶5A Escrow Agent address (right of \"(Escrow Agent) at\")"
+    },
+    "earnest_money": {
+      "page": 2,
+      "x": 293.01,
+      "y": 696.1,
+      "fontSize": 10,
+      "maxWidth": 69.78,
+      "align": "left",
+      "notes": "¶5A Earnest money $ (renamed from earnest_money_amount to match handler)"
+    },
+    "option_fee": {
+      "page": 2,
+      "x": 490.67,
+      "y": 696.1,
+      "fontSize": 10,
+      "maxWidth": 90,
+      "align": "left",
+      "notes": "¶5A Option fee $ (renamed from option_fee_amount to match handler)"
+    },
+    "additional_earnest_money": {
+      "page": 2,
+      "x": 343.02,
+      "y": 664.06,
+      "fontSize": 10,
+      "maxWidth": 101.28,
+      "align": "left",
+      "notes": "¶5A(1) Additional earnest money $"
+    },
+    "additional_earnest_days": {
+      "page": 2,
+      "x": 88.98,
+      "y": 653.38,
+      "fontSize": 10,
+      "maxWidth": 40,
+      "align": "center",
+      "notes": "¶5A(1) Additional earnest money days"
+    },
+    "option_period_days": {
+      "page": 2,
+      "x": 70.74,
+      "y": 497.47,
+      "fontSize": 10,
+      "maxWidth": 40,
+      "align": "center",
+      "notes": "¶5B Termination Option days (Option Period) (renamed from termination_option_days to match handler)"
+    },
+    "title_company": {
+      "page": 2,
+      "x": 285.67,
+      "y": 334.13,
+      "fontSize": 10,
+      "maxWidth": 191.15,
+      "align": "left",
+      "notes": "¶6A Title Company name (renamed from title_company_name to match handler)"
+    },
+    "survey_days_seller": {
+      "page": 3,
+      "x": 127.31,
+      "y": 707.26,
+      "fontSize": 10,
+      "maxWidth": 45,
+      "align": "center",
+      "notes": "¶6C(1) Seller-furnished survey days"
+    },
+    "survey_days_buyer": {
+      "page": 3,
+      "x": 127.31,
+      "y": 628.9,
+      "fontSize": 10,
+      "maxWidth": 45,
+      "align": "center",
+      "notes": "¶6C(2) Buyer-obtained survey days"
+    },
+    "survey_days_new": {
+      "page": 3,
+      "x": 127.31,
+      "y": 578.98,
+      "fontSize": 10,
+      "maxWidth": 45,
+      "align": "center",
+      "notes": "¶6C(3) New survey to Buyer days"
+    },
+    "title_objection_activity": {
+      "page": 3,
+      "x": 410.49,
+      "y": 523.27,
+      "fontSize": 9,
+      "maxWidth": 480,
+      "align": "left",
+      "notes": "¶6D use/activity objection line (continuation, below \"activity:\")"
+    },
+    "title_objection_days": {
+      "page": 3,
+      "x": 372.26,
+      "y": 514.51,
+      "fontSize": 10,
+      "maxWidth": 45,
+      "align": "center",
+      "notes": "¶6D Buyer objection days after commitment"
+    },
+    "seller_disclosure_days": {
+      "page": 4,
+      "x": 422.2,
+      "y": 203.54,
+      "fontSize": 10,
+      "maxWidth": 45,
+      "align": "center",
+      "notes": "¶7B(2) Seller's Disclosure Notice delivery days"
+    },
+    "service_contract_amount": {
+      "page": 5,
+      "x": 423.42,
+      "y": 398.35,
+      "fontSize": 10,
+      "maxWidth": 90,
+      "align": "left",
+      "notes": "¶7H Residential Service Contract amount $ (renamed from residential_service_amount to match handler)"
+    },
+    "water_disclosure_days": {
+      "page": 5,
+      "x": 429.62,
+      "y": 276.53,
+      "fontSize": 10,
+      "maxWidth": 45,
+      "align": "center",
+      "notes": "¶7I(2) Seller's Water Disclosure delivery days"
+    },
+    "broker_relationship_disclosure": {
+      "page": 6,
+      "x": 497.43,
+      "y": 717.36,
+      "fontSize": 9,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "¶8 Broker relationship disclosure"
+    },
+    "closing_date": {
+      "page": 6,
+      "x": 293.39,
+      "y": 669.82,
+      "fontSize": 10,
+      "maxWidth": 127.8,
+      "align": "left",
+      "notes": "¶9A Closing date"
+    },
+    "closing_year": {
+      "page": 6,
+      "x": 444.19,
+      "y": 669.82,
+      "fontSize": 10,
+      "maxWidth": 22,
+      "align": "left",
+      "notes": "¶9A Closing year (20__) (renamed from closing_year_2digit to match handler)"
+    },
+    "settlement_expense_cap": {
+      "page": 6,
+      "x": 249.83,
+      "y": 143.06,
+      "fontSize": 10,
+      "maxWidth": 70.83,
+      "align": "left",
+      "notes": "¶12A(2)(b) Seller expense cap for Buyer"
+    },
+    "broker_compensation_other_broker_amt": {
+      "page": 7,
+      "x": 311.84,
+      "y": 645.34,
+      "fontSize": 10,
+      "maxWidth": 70,
+      "align": "left",
+      "notes": "¶12B(1) Seller/Other broker comp $ (renamed from broker_comp_seller_amount to match handler)"
+    },
+    "broker_compensation_other_broker_pct": {
+      "page": 7,
+      "x": 401.21,
+      "y": 645.34,
+      "fontSize": 10,
+      "maxWidth": 40,
+      "align": "left",
+      "notes": "¶12B(1) Seller/Other broker comp % (renamed from broker_comp_seller_pct to match handler)"
+    },
+    "broker_compensation_buyer_agent_amt": {
+      "page": 7,
+      "x": 311.84,
+      "y": 623.26,
+      "fontSize": 10,
+      "maxWidth": 70,
+      "align": "left",
+      "notes": "¶12B(2) Buyer agent broker comp $ (renamed from broker_comp_buyer_amount to match handler)"
+    },
+    "broker_compensation_buyer_agent_pct": {
+      "page": 7,
+      "x": 401.21,
+      "y": 623.26,
+      "fontSize": 10,
+      "maxWidth": 40,
+      "align": "left",
+      "notes": "¶12B(2) Buyer agent broker comp % (renamed from broker_comp_buyer_pct to match handler)"
+    },
+    "buyer_notice_address": {
+      "page": 8,
+      "x": 107.7,
+      "y": 379.13,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶21 Buyer notice address"
+    },
+    "seller_notice_address": {
+      "page": 8,
+      "x": 373.31,
+      "y": 379.13,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶21 Seller notice address"
+    },
+    "buyer_notice_phone": {
+      "page": 8,
+      "x": 118.75,
+      "y": 310.25,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Buyer notice phone"
+    },
+    "seller_notice_phone": {
+      "page": 8,
+      "x": 378.35,
+      "y": 310.25,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Seller notice phone"
+    },
+    "buyer_notice_email": {
+      "page": 8,
+      "x": 109.74,
+      "y": 241.49,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Buyer notice email"
+    },
+    "seller_notice_email": {
+      "page": 8,
+      "x": 375.35,
+      "y": 241.49,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Seller notice email"
+    },
+    "sellers_agent_address": {
+      "page": 8,
+      "x": 107.7,
+      "y": 153.86,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶21 Seller's agent address"
+    },
+    "buyers_agent_address": {
+      "page": 8,
+      "x": 373.31,
+      "y": 153.86,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶21 Buyer's agent address"
+    },
+    "sellers_agent_phone": {
+      "page": 8,
+      "x": 98.46,
+      "y": 85.1,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Seller's agent phone"
+    },
+    "buyers_agent_phone": {
+      "page": 8,
+      "x": 364.07,
+      "y": 85.1,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Buyer's agent phone"
+    },
+    "sellers_agent_email": {
+      "page": 8,
+      "x": 95.47,
+      "y": 50.66,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Seller's agent email"
+    },
+    "buyers_agent_email": {
+      "page": 8,
+      "x": 361.08,
+      "y": 50.66,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Buyer's agent email"
+    },
+    "buyer_attorney": {
+      "page": 9,
+      "x": 128.22,
+      "y": 165.86,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶23 Buyer's Attorney name (renamed from buyer_attorney_name to match handler)"
+    },
+    "seller_attorney": {
+      "page": 9,
+      "x": 384.11,
+      "y": 165.86,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶23 Seller's Attorney name (renamed from seller_attorney_name to match handler)"
+    },
+    "buyer_attorney_phone": {
+      "page": 9,
+      "x": 106.98,
+      "y": 114.62,
+      "fontSize": 10,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "¶23 Buyer's Attorney phone"
+    },
+    "seller_attorney_phone": {
+      "page": 9,
+      "x": 362.87,
+      "y": 114.62,
+      "fontSize": 10,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "¶23 Seller's Attorney phone"
+    },
+    "buyer_attorney_email": {
+      "page": 9,
+      "x": 108.54,
+      "y": 60.86,
+      "fontSize": 10,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "¶23 Buyer's Attorney email"
+    },
+    "seller_attorney_email": {
+      "page": 9,
+      "x": 364.43,
+      "y": 60.86,
+      "fontSize": 10,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "¶23 Seller's Attorney email"
+    },
+    "execution_day": {
+      "page": 10,
+      "x": 149.95,
+      "y": 594.22,
+      "fontSize": 10,
+      "maxWidth": 33.03,
+      "align": "center",
+      "notes": "Signature block: day number"
+    },
+    "execution_month": {
+      "page": 10,
+      "x": 225.64,
+      "y": 594.22,
+      "fontSize": 10,
+      "maxWidth": 134.11,
+      "align": "left",
+      "notes": "Signature block: month"
+    },
+    "execution_year_2digit": {
+      "page": 10,
+      "x": 383.98,
+      "y": 594.22,
+      "fontSize": 10,
+      "maxWidth": 15,
+      "align": "left",
+      "notes": "Signature block: 20__ year (handler still uses execution_year_2digit; kept as-is)"
+    },
+    "possession": {
+      "page": 6,
+      "x": 142.06,
+      "y": 469.39,
+      "fontSize": 9,
+      "maxWidth": 60,
+      "align": "left",
+      "notes": "¶10A POSSESSION annotation (\"Upon Closing\" or \"Lease\"), right of section title"
+    },
+    "hoa_exists": {
+      "page": 3,
+      "x": 453.31,
+      "y": 314.57,
+      "fontSize": 9,
+      "maxWidth": 22,
+      "align": "left",
+      "notes": "¶2 HOA annotation \"Yes\" when property is subject to mandatory HOA membership"
+    },
+    "hoa_description": {
+      "page": 3,
+      "x": 30,
+      "y": 8,
+      "fontSize": 6,
+      "maxWidth": 480,
+      "align": "left",
+      "notes": "¶2 HOA association name (footer margin annotation — HOA name properly lives on HOA Addendum, this is documentation only)"
+    },
+    "city_state_zip": {
+      "page": 1,
+      "x": 359.72,
+      "y": 584.62,
+      "fontSize": 9,
+      "maxWidth": 195,
+      "align": "left",
+      "notes": "¶2A city/state/zip annotation (right of \"or as described on attached exhibit.\" line 4)"
+    },
+    "legal_description": {
+      "page": 1,
+      "x": 30,
+      "y": 736,
+      "fontSize": 7,
+      "maxWidth": 300,
+      "align": "left",
+      "notes": "¶2A legal_description fallback annotation (top margin — used only when lot/block/addition missing; no discrete blank on flat 20-19)"
+    },
+    "contract_effective_date": {
+      "page": 10,
+      "x": 65,
+      "y": 550,
+      "fontSize": 8,
+      "maxWidth": 160,
+      "align": "left",
+      "notes": "Effective date annotation (in whitespace below EXECUTED/BROKER-instruction lines and above signature block; does not clash with execution_day/month/year_2digit which fill the \"day of ___, 20___\" blanks)"
+    },
+    "earnest_money_form": {
+      "page": 12,
+      "x": 360.61,
+      "y": 597.7,
+      "fontSize": 9,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "Earnest money form (Check / Wire / etc.) — right of \"in the form of\" on EARNEST MONEY RECEIPT page 12 (nth=1 = middle of 3)"
+    },
+    "title_company_address": {
+      "page": 2,
+      "x": 30,
+      "y": 45,
+      "fontSize": 7,
+      "maxWidth": 260,
+      "align": "left",
+      "notes": "¶6A Title Company address annotation (bottom margin — value primarily consumed via escrow_agent_address_line1 fallback; documentation coord)"
+    },
+    "funding_notice_days": {
+      "page": 1,
+      "x": 25,
+      "y": 8,
+      "fontSize": 6,
+      "maxWidth": 20,
+      "align": "left",
+      "notes": "Funding notice days default (footer margin annotation — 20-19 flat has no discrete blank for this)"
+    },
+    "closing_statement_days": {
+      "page": 6,
+      "x": 25,
+      "y": 8,
+      "fontSize": 6,
+      "maxWidth": 20,
+      "align": "left",
+      "notes": "Closing statement days default (footer margin annotation — 20-19 flat has no discrete blank)"
+    }
+  }
+}

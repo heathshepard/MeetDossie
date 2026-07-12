@@ -18,6 +18,7 @@ const {
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { resolveBlankTemplatePdf } = require('./_lib/resolve-blank-template-pdf');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -288,8 +289,11 @@ module.exports = async function handler(req, res) {
     }
 
     // Documents (owner-scoped).
+    // 2026-07-13 CARTER — SELECT widened to include document_type, status,
+    // form_template_id so blank template docs can be resolved from base64
+    // assets instead of the placeholder storage_path.
     const docsResp = await supabaseRest(
-      `documents?select=id,file_name,file_type,file_size,storage_path&user_id=eq.${safeUid}&transaction_id=eq.${safeTx}&order=created_at.asc`,
+      `documents?select=id,file_name,file_type,file_size,storage_path,document_type,status,form_template_id&user_id=eq.${safeUid}&transaction_id=eq.${safeTx}&order=created_at.asc`,
       { method: 'GET' },
     );
     if (!docsResp.ok) {
@@ -313,10 +317,33 @@ module.exports = async function handler(req, res) {
 
     // Download attachments. Sequential to keep memory predictable for the
     // 25 MB cap; the storage object endpoint is fast anyway.
+    //
+    // 2026-07-13 CARTER — Two changes:
+    //   1. Blank form_template placeholders (storage_path "template/{id}.pdf")
+    //      are resolved from base64 assets via resolveBlankTemplatePdf() so a
+    //      dossier with an attached-but-unfilled TREC form still ships a
+    //      complete packet.
+    //   2. Each doc download is wrapped in try/catch. If a single doc can't
+    //      be resolved AND can't be downloaded, we log + skip it and keep
+    //      assembling — partial packet > no packet at all. The cover sheet
+    //      only lists what actually made it into the attachments.
     const attachments = [];
+    const attachedDocs = [];
     let totalActualBytes = 0;
     for (const doc of documents) {
-      const buf = await downloadStorageObject(doc.storage_path);
+      let buf = null;
+      try {
+        const resolvedBlank = await resolveBlankTemplatePdf(doc);
+        if (resolvedBlank) {
+          buf = resolvedBlank.buffer;
+          console.log(`[send-compliance-packet] Blank template ${doc.id} resolved from base64 assets (${buf.length} bytes).`);
+        } else {
+          buf = await downloadStorageObject(doc.storage_path);
+        }
+      } catch (err) {
+        console.warn(`[send-compliance-packet] Skipping doc ${doc.id} (${doc.file_name}) — ${err && err.message}`);
+        continue;
+      }
       totalActualBytes += buf.length;
       if (totalActualBytes > MAX_PACKET_BYTES) {
         throw new ValidationError(
@@ -327,11 +354,19 @@ module.exports = async function handler(req, res) {
       attachments.push({
         filename: doc.file_name,
         content: buf.toString('base64'),
-        content_type: doc.file_type || 'application/octet-stream',
+        content_type: doc.file_type || 'application/pdf',
       });
+      attachedDocs.push(doc);
     }
 
-    const cover = buildCover({ tx, profile, documents });
+    if (attachedDocs.length === 0) {
+      throw new ValidationError(
+        'None of the attached documents could be assembled into a packet. Try again or contact support.',
+        422,
+      );
+    }
+
+    const cover = buildCover({ tx, profile, documents: attachedDocs });
     const subject = `Closing packet — ${tx.property_address || 'Dossie deal'}`;
 
     let resendMessageId = null;

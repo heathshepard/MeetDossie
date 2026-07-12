@@ -10,6 +10,7 @@ const {
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { resolveBlankTemplatePdf } = require('./_lib/resolve-blank-template-pdf');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -83,7 +84,7 @@ async function removeStorageObject(storagePath) {
   return response.ok || response.status === 404;
 }
 
-function shapeDocumentRow(row, signedUrl) {
+function shapeDocumentRow(row, signedUrl, isBlankTemplate) {
   return {
     id: row.id,
     transactionId: row.transaction_id,
@@ -94,6 +95,10 @@ function shapeDocumentRow(row, signedUrl) {
     fileSize: row.file_size || null,
     createdAt: row.created_at,
     signedUrl: signedUrl || null,
+    // 2026-07-13 CARTER — blank form_template docs have no signable file in
+    // Storage (placeholder path "template/{id}.pdf"). Frontend surfaces
+    // "Fill this out" instead of a preview link when this is true.
+    isBlankTemplate: Boolean(isBlankTemplate),
   };
 }
 
@@ -140,8 +145,16 @@ module.exports = async function handler(req, res) {
       const items = Array.isArray(rows) ? rows : [];
       const documents = await Promise.all(
         items.map(async (row) => {
+          // 2026-07-13 CARTER — blank form_template placeholders have no
+          // Storage object. signUrl() would return null anyway (400 from
+          // Storage), but the resolver check makes the intent explicit and
+          // lets the UI show a "Fill this out" CTA instead of a broken link.
+          const resolvedBlank = await resolveBlankTemplatePdf(row);
+          if (resolvedBlank) {
+            return shapeDocumentRow(row, null, true);
+          }
           const signed = await signUrl(row.storage_path);
-          return shapeDocumentRow(row, signed);
+          return shapeDocumentRow(row, signed, false);
         }),
       );
       return res.status(200).json({ ok: true, documents });
