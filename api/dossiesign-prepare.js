@@ -19,16 +19,11 @@ const {
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
 
+const { applyCorsHeaders } = require('./_middleware/cors');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'documents';
-
-const ALLOWED_ORIGINS = new Set([
-  'https://meetdossie.com',
-  'https://www.meetdossie.com',
-]);
-const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
 
 // ---------------------------------------------------------------------------
 // Embed the same base64 assets fill-form.js uses — lazy-load only on demand.
@@ -105,23 +100,7 @@ const SHORT_NAME_TO_FORM_TYPE = {
 };
 
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  if (!origin) return true;
-  let allowOrigin = null;
-  if (
-    ALLOWED_ORIGINS.has(origin) ||
-    LOCALHOST_ORIGIN_RE.test(origin) ||
-    VERCEL_PREVIEW_RE.test(origin)
-  ) {
-    allowOrigin = origin;
-  }
-  if (allowOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  }
-  return Boolean(allowOrigin);
+  return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS' });
 }
 
 function supa(path, opts = {}) {

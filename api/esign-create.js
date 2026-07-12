@@ -45,6 +45,7 @@ const {
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { applyCorsHeaders } = require('./_middleware/cors');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -53,28 +54,8 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const BUCKET = 'documents';
 
-const ALLOWED_ORIGINS = new Set([
-  'https://meetdossie.com',
-  'https://www.meetdossie.com',
-]);
-const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
-
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  let allowOrigin = null;
-  if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin)) {
-      allowOrigin = origin;
-    }
-  }
-  if (allowOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  }
-  return Boolean(allowOrigin);
+  return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS' });
 }
 
 function supa(path, opts = {}) {
@@ -104,99 +85,27 @@ async function getDocumentRow(documentId, userId) {
 }
 
 // 2026-07-12 ATLAS — Simple Send fix for blank form_template documents.
+// 2026-07-13 CARTER — resolver extracted to api/_lib/resolve-blank-template-pdf.js
+// so documents.js, detect-form-type.js, send-compliance-packet.js, and
+// interactive-editor-init.js can share the same code path. Single source of
+// truth for the SHORT_NAME → FORM_B64 map.
 //
-// When a user attaches a TREC/TAR form via /api/form-templates (action=attach),
-// documents.storage_path is stamped as "template/{tmplId}.pdf" — a PLACEHOLDER
-// that does NOT exist in Supabase Storage (form_templates.storage_path is null
-// for these library entries). status='blank' signals this state.
-//
-// If the user then hits Simple Send on that blank document without filling it
-// first, generateSignedUrl() 404s from Storage → esign-create 500s → user sees
-// "Could not send document for signature." (Heath 2026-07-12 10:53 CT — Wire
-// Fraud Warning.pdf blocked ahead of Amy Clifton MC pitch.)
-//
-// Fix: when a document is a blank form_template with a valid form_template_id,
-// resolve the underlying PDF from the same base64 assets dossiesign-prepare.js
-// uses. The map here mirrors SHORT_NAME_TO_FORM_TYPE + FORM_B64_MAP in that
-// file — keep them in sync if adding new forms.
-const FORM_TEMPLATE_B64 = {
-  'resale-contract':       () => require('./_assets/trec-resale-20-19-base64.js'),
-  'financing-addendum':    () => require('./_assets/trec-financing-40-11-base64.js'),
-  'termination-notice':    () => require('./_assets/trec-termination-base64.js'),
-  'wire-fraud-warning':    () => require('./_assets/tar-wire-fraud-base64.js'),
-  'hoa-addendum':          () => require('./_assets/trec-hoa-addendum-36-11-base64.js'),
-  'lead-paint-addendum':   () => require('./_assets/trec-lead-paint-base64.js'),
-  'sellers-disclosure':    () => require('./_assets/trec-sellers-disclosure-55-1-base64.js'),
-  'amendment':             () => require('./_assets/trec-amendment-39-11-base64.js'),
-  'buyer-rep-agreement':   () => require('./_assets/tar-buyer-rep-base64.js'),
-  'appraisal-termination': () => require('./_assets/trec-49-1-base64.js'),
-  't47-affidavit':         () => require('./_assets/t47-affidavit-base64.js'),
-  'unimproved-property':   () => require('./_assets/trec-unimproved-property-base64.js'),
-  'seller-financing':      () => require('./_assets/trec-seller-financing-base64.js'),
-  'buyers-temp-lease':     () => require('./_assets/trec-buyers-temp-lease-base64.js'),
-  'sellers-temp-lease':    () => require('./_assets/trec-sellers-temp-lease-base64.js'),
-  'sale-other-property':   () => require('./_assets/trec-sale-other-property-base64.js'),
-  'oil-gas-minerals':      () => require('./_assets/trec-oil-gas-minerals-base64.js'),
-  'backup-contract':       () => require('./_assets/trec-backup-contract-11-9-base64.js'),
-  'coastal-area':          () => require('./_assets/trec-coastal-area-base64.js'),
-  'hydrostatic-testing':   () => require('./_assets/trec-hydrostatic-testing-base64.js'),
-  'environmental':         () => require('./_assets/trec-environmental-base64.js'),
-  'short-sale':            () => require('./_assets/trec-short-sale-base64.js'),
-  'gulf-waterway':         () => require('./_assets/trec-gulf-waterway-base64.js'),
-  'propane-gas':           () => require('./_assets/trec-propane-gas-base64.js'),
-  'residential-leases':    () => require('./_assets/trec-residential-leases-base64.js'),
-  'fixture-leases':        () => require('./_assets/trec-fixture-leases-base64.js'),
-  'loan-assumption':       () => require('./_assets/trec-loan-assumption-base64.js'),
-  'improvement-district':  () => require('./_assets/trec-improvement-district-base64.js'),
-};
+// See _lib/resolve-blank-template-pdf.js for background.
+const {
+  resolveBlankTemplatePdf: resolveBlankTemplatePdfDoc,
+} = require('./_lib/resolve-blank-template-pdf');
 
-const SHORT_NAME_TO_FORM_TYPE = {
-  '1-4 Family Contract':           'resale-contract',
-  'Financing Addendum':            'financing-addendum',
-  'HOA Addendum':                  'hoa-addendum',
-  'OP-L':                          'lead-paint-addendum',
-  'Amendment':                     'amendment',
-  'TREC 49-1':                     'appraisal-termination',
-  'OP-H':                          'sellers-disclosure',
-  'Seller Financing':              'seller-financing',
-  'Sale of Other Property':        'sale-other-property',
-  'Back-Up Contract':              'backup-contract',
-  'Seller Disclosure':             'sellers-disclosure',
-  'T-47':                          't47-affidavit',
-  'TREC 9':                        'unimproved-property',
-  'Buyer Rep Agreement':           'buyer-rep-agreement',
-  'TAR 1501':                      'buyer-rep-agreement',
-  'TAR 2001':                      'residential-leases',
-  'TAR 2517':                      'wire-fraud-warning',
-};
-
+// Legacy wrapper preserving the (formTemplateId) → Buffer contract used
+// elsewhere in this file. New callers should use resolveBlankTemplatePdfDoc
+// from the shared lib directly.
 async function resolveBlankTemplatePdf(formTemplateId) {
   if (!formTemplateId) return null;
-  const r = await supa(
-    `form_templates?id=eq.${encodeURIComponent(formTemplateId)}&is_active=eq.true&select=short_name,name`
-  );
-  if (!r.ok) return null;
-  const rows = await r.json().catch(() => []);
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  const shortName = rows[0].short_name;
-  const slug = SHORT_NAME_TO_FORM_TYPE[shortName] || null;
-  if (!slug) {
-    console.warn(`[esign-create] blank form_template short_name="${shortName}" has no SHORT_NAME_TO_FORM_TYPE mapping.`);
-    return null;
-  }
-  const loader = FORM_TEMPLATE_B64[slug];
-  if (!loader) {
-    console.warn(`[esign-create] blank form_template slug="${slug}" has no FORM_TEMPLATE_B64 loader.`);
-    return null;
-  }
-  try {
-    const b64 = loader();
-    if (!b64 || typeof b64 !== 'string') return null;
-    return Buffer.from(b64, 'base64');
-  } catch (err) {
-    console.warn(`[esign-create] resolveBlankTemplatePdf failed for slug="${slug}":`, err && err.message);
-    return null;
-  }
+  const resolved = await resolveBlankTemplatePdfDoc({
+    form_template_id: formTemplateId,
+    document_type: 'form_template',
+    status: 'blank',
+  });
+  return resolved ? resolved.buffer : null;
 }
 
 // TREC 20-18 (One to Four Family Residential Contract — Resale) routing.

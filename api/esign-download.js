@@ -16,6 +16,8 @@
 //   SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
 
+const { applyCorsHeaders } = require('./_middleware/cors');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
@@ -23,28 +25,8 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const BUCKET = 'documents';
 
-const ALLOWED_ORIGINS = new Set([
-  'https://meetdossie.com',
-  'https://www.meetdossie.com',
-]);
-const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
-
 function applyCors(req, res) {
-  const origin = (req && req.headers && req.headers.origin) || '';
-  let allowOrigin = null;
-  if (typeof origin === 'string' && origin.length > 0) {
-    if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN_RE.test(origin) || VERCEL_PREVIEW_RE.test(origin)) {
-      allowOrigin = origin;
-    }
-  }
-  if (allowOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  }
-  return Boolean(allowOrigin);
+  return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS' });
 }
 
 function supa(path, opts = {}) {
