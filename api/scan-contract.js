@@ -1284,8 +1284,19 @@ async function handler(req, res) {
       warnings: result.warnings,
     });
   } catch (error) {
-    // Internal logging keeps the full detail.
-    console.error('scan-contract error:', error);
+    // Internal logging keeps the full detail. Include Anthropic SDK error
+    // shape (status + error.type + message) explicitly so the sanitized
+    // client-facing "Bad request." never masks the real upstream failure
+    // again. Debug tag makes this trivially grep-able in Vercel logs.
+    console.error('[SCAN-CONTRACT-ERR]', {
+      name: error?.name,
+      message: error?.message,
+      status: error?.status,
+      anthropicErrorType: error?.error?.error?.type,
+      anthropicErrorMessage: error?.error?.error?.message,
+      requestId: error?.request_id || error?.headers?.['request-id'],
+      stack: (error?.stack || '').split('\n').slice(0, 6).join('\n'),
+    });
 
     if (error instanceof AuthError) {
       return res.status(error.status || 401).json({ ok: false, error: error.message });
@@ -1300,14 +1311,28 @@ async function handler(req, res) {
       return res.status(429).json({ ok: false, error: 'Rate limit exceeded. Please try again later.' });
     }
 
+    // Anthropic API upstream errors: surface a slightly more useful hint
+    // to the client so support triage doesn't require log access. We still
+    // never leak API keys, prompt content, or model IDs.
+    const anthropicMsg = error?.error?.error?.message || '';
+    const isUsageCap = /API usage limits|monthly limit|spending limit/i.test(anthropicMsg);
+    const isModelIssue = /model|not_found/i.test(anthropicMsg);
+
     // Map upstream errors to a sanitized public message — do NOT leak SDK
     // stack traces, API keys, prompts, or model details to the client.
     const status = (error && Number.isInteger(error.status) && error.status >= 400 && error.status < 600)
       ? error.status
       : 500;
-    const publicMessage = status >= 500
-      ? 'Failed to scan contract.'
-      : 'Bad request.';
+    let publicMessage;
+    if (isUsageCap) {
+      publicMessage = 'Contract scanning is temporarily unavailable. Please try again shortly or contact support.';
+    } else if (status >= 500) {
+      publicMessage = 'Failed to scan contract.';
+    } else if (isModelIssue) {
+      publicMessage = 'Contract scanning service is being updated. Please try again shortly.';
+    } else {
+      publicMessage = 'Bad request.';
+    }
     return res.status(status).json({ ok: false, error: publicMessage });
   }
 }

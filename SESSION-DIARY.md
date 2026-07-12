@@ -4,6 +4,41 @@ One entry per session. Plain English. Focus: people mentioned, decisions made, o
 
 ---
 
+## 2026-07-11 (Saturday) — Daily Regression Suite v1 shipped
+
+**Decisions:**
+- Daily automated regression suite locked. Heath approved after discovering scan-in silently broken 7+ days.
+- 4-layer architecture: canonical manifest (117 test points), Playwright runner, delta-aware Telegram alerts, `regression_runs` Supabase table for trend tracking.
+- Runner uses PURE Playwright + direct fetch/DB calls. Zero Anthropic API dependency — survives when the Anthropic account is capped (like today).
+
+**Built:**
+- `scripts/daily-regression-suite/manifest.md` — 117 test points across 17 categories (auth, pages, api-health, dossier, workspace, documents, fill-form, dossie-sign, amendment, talk-tools, voice, founding, stripe, content, email, cron-health, db-health).
+- `scripts/daily-regression-suite/run.mjs` — main runner. Supports `--tiers api,db,cron,ui` and `--categories` filters. `.env.local` auto-loaded on Windows.
+- `scripts/daily-regression-suite/_lib/{config,http,supabase,report,api-tests,db-tests,cron-tests,ui-tests,playwright-signin}.mjs` — modular sub-libs.
+- `api/cron-regression-suite.js` — Vercel cron entry (API+DB+cron tiers only; Playwright can't run in Vercel serverless). Delta-aware Telegram alerts. Wired to `0 9 * * *` (04:00 CT).
+- Supabase migration `create_regression_runs_table` applied. Table columns: run_at, source, base_url, total_tests, passed, failed, skipped, duration_ms, results (jsonb), deltas (jsonb), alert_sent, notes. RLS on, service-role only.
+- Package.json shortcuts: `npm run regression`, `regression:api`, `regression:staging`.
+
+**Baseline run findings (real issues surfaced by the suite):**
+- 51/59 passing on api+db+cron tiers (86%).
+- `db.freshness.audit_logs` FAIL — no audit_logs writes in 7d.
+- `db.orphans.documents_transaction` FAIL — 51 orphan documents in DB.
+- `db.orphans.action_items_transaction` FAIL — 3 orphan action_items.
+- `db.content.social_posts_recent` FAIL — no social_posts created in 24h.
+- `db.email.morning_brief_recent` FAIL — no morning_brief_email_log in 30h.
+- `cron.cron-alert-health` + `cron.cron-agent-worker-tick` FAIL — genuinely lack telemetry (both crons don't wrap with `withTelemetry`).
+
+**Open threads / pending Heath actions:**
+- Wire telemetry into `alert-health.js` + `cron-agent-worker-tick.js` (both crons run but don't record).
+- Investigate why `morning_brief_email_log` hasn't fired in 30h (audit trail broken).
+- Investigate 51 orphan documents (data integrity issue — likely from bad deletes).
+- Investigate why social_posts stopped creating in last 24h (content pipeline stalled).
+- Once staging merge lands, Vercel cron will run at 04:00 CT tomorrow and Telegram Heath the delta.
+
+**Tag:** `GOLD-2026-07-12-v1-daily-regression-suite` (to apply after merge).
+
+---
+
 ## 2026-05-29 (Thursday)
 
 **People:**
