@@ -147,14 +147,14 @@ If a draft references a founding member number, ONLY 1-__FOUNDING_COUNT__ are va
 If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm debug session", "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it"), flag as red — those are invented.
 
 ### Pricing (locked, real)
-- Founding: $29/mo (50 spots, __FOUNDING_COUNT__ taken, __FOUNDING_REMAINING__ remaining)
+- Founding: $29/mo (25 spots total, __FOUNDING_COUNT__ taken, __FOUNDING_REMAINING__ remaining) — cap reduced from 50 → 25 on 2026-07-09, locked
 - Solo: $79/mo, Team: $199/mo, Brokerage: custom
 
 ## What to flag
 
 🔴 RED (highest severity — verdict MUST be needs_revision):
 - Founding member numbers past __FOUNDING_COUNT__
-- Hardcoded founding SPOT COUNT in post body text — any phrasing like "12 of 50 spots taken", "Twelve of fifty founding spots", "only 38 spots left", or any variant with a specific number of spots taken/remaining. The count changes daily; hardcoding any number makes it stale the moment a new member signs up. The ONLY acceptable founding pricing language is: "Founding pricing is $29/month" or "Founding member pricing at meetdossie.com/founding" with no spot count.
+- Hardcoded founding SPOT COUNT in post body text — any phrasing like "12 of 25 spots taken", "twelve of twenty-five founding spots", "only 13 spots left", "37 spots left", "40 spots left", or any variant with a specific number of spots taken/remaining. The count changes daily; hardcoding any number makes it stale the moment a new member signs up. The ONLY acceptable founding pricing language is: "Founding pricing is $29/month" or "Founding member pricing at meetdossie.com/founding" with no spot count. (Cohort cap is 25 total, locked 2026-07-09 — never say 50.)
 - Invented timestamps with the air of specificity ("Tuesday at 9:43pm", "10pm debug session", "ship in 48 hours") not documented above
 - Customer names + events not in the verified list above
 - Features claimed as live from the NOT-yet-built list
@@ -331,7 +331,7 @@ const TOPICS = [
   {
     key: 'community_movement',
     label: 'Community/Movement — highlight The Founding Files and the collective',
-    angle: 'Emphasize that founding members aren\'t just subscribers — they\'re part of a movement. Highlight The Founding Files private community, feature voting, early access, member stories, the "first 50" exclusivity. Examples: "Founding member #8 voted for pipeline drag-and-drop. It shipped today.", "The Founding Files isn\'t a Facebook group. It\'s where Dossie gets built.", "48 spots left. After that, the founding rate and The Founding Files close forever."',
+    angle: 'Emphasize that founding members aren\'t just subscribers — they\'re part of a movement. Highlight The Founding Files private community, feature voting, early access, member stories, the "first 25" exclusivity. Examples: "A founding member voted for pipeline drag-and-drop. It shipped today.", "The Founding Files isn\'t a Facebook group. It\'s where Dossie gets built.", "Founding pricing is $29/month — locked for life while your subscription stays active." NEVER write a specific spot count number ("48 spots left", "13 spots left", etc.) — the count changes daily and any hardcoded number becomes stale immediately.',
   },
 ];
 
@@ -956,7 +956,7 @@ You may ONLY reference verified real facts about Dossie. Hallucinated specifics 
 
 ALLOWED specifics:
 - The founder pain stories saved verbatim in CLAUDE.md and the memory file \`project_heath_founder_pain_stories.md\` (TC quit while Heath was in Italy with deals in escrow; $400/file and still waking at 4:30am wondering if the option fee receipt was sent; "vacation is the stress test your systems fail" reframe; Brittney's "control freak / visibility problem" insight)
-- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently __FOUNDING_COUNT__ founding members). If you need to count founders, use "__FOUNDING_COUNT__ of 50 founding spots taken" — never go higher.
+- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently __FOUNDING_COUNT__ founding members). NEVER write a specific spot count in any caption — the founding cap is 25, count changes daily, hardcoded numbers become stale immediately. Say "Founding pricing is $29/month" with no spot count.
 - Real product features that exist: TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only, agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat.
 
 FORBIDDEN specifics:

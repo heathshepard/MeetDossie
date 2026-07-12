@@ -129,19 +129,36 @@ module.exports = async function competitorScan({ payload, task_id, log }) {
     if (r.ok) results.updates.dormant_flagged++;
   }
 
-  // Seed viral_posts into social_posts as competitor_remix drafts
+  // Seed viral_posts into social_posts as competitor_remix drafts.
+  //
+  // CRITICAL (locked 2026-07-12): the SEED briefing (angle/remix direction/
+  // source URL) MUST NEVER land in the `content` column. `content` is the
+  // public caption Zernio sends verbatim to Instagram/Facebook/etc. Previous
+  // wiring wrote "[COMPETITOR REMIX SEED] From: TikTok #transactioncoordinator..."
+  // into content — that briefing then leaked to public IG when cron-auto-approve
+  // promoted the draft after 30 min silence without any transformation step.
+  //
+  // Fix: put the SEED into `error_message` (misuse of column, but the only
+  // free-form text field that isn't published). Content stays 'BRIEFING_PENDING'
+  // — a marker that the caption-sanitizer will catch AND that clearly signals
+  // to the downstream generator "you must fill this in before publish."
+  // Status stays 'pending_video' (never 'draft') so cron-auto-approve won't
+  // promote it — a Sage remix pass has to explicitly generate the real caption
+  // and flip status to 'draft'/'approved' when it's ready.
   for (const v of (parsed.viral_posts || []).slice(0, 12)) {
     if (!v.hook) continue;
+    const briefing = `[COMPETITOR REMIX SEED]\nFrom: ${v.platform}/@${v.handle}\nAngle: ${v.angle || ''}\nRemix direction: ${v.remix_direction || ''}\nOriginal URL: ${v.external_url || ''}`;
     const r = await sbFetch('social_posts', {
       method: 'POST',
       body: JSON.stringify({
         platform: v.platform || 'tiktok',
-        status: 'draft',
+        status: 'pending_video',
         source_type: 'competitor_remix',
         competitor_source: `${v.platform}/@${v.handle}`,
         hook: (v.hook || '').slice(0, 200),
-        content: `[COMPETITOR REMIX SEED]\nFrom: ${v.platform}/@${v.handle}\nAngle: ${v.angle || ''}\nRemix direction: ${v.remix_direction || ''}\nOriginal URL: ${v.external_url || ''}`,
-        persona: 'brenda',
+        content: 'BRIEFING_PENDING — Sage must generate the real caption before this row can be promoted to draft/approved. See error_message for the seed briefing.',
+        error_message: briefing.slice(0, 2000),
+        persona: 'dossie',
         requires_approval: true,
         generated_at: new Date().toISOString(),
       }),

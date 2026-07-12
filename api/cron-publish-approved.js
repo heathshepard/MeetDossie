@@ -35,6 +35,7 @@ const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 const { isPaused } = require('./_lib/paused-crons.js');
+const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -969,6 +970,35 @@ module.exports = async function handler(req, res) {
         }),
       });
       skips.push({ id: post.id, platform: post.platform, reason: blockReason });
+      continue;
+    }
+
+    // Caption sanitizer — final barrier before Zernio.
+    // Locked 2026-07-12 after the meetdossie IG account posted the raw
+    // "[COMPETITOR REMIX SEED]" internal briefing as a public caption. Any row
+    // that still contains internal-briefing markers or stale founding-count
+    // text at publish time is flipped to 'failed' and NOT sent to Zernio.
+    // See api/_lib/caption-sanitizer.js for the marker list.
+    const sanitizerResult = sanitizerCheckPost(post);
+    if (!sanitizerResult.ok) {
+      const blockReason = `CAPTION_SANITIZER_BLOCK: ${sanitizerResult.reason}`;
+      console.error(`[cron-publish-approved] ${blockReason} — post ${post.id} (${post.platform})`);
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'failed',
+          publishing_started_at: null,
+          error_message: blockReason.slice(0, 500),
+        }),
+      });
+      errors.push({
+        id: post.id,
+        platform: post.platform,
+        sanitizer_marker: sanitizerResult.marker,
+        error: blockReason,
+      });
+      await sendFailureAlert(post, blockReason);
       continue;
     }
 
