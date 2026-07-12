@@ -218,9 +218,15 @@ async function fillFormPreview(formType, fv) {
   const addr = fv.property_address || '';
 
   // Fill party + address fields common to most TREC forms.
+  // 2026-07-12 ATLAS: buyer/seller swap fix. The AcroForm field NAMED
+  // "1 PARTIES The parties to this contract are" is the SELLER slot (first blank
+  // after "are" in TREC 20-19 §1 = "The parties to this contract are __ (Seller)").
+  // The field NAMED "Seller and" is the BUYER slot ("(Seller) and __ (Buyer)").
+  // This bug was masked by the 0-AcroForm-field flat 20-19 asset from 2026-07-08
+  // through 2026-07-12; surfacing it now that the fillable 20-19 is live.
   const textAttempts = [
-    ['1 PARTIES The parties to this contract are', fv.buyer_name],
-    ['Seller and', fv.seller_name],
+    ['1 PARTIES The parties to this contract are', fv.seller_name],
+    ['Seller and', fv.buyer_name],
     ['Texas known as', addr],
     ['Address of Property', addr],
     ['Address of Property_2', addr],
