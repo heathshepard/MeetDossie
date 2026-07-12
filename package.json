@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "regression": "node scripts/daily-regression-suite/run.mjs",
+    "regression:api": "node scripts/daily-regression-suite/run.mjs --tiers api,db,cron",
+    "regression:staging": "node scripts/daily-regression-suite/run.mjs --source staging-preview"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

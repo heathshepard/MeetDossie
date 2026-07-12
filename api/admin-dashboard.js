@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     metrics.revenue = {
       mrr,
       foundingCount: founding,
-      foundingRemaining: 50 - founding,
+      foundingRemaining: Math.max(0, 25 - founding), // cohort cap dropped from 50 → 25 on 2026-07-09
       soloCount: solo,
       teamCount: team,
       totalActive: subscriptions?.length || 0,

@@ -422,9 +422,6 @@
     "api/cron-automap-pending-documents.js": {
       "maxDuration": 300
     },
-    "api/cron-quinn-daily-audit.js": {
-      "maxDuration": 300
-    },
     "api/cron-apply-approved-improvements.js": {
       "maxDuration": 60
     },
@@ -437,6 +434,9 @@
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/{sa-realtor-leads-final-v2.csv,kw-only-thursday-2026-07-10.csv,kw-only-friday-2026-07-11.csv}"
+    },
+    "api/cron-regression-suite.js": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -757,10 +757,6 @@
       "schedule": "0 0 1 1 *"
     },
     {
-      "path": "/api/cron-quinn-daily-audit",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-apply-approved-improvements",
       "schedule": "17 * * * *"
     },
@@ -815,6 +811,10 @@
     {
       "path": "/api/cron-trec-scanner",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron-regression-suite",
+      "schedule": "0 9 * * *"
     }
   ]
 }

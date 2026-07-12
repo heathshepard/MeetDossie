@@ -181,7 +181,7 @@ function buildEmail3(profile) {
 // heath.shepard@* accounts, and the $1 founding-friend Suzanne Page).
 // Mirrors the logic in founding-count.js and cron-generate-posts.js.
 const FOUNDING_FRIEND_EMAILS_DRIP = new Set(['k.suzanne.page@gmail.com']);
-const FOUNDING_TOTAL_DRIP = 50;
+const FOUNDING_TOTAL_DRIP = 25; // cohort cap dropped from 50 → 25 on 2026-07-09
 
 async function getFoundingRemainingCount() {
   try {

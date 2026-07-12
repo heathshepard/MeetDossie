@@ -51,6 +51,45 @@ const NW_ADDRESS   = 'Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731'
 
 const KNOWN_BOUNCES = new Set(['cheo.chayoh@lptrealty.com']);
 
+// Founding cohort — cap reduced from 50 → 25 on 2026-07-09 (locked for life).
+// Live count queried per batch via getFoundingRemaining() so no stale numbers
+// ("37 of 50") leak into cold-email copy again.
+const FOUNDING_COHORT_CAP = 25;
+const FOUNDING_FRIEND_EMAILS = new Set(['k.suzanne.page@gmail.com']);
+
+async function getFoundingRemaining() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return FOUNDING_COHORT_CAP;
+  try {
+    const subResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/subscriptions?select=user_id&plan=eq.founding&status=eq.active`,
+      { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } }
+    );
+    if (!subResp.ok) return FOUNDING_COHORT_CAP;
+    const subs = await subResp.json();
+    const userIds = (Array.isArray(subs) ? subs : []).map((s) => s.user_id).filter(Boolean);
+    if (userIds.length === 0) return FOUNDING_COHORT_CAP;
+    const profFilter = userIds.map((id) => `"${id}"`).join(',');
+    const profResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=in.(${profFilter})&select=id,email,is_demo,is_founder`,
+      { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } }
+    );
+    if (!profResp.ok) return Math.max(0, FOUNDING_COHORT_CAP - userIds.length);
+    const profiles = await profResp.json();
+    const profilesById = new Map((Array.isArray(profiles) ? profiles : []).map((p) => [p.id, p]));
+    let taken = 0;
+    for (const uid of userIds) {
+      const p = profilesById.get(uid);
+      if (!p || p.is_demo || p.is_founder) continue;
+      if (p.email && FOUNDING_FRIEND_EMAILS.has(p.email.toLowerCase())) continue;
+      taken += 1;
+    }
+    return Math.max(0, FOUNDING_COHORT_CAP - taken);
+  } catch (err) {
+    console.warn('[daily-batch] getFoundingRemaining failed:', err && err.message);
+    return FOUNDING_COHORT_CAP;
+  }
+}
+
 // Lead CSV path — bundled via vercel.json includeFiles.
 const LEADS_CSV = path.join(process.cwd(), 'data/sa-realtor-leads-final-v2.csv');
 
@@ -213,8 +252,11 @@ function selectKwLeads(count, excluded, dateKey) {
   return { selected, kw_avail: all.length };
 }
 
-function buildText(city, email) {
+function buildText(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
+  const spotsText = typeof foundingRemaining === 'number'
+    ? `${foundingRemaining} of ${FOUNDING_COHORT_CAP} spots left`
+    : `${FOUNDING_COHORT_CAP} founding spots at $29/mo`;
   return `It's 6:47pm Thursday in ${city} and you're still in the car.
 
 The lender kicked back another required-repair list. Your seller wants an option-period amendment out tonight. That second appraisal is still "pending review." And there's an offer you owe back on a different file.
@@ -228,7 +270,7 @@ Worth a reply if that sounds like a normal week?
 - Heath
 KW City View / KW Boerne
 
-P.S. Founding rate $29/mo, locked for the life of your subscription. 37 of 50 spots left. If it's not for you, no worries - just reply "not now". ${FOUNDING_URL}
+P.S. Founding rate $29/mo, locked for the life of your subscription. ${spotsText}. If it's not for you, no worries - just reply "not now". ${FOUNDING_URL}
 
 ---
 Unsubscribe: ${unsub}
@@ -236,8 +278,11 @@ ${NW_ADDRESS}
 `;
 }
 
-function buildHtml(city, email) {
+function buildHtml(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
+  const spotsText = typeof foundingRemaining === 'number'
+    ? `${foundingRemaining} of ${FOUNDING_COHORT_CAP} spots left`
+    : `${FOUNDING_COHORT_CAP} founding spots at $29/mo`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
 <p>It's 6:47pm Thursday in ${city} and you're still in the car.</p>
 
@@ -252,7 +297,7 @@ function buildHtml(city, email) {
 <p>- Heath<br>
 KW City View / KW Boerne</p>
 
-<p style="color: #555;">P.S. Founding rate $29/mo, locked for the life of your subscription. 37 of 50 spots left. If it's not for you, no worries - just reply "not now". <a href="${FOUNDING_URL}">Founding details</a>.</p>
+<p style="color: #555;">P.S. Founding rate $29/mo, locked for the life of your subscription. ${spotsText}. If it's not for you, no worries - just reply "not now". <a href="${FOUNDING_URL}">Founding details</a>.</p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">
@@ -540,6 +585,10 @@ async function handler(req, res) {
     const sendAfter = new Date(now);
     sendAfter.setUTCHours(15, 0, 0, 0);
 
+    // Live founding-spots count (was hardcoded "37 of 50" — leaked stale value
+    // into cold-email P.S. after cohort cap changed from 50 → 25 on 2026-07-09).
+    const foundingRemaining = await getFoundingRemaining();
+
     const result = {
       batch: batchId,
       target: dailyTarget,
@@ -567,8 +616,8 @@ async function handler(req, res) {
         to_email: to,
         from_email: FROM_EMAIL,
         subject: SUBJECT,
-        body_text: buildText(city, to),
-        body_html: buildHtml(city, to),
+        body_text: buildText(city, to, foundingRemaining),
+        body_html: buildHtml(city, to, foundingRemaining),
         reply_to: REPLY_TO,
         status: 'pending',
         metadata: {
