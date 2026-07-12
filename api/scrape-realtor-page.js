@@ -58,12 +58,15 @@ export default async function handler(req, res) {
   }
 
   const debug = req.query.debug === '1';
+  const returnRaw = req.query.raw === '1'; // Sage generic-scrape mode — returns raw HTML for arbitrary pages
+  const noJs = req.query.no_js === '1'; // skip JS rendering for lighter/faster fetches
+  const premium = req.query.premium !== '0'; // default premium on
 
   const params = new URLSearchParams({
     apikey: ZENROWS_API_KEY,
     url: targetUrl,
-    js_render: 'true',
-    premium_proxy: 'true',
+    js_render: noJs ? 'false' : 'true',
+    premium_proxy: premium ? 'true' : 'false',
   });
 
   let httpStatus = null;
@@ -122,6 +125,7 @@ export default async function handler(req, res) {
     credits_left: creditsLeft,
     error_if_any: errorMsg,
     agents,
+    ...(returnRaw ? { raw_html: html } : {}),
     ...debugFields,
   });
 }
