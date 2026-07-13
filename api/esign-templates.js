@@ -706,6 +706,11 @@ async function createTemplateSubmission({ templateId, signers, prefillData, mess
   const expandedValues = expandPrefillForTemplate(prefillData, templateId);
   const hasValues = Object.keys(expandedValues).length > 0;
 
+  // 2026-07-13 Round 6 diagnostic — log the shape reaching the clone step so
+  // we can confirm the mapper is producing keys in production, not just on
+  // preview.  Keys only (not values) to avoid leaking PII to Vercel logs.
+  console.log(`[esign-templates] templateId=${templateId} prefillKeys=[${Object.keys(prefillData || {}).join(',')}] expandedKeys=[${Object.keys(expandedValues).join(',')}] hasValues=${hasValues}`);
+
   let submissionTemplateId = templateId;
   if (hasValues) {
     submissionTemplateId = await docusealCloneTemplateWithDefaults(templateId, expandedValues);
