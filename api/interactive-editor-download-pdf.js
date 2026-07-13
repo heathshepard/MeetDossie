@@ -1,37 +1,44 @@
 // Vercel Serverless Function: /api/interactive-editor-download-pdf
 //
-// Returns the current filled PDF for a transaction+form as an attachment.
-// Used by the Phase 1 Interactive Form Editor's "Download filled PDF"
-// button (Pierce's data-export requirement — avoid vendor lock-in).
+// Returns the current FILLED PDF for a transaction+form.
+// Two access patterns:
 //
-// GET /api/interactive-editor-download-pdf?transaction_id=<uuid>&form_number=20-19
+//   GET  ?transaction_id=<uuid>&form_number=20-19
+//        Fills using the transactions row (canonical columns) + the most
+//        recent contract_verification_events.field_values_snapshot for the
+//        transaction if one exists. Used by the "Download filled PDF" button
+//        after Accept.
+//
+//   POST { transaction_id, form_number, field_values: { key: value, ... } }
+//        Fills using the caller-supplied live editor snapshot. Used by the
+//        Interactive Editor's Preview + inline PDF pane so the agent sees
+//        their in-progress edits reflected on the PDF in real time.
+//
 // Authorization: Bearer <supabase user JWT>
 //
-// The endpoint locates the most recent filled document for the requested
-// form, streams it back with Content-Disposition: attachment. If no filled
-// doc exists, it falls back to the blank template so the agent always gets
-// something.
-//
-// CARTER draft 2026-07-11.
+// 2026-07-13 CARTER — Phase 1 fill-pipeline fix. Previous version returned
+// the BLANK TREC 20-19 template regardless of any field values, which caused
+// Preview + Download to show empty forms and would have caused signers to
+// receive blank contracts. See .tmp/dossie-sign-2026-07-13-BLOCKED/.
 
+const { PDFDocument } = require('pdf-lib');
 const fetch = require('node-fetch');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { applyCorsHeaders } = require('./_middleware/cors');
-const { resolveBlankTemplatePdf } = require('./_lib/resolve-blank-template-pdf');
+const { fillTrec2019 } = require('./_lib/fill-trec-20-19');
+
+const TREC_RESALE_20_19_B64 = require('./_assets/trec-resale-20-19-base64.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const BUCKET = 'documents';
 
 function applyCors(req, res) {
-  return applyCorsHeaders(req, res, { methods: 'GET, OPTIONS' });
+  return applyCorsHeaders(req, res, { methods: 'GET, POST, OPTIONS' });
 }
 
-const FORM_TO_DOCUMENT_TYPE = {
-  '20-19': 'resale_contract',
-  '20-18': 'resale_contract',
-};
+// Only TREC 20-19 supported by the Interactive Editor for now.
+const SUPPORTED_FORM_NUMBERS = new Set(['20-19']);
 
 async function supa(path, opts = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -53,85 +60,124 @@ async function supa(path, opts = {}) {
   try { return JSON.parse(text); } catch { return []; }
 }
 
-async function fetchStorageBuffer(storagePath) {
-  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
-  const r = await fetch(url, {
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-  });
-  if (!r.ok) return null;
-  const arr = await r.arrayBuffer();
-  return Buffer.from(arr);
+// Merge the transactions canonical row values under the caller-supplied
+// snapshot. Snapshot wins for keys the editor emitted, transactions row
+// fills in the ~35 canonical columns (buyer_name, sale_price, closing_date,
+// etc.) when the editor didn't override them.
+function mergeFieldValues(txnRow, snapshot) {
+  const merged = {};
+  if (txnRow && typeof txnRow === 'object') {
+    for (const [k, v] of Object.entries(txnRow)) {
+      if (v == null || v === '') continue;
+      merged[k] = v;
+    }
+  }
+  if (snapshot && typeof snapshot === 'object') {
+    for (const [k, v] of Object.entries(snapshot)) {
+      if (v == null || v === '') continue;
+      merged[k] = v;
+    }
+  }
+  return merged;
+}
+
+async function fillTrec2019Pdf(fieldValues) {
+  const buffer = Buffer.from(TREC_RESALE_20_19_B64, 'base64');
+  const pdfDoc = await PDFDocument.load(buffer);
+  await fillTrec2019(pdfDoc, fieldValues || {});
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
+}
+
+async function loadLatestVerificationSnapshot(transactionId, formNumber) {
+  try {
+    const rows = await supa(
+      `contract_verification_events?transaction_id=eq.${encodeURIComponent(transactionId)}` +
+      `&trec_form_number=eq.${encodeURIComponent(formNumber)}` +
+      `&select=field_values_snapshot&order=verified_at.desc&limit=1`
+    );
+    if (rows && rows[0] && rows[0].field_values_snapshot) {
+      return rows[0].field_values_snapshot;
+    }
+  } catch (err) {
+    console.warn('[interactive-editor-download-pdf] verification-snapshot load failed:', err && err.message);
+  }
+  return null;
 }
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET, OPTIONS');
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST, OPTIONS');
     return res.status(405).json({ ok: false, error: 'Method not allowed.' });
   }
 
   try {
     const { userId } = await verifySupabaseToken(req);
-    const transactionId = sanitizeString(req.query?.transaction_id, { maxLength: 200 });
-    const formNumber = sanitizeString(req.query?.form_number, { maxLength: 20 }) || '20-19';
+
+    // Params from query (GET) or body (POST).
+    let params = req.query || {};
+    if (req.method === 'POST') {
+      let body = req.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { body = {}; }
+      }
+      params = body || {};
+    }
+
+    const transactionId = sanitizeString(params.transaction_id, { maxLength: 200 });
+    const formNumber = sanitizeString(params.form_number, { maxLength: 20 }) || '20-19';
 
     if (!transactionId) throw new ValidationError('transaction_id is required.');
-    const documentType = FORM_TO_DOCUMENT_TYPE[formNumber];
-    if (!documentType) throw new ValidationError(`Unsupported form_number: ${formNumber}`);
+    if (!SUPPORTED_FORM_NUMBERS.has(formNumber)) {
+      throw new ValidationError(`Unsupported form_number: ${formNumber}`);
+    }
 
-    // Ownership check.
-    const txnRows = await supa(`transactions?id=eq.${transactionId}&user_id=eq.${userId}&select=id,buyer_name,seller_name,property_address&limit=1`);
+    // Ownership check + pull the canonical column values.
+    const txnRows = await supa(
+      `transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&limit=1`
+    );
     if (!txnRows || txnRows.length === 0) {
       return res.status(404).json({ ok: false, error: 'Transaction not found.' });
     }
     const txn = txnRows[0];
 
-    // Locate the most recent filled document for this form.
-    const docRows = await supa(
-      `documents?transaction_id=eq.${transactionId}&document_type=eq.${documentType}&select=id,storage_path,file_name,status,form_template_id&order=created_at.desc&limit=1`
-    );
-    const doc = (docRows && docRows[0]) || null;
-
-    let buffer = null;
-    let filename = null;
-
-    if (doc) {
-      // Try the shared blank-template resolver first (handles placeholder
-      // storage paths). Falls through to real Storage otherwise.
-      const resolvedBlank = await resolveBlankTemplatePdf(doc);
-      if (resolvedBlank) {
-        buffer = resolvedBlank.buffer;
-        filename = resolvedBlank.filename || `TREC-${formNumber}-${(txn.property_address || 'contract').replace(/[^\w-]+/g, '_').slice(0, 40)}.pdf`;
-      } else if (doc.storage_path) {
-        buffer = await fetchStorageBuffer(doc.storage_path);
-        filename = doc.file_name || `TREC-${formNumber}.pdf`;
-      }
+    // Resolve the source of the field-values snapshot.
+    //   POST: caller supplied it (live editor state).
+    //   GET:  latest accepted verification event, or null (fills only from txn).
+    let snapshot = null;
+    if (req.method === 'POST') {
+      snapshot = (params.field_values && typeof params.field_values === 'object')
+        ? params.field_values
+        : {};
+    } else {
+      snapshot = await loadLatestVerificationSnapshot(transactionId, formNumber);
     }
 
-    // Fallback: blank template.
-    if (!buffer) {
-      const blank = await resolveBlankTemplatePdf({
-        document_type: 'form_template',
-        status: 'blank',
-        _short_name_fallback: '1-4 Family Contract',
-      });
-      if (blank) {
-        buffer = blank.buffer;
-        filename = `TREC-${formNumber}-blank.pdf`;
-      }
+    const merged = mergeFieldValues(txn, snapshot);
+
+    // Render the filled PDF.
+    let buffer;
+    try {
+      buffer = await fillTrec2019Pdf(merged);
+    } catch (fillErr) {
+      console.error('[interactive-editor-download-pdf] fillTrec2019Pdf failed:', fillErr && fillErr.message);
+      return res.status(500).json({ ok: false, error: 'PDF fill failed.' });
     }
 
-    if (!buffer) {
-      return res.status(404).json({ ok: false, error: 'PDF not found.' });
-    }
+    const propSlug = String(txn.property_address || 'contract')
+      .replace(/[^\w-]+/g, '_')
+      .slice(0, 40);
+    const filename = `TREC-${formNumber}-${propSlug}.pdf`;
 
+    // Preview pane fetches into fetch().blob() which needs a URL-able response.
+    // Return inline for POST (preview), attachment for GET (download button).
+    const disposition = req.method === 'POST' ? 'inline' : 'attachment';
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename || `TREC-${formNumber}.pdf`}"`);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
     res.setHeader('Content-Length', String(buffer.length));
+    res.setHeader('Cache-Control', 'no-store');
     return res.status(200).send(buffer);
   } catch (err) {
     if (err instanceof ValidationError) {

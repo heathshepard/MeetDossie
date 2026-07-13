@@ -1375,16 +1375,33 @@ async function fillResaleContract(pdfDoc, fv) {
 // (bottom-left), so y coordinates are inverted from the visual reading order.
 // ---------------------------------------------------------------------------
 
-const TREC_20_19_COORDS = (() => {
-  try {
-    return require('./_assets/trec-20-19-field-coords.json');
-  } catch (e) {
-    console.warn('[fill-form] Failed to load 20-19 coordinates:', e && e.message);
-    return { fields: {} };
-  }
-})();
+// 2026-07-13 CARTER — coordinate-fill for TREC 20-19 (flat PDF) extracted to
+// api/_lib/fill-trec-20-19.js so /api/interactive-editor-download-pdf can
+// render the exact same filled PDF for Preview + Download in the Interactive
+// Editor. Previous behavior (blank template returned) is preserved for
+// fill-form.js callers via this thin wrapper.
+const {
+  fillTrec2019: _fillTrec2019Shared,
+  TREC_20_19_COORDS,
+} = require('./_lib/fill-trec-20-19');
 
 async function fillResaleContractCoordinate(pdfDoc, fv) {
+  return _fillTrec2019Shared(pdfDoc, fv);
+}
+
+// eslint-disable-next-line no-unused-vars
+async function _fillResaleContractCoordinateLegacy_UNUSED(pdfDoc, fv) {
+  // Legacy body removed 2026-07-13 CARTER — canonical implementation now
+  // lives in api/_lib/fill-trec-20-19.js. Left as an eslint-ignored stub so
+  // any local branches referencing the old name don't crash on rebase.
+  return _fillTrec2019Shared(pdfDoc, fv);
+}
+
+async function _fillResaleContractCoordinate_DELETED_LEGACY_BODY(pdfDoc, fv) {
+  // Legacy body deleted 2026-07-13 — see api/_lib/fill-trec-20-19.js.
+  return _fillTrec2019Shared(pdfDoc, fv);
+}
+async function _UNREACHABLE_LEGACY_BODY_ORIGINAL_KEEP_FOR_REVIEW(pdfDoc, fv) {
   const pages = pdfDoc.getPages();
   const coordMap = TREC_20_19_COORDS.fields || {};
 
