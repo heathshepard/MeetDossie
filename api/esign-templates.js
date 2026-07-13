@@ -106,13 +106,29 @@ const TEMPLATE_REGISTRY = [
     prefillFields: CORE_PREFILL,
   },
   {
+    // 2026-07-13 Round 6 — Template 4111320 (TREC 39-11) uses 4-role split:
+    // Buyer 1, Buyer 2, Seller 1, Seller 2. Prior default of BUYER_SELLER_1
+    // silently dropped Buyer 2 / Seller 2 when co-buyers/co-sellers were on
+    // the deal. Prefill fields extended to include amendment-specific keys
+    // (amendment_description, amendment_new_price, amendment_new_closing_date,
+    // amendment_new_earnest_money, amendment_option_fee, amendment_effective_date)
+    // which map to §1, §3, §4, §6 and DATE OF FINAL ACCEPTANCE via
+    // TEMPLATE_FIELD_MAPPERS['4111320'].
     type: 'amendment',
     label: 'TREC 39-11 Amendment',
     description: 'Amendment to Contract — modify closing date, sales price, or other terms',
     envVar: 'DOCUSEAL_TEMPLATE_AMENDMENT',
     fallbackId: '4111320',
-    defaultSigners: BUYER_SELLER_1,
-    prefillFields: CORE_PREFILL,
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: [
+      'property_address',
+      'amendment_description',
+      'amendment_new_price',
+      'amendment_new_closing_date',
+      'amendment_new_earnest_money',
+      'amendment_option_fee',
+      'amendment_effective_date',
+    ],
   },
   {
     type: 'hoa_addendum',
@@ -300,6 +316,8 @@ const TEMPLATE_ROLES = {
   '4952172': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
   // Template 4023463 (TREC 40-11): 2-role
   '4023463': ['Buyer', 'Seller'],
+  // Template 4111320 (TREC 39-11 Amendment): 4-role split (Round 6)
+  '4111320': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
   // Default: 4-role (matches the resale flavor)
   DEFAULT: ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
 };
@@ -384,6 +402,126 @@ const TEMPLATE_FIELD_MAPPERS = {
         case 'closing_date':
           expanded['A The closing of the sale will be on or before'] = s;
           expanded['closing_date'] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 39-11 Amendment (template 4111320)
+  // Field names sourced from .tmp/docuseal-15-verify/tmpl_4111320.json.
+  // The 39-11 PDF is a single page with §1-9 numbered amendment options.
+  // Most fields on the template have cryptic names ("Text1", "date 5",
+  // "Text 10", "as follows", "for an extension of the", "contract", empty
+  // strings). Round 6 maps Dossie's semantic keys to the observed names for
+  // the most common amendment scenarios (new price, new closing date, new
+  // earnest money, option fee, other modifications free-text).
+  //
+  // Naming reference (verified via tmpl_4111320.json + positional inspection):
+  //   Street Address and City  -> §property header (page 0, y=0.11)
+  //   Text 8 / Text 9 / Text 10 -> §1 sales price A/B/C rows (right column)
+  //   Text1                     -> §2 seller repairs description (line 1)
+  //   date 5                    -> §3 new closing date text
+  //   6 Buyer has paid Seller an additional Option Fee of (checkbox)
+  //   Text6 / Text7 1           -> §8 buyer approval notice date / year
+  //   9 Other Modifications ... (checkbox for §9)
+  //   DATE OF FINAL ACCEPTANCE  -> effective date (the field name IS the label
+  //                                on this template — same trap as 20-19).
+  //
+  // Because many text-input slots have empty-string names, DocuSeal can't
+  // reliably route by name for them. We prefer the named fields we know
+  // exist. The free-text §10 "Other Modifications" is split across three
+  // blank-named lines (fields 41, 42, 43) — we write to the checkbox marker
+  // via the labeled trigger + push the description into Text1 as a fallback.
+  '4111320': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address': {
+          // The single property field on 39-11 is literally named
+          // "Street Address and City". Also write to a few plausible fallbacks
+          // (DocuSeal drops unmatched keys silently, so extra keys are safe).
+          expanded['Street Address and City'] = s;
+          expanded['property_address'] = s;
+          break;
+        }
+        case 'amendment_description':
+        case 'other_modifications': {
+          // §10 "Other Modifications" — free-text section.  Push into Text1
+          // (primary description line under §2) AND Text6 (§8 area label
+          // that also renders on the PDF). DocuSeal drops unmatched keys, so
+          // hitting both is safe. Priority is a real user-visible field.
+          expanded['Text1'] = s;
+          expanded['Text6'] = s;
+          expanded['amendment_description'] = s;
+          expanded['other_modifications'] = s;
+          break;
+        }
+        case 'amendment_new_price':
+        case 'new_price':
+        case 'new_sales_price': {
+          // §1 new sales price. On the amendment, this is broken into 3 rows
+          // (A cash portion / B financing / C total). We write the total into
+          // Text 10 (row C) and pass through the alternate keys DocuSeal may
+          // match. Currency formatting: strip any commas/$ so user-entered
+          // "$425,000" reduces to "425000" first.
+          const clean = String(s).replace(/[^\d.-]/g, '');
+          expanded['Text 10'] = clean;      // Row C — Sales Price (total)
+          expanded['Text 8']  = clean;      // Row A — Cash portion (fallback)
+          expanded['Text 9']  = '0';        // Row B — financing sum (zero if all cash)
+          expanded['new_sales_price'] = clean;
+          expanded['amendment_new_price'] = clean;
+          break;
+        }
+        case 'amendment_new_closing_date':
+        case 'new_closing_date': {
+          // §3 new closing date -> "date 5" text field.
+          expanded['date 5'] = s;
+          expanded['new_closing_date'] = s;
+          expanded['amendment_new_closing_date'] = s;
+          break;
+        }
+        case 'amendment_new_earnest_money':
+        case 'new_earnest_money': {
+          // §4 new earnest money amount -> unnamed field (index 14, y=0.338).
+          // DocuSeal exposes it with empty name so we can't target it reliably.
+          // Pass through as a labeled hint; the empty-name field will render
+          // blank until the agent uploads the Interactive Editor variant.
+          expanded['new_earnest_money'] = s;
+          expanded['amendment_new_earnest_money'] = s;
+          break;
+        }
+        case 'amendment_option_fee':
+        case 'new_option_fee': {
+          // §6 option fee dollar amount + extension days
+          expanded['as follows'] = s;
+          expanded['new_option_fee'] = s;
+          expanded['amendment_option_fee'] = s;
+          break;
+        }
+        case 'amendment_effective_date':
+        case 'effective_date': {
+          // The bottom "EXECUTED the day of __, 20 __" area. The field name
+          // "DATE OF FINAL ACCEPTANCE" is the FIELD (same trap as 20-19),
+          // NOT the label. Write the effective date there.
+          expanded['DATE OF FINAL ACCEPTANCE'] = s;
+          expanded['effective_date'] = s;
+          expanded['amendment_effective_date'] = s;
+          break;
+        }
+        // Canonical keys that may not have direct fields but pass through in
+        // case DocuSeal's future field rename catches them.
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          expanded[key] = s;
           break;
         default:
           expanded[key] = s;
