@@ -263,13 +263,23 @@ async function handlePhase1Init({ req, res, userId, transactionId }) {
   // 3. Enrich each Fable5 row with editor metadata + current transactions value.
   //    Skip signer widgets (signature/initial) — DocuSeal places those.
   //    Track unmapped-to-editor counts for transparency (never silently hide).
+  //
+  // 2026-07-13 CARTER — Bug #2 (Quinn DoD Round 1). Non-canonical fields now
+  // live in transactions.contract_field_drafts['20-19'] so they survive
+  // reloads. Precedence: draft (last user edit) > canonical column > blank.
+  const draftsForForm = (txn.contract_field_drafts && typeof txn.contract_field_drafts === 'object')
+    ? (txn.contract_field_drafts['20-19'] || {})
+    : {};
   const enriched = [];
   let unmappedCount = 0;
   for (const raw of fable5Fields) {
     const canonical = (raw && raw.name) || null;
-    const currentValue = canonical && Object.prototype.hasOwnProperty.call(txn, canonical)
-      ? txn[canonical]
-      : null;
+    let currentValue = null;
+    if (canonical && Object.prototype.hasOwnProperty.call(draftsForForm, canonical)) {
+      currentValue = draftsForForm[canonical];
+    } else if (canonical && Object.prototype.hasOwnProperty.call(txn, canonical)) {
+      currentValue = txn[canonical];
+    }
     const field = enrichFable5Field(raw, currentValue);
     if (!field) continue;
     if (field.section === 'other') unmappedCount += 1;

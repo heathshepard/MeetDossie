@@ -156,26 +156,57 @@ module.exports = async function handler(req, res) {
     }
 
     const canonical = FIELD_ALIASES[fieldKeyRaw] || fieldKeyRaw;
-    // Phase 1 Interactive Form Editor for TREC 20-19 emits ~200 field keys
-    // (Fable5 auto-mapped). Only ~30 of those correspond to canonical
-    // `transactions` columns; the rest are contract-only fields that don't
-    // have a home on the transactions row yet. Return ok:true with skipped=true
-    // so the UI's auto-save indicator shows "Saved" and stays out of an error
-    // state — the values live in the client's snapshot and get written into
-    // the verification event + DocuSeal prefill at Send time. Locked 2026-07-11.
+    // 2026-07-13 CARTER — Bug #2 (Quinn DoD Round 1). Non-canonical fields
+    // (~170 of ~200 on TREC 20-19) used to return skipped:true — the UI
+    // showed "Saved" but the values dropped silently, wiping ~170 fields on
+    // reload. Now they persist into transactions.contract_field_drafts, a
+    // JSONB column keyed by form_number → { field_key: value }.
+    // form_type -> form_number mapping (matches interactive-editor-init.js).
+    const FORM_TYPE_TO_FORM_NUMBER = {
+      'resale-contract':     '20-19',
+      'financing-addendum':  '40-11',
+      'hoa-addendum':        '36-11',
+      'lead-paint-addendum': 'OP-L',
+    };
     if (!ALLOWED_FIELDS.has(canonical)) {
-      // 1. Still verify ownership so we don't leak transaction membership.
-      const ownRows = await supabaseCall('GET', `transactions?id=eq.${transactionId}&select=user_id&limit=1`);
+      // 1. Load the row (ownership + current drafts).
+      const ownRows = await supabaseCall(
+        'GET',
+        `transactions?id=eq.${transactionId}&select=user_id,contract_field_drafts&limit=1`
+      );
       if (!ownRows || ownRows.length === 0) {
         return res.status(404).json({ ok: false, error: 'Transaction not found.' });
       }
       if (ownRows[0].user_id !== userId) {
         return res.status(403).json({ ok: false, error: 'Forbidden.' });
       }
+
+      // 2. Merge into contract_field_drafts[form_number][field_key].
+      const formNumber = FORM_TYPE_TO_FORM_NUMBER[formType] || formType;
+      const existingDrafts = (ownRows[0].contract_field_drafts && typeof ownRows[0].contract_field_drafts === 'object')
+        ? ownRows[0].contract_field_drafts
+        : {};
+      const formDrafts = { ...(existingDrafts[formNumber] || {}) };
+      if (newValue === null || newValue === undefined || newValue === '') {
+        delete formDrafts[fieldKeyRaw];
+      } else {
+        formDrafts[fieldKeyRaw] = String(newValue);
+      }
+      const nextDrafts = { ...existingDrafts, [formNumber]: formDrafts };
+
+      try {
+        await supabaseCall('PATCH', `transactions?id=eq.${transactionId}`, {
+          contract_field_drafts: nextDrafts,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (patchErr) {
+        console.error('[interactive-editor-update-field] draft merge failed:', patchErr && patchErr.message);
+        return res.status(500).json({ ok: false, error: 'Could not save draft field.' });
+      }
+
       return res.status(200).json({
         ok: true,
-        skipped: true,
-        reason: 'field_not_persisted_to_transactions',
+        persisted: 'draft',
         pdfUrl: null,
         field: {
           id: `${formType}:${fieldKeyRaw}`,
