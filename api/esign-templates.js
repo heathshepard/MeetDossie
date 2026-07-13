@@ -310,7 +310,27 @@ async function createTemplateSubmission({ templateId, signers, prefillData, mess
     const text = await res.text().catch(() => '');
     throw new Error(`DocuSeal template submission failed (${res.status}): ${text.slice(0, 300)}`);
   }
-  return res.json();
+  const raw = await res.json();
+  // DocuSeal /submissions returns EITHER an array of submitter objects
+  // (each with submission_id, embed_src, email, role, etc.) OR — depending on
+  // API version — an object like { id, submitters: [...] }. Normalize to the
+  // {id, submitters} shape the downstream mapper expects.
+  if (Array.isArray(raw)) {
+    const submissionId = raw[0]?.submission_id ?? raw[0]?.id ?? null;
+    return {
+      id: submissionId,
+      submitters: raw.map((s) => ({
+        uuid: s.uuid,
+        slug: s.slug,
+        name: s.name,
+        email: s.email,
+        role: s.role,
+        status: s.status || 'sent',
+        embed_src: s.embed_src || null,
+      })),
+    };
+  }
+  return raw;
 }
 
 async function insertSignatureRequest(row) {
