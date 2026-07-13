@@ -131,22 +131,61 @@ const TEMPLATE_REGISTRY = [
     ],
   },
   {
+    // 2026-07-13 Round 7 — TREC 36-11 HOA Addendum. Template 4111321 uses
+    // "Buyer 1 / Buyer 2 / Seller 1 / Seller 2" split (BUYER_SELLER_2).
+    // Prefill extends CORE_PREFILL with HOA-specific semantic keys the mapper
+    // in TEMPLATE_FIELD_MAPPERS['4111321'] translates to the template's
+    // verbose AcroForm field names ("Street Address and City", "Name of
+    // Property Owners Association Association and Phone Number", §D reserves
+    // row, §E "Buyer" / "Seller shall pay ..." checkboxes).
     type: 'hoa_addendum',
     label: 'TREC 36-11 HOA Addendum',
     description: 'Addendum for Property Subject to Mandatory Membership in a POA',
     envVar: 'DOCUSEAL_TEMPLATE_HOA_ADDENDUM',
     fallbackId: '4111321',
     defaultSigners: BUYER_SELLER_2,
-    prefillFields: CORE_PREFILL,
+    prefillFields: [
+      'property_address',
+      'buyer_name',
+      'seller_name',
+      'hoa_name',
+      'hoa_transfer_fee',
+      'hoa_annual_dues',
+      'resale_certificate_delivery_deadline',
+      'hoa_fee_payer',
+      'resale_certificate_required',
+    ],
   },
   {
+    // 2026-07-13 Round 8 — OP-L Lead-Based Paint. Template 4023469 has SIX
+    // submitters (Buyer 1, Buyer 2, Seller 1, Seller 2, Buyer Broker, Seller
+    // Broker) — first canonical template with broker submitters. Semantic
+    // keys map cleanly to the DocuSeal template's field names (property_address,
+    // known_lead_paint, records_available, buyer_waives_inspection, etc.) via
+    // TEMPLATE_FIELD_MAPPERS['4023469'].
     type: 'lead_paint_addendum',
     label: 'OP-L Lead-Based Paint',
     description: 'Addendum for Seller\'s Disclosure of Info on Lead-Based Paint',
     envVar: 'DOCUSEAL_TEMPLATE_LEAD_PAINT',
     fallbackId: '4023469',
-    defaultSigners: BUYER_SELLER_2,
-    prefillFields: CORE_PREFILL,
+    defaultSigners: [
+      { role: 'Buyer 1',       label: 'Buyer 1' },
+      { role: 'Buyer 2',       label: 'Buyer 2' },
+      { role: 'Seller 1',      label: 'Seller 1' },
+      { role: 'Seller 2',      label: 'Seller 2' },
+      { role: 'Buyer Broker',  label: 'Buyer Broker' },
+      { role: 'Seller Broker', label: 'Seller Broker' },
+    ],
+    prefillFields: [
+      'property_address',
+      'buyer_name',
+      'seller_name',
+      'lead_paint_disclosure_selected',
+      'lead_paint_description',
+      'records_available_selected',
+      'records_description',
+      'inspection_option_selected',
+    ],
   },
   {
     type: 'sellers_disclosure',
@@ -331,6 +370,10 @@ const TEMPLATE_ROLES = {
   '4023463': ['Buyer', 'Seller'],
   // Template 4111320 (TREC 39-11 Amendment): 4-role split (Round 6)
   '4111320': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4111321 (TREC 36-11 HOA Addendum): 4-role split (Round 7)
+  '4111321': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4023469 (OP-L Lead-Based Paint): 6-role split — brokers included (Round 8)
+  '4023469': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2', 'Buyer Broker', 'Seller Broker'],
   // Default: 4-role (matches the resale flavor)
   DEFAULT: ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
 };
@@ -347,6 +390,26 @@ function normalizeRoleForTemplate(role, templateId) {
   const exact = rolesForTemplate.find((r) => r.toLowerCase() === trimmed.toLowerCase());
   if (exact) return exact;
 
+  // Broker role handling (Round 8 — OP-L Lead-Based Paint has Buyer Broker +
+  // Seller Broker). Match "Buyer Broker" / "Seller Broker" / "Buyer Agent" /
+  // "Seller Agent" / "Buyer's Agent" etc. BEFORE the plain Buyer/Seller
+  // check, so "Buyer Broker" doesn't collapse to "Buyer 1".
+  const isBrokerish = /(broker|agent)/i.test(trimmed);
+  if (isBrokerish) {
+    const isBuyerSide = /buyer/i.test(trimmed);
+    const isSellerSide = /seller/i.test(trimmed);
+    if (isBuyerSide) {
+      const found = rolesForTemplate.find((r) => /buyer.*broker|buyer.*agent/i.test(r));
+      if (found) return found;
+    }
+    if (isSellerSide) {
+      const found = rolesForTemplate.find((r) => /seller.*broker|seller.*agent/i.test(r));
+      if (found) return found;
+    }
+    // Generic broker with no side — pass through.
+    return trimmed;
+  }
+
   // Buyer/Seller prefix match — pick first available role on that side.
   const isBuyer = /^buyer/i.test(trimmed);
   const isSeller = /^seller/i.test(trimmed);
@@ -358,7 +421,8 @@ function normalizeRoleForTemplate(role, templateId) {
       const found = rolesForTemplate.find((r) => r.toLowerCase() === withDigit.toLowerCase());
       if (found) return found;
     }
-    return rolesForTemplate.find((r) => /buyer/i.test(r)) || trimmed;
+    // Prefer the numbered signer roles over broker slots when only "Buyer" was given.
+    return rolesForTemplate.find((r) => /^buyer(\s*\d+)?$/i.test(r)) || trimmed;
   }
   if (isSeller) {
     const digit = trimmed.match(/(\d+)/);
@@ -367,7 +431,7 @@ function normalizeRoleForTemplate(role, templateId) {
       const found = rolesForTemplate.find((r) => r.toLowerCase() === withDigit.toLowerCase());
       if (found) return found;
     }
-    return rolesForTemplate.find((r) => /seller/i.test(r)) || trimmed;
+    return rolesForTemplate.find((r) => /^seller(\s*\d+)?$/i.test(r)) || trimmed;
   }
 
   // Pass through anything else.
@@ -529,6 +593,218 @@ const TEMPLATE_FIELD_MAPPERS = {
         }
         // Canonical keys that may not have direct fields but pass through in
         // case DocuSeal's future field rename catches them.
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          expanded[key] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 36-11 HOA Addendum (template 4111321)
+  // Field names sourced from .tmp/docuseal-15-verify/tmpl_4111321.json.
+  // The 36-11 is a single-page addendum. Fields have hostile, label-like
+  // names ("Street Address and City", "Name of Property Owners Association
+  // Association and Phone Number", "does", "does not require an updated
+  // resale certificate...") — so semantic prefill keys MUST be translated
+  // explicitly. Round 7 wires the mapping so property_address, buyer_name,
+  // seller_name AND HOA-specific keys reach the correct AcroForm slots.
+  //
+  // Field inventory (from tmpl_4111321.json):
+  //   0  "Street Address and City" — text (§property header)
+  //   1  "Name of Property Owners Association Association and Phone Number" — text
+  //   2  "1 Within" — checkbox (§A1 timeframe checkbox)
+  //   3  "the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate" — text (§A1 days)
+  //   4  "undefined" — checkbox (§A2 checkbox)
+  //   5  "copy of the Subdivision Information to the Seller" — text (§A2 days)
+  //   6  "3Buyer has received and approved the Subdivision Information before signing the contract Buyer" — checkbox (§A3)
+  //   7  "does" — checkbox
+  //   8  "does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at" — checkbox
+  //   9  "4Buyer does not require delivery of the Subdivision Information" — checkbox (§A4)
+  //   10 "D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association" — text (§D reserves)
+  //   11 "Buyer" — checkbox (§E — Buyer pays HOA fee)
+  //   12 "Seller shall pay the Title Company the cost of obtaining the" — checkbox (§E — Seller pays HOA fee)
+  //   13-16 signature fields (buyer_1_name, buyer_2_name, Seller_1_name, Seller_2_name)
+  //
+  // Semantic keys we accept: property_address, hoa_name, resale_certificate_delivery_deadline,
+  // subdivision_info_delivery_days, hoa_transfer_fee, hoa_annual_dues, hoa_fee_payer
+  // ('buyer' | 'seller'), resale_certificate_required ('true' | 'false').
+  '4111321': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address': {
+          // The 36-11 property field is literally "Street Address and City".
+          expanded['Street Address and City'] = s;
+          expanded['property_address'] = s;
+          break;
+        }
+        case 'hoa_name':
+        case 'hoa_name_and_phone':
+        case 'association_name': {
+          // Text field name is verbose (dedup "Association Association") but
+          // matches tmpl JSON exactly.
+          expanded['Name of Property Owners Association Association and Phone Number'] = s;
+          expanded['hoa_name'] = s;
+          break;
+        }
+        case 'resale_certificate_delivery_deadline':
+        case 'subdivision_info_delivery_days': {
+          // §A1 "Within ___ days after the effective date, Seller shall deliver..."
+          // The days text slot has the awkward name reflecting the sentence
+          // label. Numeric string ("10", "30", etc.).
+          const clean = String(s).replace(/[^\d.]/g, '');
+          expanded['the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate'] = clean;
+          expanded['1 Within'] = 'true';       // toggle the §A1 checkbox
+          expanded['resale_certificate_delivery_deadline'] = clean;
+          break;
+        }
+        case 'hoa_transfer_fee':
+        case 'hoa_reserves': {
+          // §D "Buyer shall pay any deposits for reserves ..." — the field
+          // name IS the label of the row (a familiar TREC trap).
+          expanded['D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association'] = s;
+          expanded['hoa_transfer_fee'] = s;
+          break;
+        }
+        case 'hoa_annual_dues': {
+          // No dedicated annual-dues field on 36-11 (dues live in the resale
+          // cert itself). Pass through for future extension.
+          expanded['hoa_annual_dues'] = s;
+          break;
+        }
+        case 'hoa_fee_payer': {
+          // §E — who pays the resale-certificate cost. Toggle exactly one
+          // checkbox based on the input string ('buyer' | 'seller').
+          const payer = String(s).toLowerCase();
+          if (payer.includes('buyer')) expanded['Buyer'] = 'true';
+          if (payer.includes('seller')) expanded['Seller shall pay the Title Company the cost of obtaining the'] = 'true';
+          expanded['hoa_fee_payer'] = s;
+          break;
+        }
+        case 'resale_certificate_required': {
+          // §A3 — "does require" / "does not require". Toggle by boolean.
+          const truthy = /^(true|yes|1|require)/i.test(String(s));
+          if (truthy) expanded['does'] = 'true';
+          else expanded['does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at'] = 'true';
+          expanded['resale_certificate_required'] = s;
+          break;
+        }
+        // Canonical keys that don't have obvious 36-11 targets pass through so
+        // any future field rename in DocuSeal automatically picks them up.
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          expanded[key] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // OP-L Lead-Based Paint Addendum (template 4023469)
+  // Field names sourced from .tmp/docuseal-15-verify/tmpl_4023469.json.
+  // This template has EXACTLY the semantic key names Dossie already uses
+  // ("property_address"), so the field mapper is mostly a pass-through — its
+  // primary job is (a) documenting the semantic keys the UI can pass and
+  // (b) handling the checkbox trio (seller knowledge, records available,
+  // buyer inspection option).
+  //
+  // Field inventory (from tmpl_4023469.json):
+  //   0  property_address — text (page 1 header)
+  //   1  known_lead_paint — checkbox (§A(a) seller has knowledge)
+  //   2  known_lead_paint_description — text (§A(a) description)
+  //   3  no_knowledge_lead_paint — checkbox (§A(b) no knowledge)
+  //   4  records_available — checkbox (§B(a) records provided)
+  //   5  records_description — text (§B(a) records list)
+  //   6  no_records — checkbox (§B(b) no records)
+  //   7  buyer_waives_inspection — checkbox (§C(a))
+  //   8  buyer_reserves_inspection — checkbox (§C(b))
+  //   9  buyer_received_copies — checkbox (§D)
+  //   10 buyer_received_pamphlet — checkbox (§E)
+  //   11-22 signatures + dates for 6 submitters
+  //
+  // Semantic keys Dossie can pass: property_address, lead_paint_disclosure_selected
+  // ('known' | 'no_knowledge'), lead_paint_description, records_available_selected
+  // ('yes' | 'no'), records_description, inspection_option_selected
+  // ('waives' | 'reserves'), inspection_option_days.
+  '4023469': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          // Direct name match on this template.
+          expanded['property_address'] = s;
+          break;
+        case 'lead_paint_description':
+        case 'known_lead_paint_description':
+          expanded['known_lead_paint_description'] = s;
+          expanded['known_lead_paint'] = 'true';  // implies the "knowledge" checkbox
+          break;
+        case 'records_description':
+          expanded['records_description'] = s;
+          expanded['records_available'] = 'true'; // implies §B(a) checkbox
+          break;
+        case 'lead_paint_disclosure_selected': {
+          // 'known' → toggle §A(a); 'no_knowledge' → toggle §A(b).
+          const v = String(s).toLowerCase();
+          if (v.includes('known') && !v.includes('no')) expanded['known_lead_paint'] = 'true';
+          if (v.includes('no') || v.includes('none')) expanded['no_knowledge_lead_paint'] = 'true';
+          expanded['lead_paint_disclosure_selected'] = s;
+          break;
+        }
+        case 'records_available_selected': {
+          const truthy = /^(yes|true|available|1)/i.test(String(s));
+          if (truthy) expanded['records_available'] = 'true';
+          else expanded['no_records'] = 'true';
+          expanded['records_available_selected'] = s;
+          break;
+        }
+        case 'inspection_option_selected': {
+          const v = String(s).toLowerCase();
+          if (v.includes('waive') || v.includes('waves')) expanded['buyer_waives_inspection'] = 'true';
+          if (v.includes('reserve')) expanded['buyer_reserves_inspection'] = 'true';
+          expanded['inspection_option_selected'] = s;
+          break;
+        }
+        case 'buyer_received_copies_selected': {
+          if (/true|yes|1/i.test(String(s))) expanded['buyer_received_copies'] = 'true';
+          expanded['buyer_received_copies_selected'] = s;
+          break;
+        }
+        case 'buyer_received_pamphlet_selected': {
+          if (/true|yes|1/i.test(String(s))) expanded['buyer_received_pamphlet'] = 'true';
+          expanded['buyer_received_pamphlet_selected'] = s;
+          break;
+        }
+        // Direct-match checkboxes / passthrough for future extension.
+        case 'known_lead_paint':
+        case 'no_knowledge_lead_paint':
+        case 'records_available':
+        case 'no_records':
+        case 'buyer_waives_inspection':
+        case 'buyer_reserves_inspection':
+        case 'buyer_received_copies':
+        case 'buyer_received_pamphlet':
+          expanded[key] = String(s);
+          break;
+        // Canonical keys pass through — DocuSeal drops unmatched keys safely.
         case 'buyer_name':
         case 'seller_name':
         case 'purchase_price':
