@@ -4,6 +4,35 @@ One entry per session. Plain English. Focus: people mentioned, decisions made, o
 
 ---
 
+## 2026-07-13 (Monday) — Dossie Sign Rounds 7 + 8 both PASS
+
+**Decisions:**
+- Round 7 (TREC 36-11 HOA Addendum × Template mode): 8/8 tests PASS on staging AND prod. DoD #21 signer view confirmed with 4/4 prefill values rendered on filled PDF.
+- Round 8 (OP-L Lead-Based Paint × Template mode): 11/11 tests PASS on staging AND prod. OP-L is first canonical template with SIX submitters (Buyer 1/2, Seller 1/2, Buyer Broker, Seller Broker). DoD #21 verified by opening BOTH Seller 1 view (sees property + lead-paint knowledge fields) and Buyer 1 view (sees inspection option checkboxes).
+
+**Built:**
+- `api/esign-templates.js` — added TEMPLATE_ROLES['4111321'] + TEMPLATE_ROLES['4023469'] (6-role broker split), TEMPLATE_FIELD_MAPPERS for both templates, extended normalizeRoleForTemplate() to route "Buyer Broker"/"Seller Broker" correctly (was incorrectly collapsing to "Buyer 1"), extended registry entries with HOA + Lead-Paint semantic prefill fields.
+- `Dossie/src/components/EsignModal.jsx` — added TemplatePicker UI form sections for hoa_addendum (HOA name, resale delivery days, transfer fee, fee payer) and lead_paint_addendum (seller knowledge dropdown, description, records available, inspection option).
+- `.tmp/round7-36-11/walk-7-1.js`, `walk-7-2-test21.js` + summary files.
+- `.tmp/round8-op-l/walk-8-1.js`, `walk-8-2-test21.js` + summary files.
+
+**Baseline gap (Round 7.1 pre-fix):** 10 PASS / 2 FAIL — property_address + HOA name not populated on 36-11 (default mapper passed keys through unchanged; field names on 36-11 are label-like "Street Address and City" not "property_address").
+
+**GOLD tags today:**
+- GOLD-2026-07-13-v10-36-11-hoa-template-support
+- GOLD-2026-07-13-v11-op-l-lead-paint-template-support
+
+**Merge state:** Rounds 7 + 8 shipped in single commit `3707e98d`, merged to main via worktree `MeetDossie-atlas12`, prod deploy verified.
+
+**Signer view evidence:**
+- 36-11 HOA prod: `.tmp/round7-36-11/walk-7-2-signer-view-buyer1-1783971161073.png`
+- OP-L Seller 1 prod: `.tmp/round8-op-l/walk-8-2-signer-view-seller1-1783971169035.png`
+- OP-L Buyer 1 prod: `.tmp/round8-op-l/walk-8-2-signer-view-buyer1-1783971169035.png`
+
+**Architectural note:** OP-L is the first canonical template introducing broker submitter roles. The role dispatcher was updated to check for /broker|agent/i FIRST so "Buyer Broker" no longer collapses to "Buyer 1" via the /^buyer/i prefix branch. Also refined the Buyer/Seller regex to only match `^Buyer(\s*\d+)?$` shape, preventing false positives across future templates that mix numbered + broker roles.
+
+---
+
 ## 2026-07-11 (Saturday) — Daily Regression Suite v1 shipped
 
 **Decisions:**

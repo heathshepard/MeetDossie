@@ -97,13 +97,33 @@ const TEMPLATE_REGISTRY = [
     ],
   },
   {
+    // 2026-07-13 Round 10 — TREC 49-1 Lender Appraisal. Template 4023472 uses
+    // 4-role split (Buyer 1, Buyer 2, Seller 1, Seller 2). Fields are already
+    // clean semantic names (property_address, waiver_checkbox,
+    // partial_waiver_checkbox, opinion_of_value_amount, additional_right_checkbox,
+    // additional_days, less_than_amount). Prefill fields extend CORE_PREFILL
+    // with 49-1-specific keys the UI captures in the "49-1 details" block:
+    // appraiser opinion of value, buyer's additional cure days, less-than
+    // amount, and the three waiver checkboxes.
+    //
+    // NOTE — TEMPLATE DATA BUG in DocuSeal 4023472 submitter list: two
+    // submitters both named "Seller 2" (should be "Seller 1" + "Seller 2").
+    // Heath must fix in the DocuSeal dashboard for signature routing to
+    // work for the second seller. Prefill and role mapping here work either
+    // way because normalizeRoleForTemplate matches on "Seller 1"/"Seller 2".
     type: 'lender_appraisal',
     label: 'TREC 49-1 Lender Appraisal',
     description: 'Notice of Buyer\'s Termination Due to Lender\'s Appraisal',
     envVar: 'DOCUSEAL_TEMPLATE_LENDER_APPRAISAL',
     fallbackId: '4023472',
     defaultSigners: BUYER_SELLER_2,
-    prefillFields: CORE_PREFILL,
+    prefillFields: [
+      'property_address',
+      'opinion_of_value_amount',
+      'additional_days',
+      'less_than_amount',
+      'waiver_selection',
+    ],
   },
   {
     // 2026-07-13 Round 6 — Template 4111320 (TREC 39-11) uses 4-role split:
@@ -188,13 +208,27 @@ const TEMPLATE_REGISTRY = [
     ],
   },
   {
+    // 2026-07-13 Round 9 — OP-H Seller's Disclosure. Template 4023470 uses
+    // ONLY 2 submitter roles: "Seller" (fills the entire 175-field disclosure)
+    // and "Buyer" (acknowledges receipt via signature + date only).
+    // Per Heath's domain rules (dossie_domain_essentials memory): OP-H is
+    // seller-owned in its entirety; buyer signs to acknowledge receipt.
+    // Field names on the template are already clean semantic keys
+    // (property_address, section2_yes/no/unknown checkboxes, etc.) so the
+    // mapper in TEMPLATE_FIELD_MAPPERS['4023470'] focuses on address
+    // multi-page duplication + safe passthrough of the many disclosure keys.
     type: 'sellers_disclosure',
     label: 'OP-H Seller\'s Disclosure',
     description: 'Seller\'s Disclosure Notice',
     envVar: 'DOCUSEAL_TEMPLATE_SELLERS_DISCLOSURE',
     fallbackId: '4023470',
-    defaultSigners: BUYER_SELLER_2,
-    prefillFields: CORE_PREFILL,
+    defaultSigners: BUYER_SELLER_1,
+    prefillFields: [
+      'property_address',
+      'years_since_occupied',
+      'seller_is_occupying',
+      'seller_not_occupying',
+    ],
   },
   {
     type: 'groundwater_notice',
@@ -374,6 +408,15 @@ const TEMPLATE_ROLES = {
   '4111321': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
   // Template 4023469 (OP-L Lead-Based Paint): 6-role split — brokers included (Round 8)
   '4023469': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2', 'Buyer Broker', 'Seller Broker'],
+  // Template 4023470 (OP-H Sellers Disclosure): 2-role split (Round 9)
+  // Seller fills the entire 175-field disclosure; Buyer only acknowledges
+  // receipt via signature + date. Domain rule: OP-H is seller-owned.
+  '4023470': ['Seller', 'Buyer'],
+  // Template 4023472 (TREC 49-1 Lender Appraisal): 4-role split (Round 10)
+  // NOTE: current DocuSeal template has a data bug — two "Seller 2" submitters.
+  // The mapping below is what SHOULD be there so field routing is correct.
+  // Signature routing for the duplicate needs Heath to fix in DocuSeal UI.
+  '4023472': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
   // Default: 4-role (matches the resale flavor)
   DEFAULT: ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
 };
@@ -811,6 +854,188 @@ const TEMPLATE_FIELD_MAPPERS = {
         case 'sale_price':
         case 'closing_date':
           expanded[key] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // OP-H Sellers Disclosure Notice (template 4023470)
+  // Field names sourced from .tmp/docuseal-15-verify/tmpl_4023470.json.
+  // The 4023470 template has 179 fields, 175 owned by "Seller" submitter
+  // + 4 owned by "Buyer" (signature + date acknowledgment only). Field names
+  // are already clean semantic keys — the mapper's main job is:
+  //   (a) duplicate property_address to property_address_p2 (page 2 header)
+  //   (b) safely pass through all disclosure keys the seller may fill via UI
+  //   (c) route the mutually-exclusive checkbox trios (yes/no/unknown)
+  //       when Dossie captures a single semantic selector value.
+  //
+  // Semantic keys Dossie can pass:
+  //   property_address, years_since_occupied
+  //   occupancy_status ('is_occupying' | 'not_occupying')
+  //   aware_of_defects ('yes' | 'no' | 'unknown')
+  //   section2_status ('yes' | 'no' | 'unknown')
+  //   item{7..11}_answer ('yes' | 'no')
+  //   condition_answer ('yes' | 'no')
+  //   insurance_answer ('yes' | 'no')
+  //   plus any of the 143 direct field names (range, oven, microwave, etc.).
+  '4023470': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address': {
+          // OP-H has property_address on page 1 header + property_address_p2
+          // on page 2 header. Both get the same value.
+          expanded['property_address'] = s;
+          expanded['property_address_p2'] = s;
+          break;
+        }
+        case 'occupancy_status': {
+          const v = String(s).toLowerCase();
+          if (v.includes('is_occupying') || v === 'occupied' || v === 'yes') {
+            expanded['seller_is_occupying'] = 'true';
+          } else if (v.includes('not_occupying') || v === 'vacant' || v === 'no') {
+            expanded['seller_not_occupying'] = 'true';
+          }
+          expanded['occupancy_status'] = s;
+          break;
+        }
+        case 'aware_of_defects': {
+          const v = String(s).toLowerCase();
+          if (v.includes('unknown')) expanded['aware_defects_unknown'] = 'true';
+          else if (v.includes('yes') || v === 'true') expanded['aware_defects_yes'] = 'true';
+          else if (v.includes('no') || v === 'false') expanded['aware_defects_no'] = 'true';
+          expanded['aware_of_defects'] = s;
+          break;
+        }
+        case 'section2_status': {
+          const v = String(s).toLowerCase();
+          if (v.includes('unknown')) expanded['section2_unknown'] = 'true';
+          else if (v.includes('yes') || v === 'true') expanded['section2_yes'] = 'true';
+          else if (v.includes('no') || v === 'false') expanded['section2_no'] = 'true';
+          expanded['section2_status'] = s;
+          break;
+        }
+        case 'item7_answer':
+        case 'item8_answer':
+        case 'item9_answer':
+        case 'item10_answer':
+        case 'item11_answer': {
+          const n = key.match(/item(\d+)/)[1];
+          const v = String(s).toLowerCase();
+          if (v.includes('yes') || v === 'true') expanded[`item${n}_yes`] = 'true';
+          else if (v.includes('no') || v === 'false') expanded[`item${n}_no`] = 'true';
+          expanded[key] = s;
+          break;
+        }
+        case 'condition_answer': {
+          const v = String(s).toLowerCase();
+          if (v.includes('yes') || v === 'true') expanded['condition_yes'] = 'true';
+          else if (v.includes('no') || v === 'false') expanded['condition_no'] = 'true';
+          expanded['condition_answer'] = s;
+          break;
+        }
+        case 'insurance_answer': {
+          const v = String(s).toLowerCase();
+          if (v.includes('yes') || v === 'true') expanded['insurance_yes'] = 'true';
+          else if (v.includes('no') || v === 'false') expanded['insurance_no'] = 'true';
+          expanded['insurance_answer'] = s;
+          break;
+        }
+        // Canonical CORE_PREFILL keys that DO NOT have fields on OP-H (buyer/
+        // seller names + purchase price + closing date are not on the seller's
+        // disclosure). Drop them silently to avoid polluting the clone.
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          break;
+        default:
+          // Pass through all other keys (range, oven, dishwasher, defect_desc_1,
+          // section2_desc_1, etc.). DocuSeal drops unmatched keys safely.
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 49-1 Lender Appraisal Notice (template 4023472)
+  // Field names sourced from .tmp/docuseal-15-verify/tmpl_4023472.json.
+  // The 4023472 template has 15 fields — clean semantic names
+  // (property_address, waiver_checkbox, partial_waiver_checkbox,
+  // opinion_of_value_amount, additional_right_checkbox, additional_days,
+  // less_than_amount + signature/date fields for 4 submitters).
+  //
+  // Semantic keys Dossie can pass:
+  //   property_address
+  //   opinion_of_value_amount (appraiser's opinion of value dollar amount)
+  //   waiver_selection ('waives_all' | 'waives_partial' | 'reserves_all')
+  //     — mutually-exclusive checkbox trio; sets waiver_checkbox OR
+  //       partial_waiver_checkbox (reserves_all leaves both blank).
+  //   additional_days (buyer's cure period in days after opinion of value)
+  //   less_than_amount (dollar amount below which buyer may terminate)
+  //   additional_right_checkbox (boolean — buyer reserves the additional right)
+  '4023472': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          break;
+        case 'opinion_of_value_amount': {
+          const clean = String(s).replace(/[^\d.-]/g, '');
+          expanded['opinion_of_value_amount'] = clean;
+          break;
+        }
+        case 'less_than_amount': {
+          const clean = String(s).replace(/[^\d.-]/g, '');
+          expanded['less_than_amount'] = clean;
+          break;
+        }
+        case 'additional_days': {
+          const clean = String(s).replace(/[^\d.]/g, '');
+          expanded['additional_days'] = clean;
+          break;
+        }
+        case 'waiver_selection': {
+          const v = String(s).toLowerCase();
+          if (v.includes('waives_all') || v === 'all' || v === 'waive_all') {
+            expanded['waiver_checkbox'] = 'true';
+          } else if (v.includes('partial') || v.includes('waives_partial')) {
+            expanded['partial_waiver_checkbox'] = 'true';
+          }
+          // 'reserves_all' leaves both checkboxes blank (buyer keeps all rights).
+          expanded['waiver_selection'] = s;
+          break;
+        }
+        case 'additional_right_checkbox':
+        case 'reserves_additional_right': {
+          if (/true|yes|1|reserves/i.test(String(s))) {
+            expanded['additional_right_checkbox'] = 'true';
+          }
+          expanded['additional_right_checkbox'] = String(s).match(/^(true|false)$/) ? s : (expanded['additional_right_checkbox'] || s);
+          break;
+        }
+        // Direct-match checkboxes / passthrough.
+        case 'waiver_checkbox':
+        case 'partial_waiver_checkbox':
+          expanded[key] = String(s);
+          break;
+        // Canonical CORE_PREFILL keys with no field on 49-1 — drop silently.
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
           break;
         default:
           expanded[key] = s;
