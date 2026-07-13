@@ -34,7 +34,75 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
+
+// 2026-07-13 Round 11 — Dossie-branded signing email sender (Resend).
+// DocuSeal's account-level "Send document copies to signers" toggle is OFF
+// in the dashboard (per esign-create.js commentary lines 496-506), so setting
+// send_email=true on the DocuSeal submission does NOT deliver an email.
+// esign-create.js already sends its own Resend email; esign-templates.js now
+// does the same so template-mode sends actually reach the signer.
+async function sendSigningEmail({ signerName, signerEmail, documentName, propertyAddress, signingUrl }) {
+  if (!RESEND_API_KEY) {
+    console.warn('[esign-templates] RESEND_API_KEY not set — skipping signing email.');
+    return;
+  }
+  if (!signingUrl) {
+    console.warn(`[esign-templates] No signing URL for ${signerEmail} — skipping email.`);
+    return;
+  }
+  const addressLine = propertyAddress ? ` for ${propertyAddress}` : '';
+  const subject = `Action Required: Please sign ${documentName}${addressLine}`;
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9f9f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f9;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#F5E6E0;padding:24px 32px;text-align:center;">
+          <span style="font-family:'Georgia',serif;font-size:22px;font-weight:bold;color:#1A1A2E;letter-spacing:0.5px;">Dossie</span>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Hi ${signerName},</p>
+          <p style="margin:0 0 16px;font-size:16px;color:#333;">Your agent has sent you a document to review and sign.</p>
+          <p style="margin:0 0 8px;font-size:15px;color:#555;"><strong>Document:</strong> ${documentName}</p>
+          ${propertyAddress ? `<p style="margin:0 0 24px;font-size:15px;color:#555;"><strong>Property:</strong> ${propertyAddress}</p>` : '<div style="margin-bottom:24px;"></div>'}
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+            <tr><td style="background:#E8836B;border-radius:6px;">
+              <a href="${signingUrl}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">Review &amp; Sign Document</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 24px;font-size:13px;color:#888;">If the button above doesn't work, copy and paste this link into your browser:<br><a href="${signingUrl}" style="color:#E8836B;word-break:break-all;">${signingUrl}</a></p>
+          <hr style="border:none;border-top:1px solid #eee;margin:0 0 20px;">
+          <p style="margin:0;font-size:13px;color:#aaa;">This document was prepared by Dossie, your agent's transaction management assistant.<br>Questions about this document? Contact your agent directly.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Dossie <sign@meetdossie.com>',
+      to: [signerEmail],
+      subject,
+      html,
+    }),
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    console.error(`[esign-templates] Resend error for ${signerEmail} (${r.status}): ${text.slice(0, 200)}`);
+  } else {
+    console.log(`[esign-templates] Signing email sent via Resend to ${signerEmail}`);
+  }
+}
 
 // Template registry — each entry maps a human-readable type to a DocuSeal
 // template ID stored in env vars OR a hard-coded fallback for known TREC
@@ -398,8 +466,16 @@ async function fetchTransaction(transactionId, userId) {
 //     rather than submitter.values, to bypass DocuSeal's 500-error bug on
 //     templates 4018208 / 4023463 / 4952172 when values target owner fields.
 const TEMPLATE_ROLES = {
-  // Template 4952172 (TREC 20-19): 4-role split
-  '4952172': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4952172 (TREC 20-19): DocuSeal template only has a SINGLE
+  // submitter role called "First Party" (verified via GET /templates/4952172
+  // 2026-07-13). Prior config listed 4 roles which caused every incoming
+  // signer (Buyer 1 / Buyer 2 / Seller 1 / Seller 2) to fall through
+  // normalizeRoleForTemplate's "not found in list" path — DocuSeal accepted
+  // the strings but ignored them and rendered a single "First Party" submitter
+  // regardless. Real fix requires the template to be split into 4 roles in
+  // DocuSeal Studio; in the meantime we normalize everything to "First Party"
+  // so the customer at least receives a signable envelope.
+  '4952172': ['First Party'],
   // Template 4023463 (TREC 40-11): 2-role
   '4023463': ['Buyer', 'Seller'],
   // Template 4111320 (TREC 39-11 Amendment): 4-role split (Round 6)
@@ -428,6 +504,11 @@ function normalizeRoleForTemplate(role, templateId) {
   if (!role) return null;
   const trimmed = String(role).trim();
   const rolesForTemplate = TEMPLATE_ROLES[String(templateId)] || TEMPLATE_ROLES.DEFAULT;
+
+  // 2026-07-13 Round 11 — When the template has a SINGLE role, always route
+  // there (e.g. template 4952172 only has "First Party"). Avoids passing a
+  // role DocuSeal will reject or silently accept while rendering as fallback.
+  if (rolesForTemplate.length === 1) return rolesForTemplate[0];
 
   // Exact match on the template's role list.
   const exact = rolesForTemplate.find((r) => r.toLowerCase() === trimmed.toLowerCase());
@@ -489,43 +570,90 @@ function normalizeRoleForTemplate(role, templateId) {
 // "first_loan_amount" on 40-11 or "loan_amount" on 20-19. Central per-template
 // tables prevent field-name drift across the 15 canonical TREC forms.
 const TEMPLATE_FIELD_MAPPERS = {
-  // TREC 20-19 (resale contract)
+  // TREC 20-19 (resale contract) — template 4952172.
+  //
+  // 2026-07-13 CRITICAL FIX (Round 11) — actually populate the real DocuSeal
+  // field names on this template. Prior versions produced semantic keys
+  // (buyer_name, seller_name, property_address_page4) that DocuSeal DROPPED
+  // because the template's field names are the PDF-label-derived strings
+  // (verified via GET /templates/4952172).
+  //
+  // Actual template field-name inventory (via docuseal-15-verify):
+  //   Page 0:
+  //     [0]  text "1 PARTIES The parties to this contract are" → Buyer name
+  //     [1]  text "Seller and"                                 → Seller name
+  //     [7]  text "Texas known as"                             → property street
+  //   Page 8 (Broker/Address block):
+  //     [144] text "Address of Property"                       → property_address
+  //   Page 9 (initialed-by block):
+  //     [191] text "Addr of Prop"                              → property_address
+  //     [199] text (blank, desc "Address of Property")         → property_address
+  //     [241] text (blank, desc "Address of Property")         → property_address
+  //   Page 5:
+  //     [92] text "A The closing of the sale will be on or before" → closing_date
+  //   Sales price + earnest money slots: mostly blank-named fields we route via
+  //   description or via the clone-time index escape hatch.
+  //
+  // The clone-with-defaults helper (docusealCloneTemplateWithDefaults) matches
+  // by name OR description OR normalized-name-key OR `__field_<idx>` — so we
+  // emit whichever key form the template exposes.
   '4952172': (prefillData) => {
     const expanded = {};
     for (const [key, value] of Object.entries(prefillData)) {
       if (value === null || value === undefined || value === '') continue;
       const s = typeof value === 'string' ? value : String(value);
       switch (key) {
-        case 'property_address':
-          expanded['property_address_page4'] = s;
-          expanded['property_address_page5'] = s;
-          expanded['property_address_page6'] = s;
-          expanded['property_address_header_p8'] = s;
-          expanded['property_address_page_11'] = s;
-          expanded['Address of Property'] = s;
-          expanded['Addr of Prop'] = s;
+        case 'property_address': {
+          // Multi-slot: property description at top of page 0 + property header
+          // repeats on pages 8, 9, 10, 11.
+          expanded['1 PARTIES The parties to this contract are'] = s; // (fallback if inherit)
+          expanded['Texas known as'] = s; // property description line (page 0)
+          expanded['Address of Property'] = s; // page 8 top
+          expanded['Addr of Prop'] = s; // page 9 top
+          // Semantic key still exposed for compat.
           expanded['property_address'] = s;
           break;
-        case 'seller_name':
+        }
+        case 'seller_name': {
+          expanded['Seller and'] = s;
           expanded['seller_name'] = s;
           break;
-        case 'buyer_name':
+        }
+        case 'buyer_name': {
+          // The Buyer 1 name lives in field 0 whose NAME is "1 PARTIES The
+          // parties to this contract are" and description is "1. PARTIES: ...".
+          // But that same name-string is used for two logical things by the
+          // template — the underline before "(Buyer) and" catches the buyer
+          // name; the seller name goes to the "Seller and" field. Keep them
+          // separate.
+          expanded['1 PARTIES The parties to this contract are'] = s;
           expanded['buyer_name'] = s;
           break;
+        }
         case 'purchase_price':
-        case 'sale_price':
-          expanded['sales_price_total'] = s;
-          expanded['sales_price_cash_portion'] = s;
-          expanded['purchase_price'] = s;
+        case 'sale_price': {
+          // The template has ~35 blank-named "Sales Price" slots. Without
+          // hitting each by index/uuid we can't populate them all here.
+          // At minimum, populate:
+          //   - "Sales Price" description (blank name, desc containing "Sales Price")
+          //   - The first blank field on page 0 y~0.646 (§3B Sum of Financing) via index escape hatch
+          //   - Any field with "Sales Price" in its name (there's one checkbox
+          //     label "will not be credited to the Sales Price at closing...")
           expanded['sale_price'] = s;
+          expanded['purchase_price'] = s;
+          // Index-based escape hatch for §3A cash portion (page 0 y~0.584 = field 10).
+          expanded['__field_10'] = s;
           break;
-        case 'closing_date':
+        }
+        case 'closing_date': {
           expanded['A The closing of the sale will be on or before'] = s;
           expanded['closing_date'] = s;
           break;
-        default:
+        }
+        default: {
           expanded[key] = s;
           break;
+        }
       }
     }
     return expanded;
@@ -1148,6 +1276,14 @@ function expandPrefillToDocusealFields(prefillData, templateId) {
 // Clone the template + set default_value on each field named in `defaults` so
 // DocuSeal renders the values at sign-time WITHOUT the 500-error bug that
 // affects submitter.values on templates 4018208 / 4023463 / 4952172.
+//
+// 2026-07-13 — MATCH-BY-DESCRIPTION extension. Many DocuSeal templates
+// (notably 4952172) have fields with EMPTY names but populated descriptions
+// ("Address of Property", etc.). The prior lookup only matched f.name and
+// silently dropped defaults for blank-named fields. This iteration also
+// matches on f.description and on a lowercased/whitespace-stripped variant
+// of both — the mapper can now route to descriptive labels regardless of
+// which slot DocuSeal happens to populate.
 async function docusealCloneTemplateWithDefaults(templateId, defaults) {
   const cloneRes = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}/clone`, {
     method: 'POST',
@@ -1165,10 +1301,44 @@ async function docusealCloneTemplateWithDefaults(templateId, defaults) {
   const cloneId = cloneData.id;
   if (!cloneId) throw new Error('DocuSeal clone returned no id.');
 
+  // Build a lowercase/normalized index of the defaults keys so we can match
+  // fields by name-or-description-or-normalized-form.
+  const normKey = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normDefaults = {};
+  for (const [k, v] of Object.entries(defaults || {})) {
+    normDefaults[normKey(k)] = v;
+    normDefaults[k] = v; // also keep original for direct match
+  }
+
   const existingFields = Array.isArray(cloneData.fields) ? cloneData.fields : [];
-  const patchedFields = existingFields.map((f) => {
-    if (defaults[f.name] != null && defaults[f.name] !== '') {
-      return { ...f, default_value: String(defaults[f.name]) };
+  const patchedFields = existingFields.map((f, idx) => {
+    // Try direct name match first (exact case-sensitive, prior behavior).
+    let val = (defaults[f.name] != null && defaults[f.name] !== '') ? defaults[f.name] : null;
+
+    // Fall back to description exact match.
+    if (val == null && f.description != null && defaults[f.description] != null && defaults[f.description] !== '') {
+      val = defaults[f.description];
+    }
+
+    // Fall back to normalized name match.
+    if (val == null) {
+      const nn = normKey(f.name);
+      if (nn && normDefaults[nn] != null && normDefaults[nn] !== '') val = normDefaults[nn];
+    }
+    // Fall back to normalized description match.
+    if (val == null) {
+      const nd = normKey(f.description);
+      if (nd && normDefaults[nd] != null && normDefaults[nd] !== '') val = normDefaults[nd];
+    }
+    // Index-based override (e.g. defaults["__field_10"] = "525000"). Rare
+    // escape hatch for templates with blank names/descriptions.
+    if (val == null) {
+      const idxKey = `__field_${idx}`;
+      if (defaults[idxKey] != null && defaults[idxKey] !== '') val = defaults[idxKey];
+    }
+
+    if (val != null && val !== '') {
+      return { ...f, default_value: String(val) };
     }
     return f;
   });
@@ -1231,16 +1401,20 @@ async function createTemplateSubmission({ templateId, signers, prefillData, mess
   }
 
   // Normalize each signer's role per-template. 40-11 → "Buyer"/"Seller".
-  // 20-19 → "Buyer 1"/"Buyer 2"/"Seller 1"/"Seller 2".
+  // 20-19 → "First Party" (single submitter template).
   const normalizedSubmitters = signers.map((s) => ({
     name: s.name,
     email: s.email,
     role: normalizeRoleForTemplate(s.role, templateId) || 'Signer',
+    // 2026-07-13 Round 11 — Suppress DocuSeal's native email; Dossie sends its
+    // own via Resend from sendSigningEmail() in the POST handler. Matches the
+    // pattern in esign-create.js and avoids duplicate emails.
+    send_email: false,
   }));
 
   const body = {
     template_id: submissionTemplateId,
-    send_email: true,
+    send_email: false,
     submitters: normalizedSubmitters,
     ...(message ? { email_body: message } : {}),
   };
@@ -1414,14 +1588,44 @@ module.exports = async function handler(req, res) {
       });
 
       const submissionId = String(submissionResult.id || '');
-      const signerRows = (Array.isArray(submissionResult.submitters) ? submissionResult.submitters : []).map((sub, i) => ({
-        name: sub.name || signers[i]?.name || '',
-        email: sub.email || signers[i]?.email || '',
-        role: sub.role || signers[i]?.role || 'Signer',
-        status: sub.status || 'sent',
-        signingUrl: sub.embed_src || null,
-        uuid: sub.uuid || null,
-      }));
+      const signerRows = (Array.isArray(submissionResult.submitters) ? submissionResult.submitters : []).map((sub, i) => {
+        // Prefer slug-based public link (https://docuseal.com/s/{slug}) over embed_src.
+        // Matches esign-create.js pattern for consistent Resend email links.
+        const slug = sub.slug || null;
+        const signingUrl = slug
+          ? `https://docuseal.com/s/${slug}`
+          : (sub.embed_src || null);
+        return {
+          name: sub.name || signers[i]?.name || '',
+          email: sub.email || signers[i]?.email || '',
+          role: sub.role || signers[i]?.role || 'Signer',
+          status: sub.status || 'sent',
+          signingUrl,
+          uuid: sub.uuid || null,
+        };
+      });
+
+      // 2026-07-13 Round 11 — Send Dossie-branded signing email per signer via
+      // Resend. DocuSeal's native email is suppressed above (send_email:false)
+      // because the account-level toggle is OFF in the DocuSeal dashboard.
+      // Fire-and-forget per signer; a single email failure must not abort.
+      const documentName = template ? template.label : 'Document';
+      const propertyAddressForEmail = tx ? (tx.property_address || '') : '';
+      await Promise.all(
+        signerRows
+          .filter((s) => s.email && s.signingUrl)
+          .map((s) =>
+            sendSigningEmail({
+              signerName: s.name,
+              signerEmail: s.email,
+              documentName,
+              propertyAddress: propertyAddressForEmail,
+              signingUrl: s.signingUrl,
+            }).catch((err) => {
+              console.error(`[esign-templates] sendSigningEmail failed for ${s.email}:`, err && err.message ? err.message : err);
+            })
+          )
+      );
 
       // Persist the signature request.
       const inserted = await insertSignatureRequest({
