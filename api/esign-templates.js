@@ -268,6 +268,88 @@ async function fetchTransaction(transactionId, userId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
+// 2026-07-13 CARTER Round 4 — Bug: DocuSeal template 4952172 (TREC 20-19) uses
+// submitter roles "Buyer 1", "Buyer 2", "Seller 1", "Seller 2" — not the
+// generic "Buyer"/"Seller" that legacy UI passes. Also, DocuSeal expects
+// prefill `values` NESTED INSIDE each submitter object, not top-level.
+//
+// Fix: (1) normalize incoming role names to canonical DocuSeal roles
+// ("Buyer" → "Buyer 1", "Seller" → "Seller 1"), (2) move `values` inside
+// each submitter, (3) since DocuSeal renders fields at their PDF positions
+// regardless of which submitter is filling them, put ALL prefill values on
+// the primary Buyer 1 submitter (sender-owned party). Other submitters see
+// the rendered PDF when they open their signing link.
+//
+// Additionally, our semantic prefill keys (buyer_name, purchase_price,
+// property_address, closing_date) do NOT match the actual DocuSeal field
+// names on template 4952172. We expand each semantic key to ALL the DocuSeal
+// field-name variants that carry that value across the 10-page contract.
+// Unknown keys are still passed through (harmless — DocuSeal drops
+// unmatched keys silently).
+function normalizeRole(role) {
+  if (!role) return null;
+  const trimmed = String(role).trim();
+  // Already canonical (contains a digit or "1"/"2")
+  if (/(Buyer|Seller)\s+[12]$/i.test(trimmed)) return trimmed;
+  // Generic → canonical primary
+  if (/^buyer$/i.test(trimmed)) return 'Buyer 1';
+  if (/^seller$/i.test(trimmed)) return 'Seller 1';
+  // Everything else passed through as-is (may still match custom templates)
+  return trimmed;
+}
+
+// Map our semantic prefill keys to the DocuSeal AcroForm field-name variants
+// they should populate. A single semantic key can fill many named field slots
+// across the multi-page TREC PDF (property address repeats on pages 4/5/6/8/11).
+function expandPrefillToDocusealFields(prefillData) {
+  if (!prefillData || typeof prefillData !== 'object') return {};
+
+  const expanded = {};
+  for (const [key, value] of Object.entries(prefillData)) {
+    if (value === null || value === undefined || value === '') continue;
+    const stringValue = typeof value === 'string' ? value : String(value);
+
+    // Expand semantic keys to actual DocuSeal field names.
+    switch (key) {
+      case 'property_address':
+        expanded['property_address_page4'] = stringValue;
+        expanded['property_address_page5'] = stringValue;
+        expanded['property_address_page6'] = stringValue;
+        expanded['property_address_header_p8'] = stringValue;
+        expanded['property_address_page_11'] = stringValue;
+        expanded['Address of Property'] = stringValue;
+        expanded['Addr of Prop'] = stringValue;
+        // Also pass through the semantic key in case a template uses it directly.
+        expanded['property_address'] = stringValue;
+        break;
+      case 'seller_name':
+        expanded['seller_name'] = stringValue;
+        break;
+      case 'buyer_name':
+        // No direct field on 4952172; pass through so future templates match.
+        expanded['buyer_name'] = stringValue;
+        break;
+      case 'purchase_price':
+      case 'sale_price':
+        expanded['sales_price_total'] = stringValue;
+        expanded['sales_price_cash_portion'] = stringValue;
+        // Also pass through both semantic keys.
+        expanded['purchase_price'] = stringValue;
+        expanded['sale_price'] = stringValue;
+        break;
+      case 'closing_date':
+        expanded['A The closing of the sale will be on or before'] = stringValue;
+        expanded['closing_date'] = stringValue;
+        break;
+      default:
+        // Pass through unknown keys as-is; DocuSeal ignores keys with no matching field.
+        expanded[key] = stringValue;
+        break;
+    }
+  }
+  return expanded;
+}
+
 async function createTemplateSubmission({ templateId, signers, prefillData, message }) {
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-templates] DOCUSEAL_API_KEY not set — returning stub submission.');
@@ -278,23 +360,37 @@ async function createTemplateSubmission({ templateId, signers, prefillData, mess
         slug: `stub-slug-${i}`,
         name: s.name,
         email: s.email,
-        role: s.role,
+        role: normalizeRole(s.role) || s.role,
         status: 'sent',
         embed_src: null,
       })),
     };
   }
 
+  const expandedValues = expandPrefillToDocusealFields(prefillData);
+  const hasValues = Object.keys(expandedValues).length > 0;
+
+  // Normalize roles + attach ALL prefill values to the first submitter (typically
+  // Buyer 1). DocuSeal renders at PDF position, so per-submitter partitioning is
+  // cosmetic — one submitter owning all values is enough for the fields to
+  // render for everyone in the signing flow.
+  const normalizedSubmitters = signers.map((s, idx) => {
+    const submitter = {
+      name: s.name,
+      email: s.email,
+      role: normalizeRole(s.role) || 'Signer',
+    };
+    if (hasValues && idx === 0) {
+      submitter.values = expandedValues;
+    }
+    return submitter;
+  });
+
   const body = {
     template_id: templateId,
     send_email: true,
-    submitters: signers.map((s) => ({
-      name: s.name,
-      email: s.email,
-      role: s.role || 'Signer',
-    })),
+    submitters: normalizedSubmitters,
     ...(message ? { email_body: message } : {}),
-    ...(prefillData && Object.keys(prefillData).length > 0 ? { values: prefillData } : {}),
   };
 
   const res = await fetch(`${DOCUSEAL_BASE}/submissions`, {
