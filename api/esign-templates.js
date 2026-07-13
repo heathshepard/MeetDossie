@@ -77,13 +77,24 @@ const TEMPLATE_REGISTRY = [
     prefillFields: CORE_PREFILL,
   },
   {
+    // 2026-07-13 Round 5 — Template 4023463 uses submitter roles "Buyer" and
+    // "Seller" (no 1/2 split). Extra prefill fields: loan_amount, down_payment,
+    // financing_type (checkbox), interest_rate, loan_term_years, credit_approval_days.
     type: 'financing_addendum',
     label: 'TREC 40-11 Third Party Financing',
     description: 'Third Party Financing Addendum',
     envVar: 'DOCUSEAL_TEMPLATE_FINANCING_ADDENDUM',
     fallbackId: '4023463',
-    defaultSigners: BUYER_SELLER_2,
-    prefillFields: CORE_PREFILL,
+    defaultSigners: BUYER_SELLER_1,
+    prefillFields: [
+      'property_address',
+      'loan_amount',
+      'down_payment',
+      'financing_type',
+      'interest_rate',
+      'loan_term_years',
+      'credit_approval_days',
+    ],
   },
   {
     type: 'lender_appraisal',
@@ -260,8 +271,11 @@ function getTemplateId(envVar, fallbackId) {
 }
 
 async function fetchTransaction(transactionId, userId) {
+  // 2026-07-13 Round 5 — Extended SELECT to include financing columns so
+  // TREC 40-11 (Third Party Financing Addendum) gets proper prefill for
+  // loan_amount / financing_type / down_payment / financing_days / etc.
   const res = await supa(
-    `transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,property_address,buyer_name,seller_name,sale_price,closing_date,city_state_zip,option_expiration_date&limit=1`
+    `transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,property_address,buyer_name,seller_name,sale_price,closing_date,city_state_zip,option_expiration_date,loan_amount,down_payment,financing_type,financing_days&limit=1`
   );
   if (!res.ok) return null;
   const rows = await res.json().catch(() => []);
@@ -270,84 +284,264 @@ async function fetchTransaction(transactionId, userId) {
 
 // 2026-07-13 CARTER Round 4 — Bug: DocuSeal template 4952172 (TREC 20-19) uses
 // submitter roles "Buyer 1", "Buyer 2", "Seller 1", "Seller 2" — not the
-// generic "Buyer"/"Seller" that legacy UI passes. Also, DocuSeal expects
-// prefill `values` NESTED INSIDE each submitter object, not top-level.
+// generic "Buyer"/"Seller" that legacy UI passes.
 //
-// Fix: (1) normalize incoming role names to canonical DocuSeal roles
-// ("Buyer" → "Buyer 1", "Seller" → "Seller 1"), (2) move `values` inside
-// each submitter, (3) since DocuSeal renders fields at their PDF positions
-// regardless of which submitter is filling them, put ALL prefill values on
-// the primary Buyer 1 submitter (sender-owned party). Other submitters see
-// the rendered PDF when they open their signing link.
-//
-// Additionally, our semantic prefill keys (buyer_name, purchase_price,
-// property_address, closing_date) do NOT match the actual DocuSeal field
-// names on template 4952172. We expand each semantic key to ALL the DocuSeal
-// field-name variants that carry that value across the 10-page contract.
-// Unknown keys are still passed through (harmless — DocuSeal drops
-// unmatched keys silently).
-function normalizeRole(role) {
+// 2026-07-13 Round 5 — Extended for TREC 40-11 (template 4023463):
+//   - 40-11 uses submitter roles "Buyer" and "Seller" (NO 1/2 split)
+//   - 40-11 field names are completely different (first_loan_amount,
+//     fha_loan_amount, credit_approval_days, va_financing checkbox, etc.)
+//   - Role normalization is now per-template (via TEMPLATE_ROLES map)
+//   - Field mapping is now per-template (via expandPrefillForTemplate)
+//   - Values are applied via clone-with-default_value (like esign-create.js)
+//     rather than submitter.values, to bypass DocuSeal's 500-error bug on
+//     templates 4018208 / 4023463 / 4952172 when values target owner fields.
+const TEMPLATE_ROLES = {
+  // Template 4952172 (TREC 20-19): 4-role split
+  '4952172': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4023463 (TREC 40-11): 2-role
+  '4023463': ['Buyer', 'Seller'],
+  // Default: 4-role (matches the resale flavor)
+  DEFAULT: ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+};
+
+// Per-template role normalization. Given an incoming role string and the target
+// template's role list, pick the closest match. E.g. "Buyer" onto 40-11 stays
+// as "Buyer"; "Buyer" onto 20-19 → "Buyer 1".
+function normalizeRoleForTemplate(role, templateId) {
   if (!role) return null;
   const trimmed = String(role).trim();
-  // Already canonical (contains a digit or "1"/"2")
-  if (/(Buyer|Seller)\s+[12]$/i.test(trimmed)) return trimmed;
-  // Generic → canonical primary
-  if (/^buyer$/i.test(trimmed)) return 'Buyer 1';
-  if (/^seller$/i.test(trimmed)) return 'Seller 1';
-  // Everything else passed through as-is (may still match custom templates)
+  const rolesForTemplate = TEMPLATE_ROLES[String(templateId)] || TEMPLATE_ROLES.DEFAULT;
+
+  // Exact match on the template's role list.
+  const exact = rolesForTemplate.find((r) => r.toLowerCase() === trimmed.toLowerCase());
+  if (exact) return exact;
+
+  // Buyer/Seller prefix match — pick first available role on that side.
+  const isBuyer = /^buyer/i.test(trimmed);
+  const isSeller = /^seller/i.test(trimmed);
+  if (isBuyer) {
+    // For 20-19 style with Buyer 1/Buyer 2, respect the digit if present.
+    const digit = trimmed.match(/(\d+)/);
+    if (digit) {
+      const withDigit = `Buyer ${digit[1]}`;
+      const found = rolesForTemplate.find((r) => r.toLowerCase() === withDigit.toLowerCase());
+      if (found) return found;
+    }
+    return rolesForTemplate.find((r) => /buyer/i.test(r)) || trimmed;
+  }
+  if (isSeller) {
+    const digit = trimmed.match(/(\d+)/);
+    if (digit) {
+      const withDigit = `Seller ${digit[1]}`;
+      const found = rolesForTemplate.find((r) => r.toLowerCase() === withDigit.toLowerCase());
+      if (found) return found;
+    }
+    return rolesForTemplate.find((r) => /seller/i.test(r)) || trimmed;
+  }
+
+  // Pass through anything else.
   return trimmed;
 }
 
-// Map our semantic prefill keys to the DocuSeal AcroForm field-name variants
-// they should populate. A single semantic key can fill many named field slots
-// across the multi-page TREC PDF (property address repeats on pages 4/5/6/8/11).
-function expandPrefillToDocusealFields(prefillData) {
-  if (!prefillData || typeof prefillData !== 'object') return {};
+// Per-template field mapping. Each function takes the caller's semantic prefill
+// keys and returns the DocuSeal-native AcroForm field names to use as
+// default_value on the cloned template.
+//
+// Rationale: the same "loan_amount" from Dossie needs to hit
+// "first_loan_amount" on 40-11 or "loan_amount" on 20-19. Central per-template
+// tables prevent field-name drift across the 15 canonical TREC forms.
+const TEMPLATE_FIELD_MAPPERS = {
+  // TREC 20-19 (resale contract)
+  '4952172': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address_page4'] = s;
+          expanded['property_address_page5'] = s;
+          expanded['property_address_page6'] = s;
+          expanded['property_address_header_p8'] = s;
+          expanded['property_address_page_11'] = s;
+          expanded['Address of Property'] = s;
+          expanded['Addr of Prop'] = s;
+          expanded['property_address'] = s;
+          break;
+        case 'seller_name':
+          expanded['seller_name'] = s;
+          break;
+        case 'buyer_name':
+          expanded['buyer_name'] = s;
+          break;
+        case 'purchase_price':
+        case 'sale_price':
+          expanded['sales_price_total'] = s;
+          expanded['sales_price_cash_portion'] = s;
+          expanded['purchase_price'] = s;
+          expanded['sale_price'] = s;
+          break;
+        case 'closing_date':
+          expanded['A The closing of the sale will be on or before'] = s;
+          expanded['closing_date'] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
 
+  // TREC 40-11 (Third Party Financing Addendum)
+  // Field names sourced from .tmp/docuseal-15-verify/tmpl_4023463.json
+  '4023463': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          // 40-11 has property_address on page 1 (as "property_address") + page 2
+          // (as "property_address_p2"). Both get the same value.
+          expanded['property_address'] = s;
+          expanded['property_address_p2'] = s;
+          break;
+        case 'loan_amount':
+          // Route to the correct loan_amount field based on financing_type
+          // if provided; otherwise write to all four common variants.
+          // (DocuSeal drops unmatched keys — safe to include all.)
+          expanded['first_loan_amount'] = s;
+          expanded['fha_loan_amount'] = s;
+          expanded['va_loan_amount'] = s;
+          expanded['usda_loan_amount'] = s;
+          expanded['loan_amount'] = s;
+          break;
+        case 'interest_rate':
+          expanded['first_interest_rate'] = s;
+          expanded['fha_interest_rate'] = s;
+          expanded['va_interest_rate'] = s;
+          expanded['usda_interest_rate'] = s;
+          expanded['interest_rate'] = s;
+          break;
+        case 'loan_term_years':
+        case 'loan_term':
+          expanded['first_loan_term_years'] = s;
+          expanded['fha_amortization_years'] = s;
+          expanded['va_amortization_years'] = s;
+          expanded['usda_term_years'] = s;
+          expanded['loan_term_years'] = s;
+          break;
+        case 'credit_approval_days':
+        case 'financing_days':
+          expanded['credit_approval_days'] = s;
+          break;
+        case 'financing_type': {
+          // Toggle the corresponding checkbox. DocuSeal checkbox default_value
+          // accepts "true"/"false" strings. Written per-key; unmatched keys are
+          // safely ignored.
+          const type = String(s).toLowerCase();
+          if (type.includes('conventional')) expanded['conventional_financing'] = 'true';
+          if (type.includes('fha')) expanded['fha_financing'] = 'true';
+          if (type.includes('va') && !type.includes('vet')) expanded['va_financing'] = 'true';
+          if (type.includes('usda')) expanded['usda_financing'] = 'true';
+          if (type.includes('tx') && type.includes('vet')) expanded['tx_veterans_loan'] = 'true';
+          if (type.includes('reverse')) expanded['reverse_mortgage'] = 'true';
+          expanded['financing_type'] = s;
+          break;
+        }
+        case 'down_payment':
+          // Not directly present on 40-11; pass through.
+          expanded['down_payment'] = s;
+          break;
+        // Pass through canonical keys DocuSeal may match directly.
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          expanded[key] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+};
+
+// Default mapper: pass through all keys as-is. Used for templates without a
+// custom mapper defined yet (harmless — DocuSeal drops unmatched keys silently).
+function defaultFieldMapper(prefillData) {
   const expanded = {};
   for (const [key, value] of Object.entries(prefillData)) {
     if (value === null || value === undefined || value === '') continue;
-    const stringValue = typeof value === 'string' ? value : String(value);
-
-    // Expand semantic keys to actual DocuSeal field names.
-    switch (key) {
-      case 'property_address':
-        expanded['property_address_page4'] = stringValue;
-        expanded['property_address_page5'] = stringValue;
-        expanded['property_address_page6'] = stringValue;
-        expanded['property_address_header_p8'] = stringValue;
-        expanded['property_address_page_11'] = stringValue;
-        expanded['Address of Property'] = stringValue;
-        expanded['Addr of Prop'] = stringValue;
-        // Also pass through the semantic key in case a template uses it directly.
-        expanded['property_address'] = stringValue;
-        break;
-      case 'seller_name':
-        expanded['seller_name'] = stringValue;
-        break;
-      case 'buyer_name':
-        // No direct field on 4952172; pass through so future templates match.
-        expanded['buyer_name'] = stringValue;
-        break;
-      case 'purchase_price':
-      case 'sale_price':
-        expanded['sales_price_total'] = stringValue;
-        expanded['sales_price_cash_portion'] = stringValue;
-        // Also pass through both semantic keys.
-        expanded['purchase_price'] = stringValue;
-        expanded['sale_price'] = stringValue;
-        break;
-      case 'closing_date':
-        expanded['A The closing of the sale will be on or before'] = stringValue;
-        expanded['closing_date'] = stringValue;
-        break;
-      default:
-        // Pass through unknown keys as-is; DocuSeal ignores keys with no matching field.
-        expanded[key] = stringValue;
-        break;
-    }
+    expanded[key] = typeof value === 'string' ? value : String(value);
   }
   return expanded;
+}
+
+function expandPrefillForTemplate(prefillData, templateId) {
+  if (!prefillData || typeof prefillData !== 'object') return {};
+  const mapper = TEMPLATE_FIELD_MAPPERS[String(templateId)] || defaultFieldMapper;
+  return mapper(prefillData);
+}
+
+// Back-compat shim for any external caller of the old name.
+function expandPrefillToDocusealFields(prefillData, templateId) {
+  return expandPrefillForTemplate(prefillData, templateId || '4952172');
+}
+
+// Clone the template + set default_value on each field named in `defaults` so
+// DocuSeal renders the values at sign-time WITHOUT the 500-error bug that
+// affects submitter.values on templates 4018208 / 4023463 / 4952172.
+async function docusealCloneTemplateWithDefaults(templateId, defaults) {
+  const cloneRes = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}/clone`, {
+    method: 'POST',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: `Dossie envelope ${Date.now()}` }),
+  });
+  if (!cloneRes.ok) {
+    const text = await cloneRes.text().catch(() => '');
+    throw new Error(`DocuSeal template clone failed (${cloneRes.status}): ${text.slice(0, 200)}`);
+  }
+  const cloneData = await cloneRes.json();
+  const cloneId = cloneData.id;
+  if (!cloneId) throw new Error('DocuSeal clone returned no id.');
+
+  const existingFields = Array.isArray(cloneData.fields) ? cloneData.fields : [];
+  const patchedFields = existingFields.map((f) => {
+    if (defaults[f.name] != null && defaults[f.name] !== '') {
+      return { ...f, default_value: String(defaults[f.name]) };
+    }
+    return f;
+  });
+  const setCount = patchedFields.filter((f) => f.default_value != null && f.default_value !== '').length;
+
+  const putRes = await fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
+    method: 'PUT',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ fields: patchedFields }),
+  });
+  if (!putRes.ok) {
+    const text = await putRes.text().catch(() => '');
+    // Best-effort delete clone before throwing.
+    fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
+      method: 'DELETE',
+      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+    }).catch(() => {});
+    throw new Error(`DocuSeal template defaults PUT failed (${putRes.status}): ${text.slice(0, 200)}`);
+  }
+
+  console.log(`[esign-templates] Cloned template ${templateId} -> ${cloneId}, applied ${setCount} default_value(s).`);
+  return cloneId;
 }
 
 async function createTemplateSubmission({ templateId, signers, prefillData, message }) {
@@ -360,34 +554,35 @@ async function createTemplateSubmission({ templateId, signers, prefillData, mess
         slug: `stub-slug-${i}`,
         name: s.name,
         email: s.email,
-        role: normalizeRole(s.role) || s.role,
+        role: normalizeRoleForTemplate(s.role, templateId) || s.role,
         status: 'sent',
         embed_src: null,
       })),
     };
   }
 
-  const expandedValues = expandPrefillToDocusealFields(prefillData);
+  // 2026-07-13 Round 5 — Prefill via clone-with-default_value (NOT
+  // submitter.values). Templates 4018208, 4023463, 4952172 all return HTTP 500
+  // when values target fields owned by the submitter — this is the reliable
+  // workaround shipped in esign-create.js for the resale template.
+  const expandedValues = expandPrefillForTemplate(prefillData, templateId);
   const hasValues = Object.keys(expandedValues).length > 0;
 
-  // Normalize roles + attach ALL prefill values to the first submitter (typically
-  // Buyer 1). DocuSeal renders at PDF position, so per-submitter partitioning is
-  // cosmetic — one submitter owning all values is enough for the fields to
-  // render for everyone in the signing flow.
-  const normalizedSubmitters = signers.map((s, idx) => {
-    const submitter = {
-      name: s.name,
-      email: s.email,
-      role: normalizeRole(s.role) || 'Signer',
-    };
-    if (hasValues && idx === 0) {
-      submitter.values = expandedValues;
-    }
-    return submitter;
-  });
+  let submissionTemplateId = templateId;
+  if (hasValues) {
+    submissionTemplateId = await docusealCloneTemplateWithDefaults(templateId, expandedValues);
+  }
+
+  // Normalize each signer's role per-template. 40-11 → "Buyer"/"Seller".
+  // 20-19 → "Buyer 1"/"Buyer 2"/"Seller 1"/"Seller 2".
+  const normalizedSubmitters = signers.map((s) => ({
+    name: s.name,
+    email: s.email,
+    role: normalizeRoleForTemplate(s.role, templateId) || 'Signer',
+  }));
 
   const body = {
-    template_id: templateId,
+    template_id: submissionTemplateId,
     send_email: true,
     submitters: normalizedSubmitters,
     ...(message ? { email_body: message } : {}),
@@ -544,6 +739,11 @@ module.exports = async function handler(req, res) {
         purchase_price: tx.sale_price ? String(tx.sale_price) : '',
         closing_date: tx.closing_date || '',
         option_expiration_date: tx.option_expiration_date || '',
+        // 2026-07-13 Round 5 — financing columns for TREC 40-11.
+        loan_amount: tx.loan_amount != null ? String(tx.loan_amount) : '',
+        down_payment: tx.down_payment != null ? String(tx.down_payment) : '',
+        financing_type: tx.financing_type || '',
+        financing_days: tx.financing_days != null ? String(tx.financing_days) : '',
         // Extra fields from the form override defaults.
         ...extraPrefill,
       };
