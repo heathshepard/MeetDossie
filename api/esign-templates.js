@@ -282,8 +282,21 @@ function getTemplateId(envVar, fallbackId) {
   // stable DocuSeal IDs are always "available" even without env vars set.
   // Env var still wins when present so ops can point at a different template
   // without a code deploy.
-  if (envVar && process.env[envVar]) return process.env[envVar];
-  return fallbackId || null;
+  //
+  // 2026-07-13 Round 6 — Vercel env-var editing can accept literal backslash-n
+  // or trailing whitespace at paste time (invisible in the UI list). Strip
+  // whitespace, control chars, and literal escape sequences so the returned id
+  // is a clean lookup key for TEMPLATE_FIELD_MAPPERS / TEMPLATE_ROLES.
+  // Diagnosed 2026-07-13: DOCUSEAL_TEMPLATE_AMENDMENT stored "4111320"
+  // with a trailing literal backslash-n suffix, causing prod to fall through to
+  // defaultFieldMapper on 39-11 amendment.
+  const raw = envVar && process.env[envVar] ? process.env[envVar] : fallbackId;
+  if (raw == null) return null;
+  const cleaned = String(raw)
+    .replace(/\\[nrt]/g, '')
+    .replace(/[\s -]+/g, '')
+    .trim();
+  return cleaned || null;
 }
 
 async function fetchTransaction(transactionId, userId) {
