@@ -261,7 +261,7 @@ function getTemplateId(envVar, fallbackId) {
 
 async function fetchTransaction(transactionId, userId) {
   const res = await supa(
-    `transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,property_address,buyer_name,seller_name,purchase_price,closing_date,city_state_zip,option_expiration_date&limit=1`
+    `transactions?id=eq.${encodeURIComponent(transactionId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,property_address,buyer_name,seller_name,sale_price,closing_date,city_state_zip,option_expiration_date&limit=1`
   );
   if (!res.ok) return null;
   const rows = await res.json().catch(() => []);
@@ -425,7 +425,7 @@ module.exports = async function handler(req, res) {
         property_address: tx.property_address || '',
         buyer_name: tx.buyer_name || '',
         seller_name: tx.seller_name || '',
-        purchase_price: tx.purchase_price ? String(tx.purchase_price) : '',
+        purchase_price: tx.sale_price ? String(tx.sale_price) : '',
         closing_date: tx.closing_date || '',
         option_expiration_date: tx.option_expiration_date || '',
         // Extra fields from the form override defaults.
