@@ -25,9 +25,16 @@
 // CARTER draft 2026-07-11.
 
 const fetch = require('node-fetch');
+const crypto = require('crypto');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { applyCorsHeaders } = require('./_middleware/cors');
+// 2026-07-13 CARTER — Bug #5. Compute pdf_hash server-side so the legal trail
+// row always records what the agent accepted, not null. Uses the same
+// fillTrec2019 pipeline as /api/interactive-editor-download-pdf so the
+// hashed bytes match what the agent previewed.
+const { fillTrec2019 } = require('./_lib/fill-trec-20-19');
+const TREC_RESALE_20_19_B64 = require('./_assets/trec-resale-20-19-base64.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -57,6 +64,36 @@ async function supa(path, opts = {}) {
   try { return JSON.parse(text); } catch { return []; }
 }
 
+// 2026-07-13 CARTER — Bug #5. Fill + hash the TREC 20-19 PDF server-side so
+// the contract_verification_events.pdf_hash column is always populated, not
+// null. Uses the same pdf-lib pipeline as /api/interactive-editor-download-pdf.
+async function computeFilledPdfSha256(fieldValues) {
+  const { PDFDocument } = require('pdf-lib');
+  const buffer = Buffer.from(TREC_RESALE_20_19_B64, 'base64');
+  const pdfDoc = await PDFDocument.load(buffer);
+  await fillTrec2019(pdfDoc, fieldValues || {});
+  const bytes = await pdfDoc.save();
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex');
+  return hash;
+}
+
+function mergeTxnAndSnapshot(txn, snapshot) {
+  const merged = {};
+  if (txn && typeof txn === 'object') {
+    for (const [k, v] of Object.entries(txn)) {
+      if (v == null || v === '') continue;
+      merged[k] = v;
+    }
+  }
+  if (snapshot && typeof snapshot === 'object') {
+    for (const [k, v] of Object.entries(snapshot)) {
+      if (v == null || v === '') continue;
+      merged[k] = v;
+    }
+  }
+  return merged;
+}
+
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -80,7 +117,7 @@ module.exports = async function handler(req, res) {
     const formNumber = sanitizeString(body.form_number, { maxLength: 20 }) || null;
     const templateId = sanitizeString(body.template_id, { maxLength: 40 }) || null;
     const contractVersion = sanitizeString(body.contract_version, { maxLength: 200 }) || null;
-    const pdfHash = sanitizeString(body.pdf_hash, { maxLength: 100 }) || null;
+    let pdfHash = sanitizeString(body.pdf_hash, { maxLength: 100 }) || null;
     const pdfStoragePath = sanitizeString(body.pdf_storage_path, { maxLength: 500 }) || null;
 
     // fields snapshot — accept the raw object; postgres JSONB handles it.
@@ -100,10 +137,24 @@ module.exports = async function handler(req, res) {
         }));
     }
 
-    // Ownership check.
-    const txnRows = await supa(`transactions?id=eq.${transactionId}&user_id=eq.${userId}&select=id&limit=1`);
+    // Ownership check + pull canonical row for server-side hash computation.
+    const txnRows = await supa(`transactions?id=eq.${transactionId}&user_id=eq.${userId}&limit=1`);
     if (!txnRows || txnRows.length === 0) {
       return res.status(404).json({ ok: false, error: 'Transaction not found.' });
+    }
+    const txnRow = txnRows[0];
+
+    // Bug #5 — always populate pdf_hash. Client may pass a hash it computed
+    // over the exact PDF blob it displayed; if it doesn't, we render the same
+    // fill server-side and hash it so the legal trail row is never NULL.
+    if (!pdfHash && formNumber === '20-19') {
+      try {
+        const merged = mergeTxnAndSnapshot(txnRow, fieldValues);
+        pdfHash = await computeFilledPdfSha256(merged);
+      } catch (hashErr) {
+        console.warn('[interactive-editor-verify] pdf_hash compute failed:', hashErr && hashErr.message);
+        // Non-fatal — row still inserts with pdf_hash NULL if compute fails.
+      }
     }
 
     // Look up the form_templates row (for the FK) — non-blocking.

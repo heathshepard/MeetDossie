@@ -37,37 +37,179 @@ const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 
 // Template registry — each entry maps a human-readable type to a DocuSeal
-// template ID stored in env vars. Adding a new TREC form only requires:
+// template ID stored in env vars OR a hard-coded fallback for known TREC
+// templates. Adding a new TREC form only requires:
 // 1. Creating the template in DocuSeal
-// 2. Adding the env var
+// 2. Adding the env var (or adding fallbackId if the DocuSeal template already
+//    exists and its ID is stable)
 // 3. Adding an entry here
+//
+// 2026-07-13 CARTER — Bug #3 (Quinn DoD Round 1). Old registry had 3 amendment
+// templates. Extended to all 15 canonical TREC/TAR templates from the DoD
+// spec. IDs sourced from feedback_docuseal_template_ids memory + DoD prompt.
+const BUYER_SELLER_2 = [
+  { role: 'Buyer 1',  label: 'Buyer 1' },
+  { role: 'Buyer 2',  label: 'Buyer 2' },
+  { role: 'Seller 1', label: 'Seller 1' },
+  { role: 'Seller 2', label: 'Seller 2' },
+];
+const BUYER_SELLER_1 = [
+  { role: 'Buyer',  label: 'Buyer' },
+  { role: 'Seller', label: 'Seller' },
+];
+const CORE_PREFILL = [
+  'property_address',
+  'buyer_name',
+  'seller_name',
+  'purchase_price',
+  'closing_date',
+];
+
 const TEMPLATE_REGISTRY = [
+  // ---- The 15 canonical templates (DoD spec section 4) ----
+  {
+    type: 'resale_contract',
+    label: 'TREC 20-19 Resale Contract',
+    description: 'One to Four Family Residential Contract (Resale)',
+    envVar: 'DOCUSEAL_TEMPLATE_RESALE_CONTRACT',
+    fallbackId: '4952172',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'financing_addendum',
+    label: 'TREC 40-11 Third Party Financing',
+    description: 'Third Party Financing Addendum',
+    envVar: 'DOCUSEAL_TEMPLATE_FINANCING_ADDENDUM',
+    fallbackId: '4023463',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'lender_appraisal',
+    label: 'TREC 49-1 Lender Appraisal',
+    description: 'Notice of Buyer\'s Termination Due to Lender\'s Appraisal',
+    envVar: 'DOCUSEAL_TEMPLATE_LENDER_APPRAISAL',
+    fallbackId: '4023472',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
   {
     type: 'amendment',
-    label: 'Amendment to Contract',
-    description: 'TREC 39-10 — modify closing date, sales price, or other contract terms',
+    label: 'TREC 39-11 Amendment',
+    description: 'Amendment to Contract — modify closing date, sales price, or other terms',
     envVar: 'DOCUSEAL_TEMPLATE_AMENDMENT',
-    defaultSigners: [
-      { role: 'Buyer', label: 'Buyer' },
-      { role: 'Seller', label: 'Seller' },
-    ],
-    prefillFields: [
-      'property_address',
-      'buyer_name',
-      'seller_name',
-      'purchase_price',
-      'closing_date',
-    ],
+    fallbackId: '4111320',
+    defaultSigners: BUYER_SELLER_1,
+    prefillFields: CORE_PREFILL,
   },
+  {
+    type: 'hoa_addendum',
+    label: 'TREC 36-11 HOA Addendum',
+    description: 'Addendum for Property Subject to Mandatory Membership in a POA',
+    envVar: 'DOCUSEAL_TEMPLATE_HOA_ADDENDUM',
+    fallbackId: '4111321',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'lead_paint_addendum',
+    label: 'OP-L Lead-Based Paint',
+    description: 'Addendum for Seller\'s Disclosure of Info on Lead-Based Paint',
+    envVar: 'DOCUSEAL_TEMPLATE_LEAD_PAINT',
+    fallbackId: '4023469',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'sellers_disclosure',
+    label: 'OP-H Seller\'s Disclosure',
+    description: 'Seller\'s Disclosure Notice',
+    envVar: 'DOCUSEAL_TEMPLATE_SELLERS_DISCLOSURE',
+    fallbackId: '4023470',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'groundwater_notice',
+    label: 'TREC 61-0 Groundwater',
+    description: 'Notice on Availability of Public Groundwater Rights',
+    envVar: 'DOCUSEAL_TEMPLATE_GROUNDWATER',
+    fallbackId: '4111328',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'backup_11_8',
+    label: 'TREC 11-8 Backup Contract',
+    description: 'Addendum for Back-Up Contract',
+    envVar: 'DOCUSEAL_TEMPLATE_BACKUP_11_8',
+    fallbackId: '4023578',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'backup_11_9',
+    label: 'TREC 11-9 Backup Contract',
+    description: 'Addendum for Back-Up Contract (updated variant)',
+    envVar: 'DOCUSEAL_TEMPLATE_BACKUP_11_9',
+    fallbackId: '4111323',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'seller_financing',
+    label: 'TREC 26 Seller Financing',
+    description: 'Seller Financing Addendum',
+    envVar: 'DOCUSEAL_TEMPLATE_SELLER_FINANCING',
+    fallbackId: '4023573',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'farm_ranch',
+    label: 'TREC 25-17 Farm & Ranch',
+    description: 'Farm and Ranch Contract',
+    envVar: 'DOCUSEAL_TEMPLATE_FARM_RANCH',
+    fallbackId: '4111325',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'condo_contract',
+    label: 'TREC 30-18 Condominium',
+    description: 'Residential Condominium Contract (Resale)',
+    envVar: 'DOCUSEAL_TEMPLATE_CONDO',
+    fallbackId: '4111324',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'new_home_incomplete',
+    label: 'TREC 23-20 New Home Incomplete',
+    description: 'New Home Contract (Incomplete Construction)',
+    envVar: 'DOCUSEAL_TEMPLATE_NEW_HOME_INCOMPLETE',
+    fallbackId: '4111326',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'new_home_complete',
+    label: 'TREC 24-20 New Home Complete',
+    description: 'New Home Contract (Completed Construction)',
+    envVar: 'DOCUSEAL_TEMPLATE_NEW_HOME_COMPLETE',
+    fallbackId: '4111327',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  // ---- Legacy amendment shortcuts kept for existing callers ----
   {
     type: 'option_extension',
     label: 'Option Period Extension',
-    description: 'Extend the option period with an additional fee',
+    description: 'Extend the option period with an additional fee (TREC 39-11)',
     envVar: 'DOCUSEAL_TEMPLATE_OPTION_EXT',
-    defaultSigners: [
-      { role: 'Buyer', label: 'Buyer' },
-      { role: 'Seller', label: 'Seller' },
-    ],
+    fallbackId: '4111320',
+    defaultSigners: BUYER_SELLER_1,
     prefillFields: [
       'property_address',
       'buyer_name',
@@ -78,12 +220,10 @@ const TEMPLATE_REGISTRY = [
   {
     type: 'price_change',
     label: 'Sales Price Change',
-    description: 'Amend the purchase price (TREC 39-10 Paragraph 1)',
+    description: 'Amend the purchase price (TREC 39-11 Paragraph 1)',
     envVar: 'DOCUSEAL_TEMPLATE_PRICE_CHANGE',
-    defaultSigners: [
-      { role: 'Buyer', label: 'Buyer' },
-      { role: 'Seller', label: 'Seller' },
-    ],
+    fallbackId: '4111320',
+    defaultSigners: BUYER_SELLER_1,
     prefillFields: [
       'property_address',
       'buyer_name',
@@ -110,8 +250,13 @@ function supa(path, opts = {}) {
   });
 }
 
-function getTemplateId(envVar) {
-  return process.env[envVar] || null;
+function getTemplateId(envVar, fallbackId) {
+  // 2026-07-13 CARTER — accept a fallbackId so canonical TREC templates with
+  // stable DocuSeal IDs are always "available" even without env vars set.
+  // Env var still wins when present so ops can point at a different template
+  // without a code deploy.
+  if (envVar && process.env[envVar]) return process.env[envVar];
+  return fallbackId || null;
 }
 
 async function fetchTransaction(transactionId, userId) {
@@ -211,7 +356,7 @@ module.exports = async function handler(req, res) {
         description: t.description,
         defaultSigners: t.defaultSigners,
         prefillFields: t.prefillFields,
-        available: !!getTemplateId(t.envVar),
+        available: !!getTemplateId(t.envVar, t.fallbackId),
         // Don't expose the env var name or template ID to the client.
       }));
 
@@ -260,7 +405,7 @@ module.exports = async function handler(req, res) {
         throw new ValidationError(`Unknown template type: "${templateType}". Valid types: ${TEMPLATE_REGISTRY.map((t) => t.type).join(', ')}.`, 400);
       }
 
-      const templateId = getTemplateId(template.envVar);
+      const templateId = getTemplateId(template.envVar, template.fallbackId);
       if (!templateId) {
         // Template ID not configured yet — return a clear message.
         return res.status(422).json({
