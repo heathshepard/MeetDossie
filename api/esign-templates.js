@@ -370,6 +370,62 @@ const TEMPLATE_REGISTRY = [
     defaultSigners: BUYER_SELLER_2,
     prefillFields: CORE_PREFILL,
   },
+  {
+    // 2026-07-14 Atlas — IABS Buyer/Tenant (template 4985883). Roles are
+    // "Buyer Broker" (16 broker/agent fields) + "Buyer 1" (client_initials +
+    // acknowledgment_date). Prefill of the 11 broker/agent fields is sourced
+    // from profiles.iabs_defaults_completed via buildIabsPrefill() in the
+    // POST handler below — progressive profiling means first-time senders
+    // fill from the send modal, subsequent sends auto-prefill.
+    type: 'iabs_buyer_tenant',
+    label: 'IABS (Buyer/Tenant)',
+    description: 'Information About Brokerage Services — Buyer/Tenant',
+    envVar: 'DOCUSEAL_TEMPLATE_IABS_BUYER',
+    fallbackId: '4985883',
+    defaultSigners: [
+      { role: 'Buyer Broker', label: 'Buyer Broker' },
+      { role: 'Buyer 1',      label: 'Buyer 1' },
+    ],
+    prefillFields: [
+      'sponsoring_broker_name',
+      'sponsoring_broker_license_no',
+      'sponsoring_broker_email',
+      'sponsoring_broker_phone',
+      'supervisor_name',
+      'supervisor_license_no',
+      'supervisor_phone',
+      'sales_agent_name',
+      'sales_agent_license_no',
+      'sales_agent_email',
+      'sales_agent_phone',
+    ],
+  },
+  {
+    // 2026-07-14 Atlas — IABS Seller/Landlord (template 4984666). Same 16
+    // broker-side fields; consumer roles are "Seller Broker" + "Seller 1".
+    type: 'iabs_seller_landlord',
+    label: 'IABS (Seller/Landlord)',
+    description: 'Information About Brokerage Services — Seller/Landlord',
+    envVar: 'DOCUSEAL_TEMPLATE_IABS_SELLER',
+    fallbackId: '4984666',
+    defaultSigners: [
+      { role: 'Seller Broker', label: 'Seller Broker' },
+      { role: 'Seller 1',      label: 'Seller 1' },
+    ],
+    prefillFields: [
+      'sponsoring_broker_name',
+      'sponsoring_broker_license_no',
+      'sponsoring_broker_email',
+      'sponsoring_broker_phone',
+      'supervisor_name',
+      'supervisor_license_no',
+      'supervisor_phone',
+      'sales_agent_name',
+      'sales_agent_license_no',
+      'sales_agent_email',
+      'sales_agent_phone',
+    ],
+  },
   // ---- Legacy amendment shortcuts kept for existing callers ----
   {
     type: 'option_extension',
@@ -452,6 +508,40 @@ async function fetchTransaction(transactionId, userId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
+// 2026-07-14 Atlas — IABS progressive-profiling helpers. Column names match
+// api/_migrations/0025-iabs-defaults.sql exactly (supervising_broker_license,
+// no _number suffix — a Carter-draft mismatch would silently drop supervisor
+// fields, so the SELECT list is the enforcement point).
+async function fetchIabsDefaults(userId) {
+  if (!userId) return null;
+  const res = await supa(
+    `profiles?id=eq.${encodeURIComponent(userId)}&select=broker_name,broker_license_number,broker_phone,broker_email,supervising_broker_name,supervising_broker_license,supervising_broker_phone,full_name,agent_license_number,agent_phone,email,iabs_defaults_completed&limit=1`
+  );
+  if (!res.ok) return null;
+  const rows = await res.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
+function buildIabsPrefill(iabsDefaults) {
+  if (!iabsDefaults || !iabsDefaults.iabs_defaults_completed) return {};
+  const prefill = {};
+  // Sponsoring broker (the agent's broker firm)
+  if (iabsDefaults.broker_name)           prefill.sponsoring_broker_name       = iabsDefaults.broker_name;
+  if (iabsDefaults.broker_license_number) prefill.sponsoring_broker_license_no = iabsDefaults.broker_license_number;
+  if (iabsDefaults.broker_email)          prefill.sponsoring_broker_email      = iabsDefaults.broker_email;
+  if (iabsDefaults.broker_phone)          prefill.sponsoring_broker_phone      = iabsDefaults.broker_phone;
+  // Supervisor (supervising broker, optional per TREC)
+  if (iabsDefaults.supervising_broker_name)    prefill.supervisor_name       = iabsDefaults.supervising_broker_name;
+  if (iabsDefaults.supervising_broker_license) prefill.supervisor_license_no = iabsDefaults.supervising_broker_license;
+  if (iabsDefaults.supervising_broker_phone)   prefill.supervisor_phone      = iabsDefaults.supervising_broker_phone;
+  // Sales agent (the agent themselves)
+  if (iabsDefaults.full_name)            prefill.sales_agent_name       = iabsDefaults.full_name;
+  if (iabsDefaults.agent_license_number) prefill.sales_agent_license_no = iabsDefaults.agent_license_number;
+  if (iabsDefaults.email)                prefill.sales_agent_email      = iabsDefaults.email;
+  if (iabsDefaults.agent_phone)          prefill.sales_agent_phone      = iabsDefaults.agent_phone;
+  return prefill;
+}
+
 // 2026-07-13 CARTER Round 4 — Bug: DocuSeal template 4952172 (TREC 20-19) uses
 // submitter roles "Buyer 1", "Buyer 2", "Seller 1", "Seller 2" — not the
 // generic "Buyer"/"Seller" that legacy UI passes.
@@ -514,6 +604,12 @@ const TEMPLATE_ROLES = {
   // matches the 20-19 workaround pattern where all incoming roles collapse
   // to the sole available submitter so the customer at least receives an envelope.
   '4111327': ['First Party'],
+  // 2026-07-14 Atlas — IABS templates: 2-role, broker + one consumer signer.
+  // Template 4985883 (IABS Buyer/Tenant): "Buyer Broker" owns 16 broker/agent
+  // fields, "Buyer 1" owns 2 acknowledgment fields.
+  '4985883': ['Buyer Broker', 'Buyer 1'],
+  // Template 4984666 (IABS Seller/Landlord): "Seller Broker" + "Seller 1".
+  '4984666': ['Seller Broker', 'Seller 1'],
   // Default: 4-role (matches the resale flavor)
   DEFAULT: ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
 };
@@ -1518,6 +1614,28 @@ const TEMPLATE_FIELD_MAPPERS = {
     }
     return expanded;
   },
+  // 2026-07-14 Atlas — IABS Buyer/Tenant (4985883). Fable5 named the fields
+  // with clean semantic keys (sponsoring_broker_name, sales_agent_email, etc.)
+  // matching what buildIabsPrefill() emits — so a passthrough mapper is
+  // sufficient. designated_broker_* fields are left blank (rare + broker-
+  // dependent). client_initials / acknowledgment_date are signer-filled.
+  '4985883': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      expanded[key] = typeof value === 'string' ? value : String(value);
+    }
+    return expanded;
+  },
+  // IABS Seller/Landlord (4984666). Same field-name shape as Buyer/Tenant.
+  '4984666': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      expanded[key] = typeof value === 'string' ? value : String(value);
+    }
+    return expanded;
+  },
 };
 
 // Default mapper: pass through all keys as-is. Used for templates without a
@@ -1832,6 +1950,18 @@ module.exports = async function handler(req, res) {
         throw new ValidationError('Transaction not found or does not belong to you.', 404);
       }
 
+      // 2026-07-14 Atlas — IABS templates use profile-level agent defaults
+      // (progressive profiling). Fetch saved broker/agent info + inject as
+      // prefill. Called only for the two IABS templates; skipped otherwise
+      // so we don't add unrelated columns to every prefill payload.
+      const IABS_TEMPLATE_IDS = new Set(['4985883', '4984666']);
+      let iabsPrefill = {};
+      if (IABS_TEMPLATE_IDS.has(String(templateId))) {
+        const iabsDefaults = await fetchIabsDefaults(userId).catch(() => null);
+        iabsPrefill = buildIabsPrefill(iabsDefaults);
+        console.log(`[esign-templates] IABS template ${templateId}: applied ${Object.keys(iabsPrefill).length} agent defaults`);
+      }
+
       const prefillData = {
         property_address: tx.property_address || '',
         buyer_name: tx.buyer_name || '',
@@ -1844,7 +1974,9 @@ module.exports = async function handler(req, res) {
         down_payment: tx.down_payment != null ? String(tx.down_payment) : '',
         financing_type: tx.financing_type || '',
         financing_days: tx.financing_days != null ? String(tx.financing_days) : '',
-        // Extra fields from the form override defaults.
+        // IABS agent defaults (populated only for IABS templates).
+        ...iabsPrefill,
+        // Extra fields from the form override defaults (agent may edit before send).
         ...extraPrefill,
       };
 
