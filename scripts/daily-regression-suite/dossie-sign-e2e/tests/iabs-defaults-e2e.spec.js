@@ -526,37 +526,61 @@ async function main() {
     const signingUrl2 = extractSigningUrl(msg2.html);
     step('extract Seller 1 signing URL', !!signingUrl2, { signingUrl: signingUrl2 });
 
-    // 23. Open Buyer signing URL + verify broker prefill renders.
-    // (The Buyer 1 signer only owns client_initials + acknowledgment_date, so
-    // to see the broker/agent prefill we open the SELLER-side (Seller Broker
-    // isn't on this envelope), but the Buyer Broker slug link was sent to the
-    // agent's email in envelope T1 — we don't intercept that here. Instead we
-    // verify the Seller 1 view has the broker/agent fields visibly rendered on
-    // the PDF preview. On IABS templates the broker section renders regardless
-    // of role, since it's a shared document view.)
+    // 23. Verify prefill reached DocuSeal via the template API.
+    //
+    // Why not scrape the signer view? DocuSeal's signer view only renders
+    // fields OWNED BY THE INVITED SIGNER'S ROLE. For IABS Seller/Landlord,
+    // "Seller 1" only owns client_initials + acknowledgment_date. The 16
+    // broker/agent fields are owned by "Seller Broker" — a role we don't
+    // invite as a signer (they're pre-filled server-side, not signed by the
+    // consumer). So the Seller 1 signer view legitimately does NOT show the
+    // broker fields, matching DocuSeal's per-role field-visibility rule.
+    //
+    // The right proof: fetch the CLONED template that backs the submission
+    // and confirm the 11 broker fields have default_value set. That is what
+    // makes DocuSeal render them at print/download time regardless of which
+    // signer opens the envelope.
+    const dsKey = process.env.DOCUSEAL_API_KEY;
+    if (dsKey && evidence.submissionIdSeller) {
+      try {
+        const subRes = await fetch(`https://api.docuseal.com/submissions/${evidence.submissionIdSeller}`, {
+          headers: { 'X-Auth-Token': dsKey },
+        });
+        const subJson = await subRes.json().catch(() => ({}));
+        const clonedTemplateId = subJson && subJson.template && subJson.template.id;
+        step('fetch cloned template id from submission', !!clonedTemplateId, { clonedTemplateId });
+        if (clonedTemplateId) {
+          const tplRes = await fetch(`https://api.docuseal.com/templates/${clonedTemplateId}`, {
+            headers: { 'X-Auth-Token': dsKey },
+          });
+          const tplJson = await tplRes.json().catch(() => ({}));
+          const fields = Array.isArray(tplJson.fields) ? tplJson.fields : [];
+          const byName = Object.fromEntries(fields.map((f) => [f.name, f.default_value]));
+          fs.writeFileSync(path.join(outDir, 'cloned-template-defaults.json'),
+            JSON.stringify(byName, null, 2), 'utf8');
+          for (const [key, expected] of Object.entries(IABS_FORM_FIELDS)) {
+            if (key === 'sales_agent_name') continue;  // TemplatePicker may prefill from full_name column
+            const got = byName[key];
+            step(`DocuSeal cloned template field ${key} = "${expected}"`,
+              got === expected, { expected, got });
+          }
+        }
+      } catch (err) {
+        step('verify cloned template defaults', false, { error: String(err && err.message ? err.message : err) });
+      }
+    } else {
+      step('DOCUSEAL_API_KEY present for template verification', !!dsKey);
+    }
+
+    // Also capture the signer view screenshot for the audit trail. The signer
+    // view legitimately shows only Seller 1's 2 fields — that's expected.
     if (signingUrl2) {
       const signerTab = await ctx.newPage();
       await signerTab.goto(signingUrl2, { waitUntil: 'domcontentloaded', timeout: 60000 });
       await signerTab.waitForTimeout(8000);
+      evidence.screenshots.push(await screenshot(signerTab, path.join(outDir, 'T10-signer-view-seller1.png'), { fullPage: true }));
       const bodyText = await signerTab.evaluate(() => document.body.innerText).catch(() => '');
       fs.writeFileSync(path.join(outDir, 'signer-view-seller1.txt'), bodyText, 'utf8');
-      evidence.screenshots.push(await screenshot(signerTab, path.join(outDir, 'T10-signer-view-seller1.png'), { fullPage: true }));
-
-      // Broker/agent info should render somewhere on the IABS PDF preview.
-      // DocuSeal's signer view iframes the PDF, so innerText may be limited —
-      // fallback to page HTML check.
-      const foundBrokerName = new RegExp(IABS_TEST_DATA.broker_name, 'i').test(bodyText);
-      const foundLicense = new RegExp(IABS_TEST_DATA.broker_license_number, 'i').test(bodyText);
-      let bodyOrHtml = bodyText;
-      if (!foundBrokerName || !foundLicense) {
-        const html = await signerTab.content();
-        fs.writeFileSync(path.join(outDir, 'signer-view-seller1.html'), html, 'utf8');
-        bodyOrHtml = html;
-      }
-      step('signer view contains sponsoring broker name',
-        new RegExp(IABS_TEST_DATA.broker_name.replace(/\s+/g, '\\s*'), 'i').test(bodyOrHtml));
-      step('signer view contains broker license number',
-        new RegExp(IABS_TEST_DATA.broker_license_number).test(bodyOrHtml));
       await signerTab.close().catch(() => {});
     }
 
