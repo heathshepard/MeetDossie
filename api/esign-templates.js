@@ -1753,7 +1753,7 @@ async function docusealCloneTemplateWithDefaults(templateId, defaults) {
   return cloneId;
 }
 
-async function createTemplateSubmission({ templateId, signers, prefillData, message }) {
+async function createTemplateSubmission({ templateId, signers, prefillData, message, extraSubmitter }) {
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-templates] DOCUSEAL_API_KEY not set — returning stub submission.');
     return {
@@ -1799,10 +1799,30 @@ async function createTemplateSubmission({ templateId, signers, prefillData, mess
     send_email: false,
   }));
 
+  // 2026-07-14 Atlas — IABS hotfix. When the caller injects an extraSubmitter
+  // (e.g. the broker for IABS templates), prepend it so DocuSeal creates the
+  // completed row FIRST and stamps its `values` into the shared PDF. Without
+  // this, single-consumer-signer IABS envelopes render blank PDFs even when
+  // clone default_value is set — verified 2026-07-14 against templates
+  // 4985883 + 4984666.
+  const allSubmitters = extraSubmitter
+    ? [
+        {
+          name: extraSubmitter.name,
+          email: extraSubmitter.email,
+          role: normalizeRoleForTemplate(extraSubmitter.role, templateId) || extraSubmitter.role,
+          send_email: false,
+          completed: extraSubmitter.completed === true,
+          ...(extraSubmitter.values ? { values: extraSubmitter.values } : {}),
+        },
+        ...normalizedSubmitters,
+      ]
+    : normalizedSubmitters;
+
   const body = {
     template_id: submissionTemplateId,
     send_email: false,
-    submitters: normalizedSubmitters,
+    submitters: allSubmitters,
     ...(message ? { email_body: message } : {}),
   };
 
@@ -1955,10 +1975,12 @@ module.exports = async function handler(req, res) {
       // prefill. Called only for the two IABS templates; skipped otherwise
       // so we don't add unrelated columns to every prefill payload.
       const IABS_TEMPLATE_IDS = new Set(['4985883', '4984666']);
+      const isIabsTemplate = IABS_TEMPLATE_IDS.has(String(templateId));
       let iabsPrefill = {};
-      if (IABS_TEMPLATE_IDS.has(String(templateId))) {
-        const iabsDefaults = await fetchIabsDefaults(userId).catch(() => null);
-        iabsPrefill = buildIabsPrefill(iabsDefaults);
+      let iabsDefaultsRow = null;
+      if (isIabsTemplate) {
+        iabsDefaultsRow = await fetchIabsDefaults(userId).catch(() => null);
+        iabsPrefill = buildIabsPrefill(iabsDefaultsRow);
         console.log(`[esign-templates] IABS template ${templateId}: applied ${Object.keys(iabsPrefill).length} agent defaults`);
       }
 
@@ -1980,31 +2002,90 @@ module.exports = async function handler(req, res) {
         ...extraPrefill,
       };
 
+      // 2026-07-14 Atlas HOTFIX — IABS PDF-blank bug root cause.
+      //
+      // Reproduced: Quinn's Buyer-1 signer view rendered as BLANK even though
+      // the cloned template had default_value set on all 12 broker fields.
+      // Confirmed via DocuSeal API on submission 9299213 + template 4988422.
+      //
+      // Why: DocuSeal only materializes a submitter's fields into the visible
+      // PDF once that submitter has a submission row AND it is completed. The
+      // "Buyer Broker" / "Seller Broker" role on templates 4985883 / 4984666
+      // owns all 12 broker/agent fields. With only a "Buyer 1"/"Seller 1"
+      // submitter attached, the broker-role fields render as empty for every
+      // signer even when default_value is populated on the clone.
+      //
+      // Fix: for IABS templates, ADD a broker submitter marked completed with
+      // the broker/agent values from profiles. DocuSeal treats it as an already
+      // signed party and stamps the fields into the PDF. No interactive UI is
+      // shown to the agent (status:completed at creation, send_email:false).
+      //
+      // Verified end-to-end against templates 4985883 + 4984666 via debug
+      // clones 4989132 / 4989165 / 4989457.
+      let iabsBrokerSubmitter = null;
+      let effectiveSigners = signers;
+      if (isIabsTemplate && Object.keys(iabsPrefill).length > 0) {
+        // Merge extraPrefill so any agent-edits from the modal win over the
+        // saved defaults (matches how prefillData is built above).
+        const brokerValues = { ...iabsPrefill };
+        for (const k of Object.keys(extraPrefill)) {
+          const v = extraPrefill[k];
+          if (v !== null && v !== undefined && v !== '') brokerValues[k] = String(v);
+        }
+        const brokerRole = String(templateId) === '4985883' ? 'Buyer Broker' : 'Seller Broker';
+        const agentName = (iabsDefaultsRow && iabsDefaultsRow.full_name) || 'Agent';
+        const agentEmail = (iabsDefaultsRow && iabsDefaultsRow.email) || 'noreply@meetdossie.com';
+        iabsBrokerSubmitter = {
+          name: agentName,
+          email: agentEmail,
+          role: brokerRole,
+          send_email: false,
+          completed: true,
+          values: brokerValues,
+        };
+        // Route around the clone-default_value path for IABS: values arrive
+        // via the completed broker submitter, so passing the same keys as
+        // clone defaults is redundant (and would double-render for the agent).
+        // Strip broker-owned keys from prefillData so createTemplateSubmission
+        // doesn't clone the template for them.
+        for (const k of Object.keys(iabsPrefill)) {
+          delete prefillData[k];
+        }
+        console.log(`[esign-templates] IABS template ${templateId}: injecting completed ${brokerRole} submitter with ${Object.keys(brokerValues).length} field(s)`);
+      }
+
       // Create the DocuSeal submission.
       const submissionResult = await createTemplateSubmission({
         templateId,
-        signers,
+        signers: effectiveSigners,
         prefillData,
         message,
+        extraSubmitter: iabsBrokerSubmitter,
       });
 
       const submissionId = String(submissionResult.id || '');
-      const signerRows = (Array.isArray(submissionResult.submitters) ? submissionResult.submitters : []).map((sub, i) => {
-        // Prefer slug-based public link (https://docuseal.com/s/{slug}) over embed_src.
-        // Matches esign-create.js pattern for consistent Resend email links.
-        const slug = sub.slug || null;
-        const signingUrl = slug
-          ? `https://docuseal.com/s/${slug}`
-          : (sub.embed_src || null);
-        return {
-          name: sub.name || signers[i]?.name || '',
-          email: sub.email || signers[i]?.email || '',
-          role: sub.role || signers[i]?.role || 'Signer',
-          status: sub.status || 'sent',
-          signingUrl,
-          uuid: sub.uuid || null,
-        };
-      });
+      const rawSubmitters = Array.isArray(submissionResult.submitters) ? submissionResult.submitters : [];
+      // 2026-07-14 Atlas — Filter out any completed submitter (IABS broker
+      // injected server-side) from signerRows. The customer-facing signers
+      // list must only contain parties who still need to sign — otherwise
+      // Resend fires a "please sign" email to the agent's own inbox and the
+      // signature_requests row misreports the outstanding signers.
+      const signerRows = rawSubmitters
+        .filter((sub) => sub.status !== 'completed')
+        .map((sub, i) => {
+          const slug = sub.slug || null;
+          const signingUrl = slug
+            ? `https://docuseal.com/s/${slug}`
+            : (sub.embed_src || null);
+          return {
+            name: sub.name || signers[i]?.name || '',
+            email: sub.email || signers[i]?.email || '',
+            role: sub.role || signers[i]?.role || 'Signer',
+            status: sub.status || 'sent',
+            signingUrl,
+            uuid: sub.uuid || null,
+          };
+        });
 
       // 2026-07-13 Round 11 — Send Dossie-branded signing email per signer via
       // Resend. DocuSeal's native email is suppressed above (send_email:false)
