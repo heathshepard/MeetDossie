@@ -493,6 +493,27 @@ const TEMPLATE_ROLES = {
   // The mapping below is what SHOULD be there so field routing is correct.
   // Signature routing for the duplicate needs Heath to fix in DocuSeal UI.
   '4023472': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // 2026-07-14 — Phase A extend to 8 remaining canonical forms.
+  // Template 4111328 (TREC 61-0 Groundwater): 4-role, verified via verify JSON.
+  '4111328': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4023578 (TREC 11-8 Backup Contract): 4-role.
+  '4023578': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4111323 (TREC 11-9 Backup Contract v2): 4-role.
+  '4111323': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4023573 (TREC 26 Seller Financing): 4-role.
+  '4023573': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4111325 (TREC 25-17 Farm & Ranch): 4-role.
+  '4111325': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4111324 (TREC 30-18 Condominium): 4-role.
+  '4111324': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4111326 (TREC 23-20 New Home Incomplete): 4-role per verify JSON.
+  // Template has data issues (only 9 unnamed checkboxes) but roles are correct.
+  '4111326': ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
+  // Template 4111327 (TREC 24-20 New Home Complete): only "First Party" per
+  // verify JSON. Template data broken — zero fields, single submitter. This
+  // matches the 20-19 workaround pattern where all incoming roles collapse
+  // to the sole available submitter so the customer at least receives an envelope.
+  '4111327': ['First Party'],
   // Default: 4-role (matches the resale flavor)
   DEFAULT: ['Buyer 1', 'Buyer 2', 'Seller 1', 'Seller 2'],
 };
@@ -1246,6 +1267,233 @@ const TEMPLATE_FIELD_MAPPERS = {
           expanded[key] = s;
           break;
       }
+    }
+    return expanded;
+  },
+
+  // TREC 61-0 Groundwater Notice (template 4111328)
+  // 2026-07-14 — Field inventory from .tmp/docuseal-15-verify/tmpl_4111328.json:
+  //   0 signature "Buyer Signature" | 1 date "Buyer Date"
+  //   2 signature "Seller Signature" | 3 date "Seller Date"
+  //   ... 8 text "property_address"
+  //   ... 29 text "property_address_p2"
+  //   Plus radios (in_groundwater_district), checkboxes (wells), text (well_description).
+  // Semantic keys pass through, address duplicates to page-2 header.
+  '4111328': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          expanded['property_address_p2'] = s;
+          break;
+        // Drop CORE_PREFILL keys with no fields (buyer_name/seller_name/etc).
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 11-8 Backup Contract (template 4023578)
+  // 2026-07-14 — Field inventory from .tmp/docuseal-15-verify/tmpl_4023578.json:
+  //   4 text "property_address"
+  //   16 text "property_address_page2"
+  //   Plus additional_earnest_money_amount, additional_option_fee_amount, dates.
+  '4023578': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          expanded['property_address_page2'] = s;
+          break;
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 11-9 Backup Contract v2 (template 4111323)
+  // 2026-07-14 — Field inventory from .tmp/docuseal-15-verify/tmpl_4111323.json:
+  //   4 text "property_address"
+  //   16 text "property_address_page_2"  (note underscore-page-2)
+  //   Plus additional_earnest_money, additional_option_fee, dates.
+  '4111323': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          expanded['property_address_page_2'] = s;
+          break;
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 26 Seller Financing Addendum (template 4023573)
+  // 2026-07-14 — Field inventory from .tmp/docuseal-15-verify/tmpl_4023573.json:
+  //   4 text "property_address" (single instance — page 1 only)
+  //   Plus 43 note-terms fields (credit_documentation_days, note_amount, note_interest_rate, etc.).
+  '4023573': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          break;
+        case 'buyer_name':
+        case 'seller_name':
+        case 'purchase_price':
+        case 'sale_price':
+        case 'closing_date':
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 25-17 Farm & Ranch Contract (template 4111325)
+  // 2026-07-14 — Field inventory from .tmp/docuseal-15-verify/tmpl_4111325.json (326 fields):
+  //   4 text "seller_name"
+  //   5 text "buyer_name"
+  //   6 text "county"
+  //   7 text "legal_description"
+  //   8 text "property_address"
+  //   Plus 300+ farm-and-ranch domain fields (accessories, financing, oil/gas rights, etc.).
+  '4111325': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          break;
+        case 'buyer_name':
+          expanded['buyer_name'] = s;
+          break;
+        case 'seller_name':
+          expanded['seller_name'] = s;
+          break;
+        case 'purchase_price':
+        case 'sale_price':
+          expanded['sales_price_total'] = String(s).replace(/[^\d.-]/g, '');
+          expanded['sale_price'] = s;
+          break;
+        case 'closing_date':
+          expanded['closing_date'] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 30-18 Condominium Contract (template 4111324)
+  // 2026-07-14 — Field inventory from .tmp/docuseal-15-verify/tmpl_4111324.json (228 fields):
+  //   4 text "seller_name"
+  //   5 text "buyer_name"
+  //   9 text "property_address"
+  //   26 text "header_property_address_p2"
+  //   Plus condo domain fields (unit_number, condo_project_name, parking_areas, etc.).
+  '4111324': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      const s = typeof value === 'string' ? value : String(value);
+      switch (key) {
+        case 'property_address':
+          expanded['property_address'] = s;
+          expanded['header_property_address_p2'] = s;
+          break;
+        case 'buyer_name':
+          expanded['buyer_name'] = s;
+          break;
+        case 'seller_name':
+          expanded['seller_name'] = s;
+          break;
+        case 'purchase_price':
+        case 'sale_price':
+          expanded['sale_price'] = s;
+          break;
+        case 'closing_date':
+          expanded['closing_date'] = s;
+          break;
+        default:
+          expanded[key] = s;
+          break;
+      }
+    }
+    return expanded;
+  },
+
+  // TREC 23-20 New Home Incomplete (template 4111326)
+  // 2026-07-14 — Template has ONLY 9 unnamed checkbox fields — no text fields
+  // for property_address/buyer_name/etc. This is a DocuSeal template data
+  // problem — the source PDF's AcroForm text widgets were not preserved when
+  // the template was created. Fallback: pass through everything so if Heath
+  // later fixes the template, prefill starts flowing without a code change.
+  // Test expectation: PASS the send + email + signer link, but expect BLANK
+  // filled PDF at signer view (documented gap).
+  '4111326': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      expanded[key] = typeof value === 'string' ? value : String(value);
+    }
+    return expanded;
+  },
+
+  // TREC 24-20 New Home Complete (template 4111327)
+  // 2026-07-14 — Template has ZERO fields AND only 1 "First Party" submitter.
+  // Same template data problem as 23-20 but worse: no signature widgets means
+  // the signer view will have nothing to sign either. Fallback: pass through.
+  // Test expectation: send + email + link may succeed (First Party submitter
+  // exists), but signer view will be a blank PDF with no fields.
+  '4111327': (prefillData) => {
+    const expanded = {};
+    for (const [key, value] of Object.entries(prefillData)) {
+      if (value === null || value === undefined || value === '') continue;
+      expanded[key] = typeof value === 'string' ? value : String(value);
     }
     return expanded;
   },
