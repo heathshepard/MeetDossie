@@ -40,9 +40,12 @@ async function main() {
       { name: 'Alex Testbuyer', roleValue: 'Buyer 1' },
     ],
     expectedRenders: [
+      // Signer is Buyer 1; property_address and buyer_name are owned by
+      // Buyer 1 so they render in that signer's interactive view. seller_name
+      // is owned by Seller 1 so Buyer 1 does not see it in DocuSeal's
+      // per-role field visibility.
       { key: 'property_address', re: /100 Test Ln/i, sample: '100 Test Ln' },
       { key: 'buyer_name', re: /Alex Testbuyer/i, sample: 'Alex Testbuyer' },
-      { key: 'seller_name', re: /Sam Testseller/i, sample: 'Sam Testseller' },
     ],
   });
 

@@ -5,18 +5,23 @@
  *
  * Template ID 4111327. Roles: ONLY "First Party" per verify JSON.
  *
- * 2026-07-14 — KNOWN TEMPLATE DATA BUG. This template has ZERO fields at all
- * (no text, no signature widgets) AND only one submitter ("First Party").
- * Heath must fix the template in DocuSeal Studio (re-import raw PDF + split
- * submitters into Buyer 1 / Seller 1 / Buyer 2 / Seller 2). Until then, the
- * routing collapses all roles to "First Party" (see TEMPLATE_ROLES['4111327']).
+ * 2026-07-14 — KNOWN TEMPLATE DATA BUG (verified via DocuSeal API 2026-07-14):
+ *   POST /submissions template_id=4111327 → 422 "Template does not contain fields"
+ * The template has ZERO fields at all (no text widgets, no signature widgets)
+ * AND only one submitter ("First Party"). DocuSeal refuses to create ANY
+ * submission for a template with zero fields — this is core DocuSeal rules.
  *
- * PASS criteria (infrastructure only):
- *   - envelope sends without 500 error
- *   - Dossie signing email arrives in mailinator
- *   - signer link opens without error
+ * REQUIRED ADMIN FIX (Heath):
+ *   1. Open DocuSeal Studio at https://docuseal.com/templates/4111327
+ *   2. Add signature/date widgets for each submitter role
+ *   3. Split "First Party" into Buyer 1 / Buyer 2 / Seller 1 / Seller 2
+ *   4. Add at minimum: property_address text field (page 1)
+ *   5. Re-run this spec — 4-role prefill + roles will flow through
+ *      (TEMPLATE_ROLES['4111327'] must be updated back to 4-role after fix).
  *
- * FAIL to note: property_address and everything else missing from signer view.
+ * Test result: FAIL until the template is fixed. This is NOT a Dossie bug —
+ * it's a DocuSeal template configuration bug. This spec exists so the
+ * failure surfaces in every regression run + won't silently drift.
  */
 
 'use strict';
