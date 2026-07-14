@@ -682,6 +682,16 @@ const TEMPLATE_FIELD_MAPPERS = {
 
   // TREC 39-11 Amendment (template 4111320)
   // Field names sourced from .tmp/docuseal-15-verify/tmpl_4111320.json.
+  //
+  // 2026-07-14 party-routing rebalance (Atlas):
+  //   Template PATCHed via PUT /templates/4111320 { fields:[...] } to move §2
+  //   (repairs/treatments) + §5 (lender-required repairs cost) from Buyer 1 to
+  //   Seller 1. Distribution: Buyer 1 48→39, Seller 1 1→10, Buyer 2/Seller 2
+  //   unchanged (1 signature each). Mapper output is unchanged — it still
+  //   emits values keyed by field NAME; DocuSeal handles submitter routing
+  //   from the template config. Backup of pre-patch template lives at
+  //   .tmp/party-routing-fix/tmpl_4111320.json (do not delete).
+  //
   // The 39-11 PDF is a single page with §1-9 numbered amendment options.
   // Most fields on the template have cryptic names ("Text1", "date 5",
   // "Text 10", "as follows", "for an extension of the", "contract", empty
@@ -802,6 +812,17 @@ const TEMPLATE_FIELD_MAPPERS = {
 
   // TREC 36-11 HOA Addendum (template 4111321)
   // Field names sourced from .tmp/docuseal-15-verify/tmpl_4111321.json.
+  //
+  // 2026-07-14 party-routing rebalance (Atlas):
+  //   Template PATCHed via PUT /templates/4111321 { fields:[...] } so HOA info
+  //   is Seller-provided (per dossie_domain_essentials memory: seller supplies
+  //   HOA name/phone, §A1 delivery timeframe, §D reserves deposit). Buyer 1
+  //   keeps property header + §A2/A3/A4/E buyer-side checkboxes. Distribution:
+  //   Buyer 1 14→10, Seller 1 1→5, Buyer 2/Seller 2 unchanged. Mapper output
+  //   unchanged — values still keyed by field NAME; DocuSeal routes to the
+  //   correct submitter based on template config. Backup at
+  //   .tmp/party-routing-fix/tmpl_4111321.json (do not delete).
+  //
   // The 36-11 is a single-page addendum. Fields have hostile, label-like
   // names ("Street Address and City", "Name of Property Owners Association
   // Association and Phone Number", "does", "does not require an updated
