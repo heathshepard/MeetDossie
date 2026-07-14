@@ -53,7 +53,7 @@ DEMO2_PASSWORD = DossieDemo2-John2026
 
 ## IMPROVMX EMAIL SETUP
 
-- `heath@`, `heathshepard@`, `info@meetdossie.com` → all forward to `heath.shepard@gmail.com` (not KW). Free plan.
+- `heath@`, `heathshepard@`, `info@meetdossie.com` → all forward to `heath.shepard@kw.com`. Free plan. (Corrected 2026-07-14 — was previously documented as gmail.com; KW is authoritative per CLAUDE.md line 48 and confirmed by Heath's inbox receipts.)
 - API key in Windows Credential Manager as `ImprovMX_API_Key` (rotate — went through Telegram 2026-05-24).
 
 ---

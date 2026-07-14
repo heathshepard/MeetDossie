@@ -123,7 +123,9 @@ async function sendEmail(to, firstName) {
       subject: 'She asked. We built it.',
       html: buildEmailHtml(firstName),
       text: buildEmailText(firstName),
-      bcc: ['heath@meetdossie.com'],
+      // BCC to Heath removed 2026-07-14 — was flooding KW inbox.
+      // Replies still flow to heath@meetdossie.com via the from: address
+      // (ImprovMX forwards → heath.shepard@kw.com).
     }),
   });
 
