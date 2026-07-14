@@ -391,6 +391,51 @@ async function getAgentProfile(userId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
+// Fetch IABS agent defaults from profiles table.
+// Column names must match api/_migrations/0025-iabs-defaults.sql exactly.
+// 2026-07-14 Atlas — Fixed column name mismatch. Migration uses
+// supervising_broker_license (no _number suffix); prior draft mismatched
+// and silently dropped supervisor prefill fields.
+async function getIabsDefaults(userId) {
+  const res = await supa(`profiles?id=eq.${encodeURIComponent(userId)}&select=broker_name,broker_license_number,broker_phone,broker_email,broker_address_street,broker_address_city,broker_address_state,broker_address_zip,supervising_broker_name,supervising_broker_license,supervising_broker_phone,full_name,agent_license_number,agent_phone,email,iabs_defaults_completed&limit=1`);
+  if (!res.ok) return null;
+  const rows = await res.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
+// Map IABS agent defaults to DocuSeal template field names
+// DocuSeal fields (from both IABS templates 4985883 and 4984666):
+// sponsoring_broker_name, sponsoring_broker_license_no, sponsoring_broker_email, sponsoring_broker_phone,
+// designated_broker_name, designated_broker_license_no, designated_broker_email, designated_broker_phone,
+// supervisor_name, supervisor_license_no, supervisor_email, supervisor_phone,
+// sales_agent_name, sales_agent_license_no, sales_agent_email, sales_agent_phone,
+// client_initials, acknowledgment_date
+function buildIabsPrefill(iabsDefaults) {
+  if (!iabsDefaults || !iabsDefaults.iabs_defaults_completed) {
+    return {};
+  }
+  const prefill = {};
+  // Map sponsoring broker (the agent's broker firm)
+  if (iabsDefaults.broker_name) prefill.sponsoring_broker_name = iabsDefaults.broker_name;
+  if (iabsDefaults.broker_license_number) prefill.sponsoring_broker_license_no = iabsDefaults.broker_license_number;
+  if (iabsDefaults.broker_email) prefill.sponsoring_broker_email = iabsDefaults.broker_email;
+  if (iabsDefaults.broker_phone) prefill.sponsoring_broker_phone = iabsDefaults.broker_phone;
+
+  // Map supervisor (supervising broker)
+  if (iabsDefaults.supervising_broker_name) prefill.supervisor_name = iabsDefaults.supervising_broker_name;
+  if (iabsDefaults.supervising_broker_license) prefill.supervisor_license_no = iabsDefaults.supervising_broker_license;
+  if (iabsDefaults.supervising_broker_phone) prefill.supervisor_phone = iabsDefaults.supervising_broker_phone;
+
+  // Map sales agent (the agent themselves)
+  if (iabsDefaults.full_name) prefill.sales_agent_name = iabsDefaults.full_name;
+  if (iabsDefaults.agent_license_number) prefill.sales_agent_license_no = iabsDefaults.agent_license_number;
+  if (iabsDefaults.email) prefill.sales_agent_email = iabsDefaults.email;
+  if (iabsDefaults.agent_phone) prefill.sales_agent_phone = iabsDefaults.agent_phone;
+
+  // Note: designated_broker_* and client_initials/acknowledgment_date are signer-filled, not defaulted
+  return prefill;
+}
+
 async function generateSignedUrl(storagePath, expiresIn = 300) {
   const url = `${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${storagePath}`;
   const res = await fetch(url, {
@@ -1218,7 +1263,18 @@ module.exports = async function handler(req, res) {
       // and this is the resale template; otherwise fall back to the earlier
       // generic prefill from tx.
       let prefill = prefillData || {};
-      if (tx) {
+      
+      // Check if this is an IABS template (Buyer/Tenant or Seller/Landlord)
+      const IABS_TEMPLATE_IDS = [4985883, 4984666]; // Buyer/Tenant, Seller/Landlord
+      const isIabsTemplate = IABS_TEMPLATE_IDS.includes(Number(effectiveTemplateId));
+      
+      if (isIabsTemplate) {
+        // For IABS templates, fetch and apply agent defaults
+        const iabsDefaults = await getIabsDefaults(userId).catch(() => null);
+        const iabsPrefill = buildIabsPrefill(iabsDefaults);
+        prefill = { ...iabsPrefill, ...prefill };
+        console.log(`[esign-create] IABS template ${effectiveTemplateId}: applied ${Object.keys(iabsPrefill).length} defaults`);
+      } else if (tx) {
         if (Number(effectiveTemplateId) === RESALE_TEMPLATE_ID) {
           const agentProfile = await getAgentProfile(userId).catch(() => null);
           prefill = { ...buildResaleContractPrefill(tx, agentProfile), ...prefill };
