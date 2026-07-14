@@ -391,6 +391,72 @@ async function getAgentProfile(userId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
+// IABS template routing constants + helpers.
+// 2026-07-14 Atlas — Simple Send with a blank IABS form_template document
+// used to 422 with "This form template PDF is not available" because the
+// resolver in _lib/resolve-blank-template-pdf.js has no SHORT_NAME_TO_FORM_TYPE
+// entry for "IABS" (and no base64 asset for IABS). The correct fix is not to
+// ship an IABS base64 PDF (blank IABS makes no legal sense — it must carry the
+// agent's broker info), but to route the Simple Send request through the same
+// DocuSeal template flow (templates 4985883 / 4984666) that the "Use TREC
+// template" tab already uses. Mirrors the completed-broker-submitter pattern
+// from esign-templates.js (line ~2005) so the PDF renders populated.
+const IABS_BUYER_TEMPLATE_ID = 4985883;
+const IABS_SELLER_TEMPLATE_ID = 4984666;
+
+// Role list per IABS template — mirrors TEMPLATE_ROLES in esign-templates.js.
+// Used by iabsNormalizeSignerRole so incoming "Buyer"/"Seller"/"Buyer 1" etc
+// collapse to the single consumer signer role each IABS template exposes.
+const IABS_TEMPLATE_ROLES = {
+  [IABS_BUYER_TEMPLATE_ID]: ['Buyer Broker', 'Buyer 1'],
+  [IABS_SELLER_TEMPLATE_ID]: ['Seller Broker', 'Seller 1'],
+};
+
+function iabsNormalizeSignerRole(role, templateId) {
+  const roles = IABS_TEMPLATE_ROLES[Number(templateId)] || [];
+  const trimmed = String(role || '').trim();
+  // Buyer template only has one consumer slot "Buyer 1"; seller has "Seller 1".
+  // Any incoming buyer-side role collapses to "Buyer 1"; seller-side to "Seller 1".
+  const consumerRole = roles.find((r) => !/broker|agent/i.test(r));
+  if (!consumerRole) return trimmed;
+  if (/^buyer|^tenant/i.test(trimmed) && Number(templateId) === IABS_BUYER_TEMPLATE_ID) return consumerRole;
+  if (/^seller|^landlord/i.test(trimmed) && Number(templateId) === IABS_SELLER_TEMPLATE_ID) return consumerRole;
+  // Fallback — assume the single consumer slot.
+  return consumerRole;
+}
+
+// Detect whether the given documents row is a blank IABS form_template
+// placeholder (no PDF bytes exist for IABS). Returns true only when the row
+// looks like a form_template placeholder AND the linked form_templates row has
+// short_name === 'IABS'. Anything else — filled IABS PDFs uploaded by the
+// user, non-IABS form_templates, ordinary uploads — returns false so the
+// caller falls through to the normal Simple Send path.
+async function isBlankIabsDocument(doc) {
+  if (!doc) return false;
+  if (doc.document_type !== 'form_template' || doc.status !== 'blank') return false;
+  if (!doc.form_template_id) return false;
+  try {
+    const r = await supa(`form_templates?id=eq.${encodeURIComponent(doc.form_template_id)}&is_active=eq.true&select=short_name`);
+    if (!r.ok) return false;
+    const rows = await r.json().catch(() => []);
+    return Array.isArray(rows) && rows.length > 0 && rows[0].short_name === 'IABS';
+  } catch (err) {
+    console.warn('[esign-create] isBlankIabsDocument lookup failed:', err && err.message);
+    return false;
+  }
+}
+
+// Pick the correct IABS DocuSeal template based on the signer roles. Any
+// seller/landlord role => Seller/Landlord template. Otherwise defaults to
+// Buyer/Tenant (which is the most common single-signer IABS case).
+function pickIabsTemplateForSigners(signers) {
+  for (const s of signers) {
+    const role = String(s.role || '').toLowerCase().trim();
+    if (/seller|landlord/.test(role)) return IABS_SELLER_TEMPLATE_ID;
+  }
+  return IABS_BUYER_TEMPLATE_ID;
+}
+
 // Fetch IABS agent defaults from profiles table.
 // Column names must match api/_migrations/0025-iabs-defaults.sql exactly.
 // 2026-07-14 Atlas — Fixed column name mismatch. Migration uses
@@ -744,8 +810,14 @@ async function docusealDeleteTemplate(templateId) {
   }
 }
 
-async function docusealCreateFromTemplate({ templateId, signers, message, prefillData }) {
+async function docusealCreateFromTemplate({ templateId, signers, message, prefillData, extraSubmitter }) {
   // Creates a submission from a pre-built DocuSeal template (fields already placed).
+  // extraSubmitter (optional): a pre-completed submitter to prepend BEFORE the
+  //   real signers so DocuSeal stamps its `values` into the shared PDF at
+  //   creation time. Used for IABS templates where the "Buyer Broker" /
+  //   "Seller Broker" role owns all broker/agent fields; without a completed
+  //   broker row, the consumer signer sees a blank PDF even when the clone
+  //   has default_value set. Mirrors the pattern in esign-templates.js.
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub template submission.');
     return {
@@ -783,6 +855,24 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
     send_email: false,
   }));
 
+  // 2026-07-14 Atlas — Prepend a completed extraSubmitter (IABS broker) if
+  // provided. DocuSeal materializes a submitter's `values` into the visible
+  // PDF only once that submitter is completed, so the broker row must be
+  // marked completed at creation time.
+  const allSubmitters = extraSubmitter
+    ? [
+        {
+          name: extraSubmitter.name,
+          email: extraSubmitter.email,
+          role: extraSubmitter.role,
+          send_email: false,
+          completed: extraSubmitter.completed === true,
+          ...(extraSubmitter.values ? { values: extraSubmitter.values } : {}),
+        },
+        ...submitters,
+      ]
+    : submitters;
+
   // Message shape: DocuSeal expects {subject, body} object, not a bare string.
   let messageObj = null;
   if (message) {
@@ -796,7 +886,7 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
   const body = {
     template_id: submissionTemplateId,
     send_email: false,
-    submitters,
+    submitters: allSubmitters,
     ...(messageObj ? { message: messageObj } : {}),
   };
 
@@ -1257,23 +1347,59 @@ module.exports = async function handler(req, res) {
     let effectiveTemplateId = templateId;
     // NOTE: intentionally NOT setting effectiveTemplateId for resale_contract.
 
+    // 2026-07-14 Atlas — Simple Send fix for blank IABS form_template docs.
+    // When the customer picks IABS from the "attach template" library and hits
+    // Simple Send, the documents row is a blank form_template placeholder with
+    // no PDF bytes. The resolver in _lib/resolve-blank-template-pdf.js has no
+    // mapping for IABS (blank IABS makes no legal sense — the broker info must
+    // be baked in). Route those requests through the DocuSeal template flow so
+    // the customer gets the same envelope the "Use TREC template" tab produces.
+    // Buyer-side signers => 4985883 (Buyer/Tenant); Seller-side => 4984666
+    // (Seller/Landlord). Signer roles are normalized to the template's single
+    // consumer slot ("Buyer 1" or "Seller 1").
+    if (!effectiveTemplateId && await isBlankIabsDocument(doc)) {
+      const iabsTemplateId = pickIabsTemplateForSigners(signers);
+      effectiveTemplateId = String(iabsTemplateId);
+      console.log(`[esign-create] Blank IABS form_template ${doc.form_template_id} routed to DocuSeal template ${effectiveTemplateId} for Simple Send.`);
+      // Normalize the incoming signer roles to what the picked IABS template
+      // exposes (single "Buyer 1" or "Seller 1" slot). Mutating allSigners
+      // here keeps the downstream docusealCreateFromTemplate call consistent
+      // with the completed-broker-submitter role name.
+      for (let i = 0; i < allSigners.length; i += 1) {
+        const original = allSigners[i].role;
+        allSigners[i] = { ...allSigners[i], role: iabsNormalizeSignerRole(original, iabsTemplateId) };
+        if (allSigners[i].role !== original) {
+          console.log(`[esign-create] IABS role normalize: "${original}" -> "${allSigners[i].role}"`);
+        }
+      }
+    }
+
     if (effectiveTemplateId) {
       // Phase 3 path — template-based submission with optional pre-fill.
       // Build resale-specific prefill (full field map) if we have a transaction
       // and this is the resale template; otherwise fall back to the earlier
       // generic prefill from tx.
       let prefill = prefillData || {};
-      
+
       // Check if this is an IABS template (Buyer/Tenant or Seller/Landlord)
-      const IABS_TEMPLATE_IDS = [4985883, 4984666]; // Buyer/Tenant, Seller/Landlord
+      const IABS_TEMPLATE_IDS = [IABS_BUYER_TEMPLATE_ID, IABS_SELLER_TEMPLATE_ID];
       const isIabsTemplate = IABS_TEMPLATE_IDS.includes(Number(effectiveTemplateId));
-      
+
+      // 2026-07-14 Atlas — IABS completed-broker-submitter injection.
+      // DocuSeal only materializes a submitter's field values into the visible
+      // PDF once that submitter is completed. IABS templates route all 16
+      // broker/agent fields to the "Buyer Broker" / "Seller Broker" role.
+      // Without a completed broker submitter, the consumer signer sees a blank
+      // PDF even when clone default_value is set. Fix mirrors esign-templates.js.
+      let iabsBrokerSubmitter = null;
+      let iabsDefaultsRow = null;
+      let iabsPrefillForBroker = {};
       if (isIabsTemplate) {
         // For IABS templates, fetch and apply agent defaults
-        const iabsDefaults = await getIabsDefaults(userId).catch(() => null);
-        const iabsPrefill = buildIabsPrefill(iabsDefaults);
-        prefill = { ...iabsPrefill, ...prefill };
-        console.log(`[esign-create] IABS template ${effectiveTemplateId}: applied ${Object.keys(iabsPrefill).length} defaults`);
+        iabsDefaultsRow = await getIabsDefaults(userId).catch(() => null);
+        iabsPrefillForBroker = buildIabsPrefill(iabsDefaultsRow);
+        prefill = { ...iabsPrefillForBroker, ...prefill };
+        console.log(`[esign-create] IABS template ${effectiveTemplateId}: applied ${Object.keys(iabsPrefillForBroker).length} defaults`);
       } else if (tx) {
         if (Number(effectiveTemplateId) === RESALE_TEMPLATE_ID) {
           const agentProfile = await getAgentProfile(userId).catch(() => null);
@@ -1289,9 +1415,46 @@ module.exports = async function handler(req, res) {
           };
         }
       }
+
+      // Build the completed broker submitter for IABS AFTER prefill is finalized
+      // (so agent-edits from prefillData win over saved defaults, mirroring
+      // esign-templates.js). Then strip broker-owned keys from `prefill` so
+      // clone-default_value doesn't double-render fields the broker submitter
+      // will already stamp via `values`.
+      if (isIabsTemplate && Object.keys(iabsPrefillForBroker).length > 0) {
+        const brokerValues = { ...iabsPrefillForBroker };
+        for (const k of Object.keys(prefillData || {})) {
+          const v = prefillData[k];
+          if (v !== null && v !== undefined && v !== '') brokerValues[k] = String(v);
+        }
+        const brokerRole = Number(effectiveTemplateId) === IABS_BUYER_TEMPLATE_ID
+          ? 'Buyer Broker'
+          : 'Seller Broker';
+        const agentName = (iabsDefaultsRow && iabsDefaultsRow.full_name) || 'Agent';
+        const agentEmail = (iabsDefaultsRow && iabsDefaultsRow.email) || 'noreply@meetdossie.com';
+        iabsBrokerSubmitter = {
+          name: agentName,
+          email: agentEmail,
+          role: brokerRole,
+          send_email: false,
+          completed: true,
+          values: brokerValues,
+        };
+        for (const k of Object.keys(iabsPrefillForBroker)) {
+          delete prefill[k];
+        }
+        console.log(`[esign-create] IABS template ${effectiveTemplateId}: injecting completed ${brokerRole} submitter with ${Object.keys(brokerValues).length} field(s)`);
+      }
+
       const prefillKeys = Object.keys(prefill).filter((k) => prefill[k] != null && prefill[k] !== '');
       console.log(`[esign-create] v12 template ${effectiveTemplateId} with ${prefillKeys.length} prefill field(s): ${prefillKeys.slice(0, 8).join(', ')}${prefillKeys.length > 8 ? '...' : ''}`);
-      submissionResult = await docusealCreateFromTemplate({ templateId: effectiveTemplateId, signers: allSigners, message, prefillData: prefill });
+      submissionResult = await docusealCreateFromTemplate({
+        templateId: effectiveTemplateId,
+        signers: allSigners,
+        message,
+        prefillData: prefill,
+        ...(iabsBrokerSubmitter ? { extraSubmitter: iabsBrokerSubmitter } : {}),
+      });
     } else {
       // resale_contract (and other non-template PDFs like Seller's Disclosure
       // ack, addendums, etc.) go through /templates/pdf with signer-only widgets.
