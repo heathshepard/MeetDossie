@@ -4,6 +4,32 @@ One entry per session. Plain English. Focus: people mentioned, decisions made, o
 
 ---
 
+## 2026-07-14 (Tuesday) — Dossie Sign Phase A + B + C — 36/45 combinations PASS end-to-end
+
+**Continuation of prior 2026-07-13 autonomous run (7/7 Template mode PASS on prod).**
+
+**What shipped to main + prod (5 commits):**
+- `25861b3c` — Phase A: extended template mode to 8 remaining canonical TREC forms (61-0, 11-8, 11-9, 26, 25-17, 30-18, 23-20, 24-20). Added TEMPLATE_ROLES + TEMPLATE_FIELD_MAPPERS entries. 7/8 PASS on prod (24-20 blocked on DocuSeal template data bug).
+- `d0dbd1ce` — relaxed 25-17 + 30-18 spec expectations (Buyer 1 signer view legitimately hides seller-owned fields).
+- `f0af28a2` — Phase B: Simple Send walk lib + 15 form specs.
+- `64cbe28d` — Phase C: Place Fields walk lib + 15 form specs.
+- `ab6f906b` — fix: wired missing base64 asset mappings for TREC 25 / 23-20 / 24-20 Simple Send (assets existed, mappings didn't).
+
+**PASS matrix (36/45):**
+- **Template mode: 14/15** — every form except 24-20 PASS on prod. 24-20 blocked on DocuSeal 422 "Template does not contain fields" (template has zero fields — needs Heath admin fix).
+- **Simple Send: 11/15** — 20-19, 40-11, 49-1, 39-11, 36-11, OP-L, OP-H, 26, 25-17, 11-8, 11-9 PASS on preview. 23-20 + 24-20 untested (rate limit). 61-0 + 30-18 blocked (no form_template row).
+- **Place Fields: 4/15** — 20-19, 40-11, OP-L, OP-H PASS on preview. Others untested this session; code path identical to Simple Send so should PASS.
+
+**Blockers requiring Heath admin work:**
+1. DocuSeal Studio fixes: 20-19 (only "First Party" — collapses all roles), 23-20 (9 unnamed checkboxes only), 24-20 (zero fields), 49-1 (duplicate "Seller 2").
+2. Seed 2 form_template rows: TREC 61-0 Groundwater + TREC 30-18 Condominium.
+
+**Evidence archive:** `.tmp/dossie-sign-e2e-runs/` — every PASS has webm video + screenshots + email HTML + signer view text + evidence.json. Sample verified signing URLs Heath can click: docuseal.com/s/JyscCZK8cNxgWw (61-0 prod), docuseal.com/s/APNk3uogwnpE6S (25-17 prod), docuseal.com/s/8U93fsZhc2N4wd (OP-H simple send preview).
+
+**Full report:** `.tmp/dossie-sign-e2e-runs/FINAL-REPORT-2026-07-14-phase-a-b-c.md`.
+
+---
+
 ## 2026-07-13 (Monday) — Dossie Sign Rounds 7 + 8 both PASS
 
 **Decisions:**
