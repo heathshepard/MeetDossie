@@ -55,7 +55,7 @@ const REPO_ROOT = path.join(__dirname, '..');
 // Populated from live DocuSeal API inventory (2026-07-12).
 const TARGETS = [
   // Heath's 7 manually-mapped templates — audit-only
-  { id: 4952172, form: 'TREC 20-19 Resale',            groundTruth: 'docuseal-fields.json',                        state: 'mapped' }, // 2026-07-12: swapped to fillable PDF template; old 4111319 archived
+  { id: 4996863, form: 'TREC 20-19 Resale',            groundTruth: 'docuseal-fields.json',                        state: 'mapped' }, // 2026-07-14: swapped to v2 template with 6 correctly-split submitters; old 4952172 deleted (all 280 fields were on one "First Party")
   { id: 4023463, form: 'TREC 40-11 Financing',         groundTruth: 'docuseal-financing-fields.json',              state: 'mapped' },
   { id: 4023470, form: 'OP-H Sellers Disclosure',      groundTruth: 'docuseal-sellers-disclosure-fields.json',     state: 'mapped' },
   { id: 4023472, form: 'TREC 49-1 Lender Appraisal',   groundTruth: 'docuseal-trec-49-1-right-to-terminate-fields.json', state: 'mapped' },
