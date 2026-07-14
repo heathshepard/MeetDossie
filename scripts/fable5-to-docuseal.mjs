@@ -22,9 +22,12 @@
  */
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import https from 'node:https';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { PDFDocument } from 'pdf-lib';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,6 +101,121 @@ const SIGNING_ORDER = [
 ];
 
 // ---------------------------------------------------------------------------
+// ENCRYPTION AUTO-STRIP (Bug 1)
+// ---------------------------------------------------------------------------
+// Zipform exports encrypted PDFs (usually empty-password). Fable5 sees a black
+// box and returns 0 fields. Detect encryption on load and, if present, copy
+// pages into a fresh (unencrypted) PDF and return those bytes. Pure JS via
+// pdf-lib — no external binaries required.
+
+async function stripEncryptionIfNeeded(pdfBuffer) {
+  // Fast check: is this PDF encrypted at all?
+  const src = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  if (!src.isEncrypted) {
+    return { bytes: pdfBuffer, wasEncrypted: false, method: 'none' };
+  }
+
+  // Encrypted. pdf-lib's copyPages+save produces a doc whose content streams
+  // Claude/Fable5 can't render (page shows blank). pypdf's decrypt+writer
+  // preserves the content streams correctly. Try pypdf first; fall back to
+  // pdf-lib only if Python isn't available.
+  const pypdfBytes = await stripViaPypdf(pdfBuffer);
+  if (pypdfBytes) {
+    return { bytes: pypdfBytes, wasEncrypted: true, method: 'pypdf' };
+  }
+
+  // pypdf unavailable — pdf-lib fallback. Copy pages into a fresh doc so the
+  // Encrypt trailer disappears. May yield a blank-rendering PDF; log clearly.
+  console.log('      WARN: pypdf unavailable, falling back to pdf-lib decrypt (may render blank)');
+  const clean = await PDFDocument.create();
+  const indices = src.getPageIndices();
+  const pages = await clean.copyPages(src, indices);
+  pages.forEach((p) => clean.addPage(p));
+  const cleanBytes = Buffer.from(await clean.save({ useObjectStreams: false }));
+  const verify = await PDFDocument.load(cleanBytes, { ignoreEncryption: true });
+  if (verify.isEncrypted) {
+    throw new Error('stripEncryptionIfNeeded: pdf-lib fallback still reports isEncrypted=true');
+  }
+  return { bytes: cleanBytes, wasEncrypted: true, method: 'pdf-lib-fallback' };
+}
+
+/**
+ * Try to strip encryption via pypdf (Python child_process). Returns clean
+ * Buffer on success, null if Python or pypdf isn't installed. Uses a temp
+ * file pair rather than piping bytes through stdio (Windows-safe for
+ * binary payloads).
+ */
+async function stripViaPypdf(pdfBuffer) {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fable5-decrypt-'));
+  const inPath = path.join(tmpDir, 'in.pdf');
+  const outPath = path.join(tmpDir, 'out.pdf');
+  try {
+    fs.writeFileSync(inPath, pdfBuffer);
+    const script = [
+      'import sys',
+      'try:',
+      '  from pypdf import PdfReader, PdfWriter',
+      'except Exception as e:',
+      '  sys.stderr.write("PYPDF_UNAVAILABLE:" + repr(e)); sys.exit(2)',
+      'r = PdfReader(sys.argv[1])',
+      'if r.is_encrypted:',
+      '  if r.decrypt("") == 0:',
+      '    sys.stderr.write("DECRYPT_FAILED_EMPTY_PASSWORD"); sys.exit(3)',
+      'w = PdfWriter()',
+      'for p in r.pages: w.add_page(p)',
+      'with open(sys.argv[2], "wb") as f: w.write(f)',
+      'print("OK")',
+    ].join('\n');
+    // Try `python` then `python3` — Windows usually has `python`.
+    for (const bin of ['python', 'python3']) {
+      const res = spawnSync(bin, ['-c', script, inPath, outPath], {
+        encoding: 'utf8',
+        timeout: 30000,
+      });
+      if (res.error && res.error.code === 'ENOENT') continue; // interpreter missing, try next
+      if (res.status === 0 && fs.existsSync(outPath)) {
+        return fs.readFileSync(outPath);
+      }
+      if (res.status === 2) return null; // pypdf not installed
+      if (res.status === 3) {
+        console.log(`      WARN: pypdf reports non-empty password required — cannot decrypt`);
+        return null;
+      }
+      // Any other non-zero: log stderr and stop trying alternate binaries.
+      console.log(`      pypdf strip failed via ${bin}: exit=${res.status} stderr=${(res.stderr || '').slice(0, 200)}`);
+      return null;
+    }
+    return null; // no python binary at all
+  } finally {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE-SIDE DETECTION (Bug 2 — broker role override)
+// ---------------------------------------------------------------------------
+// Fable5 keeps tagging broker fields as generic "listing" even on buyer-side
+// forms (Wire Fraud Buyer, IABS Buyer, Buyer Rep Agreement, Termination of
+// Buyer Rep). Route every broker/agent-flavored field to Buyer Broker on
+// buyer-side templates and Seller Broker on seller-side templates.
+//
+// Detected from the template NAME the caller passes as the CLI arg — matches
+// case-insensitively. Neutral templates (no side keyword) fall through to the
+// existing per-field default.
+
+function detectTemplateSide(templateName) {
+  const s = String(templateName || '').toLowerCase();
+  const isBuyerSide = /(buyer|tenant|purchaser)/.test(s);
+  const isSellerSide = /(seller|landlord|listing)/.test(s);
+  if (isBuyerSide && !isSellerSide) return 'buyer';
+  if (isSellerSide && !isBuyerSide) return 'seller';
+  return 'neutral';
+}
+
+// Set at the top of fable5ToDocuSeal() before any fieldToRole() calls.
+let TEMPLATE_SIDE = 'neutral';
+
+// ---------------------------------------------------------------------------
 // PARTY -> ROLE (with field-name post-processing for co-signers)
 // ---------------------------------------------------------------------------
 
@@ -125,14 +243,24 @@ function fieldToRole(field) {
   if (rawParty === 'buyer_1' || rawParty === 'buyer1') return 'Buyer 1';
   if (rawParty === 'seller_1' || rawParty === 'seller1') return 'Seller 1';
 
-  // 2. Broker parties (listing vs buyer side)
+  // 2. Broker parties (listing vs buyer side). If TEMPLATE_SIDE says the
+  //    template is buyer-side (name contains buyer/tenant/purchaser), route
+  //    ALL broker-flavored parties to Buyer Broker — Fable5 mislabels these
+  //    as "listing" even on buyer-side forms. Mirror rule for seller-side.
+  const isBrokerParty =
+    rawParty === 'listing_broker' || rawParty === 'listing_agent' ||
+    rawParty === 'buyer_broker' || rawParty === 'buyer_agent' || rawParty === 'buyers_agent' ||
+    rawParty === 'broker' || rawParty === 'agent';
+  if (isBrokerParty && TEMPLATE_SIDE === 'buyer') return 'Buyer Broker';
+  if (isBrokerParty && TEMPLATE_SIDE === 'seller') return 'Seller Broker';
   if (rawParty === 'listing_broker' || rawParty === 'listing_agent') return 'Seller Broker';
   if (rawParty === 'buyer_broker' || rawParty === 'buyer_agent' || rawParty === 'buyers_agent') return 'Buyer Broker';
 
-  // 3. Generic broker: infer from name — "listing" -> Seller side, "selling"/"other" -> Buyer side.
-  //    Fall back: Seller Broker (listing side is the more common broker signature on
-  //    seller-facing disclosure/wire-fraud forms).
-  if (rawParty === 'broker') {
+  // 3. Generic broker on a NEUTRAL template: infer from name — "listing" ->
+  //    Seller side, "selling"/"other" -> Buyer side. Fall back: Seller Broker
+  //    (listing side is the more common broker signature on seller-facing
+  //    disclosure/wire-fraud forms).
+  if (rawParty === 'broker' || rawParty === 'agent') {
     if (/listing/.test(name)) return 'Seller Broker';
     if (/(selling|other|buyer)/.test(name)) return 'Buyer Broker';
     return 'Seller Broker';
@@ -247,10 +375,30 @@ function dsJson(method, urlPath, body) {
 export async function fable5ToDocuSeal(pdfPath, templateName, opts = {}) {
   if (!fs.existsSync(pdfPath)) throw new Error(`PDF not found: ${pdfPath}`);
 
+  // Lock template-side once per invocation so fieldToRole() can consult it.
+  TEMPLATE_SIDE = detectTemplateSide(templateName);
+  console.log(`[0/5] Template side: ${TEMPLATE_SIDE} (from name "${templateName}")`);
+
   console.log('[1/5] Loading PDF...');
-  const pdfBuffer = fs.readFileSync(pdfPath);
+  const rawBuffer = fs.readFileSync(pdfPath);
   console.log(`      Path: ${pdfPath}`);
-  console.log(`      Size: ${pdfBuffer.length} bytes`);
+  console.log(`      Size: ${rawBuffer.length} bytes`);
+
+  // Bug 1 fix: auto-strip PDF encryption before ANY downstream processing.
+  // Zipform exports empty-password-encrypted PDFs which cause Fable5 to
+  // return zero fields. Copy pages into a fresh unencrypted document.
+  let pdfBuffer = rawBuffer;
+  try {
+    const stripped = await stripEncryptionIfNeeded(rawBuffer);
+    if (stripped.wasEncrypted) {
+      pdfBuffer = stripped.bytes;
+      console.log(`      Encryption detected — stripped via ${stripped.method}. New size: ${pdfBuffer.length} bytes`);
+    } else {
+      console.log('      Not encrypted — no strip needed.');
+    }
+  } catch (e) {
+    console.log(`      Encryption strip FAILED (${e.message}) — proceeding with original bytes.`);
+  }
 
   console.log('[2/5] Calling Fable5...');
   // Dynamically import the CommonJS module. Node ESM supports `import()` on
