@@ -33,8 +33,9 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// Total founding spots available (locked — change only on explicit Heath instruction).
-const FOUNDING_TOTAL_SPOTS = 50;
+// Total founding spots available (locked at 25 per CLAUDE.md §5, Heath 2026-07-09).
+// PARAMOUNT: Founding cohort capped at 25, all $29/mo for life. Do not raise.
+const FOUNDING_TOTAL_SPOTS = 25;
 
 // Keep in sync with api/admin-dashboard.js expenses block. Only the three
 // fixed-cost SaaS line items requested in the brief spec — Claude/Anthropic
@@ -508,11 +509,10 @@ async function buildBrief() {
   const messagesYesterday = null;
 
   // 6a. Founding spots remaining.
-  // Count active founding subscriptions (paying $29) to derive spots used.
-  // foundingPaying is already computed above — reuse it.
-  // foundingFriend ($1) does NOT consume a founding spot (special case).
-  const foundingSpotsUsed = foundingPaying; // excludes founding friend
-  const foundingSpotsRemaining = FOUNDING_TOTAL_SPOTS - foundingSpotsUsed;
+  // Count active founding subscriptions (paying $29 + $1 friend) to derive spots used.
+  // Both consume a founding spot per CLAUDE.md §6 (12 taken = 11 founding + Suzanne friend).
+  const foundingSpotsUsed = foundingPaying + foundingFriend;
+  const foundingSpotsRemaining = Math.max(0, FOUNDING_TOTAL_SPOTS - foundingSpotsUsed);
 
   // 6b. Referral pipeline — pending founding applications.
   const pendingApps = await safeQuery('pending-applications', async () => {

@@ -242,8 +242,22 @@ function renderPlainEnglishSummary(runs, completedTasks, blocked, stuck, selfImp
     let globalIdx = 0;
     let anyShown = false;
 
+    // Dedup across ALL categories by title. The daily drafter re-inserts the
+    // same title every run (e.g. "Reliability gap: 1 cron stuck…"), so pending
+    // rows pile up and previously showed 3× in the brief. Keep the highest-
+    // impact / oldest surviving row per title (already ordered by SQL query).
+    const seenTitles = new Set();
+
     for (const catKey of ['conversation_review', 'capability_scan', 'rule_audit']) {
-      const items = grouped[catKey].slice(0, 3);
+      const items = grouped[catKey]
+        .filter((c) => {
+          const key = String(c.title || '').trim().toLowerCase();
+          if (!key) return true;
+          if (seenTitles.has(key)) return false;
+          seenTitles.add(key);
+          return true;
+        })
+        .slice(0, 3);
       if (items.length === 0) continue;
       if (!anyShown) {
         lines.push('<b>Self-improvement — say yes/no:</b>');
