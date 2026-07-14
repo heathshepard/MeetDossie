@@ -56,6 +56,13 @@ const FORM_TEMPLATE_B64 = {
   'fixture-leases':        () => require('../_assets/trec-fixture-leases-base64.js'),
   'loan-assumption':       () => require('../_assets/trec-loan-assumption-base64.js'),
   'improvement-district':  () => require('../_assets/trec-improvement-district-base64.js'),
+  // 2026-07-14 — Simple Send Phase B revealed missing entries for canonical
+  // TREC forms whose base64 assets exist in _assets/ but were never wired.
+  // Bugs surfaced 25-17 / 23-20 / 24-20 Simple Send returning
+  // "This form template PDF is not available. Please contact support."
+  'farm-ranch':            () => require('../_assets/trec-farm-ranch-25-17-base64.js'),
+  'new-home-incomplete':   () => require('../_assets/trec-new-home-incomplete-23-20-base64.js'),
+  'new-home-complete':     () => require('../_assets/trec-new-home-complete-24-20-base64.js'),
 };
 
 const SHORT_NAME_TO_FORM_TYPE = {
@@ -76,6 +83,12 @@ const SHORT_NAME_TO_FORM_TYPE = {
   'TAR 1501':                      'buyer-rep-agreement',
   'TAR 2001':                      'residential-leases',
   'TAR 2517':                      'wire-fraud-warning',
+  // 2026-07-14 — Wire canonical TREC forms whose short_names existed in
+  // form_templates but had no SHORT_NAME_TO_FORM_TYPE mapping. Every mapping
+  // has a corresponding FORM_TEMPLATE_B64 entry.
+  'TREC 25':                       'farm-ranch',
+  'New Home Contract':             'new-home-incomplete',
+  'New Home Completed':            'new-home-complete',
 };
 
 function supa(path) {
