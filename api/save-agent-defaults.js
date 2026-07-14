@@ -53,7 +53,7 @@ async function handler(req, res) {
       userId = tokenResult.userId;
     } catch (err) {
       if (err instanceof AuthError) {
-        res.status(err.statusCode).json({ ok: false, error: err.message });
+        res.status(err.status || 401).json({ ok: false, error: err.message });
         return;
       }
       throw err;
