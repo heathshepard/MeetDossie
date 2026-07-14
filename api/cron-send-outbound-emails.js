@@ -206,10 +206,19 @@ async function sendViaResend(row) {
     reply_to: isValidEmail(row.reply_to)
       ? String(row.reply_to).trim()
       : (row.from_email || 'heath@meetdossie.com'),
-    // BCC Heath so he always has a copy of what Cole sent. Mirrors
-    // admin-send-email.js. Easy to remove later if it gets noisy.
-    bcc: ['heath@meetdossie.com'],
   };
+
+  // BCC Heath on transactional/Cole-sent rows so he has archive copies.
+  // STRIP the BCC on outbound marketing (cold email daily batch) — was
+  // flooding Heath's KW inbox 25/day at full ramp. Heath approved
+  // 2026-07-14 18:02 CT. Replies still route to heath@meetdossie.com via
+  // the reply_to field above. Detection: metadata.queued_by tag set by the
+  // enqueue side (cron-cold-email-daily-batch marks every row).
+  const queuedBy = row && row.metadata && row.metadata.queued_by;
+  const isMarketingBatch = queuedBy === 'cron-cold-email-daily-batch';
+  if (!isMarketingBatch) {
+    payload.bcc = ['heath@meetdossie.com'];
+  }
 
   // Attachment support via metadata.attachments_b64:
   // [{ filename: 'foo.png', content_b64: '...', content_type: 'image/png' }]
