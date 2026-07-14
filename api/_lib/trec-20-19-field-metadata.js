@@ -23,7 +23,7 @@
 const TREC_20_19_FABLE5_RUN_ID = '8e3bc446-eb01-43b9-8447-6da9de22bcc7';
 
 // DocuSeal template id for TREC 20-19.
-const TREC_20_19_TEMPLATE_ID = '4952172';
+const TREC_20_19_TEMPLATE_ID = '4996863';
 
 // Field types the Phase 1 editor supports. Anything else is dropped (signature
 // + initial live on the DocuSeal template, agent doesn't fill them).
