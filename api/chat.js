@@ -158,7 +158,7 @@ Don't force data entry. Just be a helpful coordinator they can talk to.`;
 }
 
 async function callClaude(model, message, systemPrompt, history, metadata = {}) {
-  const maxTokens = model === 'claude-sonnet-5' ? 400 : 150;
+  const maxTokens = model === 'claude-sonnet-5' ? 700 : 400;
 
   const messagesArray = Array.isArray(history) && history.length > 0
     ? history
