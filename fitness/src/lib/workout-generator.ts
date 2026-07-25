@@ -114,7 +114,10 @@ function computeWeight(
       lower.includes('dip') || lower.includes('plank') || lower.includes('hanging') ||
       lower.includes('dead bug') || lower.includes('mountain climber') || lower.includes('bicycle') ||
       lower.includes('side plank') || lower.includes('superman') || lower.includes('inverted row') ||
-      lower.includes('bodyweight') || lower.includes('russian twist') || lower.includes('calf raise')) {
+      lower.includes('bodyweight') || lower.includes('russian twist') || lower.includes('calf raise') ||
+      lower.includes('pike') || lower.includes('diamond') || lower.includes('step-up') ||
+      lower.includes('ghd sit') || lower.includes('pallof') || lower.includes('ab wheel') ||
+      lower.includes('glute ham raise')) {
     return { weight: null, display: 'Bodyweight' };
   }
 
@@ -184,7 +187,8 @@ function computeWeight(
   }
 
   if (lower.includes('cable') || lower.includes('lat pulldown') || lower.includes('leg press') ||
-      lower.includes('straight-arm') || lower.includes('face pull')) {
+      lower.includes('straight-arm') || lower.includes('face pull') || lower.includes('pullover') ||
+      lower.includes('pull-through') || lower.includes('pallof')) {
     const machines = ['Cable Machine', 'Lat Pulldown', 'Leg Press'];
     let equip: EquipmentItem | undefined;
     for (const m of machines) {
@@ -208,6 +212,34 @@ function computeWeight(
     const target = max * intensityPct;
     const rounded = roundToIncrement(Math.max(min, target), increment);
     return { weight: rounded, display: `${rounded} lb` };
+  }
+
+  const machineKeywords: [string, string][] = [
+    ['leg extension', 'Leg Extension Machine'],
+    ['leg curl', 'Leg Curl Machine'],
+    ['chest press machine', 'Chest Press Machine'],
+    ['shoulder press machine', 'Shoulder Press Machine'],
+    ['pec deck', 'Pec Deck / Fly Machine'],
+    ['reverse pec deck', 'Pec Deck / Fly Machine'],
+    ['seated row machine', 'Seated Row Machine'],
+    ['hack squat', 'Hack Squat Machine'],
+    ['calf raise (machine)', 'Calf Raise Machine'],
+    ['hip ab', 'Hip Abductor/Adductor'],
+    ['hip ad', 'Hip Abductor/Adductor'],
+    ['preacher curl machine', 'Preacher Curl Machine'],
+    ['ab crunch machine', 'Ab Crunch Machine'],
+  ];
+  for (const [keyword, equipName] of machineKeywords) {
+    if (lower.includes(keyword)) {
+      const equip = equipmentMap.get(equipName);
+      if (!equip?.config?.max) return { weight: null, display: null };
+      const max = equip.config.max as number;
+      const increment = (equip.config.increment as number) || 10;
+      const min = (equip.config.min as number) || 10;
+      const target = max * intensityPct;
+      const rounded = roundToIncrement(Math.max(min, target), increment);
+      return { weight: rounded, display: `${rounded} lb` };
+    }
   }
 
   return { weight: null, display: null };
