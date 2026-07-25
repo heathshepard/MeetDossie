@@ -7,6 +7,10 @@
       "source": "/"
     },
     {
+      "source": "/fitness",
+      "destination": "/fitness.html"
+    },
+    {
       "source": "/founding",
       "destination": "/founding.html"
     },
