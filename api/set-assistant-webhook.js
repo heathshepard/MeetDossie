@@ -42,7 +42,14 @@ module.exports = async function handler(req, res) {
       allowed_updates: ALLOWED_UPDATES,
     };
     // claudy-webhook.js checks X-Telegram-Bot-Api-Secret-Token when this is set.
-    if (TELEGRAM_WEBHOOK_SECRET) payload.secret_token = TELEGRAM_WEBHOOK_SECRET;
+    // Telegram only accepts 1-256 chars of A-Z a-z 0-9 _ - for secret_token and
+    // rejects the whole setWebhook call with 400 otherwise. The current
+    // TELEGRAM_WEBHOOK_SECRET does NOT satisfy that, so validate before sending
+    // rather than letting one bad character take the registration down.
+    const secretUsable =
+      typeof TELEGRAM_WEBHOOK_SECRET === 'string' &&
+      /^[A-Za-z0-9_-]{1,256}$/.test(TELEGRAM_WEBHOOK_SECRET);
+    if (secretUsable) payload.secret_token = TELEGRAM_WEBHOOK_SECRET;
 
     const setRes = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`,
@@ -82,7 +89,13 @@ module.exports = async function handler(req, res) {
       ok: Boolean(setData && setData.ok),
       timestamp: new Date().toISOString(),
       webhookUrl: WEBHOOK_URL,
-      secretTokenSent: Boolean(TELEGRAM_WEBHOOK_SECRET),
+      secretTokenSent: secretUsable,
+      secretTokenSkippedReason:
+        !TELEGRAM_WEBHOOK_SECRET
+          ? 'TELEGRAM_WEBHOOK_SECRET not set'
+          : secretUsable
+            ? null
+            : 'TELEGRAM_WEBHOOK_SECRET has characters Telegram disallows (A-Za-z0-9_- only)',
       callbackQueryEnabled,
       result: setData,
       verified: info,
