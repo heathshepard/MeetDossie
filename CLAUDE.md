@@ -57,8 +57,10 @@ Before recommending any tool/library/service install, check: (1) CLAUDE.md Secti
 | Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) personal+DONE. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) post approve/reject. |
 
 **Repo layout — TWO repos:**
-- `C:\Users\Heath Shepard\Desktop\Dossie` — React source. Build here.
-- `C:\Users\Heath Shepard\Desktop\MeetDossie` — Vercel deploy. Push here. Cron functions, API routes, scripts, Media live here.
+- `C:\Users\Heath\Projects\Dossie` — React source. Build here. *(not cloned on this machine as of 2026-07-28)*
+- `C:\Users\Heath\Projects\MeetDossie` — Vercel deploy. Push here. Cron functions, API routes, scripts, Media live here.
+
+Paths corrected 2026-07-28 — the Windows profile is `Heath`, not `Heath Shepard`, and the repos live under `Projects\`, not `Desktop\`. Under WSL these are `/mnt/c/Users/Heath/Projects/...`.
 
 **Monthly fixed costs:** $81.65 (Zernio $18 + ElevenLabs $18.33 + Submagic $12 + Hiscox E&O $33.32; Vercel/Supabase/Creatomate/HCTI/Resend/Pexels/Stripe = $0). Variable: Stripe 2.9%+30¢/charge, HCTI $14/mo at 1k renders.
 
@@ -202,28 +204,190 @@ Skipping a memory because "not important enough" = failure. Write it anyway. **W
 
 ---
 
-## 19. KEY ENV VAR NAMES (values in Vercel only)
+## 19. ENV VARS — 68 LIVE IN VERCEL (audited 2026-07-27)
 
+Complete inventory of every variable currently set on the `meet-dossie` Vercel project
+(`heathshepard-6590s-projects/meet-dossie`), grouped by service.
+
+**Columns.** *Envs* = which Vercel environments carry it. *Vault backup* = whether the value is
+recoverable from Bitwarden. "placeholder only" means a vault note exists that names the var but
+does **not** hold its value.
+
+**`(write-only)`** = Vercel's *Sensitive* variable type. `vercel env pull` returns the literal
+`[SENSITIVE]`; the value can be overwritten but never read back. **A var that is write-only *and*
+has no vault backup exists in exactly one place you cannot read** — losing the Vercel project
+loses the secret permanently.
+
+**Supabase / Postgres**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Prod+Preview | **NONE** |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Prod+Preview | **NONE** |
+| `NEXT_PUBLIC_SUPABASE_URL` | Prod+Preview | **NONE** |
+| `POSTGRES_DATABASE` | Prod+Preview | **NONE** |
+| `POSTGRES_HOST` | Prod+Preview | **NONE** |
+| `POSTGRES_PASSWORD` *(write-only)* | Prod+Preview | **NONE** |
+| `POSTGRES_PRISMA_URL` *(write-only)* | Prod+Preview | **NONE** |
+| `POSTGRES_URL` *(write-only)* | Prod+Preview | **NONE** |
+| `POSTGRES_URL_NON_POOLING` *(write-only)* | Prod+Preview | **NONE** |
+| `POSTGRES_USER` | Prod+Preview | **NONE** |
+| `SUPABASE_ANON_KEY` | Prod+Preview | yes |
+| `SUPABASE_JWT_SECRET` *(write-only)* | Prod+Preview | **NONE** |
+| `SUPABASE_PUBLISHABLE_KEY` | Prod+Preview | yes |
+| `SUPABASE_SECRET_KEY` *(write-only)* | Prod+Preview | **NONE** |
+| `SUPABASE_SERVICE_ROLE_KEY` *(write-only)* | Prod+Preview | yes |
+| `SUPABASE_URL` *(write-only)* | Prod+Preview | yes |
+
+**Stripe**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `STRIPE_FOUNDING_PAYMENT_LINK` *(write-only)* | Prod+Preview | **NONE** |
+| `STRIPE_SECRET_KEY` *(write-only)* | Prod+Preview | **placeholder only** |
+| `STRIPE_WEBHOOK_SECRET` *(write-only)* | Prod+Preview | **placeholder only** |
+
+**Telegram**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `SAGE_TRIGGER_SECRET` | Prod | **NONE** |
+| `TELEGRAM_BOT_TOKEN` *(write-only)* | Prod+Preview | yes |
+| `TELEGRAM_CHAT_ID` *(write-only)* | Prod+Preview | **NONE** |
+| `TELEGRAM_MARKETING_BOT_TOKEN` | Prod+Preview | yes |
+| `TELEGRAM_SAGE_BOT_TOKEN` | Prod+Preview+Dev | yes |
+| `TELEGRAM_WEBHOOK_SECRET` | Prod | **NONE** |
+
+**AI models**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `ANTHROPIC_API_KEY` *(write-only)* | Prod+Preview | yes |
+| `FAL_KEY` | Prod+Preview+Dev | yes |
+| `OPENAI_API_KEY` | Prod+Preview+Dev | yes |
+
+**Media / rendering**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `CREATOMATE_API_KEY` *(write-only)* | Prod+Preview | yes |
+| `CREATOMATE_TEMPLATE_ID` | Prod+Preview | **NONE** |
+| `ELEVENLABS_API_KEY` | Prod+Preview+Dev | yes |
+| `HCTI_API_KEY` *(write-only)* | Prod+Preview | **placeholder only** |
+| `HCTI_USER_ID` *(write-only)* | Prod+Preview | **placeholder only** |
+| `PEXELS_API_KEY` *(write-only)* | Prod+Preview | yes |
+| `SHOTSTACK_API_KEY` | Prod+Preview+Dev | yes |
+
+**DocuSeal**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `DOCUSEAL_API_KEY` | Prod+Preview+Dev | yes |
+| `DOCUSEAL_TEMPLATE_AMENDMENT` | Prod | **NONE** |
+| `DOCUSEAL_TEMPLATE_OPTION_EXT` | Prod | **NONE** |
+| `DOCUSEAL_TEMPLATE_PRICE_CHANGE` | Prod | **NONE** |
+| `DOCUSEAL_TEMPLATE_RESALE_ID` | Prod | **NONE** |
+| `DOCUSEAL_WEBHOOK_SECRET` | Prod+Preview+Dev | yes |
+
+**Email (Resend)**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `EMAIL_WATCHER_SECRET` | Prod+Preview | **NONE** |
+| `RESEND_API_KEY` *(write-only)* | Prod+Preview | yes |
+| `RESEND_WEBHOOK_SECRET` *(write-only)* | Prod+Preview | **NONE** |
+
+**Analytics (PostHog)**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `NEXT_PUBLIC_POSTHOG_HOST` | Prod+Preview+Dev | **NONE** |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Prod+Preview+Dev | **NONE** |
+| `POSTHOG_HOST` | Prod+Preview+Dev | **NONE** |
+| `POSTHOG_KEY` | Prod+Preview+Dev | **NONE** |
+| `POSTHOG_PERSONAL_API_KEY` | Prod+Preview+Dev | **NONE** |
+| `POSTHOG_PROJECT_ID` | Prod+Preview+Dev | **NONE** |
+| `VITE_POSTHOG_HOST` | Prod+Preview+Dev | **NONE** |
+| `VITE_POSTHOG_KEY` | Prod+Preview+Dev | **NONE** |
+
+**Google OAuth**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | Prod+Preview+Dev | **NONE** |
+| `GOOGLE_CLIENT_SECRET` *(write-only)* | Prod+Preview+Dev | **NONE** |
+| `GOOGLE_OAUTH_REDIRECT_URI` | Prod+Preview+Dev | **NONE** |
+
+**Social posting**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `ZERNIO_API_KEY` *(write-only)* | Prod+Preview | yes |
+
+**Automation / infra**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `CRON_SECRET` | Prod+Preview | yes |
+| `GITHUB_TOKEN` | Prod | **NONE** |
+| `N8N_API_KEY` | Prod | **NONE** |
+| `N8N_MCP_TOKEN` | Prod | **NONE** |
+| `N8N_MCP_URL` | Prod | **NONE** |
+| `PC_HEARTBEAT_SECRET` | Prod+Preview | **NONE** |
+| `VERCEL_ANALYZE_BUILD_OUTPUT` | Prod+Preview | **NONE** |
+| `VOICE_INGEST_SECRET` | Prod | **NONE** |
+| `ZENROWS_API_KEY` *(write-only)* | Prod+Preview | **NONE** |
+
+**Demo / access**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `DEMO2_PASSWORD` | Prod+Preview | **placeholder only** |
+| `DEMO_PASSWORD` | Prod+Preview | **placeholder only** |
+
+**Other**
+
+| Var | Envs | Vault backup |
+|---|---|---|
+| `TTS_PROVIDER` | Prod | **NONE** |
+
+**Totals:** 68 vars · 19 with vault backup · 49 without · 23 write-only in Vercel.
+
+### Unrecoverable today (15)
+
+Write-only in Vercel **and** no usable vault copy — these cannot be read from anywhere:
+
+- `SUPABASE_JWT_SECRET`
+- `SUPABASE_SECRET_KEY`
+- `STRIPE_FOUNDING_PAYMENT_LINK`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `TELEGRAM_CHAT_ID`
+- `HCTI_API_KEY`
+- `HCTI_USER_ID`
+- `RESEND_WEBHOOK_SECRET`
+- `GOOGLE_CLIENT_SECRET`
+- `ZENROWS_API_KEY`
+
+Plus 4 write-only `POSTGRES_*` vars (`POSTGRES_PASSWORD`, `POSTGRES_PRISMA_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`), which are
+auto-provisioned by the Supabase integration and regenerable — lower priority.
+
+**Stripe values must be re-read from the Stripe dashboard**, not from Vercel. `STRIPE_SECRET_KEY`
+is viewable only once at creation; roll it if lost. `STRIPE_WEBHOOK_SECRET` is re-readable under
+Developers → Webhooks.
+
+*Note:* the `NEXT_PUBLIC_SUPABASE_*` and `VITE_POSTHOG_*` vars mirror their unprefixed
+counterparts and are publishable-by-design; the "NONE" backup flag on them is not a risk.
+
+### Refresh this table
+
+```bash
+npx vercel env ls                                    # names + environments, never values
+cmd.exe /c "bw list items --session $BW_SESSION"     # vault inventory
 ```
-TELEGRAM_BOT_TOKEN
-TELEGRAM_MARKETING_BOT_TOKEN
-TELEGRAM_CHAT_ID
-CRON_SECRET
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-RESEND_API_KEY
-ANTHROPIC_API_KEY
-ELEVENLABS_API_KEY
-PEXELS_API_KEY
-ZERNIO_API_KEY
-CREATOMATE_API_KEY
-CREATOMATE_TEMPLATE_ID
-FAL_KEY
-DEMO_PASSWORD
-DEMO2_PASSWORD
-```
+
+Under WSL, `bw` must be called through `cmd.exe`, and item names containing spaces fail to quote
+across the boundary — use the item **ID** (`bw get password <uuid>`) instead.
 
 Values, Zernio IDs, Stripe details, ImprovMX → `docs/ENV.md`.
 
@@ -287,17 +451,45 @@ Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+j
 
 ---
 
-## 24. CLAUDE CODE LAUNCH COMMANDS (save as `.bat` files on Desktop)
+## 24. CLAUDE CODE LAUNCH COMMANDS
+
+**Use the Desktop launchers — don't type `claude` by hand.**
+`C:\Users\Heath\Desktop\MeetDossie.bat` and `C:\Users\Heath\Desktop\Dossie.bat`
+(written 2026-07-28). Double-click either one.
+
+**Never launch bare `claude`.** Without `--channels`, Claude Code never polls
+Telegram and **Cole silently stops responding** — the bot looks perfectly
+healthy from Telegram's side while nothing is listening. This caused an outage
+on 2026-07-27.
+
+Claude Code runs from the **WSL** install (`/home/heath/.local/bin/claude`), not
+the Windows `claude.exe`. Both exist and both have the telegram plugin, but they
+keep **separate session history**, so `--continue` under Windows will not find
+WSL conversations. The `.bat` files launch WSL deliberately:
 
 ```bat
-:: MeetDossie
-cd "C:\Users\Heath Shepard\Desktop\MeetDossie" && claude --continue --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
-
-:: Dossie
-cd "C:\Users\Heath Shepard\Desktop\Dossie" && claude --continue --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
+wsl.exe -d Ubuntu -- bash -lc "cd /mnt/c/Users/Heath/Projects/MeetDossie && exec claude --continue --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions"
 ```
 
+**Repo paths (corrected 2026-07-28).** The old entry pointed at
+`C:\Users\Heath Shepard\Desktop\...`, which does not exist — the Windows profile
+is `Heath`, not `Heath Shepard`.
+
+| Repo | Windows path | WSL path | Present? |
+|---|---|---|---|
+| MeetDossie | `C:\Users\Heath\Projects\MeetDossie` | `/mnt/c/Users/Heath/Projects/MeetDossie` | yes |
+| Dossie | `C:\Users\Heath\Projects\Dossie` | `/mnt/c/Users/Heath/Projects/Dossie` | **not cloned yet** |
+
+`Dossie.bat` exits with a message rather than opening the wrong directory until
+that repo is cloned.
+
 `--continue` resumes most recent session per cwd. **Caveat:** model swap (Opus ↔ Sonnet ↔ Haiku) starts fresh session — "save state to memory" before swap.
+
+**If Cole goes quiet, check in this order:** (1) is a `claude` process running
+with `--channels` — `tr '\0' ' ' < /proc/<pid>/cmdline`; (2) `getWebhookInfo` —
+a registered webhook blocks `getUpdates` with 409 and silently eats messages,
+clear it via `/api/delete-claudy-webhook`; (3) queued updates via `getUpdates` —
+messages sitting unconsumed mean nothing is polling.
 
 Claude.ai Sonnet = strategy/prompts. Claude Code Opus = execution. Heath pastes large complete prompts. Reports back via Telegram. Keep sessions short/focused.
 
