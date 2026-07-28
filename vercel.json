@@ -437,9 +437,6 @@
     },
     "api/cron-regression-suite.js": {
       "maxDuration": 120
-    },
-    "api/cron-stripe-reconcile.js": {
-      "maxDuration": 120
     }
   },
   "crons": [
