@@ -43,6 +43,31 @@ const ALLOWED_TABLES = {
     defaultOrder: 'synced_at.desc',
     filterableColumns: new Set(['platform', 'persona', 'topic']),
   },
+  sage_hook_bank: {
+    select: '*',
+    defaultOrder: 'created_at.desc',
+    filterableColumns: new Set(['pillar', 'account', 'platform', 'status']),
+  },
+  sage_swipe_rules: {
+    select: '*',
+    defaultOrder: 'date_added.desc',
+    filterableColumns: new Set(['rule_type', 'status', 'source_creator']),
+  },
+  sage_swipe_items: {
+    select: '*',
+    defaultOrder: 'surfaced_at.desc',
+    filterableColumns: new Set(['status', 'platform', 'creator_name']),
+  },
+  sage_filming_briefs: {
+    select: '*',
+    defaultOrder: 'week_start.desc',
+    filterableColumns: new Set(['status']),
+  },
+  sage_performance_log: {
+    select: '*',
+    defaultOrder: 'recorded_at.desc',
+    filterableColumns: new Set(['platform', 'account', 'pillar']),
+  },
 };
 
 const QUERY_MARKER_REGEX = /\[\s*QUERY\s*:\s*([^\]\n]{3,500})\s*\]/gi;

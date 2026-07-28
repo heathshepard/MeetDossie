@@ -28,12 +28,18 @@ const { extractMarkers, stripMarkersForHeath } = require('./_lib/agent-markers.j
 const { extractQueryMarkers, stripQueryMarkers, runQuery, formatQueryResult } = require('./_lib/sage-query.js');
 const { extractTriggerMarkers, stripTriggerMarkers } = require('./_lib/sage-triggers.js');
 
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
 const SAGE_MODEL = 'claude-sonnet-5';
 const HISTORY_LIMIT = 30;   // pull last 30 messages for context
 const MAX_REPLY_CHARS = 3800;
 const CRON_SECRET = process.env.CRON_SECRET;
 const SAGE_TRIGGER_SECRET = process.env.SAGE_TRIGGER_SECRET;
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://meetdossie.com';
+
+// Voice config — Sage speaks as Luna (nova-like, warm female)
+const SAGE_ELEVENLABS_VOICE_ID = 'lxYfHSkYm1EzQzGhdbfc'; // Luna
 
 // Sage's system prompt — mirrors ~/.claude/agents/sage.md identity section.
 // Keep this in sync manually when the agent file changes. The full agent file
@@ -130,14 +136,35 @@ Source of truth: ~/.claude/projects/.../memory/reference_existing_tools.md + CLA
 - api/cron-post-videos.js + video_library table — DONE pipeline approval flow
 - api/transcribe-video.js (Whisper) + verify-video-gemini.js (QA)
 
-**Sage's own infra (shipped today)**
+**Sage's own infra**
 - Capability beat validator — runs before any video ships
 - This DM channel — DossieSageBot via api/sage-webhook.js
+- Voice mode — send a voice note and Sage speaks back (STT via Whisper, TTS via ElevenLabs/OpenAI)
+
+**Content engine (new)**
+- Hook bank (\`sage_hook_bank\` table) — tested opening lines tagged by pillar, account, platform. Lifecycle: untested → tested → proven → retired.
+- Weekly filming brief (\`sage_filming_briefs\`) — generated Sunday evening, covers both Dossie + real estate accounts. One filming day = one week of content.
+- Performance feedback loop (\`sage_performance_log\`) — post metrics tagged to hooks and edit styles. Sage reads before generating the next brief.
+- Swipe-file system — watchlist (\`sage_swipe_watchlist\`), surfaced items (\`sage_swipe_items\`), distilled rules (\`sage_swipe_rules\`). Monthly condense pass demotes declining rules, expires untested ones.
+- Editor agent — Head of Video Production. Delegate post-production tasks via \`[EDITOR: ...]\` marker. Editor owns audio-first sync, captioning, house style enforcement.
+
+**Content pillars (ranked, new — replaces old pillar list)**
+1. Educational (buyer/seller tips, market explainers) — highest volume
+2. Hyper-local authority (neighborhood spotlights, SA market)
+3. Personal brand (Heath's story, day-in-the-life)
+4. Social proof (client testimonials, WITH permission only)
+5. Listings (property walkthroughs) — LOWEST weight, gated by seller permission
+
+**Cross-promotion rule (HARD CONSTRAINT)**
+- Dossie content → may cross-post to real estate channels
+- Real estate content → must NEVER cross-post to Dossie channels
+- One-directional only. No exceptions.
+
+**Multi-account strategy**
+Three accounts: Dossie (SaaS, active), Heath Shepard Real Estate (active), workout app (dormant, future).
 
 **Hard constraints right now**
-- ElevenLabs quota exhausted — no new TTS until reset
-- Submagic Starter plan — 10 projects/mo cap, no API
-- Founding price $29/mo locked, 50 spots (38 remaining)
+- Founding price $29/mo locked, 14 spots remaining
 - HCTI free plan — 50 renders/mo cap
 
 ## Delegating to other agents — action markers (NEW)
@@ -149,6 +176,7 @@ You can now hand work off to other Shepard Ventures agents directly. When you wa
 \`[PIERCE: <one-sentence task description>]\`
 \`[HADLEY: <one-sentence task description>]\`
 \`[QUINN: <one-sentence task description>]\`
+\`[EDITOR: <one-sentence task description>]\`
 \`[COLE: <one-sentence task description>]\`
 
 What happens when you emit a marker:
@@ -188,6 +216,11 @@ Allowed tables and their filterable columns:
 - \`video_library\` — filter by status, platform, video_type
 - \`posting_schedule\` — filter by platform
 - \`post_analytics\` — filter by platform, persona, topic
+- \`sage_hook_bank\` — filter by pillar, account, platform, status
+- \`sage_swipe_rules\` — filter by rule_type, status, source_creator
+- \`sage_swipe_items\` — filter by status, platform, creator_name
+- \`sage_filming_briefs\` — filter by status
+- \`sage_performance_log\` — filter by platform, account, pillar
 
 Examples:
 - \`[QUERY: table=social_posts, last=10, status=posted]\` — last 10 posts that went live
@@ -213,6 +246,10 @@ Allowed triggers:
 - \`social-digest\` — send the daily digest immediately
 - \`analytics-sync\` — pull Zernio analytics now
 - \`sage-trends\` — refresh trend brief
+- \`filming-brief\` — generate this week's filming brief
+- \`swipe-digest\` — surface swipe-file items from watched creators
+- \`performance-sync\` — sync post performance data into the feedback loop
+- \`swipe-condense\` — run the monthly swipe-file prune/condense pass
 
 Heath sees "[firing generate-posts...]" and you receive a confirmation message with the upstream HTTP status. Use this when Heath says "regenerate today's posts" or you want to refresh data before answering.
 
@@ -334,6 +371,128 @@ async function callSage(history, userText) {
     .trim());
 }
 
+// ─── Voice helpers ────────────────────────────────────────────────────────
+
+async function transcribeVoice(fileId) {
+  // Download file from Telegram
+  const fileRes = await fetch(
+    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`,
+  );
+  const fileData = await fileRes.json();
+  if (!fileData.ok || !fileData.result?.file_path) return null;
+
+  const dlRes = await fetch(
+    `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`,
+  );
+  if (!dlRes.ok) return null;
+  const audioBuffer = Buffer.from(await dlRes.arrayBuffer());
+
+  // Transcribe via OpenAI Whisper
+  if (!OPENAI_API_KEY) {
+    console.warn('[sage-webhook] OPENAI_API_KEY not set — STT unavailable');
+    return null;
+  }
+
+  const boundary = '----SageSTT' + Date.now();
+  const ext = (fileData.result.file_path || '').split('.').pop() || 'ogg';
+  const mime = ext === 'ogg' ? 'audio/ogg' : `audio/${ext}`;
+
+  const parts = [
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="voice.${ext}"\r\nContent-Type: ${mime}\r\n\r\n`,
+    audioBuffer,
+    `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--\r\n`,
+  ];
+  const body = Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p) : p)));
+
+  const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`,
+    },
+    body,
+  });
+  if (!whisperRes.ok) {
+    console.warn('[sage-webhook] Whisper failed:', whisperRes.status);
+    return null;
+  }
+  const whisperData = await whisperRes.json();
+  return whisperData.text || null;
+}
+
+async function synthesizeSpeech(text) {
+  // Try ElevenLabs first, fall back to OpenAI
+  if (ELEVENLABS_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${SAGE_ELEVENLABS_VOICE_ID}`,
+        {
+          method: 'POST',
+          headers: {
+            'xi-api-key': ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json',
+            Accept: 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text: text.slice(0, 2500),
+            model_id: 'eleven_turbo_v2_5',
+            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+          }),
+        },
+      );
+      if (res.ok) {
+        return { buffer: Buffer.from(await res.arrayBuffer()), provider: 'elevenlabs' };
+      }
+      console.warn('[sage-webhook] ElevenLabs TTS failed:', res.status);
+    } catch (e) {
+      console.warn('[sage-webhook] ElevenLabs TTS error:', e.message);
+    }
+  }
+
+  // Fallback: OpenAI TTS
+  if (OPENAI_API_KEY) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1-hd',
+          input: text.slice(0, 2500),
+          voice: 'nova',
+          response_format: 'mp3',
+        }),
+      });
+      if (res.ok) {
+        return { buffer: Buffer.from(await res.arrayBuffer()), provider: 'openai' };
+      }
+      console.warn('[sage-webhook] OpenAI TTS failed:', res.status);
+    } catch (e) {
+      console.warn('[sage-webhook] OpenAI TTS error:', e.message);
+    }
+  }
+  return null;
+}
+
+async function sendVoiceReply(chatId, audioBuffer) {
+  const boundary = '----SageTTS' + Date.now();
+  const parts = [
+    `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n`,
+    `--${boundary}\r\nContent-Disposition: form-data; name="voice"; filename="sage.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n`,
+    audioBuffer,
+    `\r\n--${boundary}--\r\n`,
+  ];
+  const body = Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p) : p)));
+  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVoice`, {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body,
+  });
+  return res.ok;
+}
+
 // ─── Handler ───────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
@@ -364,12 +523,33 @@ module.exports = async function handler(req, res) {
 
   const update = req.body || {};
   const message = update.message || update.edited_message;
-  if (!message || !message.text) {
-    return res.status(200).json({ ok: true, skipped: 'no message text' });
+
+  // Handle voice messages via STT
+  const isVoice = message && (message.voice || message.audio);
+  const hasText = message && message.text;
+  if (!message || (!hasText && !isVoice)) {
+    return res.status(200).json({ ok: true, skipped: 'no message text or voice' });
   }
 
   const chatId = message.chat?.id;
-  const userText = String(message.text || '').trim();
+  let userText;
+  let isVoiceInput = false;
+
+  if (isVoice) {
+    const fileId = (message.voice || message.audio).file_id;
+    // Transcribe the voice note
+    const transcribed = await transcribeVoice(fileId);
+    if (!transcribed) {
+      await sendTelegramText(chatId, "Couldn't transcribe that voice note — try again or type it out.");
+      return res.status(200).json({ ok: true, skipped: 'transcription failed' });
+    }
+    userText = transcribed;
+    isVoiceInput = true;
+    // Show transcription so Heath can verify
+    await sendTelegramText(chatId, `[transcribed] ${userText}`);
+  } else {
+    userText = String(message.text || '').trim();
+  }
 
   // Hard allowlist — only Heath's chat can talk to Sage.
   if (String(chatId) !== String(TELEGRAM_CHAT_ID)) {
@@ -427,6 +607,16 @@ module.exports = async function handler(req, res) {
   if (triggerMarkers.length > 0) displayReply = stripTriggerMarkers(displayReply);
 
   await sendTelegramText(chatId, displayReply);
+
+  // Voice reply: if Heath sent a voice note, Sage speaks back too
+  if (isVoiceInput && displayReply.length > 0 && displayReply.length <= 2500) {
+    synthesizeSpeech(displayReply).then((audio) => {
+      if (audio) sendVoiceReply(chatId, audio.buffer);
+    }).catch((err) => {
+      console.warn('[sage-webhook] TTS reply failed:', err && err.message);
+    });
+  }
+
   await storeMessage(chatId, 'sage', reply, null);
 
   // Dispatch each marker (fire-and-forget so we return 200 to Telegram fast).

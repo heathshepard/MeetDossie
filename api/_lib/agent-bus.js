@@ -21,7 +21,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const VALID_AGENTS = new Set([
   'cole', 'sage', 'carter', 'atlas', 'pierce',
-  'sterling', 'hadley', 'ridge', 'quinn', 'heath',
+  'sterling', 'hadley', 'ridge', 'quinn', 'heath', 'editor',
 ]);
 
 // agent_queue ventures (mirrors api/queue-task.js VALID_VENTURES)

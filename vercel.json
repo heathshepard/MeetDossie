@@ -346,6 +346,18 @@
     "api/cron-sage-intelligence-update.js": {
       "maxDuration": 90
     },
+    "api/cron-sage-filming-brief.js": {
+      "maxDuration": 60
+    },
+    "api/cron-sage-swipe-digest.js": {
+      "maxDuration": 30
+    },
+    "api/cron-sage-performance-sync.js": {
+      "maxDuration": 60
+    },
+    "api/cron-sage-swipe-condense.js": {
+      "maxDuration": 60
+    },
     "api/cron-kpi-drift-detector.js": {
       "maxDuration": 60
     },
@@ -823,6 +835,22 @@
     {
       "path": "/api/cron-storage-retention",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron-sage-filming-brief",
+      "schedule": "0 23 * * 0"
+    },
+    {
+      "path": "/api/cron-sage-swipe-digest",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron-sage-performance-sync",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron-sage-swipe-condense",
+      "schedule": "0 6 1 * *"
     }
   ]
 }

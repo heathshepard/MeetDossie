@@ -21,6 +21,10 @@ const ALLOWED_TRIGGERS = {
   'social-digest':       { path: '/api/cron-social-digest',      method: 'POST' },
   'analytics-sync':      { path: '/api/cron-analytics-sync',     method: 'POST' },
   'sage-trends':         { path: '/api/cron-sage-trends',        method: 'POST' },
+  'filming-brief':       { path: '/api/cron-sage-filming-brief', method: 'POST' },
+  'swipe-digest':        { path: '/api/cron-sage-swipe-digest',  method: 'POST' },
+  'performance-sync':    { path: '/api/cron-sage-performance-sync', method: 'POST' },
+  'swipe-condense':      { path: '/api/cron-sage-swipe-condense',  method: 'POST' },
 };
 
 const TRIGGER_MARKER_REGEX = /\[\s*TRIGGER\s*:\s*([a-z0-9_-]{2,40})\s*\]/gi;
