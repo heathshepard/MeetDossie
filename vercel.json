@@ -819,6 +819,10 @@
     {
       "path": "/api/cron-stripe-reconcile",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron-storage-retention",
+      "schedule": "30 4 * * *"
     }
   ]
 }
