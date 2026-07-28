@@ -80,7 +80,11 @@ export default async function handler(req, res) {
       .replace(/\bSchertz\b/gi, 'Sherts')
       .replace(/\bSeguin\b/gi, 'Seh-geen')
       .replace(/\bConverse\b/gi, 'CON-vers')
-      .replace(/\bHelotes\b/gi, 'Heh-LOW-tees');
+      .replace(/\bHelotes\b/gi, 'Heh-LOW-tees')
+      .replace(/\bTRECs\b/g, 'Treks')
+      .replace(/\bTREC\b/g, 'Trek')
+      .replace(/\bIABS\b/g, 'I A B S')
+      .replace(/\bTX\b/g, 'Texas')
 
     // Strip markdown, emoji, asterisks
     const cleanText = preprocessText(text)

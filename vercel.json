@@ -815,6 +815,10 @@
     {
       "path": "/api/cron-regression-suite",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron-stripe-reconcile",
+      "schedule": "0 5 * * *"
     }
   ]
 }
