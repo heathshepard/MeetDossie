@@ -159,6 +159,36 @@ async function referencedSocialCardNames() {
   return names;
 }
 
+// Put a single object back from the local backup. Needed because some code
+// resolves storage paths by CONSTRUCTING a filename rather than reading a URL
+// out of a table - cron-render-videos.js builds "<stem>-frame.jpg" and looks
+// it up in social-cards. A reference scan cannot see a dependency like that,
+// so a restore path has to exist.
+const RESTORE_ALLOWED = new Set(['social-cards']);
+
+async function restoreObject(bucket, path, contentType, buf) {
+  if (!RESTORE_ALLOWED.has(bucket)) {
+    const err = new Error(`bucket not allowlisted for restore: ${bucket}`);
+    err.statusCode = 403;
+    throw err;
+  }
+  const res = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        'Content-Type': contentType || 'application/octet-stream',
+        'x-upsert': 'true',
+      },
+      body: buf,
+    }
+  );
+  if (!res.ok) throw new Error(`restore ${bucket}/${path} -> ${res.status} ${await res.text()}`);
+  return res.json().catch(() => ({}));
+}
+
 async function signBatch(bucket, names) {
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${bucket}`, {
     method: 'POST',
@@ -242,6 +272,21 @@ module.exports = async (req, res) => {
   const confirm = String(req.query.confirm || '') === '1';
 
   try {
+    if (mode === 'restore') {
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      body = body || {};
+      const { bucket, path, contentType, base64 } = body;
+      if (!bucket || !path || !base64) {
+        res.status(400).json({ error: 'bucket, path and base64 required' });
+        return;
+      }
+      const buf = Buffer.from(base64, 'base64');
+      await restoreObject(bucket, path, contentType, buf);
+      res.status(200).json({ mode: 'restored', bucket, path, bytes: buf.length });
+      return;
+    }
+
     const { bucket, doomed, protectedCount } = await resolveTarget(target);
     const bytes = doomed.reduce((sum, o) => sum + o.size, 0);
 
