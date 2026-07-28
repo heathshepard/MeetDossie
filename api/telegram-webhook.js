@@ -1777,7 +1777,10 @@ module.exports = async function handler(req, res) {
   if (TELEGRAM_WEBHOOK_SECRET) {
     const got = req.headers && (req.headers['x-telegram-bot-api-secret-token'] || req.headers['X-Telegram-Bot-Api-Secret-Token']);
     if (got !== TELEGRAM_WEBHOOK_SECRET) {
-      console.warn('[telegram-webhook] secret token mismatch - expected:', TELEGRAM_WEBHOOK_SECRET?.slice(0, 8), 'got:', got?.slice(0, 8));
+      // Never log any part of the expected secret — Vercel logs are retained
+      // and readable. Presence/absence is enough to diagnose a mismatch.
+      console.warn('[telegram-webhook] secret token mismatch - header',
+        got ? 'present but wrong' : 'absent');
       // Non-blocking: continue processing the request
     }
   }

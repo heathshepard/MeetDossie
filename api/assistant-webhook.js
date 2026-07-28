@@ -6,6 +6,10 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Founding-member cap. Authoritative value lives in CLAUDE.md section 5.
+// This read 50 and reported roughly double the spots actually remaining.
+const FOUNDING_SPOT_CAP = 25;
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -104,11 +108,11 @@ Total: ${posts?.length || 0}`;
       );
 
       const count = subs ? subs.length : 0;
-      const remaining = Math.max(0, 50 - count);
+      const remaining = Math.max(0, FOUNDING_SPOT_CAP - count);
 
       const response = `👥 Founding Members
 
-Active: ${count} / 50
+Active: ${count} / ${FOUNDING_SPOT_CAP}
 Remaining: ${remaining} spots
 Price: $29/mo (locked forever)`;
 
