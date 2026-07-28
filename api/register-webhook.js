@@ -26,7 +26,13 @@ export default async function handler(req, res) {
       allowed_updates: JSON.stringify(['message', 'callback_query']),
     });
 
-    if (TELEGRAM_WEBHOOK_SECRET) {
+    // Telegram only accepts 1-256 chars of [A-Za-z0-9_-] for secret_token and
+    // rejects the whole setWebhook call with 400 otherwise. Validate rather
+    // than let a malformed secret take the marketing webhook down.
+    const secretUsable =
+      typeof TELEGRAM_WEBHOOK_SECRET === 'string' &&
+      /^[A-Za-z0-9_-]{1,256}$/.test(TELEGRAM_WEBHOOK_SECRET);
+    if (secretUsable) {
       params.append('secret_token', TELEGRAM_WEBHOOK_SECRET);
     }
 
