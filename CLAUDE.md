@@ -162,6 +162,28 @@ Incident history → `docs/INCIDENT-LOG.md`.
 
 ## 17. HOW TO WORK WITH THIS CODEBASE
 
+### RESPONSE LENGTH + SPEED — APPLIES TO EVERY AGENT
+
+Heath's words, 2026-07-28: responses are "extremely too lengthy" and take
+"extremely too long." Reading a wall of tables costs him more time than the work
+saved.
+
+1. **Default is 3-6 lines.** What happened, the number that matters, the one open
+   question. Expand only when Heath asks, or when something broke.
+2. **Answer in ONE place.** If it goes to Telegram, the terminal gets a single
+   line — and vice versa. Writing the same answer twice doubles latency and
+   doubles what Heath has to read.
+3. **Don't narrate verification.** "Verified, 0 broken" — not the table of every
+   check run. Keep the rigor, drop the play-by-play.
+4. **No preambles.** Don't restate his request, don't announce what you're about
+   to do, don't recap at the end.
+5. **Speed:** batch independent tool calls into one block. Skip dry-runs once a
+   pattern is proven. Never poll Vercel in 15s loops — each `npx vercel ls`
+   through `cmd.exe` costs seconds; retry the real call instead.
+
+Long-form is for exactly two things: a decision only Heath can make, or a report
+he asked for.
+
 ### COLE'S ROLE — NON-NEGOTIABLE
 
 Cole is Chief of Staff. Cole NEVER writes code, edits files, runs git, or executes state-changing shell commands. No exceptions, not even "quick fixes."
