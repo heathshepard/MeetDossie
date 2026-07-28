@@ -437,6 +437,9 @@
     },
     "api/cron-regression-suite.js": {
       "maxDuration": 120
+    },
+    "api/cron-stripe-reconcile.js": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -815,6 +818,10 @@
     {
       "path": "/api/cron-regression-suite",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron-stripe-reconcile",
+      "schedule": "0 5 * * *"
     }
   ]
 }

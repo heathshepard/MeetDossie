@@ -1273,9 +1273,17 @@ module.exports = async function handler(req, res) {
     }
     res.status(200).json({ ok: true, received: event.type });
   } catch (err) {
-    console.error('[stripe-webhook] handler error:', err && err.message);
-    // Still return 200 so Stripe doesn't retry on a downstream issue we've
-    // already logged — signature was valid, the event was acknowledged.
-    res.status(200).json({ ok: true, received: event.type, warning: 'handler error logged' });
+    console.error('[stripe-webhook] handler error:', event.type, event.id, err && err.message);
+    // Return 5xx so Stripe retries with its own backoff and surfaces the
+    // failure in the dashboard. This previously returned 200, which made
+    // Stripe record the delivery as successful and drop the event forever —
+    // that is why invoice.paid failures went unnoticed for weeks. The
+    // signature was valid, so the request itself is not the problem; the
+    // downstream write is, and it is worth retrying.
+    res.status(500).json({
+      ok: false,
+      received: event.type,
+      error: 'Handler failed downstream; Stripe should retry.',
+    });
   }
 };
