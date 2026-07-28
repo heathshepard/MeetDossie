@@ -29,9 +29,9 @@ const path = require('path');
 })();
 
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 const DEMO2_EMAIL = 'demo2@meetdossie.com';
-const DEMO2_PASSWORD = process.env.DEMO2_PASSWORD || 'DossieDemo2-John2026';
+const DEMO2_PASSWORD = process.env.DEMO2_PASSWORD;
 
 const OUT_DIR = path.join(__dirname, '..', '.tmp-qc', 'probe-onboarding');
 

@@ -36,7 +36,7 @@ if (!baseArg) {
 const BASE = baseArg.replace(/\/$/, "");
 
 const DEMO_EMAIL = "demo@meetdossie.com";
-const DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 (async () => {
   const browser = await chromium.launch({ headless: true });

@@ -9,7 +9,7 @@
  * Environment:
  *   DEMO_EMAIL     — defaults to demo@meetdossie.com
  *   DEMO_PASSWORD  — required; falls back to hard-coded staging password
- *                    (DossieDemo-VaIiAt6Bab) if unset
+ *                    ($DEMO_PASSWORD) if unset
  *   BASE_URL       — defaults to https://meetdossie.com
  */
 
@@ -21,8 +21,7 @@ const { chromium } = require('playwright');
 
 const DEFAULT_EMAIL = process.env.DEMO_EMAIL || 'demo@meetdossie.com';
 const DEFAULT_PASSWORD = process.env.DEMO_PASSWORD
-  || process.env.APV_PASSWORD
-  || 'DossieDemo-VaIiAt6Bab';
+  || process.env.APV_PASSWORD;
 const DEFAULT_BASE = process.env.BASE_URL || 'https://meetdossie.com';
 
 /**

@@ -14,7 +14,7 @@
 //   node scripts/feature-demo-recorder.js scripts/feature-demo-scenes/first-dossier-desktop.json
 //
 // Env vars (from .env.local):
-//   DEMO_PASSWORD = DossieDemo-VaIiAt6Bab  (Sarah Whitley demo account)
+//   DEMO_PASSWORD = $DEMO_PASSWORD  (Sarah Whitley demo account)
 
 const fs = require('fs');
 const path = require('path');
@@ -37,7 +37,7 @@ function loadEnv() {
 }
 loadEnv();
 
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 const RAW_DIR = path.join(__dirname, '..', 'Media', 'feature-demos', 'raw');
 fs.mkdirSync(RAW_DIR, { recursive: true });
 

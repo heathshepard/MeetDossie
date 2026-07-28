@@ -10,7 +10,7 @@ const path = require("path");
 
 const BASE = process.argv[2] || "https://staging.meetdossie.com";
 const EMAIL = "demo@meetdossie.com";
-const PASSWORD = "DossieDemo-VaIiAt6Bab";
+const PASSWORD = process.env.DEMO_PASSWORD;
 const JOB_ID = "05d74b01-9d36-4ee9-87bd-b3e0c6bca776";
 const OUT = path.resolve(__dirname, "..");
 

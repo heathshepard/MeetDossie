@@ -60,7 +60,7 @@ const { spawnSync } = require('child_process');
 const SUPABASE_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co';
 const PROD_API_BASE = process.env.FILL_VERIFY_API_BASE || 'https://meetdossie.com';
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 // Demo transaction provided in the build brief — required by /api/fill-form
 // even when strict:true is set (Carter's code path still pulls the row).

@@ -73,8 +73,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
-const DEMO_PASSWORD_2 = process.env.DEMO2_PASSWORD || 'DossieDemo2-John2026';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
+const DEMO_PASSWORD_2 = process.env.DEMO2_PASSWORD;
 
 // ─── Pre-auth (skip the login UI entirely) ─────────────────────────────────────
 // Exchanges email+password for a Supabase session via the auth REST API, then

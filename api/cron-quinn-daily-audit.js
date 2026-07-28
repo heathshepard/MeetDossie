@@ -52,8 +52,7 @@ const TARGET_URL = (process.env.QUINN_TARGET_URL || 'https://meetdossie.com').re
 const DEMO_EMAIL = 'demo@meetdossie.com';
 const DEMO_PASSWORD =
   process.env.DEMO_PASSWORD ||
-  process.env.APV_PASSWORD ||
-  'DossieDemo-VaIiAt6Bab';
+  process.env.APV_PASSWORD;
 
 // --------------------------------------------------------------------------
 // Test-suite definitions (T00 - T13). status is one of:

@@ -10,7 +10,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://pgwoitbdiyubjugwufhk.supa
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 DEMO_EMAIL = "demo@meetdossie.com"
-DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab"
+DEMO_PASSWORD = os.environ["DEMO_PASSWORD"]
 
 def authenticate():
     """Authenticate as demo user and return access token"""

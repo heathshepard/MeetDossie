@@ -48,7 +48,7 @@ function readDotEnvAnonKey() {
 }
 
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 const DEMO_TX_ID = '807dd591-d589-4019-89cf-3a805e14d421';
 
 function argFlag(name) {

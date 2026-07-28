@@ -64,7 +64,7 @@ Then scroll down to your review links. Add your Google and Zillow profile URLs h
 That's it. Once your profile is complete, come back to the dashboard and let's add your first deal. I'll take it from there.`;
 
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const RAW_DIR = path.join(__dirname, '..', 'Media', 'instructional-videos', 'raw');

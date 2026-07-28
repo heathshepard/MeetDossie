@@ -44,7 +44,7 @@ async function main() {
   // Pre-auth using same approach as the recorder
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-  const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { method:'POST', headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'}, body: JSON.stringify({email:'demo@meetdossie.com', password: process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab'}) });
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { method:'POST', headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'}, body: JSON.stringify({email:'demo@meetdossie.com', password: process.env.DEMO_PASSWORD}) });
   const sess = await r.json();
   const session = { access_token:sess.access_token, token_type:'bearer', expires_in:sess.expires_in||3600, expires_at:sess.expires_at, refresh_token:sess.refresh_token, user:sess.user, weak_password:null };
   await page.goto('https://meetdossie.com/');

@@ -35,8 +35,8 @@ Update this file on every onboard or cancel. Static count in CLAUDE.md (Section 
 
 | Email | Password (env var) | Profile Name | Personas | Voice |
 |---|---|---|---|---|
-| `demo@meetdossie.com` | `DEMO_PASSWORD` = `DossieDemo-VaIiAt6Bab` | Sarah Whitley | brenda, patricia | Luna |
-| `demo2@meetdossie.com` | `DEMO2_PASSWORD` = `DossieDemo2-John2026` | John Smith | victor | Bill |
+| `demo@meetdossie.com` | `DEMO_PASSWORD` = `DEMO_PASSWORD` in Vercel env | Sarah Whitley | brenda, patricia | Luna |
+| `demo2@meetdossie.com` | `DEMO2_PASSWORD` = `DEMO2_PASSWORD` in Vercel env | John Smith | victor | Bill |
 
 Both seeded with 6 transactions, 25 documents, 20 action items.
 

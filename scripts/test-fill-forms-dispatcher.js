@@ -15,7 +15,7 @@ const path = require('path');
 const STAGING_URL = process.argv[2] || 'https://meet-dossie-staging.vercel.app';
 const FORM_TYPE = process.argv[3] || 'resale-contract';
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 const TEST_PROMPT_MAP = {
   'resale-contract': 'Fill out a resale contract for 123 Main Street in San Antonio, $400,000, buyer John Doe, seller Jane Smith, closing in 30 days',

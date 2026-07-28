@@ -143,7 +143,7 @@
 
 ## Manual testing checklist (for Atlas APV)
 
-- [ ] Sign in as demo@meetdossie.com / DossieDemo-VaIiAt6Bab
+- [ ] Sign in as demo@meetdossie.com / <DEMO_PASSWORD in Vercel env>
 - [ ] Open a new dossier or use existing one
 - [ ] Attempt fill_forms for resale-contract with incomplete data (e.g., missing sale_price)
 - [ ] Verify GapWizard modal appears with missing fields listed

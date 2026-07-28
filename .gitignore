@@ -193,6 +193,7 @@ today-apv-test.html
 
 # Ad-hoc .tmp-* scratch files — historically leaked DocuSeal + CRON secrets (2026-06-27)
 # Anything matching this pattern stays local-only forever
+.tmp/
 .tmp-*
 .tmp-*.js
 .tmp-*.sh
@@ -205,3 +206,5 @@ execute-pipeline-test.sh
 # Passphrase files — never commit
 *.passphrase.txt
 *.passphrase
+__pycache__/
+*.pyc

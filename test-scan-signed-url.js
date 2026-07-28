@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD; // never hardcode - public repo
 const APP_URL = 'https://meetdossie.com/app';
 const STAGING_URL = 'https://meetdossie-staging.vercel.app/app';
 

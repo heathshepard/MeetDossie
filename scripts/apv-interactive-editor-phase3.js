@@ -11,7 +11,7 @@
 //   T8  screenshot of editor with visible overlays saved for Heath
 //
 // Args: [BASE_URL]  (default: latest staging preview)
-// Uses:  demo@meetdossie.com / DossieDemo-VaIiAt6Bab
+// Uses:  demo@meetdossie.com / $DEMO_PASSWORD
 
 'use strict';
 
@@ -22,7 +22,7 @@ const fs = require('fs');
 const BASE = process.argv[2] || 'https://staging.meetdossie.com';
 const TXN_ID = process.argv[3] || 'f7bcfd82-f9d3-48fd-a19a-00182436f0a5';
 const EMAIL = 'demo@meetdossie.com';
-const PASSWORD = 'DossieDemo-VaIiAt6Bab';
+const PASSWORD = process.env.DEMO_PASSWORD;
 const OUT_DIR = path.resolve(__dirname, '..', '.tmp');
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 

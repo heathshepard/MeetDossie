@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 const STAGING_URL = 'https://meetdossie-staging.vercel.app/app';
 
 // Create test PDFs
