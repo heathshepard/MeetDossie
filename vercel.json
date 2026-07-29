@@ -449,6 +449,12 @@
     },
     "api/cron-regression-suite.js": {
       "maxDuration": 120
+    },
+    "api/sage-webhook.js": {
+      "maxDuration": 60
+    },
+    "api/assistant-webhook.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

@@ -1,8 +1,11 @@
-// Webhook endpoint for DossieAssistant_bot (separate from DossieMarketingBot)
-// Receives messages and responds with status info
+// Webhook endpoint for DossieAssistant_bot (Cole — separate from DossieMarketingBot)
+// Receives messages (text + voice) and responds with status info
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // DossieAssistant_bot token
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+const { transcribeVoice, sendVoiceReply } = require('./_lib/voice');
+const { generateSpeech } = require('./_utils/tts');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -58,8 +61,9 @@ async function handleMessage(msg) {
 
   // Greeting handler
   if (lowerText.includes('hello') || lowerText.includes('hey') || lowerText.includes('hi')) {
-    await sendMessage(chatId, "👋 I'm here and listening. Try /status for today's post counts.");
-    return;
+    const r = "👋 I'm here and listening. Try /status for today's post counts.";
+    await sendMessage(chatId, r);
+    return r;
   }
 
   // Fuzzy command matching
@@ -94,10 +98,12 @@ async function handleMessage(msg) {
 Total: ${posts?.length || 0}`;
 
       await sendMessage(chatId, response);
+      return response;
     } catch (err) {
-      await sendMessage(chatId, `❌ Error: ${err.message}`);
+      const e = `❌ Error: ${err.message}`;
+      await sendMessage(chatId, e);
+      return e;
     }
-    return;
   }
 
   // /members - founding member count
@@ -117,10 +123,12 @@ Remaining: ${remaining} spots
 Price: $29/mo (locked forever)`;
 
       await sendMessage(chatId, response);
+      return response;
     } catch (err) {
-      await sendMessage(chatId, `❌ Error: ${err.message}`);
+      const e = `❌ Error: ${err.message}`;
+      await sendMessage(chatId, e);
+      return e;
     }
-    return;
   }
 
   // /health - system health
@@ -155,14 +163,18 @@ Cron schedule:
 • Publish: every 30 min`;
 
       await sendMessage(chatId, response);
+      return response;
     } catch (err) {
-      await sendMessage(chatId, `❌ Error: ${err.message}`);
+      const e = `❌ Error: ${err.message}`;
+      await sendMessage(chatId, e);
+      return e;
     }
-    return;
   }
 
   // Catch-all for any other message
-  await sendMessage(chatId, "👋 I'm here. Try /status, /members, or /health for quick info.");
+  const fallback = "👋 I'm here. Try /status, /members, or /health for quick info.";
+  await sendMessage(chatId, fallback);
+  return fallback;
 }
 
 module.exports = async function handler(req, res) {
@@ -184,9 +196,52 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, ignored: 'parse error' });
   }
 
+  const message = update?.message;
+  const isVoice = message && (message.voice || message.audio);
+  const hasText = message && message.text;
+
+  if (!message || (!hasText && !isVoice)) {
+    return res.status(200).json({ ok: true });
+  }
+
+  const chatId = message.chat?.id;
+  if (TELEGRAM_CHAT_ID && String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+    console.log('[assistant-webhook] Unauthorized chat:', chatId);
+    return res.status(200).json({ ok: true });
+  }
+
   try {
-    if (update?.message?.text) {
-      await handleMessage(update.message);
+    let msgToHandle = message;
+    let isVoiceInput = false;
+
+    if (isVoice && !hasText) {
+      try {
+        const fileId = (message.voice || message.audio).file_id;
+        console.log('[assistant-webhook] voice message received, file_id:', fileId);
+        const transcribed = await transcribeVoice(fileId, TELEGRAM_BOT_TOKEN);
+        if (!transcribed) {
+          await sendMessage(chatId, "Couldn't transcribe that — try again or type it out.");
+          return res.status(200).json({ ok: true });
+        }
+        isVoiceInput = true;
+        await sendMessage(chatId, `[transcribed] ${transcribed}`);
+        msgToHandle = { ...message, text: transcribed };
+      } catch (err) {
+        console.error('[assistant-webhook] voice processing error:', err.message);
+        await sendMessage(chatId, 'Voice processing failed — try typing instead.');
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    const responseText = await handleMessage(msgToHandle);
+
+    if (isVoiceInput && responseText) {
+      try {
+        const audio = await generateSpeech(responseText, { persona: 'cole' });
+        if (audio) await sendVoiceReply(chatId, audio.buffer, TELEGRAM_BOT_TOKEN);
+      } catch (e) {
+        console.warn('[assistant-webhook] TTS failed:', e.message);
+      }
     }
   } catch (err) {
     console.error('[assistant-webhook] Handler error:', err.message);

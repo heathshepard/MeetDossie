@@ -28,8 +28,8 @@ const { extractMarkers, stripMarkersForHeath } = require('./_lib/agent-markers.j
 const { extractQueryMarkers, stripQueryMarkers, runQuery, formatQueryResult } = require('./_lib/sage-query.js');
 const { extractTriggerMarkers, stripTriggerMarkers } = require('./_lib/sage-triggers.js');
 
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const { transcribeVoice, sendVoiceReply } = require('./_lib/voice');
+const { generateSpeech } = require('./_utils/tts');
 
 const SAGE_MODEL = 'claude-sonnet-5';
 const HISTORY_LIMIT = 30;   // pull last 30 messages for context
@@ -371,128 +371,6 @@ async function callSage(history, userText) {
     .trim());
 }
 
-// ─── Voice helpers ────────────────────────────────────────────────────────
-
-async function transcribeVoice(fileId) {
-  // Download file from Telegram
-  const fileRes = await fetch(
-    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`,
-  );
-  const fileData = await fileRes.json();
-  if (!fileData.ok || !fileData.result?.file_path) return null;
-
-  const dlRes = await fetch(
-    `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`,
-  );
-  if (!dlRes.ok) return null;
-  const audioBuffer = Buffer.from(await dlRes.arrayBuffer());
-
-  // Transcribe via OpenAI Whisper
-  if (!OPENAI_API_KEY) {
-    console.warn('[sage-webhook] OPENAI_API_KEY not set — STT unavailable');
-    return null;
-  }
-
-  const boundary = '----SageSTT' + Date.now();
-  const ext = (fileData.result.file_path || '').split('.').pop() || 'ogg';
-  const mime = ext === 'ogg' ? 'audio/ogg' : `audio/${ext}`;
-
-  const parts = [
-    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="voice.${ext}"\r\nContent-Type: ${mime}\r\n\r\n`,
-    audioBuffer,
-    `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--\r\n`,
-  ];
-  const body = Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p) : p)));
-
-  const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
-    },
-    body,
-  });
-  if (!whisperRes.ok) {
-    console.warn('[sage-webhook] Whisper failed:', whisperRes.status);
-    return null;
-  }
-  const whisperData = await whisperRes.json();
-  return whisperData.text || null;
-}
-
-async function synthesizeSpeech(text) {
-  // Try ElevenLabs first, fall back to OpenAI
-  if (ELEVENLABS_API_KEY) {
-    try {
-      const res = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${SAGE_ELEVENLABS_VOICE_ID}`,
-        {
-          method: 'POST',
-          headers: {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json',
-            Accept: 'audio/mpeg',
-          },
-          body: JSON.stringify({
-            text: text.slice(0, 2500),
-            model_id: 'eleven_turbo_v2_5',
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-          }),
-        },
-      );
-      if (res.ok) {
-        return { buffer: Buffer.from(await res.arrayBuffer()), provider: 'elevenlabs' };
-      }
-      console.warn('[sage-webhook] ElevenLabs TTS failed:', res.status);
-    } catch (e) {
-      console.warn('[sage-webhook] ElevenLabs TTS error:', e.message);
-    }
-  }
-
-  // Fallback: OpenAI TTS
-  if (OPENAI_API_KEY) {
-    try {
-      const res = await fetch('https://api.openai.com/v1/audio/speech', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'tts-1-hd',
-          input: text.slice(0, 2500),
-          voice: 'nova',
-          response_format: 'mp3',
-        }),
-      });
-      if (res.ok) {
-        return { buffer: Buffer.from(await res.arrayBuffer()), provider: 'openai' };
-      }
-      console.warn('[sage-webhook] OpenAI TTS failed:', res.status);
-    } catch (e) {
-      console.warn('[sage-webhook] OpenAI TTS error:', e.message);
-    }
-  }
-  return null;
-}
-
-async function sendVoiceReply(chatId, audioBuffer) {
-  const boundary = '----SageTTS' + Date.now();
-  const parts = [
-    `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n`,
-    `--${boundary}\r\nContent-Disposition: form-data; name="voice"; filename="sage.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n`,
-    audioBuffer,
-    `\r\n--${boundary}--\r\n`,
-  ];
-  const body = Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p) : p)));
-  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVoice`, {
-    method: 'POST',
-    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
-    body,
-  });
-  return res.ok;
-}
-
 // ─── Handler ───────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
@@ -524,7 +402,6 @@ module.exports = async function handler(req, res) {
   const update = req.body || {};
   const message = update.message || update.edited_message;
 
-  // Handle voice messages via STT
   const isVoice = message && (message.voice || message.audio);
   const hasText = message && message.text;
   if (!message || (!hasText && !isVoice)) {
@@ -532,29 +409,35 @@ module.exports = async function handler(req, res) {
   }
 
   const chatId = message.chat?.id;
+
+  // Hard allowlist BEFORE voice processing — don't waste API calls on unauthorized users.
+  if (String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+    console.warn('[sage-webhook] dropping message from unauthorized chat_id', chatId);
+    return res.status(200).json({ ok: true, skipped: 'unauthorized chat_id' });
+  }
+
   let userText;
   let isVoiceInput = false;
 
   if (isVoice) {
-    const fileId = (message.voice || message.audio).file_id;
-    // Transcribe the voice note
-    const transcribed = await transcribeVoice(fileId);
-    if (!transcribed) {
-      await sendTelegramText(chatId, "Couldn't transcribe that voice note — try again or type it out.");
-      return res.status(200).json({ ok: true, skipped: 'transcription failed' });
+    try {
+      const fileId = (message.voice || message.audio).file_id;
+      console.log('[sage-webhook] voice message received, file_id:', fileId);
+      const transcribed = await transcribeVoice(fileId, TELEGRAM_BOT_TOKEN);
+      if (!transcribed) {
+        await sendTelegramText(chatId, "Couldn't transcribe that voice note — try again or type it out.");
+        return res.status(200).json({ ok: true, skipped: 'transcription failed' });
+      }
+      userText = transcribed;
+      isVoiceInput = true;
+      await sendTelegramText(chatId, `[transcribed] ${userText}`);
+    } catch (err) {
+      console.error('[sage-webhook] voice processing error:', err.message);
+      await sendTelegramText(chatId, 'Voice processing failed — try typing instead.');
+      return res.status(200).json({ ok: true, error: 'voice processing failed' });
     }
-    userText = transcribed;
-    isVoiceInput = true;
-    // Show transcription so Heath can verify
-    await sendTelegramText(chatId, `[transcribed] ${userText}`);
   } else {
     userText = String(message.text || '').trim();
-  }
-
-  // Hard allowlist — only Heath's chat can talk to Sage.
-  if (String(chatId) !== String(TELEGRAM_CHAT_ID)) {
-    console.warn('[sage-webhook] dropping message from unauthorized chat_id', chatId);
-    return res.status(200).json({ ok: true, skipped: 'unauthorized chat_id' });
   }
 
   // Slash command: /start /reset /help
@@ -610,8 +493,11 @@ module.exports = async function handler(req, res) {
 
   // Voice reply: if Heath sent a voice note, Sage speaks back too
   if (isVoiceInput && displayReply.length > 0 && displayReply.length <= 2500) {
-    synthesizeSpeech(displayReply).then((audio) => {
-      if (audio) sendVoiceReply(chatId, audio.buffer);
+    generateSpeech(displayReply, {
+      persona: 'sage',
+      elevenLabsVoiceId: SAGE_ELEVENLABS_VOICE_ID,
+    }).then((audio) => {
+      if (audio) sendVoiceReply(chatId, audio.buffer, TELEGRAM_BOT_TOKEN);
     }).catch((err) => {
       console.warn('[sage-webhook] TTS reply failed:', err && err.message);
     });
