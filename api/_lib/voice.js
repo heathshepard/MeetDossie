@@ -62,14 +62,20 @@ async function transcribeVoice(fileId, botToken) {
   return whisperData.text || null;
 }
 
-async function sendVoiceReply(chatId, audioBuffer, botToken) {
+async function sendVoiceReply(chatId, audioBuffer, botToken, caption) {
   const boundary = '----VoiceTTS' + Date.now();
   const parts = [
     `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n`,
+  ];
+  if (caption) {
+    const trimmed = caption.length > 1024 ? caption.slice(0, 1021) + '...' : caption;
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${trimmed}\r\n`);
+  }
+  parts.push(
     `--${boundary}\r\nContent-Disposition: form-data; name="voice"; filename="reply.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n`,
     audioBuffer,
     `\r\n--${boundary}--\r\n`,
-  ];
+  );
   const body = Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p) : p)));
   const res = await fetch(`https://api.telegram.org/bot${botToken}/sendVoice`, {
     method: 'POST',

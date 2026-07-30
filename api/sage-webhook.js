@@ -489,18 +489,23 @@ module.exports = async function handler(req, res) {
   if (queryMarkers.length > 0) displayReply = stripQueryMarkers(displayReply);
   if (triggerMarkers.length > 0) displayReply = stripTriggerMarkers(displayReply);
 
-  await sendTelegramText(chatId, displayReply);
-
-  // Voice reply: if Heath sent a voice note, Sage speaks back too
+  // Voice-in → voice-out (one message with text as caption). Text fallback if TTS fails.
+  let voiceSent = false;
   if (isVoiceInput && displayReply.length > 0 && displayReply.length <= 2500) {
-    generateSpeech(displayReply, {
-      persona: 'sage',
-      elevenLabsVoiceId: SAGE_ELEVENLABS_VOICE_ID,
-    }).then((audio) => {
-      if (audio) sendVoiceReply(chatId, audio.buffer, TELEGRAM_BOT_TOKEN);
-    }).catch((err) => {
-      console.warn('[sage-webhook] TTS reply failed:', err && err.message);
-    });
+    try {
+      const audio = await generateSpeech(displayReply, {
+        persona: 'sage',
+        elevenLabsVoiceId: SAGE_ELEVENLABS_VOICE_ID,
+      });
+      if (audio) {
+        voiceSent = await sendVoiceReply(chatId, audio.buffer, TELEGRAM_BOT_TOKEN, displayReply);
+      }
+    } catch (err) {
+      console.warn('[sage-webhook] TTS failed, falling back to text:', err && err.message);
+    }
+  }
+  if (!voiceSent) {
+    await sendTelegramText(chatId, displayReply);
   }
 
   await storeMessage(chatId, 'sage', reply, null);

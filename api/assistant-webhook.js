@@ -45,7 +45,7 @@ async function sendMessage(chatId, text) {
   return { ok: data.ok, data };
 }
 
-async function handleMessage(msg) {
+async function handleMessage(msg, { skipSend = false } = {}) {
   const chatId = msg?.chat?.id;
   const text = String(msg?.text || '').trim();
 
@@ -57,13 +57,13 @@ async function handleMessage(msg) {
     return;
   }
 
+  const reply = async (t) => { if (!skipSend) await sendMessage(chatId, t); return t; };
+
   const lowerText = text.toLowerCase();
 
   // Greeting handler
   if (lowerText.includes('hello') || lowerText.includes('hey') || lowerText.includes('hi')) {
-    const r = "👋 I'm here and listening. Try /status for today's post counts.";
-    await sendMessage(chatId, r);
-    return r;
+    return reply("👋 I'm here and listening. Try /status for today's post counts.");
   }
 
   // Fuzzy command matching
@@ -97,12 +97,9 @@ async function handleMessage(msg) {
 
 Total: ${posts?.length || 0}`;
 
-      await sendMessage(chatId, response);
-      return response;
+      return reply(response);
     } catch (err) {
-      const e = `❌ Error: ${err.message}`;
-      await sendMessage(chatId, e);
-      return e;
+      return reply(`❌ Error: ${err.message}`);
     }
   }
 
@@ -122,12 +119,9 @@ Active: ${count} / ${FOUNDING_SPOT_CAP}
 Remaining: ${remaining} spots
 Price: $29/mo (locked forever)`;
 
-      await sendMessage(chatId, response);
-      return response;
+      return reply(response);
     } catch (err) {
-      const e = `❌ Error: ${err.message}`;
-      await sendMessage(chatId, e);
-      return e;
+      return reply(`❌ Error: ${err.message}`);
     }
   }
 
@@ -162,19 +156,14 @@ Cron schedule:
 • Approve: daily 11:30 UTC
 • Publish: every 30 min`;
 
-      await sendMessage(chatId, response);
-      return response;
+      return reply(response);
     } catch (err) {
-      const e = `❌ Error: ${err.message}`;
-      await sendMessage(chatId, e);
-      return e;
+      return reply(`❌ Error: ${err.message}`);
     }
   }
 
   // Catch-all for any other message
-  const fallback = "👋 I'm here. Try /status, /members, or /health for quick info.";
-  await sendMessage(chatId, fallback);
-  return fallback;
+  return reply("👋 I'm here. Try /status, /members, or /health for quick info.");
 }
 
 module.exports = async function handler(req, res) {
@@ -233,15 +222,21 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const responseText = await handleMessage(msgToHandle);
-
-    if (isVoiceInput && responseText) {
-      try {
-        const audio = await generateSpeech(responseText, { persona: 'cole' });
-        if (audio) await sendVoiceReply(chatId, audio.buffer, TELEGRAM_BOT_TOKEN);
-      } catch (e) {
-        console.warn('[assistant-webhook] TTS failed:', e.message);
+    if (isVoiceInput) {
+      // Voice-in → voice-out: one voice message with text as caption. No separate text.
+      const responseText = await handleMessage(msgToHandle, { skipSend: true });
+      if (responseText) {
+        let voiceSent = false;
+        try {
+          const audio = await generateSpeech(responseText, { persona: 'cole' });
+          if (audio) voiceSent = await sendVoiceReply(chatId, audio.buffer, TELEGRAM_BOT_TOKEN, responseText);
+        } catch (e) {
+          console.warn('[assistant-webhook] TTS failed, falling back to text:', e.message);
+        }
+        if (!voiceSent) await sendMessage(chatId, responseText);
       }
+    } else {
+      await handleMessage(msgToHandle);
     }
   } catch (err) {
     console.error('[assistant-webhook] Handler error:', err.message);
