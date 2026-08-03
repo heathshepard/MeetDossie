@@ -40,7 +40,7 @@ TREC_DIR = HERE / "trec-forms"
 SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co"
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 DEMO_EMAIL = "demo@meetdossie.com"
-DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab"
+DEMO_PASSWORD = os.environ["DEMO_PASSWORD"]
 UPLOAD_URL = "https://meetdossie.com/api/upload-document"
 
 # Demo-account agent identity (matches what's in profiles for the demo user)

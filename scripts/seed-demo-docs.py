@@ -25,7 +25,7 @@ import requests
 SUPABASE_URL = "https://pgwoitbdiyubjugwufhk.supabase.co"
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 DEMO_EMAIL = "demo@meetdossie.com"
-DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab"
+DEMO_PASSWORD = os.environ["DEMO_PASSWORD"]
 UPLOAD_URL = "https://meetdossie.com/api/upload-document"
 
 # Deal map: dossier_number -> (transaction_id, property_address, parties summary, doc list)

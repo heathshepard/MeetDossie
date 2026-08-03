@@ -12,7 +12,7 @@ const path = require("path");
 
 const BASE = process.argv[2] || "https://meet-dossie-qt2paxsmj-heathshepard-6590s-projects.vercel.app";
 const EMAIL = process.env.APV_EMAIL || "demo@meetdossie.com";
-const PASSWORD = process.env.APV_PASSWORD || "DossieDemo-VaIiAt6Bab";
+const PASSWORD = process.env.APV_PASSWORD;
 const OUT = path.resolve(__dirname, "..");
 
 async function shot(page, name) {

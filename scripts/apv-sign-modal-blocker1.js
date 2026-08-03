@@ -11,7 +11,7 @@ const path = require("path");
 
 const BASE = process.argv[2] || "https://staging.meetdossie.com";
 const EMAIL = process.env.APV_EMAIL || "demo@meetdossie.com";
-const PASSWORD = process.env.APV_PASSWORD || "DossieDemo-VaIiAt6Bab";
+const PASSWORD = process.env.APV_PASSWORD;
 const OUT = path.resolve(__dirname, "..");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

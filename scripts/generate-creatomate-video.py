@@ -55,7 +55,7 @@ ELEVENLABS_VOICE_DEFAULT = "pqHfZKP75CvOlQylNhV4"  # Bill
 MEDIA_DIR = Path(r"C:\Users\Heath Shepard\Desktop\MeetDossie\Media")
 SCREEN_RECORDINGS_DIR = MEDIA_DIR / "screen-recordings"
 DEMO_EMAIL = "demo@meetdossie.com"
-DEMO_PASSWORD = "DossieDemo-VaIiAt6Bab"
+DEMO_PASSWORD = os.environ["DEMO_PASSWORD"]
 
 
 def supabase_auth_token() -> str:

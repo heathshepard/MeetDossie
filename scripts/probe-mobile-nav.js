@@ -20,7 +20,7 @@ const fs = require('fs');
   }
 })();
 
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 (async () => {
   const { chromium } = require('playwright');

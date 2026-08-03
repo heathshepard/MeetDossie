@@ -166,14 +166,14 @@ Use this for **all** key rotations unless specified otherwise below:
 - **Security:** Treat as a secret even though crons are internal-only
 
 ### DEMO_PASSWORD
-- **Value:** `DossieDemo-VaIiAt6Bab`
+- **Value:** `DEMO_PASSWORD` in Vercel env
 - **Where:** Vercel env vars (production, preview, development)
 - **Provider:** Self-defined
 - **Rotation:** Change in Vercel → create new Supabase demo user with new password → update seed scripts
 - **Used by:** Demo account `demo@meetdossie.com` (Sarah Whitley persona)
 
 ### DEMO2_PASSWORD
-- **Value:** `DossieDemo2-John2026`
+- **Value:** `DEMO2_PASSWORD` in Vercel env
 - **Where:** Vercel env vars (production, preview, development)
 - **Provider:** Self-defined
 - **Rotation:** Change in Vercel → create new Supabase demo user with new password → update seed scripts

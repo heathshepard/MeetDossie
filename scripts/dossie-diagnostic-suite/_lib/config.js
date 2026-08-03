@@ -27,7 +27,7 @@ function buildConfig(runId, argv) {
   const base = args.base || process.env.BASE_URL || "https://meetdossie.com";
   const email = args.email || process.env.APV_EMAIL || "demo@meetdossie.com";
   // Fallback matches other apv-* scripts in scripts/. Real value is DEMO_PASSWORD in Vercel env.
-  const password = args.password || process.env.APV_PASSWORD || process.env.DEMO_PASSWORD || "DossieDemo-VaIiAt6Bab";
+  const password = args.password || process.env.APV_PASSWORD || process.env.DEMO_PASSWORD;
   const outDir = args.out || path.resolve(__dirname, "..", "..", "..", ".tmp", "dossie-diagnostic-suite", `run-${runId}`);
   const headless = args.headless !== "false" && args.headless !== false;
 

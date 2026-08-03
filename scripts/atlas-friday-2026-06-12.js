@@ -42,7 +42,7 @@ const LUNA_VOICE_ID = 'lxYfHSkYm1EzQzGhdbfc';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DossieDemo-VaIiAt6Bab';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 const VOICEOVER_TEXT = [
   "Two years ago I was a burned-out solo agent.",

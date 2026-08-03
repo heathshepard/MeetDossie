@@ -11,7 +11,7 @@ const path = require('path');
 const { PDFDocument } = require('pdf-lib');
 
 const DEMO_EMAIL = 'demo@meetdossie.com';
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'TemporaryDevPassword123';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 // Use local dev server
 const APP_URL = 'http://localhost:5173/app';

@@ -23,8 +23,8 @@ ZERNIO_API_KEY
 CREATOMATE_API_KEY
 CREATOMATE_TEMPLATE_ID = 791117d0-665c-4cd0-ba5f-a767f8921f9b
 FAL_KEY
-DEMO_PASSWORD = DossieDemo-VaIiAt6Bab
-DEMO2_PASSWORD = DossieDemo2-John2026
+DEMO_PASSWORD = <DEMO_PASSWORD in Vercel env>
+DEMO2_PASSWORD = <DEMO2_PASSWORD in Vercel env>
 ```
 
 17 distinct env var names. `TELEGRAM_CHAT_ID`, `CREATOMATE_TEMPLATE_ID`, `DEMO_PASSWORD`, `DEMO2_PASSWORD` are non-secret config values shown here for reference.
