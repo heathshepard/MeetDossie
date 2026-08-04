@@ -65,6 +65,10 @@ const VALID_TASK_TYPES = new Set([
   'comment_reply_gen',    // Draft warm 1-2 sentence replies to inbound comments.
   'competitor_scan',      // Weekly deep-scan of tracked competitor accounts.
   'trending_audio_scan',  // Daily scrape of TikTok trending sounds.
+  // The Jarvis bridge — 2026-08-04. Unlike every other jarvis-* endpoint,
+  // which calls the Anthropic API server-side, this runs Claude Code on
+  // Heath's PC, so it can actually read and change the repos.
+  'jarvis_chat',
 ]);
 
 // Valid queue agents. We default to 'atlas' since the worker is Atlas-owned

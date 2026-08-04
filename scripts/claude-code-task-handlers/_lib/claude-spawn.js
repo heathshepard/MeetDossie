@@ -12,17 +12,50 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const HOME_DIR = process.env.USERPROFILE || process.env.HOME || 'C:\\Users\\Heath Shepard';
-const CLAUDE_EXE_DIRECT = path.join(
-  process.env.APPDATA || path.join(HOME_DIR, 'AppData', 'Roaming'),
-  'npm', 'node_modules', '@anthropic-ai/claude-code', 'bin', 'claude.exe'
-);
+// The Windows profile is "Heath", not "Heath Shepard" — that path has not
+// existed since the machine was rebuilt.
+const HOME_DIR = process.env.USERPROFILE || process.env.HOME || 'C:\\Users\\Heath';
+
+// Checked in order. The native installer puts claude.exe under
+// %USERPROFILE%\.local\bin, which is where it actually lives on this machine;
+// the npm-global location is the older layout and is kept as a fallback.
+// Neither is on the Windows PATH, so bare "claude.cmd" does not resolve —
+// that failure surfaces as "not recognized as an internal or external command"
+// long after the spawn appears to succeed.
+const CLAUDE_CANDIDATES = [
+  path.join(HOME_DIR, '.local', 'bin', 'claude.exe'),
+  path.join(
+    process.env.APPDATA || path.join(HOME_DIR, 'AppData', 'Roaming'),
+    'npm', 'node_modules', '@anthropic-ai/claude-code', 'bin', 'claude.exe'
+  ),
+];
+
 const CLAUDE_BIN = (() => {
-  try { if (fs.existsSync(CLAUDE_EXE_DIRECT)) return CLAUDE_EXE_DIRECT; } catch {}
+  for (const c of CLAUDE_CANDIDATES) {
+    try { if (fs.existsSync(c)) return c; } catch {}
+  }
   return process.platform === 'win32' ? 'claude.cmd' : 'claude';
 })();
 
-function runClaude(prompt, { model = 'sonnet', timeoutMs = 10 * 60 * 1000, log = () => {} } = {}) {
+// Node 18.20 / 20.12 closed CVE-2024-27980 by refusing to spawn .cmd and .bat
+// without a shell — it throws EINVAL. When we fall back to claude.cmd (i.e.
+// the .exe wasn't found) we therefore MUST pass shell:true, or every handler
+// dies before Claude ever starts. The failure reads like Claude is broken
+// rather than like a spawn problem, which is what makes it worth a comment.
+const NEEDS_SHELL = process.platform === 'win32' && /\.(cmd|bat)$/i.test(CLAUDE_BIN);
+
+// opts.resumeSessionId — continue a prior --print session so multi-turn chat
+//   keeps its context. The session id comes back on the JSON envelope
+//   (envelope.session_id) of the previous call; pass it here next turn.
+// opts.cwd — which repo Claude runs in. Defaults to the worker's cwd, which is
+//   MeetDossie. Point it elsewhere for Sawyer/Rust tasks.
+function runClaude(prompt, {
+  model = 'sonnet',
+  timeoutMs = 10 * 60 * 1000,
+  log = () => {},
+  resumeSessionId = null,
+  cwd = undefined,
+} = {}) {
   return new Promise((resolve) => {
     const started = Date.now();
     const args = [
@@ -31,8 +64,11 @@ function runClaude(prompt, { model = 'sonnet', timeoutMs = 10 * 60 * 1000, log =
       '--dangerously-skip-permissions',
       '--output-format', 'json',
     ];
+    if (resumeSessionId) args.push('--resume', String(resumeSessionId));
 
-    log(`spawn claude --print model=${model} bin=${CLAUDE_BIN}`);
+    log(`spawn claude --print model=${model} bin=${CLAUDE_BIN}`
+      + (resumeSessionId ? ` resume=${resumeSessionId}` : '')
+      + (cwd ? ` cwd=${cwd}` : ''));
 
     let stdoutBuf = '';
     let stderrBuf = '';
@@ -40,9 +76,10 @@ function runClaude(prompt, { model = 'sonnet', timeoutMs = 10 * 60 * 1000, log =
 
     const child = spawn(CLAUDE_BIN, args, {
       env: process.env,
-      shell: false,
+      shell: NEEDS_SHELL,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
+      ...(cwd ? { cwd } : {}),
     });
 
     try {
