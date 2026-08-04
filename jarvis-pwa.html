@@ -463,6 +463,8 @@
     }
     .chat-reply-toggle[data-mode="voice"] { border-color: rgba(201, 169, 110, 0.5); color: var(--gold, #C9A96E); }
     .chat-reply-toggle[data-mode="text"] { border-color: var(--cyan-dim); color: var(--cyan); }
+    .chat-reply-toggle[data-engine="quick"] { border-color: var(--cyan-dim); color: var(--cyan); }
+    .chat-reply-toggle[data-engine="build"] { border-color: rgba(139, 168, 136, 0.6); color: var(--sage, #8BA888); }
     .chat-input {
       flex: 1 1 0;
       min-width: 0;
@@ -2921,6 +2923,7 @@
               <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" multiple />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
+              <button id="chat-engine-toggle" class="chat-reply-toggle" data-engine="quick" aria-label="Toggle quick or build mode" title="QUICK: fast answers, cannot touch files. BUILD: real Claude Code on your PC — reads/edits the repo, slower.">QUICK</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="22" y1="2" x2="11" y2="13"/>
@@ -6734,6 +6737,99 @@
       }
     }
 
+    // ---- Chat engine (Quick vs Build) — 2026-08-04 -------------------------
+    // QUICK hits /api/jarvis-voice: fast, but that Claude has no filesystem,
+    // no repo, no git — it can talk, not act. BUILD routes through
+    // agent_queue to the claude-code-worker on Heath's PC, so the reply comes
+    // from a real Claude Code session that can read/edit files and run
+    // commands. BUILD is slower (a CLI process spins up) and does nothing if
+    // the PC is off, so it is opt-in rather than the default.
+    const CHAT_ENGINE_LS_KEY = 'jarvis_chat_engine';
+    const BUILD_SESSION_LS_PREFIX = 'jarvis_build_session_';
+    const BUILD_PROJECT_LS_KEY = 'jarvis_build_project';
+
+    function getChatEngine() {
+      try {
+        return localStorage.getItem(CHAT_ENGINE_LS_KEY) === 'build' ? 'build' : 'quick';
+      } catch { return 'quick'; }
+    }
+    function setChatEngine(engine) {
+      try { localStorage.setItem(CHAT_ENGINE_LS_KEY, engine === 'build' ? 'build' : 'quick'); } catch {}
+      const btn = document.getElementById('chat-engine-toggle');
+      if (btn) {
+        btn.dataset.engine = engine;
+        btn.textContent = engine === 'build' ? 'BUILD' : 'QUICK';
+        btn.title = engine === 'build'
+          ? 'BUILD: real Claude Code on your PC — reads/edits the repo, slower, needs the PC on (tap to switch to Quick)'
+          : 'QUICK: fast answers, cannot touch files (tap to switch to Build)';
+      }
+    }
+    function getBuildProject() {
+      try { return localStorage.getItem(BUILD_PROJECT_LS_KEY) || 'meetdossie'; } catch { return 'meetdossie'; }
+    }
+    function getBuildSessionId(project) {
+      try { return localStorage.getItem(BUILD_SESSION_LS_PREFIX + project) || null; } catch { return null; }
+    }
+    function setBuildSessionId(project, sessionId) {
+      try {
+        if (sessionId) localStorage.setItem(BUILD_SESSION_LS_PREFIX + project, sessionId);
+        else localStorage.removeItem(BUILD_SESSION_LS_PREFIX + project);
+      } catch {}
+    }
+
+    // Ask through the real Claude Code bridge and poll until it answers.
+    // Claude Code can genuinely take minutes on a real task; Vercel functions
+    // cannot, so the API hands back a queue_id immediately and this polls.
+    async function runBridgeChat(message) {
+      const project = getBuildProject();
+      const body = {
+        message,
+        project,
+        session_id: getBuildSessionId(project),
+      };
+      const startRes = await fetch(`${API_BASE}/api/jarvis-claude-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: await getAuthHeader(),
+        },
+        body: JSON.stringify(body),
+      });
+      const start = await startRes.json();
+      if (!startRes.ok || !start.ok) {
+        throw new Error(start?.error || `Build request failed (${startRes.status})`);
+      }
+      if (start.pc_online === false) {
+        try { pttStatus.textContent = 'Your PC looks offline — queued, will run once it wakes…'; } catch {}
+      }
+
+      const POLL_MS = 3000;
+      const MAX_WAIT_MS = 9 * 60 * 1000; // Claude Code's own spawn timeout is 10min
+      const startedAt = Date.now();
+
+      while (Date.now() - startedAt < MAX_WAIT_MS) {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        const pollRes = await fetch(
+          `${API_BASE}/api/jarvis-claude-code?id=${encodeURIComponent(start.queue_id)}`,
+          { headers: { Authorization: await getAuthHeader() } }
+        );
+        const poll = await pollRes.json();
+
+        if (poll.status === 'completed') {
+          if (poll.session_id) setBuildSessionId(project, poll.session_id);
+          else if (poll.session_reset) setBuildSessionId(project, null);
+          appendMessage('assistant', poll.answer || '(no answer returned)');
+          return;
+        }
+        if (poll.status === 'failed' || poll.status === 'blocked') {
+          throw new Error(poll.error || 'Build task did not complete');
+        }
+        const elapsedS = Math.round((Date.now() - startedAt) / 1000);
+        try { pttStatus.textContent = `Building… ${elapsedS}s`; } catch {}
+      }
+      throw new Error('Timed out waiting for a reply — it may still finish; check again shortly.');
+    }
+
     function renderAttachmentChip() {
       const row = document.getElementById('chat-attachment-row');
       if (!row) return;
@@ -6867,6 +6963,7 @@
       const attachBtn = document.getElementById('chat-attach-btn');
       const fileInput = document.getElementById('chat-attach-input');
       const toggleBtn = document.getElementById('chat-reply-toggle');
+      const engineBtn = document.getElementById('chat-engine-toggle');
       if (!textInput || !sendBtn) return;
 
       // Initialize toggle state from localStorage.
@@ -6876,6 +6973,19 @@
           const next = toggleBtn.dataset.mode === 'voice' ? 'text' : 'voice';
           setReplyMode(next);
           showToast(next === 'voice' ? 'Jarvis will speak replies aloud.' : 'Text-only replies.', 1400);
+        });
+      }
+      setChatEngine(getChatEngine());
+      if (engineBtn) {
+        engineBtn.addEventListener('click', () => {
+          const next = engineBtn.dataset.engine === 'build' ? 'quick' : 'build';
+          setChatEngine(next);
+          showToast(
+            next === 'build'
+              ? 'Build mode: real Claude Code on your PC. Slower — it has to think and act.'
+              : 'Quick mode: fast answers, cannot touch files.',
+            2200
+          );
         });
       }
 
@@ -7010,7 +7120,13 @@
         try { setPttState('thinking'); pttStatus.textContent = 'Thinking…'; } catch {}
 
         try {
-          if (getReplyMode() === 'text') {
+          if (getChatEngine() === 'build') {
+            // Build mode: real Claude Code on Heath's PC. Text-only for now —
+            // TTS on a multi-minute reply is a separate problem (streaming a
+            // synthesized voice for an answer that arrives all at once, long
+            // after it was "said") and not worth solving before this ships.
+            await runBridgeChat(message);
+          } else if (getReplyMode() === 'text') {
             // Text-only — no TTS, no mic resume.
             await runTextOnlyChat(message, { imageBase64, imageMediaType });
           } else {
