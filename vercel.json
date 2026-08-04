@@ -710,7 +710,7 @@
     },
     {
       "path": "/api/cron-agent-queue-dispatch",
-      "schedule": "0 0 1 1 *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron-agent-queue-orphan-reset",
