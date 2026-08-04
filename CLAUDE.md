@@ -118,7 +118,7 @@ After EVERY Carter staging push, Cole auto-spawns Quinn (no prompt needed). Quin
 | Solo | $79 (rising to $149 on 2026-07-31 for new signups; existing subs unaffected) | $39 |
 | Team | $199 (3 seats; max 8 at $35/seat) — rising to $349 on 2026-07-31 for new signups; existing subs unaffected | $119 |
 | Brokerage | custom | custom |
-| **Founding Member** | **$29** (25 spots, 10 taken, 15 remaining, LOCKED for LIFE of membership) | — |
+| **Founding Member** | **CLOSED 2026-08-04** — no new signups. 10 existing members remain LOCKED for LIFE at $29/mo per Terms of Service §4 | — |
 
 Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 

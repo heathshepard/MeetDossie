@@ -1,14 +1,17 @@
 {
   "buildCommand": "",
   "outputDirectory": ".",
+  "redirects": [
+    {
+      "source": "/founding",
+      "destination": "/app",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "destination": "/index.html",
       "source": "/"
-    },
-    {
-      "source": "/founding",
-      "destination": "/founding.html"
     },
     {
       "source": "/welcome",

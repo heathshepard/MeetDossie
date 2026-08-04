@@ -10,8 +10,8 @@
 <meta property="og:description" content="Direct answers to the questions Texas agents ask about Dossie. Pricing, TREC forms, compliance packets, voice/AI, integrations.">
 <meta property="og:url" content="https://meetdossie.com/faq">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://meetdossie.com/Media/dossie-logo-d.png">
-<link rel="icon" type="image/png" href="/Media/dossie-logo-d.png">
+<meta property="og:image" content="https://meetdossie.com/public/dossie-logo-d.png">
+<link rel="icon" type="image/png" href="/public/dossie-logo-d.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,13 +109,9 @@ footer a:hover{color:var(--coral-deep)}
     <a href="/learn">Learn</a>
     <a href="/calculator">Calculator</a>
     <a href="/help">Tutorials</a>
-    <a href="/founding" class="nav-cta">Founding $29/mo</a>
+    <a href="/app" class="nav-cta">Get Started</a>
   </div>
 </nav>
-
-<div class="cta-banner">
-  Lock in $29/mo founding — <span id="spotsLeftBanner">limited</span> spots left. <a href="/founding">Claim your spot →</a>
-</div>
 
 <header class="hero">
   <div class="eyebrow">Help &amp; answers</div>
@@ -171,7 +167,6 @@ footer a:hover{color:var(--coral-deep)}
 <footer>
   <p>
     <a href="/">Home</a> ·
-    <a href="/founding">Founding</a> ·
     <a href="/learn">Learn</a> ·
     <a href="/calculator">Calculator</a> ·
     <a href="/help">Tutorials</a> ·
@@ -307,21 +302,6 @@ document.getElementById('search').addEventListener('input', e => {
 });
 
 load();
-
-// Live founding-spot count for the top banner.
-(function(){
-  var el = document.getElementById('spotsLeftBanner');
-  if (!el) return;
-  fetch('/api/founding-count', { headers: { Accept: 'application/json' } })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(j){
-      if (j && typeof j.remaining === 'number' && j.remaining >= 0) {
-        var t = (typeof j.total === 'number' && j.total > 0) ? j.total : 25;
-        el.textContent = j.remaining + ' of ' + t;
-      }
-    })
-    .catch(function(){});
-})();
 </script>
 
 </body>

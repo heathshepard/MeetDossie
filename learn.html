@@ -10,8 +10,8 @@
 <meta property="og:description" content="One hub for every Texas real estate resource Dossie publishes: calculator, guides, answers, tutorials, FAQ, glossary.">
 <meta property="og:url" content="https://meetdossie.com/learn">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://meetdossie.com/Media/dossie-logo-d.png">
-<link rel="icon" type="image/png" href="/Media/dossie-logo-d.png">
+<meta property="og:image" content="https://meetdossie.com/public/dossie-logo-d.png">
+<link rel="icon" type="image/png" href="/public/dossie-logo-d.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -119,13 +119,9 @@ footer a:hover{color:var(--coral-deep)}
     <a href="/calculator">Calculator</a>
     <a href="/help">Tutorials</a>
     <a href="/faq">FAQ</a>
-    <a href="/founding" class="nav-cta">Founding $29/mo</a>
+    <a href="/app" class="nav-cta">Get Started</a>
   </div>
 </nav>
-
-<div style="background:linear-gradient(135deg,var(--blush) 0%,var(--coral-light) 100%);padding:14px 24px;text-align:center;font-size:14px;font-weight:600;color:var(--text-primary);border-bottom:1px solid var(--border-light)">
-  Lock in $29/mo founding — <span id="spotsLeftBanner">limited</span> spots left. <a href="/founding" style="color:var(--coral-deep);font-weight:700;text-decoration:none">Claim your spot →</a>
-</div>
 
 <header class="hero">
   <div class="eyebrow">Texas real estate learning hub</div>
@@ -239,7 +235,7 @@ footer a:hover{color:var(--coral-deep)}
   <div class="cta-banner">
     <h2>Ready to stop chasing paperwork?</h2>
     <p>Dossie tracks every TREC deadline, drafts every email, fills every TREC form, and sends your compliance packet — for less than one per-file TC charge.</p>
-    <a href="/founding">Lock in $29/mo founding →</a>
+    <a href="/app">Get started →</a>
   </div>
 
 </main>
@@ -247,7 +243,6 @@ footer a:hover{color:var(--coral-deep)}
 <footer>
   <p>
     <a href="/">Home</a> ·
-    <a href="/founding">Founding</a> ·
     <a href="/learn">Learn</a> ·
     <a href="/calculator">Calculator</a> ·
     <a href="/help">Tutorials</a> ·
@@ -291,21 +286,6 @@ async function loadTutorials() {
 }
 
 loadTutorials();
-
-// Live founding-spot count for the top banner.
-(function(){
-  var el = document.getElementById('spotsLeftBanner');
-  if (!el) return;
-  fetch('/api/founding-count', { headers: { Accept: 'application/json' } })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(j){
-      if (j && typeof j.remaining === 'number' && j.remaining >= 0) {
-        var t = (typeof j.total === 'number' && j.total > 0) ? j.total : 25;
-        el.textContent = j.remaining + ' of ' + t;
-      }
-    })
-    .catch(function(){});
-})();
 </script>
 
 </body>
