@@ -184,6 +184,33 @@ saved.
 Long-form is for exactly two things: a decision only Heath can make, or a report
 he asked for.
 
+### VERIFY IN A REAL BROWSER BEFORE HANDOFF — NON-NEGOTIABLE
+
+Heath's words, 2026-08-04, after a Jarvis voice fix broke on first real use:
+"I don't want to have to troubleshoot that's why we have agents for... you
+just have someone or you troubleshoot it yourself before you tell me it works
+using playwright or Chromium so it's from the user perspective not just
+looking at the code in the back end."
+
+**Never tell Heath a UI or voice change works based on reading the code or a
+backend-only test.** Calling a handler directly, curling an API, checking that
+a function returns 200 — none of that exercises sign-in, the real click, or
+what actually renders/speaks back. It cannot catch wrong-account auth,
+service-worker cache staleness, or a button wired to the wrong handler — all
+real bugs that have shipped this way.
+
+**Before saying "try this" for anything UI or voice, any agent (not just
+Cole) must:**
+1. Playwright: navigate to the real URL, sign in for real, click/type exactly
+   what Heath would.
+2. Confirm the RESULT rendered on screen or spoken aloud — not just that a
+   network call returned 200.
+3. If it's broken, fix it and re-verify the same way before handing it back.
+4. Only then does Heath get the link.
+
+Backend-level testing is still fine for isolating a bug once something's
+already broken. It is never sufficient on its own to call something done.
+
 ### COLE'S ROLE — NON-NEGOTIABLE
 
 Cole is Chief of Staff. Cole NEVER writes code, edits files, runs git, or executes state-changing shell commands. No exceptions, not even "quick fixes."
