@@ -455,6 +455,90 @@ const TEMPLATE_REGISTRY = [
       'purchase_price',
     ],
   },
+
+  // ---- 2026-08-05 — real, live DocuSeal templates found in the account
+  // that were never registered here, closing gaps confirmed against
+  // getRequiredDocs() the same night: buyer-representation, wire-fraud-warning,
+  // and general-info-notice were all listed as required with zero template
+  // coverage. Verified each against the live DocuSeal API (name, field count,
+  // submitter roles) before adding — see scripts/verify-docuseal-templates.js
+  // if that check needs re-running. No TEMPLATE_FIELD_MAPPERS entry exists
+  // yet for any of these, so prefill only covers the CORE_PREFILL keys below —
+  // DocuSeal's own signing UI still lets a signer fill anything not prefilled,
+  // so these are fully usable now; richer prefill is a follow-up, not a
+  // blocker.
+  {
+    type: 'buyer_rep_agreement',
+    label: 'TAR 1501 Buyer Rep Agreement',
+    description: 'Residential Buyer/Tenant Representation Agreement — required by TX law effective 2026-01-01',
+    fallbackId: '4984939',
+    defaultSigners: [
+      { role: 'Buyer 1', label: 'Buyer 1' },
+      { role: 'Buyer 2', label: 'Buyer 2' },
+      { role: 'Buyer Broker', label: "Buyer's Broker" },
+    ],
+    prefillFields: ['property_address', 'buyer_name'],
+  },
+  {
+    type: 'wire_fraud_warning',
+    label: 'Wire Fraud Warning',
+    description: 'Broker-required warning to buyer about wire fraud',
+    fallbackId: '4985366',
+    defaultSigners: [
+      { role: 'Buyer 1', label: 'Buyer 1' },
+      { role: 'Buyer 2', label: 'Buyer 2' },
+      { role: 'Buyer Broker', label: "Buyer's Broker" },
+    ],
+    prefillFields: ['property_address', 'buyer_name'],
+  },
+  {
+    type: 'general_info_notice',
+    label: 'General Information and Notice to Consumers',
+    description: 'Texas consumer protection notice',
+    fallbackId: '4985809',
+    defaultSigners: [
+      { role: 'Buyer 1', label: 'Buyer 1' },
+      { role: 'Buyer 2', label: 'Buyer 2' },
+      { role: 'Buyer Broker', label: "Buyer's Broker" },
+    ],
+    prefillFields: ['property_address', 'buyer_name'],
+  },
+  {
+    type: 'nonrealty_items_addendum',
+    label: 'TREC 10-11 Nonrealty Items Addendum',
+    description: 'Non-realty items and any related terms',
+    fallbackId: '4986395',
+    defaultSigners: BUYER_SELLER_2,
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'release_of_earnest_money',
+    label: 'TXR 2602 Release of Earnest Money',
+    description: 'Release of earnest money at contract termination or closing',
+    fallbackId: '4986217',
+    defaultSigners: [
+      { role: 'Buyer 1', label: 'Buyer 1' },
+      { role: 'Buyer 2', label: 'Buyer 2' },
+      { role: 'Seller 1', label: 'Seller 1' },
+      { role: 'Seller 2', label: 'Seller 2' },
+      { role: 'Buyer Broker', label: "Buyer's Broker" },
+      { role: 'Seller Broker', label: "Seller's Broker" },
+    ],
+    prefillFields: CORE_PREFILL,
+  },
+  {
+    type: 'intermediary_relationship_notice',
+    label: 'TXR 1409 Intermediary Relationship Notice',
+    description: 'Notice when one broker represents both buyer and seller',
+    fallbackId: '4986044',
+    defaultSigners: [
+      { role: 'Buyer 1', label: 'Buyer 1' },
+      { role: 'Seller 1', label: 'Seller 1' },
+      { role: 'Seller 2', label: 'Seller 2' },
+      { role: 'Seller Broker', label: 'Broker' },
+    ],
+    prefillFields: ['property_address', 'buyer_name', 'seller_name'],
+  },
 ];
 
 function applyCors(req, res) {
