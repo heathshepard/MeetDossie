@@ -407,7 +407,7 @@ Return ALL dates in yyyy-MM-dd format only. Examples:
 Never return natural language descriptions like "within 7 days after the Effective Date" or "within 7 days after objections cured/waived" for date fields. Extract only the actual calendar date in yyyy-MM-dd format. If a date cannot be determined, return null.
 
 DEBUG FIELDS REQUIREMENT:
-ALWAYS populate debugParagraph3C and debugParagraph5B fields with the exact verbatim text you read from those paragraphs. These fields are critical for troubleshooting extraction errors.
+ALWAYS populate debugParagraph3C, debugParagraph5B, and debugParagraph6C fields with the exact verbatim text you read from those paragraphs. These fields are critical for troubleshooting extraction errors.
 
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
@@ -464,7 +464,7 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
 - possessionDate — yyyy-MM-dd when Paragraph 9.B specifies a specific date; mirror Paragraph 9.B possession.specificDate into the top-level possessionDate. Null when possession is "upon closing" / "upon funding".
 - appraisalDeadline — ONLY populate if an explicit appraisal deadline or appraisal objection deadline date is stated in Paragraph 6, the Third Party Financing Addendum, or any Right-to-Terminate-Due-to-Lender's-Appraisal addendum. Look for phrases like "appraisal deadline", "appraisal objection deadline", or "buyer may terminate if appraisal does not meet... by [date]". Return the date in yyyy-MM-dd format. If no explicit date is stated, return null. Do NOT calculate or derive a date.
-- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for either: (1) an explicit date, OR (2) a number of days (e.g., "within 10 days after effective date"). If you find a day count, calculate the deadline by adding those days to the contractEffectiveDate and return in yyyy-MM-dd format. If you find an explicit date, return it in yyyy-MM-dd format. If neither exists, return null.
+- surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for either: (1) an explicit date, OR (2) a number of days (e.g., "within 10 days after effective date"). If you find a day count, calculate the deadline by adding those days to the contractEffectiveDate and return in yyyy-MM-dd format. If you find an explicit date, return it in yyyy-MM-dd format. If neither exists, return null. Do your best here, but this is a secondary check only — deterministic code re-derives this field from debugParagraph6C afterward and overrides a wrong or missing value, the same way optionDays is re-derived from debugParagraph5B. Getting this exactly right yourself is not critical; populating debugParagraph6C correctly is.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
 - loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
 
@@ -593,7 +593,8 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "optionFeePayableTo": string | null               // usually "Seller"; sometimes title company or named escrow agent
     },
     "debugParagraph3C": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 3 showing all three lines: "3A. $ [value]", "3B. $ [value]", "3C. Sales Price (Sum of A and B): $ [value]". Show all dollar amounts exactly as they appear.
-    "debugParagraph5B": string | null                   // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 5B showing the full sentence about "Seller grants Buyer the unrestricted right to terminate...within [X] days after the Effective Date."
+    "debugParagraph5B": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 5B showing the full sentence about "Seller grants Buyer the unrestricted right to terminate...within [X] days after the Effective Date."
+    "debugParagraph6C": string | null                   // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Paragraph 6C SURVEY has three numbered sub-options (1)/(2)/(3), each a checkbox followed by "Within ___ days after the Effective Date...". Copy the verbatim text of ALL THREE options, and for each one write [X] immediately before it if its checkbox is marked, or [ ] if it is not. Example: "[X] (1) Within 15 days after the Effective Date... [ ] (2) Within ___ days... [ ] (3) Within ___ days...". This lets deterministic code (not you) identify which option is checked and its day count — the checkbox marks are the critical part, do not omit them.
   },
   "confidence": {
     // For EVERY field above (including nested parties.*), include a 0-1 score reflecting how certain you are
@@ -947,7 +948,38 @@ async function scanContract(pdfBase64) {
     const calc = addDays(extracted.contractEffectiveDate, extracted.financingDays);
     if (calc) extracted.loanApprovalDeadline = calc;
   }
-  // appraisalDeadline: do NOT calculate automatically — only use if explicitly stated in contract
+  // appraisalDeadline: the TREC 49-1 addendum never states a literal calendar
+  // date — it's always "within N days after the Effective Date" (paragraph
+  // (3), the common case) — so requiring an explicit date meant this field
+  // was null on every real appraisal-termination addendum ever scanned. The
+  // day count itself (addenda.appraisalTerminationDays) IS reliably
+  // extracted; this was purely a missing post-processing step, same shape as
+  // loanApprovalDeadline just above. Found 2026-08-05 auditing a real scan.
+  if (!extracted.appraisalDeadline && extracted.addenda && typeof extracted.addenda.appraisalTerminationDays === 'number') {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.appraisalTerminationDays);
+    if (calc) extracted.appraisalDeadline = calc;
+  }
+
+  // CRITICAL: Parse the survey day count directly from debugParagraph6C using
+  // regex, same reasoning as the optionDays fix below. Paragraph 6C has THREE
+  // parallel checkbox options with three different day-count blanks — asking
+  // the model to both identify which is checked AND do date arithmetic in one
+  // JSON field is exactly the failure mode that made optionDays unreliable.
+  // The prompt now asks it only to preserve verbatim text with checkbox marks
+  // ("[X] (1) Within 15 days..."); this finds whichever option is actually
+  // marked and computes the deadline deterministically. Found 2026-08-05
+  // auditing a real scan where survey and appraisal deadlines both came back
+  // null despite the contract clearly stating both (option (1), 15 days).
+  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
+    const match = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)\s*Within\s+(\d+)\s+days after the Effective Date/i);
+    if (match) {
+      const surveyDays = parseInt(match[1], 10);
+      if (Number.isFinite(surveyDays) && surveyDays >= 1 && surveyDays <= 90) {
+        const calc = addDays(extracted.contractEffectiveDate, surveyDays);
+        if (calc) extracted.surveyDeadline = calc;
+      }
+    }
+  }
 
   // CRITICAL: Parse optionDays directly from debugParagraph5B using regex.
   // Claude's extraction is unreliable (keeps returning 10 instead of 7).
