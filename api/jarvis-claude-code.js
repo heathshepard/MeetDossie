@@ -39,6 +39,18 @@ const OWNER_EMAIL = 'heath.shepard@kw.com';
 const VALID_PROJECTS = new Set(['meetdossie', 'sawyer', 'rust']);
 const MAX_MESSAGE = 8000;
 
+// agent_queue.venture has its own CHECK constraint (dossie / paralegal /
+// personal-agents / shepard-ventures / general) that does NOT include our
+// project keys directly. Every Build-mode request was inserting
+// venture='meetdossie' and failing this constraint at the DB layer — 100%
+// failure rate, for every account, since the day this endpoint shipped.
+// Found 2026-08-04 by testing a direct insert.
+const PROJECT_TO_VENTURE = {
+  meetdossie: 'dossie',
+  sawyer: 'shepard-ventures',
+  rust: 'general',
+};
+
 // Heartbeat older than this and we assume the PC is off, so the UI can say so
 // instead of leaving him watching a spinner.
 const PC_STALE_MS = 10 * 60 * 1000;
@@ -179,7 +191,7 @@ module.exports = async function handler(req, res) {
       // Ahead of background batch work (which sits at 4) — Heath is waiting on
       // this one with a phone in his hand.
       priority: 1,
-      venture: project,
+      venture: PROJECT_TO_VENTURE[project] || 'general',
       status: 'pending',
       metadata: {
         task_type: 'jarvis_chat',
