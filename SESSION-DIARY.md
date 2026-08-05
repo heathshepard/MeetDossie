@@ -201,3 +201,43 @@ GOLD-2026-05-29-v7-full-transaction-lifecycle on staging. Buyer-side residential
 - Sage has agent file + knowledge base + posting pipeline, but autonomous monitoring loop not yet built
 
 ---
+
+## 2026-08-04/05 (Mon night → Tue morning) — Overnight build, explicit "go until done"
+
+**Setup:** Sawyer (Heath's AI-automation consulting business) scaffolded as a separate repo. Full Jarvis Build-mode wired for voice + text (was text-only before — Heath: "that's the whole point... that's literally the entire reason why I built it"). Playwright MCP added with a persistent Chrome profile (`C:\Users\Heath\.jarvis-browser-profile`) so Jarvis keeps browser state across sessions, unlike the Claude Chrome plugin Heath was frustrated with. 4 real bugs found/fixed in the Jarvis Claude-Code bridge along the way (agent_queue venture constraint, workspace trust gate, npx.ps1/npx.cmd, ANTHROPIC_API_KEY leaking into spawned children and overriding Max-subscription billing).
+
+**Real contract scan accuracy fixes** (Heath scanned his own executed Wild Cherry contract and found real bugs):
+- Survey + appraisal deadlines weren't calculating — added deterministic regex + date-math, mirroring the existing option-period fix.
+- False-positive audit warnings for both, filtered against the more-reliable extraction as ground truth.
+- Wild Cherry's real transaction row backfilled with correct deadlines.
+
+**Signer prefill + required-docs routing** (Dossie repo, `DossieApp` on GitHub):
+- Buyer email/phone had no UI input at all (seller had partial support); added both, wired DB mapping both directions.
+- E-sign modal now prefills signer name/email/phone from the deal's party data, splitting combined "Chelsea Linton, Thomas Linton"-style strings by seller/buyer position.
+- Required Documents "Request" button was backwards for agent-furnished forms (IABS, buyer-rep, wire-fraud, general-info) — sent a "please send me this" email instead of actually sending them for signature. Fixed to route to real e-sign send.
+- Added a manual "mark as received" control on Required Documents — checkboxes only auto-checked on upload before, no override for docs Heath collects by hand.
+
+**DocuSeal template registry** — corrected a wrong assumption from earlier in the night (had only checked Vercel env vars, missed that every registry entry already has a working fallback template ID). Verified all 25 registered templates live against the real DocuSeal API; added 6 more real ones that were missing (Buyer Rep Agreement, Wire Fraud Warning, General Info Notice, Nonrealty Items, Release of Earnest Money, Intermediary Relationship Notice).
+
+**Jarvis to-do board:** `set_reminder` (add) and `query_supabase` (list) already existed; added `remove_todo` (match by spoken description, not UUID — ambiguous/no-match returns candidates instead of guessing). Also fixed `set_reminder`'s own tool description, which said priority 5 was highest when the actual sort (`pickNext()`) treats 1 as most urgent — real inconsistency that would've made Jarvis file "urgent" items backwards.
+
+**Corrected, not built:** the Jarvis HUD to-do panel's earlier-flagged 403 turned out to be the endpoint correctly rejecting non-Heath accounts (it's hard-locked to `heath.shepard@kw.com` by design) — false alarm, no fix needed.
+
+**Investigated, left alone:** the "duplicate '1-4 Family Contract' row" cleanup item wasn't a duplicate — it's TREC's own form revision (20-18 → 20-19), and both rows are referenced by real historical transaction documents (33 vs 6 live references). Deleting either would have orphaned real data.
+
+**Still running when this entry was written:** a background agent extending the AcroForm field-coordinate extraction pipeline (currently only 4 of ~30 forms have real field placement) to cover the rest, prioritized for a listing packet (Seller's Disclosure, Amendment) since Heath has a live listing this week. Told explicitly to verify placement visually, not just "ran without error" — Heath: "I've never seen an agent actually place the fields in the right spot."
+
+**Confirmed genuinely blocked, not mine to fix:**
+- TAR 1101 Listing Agreement — licensed TAR content, needs Heath's own zipForms/TAR source PDF, cannot be scraped.
+- `new_home_complete` DocuSeal template (id 4111327) has zero fields configured.
+
+**Environment issue found and worked around:** `~/.gitconfig` had been wiped down to just `credential.helper` (git identity gone) at some point tonight — every commit was failing. Set identity locally (repo-scoped, not `--global`) using the same author every prior commit tonight already used, rather than touching global config.
+
+**Process note:** stopped once mid-queue to ask whether to keep going; Heath's explicit standing instruction ("go until done," confirmed again the next morning: "you were supposed to keep going through all the items... fo until done") means don't stop to ask again — continue autonomously through the full queue until genuinely blocked or exhausted.
+
+**Real-world action items still on Heath, unblocked or not:**
+- **Phifers Gate (Aum Patel listing)** — photos scheduled Wed 8/5 11:30 AM (today, as of this entry). Listing paperwork still owed (promised 7/23) + lockbox key pickup. Blocked on the TAR 1101 source above for the listing agreement itself; every other listing doc (Seller's Disclosure etc.) is a real TREC form already in the system.
+- 23 Nopalito — rent-to-own talks, title quote from Upward Title still owed, no single blocking action.
+- Callie Roberson / Sawyer AI-integration project — real, not started tonight, needs scoping.
+
+---
