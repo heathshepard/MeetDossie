@@ -1134,6 +1134,27 @@ async function runFullScan(pdfBase64) {
         field => !field.toLowerCase().includes('option') && !field.toLowerCase().includes('paragraph 5')
       );
     }
+    // 2026-08-05 — same pattern, extended to survey (6C) and appraisal (TREC
+    // 49-1) after auditCompliance flagged both as "blank" on a real scan
+    // where they were plainly filled in (checked box + a day count). Both
+    // are now reliably computed via the deterministic regex/addDays path
+    // (see debugParagraph6C / addenda.appraisalTerminationDays above), so
+    // that computed value is the ground truth — auditCompliance runs as a
+    // separate, less reliable model call and can be wrong about the same
+    // paragraph even when the real extraction got it right.
+    if (extractedFields.surveyDeadline) {
+      complianceReport.blankRequiredFields = (complianceReport.blankRequiredFields || []).filter(
+        field => !field.toLowerCase().includes('survey') && !field.toLowerCase().includes('6c')
+      );
+    }
+    if (extractedFields.appraisalDeadline) {
+      complianceReport.blankRequiredFields = (complianceReport.blankRequiredFields || []).filter(
+        field => !field.toLowerCase().includes('appraisal') && !field.toLowerCase().includes('49-1')
+      );
+      complianceReport.warnings = (complianceReport.warnings || []).filter(
+        w => !(w.toLowerCase().includes('appraisal') && /unclear|ambiguous|not.*(?:clear|specified)/i.test(w))
+      );
+    }
   }
 
   return {
