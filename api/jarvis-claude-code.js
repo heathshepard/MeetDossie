@@ -98,7 +98,10 @@ module.exports = async function handler(req, res) {
     return res.status(err.status || 401).json({ ok: false, error: err.message });
   }
   if ((authUser.email || '').toLowerCase() !== OWNER_EMAIL) {
-    return res.status(403).json({ ok: false, error: 'forbidden' });
+    return res.status(403).json({
+      ok: false,
+      error: `Build mode only works signed in as ${OWNER_EMAIL} — this session is signed in as ${authUser.email || 'someone else'}.`,
+    });
   }
 
   // ---- poll for an answer -------------------------------------------------
