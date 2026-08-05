@@ -230,13 +230,27 @@ const ALL_TOOLS = [
         title: { type: 'string', description: 'Short title for the item (1-200 chars).' },
         detail: { type: 'string', description: 'Optional detail / context.' },
         deadline: { type: 'string', description: 'Optional ISO deadline.' },
-        priority: { type: 'integer', description: 'Priority 1-5 (5 highest), default 3.', default: 3 },
+        priority: { type: 'integer', description: 'Priority 1-5 (1 highest — pickNext() sorts ascending), default 3.', default: 3 },
         action_type: { type: 'string', enum: ['sms', 'email', 'approve', 'decision', 'install', 'other'], default: 'other' },
         venture: { type: 'string', enum: ['dossie', 'paralegal', 'personal-agents', 'shepard-ventures', 'general'], default: 'general' },
       },
       required: ['title'],
     },
     requires_approval: false, // writes Heath's own list, low risk
+  },
+  {
+    name: 'remove_todo',
+    description:
+      'Remove (mark skipped) an item from Heath\'s todo list. Use when Heath says "take that off my list", "I already did X", "cancel that reminder". '
+      + 'Heath will describe the item in natural language, not a UUID — match by title_contains. If the match is ambiguous or missing, report candidates back to Heath instead of guessing.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title_contains: { type: 'string', description: 'Substring to match against pending todo titles (case-insensitive).' },
+        id: { type: 'string', description: 'Exact heath_todo row id, if already known.' },
+      },
+    },
+    requires_approval: false, // soft-delete only (status=skipped) on Heath's own list, low risk
   },
   {
     name: 'spawn_agent',
@@ -345,6 +359,24 @@ async function sbPost(path, body, { prefer = 'return=representation' } = {}) {
   if (!res.ok) {
     const errBody = await res.text().catch(() => '');
     throw new Error(`sbPost ${path} -> ${res.status} ${errBody.slice(0, 200)}`);
+  }
+  return prefer.includes('representation') ? res.json() : null;
+}
+
+async function sbPatch(path, body, { prefer = 'return=representation' } = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: prefer,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`sbPatch ${path} -> ${res.status} ${errBody.slice(0, 200)}`);
   }
   return prefer.includes('representation') ? res.json() : null;
 }
@@ -786,6 +818,58 @@ async function tool_set_reminder(input, ctx) {
   }
 }
 
+// 2026-08-05 — the missing half of set_reminder. Heath's own words: "I want
+// to be able to tell jarvis to put it on my to do list... and then tell him
+// to remove things as well." Listing already worked via query_supabase
+// (heath_todo is in READABLE_TABLES) — this was the one real gap.
+//
+// Heath will say a description, not a UUID or exact title, so this matches
+// by substring (case-insensitive) against pending items rather than
+// requiring an id. Ambiguous or zero matches return candidates/nothing
+// instead of guessing — Jarvis should read those back and ask which one
+// rather than silently picking. Soft-delete only (status='skipped'), so
+// nothing is ever actually destroyed by a misheard voice command.
+async function tool_remove_todo(input, ctx) {
+  const { title_contains, id = null } = input || {};
+  if (!id && !title_contains) return { error: 'title_contains or id is required' };
+  try {
+    if (id) {
+      const rows = await sbPatch(
+        `heath_todo?id=eq.${encodeURIComponent(id)}&status=eq.pending`,
+        { status: 'skipped' }
+      );
+      if (!rows || rows.length === 0) return { error: `No pending item found with id ${id}.` };
+      return { result: { removed: true, id: rows[0].id, title: rows[0].title } };
+    }
+
+    const q = String(title_contains).trim().slice(0, 200);
+    const matches = await sbGet(
+      `heath_todo?status=eq.pending&title=ilike.*${encodeURIComponent(q)}*&select=id,title,priority,detail&limit=10`
+    );
+
+    if (!matches || matches.length === 0) {
+      return { result: { removed: false, reason: 'no_match', searched: q } };
+    }
+    if (matches.length > 1) {
+      return {
+        result: {
+          removed: false,
+          reason: 'ambiguous',
+          candidates: matches.map((m) => ({ id: m.id, title: m.title })),
+        },
+      };
+    }
+
+    const rows = await sbPatch(
+      `heath_todo?id=eq.${encodeURIComponent(matches[0].id)}`,
+      { status: 'skipped' }
+    );
+    return { result: { removed: true, id: rows[0].id, title: rows[0].title } };
+  } catch (err) {
+    return { error: `remove_todo failed: ${err.message}` };
+  }
+}
+
 // Build the absolute URL for the cole-enqueue endpoint. Vercel sets
 // VERCEL_URL on every deployment (no protocol). Locally we fall back to the
 // production URL — Heath dev'd through prod by default.
@@ -940,6 +1024,7 @@ const TOOL_DISPATCHERS = {
   send_sms: tool_send_sms,
   read_calendar: tool_read_calendar,
   set_reminder: tool_set_reminder,
+  remove_todo: tool_remove_todo,
   spawn_agent: tool_spawn_agent,
   query_project_context: tool_query_project_context,
 };
