@@ -4703,6 +4703,23 @@
         appendMessage('user', transcript);
         pttStatus.textContent = 'Thinking…';
 
+        // ===== Route: BUILD mode -> the real Claude Code bridge =====
+        // Added 2026-08-04. Before this, BUILD only applied to the typed-text
+        // send path — talking to Jarvis always fell through to Quick mode
+        // regardless of the toggle, which is how Heath got a confident-sounding
+        // "I've spawned Carter" reply that left no trace anywhere. Voice IS
+        // the primary interface this UI was built for, so this has to route
+        // the same way typing does.
+        if (getChatEngine() === 'build') {
+          try {
+            await runBridgeVoiceChat(transcript);
+          } catch (err) {
+            console.error('[jarvis] build-mode voice chat failed:', err);
+            speakFallback(`Build mode hit an error: ${err.message}`, /*resume*/true);
+          }
+          return;
+        }
+
         // ===== Route: tool-likely turn -> non-streaming chat (tool_use); else stream =====
         // Streaming endpoint doesn't support tool_use (yet). If the message
         // hints at needing a tool, route to the non-streaming /op=chat which
@@ -5348,6 +5365,20 @@
       }
       appendMessage('user', transcript);
       pttStatus.textContent = 'Thinking…';
+
+      // BUILD mode — see the matching branch in onPttClick for why this
+      // exists in both voice entry points.
+      if (getChatEngine() === 'build') {
+        try {
+          await runBridgeVoiceChat(transcript);
+        } catch (err) {
+          console.error('[jarvis] build-mode voice chat failed (walkie-talkie):', err);
+          setPttState('error');
+          pttStatus.textContent = err.message;
+          speakFallback(`Build mode hit an error: ${err.message}`, /*resume*/false);
+        }
+        return;
+      }
 
       let reply = '';
       try {
@@ -6678,6 +6709,12 @@
           // Ensure the PTT state is 'thinking' so the user sees Jarvis is responding.
           try { setPttState('thinking'); pttStatus.textContent = 'Thinking…'; } catch {}
           try {
+            if (getChatEngine() === 'build') {
+              await runBridgeVoiceChat(prompt);
+              chip.classList.remove('firing');
+              bar.querySelectorAll('.qa-chip').forEach((c) => { c.disabled = false; });
+              return;
+            }
             const result = await runStreamingChatTTS({
               conversationId,
               transcript: prompt,
@@ -6780,7 +6817,11 @@
     // Ask through the real Claude Code bridge and poll until it answers.
     // Claude Code can genuinely take minutes on a real task; Vercel functions
     // cannot, so the API hands back a queue_id immediately and this polls.
-    async function runBridgeChat(message) {
+    // Returns the answer text — callers decide what to do with it (append a
+    // bubble, speak it, both). This is the ONE place that talks to
+    // /api/jarvis-claude-code; both the typed-text path and the voice path
+    // call through here so BUILD mode behaves identically either way.
+    async function askBridge(message, opts = {}) {
       const project = getBuildProject();
       const body = {
         message,
@@ -6818,16 +6859,71 @@
         if (poll.status === 'completed') {
           if (poll.session_id) setBuildSessionId(project, poll.session_id);
           else if (poll.session_reset) setBuildSessionId(project, null);
-          appendMessage('assistant', poll.answer || '(no answer returned)');
-          return;
+          return poll.answer || '(no answer returned)';
         }
         if (poll.status === 'failed' || poll.status === 'blocked') {
           throw new Error(poll.error || 'Build task did not complete');
         }
         const elapsedS = Math.round((Date.now() - startedAt) / 1000);
-        try { pttStatus.textContent = `Building… ${elapsedS}s`; } catch {}
+        const label = opts.statusVerb || 'Building';
+        try { pttStatus.textContent = `${label}… ${elapsedS}s`; } catch {}
       }
       throw new Error('Timed out waiting for a reply — it may still finish; check again shortly.');
+    }
+
+    async function runBridgeChat(message) {
+      const answer = await askBridge(message);
+      appendMessage('assistant', answer);
+    }
+
+    // Voice path into BUILD mode. Mirrors runLegacyChatTTS's shape (single
+    // non-streaming answer -> op=tts -> play -> resumeListening) rather than
+    // the sentence-by-sentence streaming pipeline, since Claude Code returns
+    // one full answer at the end, not a token stream to interleave with TTS.
+    async function runBridgeVoiceChat(transcript) {
+      const answer = await askBridge(transcript, { statusVerb: 'Thinking' });
+      appendMessage('assistant', answer);
+
+      setPttState('speaking');
+      pttLabel.textContent = 'TAP TO INTERRUPT';
+      pttStatus.textContent = 'Speaking… (tap to cut in)';
+
+      const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: await getAuthHeader(),
+        },
+        body: JSON.stringify({ text: answer }),
+      });
+      if (!ttsRes.ok) {
+        const errBody = await ttsRes.json().catch(() => ({}));
+        if (errBody.fallback === 'speech-synthesis') {
+          speakFallback(answer, /*resume*/true);
+          return;
+        }
+        throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
+      }
+      const audioBlob = await ttsRes.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      let bridgeVoiceAborted = false;
+      window.__jarvisInterruptTTS = function bridgeVoiceInterrupt(reason) {
+        if (bridgeVoiceAborted) return;
+        bridgeVoiceAborted = true;
+        console.log(`[jarvis-half-duplex] build-mode TTS interrupt: ${reason || 'unknown'}`);
+        try { audio.onended = null; audio.pause(); } catch {}
+      };
+      audio.onended = async () => {
+        URL.revokeObjectURL(audioUrl);
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        await resumeListening();
+      };
+      audio.onerror = async () => {
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        await resumeListening();
+      };
+      await audio.play();
     }
 
     function renderAttachmentChip() {
