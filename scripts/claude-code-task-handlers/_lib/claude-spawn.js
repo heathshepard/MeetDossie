@@ -44,6 +44,21 @@ const CLAUDE_BIN = (() => {
 // rather than like a spawn problem, which is what makes it worth a comment.
 const NEEDS_SHELL = process.platform === 'win32' && /\.(cmd|bat)$/i.test(CLAUDE_BIN);
 
+// This whole worker exists so batch/agent work runs under Heath's Max
+// subscription instead of pay-per-token API billing (see the COST WIN note
+// in api/claude-code-enqueue.js). If ANTHROPIC_API_KEY (or a couple of other
+// known auth-override vars) is sitting in the parent shell's environment for
+// ANY reason, the CLI silently prefers it over the claude.ai login and bills
+// the API key instead — the opposite of the entire point of this file.
+// Strip them from the child's env specifically, rather than relying on
+// Heath's shell never having one set.
+const AUTH_OVERRIDE_VARS = ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY', 'ANTHROPIC_AUTH_TOKEN'];
+function childEnv() {
+  const env = { ...process.env };
+  for (const k of AUTH_OVERRIDE_VARS) delete env[k];
+  return env;
+}
+
 // opts.resumeSessionId — continue a prior --print session so multi-turn chat
 //   keeps its context. The session id comes back on the JSON envelope
 //   (envelope.session_id) of the previous call; pass it here next turn.
@@ -75,7 +90,7 @@ function runClaude(prompt, {
     let killed = false;
 
     const child = spawn(CLAUDE_BIN, args, {
-      env: process.env,
+      env: childEnv(),
       shell: NEEDS_SHELL,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],

@@ -113,13 +113,24 @@ module.exports = async function jarvisChatHandler({ payload, task_id, log }) {
       if (retry.ok) {
         return done(retry, project, task_id, true);
       }
-      return { ok: false, summary: `jarvis_chat failed: ${retry.error}` };
+      return { ok: false, summary: failSummary(retry) };
     }
-    return { ok: false, summary: `jarvis_chat failed: ${out.error}` };
+    return { ok: false, summary: failSummary(out) };
   }
 
   return done(out, project, task_id, false);
 };
+
+// runClaude() returns stdout on failure too, but the earlier version of this
+// file only surfaced `error` (stderr) — dropping whatever Claude Code itself
+// printed to stdout, which is often where the actual explanation lives
+// (auth warnings, tool errors). Include both so a failure is fully visible
+// on first read instead of needing a follow-up dig.
+function failSummary(out) {
+  const stdoutTail = (out.stdout || '').trim().slice(-800);
+  return `jarvis_chat failed: ${out.error}`
+    + (stdoutTail ? `\n\n[stdout]\n${stdoutTail}` : '');
+}
 
 function done(out, project, task_id, sessionReset) {
   const answer = String(out.raw || '').trim();
