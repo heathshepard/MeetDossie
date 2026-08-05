@@ -158,6 +158,12 @@ vite.config.ts.timestamp-*
 # Exclude entire Media directory — videos, recordings, assets should not be in git repo
 Media/
 
+# Licensed/member-only source docs (e.g. TAR forms pulled from Heath's own TAR
+# account) — this repo is PUBLIC on GitHub. TREC forms are free/public and OK
+# to commit as base64 assets; TAR forms are member-licensed and must never
+# land in git history. Local-only working copies live here.
+.local-assets/
+
 # Email preview file (regenerated locally for QA)
 welcome-preview.html
 

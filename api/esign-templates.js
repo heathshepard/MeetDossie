@@ -539,6 +539,43 @@ const TEMPLATE_REGISTRY = [
     ],
     prefillFields: ['property_address', 'buyer_name', 'seller_name'],
   },
+  {
+    // 2026-08-05 — TXR-1101 Residential Listing Agreement (Exclusive Right to
+    // Sell). TAR member-licensed form, not TREC — Heath downloaded his own
+    // personalized copy from texasrealestate.com; the source PDF lives ONLY
+    // in .local-assets/ (gitignored) and in this DocuSeal template, never in
+    // git. Flat/print PDF (no native AcroForm — pdfinfo reports Form: none),
+    // so field positions were hand-mapped from pdftotext -bbox word
+    // coordinates and visually verified via Playwright overlay before this
+    // template was created — see api/_assets/txr-1101-listing-agreement-coords.json.
+    //
+    // Role split: "Broker" owns every business-terms field (parties' contact
+    // info, property description, listing price, term dates, broker's fee,
+    // protection period, special provisions) since the listing agent drafts
+    // all of that in Dossie before sending — Seller only reviews and signs.
+    // "Seller 1" / "Seller 2" each own just their own printed-name +
+    // signature + date on the page-10 signature block (co-seller support).
+    // Field names on the template are already clean semantic keys (no
+    // TEMPLATE_FIELD_MAPPERS entry needed — defaultFieldMapper passthrough
+    // applies). Only property_address / seller_name have a genuine tx-column
+    // source today (see fetchTransaction's SELECT above); listing_price,
+    // term_start_date/term_end_date, broker_fee_*, and the broker identity
+    // fields (sponsoring_broker_name etc.) have no dedicated transactions
+    // column yet, so they're agent-filled at send time via extraPrefill —
+    // same "fully usable now, richer prefill is a follow-up" pattern as the
+    // rest of this 2026-08-05 batch.
+    type: 'listing_agreement',
+    label: 'TXR-1101 Residential Listing Agreement',
+    description: "Exclusive Right to Sell listing agreement between Seller and Broker",
+    envVar: 'DOCUSEAL_TEMPLATE_LISTING_AGREEMENT',
+    fallbackId: '5321492',
+    defaultSigners: [
+      { role: 'Broker', label: 'Broker' },
+      { role: 'Seller 1', label: 'Seller 1' },
+      { role: 'Seller 2', label: 'Seller 2' },
+    ],
+    prefillFields: ['property_address', 'seller_name'],
+  },
 ];
 
 function applyCors(req, res) {
