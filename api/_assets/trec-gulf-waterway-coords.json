@@ -1,0 +1,106 @@
+{
+  "form_type": "gulf-waterway",
+  "generated_at": "2026-08-05T12:55:02.631Z",
+  "source_asset": "trec-gulf-waterway-base64.js",
+  "page_count": 1,
+  "page_sizes": [
+    {
+      "page": 1,
+      "width_pt": 612,
+      "height_pt": 792
+    }
+  ],
+  "field_count": 5,
+  "field_count_by_type": {
+    "text": 1,
+    "signature": 4
+  },
+  "mapped_field_count": 1,
+  "fields": [
+    {
+      "pdf_field_name": "Address of Property",
+      "widget_index": 0,
+      "type": "text",
+      "page": 1,
+      "x_pt": 76.44,
+      "y_pt": 621.48,
+      "w_pt": 481.68,
+      "h_pt": 14.55,
+      "x_pct": 12.49,
+      "y_pct": 19.693,
+      "w_pct": 78.706,
+      "h_pct": 1.837,
+      "key": "property_address",
+      "label": "Property Address",
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature1",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 39.93,
+      "y_pt": 151.27,
+      "w_pt": 255.38,
+      "h_pt": 20.87,
+      "x_pct": 6.524,
+      "y_pct": 78.265,
+      "w_pct": 41.729,
+      "h_pct": 2.635,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature2",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 311.57,
+      "y_pt": 151.93,
+      "w_pt": 260.62,
+      "h_pt": 21.53,
+      "x_pct": 50.909,
+      "y_pct": 78.099,
+      "w_pct": 42.585,
+      "h_pct": 2.718,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature3",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 40.58,
+      "y_pt": 119.85,
+      "w_pt": 254.07,
+      "h_pt": 19.56,
+      "x_pct": 6.631,
+      "y_pct": 82.397,
+      "w_pct": 41.515,
+      "h_pct": 2.47,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature4",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 311.57,
+      "y_pt": 119.85,
+      "w_pt": 259.96,
+      "h_pt": 20.87,
+      "x_pct": 50.909,
+      "y_pct": 82.232,
+      "w_pct": 42.478,
+      "h_pct": 2.635,
+      "key": null,
+      "label": null,
+      "category": null
+    }
+  ]
+}

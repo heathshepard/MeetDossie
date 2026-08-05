@@ -1,0 +1,123 @@
+{
+  "form_type": "short-sale",
+  "generated_at": "2026-08-05T12:55:02.628Z",
+  "source_asset": "trec-short-sale-base64.js",
+  "page_count": 1,
+  "page_sizes": [
+    {
+      "page": 1,
+      "width_pt": 612,
+      "height_pt": 792
+    }
+  ],
+  "field_count": 6,
+  "field_count_by_type": {
+    "text": 2,
+    "signature": 4
+  },
+  "mapped_field_count": 1,
+  "fields": [
+    {
+      "pdf_field_name": "Street Address and City",
+      "widget_index": 0,
+      "type": "text",
+      "page": 1,
+      "x_pt": 36,
+      "y_pt": 676.56,
+      "w_pt": 540.12,
+      "h_pt": 13.2,
+      "x_pct": 5.882,
+      "y_pct": 12.909,
+      "w_pct": 88.255,
+      "h_pct": 1.667,
+      "key": "property_address",
+      "label": "Property Address",
+      "category": null
+    },
+    {
+      "pdf_field_name": "earnest money will be refunded to Buyer Seller must notify Buyer immediately if Lienholders Consent",
+      "widget_index": 0,
+      "type": "text",
+      "page": 1,
+      "x_pt": 85.91,
+      "y_pt": 405.47,
+      "w_pt": 279.6,
+      "h_pt": 11.96,
+      "x_pct": 14.038,
+      "y_pct": 47.294,
+      "w_pct": 45.686,
+      "h_pct": 1.51,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature1",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 34.27,
+      "y_pt": 166.11,
+      "w_pt": 254.78,
+      "h_pt": 32,
+      "x_pct": 5.6,
+      "y_pct": 74.986,
+      "w_pct": 41.63,
+      "h_pct": 4.04,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature2",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 305.51,
+      "y_pt": 165.62,
+      "w_pt": 274.36,
+      "h_pt": 32,
+      "x_pct": 49.92,
+      "y_pct": 75.048,
+      "w_pct": 44.83,
+      "h_pct": 4.04,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature3",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 35.25,
+      "y_pt": 111.27,
+      "w_pt": 253.31,
+      "h_pt": 32,
+      "x_pct": 5.76,
+      "y_pct": 81.91,
+      "w_pct": 41.39,
+      "h_pct": 4.04,
+      "key": null,
+      "label": null,
+      "category": null
+    },
+    {
+      "pdf_field_name": "Signature4",
+      "widget_index": 0,
+      "type": "signature",
+      "page": 1,
+      "x_pt": 306,
+      "y_pt": 110.79,
+      "w_pt": 272.4,
+      "h_pt": 32,
+      "x_pct": 50,
+      "y_pct": 81.972,
+      "w_pct": 44.51,
+      "h_pct": 4.04,
+      "key": null,
+      "label": null,
+      "category": null
+    }
+  ]
+}

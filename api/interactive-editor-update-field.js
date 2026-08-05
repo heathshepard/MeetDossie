@@ -60,6 +60,30 @@ const ALLOWED_FORM_TYPES = new Set([
   'financing-addendum',
   'hoa-addendum',
   'lead-paint-addendum',
+  // 2026-08-05 CARTER — Phase 3 coverage extension (matches
+  // interactive-editor-init.js COORDS_FILES). Every one of these form_types
+  // already has a FORM_CONFIGS entry in api/fill-form.js, so the re-render
+  // step below (POST /api/fill-form) works unchanged.
+  'sellers-disclosure',
+  'amendment',
+  'unimproved-property',
+  'seller-financing',
+  'buyers-temp-lease',
+  'sellers-temp-lease',
+  'sale-other-property',
+  'oil-gas-minerals',
+  'backup-contract',
+  'coastal-area',
+  'hydrostatic-testing',
+  'environmental',
+  'short-sale',
+  'gulf-waterway',
+  'propane-gas',
+  'residential-leases',
+  'fixture-leases',
+  'loan-assumption',
+  'improvement-district',
+  'appraisal-termination',
 ]);
 
 function normalizeNumericValue(canonical, rawValue) {
