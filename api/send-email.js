@@ -3,6 +3,10 @@
 // send to the `email_queue` table.
 //
 // POST { to, subject, body, agentName?, agentEmail?, transactionId?, replyTo? }
+// `to` accepts a single email string, a comma-separated string of emails, or
+// an array of emails — so a transaction update can reach Buyer 1 + Buyer 2
+// (or Seller 1 + Seller 2) in one send, not just whichever single email
+// happened to be on file.
 // Authorization: Bearer <supabase user JWT>
 //
 // Environment:
@@ -64,7 +68,15 @@ module.exports = async function handler(req, res) {
 
   const { to, subject, body, agentName, agentEmail, transactionId, replyTo } = req.body || {};
 
-  if (!isValidEmail(to)) {
+  // Normalize `to` into a deduped array of valid emails — accepts a single
+  // string, a comma-separated string, or an array.
+  const toList = (Array.isArray(to) ? to : String(to || '').split(','))
+    .map((e) => (typeof e === 'string' ? e.trim() : ''))
+    .filter(Boolean);
+  const uniqueToList = [...new Set(toList.map((e) => e.toLowerCase()))]
+    .map((lower) => toList.find((e) => e.toLowerCase() === lower));
+
+  if (!uniqueToList.length || !uniqueToList.every(isValidEmail)) {
     return res.status(400).json({ ok: false, error: 'A valid recipient email is required.' });
   }
   if (typeof subject !== 'string' || !subject.trim()) {
@@ -78,7 +90,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Email service not configured' });
   }
 
-  const trimmedTo = String(to).trim();
+  const trimmedTo = uniqueToList.join(', ');
   const trimmedSubject = String(subject).trim();
   const trimmedBody = String(body);
 
@@ -99,7 +111,7 @@ module.exports = async function handler(req, res) {
   // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
   const emailPayload = {
     from: `${fromName} <dossie@meetdossie.com>`,
-    to: [trimmedTo],
+    to: uniqueToList,
     subject: trimmedSubject,
     html: htmlBody,
   };
