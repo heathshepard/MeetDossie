@@ -89,7 +89,7 @@ export default async function handler(req, res) {
     // (last writes 2026-06-22). Live task activity lives in agent_queue.
     // agent_workers pool concept was retired; workers idle/busy/dead are
     // no longer surfaced (all zeros).
-    const [workers, queued, recentTasks, metrics] = await Promise.all([
+    const [workers, queued, recentTasks, metrics, blockedRows] = await Promise.all([
       // Keep agent_workers pull for schema-compat but expect empty.
       sbGet(`agent_workers?select=agent_role,status&limit=2000`).catch(() => []),
       // Queue depth = agent_queue rows still queued.
@@ -101,6 +101,10 @@ export default async function handler(req, res) {
       sbGet(
         `agent_spawn_metrics?select=agent_role,model,cache_hit,cache_read_tokens,cache_creation_tokens,uncached_input_tokens,output_tokens,total_cost_usd,baseline_cost_usd,savings_usd,duration_ms,ts&tenant_id=eq.${tenantId}&ts=gte.${encodeURIComponent(since)}&limit=20000`
       ).catch(() => []),
+      // Blocked count is NOT windowed — Heath needs to see every blocked task,
+      // not just ones blocked in the last N hours (Jarvis mission-control
+      // consolidation, 2026-08-06). Backs the AGENTS panel's blocked-count badge.
+      sbGet(`agent_queue?select=id&status=eq.blocked&limit=5000`).catch(() => []),
     ]);
     // Normalize agent_queue.agent_name -> agent_role (for downstream bucket lookup).
     for (const q of queued)      q.agent_role = q.agent_name;
@@ -219,6 +223,7 @@ export default async function handler(req, res) {
       savings_usd:            0,
       projected_daily_cost:   0,
       projected_monthly_cost: 0,
+      total_blocked:          Array.isArray(blockedRows) ? blockedRows.length : 0,
     };
     for (const role of VALID_ROLES) {
       const b = byRole[role];

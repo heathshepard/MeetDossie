@@ -20,6 +20,9 @@
 //   - read_calendar            (Google Calendar via Zapier MCP not wired yet — stubbed)
 //   - web_browse               (Playwright tunnel — stubbed if no URL set)
 //   - send_sms                 (stubbed; Phone Link Phase 2)
+//   - mark_complete            (2026-08-06 — close out heath_todo/agent_queue/merge_queue by voice)
+
+import { completeRow, resolveReference } from './_lib/mark-complete-core.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -251,6 +254,27 @@ const ALL_TOOLS = [
       },
     },
     requires_approval: false, // soft-delete only (status=skipped) on Heath's own list, low risk
+  },
+  {
+    name: 'mark_complete',
+    description:
+      'Mark a piece of in-flight work done when Heath says something is finished mid-conversation — closes the gap where '
+      + 'work gets done but the HUD (heath_todo / agent_queue / merge_queue) never learns about it. '
+      + 'Use when Heath says "that\'s done", "mark X complete", "I merged that", "ship it, we\'re good", etc. '
+      + 'Describe the item in plain language via `reference` — do NOT guess a UUID. If the match is ambiguous, '
+      + 'you will get back candidates instead of a completion; read them to Heath and ask which one, then call again '
+      + 'with a more specific reference (or just tell Heath to use the Done button on the HUD for that one).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        reference: {
+          type: 'string',
+          description: 'Plain-language description of the task/todo/merge that just finished, e.g. "the vercel cron fix" or "agent throughput blocked badge".',
+        },
+      },
+      required: ['reference'],
+    },
+    requires_approval: false, // only touches Heath's own queues (heath_todo/agent_queue/merge_queue), same trust level as remove_todo
   },
   {
     name: 'spawn_agent',
@@ -870,6 +894,38 @@ async function tool_remove_todo(input, ctx) {
   }
 }
 
+// 2026-08-06 — mission-control consolidation gap #6: a conversational
+// "mark this done" that resolves against heath_todo/agent_queue/merge_queue
+// without Heath knowing which table it lives in. Shares its matching +
+// completion logic with the standalone /api/jarvis-mark-complete endpoint
+// (used by the HUD's per-item Done button in the id-exact mode) via
+// _lib/mark-complete-core.js. Never guesses on an ambiguous match.
+async function tool_mark_complete(input) {
+  const { reference } = input || {};
+  if (!reference || typeof reference !== 'string') return { error: 'reference is required' };
+  try {
+    const resolved = await resolveReference(reference);
+    if (!resolved.ok) {
+      if (resolved.reason === 'ambiguous') {
+        return {
+          result: {
+            completed: false,
+            reason: 'ambiguous',
+            candidates: resolved.candidates,
+          },
+        };
+      }
+      return { result: { completed: false, reason: resolved.reason, searched: reference } };
+    }
+    const { source, id, title } = resolved.match;
+    const done = await completeRow(source, id);
+    if (!done.ok) return { result: { completed: false, reason: done.error, source, id } };
+    return { result: { completed: true, source, id, title, action: done.action } };
+  } catch (err) {
+    return { error: `mark_complete failed: ${err.message}` };
+  }
+}
+
 // Build the absolute URL for the cole-enqueue endpoint. Vercel sets
 // VERCEL_URL on every deployment (no protocol). Locally we fall back to the
 // production URL — Heath dev'd through prod by default.
@@ -1025,6 +1081,7 @@ const TOOL_DISPATCHERS = {
   read_calendar: tool_read_calendar,
   set_reminder: tool_set_reminder,
   remove_todo: tool_remove_todo,
+  mark_complete: tool_mark_complete,
   spawn_agent: tool_spawn_agent,
   query_project_context: tool_query_project_context,
 };

@@ -2467,6 +2467,138 @@
     .quick-ask-citations a { color: var(--cyan); text-decoration: none; }
     .quick-ask-citations a:hover { text-decoration: underline; }
 
+    /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
+       Full-width bar above the two-column layout. Dossie is real data (money
+       pulse); Rust/Sawyer are honest "not tracked yet" placeholders — see
+       jarvis-mission-control-proposal item 7/8. Never fake their numbers. */
+    .venture-strip {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 700px) {
+      .venture-strip { grid-template-columns: 1fr; }
+    }
+    .venture-card {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+      backdrop-filter: blur(10px);
+    }
+    .venture-card.tracked { border-color: rgba(139, 168, 136, 0.35); }
+    .venture-card.untracked { opacity: 0.62; border-style: dashed; }
+    .venture-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .venture-name {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--cyan-bright);
+    }
+    .venture-status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--ok);
+    }
+    .venture-card.untracked .venture-status-dot { background: var(--txt-faint); }
+    .venture-stats-row {
+      display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .venture-stat-val { font-size: 16px; font-weight: 600; color: var(--txt-primary); }
+    .venture-stat-lbl { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--txt-faint); }
+    .venture-untracked-note { font-size: 11px; color: var(--txt-mute); line-height: 1.4; }
+
+    /* ===== FEATURED PANEL (merge queue promotion, item 3) =====
+       Same .panel base but visually promoted: brighter border + glow so it
+       reads as top-tier real estate, not just first-in-DOM-order. */
+    .panel-featured {
+      border-color: rgba(0, 229, 255, 0.4);
+      box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.08), 0 0 24px rgba(0, 229, 225, 0.06);
+    }
+    .panel-featured .panel-title { color: var(--cyan-bright); }
+
+    /* ===== UNIFIED SUBPANEL SECTIONS (agent + work-item consolidation, items 1/2) =====
+       Multiple data sources rendered inside ONE .panel card, separated by a
+       lightweight subheader instead of their own top-level cards. Keeps each
+       source's original render function + container id untouched — only the
+       surrounding chrome changed. */
+    .subpanel-section { display: flex; flex-direction: column; gap: 8px; }
+    .subpanel-section + .subpanel-section {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .subpanel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .subpanel-header .subpanel-count {
+      font-size: 9px; padding: 1px 6px; border-radius: 3px;
+      background: rgba(77, 208, 225, 0.1); color: var(--txt-mute);
+    }
+    .panel-blocked-badge {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 4px;
+      color: var(--txt-faint); border: 1px solid var(--line);
+      background: rgba(77, 208, 225, 0.06);
+    }
+    .panel-blocked-badge.hot {
+      color: var(--fail); border-color: var(--fail);
+      background: rgba(232, 94, 94, 0.1);
+    }
+
+    /* ===== IN-FLIGHT WORK (new unified view, item 5) =====
+       agent_queue (in_progress/blocked) + merge_queue (unmerged) +
+       heath_todo (pending/snoozed) + live main..staging diff count, merged
+       into one sortable-by-staleness feed. Blocked rows get the hot flag. */
+    .inflight-git-row {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      font-size: 11px; color: var(--txt-mute);
+      padding-bottom: 8px; margin-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .inflight-git-chip {
+      padding: 2px 8px; border-radius: 4px;
+      background: rgba(77, 208, 225, 0.08); border: 1px solid var(--line);
+      font-family: 'Courier New', monospace;
+    }
+    .inflight-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+    .inflight-item {
+      display: flex; flex-direction: column; gap: 4px;
+      background: rgba(77, 208, 225, 0.04);
+      border: 1px solid rgba(77, 208, 225, 0.15);
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .inflight-item.blocked {
+      border-color: rgba(232, 94, 94, 0.4);
+      background: rgba(232, 94, 94, 0.06);
+    }
+    .inflight-item.stale:not(.blocked) {
+      border-color: rgba(232, 185, 100, 0.4);
+    }
+    .inflight-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .inflight-item-title { font-size: 12px; color: var(--txt-primary); line-height: 1.35; flex: 1; }
+    .inflight-item-meta { display: flex; gap: 8px; align-items: center; font-size: 10px; color: var(--txt-faint); }
+    .inflight-source-pill {
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 1px 6px; border-radius: 3px;
+      background: rgba(77, 208, 225, 0.1); color: var(--cyan);
+    }
+    .inflight-age.stale { color: var(--warn); }
+    .inflight-age.blocked { color: var(--fail); }
+    .inflight-done-btn {
+      font-family: inherit; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px; cursor: pointer;
+      background: rgba(139, 168, 136, 0.12); border: 1px solid rgba(139, 168, 136, 0.4);
+      color: var(--ok);
+    }
+    .inflight-done-btn:hover:not(:disabled) { background: rgba(139, 168, 136, 0.22); }
+    .inflight-done-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .inflight-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 16px 0; }
+
     /* ===== UTIL ===== */
     .hidden { display: none !important; }
     .scrollback::-webkit-scrollbar { width: 6px; }
@@ -2806,6 +2938,39 @@
     </header>
 
     <main class="main">
+      <!-- VENTURE ROLLUP STRIP (mission-control consolidation, item 7) — top-level,
+           always visible. Dossie = real data (money pulse, populated by renderMoney()
+           inside loadTickers()). Rust/Sawyer = honest "not tracked yet" placeholders;
+           per the approved proposal, do NOT fake data for them (item 8 defers real
+           tracking infra to a separate scoped build). -->
+      <div class="venture-strip" id="venture-strip">
+        <div class="venture-card tracked" id="venture-card-dossie">
+          <div class="venture-card-header">
+            <span class="venture-name">Dossie</span>
+            <span class="venture-status-dot"></span>
+          </div>
+          <div class="venture-stats-row">
+            <div><div class="venture-stat-val" id="venture-dossie-mrr">—</div><div class="venture-stat-lbl">MRR</div></div>
+            <div><div class="venture-stat-val" id="venture-dossie-cust">—</div><div class="venture-stat-lbl">Customers</div></div>
+            <div><div class="venture-stat-val" id="venture-dossie-ship">—</div><div class="venture-stat-lbl">Shipped Today</div></div>
+          </div>
+        </div>
+        <div class="venture-card untracked" id="venture-card-rust">
+          <div class="venture-card-header">
+            <span class="venture-name">Rust</span>
+            <span class="venture-status-dot"></span>
+          </div>
+          <div class="venture-untracked-note">Fitness app. Separate Supabase project — no agent_queue / merge_queue / heath_todo presence yet. Not tracked here.</div>
+        </div>
+        <div class="venture-card untracked" id="venture-card-sawyer">
+          <div class="venture-card-header">
+            <span class="venture-name">Sawyer</span>
+            <span class="venture-status-dot"></span>
+          </div>
+          <div class="venture-untracked-note">Automations business. Lives outside this repo by design (client data). No machine-readable status today. Not tracked here.</div>
+        </div>
+      </div>
+
       <div class="center-col">
         <!-- VOICE BRIEF (Tier 2 Widget #1) — tap to play 60s morning brief in George's voice. -->
         <div class="voice-brief-bar" id="voice-brief-bar">
@@ -2937,19 +3102,12 @@
       </div>
 
       <aside>
-        <!-- PENDING APPROVALS (Tier 1 Widget #1) — items awaiting Heath's yes/no across all systems. -->
-        <div class="panel" id="pending-panel">
-          <div class="panel-title todo-title-row">
-            <span>PENDING APPROVALS</span>
-            <span class="pending-count-badge zero" id="pending-count">0</span>
-          </div>
-          <div id="pending-list" class="pending-list">
-            <div class="pending-empty">Loading…</div>
-          </div>
-        </div>
-
-        <!-- MERGE QUEUE (Tier 1 Widget #1b) — visible staging->main merge candidates with sign-off status. -->
-        <div class="panel" id="merge-queue-panel">
+        <!-- MERGE QUEUE — PROMOTED TO TOP-LEVEL (mission-control consolidation, item 3).
+             Data was already correct (merge_queue is real, auto-populated by
+             cron-staging-watcher.js + cron-merge-queue-backfill.js) — it just needed
+             better real estate. Heath's #1 stated pain point ("what's waiting to be
+             merged"). Internals unchanged: loadMergeQueue() / renderMergeQueue(). -->
+        <div class="panel panel-featured" id="merge-queue-panel">
           <div class="panel-title merge-queue-title-row">
             <span>MERGE QUEUE</span>
             <span class="merge-queue-badge" id="merge-queue-count">0</span>
@@ -2959,14 +3117,109 @@
           </div>
         </div>
 
-        <!-- AGENTS IN FLIGHT (Tier 2 Widget) — live agent status panel -->
+        <!-- IN-FLIGHT WORK — NEW unified view (mission-control consolidation, item 5).
+             Merges agent_queue (in_progress/blocked) + merge_queue (unmerged) +
+             heath_todo (pending/snoozed) + live main..staging diff count per repo.
+             Sortable by staleness (blocked always first), Done button per row calls
+             /api/jarvis-mark-complete with an exact {source,id}. -->
+        <div class="panel panel-featured" id="inflight-panel">
+          <div class="panel-title agent-panel-header">
+            <span>IN-FLIGHT WORK</span>
+            <span class="agent-panel-count" id="inflight-count">0</span>
+          </div>
+          <div id="inflight-git-row" class="inflight-git-row"></div>
+          <div id="inflight-list" class="inflight-list">
+            <div class="inflight-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- AGENTS — unified (mission-control consolidation, item 1). Was 3 panels
+             reading the same underlying source (AGENTS IN FLIGHT / AGENT STATUS /
+             AGENT THROUGHPUT) — merged into one card with a blocked-count badge.
+             Each subsection keeps its original container id + render function
+             untouched; only the surrounding chrome changed. -->
         <div class="panel" id="agents-panel">
           <div class="panel-title agent-panel-header">
-            <span>AGENTS IN FLIGHT</span>
-            <span class="agent-panel-count" id="agent-count">0</span>
+            <span>AGENTS</span>
+            <span class="panel-blocked-badge" id="agents-blocked-badge">0 blocked</span>
           </div>
-          <div id="agent-list" class="agent-panel">
-            <div class="agent-panel-empty">No agents running. Ask me for anything.</div>
+          <div class="subpanel-section">
+            <div class="subpanel-header"><span>Running</span><span class="subpanel-count" id="agent-count">0</span></div>
+            <div id="agent-list" class="agent-panel">
+              <div class="agent-panel-empty">No agents running. Ask me for anything.</div>
+            </div>
+          </div>
+          <div class="subpanel-section">
+            <div class="subpanel-header"><span>Instances</span></div>
+            <div id="instance-list">
+              <div class="instance-empty">Loading agents…</div>
+            </div>
+            <!-- Legacy per-role rows kept hidden as a fallback target for older code paths
+                 (agentLedger merge logic still references .agent-row). They're invisible by
+                 default but renderAgentRows() still updates them in-memory. -->
+            <div id="agent-grid" style="display:none;">
+              <div class="agent-row" data-agent="atlas">
+                <div class="agent-name">Atlas</div>
+                <div class="agent-status idle">IDLE</div>
+                <div class="agent-summary">—</div>
+              </div>
+              <div class="agent-row" data-agent="carter">
+                <div class="agent-name">Carter</div>
+                <div class="agent-status idle">IDLE</div>
+                <div class="agent-summary">—</div>
+              </div>
+              <div class="agent-row" data-agent="hadley">
+                <div class="agent-name">Hadley</div>
+                <div class="agent-status idle">IDLE</div>
+                <div class="agent-summary">—</div>
+              </div>
+              <div class="agent-row" data-agent="pierce">
+                <div class="agent-name">Pierce</div>
+                <div class="agent-status idle">IDLE</div>
+                <div class="agent-summary">—</div>
+              </div>
+              <div class="agent-row" data-agent="sage">
+                <div class="agent-name">Sage</div>
+                <div class="agent-status idle">IDLE</div>
+                <div class="agent-summary">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="subpanel-section">
+            <div class="subpanel-header"><span>Throughput (24h)</span></div>
+            <div id="throughput-totals" class="throughput-totals">Loading…</div>
+            <div id="throughput-rows" class="throughput-rows"></div>
+          </div>
+        </div>
+
+        <!-- WORK ITEMS — unified (mission-control consolidation, item 2). Was 4 panels
+             (PENDING APPROVALS / ACTIONS FOR YOU / TO-DO / PENDING APPROVALS-heath_actions)
+             covering overlapping "stuff for Heath to do" ground — actions-panel was a true
+             duplicate of the heath_actions approvals section below (same table, two render
+             paths), so it was dropped rather than kept as a 3rd copy. Each subsection keeps
+             its original container id + render function untouched. -->
+        <div class="panel" id="work-items-panel">
+          <div class="panel-title todo-title-row">
+            <span>WORK ITEMS</span>
+            <span class="pending-count-badge zero" id="pending-count">0</span>
+          </div>
+          <div class="subpanel-section">
+            <div class="subpanel-header"><span>Content Approvals</span></div>
+            <div id="pending-list" class="pending-list">
+              <div class="pending-empty">Loading…</div>
+            </div>
+          </div>
+          <div class="subpanel-section">
+            <div class="subpanel-header"><span>Heath Actions</span><span class="subpanel-count" id="approvals-badge">—</span></div>
+            <div id="approvals-list">
+              <div class="approvals-empty">Nothing waiting on you. ✨</div>
+            </div>
+          </div>
+          <div class="subpanel-section">
+            <div class="subpanel-header"><span>To-Do</span><span class="subpanel-count" id="todo-meta">—</span></div>
+            <div id="todo-body" class="todo-body">
+              <div class="todo-empty">Loading…</div>
+            </div>
           </div>
         </div>
 
@@ -3024,27 +3277,11 @@
           </div>
         </div>
 
-        <!-- ACTIONS FOR HEATH: asks from Cole/agents that need human decision/action. -->
-        <div class="panel" id="actions-panel">
-          <div class="panel-title actions-title-row">
-            <span>ACTIONS FOR YOU</span>
-            <span class="actions-meta" id="actions-meta">ALL CLEAR</span>
-          </div>
-          <div id="actions-body" class="actions-body">
-            <div class="actions-empty">No pending actions.</div>
-          </div>
-        </div>
-
-        <!-- TO-DO: highest priority. Single-task focus mode w/ skip/snooze/done. -->
-        <div class="panel" id="todo-panel">
-          <div class="panel-title todo-title-row">
-            <span>TO-DO</span>
-            <span class="todo-meta" id="todo-meta">—</span>
-          </div>
-          <div id="todo-body" class="todo-body">
-            <div class="todo-empty">Loading…</div>
-          </div>
-        </div>
+        <!-- ACTIONS FOR YOU + TO-DO: merged into the WORK ITEMS panel above
+             (mission-control consolidation, item 2). actions-body/actions-meta
+             (heath-actions-list) were a true duplicate of the Heath Actions
+             subsection below — dropped rather than kept as a 3rd render path.
+             todo-body/todo-meta moved into WORK ITEMS's To-Do subsection. -->
 
         <!-- MONEY PULSE: live MRR, customers, ships today. From /api/jarvis-tickers. -->
         <div class="panel" id="money-panel">
@@ -3065,84 +3302,20 @@
           </div>
         </div>
 
-        <!-- WEBSITE TRAFFIC (today): live pageviews, uniques, top source, /founding hits.
-             Data: /api/webpage-analytics-today (PostHog Query API). Deep-dive link:
-             /ventures/webpage-analytics. Added 2026-07-06. -->
-        <div class="panel" id="traffic-panel">
-          <div class="panel-title traffic-title-row">
-            <span>WEBSITE TRAFFIC (TODAY)</span>
-            <a href="/ventures/webpage-analytics" class="traffic-link" target="_blank" rel="noopener">DETAILS →</a>
-          </div>
-          <div class="money-grid" style="grid-template-columns:repeat(2,1fr);">
-            <div class="money-cell">
-              <div class="money-val" id="traffic-pv">—</div>
-              <div class="money-lbl">Pageviews <span id="traffic-delta" class="traffic-delta"></span></div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="traffic-uniques">—</div>
-              <div class="money-lbl">Unique Visitors</div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="traffic-source" style="font-size:14px;">—</div>
-              <div class="money-lbl">Top Source</div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="traffic-founding">—</div>
-              <div class="money-lbl">/founding hits</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- PENDING APPROVALS (heath_actions approval UI — 2026-06-25, atlas_carter_ship) -->
-        <div class="panel" id="approvals-panel">
-          <div class="panel-title pending-approvals-title-row">
-            <span>PENDING APPROVALS</span>
-            <span class="approvals-count" id="approvals-badge">—</span>
-          </div>
-          <div id="approvals-list">
-            <div class="approvals-empty">Nothing waiting on you. ✨</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">AGENT STATUS</div>
-          <!-- DYNAMIC instance cards (SOP locked 2026-06-22).
-               Cards grow + contract via Supabase Realtime as instances spawn / complete.
-               Falls back to legacy per-role rows if the new endpoint is unavailable. -->
-          <div id="instance-list">
-            <div class="instance-empty">Loading agents…</div>
-          </div>
-          <!-- Legacy per-role rows kept hidden as a fallback target for older code paths
-               (agentLedger merge logic still references .agent-row). They're invisible by
-               default but renderAgentRows() still updates them in-memory. -->
-          <div id="agent-grid" style="display:none;">
-            <div class="agent-row" data-agent="atlas">
-              <div class="agent-name">Atlas</div>
-              <div class="agent-status idle">IDLE</div>
-              <div class="agent-summary">—</div>
-            </div>
-            <div class="agent-row" data-agent="carter">
-              <div class="agent-name">Carter</div>
-              <div class="agent-status idle">IDLE</div>
-              <div class="agent-summary">—</div>
-            </div>
-            <div class="agent-row" data-agent="hadley">
-              <div class="agent-name">Hadley</div>
-              <div class="agent-status idle">IDLE</div>
-              <div class="agent-summary">—</div>
-            </div>
-            <div class="agent-row" data-agent="pierce">
-              <div class="agent-name">Pierce</div>
-              <div class="agent-status idle">IDLE</div>
-              <div class="agent-summary">—</div>
-            </div>
-            <div class="agent-row" data-agent="sage">
-              <div class="agent-name">Sage</div>
-              <div class="agent-status idle">IDLE</div>
-              <div class="agent-summary">—</div>
-            </div>
-          </div>
-        </div>
+        <!-- WEBSITE TRAFFIC, AGENT KNOWLEDGE, TREC WATCH: cut from the homepage
+             (mission-control consolidation, item 4). Traffic was a passive metric,
+             not an "outstanding work" signal. Knowledge is reference material, not
+             status. TREC Watch is Texas-real-estate-content-specific, not a
+             cross-venture project-status signal — it belongs under a Dossie
+             drill-down, but that drill-down surface doesn't exist yet, so for now
+             it's simply off the top level per Heath's explicit instruction (build
+             it when/if a Dossie drill-down view gets built). Their loader functions
+             (loadTrafficToday/loadKnowledge/loadTrecWatch) are left defined but no
+             longer called — null-guarded, dead-safe, zero behavior change if
+             something else still references them.
+             PENDING APPROVALS (heath_actions) moved into the WORK ITEMS panel above
+             (item 2). AGENT STATUS (instance-list) + AGENT THROUGHPUT moved into the
+             unified AGENTS panel above (item 1). -->
 
         <!-- PROJECTS LEDGER (SOP locked 2026-06-22) — building / recent shipped / all. -->
         <div class="panel" id="projects-panel">
@@ -3152,36 +3325,11 @@
           </div>
         </div>
 
-        <!-- AGENT KNOWLEDGE (Shared Memory Pool, SOP locked 2026-06-22).
-             Counts per role. Tap a role to open the lessons modal. -->
-        <div class="panel" id="knowledge-panel">
-          <div class="panel-title">AGENT KNOWLEDGE</div>
-          <div id="knowledge-list" class="knowledge-list">
-            <div class="ledger-empty">Loading lessons…</div>
-          </div>
-        </div>
-
         <!-- ACTIVITY LOG: chronological feed of agent work (DoD addendum 2026-06-21). -->
         <div class="panel" id="activity-panel">
           <div class="panel-title">ACTIVITY LOG</div>
           <div id="activity-feed" class="activity-feed">
             <div class="activity-empty">Loading…</div>
-          </div>
-        </div>
-
-        <!-- AGENT THROUGHPUT (Speed Unlock, atlas_5, 2026-06-20).
-             Queue depth, worker utilization, cache hit rate, model mix, cost. -->
-        <div class="panel" id="throughput-panel">
-          <div class="panel-title">AGENT THROUGHPUT</div>
-          <div id="throughput-totals" class="throughput-totals">Loading…</div>
-          <div id="throughput-rows" class="throughput-rows"></div>
-        </div>
-
-        <!-- TREC WATCH: nightly TREC.gov scans + member-alert queue. SV-TREC-SCANNER-001. -->
-        <div class="panel" id="trec-watch-panel">
-          <div class="panel-title">TREC WATCH</div>
-          <div id="trec-watch-list" class="trec-watch-list">
-            <div class="trec-watch-empty">Loading TREC updates…</div>
           </div>
         </div>
 
@@ -4083,11 +4231,17 @@
       await startConversation();
       subscribeAgentEvents();
       // Hydrate side panels (to-do + money + activity). Fire-and-forget — never block UI.
-      loadActions().catch(() => {});
+      // 2026-08-06 mission-control consolidation: loadActions() (heath-actions-list)
+      // dropped from init — actions-panel was a true duplicate of approvalsPanel
+      // (both read heath_actions; approvalsPanel has the real approve/reject/snooze
+      // buttons). loadTrafficToday/loadKnowledge/loadTrecWatch dropped — their panels
+      // are off the homepage now (item 4). The functions themselves are untouched
+      // and null-guard on a missing container, so nothing else that still calls
+      // them (e.g. the knowledge-lessons modal) breaks.
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
-      loadTrafficToday().catch(() => {});
       loadMergeQueue().catch(() => {});
+      loadInFlightWork().catch(() => {});
       loadPendingApprovals().catch(() => {});
       loadActiveAgents().catch(() => {});
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
@@ -4097,15 +4251,15 @@
       // Tier 2 hydrations
       loadCalendar().catch(() => {});
       loadAgentLedger().catch(() => {});
-      // SOP 2026-06-22 — agent instance + projects ledger + shared knowledge
+      // SOP 2026-06-22 — agent instance + projects ledger
       loadInstances().catch(() => {});
       loadProjects().catch(() => {});
-      loadKnowledge().catch(() => {});
       subscribeInstanceEvents();
       // Refresh cadences per spec:
       //   tickers (money/activity log) — 30s
       //   to-do — 60s
       //   merge queue — 30s (high priority)
+      //   in-flight work — 45s (high priority, cross-source)
       //   pending approvals — 30s (high priority)
       //   daily debrief — 60s
       //   customer activity — 30s polling + realtime subscription below
@@ -4113,11 +4267,10 @@
       //   agent ledger — 30s polling backup (realtime is the primary)
       //   instances + projects — 30s polling backup, realtime primary
       setInterval(() => { loadTickers().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
-      setInterval(() => { loadTrafficToday().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
       setInterval(() => { loadTodo().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadMergeQueue().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
+      setInterval(() => { loadInFlightWork().then(() => trackPollSuccess()).catch(() => {}); }, 45000);
       setInterval(() => { loadPendingApprovals().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
-      setInterval(() => { loadActions().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadDailyDebrief().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
@@ -4125,17 +4278,13 @@
       setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
-      setInterval(() => { loadKnowledge().then(() => trackPollSuccess()).catch(() => {}); }, 90000);
-      // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel
+      // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel (now nested in AGENTS)
       loadThroughput().then(() => trackPollSuccess()).catch(() => {});
       setInterval(() => { loadThroughput().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       // Future Builds: idea queue panel
       loadFutureBuilds().catch(() => {});
       wireFutureBuildsPanel();
       setInterval(() => { loadFutureBuilds().then(() => trackPollSuccess()).catch(() => {}); }, 120000); // 2 min
-      // TREC WATCH: nightly TREC.gov scans (SV-TREC-SCANNER-001)
-      loadTrecWatch().catch(() => {});
-      setInterval(() => { loadTrecWatch().then(() => trackPollSuccess()).catch(() => {}); }, 300000); // 5 min
       subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
@@ -5885,6 +6034,12 @@
       set('money-mrr',  h.mrr_usd != null ? `$${h.mrr_usd}` : '—');
       set('money-cust', h.customer_count != null ? String(h.customer_count) : '—');
       set('money-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
+      // VENTURE ROLLUP STRIP — Dossie card (mission-control consolidation, item 7).
+      // Same jarvis-tickers payload, just also mirrored into the top strip.
+      // No separate fetch — Dossie is real data; Rust/Sawyer stay static placeholders.
+      set('venture-dossie-mrr',  h.mrr_usd != null ? `$${h.mrr_usd}` : '—');
+      set('venture-dossie-cust', h.customer_count != null ? String(h.customer_count) : '—');
+      set('venture-dossie-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
     }
 
     // ===== WEBSITE TRAFFIC (today) =====
@@ -6094,6 +6249,119 @@
       if (badge) {
         badge.textContent = String(items.length);
       }
+    }
+
+    // ===== IN-FLIGHT WORK — unified view (mission-control consolidation, item 5) =====
+    // Merges agent_queue (in_progress/blocked) + merge_queue (unmerged) +
+    // heath_todo (pending/snoozed) + live main..staging diff count per repo.
+    // Server (/api/jarvis-in-flight-work) already sorts blocked-first then
+    // staleness-descending; this just renders what comes back.
+    let inFlightCache = [];
+    async function loadInFlightWork() {
+      const list = document.getElementById('inflight-list');
+      const badge = document.getElementById('inflight-count');
+      const gitRow = document.getElementById('inflight-git-row');
+      if (!list) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-in-flight-work`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        if (!res.ok) {
+          list.innerHTML = `<div class="inflight-empty">Couldn't load (${res.status}).</div>`;
+          return;
+        }
+        const data = await res.json();
+        inFlightCache = data.items || [];
+        renderInFlightWork(inFlightCache, data.git_diffs || []);
+        if (badge) badge.textContent = String(data.counts?.total || inFlightCache.length);
+      } catch (err) {
+        console.warn('[jarvis] loadInFlightWork failed', err);
+        list.innerHTML = `<div class="inflight-empty">Offline.</div>`;
+      }
+      void gitRow; // rendered inside renderInFlightWork
+    }
+
+    function renderInFlightWork(items, gitDiffs) {
+      const list = document.getElementById('inflight-list');
+      const gitRow = document.getElementById('inflight-git-row');
+      if (!list) return;
+
+      if (gitRow) {
+        const chips = (gitDiffs || []).map(g => {
+          const repoShort = (g.repo || '').split('/')[1] || g.repo;
+          const val = g.ahead_by != null ? `${g.ahead_by} unmerged` : '—';
+          return `<span class="inflight-git-chip">${escapeHtml(repoShort)}: ${escapeHtml(val)}</span>`;
+        }).join('');
+        gitRow.innerHTML = chips || '';
+      }
+
+      if (!items || items.length === 0) {
+        list.innerHTML = `<div class="inflight-empty">Nothing in flight. Clear board.</div>`;
+        return;
+      }
+
+      const sourceLabel = { agent_queue: 'AGENT', merge_queue: 'MERGE', heath_todo: 'TODO' };
+      list.innerHTML = items.map(it => {
+        const cls = ['inflight-item'];
+        if (it.blocked) cls.push('blocked');
+        else if (it.stale) cls.push('stale');
+        const ageTxt = it.age_minutes == null ? ''
+          : it.age_minutes < 60 ? `${it.age_minutes}m ago`
+          : it.age_minutes < 1440 ? `${Math.round(it.age_minutes / 60)}h ago`
+          : `${Math.round(it.age_minutes / 1440)}d ago`;
+        const ageCls = it.blocked ? 'blocked' : (it.stale ? 'stale' : '');
+        return `
+          <div class="${cls.join(' ')}" data-source="${escapeHtml(it.source)}" data-id="${escapeHtml(it.id)}">
+            <div class="inflight-item-top">
+              <span class="inflight-source-pill">${sourceLabel[it.source] || it.source}</span>
+              <div class="inflight-item-title"></div>
+              <button class="inflight-done-btn" data-act="done">Done</button>
+            </div>
+            <div class="inflight-item-meta">
+              <span>${escapeHtml(it.status || '')}</span>
+              <span class="inflight-age ${ageCls}">${ageTxt}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Set title via textContent for XSS safety, then wire Done buttons.
+      const rowEls = list.querySelectorAll('.inflight-item');
+      rowEls.forEach((row, i) => {
+        const it = items[i];
+        row.querySelector('.inflight-item-title').textContent = it.title || '(untitled)';
+        row.querySelector('.inflight-done-btn').addEventListener('click', async (e) => {
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          btn.textContent = '…';
+          try {
+            const res = await fetch(`${API_BASE}/api/jarvis-mark-complete`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: await getAuthHeader(),
+              },
+              body: JSON.stringify({ source: it.source, id: it.id }),
+            });
+            if (res.ok) {
+              row.remove();
+              loadInFlightWork().catch(() => {});
+              // Completing an agent_queue/heath_todo/merge_queue row can also
+              // affect the WORK ITEMS + merge queue panels — refresh those too.
+              loadMergeQueue().catch(() => {});
+              loadTodo().catch(() => {});
+            } else {
+              btn.disabled = false;
+              btn.textContent = 'Done';
+              showToast(`Couldn't mark done (${res.status}).`);
+            }
+          } catch (err) {
+            btn.disabled = false;
+            btn.textContent = 'Done';
+            showToast('Offline — try again.');
+          }
+        });
+      });
     }
 
     // ===== AGENTS IN FLIGHT (Tier 2 Widget) =====
@@ -8474,6 +8742,15 @@
       const t = data.totals || {};
       const usd = (v) => '$' + (Number(v) || 0).toFixed(2);
       const pct = (v) => (Number(v) || 0).toFixed(1) + '%';
+      // AGENTS panel blocked-count badge (mission-control consolidation, item 1).
+      // total_blocked comes from jarvis-agent-throughput.js's unwindowed
+      // agent_queue status=blocked count — every blocked task, not just this window.
+      const blockedBadge = document.getElementById('agents-blocked-badge');
+      if (blockedBadge) {
+        const nBlocked = Number(t.total_blocked) || 0;
+        blockedBadge.textContent = `${nBlocked} blocked`;
+        blockedBadge.classList.toggle('hot', nBlocked > 0);
+      }
       // Top totals row — completed, cache hit rate, savings, projected daily cost
       totalsEl.innerHTML = '';
       [
