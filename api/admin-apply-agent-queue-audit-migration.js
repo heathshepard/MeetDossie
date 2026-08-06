@@ -37,10 +37,15 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
 
-  const conn = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
-  if (!conn) {
+  const rawConn = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+  if (!rawConn) {
     return res.status(500).json({ ok: false, error: 'missing_postgres_url' });
   }
+  // Strip any sslmode= query param — when present, pg negotiates SSL from the
+  // connection string itself and ignores the `ssl` config object below,
+  // which defeats rejectUnauthorized:false and fails on Supabase's
+  // self-signed chain.
+  const conn = rawConn.replace(/([?&])sslmode=[^&]*&?/i, '$1').replace(/[?&]$/, '');
 
   const client = new Client({ connectionString: conn, ssl: { rejectUnauthorized: false } });
 
