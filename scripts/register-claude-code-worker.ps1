@@ -20,24 +20,33 @@
 #
 # Verify:
 #   Get-ScheduledTask -TaskName 'ClaudeCodeWorker' | Format-Table TaskName, State
-#   Get-Content "C:\Users\Heath Shepard\.claude\claude-code-worker.log" -Tail 30
+#   Get-Content "C:\Users\Heath\.claude\claude-code-worker.log" -Tail 30
 #
 # Disable / remove:
 #   Disable-ScheduledTask    -TaskName 'ClaudeCodeWorker'
 #   Unregister-ScheduledTask -TaskName 'ClaudeCodeWorker' -Confirm:$false
 #
 # Manual foreground test:
-#   cd "C:\Users\Heath Shepard\Desktop\MeetDossie"
+#   cd "C:\Users\Heath\Projects\MeetDossie"
 #   node scripts\claude-code-worker.js --once     # one-shot drain
 #   node scripts\claude-code-worker.js            # continuous loop
+#
+# PATH FIX 2026-08-06 (Atlas): this script pointed at
+# "C:\Users\Heath Shepard\Desktop\MeetDossie", which has not existed since the
+# 2026-07-28 machine rebuild (profile is "Heath", repo lives under
+# "Projects\", not "Desktop\") -- see CLAUDE.md Section 24. That meant the
+# script hit its own FATAL path check and never registered a task, which is
+# why ClaudeCodeWorker was never running as a persistent service and Jarvis
+# Build-mode requests only worked when someone started the worker manually
+# in a foreground terminal.
 
 $ErrorActionPreference = 'Stop'
 
-$WorkerScript = 'C:\Users\Heath Shepard\Desktop\MeetDossie\scripts\claude-code-worker.js'
-$RepoDir      = 'C:\Users\Heath Shepard\Desktop\MeetDossie'
-$LogPath      = 'C:\Users\Heath Shepard\.claude\claude-code-worker.log'
+$WorkerScript = 'C:\Users\Heath\Projects\MeetDossie\scripts\claude-code-worker.js'
+$RepoDir      = 'C:\Users\Heath\Projects\MeetDossie'
+$LogPath      = 'C:\Users\Heath\.claude\claude-code-worker.log'
 $EnvLocal     = Join-Path $RepoDir '.env.local'
-$EnvFallback  = 'C:\Users\Heath Shepard\.claude\claude-code-worker.env'
+$EnvFallback  = 'C:\Users\Heath\.claude\claude-code-worker.env'
 
 if (!(Test-Path $WorkerScript)) {
     Write-Host "FATAL: $WorkerScript not found." -ForegroundColor Red
@@ -108,7 +117,7 @@ Get-ScheduledTaskInfo -TaskName 'ClaudeCodeWorker' | Select-Object TaskName, Nex
 
 Write-Host ""
 Write-Host "Log file:    $LogPath" -ForegroundColor Gray
-Write-Host "State file:  C:\Users\Heath Shepard\.claude\claude-code-worker.state.json" -ForegroundColor Gray
+Write-Host "State file:  C:\Users\Heath\.claude\claude-code-worker.state.json" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Manual start:   Start-ScheduledTask -TaskName 'ClaudeCodeWorker'" -ForegroundColor Yellow
 Write-Host "One-shot test:  cd `"$RepoDir`"; node scripts\claude-code-worker.js --once" -ForegroundColor Yellow
