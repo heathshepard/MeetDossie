@@ -194,6 +194,7 @@ Editor feeds from the same performance log Sage uses (`sage_performance_log` / `
 - Content strategy: `docs/CONTENT-STRATEGY-2026-06-30.md`
 - Pipeline mechanics: `docs/PIPELINE.md`
 - Existing video scripts: `scripts/generate-lifestyle-video.py`, `scripts/generate-creatomate-video.py`
-- Whisper transcription: `api/transcribe-video.js`
+- **Editor processing pipeline (this spec, implemented): `scripts/editor-process-video.py`** — ffprobe audio measurement → Whisper word-level transcription → video trim to measured audio → ASS caption/hook burn-in → loudnorm → 9:16/1:1 export → end card. Run with `--skip-transcription` for a dry run without an OpenAI key.
+- Whisper transcription: `api/transcribe-video.js` (Telegram transcript path, `response_format=text`); the Editor script calls the same Whisper endpoint with `response_format=verbose_json` + `timestamp_granularities[]=word` for caption timing.
 - TTS utility: `api/_utils/tts.js`
 - Brand colors: CLAUDE.md Section 4
