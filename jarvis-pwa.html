@@ -3252,14 +3252,17 @@
             <span>AGENTS</span>
             <span class="panel-blocked-badge" id="agents-blocked-badge">0 blocked</span>
           </div>
+          <!-- "Running" subsection (active_agents table via jarvis-active-agents /
+               jarvis-agent-lifecycle) removed 2026-08-06 (Atlas). Confirmed zero
+               writers anywhere in the codebase — jarvis-agent-lifecycle.js and
+               jarvis-emit-agent-event.js are both orphaned, nothing calls them.
+               The box was permanently stuck on "No agents running", duplicating
+               the Instances subsection below (which IS live, ticks every second,
+               and is fed by agent_queue — the table that's actually written to).
+               loadActiveAgents()/renderActiveAgents() left defined (harmless,
+               null-guarded) in case a future caller wires active_agents for real. -->
           <div class="subpanel-section">
-            <div class="subpanel-header"><span>Running</span><span class="subpanel-count" id="agent-count">0</span></div>
-            <div id="agent-list" class="agent-panel">
-              <div class="agent-panel-empty">No agents running. Ask me for anything.</div>
-            </div>
-          </div>
-          <div class="subpanel-section">
-            <div class="subpanel-header"><span>Instances</span></div>
+            <div class="subpanel-header"><span>Instances</span><span class="subpanel-count" id="instance-count">0</span></div>
             <div id="instance-list">
               <div class="instance-empty">Loading agents…</div>
             </div>
@@ -4354,7 +4357,9 @@
       loadMergeQueue().catch(() => {});
       loadInFlightWork().catch(() => {});
       loadPendingApprovals().catch(() => {});
-      loadActiveAgents().catch(() => {});
+      // loadActiveAgents() dropped from init 2026-08-06 (Atlas) — active_agents
+      // has zero writers; see removed "Running" subpanel note above. Function
+      // stays defined (harmless) in case that table gets wired up for real.
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
       try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
       loadDailyDebrief().catch(() => {});
@@ -4385,7 +4390,6 @@
       setInterval(() => { loadDailyDebrief().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
-      setInterval(() => { loadActiveAgents().then(() => trackPollSuccess()).catch(() => {}); }, 15000);
       setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
@@ -8373,9 +8377,29 @@
         });
     }
 
+    // Instances panel refresh on agent_queue change (Atlas, 2026-08-06,
+    // SV-ENG-AGENT-QUEUE-LIVE-DISPATCH part 2). subscribeInstanceEvents()
+    // below only realtime-subscribes to jarvis_agent_instances/checklist —
+    // that table has no live writer today, so the Instances cards are
+    // actually populated by jarvis-list-instances.js's agent_queue-derived
+    // synthetic fallback (see that file), but NOTHING was triggering a
+    // reload when agent_queue itself changed — only the 30s poll backup
+    // was. A live dispatch starting/completing (api/cole-dispatch-start.js
+    // / cole-dispatch-complete.js) would otherwise sit up to 30s before
+    // appearing/clearing. subscribeAgentEvents() above already gets every
+    // agent_queue row change in real time (it feeds the AGENT STATUS ledger)
+    // — piggyback on that same event to also refresh Instances, debounced
+    // so a burst of updates doesn't cause a fetch storm.
+    let instancesRefreshTimer = null;
+    function scheduleInstancesRefresh() {
+      if (instancesRefreshTimer) clearTimeout(instancesRefreshTimer);
+      instancesRefreshTimer = setTimeout(() => { loadInstances().catch(() => {}); }, 400);
+    }
+
     function onAgentEvent(event) {
       mergeLedgerEvent(event);
       renderAgentRows();
+      scheduleInstancesRefresh();
       // Re-render the activity feed by prepending this event to the rendered list.
       const feed = document.getElementById('activity-feed');
       if (!feed) return;
@@ -8462,6 +8486,8 @@
       const recent = (cachedRecentInstances || [])
         .sort((a, b) => new Date(b.instance.completed_at || 0) - new Date(a.instance.completed_at || 0))
         .slice(0, 5);
+      const countBadge = document.getElementById('instance-count');
+      if (countBadge) countBadge.textContent = String(running.length);
       if (running.length === 0 && recent.length === 0) {
         list.innerHTML = `<div class="instance-empty">No agent instances running.</div>`;
         return;
@@ -8491,7 +8517,16 @@
       const elapsed = inst.status === 'running'
         ? `running · ${fmtElapsed(inst.spawned_at)}`
         : (inst.completed_at ? `done · ${fmtAgo(inst.completed_at)} ago` : '');
-      const projTitle = proj ? escapeHtml(proj.title) : '(no project)';
+      // 2026-08-06 (Atlas): when there's no real jarvis_projects row (true for
+      // every synthetic agent_queue-fallback card — the normal case today,
+      // since jarvis_agent_instances has no live writer either), fall back to
+      // inst.spawn_prompt, which list-instances.js sets to the actual
+      // agent_queue.task_subject. Previously this always rendered
+      // "(no project)", hiding the one thing Heath asked for: which specific
+      // task each named agent is on.
+      const projTitle = proj
+        ? escapeHtml(proj.title)
+        : (inst.spawn_prompt ? escapeHtml(inst.spawn_prompt.slice(0, 90)) : '(no task subject)');
       const failedBadge = sum.failed > 0
         ? `<span style="color:var(--fail);">${sum.failed} failed</span> · `
         : '';
@@ -8502,13 +8537,18 @@
             <span class="instance-role-pill">${escapeHtml(inst.agent_role || '?')}</span>
           </div>
           <div class="instance-project">${projTitle}</div>
+          ${sum.total > 0 ? `
           <div class="instance-progress-track">
             <div class="instance-progress-fill" style="width:${pct}%;"></div>
           </div>
           <div class="instance-meta">
             <span>${failedBadge}${sum.completed}/${sum.total} done · ${pct}%</span>
             <span>${escapeHtml(elapsed)}</span>
-          </div>
+          </div>` : `
+          <div class="instance-meta">
+            <span>${failedBadge || '&nbsp;'}</span>
+            <span>${escapeHtml(elapsed)}</span>
+          </div>`}
         </div>
       `;
     }

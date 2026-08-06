@@ -278,14 +278,25 @@ async function handler(req, res) {
   // dead worker. Split by whether it was an AUDIT claim (metadata
   // ._is_audit_claim) — those must go back to 'pending_audit' (re-enter the
   // audit lane) not 'pending' (which would skip the audit hop entirely).
+  //
+  // EXEMPTION (Atlas, 2026-08-06, SV-ENG-AGENT-QUEUE-LIVE-DISPATCH): rows
+  // tagged metadata._live_dispatch=true (created by api/cole-dispatch-start.js
+  // for a live interactive Cole/subagent session, not this dispatcher) are
+  // excluded from this 15-minute sweep entirely. A real interactive session
+  // routinely runs longer than 15 minutes — this sweep firing on it every
+  // ~2 minutes would flip it back to 'pending' out from under an actively
+  // running, supervised task, which is wrong (this sweep exists for DEAD
+  // workers, not slow live ones). Their safety net is the 4-hour cutoff in
+  // cron-agent-queue-orphan-reset.js instead — see that file, unchanged.
   const STUCK_THRESHOLD_MIN = 15;
   const stuckCutoff = new Date(Date.now() - STUCK_THRESHOLD_MIN * 60 * 1000).toISOString();
   const stuckFind = await sb(
     `agent_queue?select=id,metadata&status=eq.in_progress&started_at=lt.${stuckCutoff}&limit=100`,
   );
   const stuckRows = (stuckFind.ok && Array.isArray(stuckFind.data)) ? stuckFind.data : [];
-  const auditIds = stuckRows.filter((r) => r.metadata && r.metadata._is_audit_claim === true).map((r) => r.id);
-  const normalIds = stuckRows.filter((r) => !(r.metadata && r.metadata._is_audit_claim === true)).map((r) => r.id);
+  const liveDispatchIds = stuckRows.filter((r) => r.metadata && r.metadata._live_dispatch === true).map((r) => r.id);
+  const auditIds = stuckRows.filter((r) => r.metadata && r.metadata._is_audit_claim === true && r.metadata._live_dispatch !== true).map((r) => r.id);
+  const normalIds = stuckRows.filter((r) => !(r.metadata && (r.metadata._is_audit_claim === true || r.metadata._live_dispatch === true))).map((r) => r.id);
 
   let sweptCount = 0;
   if (normalIds.length > 0) {
@@ -309,8 +320,8 @@ async function handler(req, res) {
       sweptCount += 1;
     }
   }
-  if (sweptCount > 0) {
-    console.log(`[cron-agent-queue-dispatch] self-heal swept ${sweptCount} stuck row(s) (${normalIds.length} normal, ${auditIds.length} audit) older than ${STUCK_THRESHOLD_MIN}m`);
+  if (sweptCount > 0 || liveDispatchIds.length > 0) {
+    console.log(`[cron-agent-queue-dispatch] self-heal swept ${sweptCount} stuck row(s) (${normalIds.length} normal, ${auditIds.length} audit) older than ${STUCK_THRESHOLD_MIN}m; skipped ${liveDispatchIds.length} live-dispatch row(s) (4h orphan-reset covers those)`);
   }
 
   // ─── Main loop — real work-stealing, bounded by wall-clock budget ────────
