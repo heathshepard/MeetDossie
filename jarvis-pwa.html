@@ -152,21 +152,62 @@
       opacity: 0.6;
     }
 
-    /* ===== MAIN ===== */
+    /* ===== MAIN =====
+       LAYOUT REWORK 2026-08-06 (Heath desktop-browser feedback: the globe/orb
+       voice UI was eating the entire primary viewport while the actual work
+       panels — Merge Queue, In-Flight Work, Agents, Work Items — were crammed
+       into a narrow 320px sidebar requiring scroll. Named grid areas so the
+       work panels (.dash-primary) get the dominant column and the voice UI
+       (.voice-dock) becomes a compact secondary column, not the other way
+       around. Mobile stays voice-first (this is a tap-to-talk PWA on phone),
+       desktop goes work-first. */
     .main {
       display: grid;
       grid-template-columns: 1fr;
+      grid-template-areas:
+        "venture"
+        "voice"
+        "primary"
+        "secondary";
       gap: 16px; padding: 16px;
       min-height: 0;
     }
     @media (min-width: 900px) {
-      .main { grid-template-columns: 1fr 320px; }
+      /* Work panels get the dominant column; voice/orb shrinks to a fixed
+         compact sidebar. Order flips vs. mobile: primary work real estate
+         first, voice UI secondary — this is the whole point of the fix. */
+      .main {
+        grid-template-columns: 1fr 320px;
+        grid-template-areas:
+          "venture venture"
+          "primary voice"
+          "secondary secondary";
+      }
+    }
+    @media (min-width: 1280px) {
+      /* Wide desktop (Heath's 1920x1080 case): give the voice dock a hair
+         more breathing room and let .dash-primary switch to a real 2x2
+         dashboard grid below. */
+      .main { grid-template-columns: 1fr 340px; }
     }
 
     /* Grid items: explicit min-width:0 prevents intrinsic min-content from
        blowing past the column width (Chrome's default min-width:auto trap). */
-    .center-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; min-width: 0; }
-    aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .dash-primary { grid-area: primary; display: flex; flex-direction: column; gap: 16px; min-height: 0; min-width: 0; }
+    .voice-dock { grid-area: voice; display: flex; flex-direction: column; gap: 16px; min-height: 0; min-width: 0; }
+    .dash-secondary { grid-area: secondary; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    @media (min-width: 900px) {
+      /* Secondary (lower-priority) panels reflow into a responsive row
+         instead of one long stacked column — reclaims the width the globe
+         used to hog. */
+      .dash-secondary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start; }
+    }
+    @media (min-width: 1280px) {
+      /* True dashboard grid for the 4 highest-priority work panels — Merge
+         Queue / In-Flight Work / Agents / Work Items — visible together
+         without scrolling on a normal desktop viewport. */
+      .dash-primary { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; align-items: start; gap: 16px; }
+    }
     /* .main itself is a grid — same protection so the column does not stretch. */
     .main { min-width: 0; }
     .main > * { min-width: 0; }
@@ -323,6 +364,24 @@
       font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
       color: var(--txt-mute);
       min-height: 16px;
+    }
+
+    /* ===== COMPACT ORB (desktop) — LAYOUT REWORK 2026-08-06 =====
+       Once .voice-dock becomes a narrow secondary column (>=900px, see .main
+       above), the globe no longer needs — or has room for — its old up-to-
+       460px size. Scoped to .voice-dock so mobile (single-column, voice
+       still first) keeps the original larger, easier-to-tap orb. The
+       three.js mount reads mount.clientWidth at render time (see module
+       script below), so shrinking the CSS box shrinks the actual globe —
+       this isn't cosmetic-only. PTT button/glyph/label floors are pulled in
+       to match so nothing pokes outside the smaller circle. */
+    @media (min-width: 900px) {
+      .voice-dock .orb-wrap { max-width: clamp(150px, 100%, 210px); margin: 8px auto 4px auto; }
+      .voice-dock .ptt-btn { width: clamp(88px, 46%, 128px); }
+      .voice-dock .ptt-inner { gap: 4px; padding: 0 4px; }
+      .voice-dock .ptt-glyph { width: clamp(20px, 22%, 28px); height: clamp(20px, 22%, 28px); }
+      .voice-dock .ptt-label { font-size: 9px; }
+      .voice-dock .ptt-status { margin-top: 10px; }
     }
 
     /* ===== NOISY MODE TOGGLE =====
@@ -1945,6 +2004,11 @@
     /* ===== AGENTS IN FLIGHT PANEL (Tier 2) — live agent-status display ===== */
     .agent-panel {
       display: flex; flex-direction: column; gap: 8px;
+      /* LAYOUT REWORK 2026-08-06: bounded + scrollable, same pattern as
+         .inflight-list/.pending-list/.cust-feed — with 35 blocked (Heath's
+         real count) this list must not balloon the whole AGENTS card past
+         the fold in the new primary dashboard grid. */
+      max-height: 340px; overflow-y: auto; padding-right: 4px;
     }
     .agent-panel-header {
       display: flex; align-items: center; gap: 8px;
@@ -2159,6 +2223,8 @@
     /* ===== AGENT INSTANCE CARDS (SOP 2026-06-22) ===== */
     #instance-list {
       display: flex; flex-direction: column; gap: 8px;
+      /* LAYOUT REWORK 2026-08-06: same bounding as .agent-panel above. */
+      max-height: 340px; overflow-y: auto; padding-right: 4px;
     }
     .instance-empty {
       font-size: 11px; color: var(--txt-faint);
@@ -2472,7 +2538,7 @@
        pulse); Rust/Sawyer are honest "not tracked yet" placeholders — see
        jarvis-mission-control-proposal item 7/8. Never fake their numbers. */
     .venture-strip {
-      grid-column: 1 / -1;
+      grid-area: venture;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
@@ -2971,7 +3037,7 @@
         </div>
       </div>
 
-      <div class="center-col">
+      <div class="voice-dock">
         <!-- VOICE BRIEF (Tier 2 Widget #1) — tap to play 60s morning brief in George's voice. -->
         <div class="voice-brief-bar" id="voice-brief-bar">
           <button class="vb-btn" id="vb-btn" aria-label="Play morning brief">
@@ -3101,7 +3167,14 @@
         </div>
       </div>
 
-      <aside>
+      <!-- LAYOUT REWORK 2026-08-06: former single <aside> (12 panels stacked in a
+           320px sidebar) split into two groups. .dash-primary = the 4 panels Heath
+           explicitly needs "at a glance" (Merge Queue, In-Flight Work, Agents/blocked,
+           Work Items) — gets the dominant column + a real 2x2 grid at desktop widths.
+           .dash-secondary = everything else, reflowed into a responsive multi-column
+           row instead of one long scroll. Every panel/id below is unchanged, only the
+           wrapping container moved. -->
+      <div class="dash-primary">
         <!-- MERGE QUEUE — PROMOTED TO TOP-LEVEL (mission-control consolidation, item 3).
              Data was already correct (merge_queue is real, auto-populated by
              cron-staging-watcher.js + cron-merge-queue-backfill.js) — it just needed
@@ -3222,7 +3295,9 @@
             </div>
           </div>
         </div>
+      </div>
 
+      <div class="dash-secondary">
                 <!-- CALENDAR (Tier 2 Widget #2) — today + tomorrow events from Google / local. -->
         <div class="panel" id="calendar-panel">
           <div class="panel-title">CALENDAR</div>
@@ -3347,7 +3422,7 @@
             <div class="future-builds-empty">Loading ideas…</div>
           </div>
         </div>
-      </aside>
+      </div>
     </main>
 
     <footer style="padding:10px 18px;text-align:center;font-size:10px;letter-spacing:0.2em;color:var(--txt-faint);text-transform:uppercase;border-top:1px solid var(--line);">
