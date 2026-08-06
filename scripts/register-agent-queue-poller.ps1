@@ -21,23 +21,23 @@
 # Verify after install:
 #   Get-ScheduledTask -TaskName 'AgentQueuePoller' | Format-Table TaskName, State
 #   Get-ScheduledTaskInfo -TaskName 'AgentQueuePoller'
-#   Get-Content "C:\Users\Heath Shepard\.claude\agent-poller.log" -Tail 30
+#   Get-Content "C:\Users\Heath\.claude\agent-poller.log" -Tail 30
 #
 # Disable / remove:
 #   Disable-ScheduledTask    -TaskName 'AgentQueuePoller'
 #   Unregister-ScheduledTask -TaskName 'AgentQueuePoller' -Confirm:$false
 #
 # Manual run (foreground, for testing):
-#   cd "C:\Users\Heath Shepard\Desktop\MeetDossie"
+#   cd "C:\Users\Heath\Projects\MeetDossie"
 #   node scripts\agent-queue-poller.js
 
 $ErrorActionPreference = 'Stop'
 
-$PollerScript = 'C:\Users\Heath Shepard\Desktop\MeetDossie\scripts\agent-queue-poller.js'
-$RepoDir      = 'C:\Users\Heath Shepard\Desktop\MeetDossie'
-$LogPath      = 'C:\Users\Heath Shepard\.claude\agent-poller.log'
+$PollerScript = 'C:\Users\Heath\Projects\MeetDossie\scripts\agent-queue-poller.js'
+$RepoDir      = 'C:\Users\Heath\Projects\MeetDossie'
+$LogPath      = 'C:\Users\Heath\.claude\agent-poller.log'
 $EnvLocal     = Join-Path $RepoDir '.env.local'
-$EnvFallback  = 'C:\Users\Heath Shepard\.claude\agent-poller.env'
+$EnvFallback  = 'C:\Users\Heath\.claude\agent-poller.env'
 
 if (!(Test-Path $PollerScript)) {
     Write-Host "FATAL: $PollerScript not found." -ForegroundColor Red
@@ -130,7 +130,7 @@ Get-ScheduledTaskInfo -TaskName 'AgentQueuePoller' | Select-Object TaskName, Nex
 
 Write-Host ""
 Write-Host "Log file:    $LogPath" -ForegroundColor Gray
-Write-Host "State file:  C:\Users\Heath Shepard\.claude\agent-poller.state.json" -ForegroundColor Gray
+Write-Host "State file:  C:\Users\Heath\.claude\agent-poller.state.json" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Manual start:  Start-ScheduledTask -TaskName 'AgentQueuePoller'" -ForegroundColor Yellow
 Write-Host "Manual test:   cd `"$RepoDir`"; node scripts\agent-queue-poller.js" -ForegroundColor Yellow

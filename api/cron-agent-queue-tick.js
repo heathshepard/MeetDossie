@@ -103,7 +103,7 @@ async function sweepStale(supabase) {
 
 async function snapshotQueue(supabase) {
   const out = {};
-  for (const status of ['pending', 'in_progress', 'blocked', 'completed']) {
+  for (const status of ['pending', 'in_progress', 'pending_audit', 'blocked', 'completed']) {
     const { count } = await supabase
       .from('agent_queue')
       .select('id', { count: 'exact', head: true })

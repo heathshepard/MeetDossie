@@ -85,6 +85,52 @@ async function pickReadyTask(supabase, agent) {
   return data[0];
 }
 
+// ── Audit-claim path (2026-08-06, SV-ENG-AGENT-QUEUE-AUDIT-LOOP) ────────────
+// pending_audit rows keep their ORIGINAL agent_name (the worker who produced
+// the result) — auditing is done by quinn regardless of whose row it is, so
+// this path ignores agent_name and claims purely on status. Oldest-completed
+// first (fair queue, not priority — an audit backlog shouldn't let a
+// low-priority-but-old task starve behind fresh high-priority ones).
+
+async function pickAuditTask(supabase) {
+  const { data, error } = await supabase
+    .from('agent_queue')
+    .select('id, agent_name, task_subject, task_brief, priority, venture, depends_on, metadata, completed_at, result_summary')
+    .eq('status', 'pending_audit')
+    .order('completed_at', { ascending: true })
+    .limit(1);
+  if (error) throw new Error(`pickAuditTask failed: ${error.message}`);
+  if (!data || data.length === 0) return null;
+  return data[0];
+}
+
+async function claimAuditTask(supabase, task, sessionId) {
+  const now = new Date().toISOString();
+  const meta = {
+    ...(task.metadata || {}),
+    _claim_session: sessionId,
+    _claim_ts: now,
+    _is_audit_claim: true,
+    _audit_claimed_by: 'quinn',
+  };
+  const { data: claimed, error } = await supabase
+    .from('agent_queue')
+    .update({ status: 'in_progress', started_at: now, metadata: meta })
+    .eq('id', task.id)
+    .eq('status', 'pending_audit')          // <-- the lock
+    .select('id, agent_name, task_subject, task_brief, priority, venture, depends_on, metadata, started_at, result_summary')
+    .single();
+
+  if (error || !claimed) return null; // lost the race
+
+  await supabase
+    .from('agent_state')
+    .update({ status: 'working', current_task_id: claimed.id, last_active_at: now, last_heartbeat_at: now })
+    .eq('agent_name', 'quinn');
+
+  return claimed;
+}
+
 async function claimTask(supabase, task, sessionId) {
   const now = new Date().toISOString();
 
@@ -143,6 +189,27 @@ module.exports = async function handler(req, res) {
   }
 
   const sessionId = String(body.session_id || `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+
+  // Audit-claim path (2026-08-06): { agent: 'quinn', claim_type: 'audit' }.
+  // Claims the oldest pending_audit row regardless of its agent_name.
+  const claimType = String(body.claim_type || '').toLowerCase().trim();
+  if (claimType === 'audit') {
+    if (agent !== 'quinn' && agent !== 'any') {
+      return res.status(400).json({ ok: false, error: 'claim_type=audit is quinn-only' });
+    }
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    try {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const ready = await pickAuditTask(supabase);
+        if (!ready) return res.status(200).json({ ok: true, task: null });
+        const claimed = await claimAuditTask(supabase, ready, sessionId);
+        if (claimed) return res.status(200).json({ ok: true, task: claimed, session_id: sessionId, is_audit_claim: true });
+      }
+      return res.status(200).json({ ok: true, task: null, note: 'audit claim race exhausted' });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
+  }
 
   // Explicit task_id claim path (Atlas, 2026-07-07 SV-CLAUDE-CODE-CLI-WORKER).
   // Lets the claude-code-worker request a SPECIFIC row after peek-filtering

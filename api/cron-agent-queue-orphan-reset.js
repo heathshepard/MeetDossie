@@ -125,6 +125,10 @@ async function handler(req, res) {
   for (const row of orphans) {
     const prevMeta = row.metadata || {};
     const prevResetCount = Number(prevMeta._orphan_reset_count || 0);
+    // Audit claims (2026-08-06) must return to 'pending_audit', not
+    // 'pending' — resetting to 'pending' would let the ORIGINAL agent
+    // re-claim its own unaudited work and skip the audit hop entirely.
+    const isAuditClaim = prevMeta._is_audit_claim === true;
 
     const newMeta = {
       ...prevMeta,
@@ -135,13 +139,14 @@ async function handler(req, res) {
       _orphan_age_hours: Math.round(
         (Date.now() - new Date(row.started_at).getTime()) / 3600000,
       ),
+      ...(isAuditClaim ? { _is_audit_claim: false, _audit_claimed_by: null } : {}),
     };
 
     const patch = await sb(`agent_queue?id=eq.${row.id}&status=eq.in_progress`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({
-        status: 'pending',
+        status: isAuditClaim ? 'pending_audit' : 'pending',
         started_at: null,
         completed_by_agent_session: null,
         metadata: newMeta,

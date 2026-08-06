@@ -34,7 +34,21 @@
 //                            (claude CLI reads this from env automatically;
 //                             the poller does NOT need it directly)
 //
-// Logs to C:\Users\Heath Shepard\.claude\agent-poller.log (rolling).
+// Logs to <your Windows profile>\.claude\agent-poller.log (rolling) — see
+// scripts/register-agent-queue-poller.ps1 for the exact resolved path.
+//
+// AUDIT-CLAIM LANE (2026-08-06, SV-ENG-AGENT-QUEUE-AUDIT-LOOP)
+//   Every tick, before normal work, the poller first tries to claim a
+//   pending_audit row for quinn (POST agent-queue-claim {agent:'quinn',
+//   claim_type:'audit'}). pending_audit rows keep their ORIGINAL agent_name
+//   (whoever produced the work) — quinn audits regardless of whose row it
+//   is. spawnAgent() overrides --agent to 'quinn' for these regardless of
+//   task.agent_name, and frames the prompt as a real-browser/tool-enabled
+//   audit (this is quinn.md, NOT the text-only dispatch-cron quinn prompt).
+//   Quinn's verdict (AUDIT_VERDICT: PASS | AUDIT_VERDICT: FAIL: <reason>) is
+//   parsed by completeAudit() and mapped to status:'completed' (pass) or
+//   status:'pending' + metadata._audit_failure_reason (fail — routes back
+//   to the original agent automatically since agent_name never changed).
 
 'use strict';
 
@@ -169,11 +183,16 @@ async function post(pathname, body) {
 // finish well inside that window; if not, the watchdog cleans up.
 
 async function spawnAgent(task) {
-  // task: { id, agent_name, task_subject, task_brief, priority, venture, metadata }
-  if (!SPAWNABLE_AGENTS.has(task.agent_name)) {
+  // task: { id, agent_name, task_subject, task_brief, priority, venture, metadata, result_summary? }
+  const isAudit = !!(task.metadata && task.metadata._is_audit_claim === true);
+  // Audit claims always spawn quinn — task.agent_name is the ORIGINAL task
+  // owner (e.g. 'atlas'), not the auditor.
+  const spawnAs = isAudit ? 'quinn' : task.agent_name;
+
+  if (!SPAWNABLE_AGENTS.has(spawnAs)) {
     return {
       ok: false,
-      summary: `agent '${task.agent_name}' not in poller spawn list (Cole/interactive-only)`,
+      summary: `agent '${spawnAs}' not in poller spawn list (Cole/interactive-only)`,
       duration_ms: 0,
     };
   }
@@ -182,26 +201,53 @@ async function spawnAgent(task) {
 
   // Build the prompt — embed the subject + brief + meta context so the agent
   // has full task framing without having to query the queue.
-  const prompt = [
-    `# Agent Queue Task`,
-    ``,
-    `**Task ID:** ${task.id}`,
-    `**Subject:** ${task.task_subject}`,
-    `**Venture:** ${task.venture}`,
-    `**Priority:** ${task.priority} (1=critical, 5=background)`,
-    ``,
-    `## Brief`,
-    ``,
-    task.task_brief,
-    ``,
-    `## Reporting`,
-    ``,
-    `When done, end your final assistant message with a 1-3 sentence result summary the poller will record back to the queue. Format:`,
-    ``,
-    `RESULT_SUMMARY: <your summary here>`,
-    ``,
-    `If you cannot complete because of a hard blocker, start your summary with BLOCKED: and explain.`,
-  ].join('\n');
+  const prompt = isAudit
+    ? [
+        `# Agent Queue Audit`,
+        ``,
+        `**Task ID:** ${task.id}`,
+        `**Original agent:** ${task.agent_name}`,
+        `**Subject:** ${task.task_subject}`,
+        `**Venture:** ${task.venture}`,
+        ``,
+        `## Original brief`,
+        ``,
+        task.task_brief,
+        ``,
+        `## What ${task.agent_name} reported doing`,
+        ``,
+        task.result_summary || '(no result_summary recorded)',
+        ``,
+        `## Your job`,
+        ``,
+        `Verify the claim above is actually true — check the real files/state/behavior, don't just re-read the summary. This is the pre-completion QA gate for the agent_queue pipeline.`,
+        ``,
+        `## Reporting — REQUIRED exact format, last line of your final message`,
+        ``,
+        `AUDIT_VERDICT: PASS`,
+        `  — or —`,
+        `AUDIT_VERDICT: FAIL: <one-sentence reason, specific enough for ${task.agent_name} to fix it without re-asking>`,
+      ].join('\n')
+    : [
+        `# Agent Queue Task`,
+        ``,
+        `**Task ID:** ${task.id}`,
+        `**Subject:** ${task.task_subject}`,
+        `**Venture:** ${task.venture}`,
+        `**Priority:** ${task.priority} (1=critical, 5=background)`,
+        ``,
+        `## Brief`,
+        ``,
+        task.task_brief,
+        ``,
+        `## Reporting`,
+        ``,
+        `When done, end your final assistant message with a 1-3 sentence result summary the poller will record back to the queue. Format:`,
+        ``,
+        `RESULT_SUMMARY: <your summary here>`,
+        ``,
+        `If you cannot complete because of a hard blocker, start your summary with BLOCKED: and explain.`,
+      ].join('\n');
 
   return new Promise((resolve) => {
     // claude CLI args. --dangerously-skip-permissions because the poller runs
@@ -218,7 +264,7 @@ async function spawnAgent(task) {
     const fallback = model === 'sonnet' ? 'opus' : 'sonnet';
     const args = [
       '--print',
-      '--agent', task.agent_name,
+      '--agent', spawnAs,
       '--model', model,
       '--dangerously-skip-permissions',
       '--output-format', 'json',
@@ -226,7 +272,7 @@ async function spawnAgent(task) {
       '--fallback-model', fallback,
     ];
 
-    log(`SPAWN ${task.agent_name} task=${task.id} model=${model} subject="${task.task_subject.slice(0, 60)}"`);
+    log(`SPAWN ${spawnAs}${isAudit ? ` (auditing ${task.agent_name})` : ''} task=${task.id} model=${model} subject="${task.task_subject.slice(0, 60)}"`);
 
     let stdoutBuf = '';
     let stderrBuf = '';
@@ -250,7 +296,7 @@ async function spawnAgent(task) {
 
     const timer = setTimeout(() => {
       killed = true;
-      log(`TIMEOUT ${task.agent_name} task=${task.id} after ${SPAWN_TIMEOUT_MS}ms — killing`, 'WARN');
+      log(`TIMEOUT ${spawnAs} task=${task.id} after ${SPAWN_TIMEOUT_MS}ms — killing`, 'WARN');
       try { child.kill('SIGKILL'); } catch { /* swallow */ }
     }, SPAWN_TIMEOUT_MS);
 
@@ -259,9 +305,10 @@ async function spawnAgent(task) {
 
     child.on('error', (err) => {
       clearTimeout(timer);
-      log(`SPAWN ERROR ${task.agent_name} task=${task.id}: ${err.message}`, 'ERROR');
+      log(`SPAWN ERROR ${spawnAs} task=${task.id}: ${err.message}`, 'ERROR');
       resolve({
         ok: false,
+        is_audit: isAudit,
         summary: `claude CLI spawn error: ${err.message}`,
         duration_ms: Date.now() - started,
         stdout: '',
@@ -278,6 +325,7 @@ async function spawnAgent(task) {
       if (killed) {
         return resolve({
           ok: false,
+          is_audit: isAudit,
           summary: `BLOCKED: poller timed out after ${Math.round(SPAWN_TIMEOUT_MS / 60000)}min and killed the agent.`,
           duration_ms, stdout, stderr,
         });
@@ -290,6 +338,29 @@ async function spawnAgent(task) {
         if (parsed && parsed.result) summary = String(parsed.result).trim();
       } catch {
         summary = stdout.trim();
+      }
+
+      log(`DONE ${spawnAs} task=${task.id} code=${code} duration=${Math.round(duration_ms / 1000)}s`);
+      if (code !== 0) {
+        if (stderr) log(`  stderr: ${stderr.replace(/\n/g, ' | ').slice(0, 400)}`, 'WARN');
+        if (stdout && !stderr) log(`  stdout: ${stdout.replace(/\n/g, ' | ').slice(0, 400)}`, 'WARN');
+      }
+
+      if (isAudit) {
+        // Parse AUDIT_VERDICT: PASS | AUDIT_VERDICT: FAIL: <reason>
+        const verdictMatch = summary.match(/AUDIT_VERDICT:\s*(PASS|FAIL)\s*:?\s*([^\n]*)/i);
+        const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : null;
+        const reason = verdictMatch ? verdictMatch[2].trim() : '';
+        const ok = code === 0 && !!verdict;
+        log(`  AUDIT_VERDICT=${verdict || 'UNPARSEABLE'}${reason ? `: ${reason.slice(0, 200)}` : ''}`);
+        return resolve({
+          ok,
+          is_audit: true,
+          verdict: verdict === 'PASS' ? 'pass' : (verdict === 'FAIL' ? 'fail' : null),
+          reason,
+          summary: summary.slice(-800).trim() || `(no output, exit code ${code})`,
+          duration_ms, stdout, stderr,
+        });
       }
 
       // Extract RESULT_SUMMARY: tag if present (more reliable than full body).
@@ -305,15 +376,9 @@ async function spawnAgent(task) {
       const blocked = /^BLOCKED:/i.test(resultSummary);
       const ok = code === 0 && !blocked && resultSummary.length > 0;
 
-      log(`DONE ${task.agent_name} task=${task.id} code=${code} blocked=${blocked} duration=${Math.round(duration_ms / 1000)}s`);
-      // Surface stderr/stdout on non-zero exits — silent failures eat hours.
-      if (code !== 0) {
-        if (stderr) log(`  stderr: ${stderr.replace(/\n/g, ' | ').slice(0, 400)}`, 'WARN');
-        if (stdout && !stderr) log(`  stdout: ${stdout.replace(/\n/g, ' | ').slice(0, 400)}`, 'WARN');
-      }
-
       resolve({
         ok,
+        is_audit: false,
         blocked,
         summary: resultSummary || `(no result, exit code ${code})`,
         duration_ms,
@@ -346,7 +411,27 @@ async function peekReady() {
   }
 }
 
+async function claimAudit() {
+  // Always tried first, every tick, regardless of AUTONOMOUS_ONLY — audits
+  // are the QA gate itself, not arbitrary autonomous work, so they don't
+  // need the metadata.autonomous tag.
+  try {
+    const r = await post('/api/agent-queue-claim', {
+      agent: 'quinn',
+      claim_type: 'audit',
+      session_id: SESSION_ID,
+    });
+    return r.task || null;
+  } catch (e) {
+    log(`audit claim error: ${e.message}`, 'WARN');
+    return null;
+  }
+}
+
 async function claimNext() {
+  const audit = await claimAudit();
+  if (audit) return audit;
+
   if (AUTONOMOUS_ONLY) {
     const candidates = await peekReady();
     if (candidates === null) {
@@ -396,6 +481,31 @@ async function claimNext() {
 }
 
 async function complete(taskId, result) {
+  if (result.is_audit) {
+    // Map quinn's verdict to the audit-completion contract agent-queue-complete
+    // expects: 'completed' = pass, 'pending' = fail (+ _audit_failure_reason).
+    // An unparseable verdict (quinn didn't emit AUDIT_VERDICT:) is treated as
+    // a fail so the row doesn't silently vanish into 'completed' unverified.
+    const pass = result.ok && result.verdict === 'pass';
+    const status = pass ? 'completed' : 'pending';
+    const reason = pass ? '' : (result.reason || result.verdict === 'fail'
+      ? result.reason
+      : `unparseable audit output: ${result.summary.slice(0, 300)}`);
+    await post('/api/agent-queue-complete', {
+      id: taskId,
+      status,
+      result_summary: result.summary,
+      completed_by_agent_session: SESSION_ID,
+      metadata: {
+        duration_ms: result.duration_ms,
+        _poller_session: SESSION_ID,
+        _poller_finished_at: new Date().toISOString(),
+        ...(pass ? {} : { _audit_failure_reason: reason }),
+      },
+    });
+    return;
+  }
+
   const status = result.ok ? 'completed' : (result.blocked ? 'blocked' : 'blocked');
   await post('/api/agent-queue-complete', {
     id: taskId,
