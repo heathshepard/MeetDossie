@@ -226,10 +226,23 @@
       .dash-secondary > .panel { break-inside: avoid; margin: 0 0 16px; }
     }
     @media (min-width: 1280px) {
-      /* True dashboard grid for the 4 highest-priority work panels — Merge
+      /* True 2-column dashboard for the 4 highest-priority work panels — Merge
          Queue / In-Flight Work / Agents / Work Items — visible together
-         without scrolling on a normal desktop viewport. */
-      .dash-primary { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; align-items: start; gap: 16px; }
+         without scrolling on a normal desktop viewport.
+         ROW-STRETCH FIX 2026-08-06 (Quinn caught the same bug already fixed
+         below in .dash-secondary, unfixed here): `display:grid` with
+         `grid-template-rows: auto auto` still gives every item IN A ROW the
+         same track height — the tallest panel in the row stretches its
+         shorter sibling's track, leaving dead space below the shorter one
+         (measured live: In-Flight Work 538px panel in a 1962px row, Agents
+         649px panel in a 2203px row). Same root cause, same fix: CSS
+         multi-column masonry instead of a row-based grid — each column
+         stacks its panels top-to-bottom independently at natural height,
+         no shared row track to stretch to. 2 columns (not dash-secondary's
+         3) keeps these 4 reading as the dominant, wider, more prominent
+         panels — visual weight preserved, only the stretching is gone. */
+      .dash-primary { display: block; columns: 2; column-gap: 16px; }
+      .dash-primary > .panel { break-inside: avoid; margin: 0 0 16px; }
     }
     /* .main itself is a grid — same protection so the column does not stretch. */
     .main { min-width: 0; }
