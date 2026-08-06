@@ -93,7 +93,7 @@ const COMPLIANCE_PROMPTS = {
 IMPORTANT — ELECTRONIC SIGNATURES:
 This contract may have been signed via DocuSign or other electronic signature platforms. Electronic signatures are legally valid under ESIGN and UETA. When checking for signatures and initials, look for:
 - DocuSign signature blocks (showing signer name, date, and time like "4/8/2026 | 10:44 PDT")
-- DocuSign initial blocks (showing initials like "KP" in a box)
+- DocuSign initial blocks (showing initials like "KP" in a box) — these are frequently HANDWRITTEN/CURSIVE marks the signer drew with a mouse or stylus (e.g. "TL", "CL"), not typed text. A cursive drawn mark counts exactly the same as a typed one.
 - Any electronic signature indicator including timestamps, signer names, or digital signature marks
 - "Initialed for identification by Buyer [initials]" line at the bottom of each page with any mark or electronic initial present
 
@@ -101,20 +101,35 @@ DO NOT flag a signature or initial as missing if there is a DocuSign block, time
 
 DOCUSIGN DETECTION:
 If the document header contains "DocuSign Envelope ID:" this is a DocuSign-executed document. In DocuSign contracts:
-- Electronic initials appear as small text initials (like "KP", "MS") in boxes at the bottom of pages — these ARE valid initials, count them as present
+- Electronic initials appear as small initials in boxes at the bottom of pages, typed OR hand-drawn cursive — these ARE valid initials, count them as present
 - The "Initialed for identification by Buyer [initials]" line with ANY text or mark (letters, timestamps, or names) counts as initialed
 - DocuSign signature blocks showing the signer's name and a timestamp are valid signatures
 
-CRITICAL: Do NOT assume all initials are present just because the document has a DocuSign Envelope ID. Check EACH page individually:
-- If a page has an initial line at the bottom and there is NO mark, NO initials, NO timestamp, and NO electronic indicator in that specific location, flag it as missing initials for that page
-- A blank initial line is still a missing initial, even in a DocuSign document
-- Only count an initial as present if you can see an actual mark, letters, timestamp, or electronic indicator in that specific initial location
+CRITICAL — INITIALS MUST BE VERIFIED INDEPENDENTLY PER PAGE, NOT COPIED FROM PAGE TO PAGE:
+- Look at each page's initial line SEPARATELY. Do not reuse or repeat a finding from one page on the next page without re-examining that specific page's image.
+- If a page has an initial line at the bottom and there is NO mark, NO initials, NO timestamp, and NO electronic indicator in that specific location, flag it as missing initials for that page.
+- A blank initial line is still a missing initial, even in a DocuSign document.
+- Only count an initial as present if you can see an actual mark, letters, timestamp, or electronic indicator in that specific initial location.
+- SELF-CHECK BEFORE FINALIZING: it is unusual for a real, fully-signed DocuSign contract to be missing the SAME party's initials on every single page while that same party's final signature is present and dated. If your missingInitials list is about to name one party (Buyer or Seller) on most or all of the pages, stop and re-look at 2-3 of those specific pages before finalizing — you are more likely pattern-matching from your first finding than independently reading each page. Only keep the finding if you can still see, page by page, that the mark is genuinely absent.
+- Initials are only required on pages that actually carry an "Initialed for identification by Buyer ___ and Seller ___" line. Signature pages, receipt pages, and the Broker Contact Information page ("Print name(s) only. Do not sign") do NOT carry this line — never invent a missing-initials finding for a page that has no initial line at all.
 
-BROKER INFO BLOCK (Page 10):
-The broker information block says "Print name(s) only. Do not sign" — agents are NOT supposed to sign this block. Printed names are correct and compliant. Do NOT flag missing signatures on the broker info block.
+BROKER INFO BLOCK:
+The broker information block says "Print name(s) only. Do not sign" — agents are NOT supposed to sign or initial this block. Printed names are correct and compliant. Do NOT flag missing signatures OR missing initials on the broker info block.
+
+STRUCK-THROUGH / REMOVED PARTIES (Paragraph 1):
+If a listed Buyer or Seller name has a line drawn through it (a strikeout), that person has been removed as a party to the contract by agreement of the parties. Do NOT flag a missing signature or missing initials for a struck-through name — they are not required to sign or initial anything. Only the remaining, non-struck-through names are required signers/initialers.
 
 OPTION DAYS:
 IMPORTANT: The extraction engine has already parsed optionDays from Paragraph 5B. If the extractedFields object contains a valid optionDays value (number between 3-30), do NOT flag Paragraph 5B or option period as blank in your compliance report. The field is populated even if you cannot visually see it clearly in the paragraph.
+
+PARAGRAPH 5A — EARNEST MONEY DELIVERY ADDRESS:
+The escrow agent's address on the 5A line is often printed across two visually separate lines on the form (e.g. street number/name on one line, city/state/zip continuing on the next). Read BOTH lines together as one address before judging it incomplete. If a street address, city, and zip all appear somewhere on or immediately after the 5A line, the address is complete — do not flag it as missing a street address or as incomplete.
+
+PARAGRAPH 12B — BROKERAGE COMPENSATION:
+12B(1) and 12B(2) each offer a choice between a flat dollar amount OR a percentage (a checkbox precedes each). Percentages are written in plain decimal form, e.g. "2.500" means 2.5%, "6.000" means 6% — the period is a DECIMAL POINT, never a thousands-separator comma. Do NOT reinterpret "2.500 %" as "2,500%" or describe it as unclear/ambiguous. If the percentage checkbox is marked and a number (with up to three decimal places) is written in the blank, that field is fully and unambiguously filled in. It is normal and NOT an error for 12B(2) (Buyer pays Seller's broker) to have neither box checked — that simply means the buyer is not contributing to the seller's broker compensation.
+
+EFFECTIVE DATE FORMAT (signature page):
+The "EXECUTED the ___ day of ________, 20___ (Effective Date)" line has three blanks (day / month / year). Signers sometimes write the FULL date (e.g. "08/04/26") into the middle blank instead of splitting it across all three — this is non-standard but common and fully valid. If a complete date appears in any of the three blanks, or split across them, the Effective Date is present and determinable. Note this in "warnings" only as an informational observation (e.g. "Effective Date written in non-standard format but clearly present: 08/04/2026") — never as an "incomplete" or "missing" finding, and never in blankRequiredFields.
 
 PARAGRAPH 7B — SELLER'S DISCLOSURE NOTICE:
 Paragraph 7B has checkboxes for how the Seller's Disclosure Notice is being handled. These are MUTUALLY EXCLUSIVE options:
@@ -1064,11 +1079,20 @@ function emptyComplianceReport(docLabel) {
 async function auditCompliance(pdfBase64, documentType) {
   const prompt = COMPLIANCE_PROMPTS[documentType] || COMPLIANCE_PROMPTS.other;
 
-  // For large PDFs, use Opus and increased max_tokens
+  // For large PDFs, use Opus and increased max_tokens.
+  // trec-20-17 always gets Sonnet (not Haiku) — this prompt asks for an
+  // independent, page-by-page visual read of handwritten initials across up
+  // to 18 pages plus 5 other compliance categories in one response. Haiku
+  // was found (2026-08-06, real executed contract) to hallucinate a
+  // uniform "missing initials" finding for one party across every single
+  // page instead of re-checking each page, almost certainly a
+  // budget/attention artifact rather than a real read of the page images.
+  // Sonnet + a larger token budget gives it room to actually do that work.
   const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
-  const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : MODEL;
-  const maxTokensToUse = isLargePdf ? 4096 : 2048;
+  const isTrec2017 = documentType === 'trec-20-17';
+  const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : (isTrec2017 ? 'claude-sonnet-5' : MODEL);
+  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 4096 : 2048);
 
   const response = await anthropic.messages.create({
     model: modelToUse,
@@ -1155,6 +1179,59 @@ async function runFullScan(pdfBase64) {
         w => !(w.toLowerCase().includes('appraisal') && /unclear|ambiguous|not.*(?:clear|specified)/i.test(w))
       );
     }
+
+    // 2026-08-06 — auditCompliance backstops added after independently
+    // confirming (against a real executed contract) that the audit call
+    // invents findings the extraction pass already disproves. Same
+    // "extraction is ground truth, the audit call is the less reliable one"
+    // reasoning as the three overrides above.
+
+    // 5A earnest money holder: extraction already captures the escrow
+    // agent + address as one field. If it's populated, the address is not
+    // missing — drop any "address incomplete" style warning for 5A.
+    const holder = extractedFields.paragraph5 && extractedFields.paragraph5.earnestMoneyHolder;
+    if (typeof holder === 'string' && holder.trim().length > 8) {
+      complianceReport.warnings = (complianceReport.warnings || []).filter(
+        w => !(/paragraph\s*5a|earnest money.*(holder|deliver|address)/i.test(w) && /incomplete|missing|not.*(clear|specified|filled)/i.test(w))
+      );
+    }
+
+    // 12B brokerage percentage: a plain decimal like "2.500" is sometimes
+    // misread as a comma-grouped number ("2,500%"). Rewrite that digit
+    // artifact wherever it appears in the free-text findings.
+    const fixDecimalComma = (s) => s.replace(/(\d)\s*,\s*(\d{3})\s*%/g, '$1.$2%');
+    complianceReport.warnings = (complianceReport.warnings || []).map(fixDecimalComma);
+    complianceReport.blankRequiredFields = (complianceReport.blankRequiredFields || []).map(fixDecimalComma);
+    // If a "12B ... not filled in" finding's own text contains a % or $
+    // figure, the model saw a value there — that's self-contradictory, drop it.
+    complianceReport.blankRequiredFields = (complianceReport.blankRequiredFields || []).filter(
+      field => !(/12b/i.test(field) && /[%$]\s*\d|\d\s*[%$]/.test(field))
+    );
+
+    // Missing initials: if the same party (Buyer or Seller) is flagged
+    // missing on 3+ distinct pages while that same party has a valid final
+    // signature (i.e. NOT also present in missingSignatures), this is the
+    // repeat/pattern-match hallucination documented above rather than a
+    // real per-page read. Consolidate into one spot-check warning instead
+    // of a scary per-page list — keep the signal, drop the false alarm.
+    const initials = complianceReport.missingInitials || [];
+    // Strip anything that isn't even a real initials field to begin with
+    // (Broker Contact Information page has no initial line).
+    let workingInitials = initials.filter(i => !/broker/i.test(i));
+    complianceReport.warnings = complianceReport.warnings || [];
+    for (const party of ['Seller', 'Buyer']) {
+      const partyRe = new RegExp(party, 'i');
+      const partyEntries = workingInitials.filter(i => partyRe.test(i));
+      const otherParty = party === 'Seller' ? 'Buyer' : 'Seller';
+      const signedOut = (complianceReport.missingSignatures || []).some(s => partyRe.test(s));
+      if (partyEntries.length >= 3 && !signedOut) {
+        workingInitials = workingInitials.filter(i => !partyRe.test(i));
+        complianceReport.warnings.push(
+          `Compliance scan flagged ${party} initials as missing on ${partyEntries.length} pages, but ${party} has a valid final signature and ${otherParty}'s initials were read fine on those same pages — this pattern usually means the scan misread that column rather than initials genuinely being absent. Spot-check 2-3 pages to confirm before treating this as a real gap.`
+        );
+      }
+    }
+    complianceReport.missingInitials = workingInitials;
   }
 
   return {
