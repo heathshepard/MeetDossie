@@ -391,12 +391,6 @@
     "api/cole-enqueue.js": {
       "maxDuration": 10
     },
-    "api/cole-dispatch-start.js": {
-      "maxDuration": 10
-    },
-    "api/cole-dispatch-complete.js": {
-      "maxDuration": 10
-    },
     "api/cron-codebase-facts-indexer.js": {
       "maxDuration": 60,
       "includeFiles": "{vercel.json,*.html,api/**/*.js}"
