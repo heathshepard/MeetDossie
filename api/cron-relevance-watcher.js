@@ -616,3 +616,12 @@ async function handler(req, res) {
 }
 
 module.exports = withTelemetry('cron-relevance-watcher', handler);
+
+// Set here rather than in vercel.json's `functions` block -- that block is
+// already at the platform's 50-property cap (see cron-trec-scanner.js /
+// cron-ridge-watchdog.js for the same escape valve). Gmail list + per-message
+// metadata fetch + up to MAX_CLASSIFY_CALLS Haiku calls, all sequential, need
+// more headroom than the ~15s default.
+module.exports.config = {
+  maxDuration: 90,
+};

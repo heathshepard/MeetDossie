@@ -419,9 +419,6 @@
     "api/cron-inbox-scan.js": {
       "maxDuration": 60
     },
-    "api/cron-relevance-watcher.js": {
-      "maxDuration": 90
-    },
     "api/cron-support-ticket-alert.js": {
       "maxDuration": 60
     },
