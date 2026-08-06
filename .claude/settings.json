@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "mcp__claude_ai_Vercel__get_runtime_logs",
       "mcp__claude_ai_Supabase__list_projects",
