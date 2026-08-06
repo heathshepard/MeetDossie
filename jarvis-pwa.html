@@ -197,10 +197,33 @@
     .voice-dock { grid-area: voice; display: flex; flex-direction: column; gap: 16px; min-height: 0; min-width: 0; }
     .dash-secondary { grid-area: secondary; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     @media (min-width: 900px) {
-      /* Secondary (lower-priority) panels reflow into a responsive row
-         instead of one long stacked column — reclaims the width the globe
-         used to hog. */
-      .dash-secondary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start; }
+      /* Secondary (lower-priority) panels reflow into a responsive multi-
+         column layout instead of one long stacked column.
+         PACKING FIX 2026-08-06 (Heath: "sections are randomly placed... a
+         lot of dead space, let's close it up"). The 8 panels here vary a
+         lot in natural height — money-panel/quick-ask-panel are ~3 lines,
+         calendar/activity/projects/future-builds are data lists that can
+         run long. That was a `display:grid` with `align-items:start`,
+         which stops an individual short panel from being STRETCHED, but
+         does nothing about the ROW TRACK itself: grid gives every item in
+         a row the same track height (= the tallest item placed in that
+         row), so a short panel next to a tall one still leaves a visible
+         empty gap below it — that's the "random placement" Heath's
+         describing. Grid can't fix this without explicit row-spans per
+         panel (would need real content-height measurement to tune).
+         CSS multi-column layout has no row concept — each column stacks
+         its panels top-to-bottom independently, so a short panel is
+         immediately followed by the next panel with no forced gap. That's
+         the standard no-JS fix for uneven-height card grids ("masonry"-
+         style packing). break-inside:avoid on each panel (below) stops a
+         panel from being visually split across two columns. */
+      .dash-secondary { display: block; columns: 240px 3; column-gap: 16px; }
+      /* Multi-column has no vertical "gap" between stacked items in the same
+         column (column-gap is horizontal-only) — margin-bottom does that
+         job instead. Every panel gets it, including whichever panel lands
+         last in each of the 3 columns, so all three columns end with the
+         same trailing space — consistent bottom edge. */
+      .dash-secondary > .panel { break-inside: avoid; margin: 0 0 16px; }
     }
     @media (min-width: 1280px) {
       /* True dashboard grid for the 4 highest-priority work panels — Merge
@@ -215,16 +238,30 @@
     /* ===== PUSH-TO-TALK ORB =====
        Layout: .orb-wrap is the centering shell. Globe (canvas) + SVG fallback
        fill it via inset:0. PTT button is ABSOLUTE CENTER on top — dead-center
-       of the Three.js canvas at every breakpoint. */
+       of the Three.js canvas at every breakpoint.
+       FLOATING REWORK 2026-08-06 (Heath: "make the globe a constant, like
+       floating above everything... I can always click on it to talk to
+       Jarvis"). .orb-wrap no longer lives in the .voice-dock document flow —
+       it's fixed to the viewport, bottom-right, at every breakpoint, so it
+       never scrolls away. Sized at the SAME compact dimensions the earlier
+       2026-08-06 fix already shrank it to for desktop (~150-210px) — reused
+       here everywhere, not re-ballooned just because it floats now. Offset
+       from the true corner (bottom/right 16px) to clear .approval-toast,
+       which also docks bottom-right at 16/16 — see that rule's bumped
+       `bottom` value below. z-index 40: above ordinary panel content, below
+       every modal (100+) so a modal still fully covers it, and below the
+       toast/approval-toast/cal-toast stack (200+). */
     .orb-wrap {
-      position: relative;
-      width: 100%;
-      /* Square-ish region that scales with viewport. Caps at 460px so the
-         globe never dominates on large screens, never shrinks below 240px
-         (Z Fold cover at 344w still gets a usable orb). */
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 40;
+      /* Compact floating size — matches the already-tuned desktop values,
+         now applied at all viewport widths instead of only >=900px. */
+      width: clamp(150px, 40vw, 210px);
       aspect-ratio: 1 / 1;
-      max-width: clamp(240px, 78vw, 460px);
-      margin: 12px auto 8px auto;
+      max-width: 210px;
+      margin: 0;
     }
     .orb-bg {
       position: absolute; inset: 0;
@@ -261,10 +298,10 @@
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       z-index: 2;
-      /* Button caps at 44% of the orb-wrap; never smaller than a 44px tap
-         target. On 344w Z Fold cover (~268px orb) → 118px button. On 1280
-         desktop (460px orb) → 202px button. Tappable everywhere. */
-      width: clamp(132px, 44%, 220px);
+      /* Button caps at 46% of the orb-wrap. FLOATING REWORK 2026-08-06: floor/
+         ceiling brought down to match the now-universal compact orb-wrap size
+         (150-210px, was previously only this small on desktop >=900px). */
+      width: clamp(88px, 46%, 128px);
       aspect-ratio: 1;
       border-radius: 50%;
       background: transparent;
@@ -285,15 +322,15 @@
     .ptt-btn:active { transform: translate(-50%, -50%) scale(0.97); }
     .ptt-btn:focus-visible { box-shadow: 0 0 0 3px var(--cyan-bright), 0 0 36px var(--cyan-glow); }
     .ptt-inner {
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      padding: 0 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 0 4px;
     }
     .ptt-glyph {
-      width: clamp(32px, 22%, 52px); height: clamp(32px, 22%, 52px);
+      width: clamp(20px, 22%, 28px); height: clamp(20px, 22%, 28px);
       stroke: var(--cyan-bright);
       filter: drop-shadow(0 0 6px var(--cyan-glow));
     }
-    .ptt-label { font-size: clamp(10px, 1.5vw, 12px); white-space: nowrap; }
+    .ptt-label { font-size: 9px; white-space: nowrap; }
     /* state: idle */
     .ptt-btn[data-state="idle"]::before {
       content: ''; position: absolute; inset: -12px;
@@ -366,21 +403,16 @@
       min-height: 16px;
     }
 
-    /* ===== COMPACT ORB (desktop) — LAYOUT REWORK 2026-08-06 =====
-       Once .voice-dock becomes a narrow secondary column (>=900px, see .main
-       above), the globe no longer needs — or has room for — its old up-to-
-       460px size. Scoped to .voice-dock so mobile (single-column, voice
-       still first) keeps the original larger, easier-to-tap orb. The
-       three.js mount reads mount.clientWidth at render time (see module
-       script below), so shrinking the CSS box shrinks the actual globe —
-       this isn't cosmetic-only. PTT button/glyph/label floors are pulled in
-       to match so nothing pokes outside the smaller circle. */
+    /* ===== COMPACT ORB — LAYOUT REWORK 2026-08-06 (superseded same day) =====
+       The orb used to only shrink at >=900px via `.voice-dock .orb-wrap`
+       overrides, back when it was a docked sidebar element. It's now
+       `position: fixed` (see .orb-wrap above) and compact at every
+       breakpoint by default, so those size overrides are gone — they'd
+       just duplicate the base rule now. `.ptt-inner` compaction folded into
+       its base rule too. `.ptt-status` (the state-text line, NOT part of
+       the floating widget — it stays docked in .voice-dock's normal flow)
+       still gets a tighter margin on the narrow desktop sidebar. */
     @media (min-width: 900px) {
-      .voice-dock .orb-wrap { max-width: clamp(150px, 100%, 210px); margin: 8px auto 4px auto; }
-      .voice-dock .ptt-btn { width: clamp(88px, 46%, 128px); }
-      .voice-dock .ptt-inner { gap: 4px; padding: 0 4px; }
-      .voice-dock .ptt-glyph { width: clamp(20px, 22%, 28px); height: clamp(20px, 22%, 28px); }
-      .voice-dock .ptt-label { font-size: 9px; }
       .voice-dock .ptt-status { margin-top: 10px; }
     }
 
@@ -865,7 +897,11 @@
       }
     }
     .approval-toast {
-      position: fixed; bottom: 16px; right: 16px;
+      /* bottom bumped 16px -> 242px 2026-08-06: the floating voice orb
+         (.orb-wrap, see PUSH-TO-TALK ORB above) now docks bottom-right,
+         16px inset, up to 210px tall — this toast would otherwise render
+         underneath/behind it. Stack the toast above the orb instead. */
+      position: fixed; bottom: 242px; right: 16px;
       padding: 12px 16px;
       border-radius: 8px;
       font-size: 12px;
