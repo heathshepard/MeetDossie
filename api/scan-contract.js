@@ -169,7 +169,7 @@ ADDENDA VERIFICATION:
 - List every checkbox checked in Paragraph 22
 - For each checked box, note whether the corresponding addendum appears to be attached
 
-Return a JSON compliance report:
+Return ONLY this JSON object — no prose, no markdown fences, no commentary before or after it. Keep every array entry to one concise sentence, not a paragraph of reasoning — you have a limited output budget and the JSON itself must always be the last thing you write:
 {
   "passed": true/false,
   "missingSignatures": ["description of each missing signature"],
@@ -1092,7 +1092,7 @@ async function auditCompliance(pdfBase64, documentType) {
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
   const isTrec2017 = documentType === 'trec-20-17';
   const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : (isTrec2017 ? 'claude-sonnet-5' : MODEL);
-  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 4096 : 2048);
+  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 6144 : 2048);
 
   const response = await anthropic.messages.create({
     model: modelToUse,
@@ -1106,8 +1106,11 @@ async function auditCompliance(pdfBase64, documentType) {
     }],
   });
   const textBlock = (response.content || []).find((b) => b.type === 'text');
-  const parsed = safeParseJson(textBlock ? textBlock.text : '');
+  const rawText = textBlock ? textBlock.text : '';
+  const parsed = safeParseJson(rawText);
   if (!parsed || typeof parsed !== 'object') {
+    console.error('[auditCompliance] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
+      response.stop_reason, rawText.length, rawText.slice(0, 400));
     return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
   }
   const arr = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string') : []);
