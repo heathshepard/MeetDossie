@@ -433,11 +433,20 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
     ? between.commits
     : [{ sha: head.sha, message: head.message, author: head.author, committed_at: head.committed_at }];
 
-  // The newest commit is the one we QA. Older ones are recorded in metadata.
+  // The newest commit is the one we QA. Older ones in the same poll window
+  // still each need their own merge_queue row — otherwise a fast double-push
+  // (two commits inside one 2-min tick) silently drops the older commit from
+  // the queue forever (found 2026-08-06: 252c6a86 + c20ed215 landed 18s apart,
+  // only c20ed215 got a row). addToMergeQueue is idempotent per commit_sha,
+  // so looping here is safe even if a row already exists.
   const targetCommit = newCommits[newCommits.length - 1];
-  const olderShas = newCommits.slice(0, -1).map((c) => c.sha);
+  const olderCommits = newCommits.slice(0, -1);
+  const olderShas = olderCommits.map((c) => c.sha);
 
-  // 7. Add to merge_queue (if not already present)
+  // 7. Add ALL new commits to merge_queue (not just the newest)
+  for (const c of olderCommits) {
+    await addToMergeQueue(c);
+  }
   const queueResult = await addToMergeQueue(targetCommit);
 
   // 8. Auto-dispatch Quinn

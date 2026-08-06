@@ -785,7 +785,7 @@
     },
     {
       "path": "/api/cron-merge-queue-backfill",
-      "schedule": "10 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron-social-cadence",

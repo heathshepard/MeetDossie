@@ -17,10 +17,13 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 // merge-queue UI.
 //
 // FIX:
-// This cron runs daily at 6:00 AM CDT (11:00 UTC). For every merge_queue
-// row where merged_to_main=false, it asks GitHub whether that SHA is an
-// ancestor of main. If YES, flip merged_to_main=true and fill merged_at
-// from the actual commit-on-main timestamp (best-effort via compare API).
+// This cron runs every 15 min (vercel.json schedule, tightened 2026-08-06 —
+// was hourly at :10, which left up to ~59 min of stale "pending" rows in the
+// Jarvis UI after a direct `git push origin main` bypass; Quinn caught 8 such
+// rows mid-window on 2026-08-06). For every merge_queue row where
+// merged_to_main=false, it asks GitHub whether that SHA is an ancestor of
+// main. If YES, flip merged_to_main=true and fill merged_at from the actual
+// commit-on-main timestamp (best-effort via compare API).
 //
 // Uses the same GitHub Compare API pattern as merge-to-main.js:
 //   GET /repos/:owner/:repo/compare/:sha...main
