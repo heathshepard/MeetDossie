@@ -422,7 +422,7 @@ Return ALL dates in yyyy-MM-dd format only. Examples:
 Never return natural language descriptions like "within 7 days after the Effective Date" or "within 7 days after objections cured/waived" for date fields. Extract only the actual calendar date in yyyy-MM-dd format. If a date cannot be determined, return null.
 
 DEBUG FIELDS REQUIREMENT:
-ALWAYS populate debugParagraph3C, debugParagraph5B, and debugParagraph6C fields with the exact verbatim text you read from those paragraphs. These fields are critical for troubleshooting extraction errors.
+ALWAYS populate debugParagraph3C, debugParagraph5A, debugParagraph5B, and debugParagraph6C fields with the exact verbatim text you read from those paragraphs. These fields are critical for troubleshooting extraction errors.
 
 FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
 - Paragraph 1 PARTIES: Seller name(s) and Buyer name(s).
@@ -439,8 +439,9 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   Sanity check: Sales price should typically be between $50,000 and $5,000,000 for Texas residential.
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION:
-  CRITICAL — OPTION DAYS: Read ONLY the text content of Paragraph 5B (labeled "TERMINATION OPTION" or "Option Period"). Do NOT read any other paragraph. From the Paragraph 5B text ONLY, extract ALL numbers that appear. Filter these numbers to only those in the range 3-30 (reasonable option period). If multiple numbers in this range exist in Paragraph 5B, take the FIRST number that appears before the phrase "days after the Effective Date". This is the termination option period. Common values: 5, 7, 10. By reading ONLY Paragraph 5B content, you avoid accidentally extracting survey days (Paragraph 6C) or appraisal days (elsewhere). Return as integer into optionDays. Also extract the option fee amount from 5D into optionFee.
+  CRITICAL — OPTION DAYS: Read ONLY the text content of Paragraph 5B (labeled "TERMINATION OPTION" or "Option Period"). Do NOT read any other paragraph. From the Paragraph 5B text ONLY, extract ALL numbers that appear. Filter these numbers to only those in the range 3-30 (reasonable option period). If multiple numbers in this range exist in Paragraph 5B, take the FIRST number that appears before the phrase "days after the Effective Date". This is the termination option period. Common values: 5, 7, 10. By reading ONLY Paragraph 5B content, you avoid accidentally extracting survey days (Paragraph 6C) or appraisal days (elsewhere). Return as integer into optionDays. Paragraph 5B also states the Option Fee dollar amount ("Buyer must pay Seller $___ (Option Fee)") — extract that into optionFee.
   Also pull earnest money amounts from 5A, and the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (yyyy-MM-dd).
+  CRITICAL — DOLLAR AMOUNTS ARE HANDWRITTEN/FILLED-IN BLANKS: earnestMoney (5A) and optionFee (5B) are the two figures most often missed because they're filled into a blank rather than printed — read the actual digits carefully, don't assume a "typical" value, and don't return null just because the figure is handwritten. This is exactly why debugParagraph5A and debugParagraph5B exist below — deterministic code re-parses those verbatim strings as a backstop.
 - Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address. 6D typically contains title objection deadlines — DO NOT extract these as the closing date.
 - Paragraph 9 CLOSING and POSSESSION:
   CRITICAL — CLOSING DATE: Look in Paragraph 9.A for the line that says "The Closing of the sale will be on or before" followed by a specific date. This is the CLOSING DATE — the date the transaction is scheduled to close/fund. Extract ONLY this date into closingDate (top-level) and mirror into paragraph9Closing.closingDate. DO NOT confuse this with title objection deadlines from Paragraph 6D, survey deadlines, or any other deadline. The closing date is the final date when ownership transfers and funds are exchanged.
@@ -608,7 +609,8 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "optionFeePayableTo": string | null               // usually "Seller"; sometimes title company or named escrow agent
     },
     "debugParagraph3C": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 3 showing all three lines: "3A. $ [value]", "3B. $ [value]", "3C. Sales Price (Sum of A and B): $ [value]". Show all dollar amounts exactly as they appear.
-    "debugParagraph5B": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 5B showing the full sentence about "Seller grants Buyer the unrestricted right to terminate...within [X] days after the Effective Date."
+    "debugParagraph5A": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 5A "EARNEST MONEY", including the dollar figure exactly as it appears (e.g. "Buyer shall deposit $ 7,600.00 as earnest money with escrow agent...").
+    "debugParagraph5B": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text of the ENTIRE Paragraph 5B "TERMINATION OPTION" paragraph, including both the "...within [X] days after the Effective Date" sentence AND the "Buyer must pay Seller $ [value] (Option Fee)" sentence, with the dollar figure exactly as it appears.
     "debugParagraph6C": string | null                   // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Paragraph 6C SURVEY has three numbered sub-options (1)/(2)/(3), each a checkbox followed by "Within ___ days after the Effective Date...". Copy the verbatim text of ALL THREE options, and for each one write [X] immediately before it if its checkbox is marked, or [ ] if it is not. Example: "[X] (1) Within 15 days after the Effective Date... [ ] (2) Within ___ days... [ ] (3) Within ___ days...". This lets deterministic code (not you) identify which option is checked and its day count — the checkbox marks are the critical part, do not omit them.
   },
   "confidence": {
@@ -1006,6 +1008,49 @@ async function scanContract(pdfBase64) {
       if (Number.isFinite(parsedDays) && parsedDays >= 3 && parsedDays <= 30) {
         extracted.optionDays = parsedDays;
         extracted.paragraph23TerminationOption.optionDays = parsedDays;
+      }
+    }
+  }
+
+  // CRITICAL: Parse earnestMoney and optionFee dollar amounts directly from
+  // the debugParagraph5A/5B verbatim text using regex, same reasoning as the
+  // optionDays/surveyDeadline backstops above. Found 2026-08-06 auditing a
+  // real executed contract (Wild Cherry, GF 70378) — document identification
+  // and the compliance audit both succeeded, but Claude's own earnestMoney/
+  // optionFee JSON fields came back null even though both dollar amounts
+  // were plainly filled in on the form, silently skipping the auto-checklist
+  // write on the frontend (which only fires when one of these is > 0).
+  // Unlike optionDays (a single sentence, easy for the model to reliably
+  // transcribe), these are free-standing filled-in dollar blanks — the same
+  // failure mode. Deterministic regex against the text Claude already
+  // captured is the fix, not a smarter prompt.
+  const parseDollarAmount = (s) => {
+    const m = String(s).match(/\$\s*([\d][\d,]*(?:\.\d{1,2})?)/);
+    if (!m) return null;
+    const n = parseFloat(m[1].replace(/,/g, ''));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  if (extracted.debugParagraph5A && typeof extracted.debugParagraph5A === 'string') {
+    const em = parseDollarAmount(extracted.debugParagraph5A);
+    if (em != null) {
+      extracted.earnestMoney = em;
+    }
+  }
+  if (extracted.debugParagraph5B && typeof extracted.debugParagraph5B === 'string') {
+    // Prefer the figure specifically tied to "Option Fee" wording; fall back
+    // to the last dollar amount in the paragraph (the days-after-Effective-
+    // Date sentence has no dollar sign, so the Option Fee sentence is almost
+    // always the only — or last — dollar figure present).
+    let ofMatch = extracted.debugParagraph5B.match(/\$\s*([\d][\d,]*(?:\.\d{1,2})?)\D{0,40}Option\s*Fee/i);
+    if (!ofMatch) {
+      const all = [...extracted.debugParagraph5B.matchAll(/\$\s*([\d][\d,]*(?:\.\d{1,2})?)/g)];
+      if (all.length) ofMatch = all[all.length - 1];
+    }
+    if (ofMatch) {
+      const n = parseFloat(ofMatch[1].replace(/,/g, ''));
+      if (Number.isFinite(n) && n > 0) {
+        extracted.optionFee = n;
+        extracted.paragraph23TerminationOption.optionFee = n;
       }
     }
   }
