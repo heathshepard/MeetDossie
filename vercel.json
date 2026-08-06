@@ -388,9 +388,6 @@
     "api/cron-agent-queue-orphan-reset.js": {
       "maxDuration": 30
     },
-    "api/cron-agent-queue-dispatch.js": {
-      "maxDuration": 60
-    },
     "api/cole-enqueue.js": {
       "maxDuration": 10
     },
