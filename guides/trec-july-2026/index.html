@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/calculator-widget.css">
+<script src="/assets/posthog-loader.js"></script>
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"TREC Form Changes July 2026: What Every Texas REALTOR Needs to Know","description":"TREC's mandatory form updates take effect July 1, 2026. Here's exactly what's changing, what's not, and what you need to do before the deadline.","author":{"@type":"Person","name":"Heath Shepard","jobTitle":"Texas REALTOR®"},"publisher":{"@type":"Organization","name":"Dossie","url":"https://meetdossie.com"},"mainEntityOfPage":"https://meetdossie.com/guides/trec-july-2026","datePublished":"2026-06-06","dateModified":"2026-06-06"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://meetdossie.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://meetdossie.com/guides/"},{"@type":"ListItem","position":3,"name":"TREC Form Changes July 2026","item":"https://meetdossie.com/guides/trec-july-2026"}]}</script>
@@ -116,7 +117,7 @@ main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px s
 
 <nav>
   <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
-  <a href="/founding" class="nav-cta">Founding Member — $29/mo</a>
+  <a href="/app" class="nav-cta">Get Started</a>
 </nav>
 
 <div class="crumbs">
@@ -274,8 +275,8 @@ main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px s
 
 <section class="cta-block">
   <h2>Dossie tracks TREC deadlines automatically.</h2>
-  <p>Dossie will be updated to the new form versions before July 1. Every deadline, every paragraph, every rollover — tracked for every active deal so you never miss a compliance window. 38 founding spots remaining at $29/month.</p>
-  <a class="cta-btn" href="/founding">Lock in founding pricing before July 1 →</a>
+  <p>Dossie will be updated to the new form versions before July 1. Every deadline, every paragraph, every rollover — tracked for every active deal so you never miss a compliance window.</p>
+  <a class="cta-btn" href="/app">Start for $79/mo →</a>
 </section>
 
 <section class="faq-section">
@@ -333,6 +334,24 @@ main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px s
 <p class="legal">
   This guide is provided as-is for educational purposes. It is not legal advice. TREC form requirements change periodically — always verify the current promulgated versions at <a href="https://www.trec.texas.gov" target="_blank" rel="noopener">trec.texas.gov</a> and consult your broker or a Texas real estate attorney for binding guidance. <a href="/">meetdossie.com</a>
 </p>
+
+<script>
+// Analytics: fire guide_page_viewed with page_type/slug so Pierce can compare
+// which guides actually get traffic. Wrapped in posthog:ready — see
+// founding.html for why (pre-boot stub queue isn't reliably read by array.js).
+(function () {
+  try {
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('guide_page_viewed', {
+          page_type: 'guide',
+          page_slug: 'trec-july-2026',
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+</script>
 
 </body>
 </html>

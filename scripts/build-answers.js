@@ -172,7 +172,7 @@ main.answer strong { color: var(--text-primary); font-weight: 700; }
 
 <nav>
   <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
-  <a href="/founding" class="nav-cta">Founding Member — $29/mo</a>
+  <a href="/app" class="nav-cta">Get Started</a>
 </nav>
 
 <div class="crumbs"><a href="/">Home</a> · <a href="/answers/">Answers</a> · <span>${escapeHtml(g.title)}</span></div>
@@ -196,7 +196,7 @@ ${g.body_html}
 <section class="cta-block">
   <h2>${escapeHtml(g.cta_title || 'Stop tracking deadlines manually.')}</h2>
   <p>${escapeHtml(g.cta_sub || 'Dossie tracks every TREC deadline for every active deal — plus follow-ups, document QA, and contract scanning. Built for Texas agents.')}</p>
-  <a class="cta-btn" href="/founding">Lock in $29/mo founding pricing →</a>
+  <a class="cta-btn" href="/app">Start for $79/mo →</a>
 </section>
 
 ${g.faq && g.faq.length ? `
@@ -285,7 +285,7 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 .g-tile p{font-size:14px;color:var(--text-secondary);line-height:1.55;margin-bottom:12px}
 .g-tile span{color:var(--coral-deep);font-weight:700;font-size:14px}
 </style></head><body>
-<nav><a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a><a href="/founding" class="nav-cta">Founding Member — $29/mo</a></nav>
+<nav><a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a><a href="/app" class="nav-cta">Get Started</a></nav>
 <header><div class="eyebrow">Direct, citable answers</div><h1>Answers for Texas agents</h1><p>Direct answers to the questions agents ask AI assistants about transaction coordination, TREC, and option periods. Updated regularly.</p></header>
 <main><div class="grid">${tiles}</div></main>
 </body></html>`;
