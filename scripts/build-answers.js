@@ -128,6 +128,12 @@ nav { position: sticky; top: 0; padding: 14px 24px; display: flex; justify-conte
 .freshness .author { color: var(--text-secondary); }
 .freshness .author strong { color: var(--text-primary); }
 
+.listen-btn { margin-top: 16px; display: inline-flex; align-items: center; gap: 10px; padding: 11px 20px 11px 16px; border: 1px solid var(--blush); border-radius: 999px; background: var(--blush-light); color: var(--blush-deep); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.listen-btn:hover { background: var(--blush); color: #fff; transform: translateY(-1px); }
+.listen-icon { display: inline-flex; width: 16px; height: 16px; }
+.listen-spin { animation: listen-spin 0.9s linear infinite; }
+@keyframes listen-spin { to { transform: rotate(360deg); } }
+
 .tldr { max-width: 760px; margin: 24px auto 0; padding: 22px 28px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 6px 24px rgba(45,42,38,0.04); }
 .tldr h2 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.4px; }
 .tldr p { font-size: 16px; color: var(--text-primary); line-height: 1.7; }
@@ -185,6 +191,11 @@ main.answer strong { color: var(--text-primary); font-weight: 700; }
     <span class="badge">Updated ${escapeHtml(g.updated_at || '2026-05-05')}</span>
     <span class="author">By <strong>Heath Shepard</strong>, Texas REALTOR®</span>
   </div>
+  <button id="dossie-listen-btn" class="listen-btn" type="button" data-type="answer" data-slug="${escapeAttr(g.slug)}" data-idle-label="Listen to this answer">
+    <span class="listen-icon"></span>
+    <span class="listen-label">Listen to this answer</span>
+  </button>
+  <audio id="dossie-listen-audio" preload="none"></audio>
 </header>
 
 ${g.tldr ? `<section class="tldr"><h2>Short answer</h2><p>${g.tldr_html || escapeHtml(g.tldr)}</p></section>` : ''}
@@ -209,6 +220,7 @@ ${g.faq && g.faq.length ? `
   This page is provided as-is for educational purposes. It is not legal advice. Always verify deadlines and contract interpretations against your executed contract and confer with your broker or a Texas real estate attorney for binding interpretations. <a href="/">meetdossie.com</a>
 </p>
 
+<script src="/assets/article-audio.js" defer></script>
 <script>
 // Analytics: fire answer_page_viewed with page_type/slug so Pierce can compare
 // which answers actually get traffic. Wrapped in posthog:ready — see

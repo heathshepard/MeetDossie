@@ -55,6 +55,12 @@ nav { position: sticky; top: 0; padding: 14px 24px; display: flex; justify-conte
 .article-meta { font-size: 13px; color: var(--text-secondary); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
 .article-meta strong { color: var(--text-primary); font-weight: 700; }
 
+.listen-btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 11px 20px 11px 16px; border: 1px solid var(--blush); border-radius: 999px; background: var(--blush-light); color: var(--blush-deep); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.listen-btn:hover { background: var(--blush); color: #fff; transform: translateY(-1px); }
+.listen-icon { display: inline-flex; width: 16px; height: 16px; }
+.listen-spin { animation: listen-spin 0.9s linear infinite; }
+@keyframes listen-spin { to { transform: rotate(360deg); } }
+
 main.article { max-width: 760px; margin: 0 auto; padding: 24px; }
 main.article h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(24px, 3.6vw, 34px); font-weight: 600; line-height: 1.2; color: var(--text-primary); margin: 36px 0 14px; letter-spacing: -0.4px; }
 main.article h3 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 28px 0 10px; }
@@ -123,6 +129,11 @@ main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px s
     <span>By <strong>Heath Shepard</strong>, Texas REALTOR®</span>
     <span>Updated 2026-08-06</span>
   </div>
+  <button id="dossie-listen-btn" class="listen-btn" type="button" data-type="guide" data-slug="texas-groundwater-surface-water-rights-disclosure-guide" data-idle-label="Listen to this guide">
+    <span class="listen-icon"></span>
+    <span class="listen-label">Listen to this guide</span>
+  </button>
+  <audio id="dossie-listen-audio" preload="none"></audio>
 </header>
 
 <main class="article">
@@ -176,6 +187,7 @@ main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px s
 
 <script src="/assets/trec-engine.js"></script>
 <script src="/assets/calculator-widget.js"></script>
+<script src="/assets/article-audio.js" defer></script>
 
 <script>
 // Analytics: fire guide_page_viewed with page_type/slug so Pierce can compare
