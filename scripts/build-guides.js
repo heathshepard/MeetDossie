@@ -16,6 +16,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'marketing', 'guides-data');
 const ANSWERS_DATA_DIR = path.join(ROOT, 'marketing', 'answers-data');
+const FEATURES_DATA_DIR = path.join(ROOT, 'marketing', 'features-data');
 const OUT_DIR = path.join(ROOT, 'guides');
 const SITEMAP = path.join(ROOT, 'sitemap.xml');
 
@@ -375,9 +376,24 @@ main{max-width:1080px;margin:0 auto;padding:24px}
   fs.writeFileSync(path.join(OUT_DIR, 'index.html'), html, 'utf8');
 }
 
+// Feature pages (marketing/features-data/*.json -> /features/<slug>) are built
+// by scripts/build-features.js, which deliberately does not touch sitemap.xml
+// itself — this script is the canonical last-run sitemap writer, same reason
+// as loadAnswerSlugs() above.
+function loadFeatureSlugs() {
+  if (!fs.existsSync(FEATURES_DATA_DIR)) return [];
+  const files = fs.readdirSync(FEATURES_DATA_DIR).filter((f) => f.endsWith('.json'));
+  return files.map((f) => {
+    const raw = fs.readFileSync(path.join(FEATURES_DATA_DIR, f), 'utf8');
+    const data = JSON.parse(raw);
+    return data.slug || f.replace(/\.json$/, '');
+  });
+}
+
 function writeSitemap(allGuides) {
   const lastmod = new Date().toISOString().split('T')[0];
   const answerSlugs = loadAnswerSlugs();
+  const featureSlugs = loadFeatureSlugs();
   const urls = [
     'https://meetdossie.com/',
     'https://meetdossie.com/learn',
@@ -396,6 +412,8 @@ function writeSitemap(allGuides) {
     'https://meetdossie.com/guides/trec-july-2026',
     'https://meetdossie.com/answers/',
     ...answerSlugs.map((slug) => `https://meetdossie.com/answers/${slug}`),
+    'https://meetdossie.com/features/',
+    ...featureSlugs.map((slug) => `https://meetdossie.com/features/${slug}`),
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -1,0 +1,43 @@
+{
+  "slug": "how-dossie-handles-esignatures",
+  "title": "How Dossie Handles E-Signatures",
+  "title_html": "How Dossie Handles <em>E-Signatures</em>",
+  "meta_title": "How Dossie Sends Documents for E-Signature — Dossie",
+  "meta_description": "Send a document for signature without leaving Dossie. Role-based prefill puts the right fields in front of the buyer's agent or seller's agent automatically.",
+  "eyebrow": "Product feature",
+  "deck": "Send for signature without leaving Dossie. Role-based prefill means the right fields land in front of the right party, every time.",
+  "image": "/assets/product/esign.jpg",
+  "image_alt": "Sending a document for e-signature directly from Dossie",
+  "image_caption": "The Send for Signature modal, mid-flow — recipients and fields already placed.",
+  "updated_at": "2026-08-07",
+  "related_blurb": "Send for Signature in two clicks, with role-based prefill for buyer's agent vs. seller's agent.",
+  "intro_html": "<p>Once a document needs a signature, Dossie sends it — no separate e-sign tool, no exporting and re-uploading. Recipients and signature fields are placed automatically based on their role in the deal.</p>",
+  "steps": [
+    {
+      "h": "1. Pick the document",
+      "p": "Any document already in the dossier — amendment, addendum, disclosure — can be sent for signature directly, in the same place it lives."
+    },
+    {
+      "h": "2. Role-based prefill",
+      "p": "Dossie knows who's the buyer's agent and who's the seller's agent on this file, and prefills the right recipient with the right fields — no manually dragging signature boxes onto a PDF."
+    },
+    {
+      "h": "3. Send, track, done",
+      "p": "The signed document lands back in the dossier automatically once every party has signed — no separate download-and-reupload step."
+    }
+  ],
+  "callout": "Field placement follows the role, not a template guess — the buyer's agent and seller's agent each get exactly the fields that belong to them.",
+  "cta_title": "Stop juggling a separate e-sign tool.",
+  "cta_sub": "Dossie sends, tracks, and files signed documents without ever leaving the dossier. Built for Texas agents.",
+  "faq": [
+    {
+      "q": "Do I need a separate e-signature account to use this?",
+      "a": "No — Send for Signature runs inside Dossie. There's no separate tool to log into or export documents to."
+    },
+    {
+      "q": "How does role-based prefill work?",
+      "a": "Dossie already knows who's the buyer's agent and who's the seller's agent on a file, so it prefills the correct recipient and signature fields automatically instead of requiring manual field placement."
+    }
+  ],
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-deadline-tracking"]
+}

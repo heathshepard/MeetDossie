@@ -1,9 +1,9 @@
 'use strict';
 
 // api/article-audio.js
-// "Listen to this guide" — TTS for /guides/* and /answers/* article pages.
+// "Listen to this guide" — TTS for /guides/*, /answers/*, and /features/* article pages.
 //
-// GET /api/article-audio?type=guide|answer&slug=<slug>
+// GET /api/article-audio?type=guide|answer|feature&slug=<slug>
 //
 // Architecture: on-demand generation, cached in Supabase Storage after the
 // first request. Pre-generating audio for all ~50 guide/answer pages up
@@ -32,6 +32,7 @@ const { generateSpeech } = require('./_utils/tts');
 
 const GUIDES_DIR = path.join(__dirname, '..', 'marketing', 'guides-data');
 const ANSWERS_DIR = path.join(__dirname, '..', 'marketing', 'answers-data');
+const FEATURES_DIR = path.join(__dirname, '..', 'marketing', 'features-data');
 
 const LUNA_VOICE_ID = 'lxYfHSkYm1EzQzGhdbfc';
 
@@ -89,18 +90,31 @@ function htmlToSpeechText(html) {
 }
 
 function loadArticle(type, slug) {
-  const dir = type === 'answer' ? ANSWERS_DIR : GUIDES_DIR;
+  const dir = type === 'answer' ? ANSWERS_DIR : (type === 'feature' ? FEATURES_DIR : GUIDES_DIR);
   const file = path.join(dir, `${slug}.json`);
   if (!fs.existsSync(file)) return null;
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function buildSpeechText(data) {
+// Feature pages (marketing/features-data/*.json) don't have a single body_html
+// field like guides/answers — copy is split into intro_html + steps[] +
+// callout so the page can lead with the screenshot. Flatten that shape into
+// the same read-aloud text stream here.
+function featureBodyToSpeechText(data) {
+  const parts = [htmlToSpeechText(data.intro_html)];
+  (data.steps || []).forEach((s) => {
+    parts.push(htmlToSpeechText(`<p>${s.h}. ${s.p_html || s.p}</p>`));
+  });
+  if (data.callout) parts.push(data.callout);
+  return parts.filter(Boolean).join('. ');
+}
+
+function buildSpeechText(data, type) {
   const parts = [];
   if (data.title) parts.push(String(data.title).replace(/\s*\([^)]*\)\s*/g, ' ')); // drop parenthetical form numbers — reads awkwardly aloud
   if (data.deck) parts.push(data.deck);
   if (data.tldr) parts.push(data.tldr);
-  parts.push(htmlToSpeechText(data.body_html));
+  parts.push(type === 'feature' ? featureBodyToSpeechText(data) : htmlToSpeechText(data.body_html));
   return parts.filter(Boolean).join('. ').replace(/\s+/g, ' ').trim();
 }
 
@@ -143,7 +157,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
-  const type = req.query.type === 'answer' ? 'answer' : 'guide';
+  const type = req.query.type === 'answer' ? 'answer' : (req.query.type === 'feature' ? 'feature' : 'guide');
   const slug = String(req.query.slug || '');
   if (!SLUG_RE.test(slug)) return res.status(400).json({ ok: false, error: 'invalid slug' });
 
@@ -165,7 +179,7 @@ module.exports = async (req, res) => {
   const data = loadArticle(type, slug);
   if (!data) return res.status(404).json({ ok: false, error: 'article not found' });
 
-  const text = buildSpeechText(data);
+  const text = buildSpeechText(data, type);
   if (!text) return res.status(422).json({ ok: false, error: 'no readable content' });
 
   const finalText = text.length > MAX_TTS_CHARS

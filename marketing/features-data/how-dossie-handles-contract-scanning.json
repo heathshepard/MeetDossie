@@ -1,0 +1,43 @@
+{
+  "slug": "how-dossie-handles-contract-scanning",
+  "title": "How Dossie Handles Contract Scanning",
+  "title_html": "How Dossie Handles <em>Contract Scanning</em>",
+  "meta_title": "How Dossie Scans a TREC Contract in 8 Seconds — Dossie",
+  "meta_description": "Upload any TREC contract and Dossie extracts every field automatically, then flags what's missing — signatures, initials, blank fields — instead of guessing.",
+  "eyebrow": "Product feature",
+  "deck": "Upload any TREC contract. Dossie reads the whole thing in about 8 seconds — and tells you exactly what's still missing before your client does.",
+  "image": "/assets/product/contract-scan.jpg",
+  "image_alt": "Dossie scanning a TREC contract and flagging missing signatures, initials, and blank required fields",
+  "image_caption": "The 8-second scan, mid-flight — needs-review flags on the right.",
+  "updated_at": "2026-08-07",
+  "related_blurb": "The 8-second scan that flags missing signatures, initials, and blank fields instead of guessing.",
+  "intro_html": "<p>Drop in a signed TREC contract — PDF or photo — and Dossie reads the whole thing: price, dates, parties, addenda, every field. No retyping, no re-keying deal terms from a scanned PDF into a spreadsheet.</p>",
+  "steps": [
+    {
+      "h": "1. Upload",
+      "p": "Drag in the executed contract. Any TREC form, any scan quality — a phone photo works as well as a clean PDF export."
+    },
+    {
+      "h": "2. Auto-fill",
+      "p": "Dossie extracts every field into the dossier automatically: sales price, effective date, option fee, financing type, parties, every addendum attached."
+    },
+    {
+      "h": "3. Flag, don't guess",
+      "p": "Missing signatures, missing initials, and blank required fields get marked <strong>Needs review</strong> — Dossie never assumes a page is complete just because it's present."
+    }
+  ],
+  "callout": "Dossie never guesses that a signature is there. If a page is missing an initial, it tells you before your client does.",
+  "cta_title": "Stop re-keying contract data by hand.",
+  "cta_sub": "Dossie scans, extracts, and flags every file the moment it's uploaded — built for Texas agents.",
+  "faq": [
+    {
+      "q": "What file types does Dossie's contract scan accept?",
+      "a": "PDF and common image formats (JPG, PNG) — including phone photos of a signed contract. Scan quality doesn't need to be perfect."
+    },
+    {
+      "q": "What does Dossie flag as \"Needs review\"?",
+      "a": "Missing signatures, missing initials on individual pages, and blank required fields. Dossie surfaces these instead of silently treating the contract as complete."
+    }
+  ],
+  "related_features": ["how-dossie-handles-deadline-tracking", "how-dossie-handles-esignatures"]
+}

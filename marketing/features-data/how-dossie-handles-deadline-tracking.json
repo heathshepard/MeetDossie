@@ -1,0 +1,43 @@
+{
+  "slug": "how-dossie-handles-deadline-tracking",
+  "title": "How Dossie Handles TREC Deadlines",
+  "title_html": "How Dossie Handles <em>TREC Deadlines</em>",
+  "meta_title": "How Dossie Auto-Computes TREC Deadlines — Dossie",
+  "meta_description": "Dossie computes option period, earnest money, financing, and closing deadlines the moment a contract is scanned — plus wire fraud and IABS warnings, automatically.",
+  "eyebrow": "Product feature",
+  "deck": "Option period, earnest money, financing, closing — every TREC deadline computed the moment your contract is scanned, and watched until it's done.",
+  "image": "/assets/product/deadlines.jpg",
+  "image_alt": "Dossie tracking TREC deadlines computed automatically from contract dates",
+  "image_caption": "Every deadline on the file, computed from the effective date — with wire fraud and IABS warnings surfaced above the fold.",
+  "updated_at": "2026-08-07",
+  "related_blurb": "Every TREC deadline computed automatically from the effective date, with wire fraud and IABS warnings surfaced.",
+  "intro_html": "<p>The effective date drives everything in a Texas contract — option period, earnest money, financing, closing. Dossie computes all of it the moment a contract is scanned, including the weekend/Legal Holiday rollover rules agents usually track by hand.</p>",
+  "steps": [
+    {
+      "h": "1. Dates, computed",
+      "p": "Option period expiration, earnest money due date, financing deadline, and closing date — calculated from the effective date the second the contract is scanned. No manual counting."
+    },
+    {
+      "h": "2. Warnings surfaced automatically",
+      "p": "Wire fraud advisory and IABS disclosure reminders show up on the dossier without anyone having to remember to add them."
+    },
+    {
+      "h": "3. Watched, not just calculated",
+      "p": "Every deadline stays visible on the dossier and the Morning Brief until it's resolved — nothing quietly falls off a whiteboard."
+    }
+  ],
+  "callout": "If a deadline lands on a weekend or a Legal Holiday, Dossie rolls it forward the same way the contract does — automatically, every time.",
+  "cta_title": "Stop tracking deadlines manually.",
+  "cta_sub": "Dossie tracks every TREC deadline for every active deal — plus follow-ups, document QA, and contract scanning. Built for Texas agents.",
+  "faq": [
+    {
+      "q": "How does Dossie calculate TREC deadlines?",
+      "a": "From the contract's effective date, applying the same day-counting and weekend/Legal Holiday rollover rules as the TREC forms themselves — computed automatically once the contract is scanned."
+    },
+    {
+      "q": "Does Dossie remind me about wire fraud and IABS disclosures?",
+      "a": "Yes — those warnings are surfaced on the dossier automatically alongside the computed deadlines, not as a separate manual step."
+    }
+  ],
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-esignatures"]
+}
