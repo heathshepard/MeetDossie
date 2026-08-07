@@ -1,0 +1,33 @@
+{
+  "slug": "what-happens-if-buyer-misses-option-period-deadline-texas",
+  "title": "What Happens If a Buyer Misses the Option Period Deadline in Texas?",
+  "title_html": "What Happens If a Buyer <em>Misses the Option Period Deadline</em> in Texas?",
+  "meta_title": "Buyer Missed the Option Period Deadline in Texas — What Happens Next",
+  "meta_description": "If a Texas buyer doesn't deliver termination notice by 5:00 PM on the last day of the option period, the unrestricted right to terminate is gone. Here's what's left.",
+  "deck": "5:01 PM is a different contract than 4:59 PM. Here's exactly what changes.",
+  "updated_at": "2026-08-07",
+  "tldr": "Once 5:00 PM local time passes on the last day of the option period (TREC 20-19 ¶ 5B) without the buyer delivering written termination notice, the buyer's right to walk away for any reason is gone for good. The buyer doesn't lose every way out of the contract — financing failure, unresolved title objections, and a few other cause-based rights can still apply — but \"I changed my mind\" no longer works, and the earnest money is now at risk if the buyer tries to terminate without one of those remaining grounds.",
+  "body_html": "<h2>The right expires at the deadline, not before or after</h2><p>Under TREC 20-19 Paragraph 5B, the buyer's unrestricted right to terminate for any reason ends at 5:00 PM local time on the last day of the option period — and that deadline does <strong>not</strong> roll forward for weekends or federal holidays — same as title, survey, financing, and closing deadlines. Only earnest money and the option fee roll, under ¶ 5A(2). If the buyer hasn't delivered written termination notice by that exact time, the unrestricted right to terminate is extinguished.</p><h2>What the buyer can still do</h2><p>Missing the option deadline doesn't mean the buyer is locked in no matter what. The buyer can still terminate, but only under a cause-based right that actually exists elsewhere in the contract or its addenda — for example, a financing failure under the Third Party Financing Addendum, or unresolved title objections that weren't cured by the end of the Cure Period under Paragraph 6.D. What's gone is the ability to terminate for <em>any</em> reason without pointing to one of those specific grounds.</p><p>Repairs are a related trap: if an inspection turned up something the seller agreed to fix, that repair amendment has to be <strong>signed by both parties</strong> before the option period expires to count as executed. A buyer-signed, seller-unsigned amendment at 4:55 PM on the option-expiry day is not an executed amendment — it doesn't preserve any right once the deadline passes.</p><h2>Earnest money is now at risk</h2><p>Once the no-cause right is gone, trying to terminate anyway without a valid cause-based reason puts the earnest money in jeopardy. A buyer who lets the option period lapse and then tries to walk for a reason that isn't actually in the contract is treated the same as any other default — the seller's standard remedy is to retain the earnest money as liquidated damages. \"Cold feet\" isn't a contractual reason.</p><h2>The most common ways this happens by mistake</h2><ol><li><strong>Counting business days instead of calendar days.</strong> The option period runs on calendar days, weekends included.</li><li><strong>Assuming the deadline rolls like earnest money does.</strong> It doesn't — Paragraph 5B is a fixed calendar deadline, same as title, survey, financing, and closing. Only earnest money and the option fee roll, under Paragraph 5A(2).</li><li><strong>Relying on a verbal extension.</strong> Not enforceable. Only a written amendment executed by both parties before the original deadline extends the option period.</li><li><strong>Sending notice late in the day and assuming it counts.</strong> 5:00 PM means 5:00 PM — a 5:02 PM email is too late.</li><li><strong>Using the wrong time zone.</strong> 5:00 PM is local to the property, not to the agent's office.</li></ol><h2>The only way to get more time</h2><p>The option period can be extended, but only by a written amendment (the current TREC Amendment to Contract form) executed by both parties <em>before</em> the original option period expires — and typically for an additional option fee. Once the original deadline has already passed, there's no amendment that revives it after the fact; that document has to be signed while the original right still exists.</p>",
+  "faq": [
+    {
+      "q": "Can a buyer still terminate the contract after the Texas option period ends?",
+      "a": "Only for a cause-based reason that already exists in the contract or an attached addendum — such as a financing failure or unresolved title objections. The unrestricted, no-reason-needed right under Paragraph 5B is gone once the deadline passes."
+    },
+    {
+      "q": "Does missing the option period deadline put earnest money at risk?",
+      "a": "Yes, if the buyer then tries to terminate without a valid cause-based right. Once the no-cause right expires, an unjustified termination is treated like any other default, and the seller's standard remedy is to keep the earnest money."
+    },
+    {
+      "q": "Can the option period be extended after it already expired?",
+      "a": "No. An extension requires a written amendment executed by both parties before the original option period ends. There's no mechanism to revive the right after the deadline has already passed."
+    },
+    {
+      "q": "What if a repair amendment is signed by the buyer but not the seller before the option period ends?",
+      "a": "It isn't executed. A repair amendment has to be signed by both parties to count — a buyer-only signature at any point before the deadline doesn't preserve the agreement."
+    },
+    {
+      "q": "Does the option period deadline move if it lands on a weekend?",
+      "a": "No. Unlike earnest money and the option fee (which roll under ¶ 5A(2)), the option period never rolls — and neither do title, survey, financing, or closing deadlines. It ends on the exact calendar day and time specified, even on a Saturday, Sunday, or federal holiday."
+    }
+  ]
+}

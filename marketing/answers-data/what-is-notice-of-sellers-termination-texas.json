@@ -1,0 +1,29 @@
+{
+  "slug": "what-is-notice-of-sellers-termination-texas",
+  "title": "What Is a Notice of Seller's Termination in Texas?",
+  "title_html": "What Is a <em>Notice of Seller's Termination</em> in Texas?",
+  "meta_title": "TREC 50-0 Notice of Seller's Termination — What It Is and When It Applies",
+  "meta_description": "TREC Form 50-0, the Notice of Seller's Termination of Contract, gives Texas sellers exactly two grounds to formally terminate — far fewer than the buyer's version.",
+  "deck": "The seller's version of the termination form has two boxes instead of eight — and one of them requires a deadline to have already passed.",
+  "updated_at": "2026-08-06",
+  "tldr": "TREC Form 50-0 is the Notice of Seller's Termination of Contract — the form a Texas seller uses to formally notify a buyer the contract is terminated. It's dated 8-13-18 and offers only two grounds: the buyer's failure to timely deliver earnest money under Paragraph 5, or an \"Other\" box identifying a specific paragraph. Like the buyer's version, it's not an election of remedies.",
+  "body_html": "<h2>What the form is</h2><p>The Notice of Seller's Termination of Contract (TREC No. 50-0) is the seller-side counterpart to the buyer's Notice of Buyer's Termination of Contract (TREC 38-8). It's dated 8-13-18, and TREC's landing page lists that same date as the form's Effective Date.</p><h2>Only two grounds</h2><ol><li><strong>Earnest money not delivered.</strong> \"Buyer failed to deliver the earnest money within the time required under Paragraph 5 of the contract and before the time Seller provided this notice to Buyer.\"</li><li><strong>Other.</strong> The seller identifies the specific paragraph number of the contract or addendum being relied on.</li></ol><p>That's a much shorter list than the buyer gets. TREC 38-8 offers buyers eight specific grounds — including the unrestricted option-period right, financing failure, HOA addendum issues, Seller's Disclosure Notice issues, appraisal addendum issues, and uncured title objections. The shorter seller's list reflects that the standard TREC contract simply builds in more cause-based (and one no-cause) termination rights for buyers than it does for sellers. A seller's main built-in right under the promulgated contract is the buyer's failure to timely deliver earnest money.</p><h2>Timing matters for ground (1)</h2><p>Ground (1) only fits if the buyer's earnest money deadline under Paragraph 5 had already passed before the seller delivers the notice. Sending it before the deadline actually expires doesn't match what the box says.</p><h2>What it doesn't decide</h2><p>Like the buyer's version, the form states directly: \"This notice is not an election of remedies. Release of the earnest money is governed by the contract.\" Sending it documents that the seller considers the contract terminated — it doesn't by itself resolve who gets the earnest money.</p><h2>The same attorney warning</h2><p>TREC 50-0 carries the identical bolded caution as TREC 38-8: \"CONSULT AN ATTORNEY BEFORE SIGNING: TREC rules prohibit real estate license holders from giving legal advice. READ THIS FORM CAREFULLY.\"</p>",
+  "faq": [
+    {
+      "q": "What form does a Texas seller use to formally terminate a contract?",
+      "a": "TREC Form 50-0, the Notice of Seller's Termination of Contract, dated 8-13-18."
+    },
+    {
+      "q": "What are the two grounds on TREC 50-0?",
+      "a": "(1) The buyer failed to deliver earnest money within the time required under Paragraph 5, before the notice was given; (2) \"Other,\" with the specific paragraph identified."
+    },
+    {
+      "q": "Why does the seller's termination form have fewer options than the buyer's?",
+      "a": "The standard TREC contract gives buyers more built-in, cause-based termination rights (plus the no-cause option-period right) than it gives sellers, so TREC 38-8 has eight boxes and TREC 50-0 has two."
+    },
+    {
+      "q": "Does sending TREC 50-0 mean the seller automatically keeps the earnest money?",
+      "a": "No. The form states it \"is not an election of remedies\" and that release of earnest money is governed by the contract, not by the notice itself."
+    }
+  ]
+}

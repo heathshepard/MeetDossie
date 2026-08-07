@@ -1,0 +1,36 @@
+{
+  "slug": "texas-lead-based-paint-disclosure-guide",
+  "title": "Texas Lead-Based Paint Disclosure (TREC 56-0): The Federal Rule, TREC's Form",
+  "title_html": "Texas <em>Lead-Based Paint</em> Disclosure (TREC 56-0): The Federal Rule, TREC's Form",
+  "meta_title": "TREC 56-0 Lead-Based Paint Addendum — Pre-1978 Homes in Texas",
+  "meta_description": "TREC No. 56-0 is TREC's own addendum for complying with the federal lead-based paint disclosure law on homes built before 1978 — the disclosure, the buyer's inspection window, and broker duties under 42 U.S.C. 4852d.",
+  "eyebrow": "TREC Form 56-0",
+  "deck": "The disclosure requirement comes from federal law. TREC just publishes the form Texas agents actually use to comply with it.",
+  "calculator_blurb": "The buyer's inspection and termination windows on this addendum run on their own clock, separate from the option period — check both against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 56-0 — TREC's own addendum implementing the federal lead-based paint disclosure requirement for pre-1978 homes.",
+  "body_html": "<p>A quick sourcing note before anything else: the underlying legal requirement to disclose lead-based paint hazards on pre-1978 housing comes from <strong>federal law</strong>, not from TREC. But TREC does publish its own form for complying with it in a Texas transaction — the <strong>Addendum for Seller's Disclosure of Information on Lead-Based Paint and Lead-Based Paint Hazards As Required by Federal Law (TREC No. 56-0)</strong>, dated 05-04-2026 on the form. Note its header says \"APPROVED BY THE TEXAS REAL ESTATE COMMISSION\" rather than \"PROMULGATED BY\" — the same voluntary-use category as a handful of other TREC forms, meaning it's TREC's standard vehicle for this disclosure rather than a form TREC itself created the underlying requirement for.</p><h2>The federal warning statement, printed verbatim on the form</h2><p>Paragraph A reproduces the required Lead Warning Statement in full: <strong>\"Every purchaser of any interest in residential real property on which a residential dwelling was built prior to 1978 is notified that such property may present exposure to lead from lead-based paint that may place young children at risk of developing lead poisoning... The seller of any interest in residential real property is required to provide the buyer with any information on lead-based paint hazards from risk assessments or inspections in the seller's possession and notify the buyer of any known lead-based paint hazards.\"</strong></p><h2>What the seller discloses</h2><p>Paragraph B has two checkbox decisions: whether known lead-based paint or hazards are present in the property (with an explanation line if so), or whether the seller has no actual knowledge of any; and whether the seller has provided the buyer with all available records and reports on lead-based paint, or has none to provide.</p><h2>The buyer's inspection window</h2><p>Paragraph C gives the buyer two options: waive the opportunity for a risk assessment or inspection entirely, or — within <strong>10 days after the effective date of the contract</strong> — have the property inspected by inspectors of the buyer's choosing. If lead-based paint or hazards turn up, the buyer may terminate by giving the seller written notice <strong>within 14 days after the effective date</strong>, with earnest money refunded.</p><h2>What the buyer has to acknowledge receiving</h2><p>Paragraph D has the buyer confirm receipt of all the disclosed information above, plus the federally required pamphlet <em>Protect Your Family from Lead in Your Home</em>.</p><div class=\"callout\"><strong>The brokers' own acknowledgment, citing the federal statute directly:</strong> Paragraph E states brokers have informed the seller of the seller's obligations under <strong>42 U.S.C. 4852d</strong> to: provide the buyer the federally approved pamphlet, complete this addendum, disclose any known hazards, deliver all related records and reports, give the buyer up to 10 days to inspect, and retain a completed copy of the addendum for at least <strong>3 years following the sale</strong>.</div><p>Paragraph F closes with a certification of accuracy, signed by both buyers, both sellers, and both brokers.</p>",
+  "faq": [
+    {
+      "q": "Is the lead-based paint disclosure a TREC requirement or a federal one?",
+      "a": "The underlying legal requirement comes from federal law — the form itself cites 42 U.S.C. 4852d. TREC No. 56-0 is TREC's own approved form (not a \"promulgated\" mandatory contract form) for complying with that federal requirement in a Texas transaction."
+    },
+    {
+      "q": "Which homes require a lead-based paint disclosure in Texas?",
+      "a": "Residential dwellings built prior to 1978, per the Lead Warning Statement printed directly on TREC No. 56-0."
+    },
+    {
+      "q": "How long does a buyer have to inspect for lead-based paint under TREC 56-0?",
+      "a": "Up to 10 days after the effective date of the contract, if the buyer doesn't waive that right. If hazards are found, the buyer may terminate by giving written notice within 14 days after the effective date, with earnest money refunded."
+    },
+    {
+      "q": "What pamphlet does the buyer have to receive under the lead-based paint disclosure?",
+      "a": "\"Protect Your Family from Lead in Your Home\" — the federally approved pamphlet on lead poisoning prevention, per TREC No. 56-0 Paragraph D."
+    },
+    {
+      "q": "How long must brokers keep a copy of the lead-based paint addendum?",
+      "a": "At least 3 years following the sale, per the brokers' acknowledgment of their obligations under 42 U.S.C. 4852d, printed on TREC No. 56-0 itself."
+    }
+  ],
+  "related_guides": ["texas-sellers-disclosure-notice-guide", "trec-form-20-17-guide", "texas-real-estate-closing-checklist"]
+}

@@ -1,0 +1,33 @@
+{
+  "slug": "what-is-trec-form-38-8-used-for",
+  "title": "What Is TREC Form 38-8 Used For?",
+  "title_html": "What Is <em>TREC Form 38-8</em> Used For?",
+  "meta_title": "TREC Form 38-8 — What It's Used For and the Eight Grounds",
+  "meta_description": "TREC Form 38-8, the Notice of Buyer's Termination of Contract, is how a Texas buyer formally notifies a seller a contract is terminated. Here's what it does and doesn't do.",
+  "deck": "One form, eight checkboxes, and a warning that it doesn't decide who gets the earnest money.",
+  "updated_at": "2026-08-06",
+  "tldr": "TREC Form 38-8 is the Notice of Buyer's Termination of Contract — the form a Texas buyer uses to formally tell a seller the contract is terminated. It requires the buyer to check which of eight specific contractual grounds they're terminating under (dated 02-10-2025, replacing Form 38-7). It is not an election of remedies — sending it doesn't by itself resolve who gets the earnest money.",
+  "body_html": "<h2>What the form does</h2><p>TREC Form 38-8, the Notice of Buyer's Termination of Contract, is how a buyer formally notifies a seller that the contract is terminated. It isn't a generic \"I quit\" letter — it requires the buyer to check a specific box identifying the contractual basis for the termination.</p><h2>The eight grounds</h2><ol><li><strong>Unrestricted right under Paragraph 5</strong> — the option period. No cause required.</li><li><strong>Buyer Approval not obtained</strong> under the Third Party Financing Addendum, with the lender's written statement of reasons already delivered.</li><li><strong>Property Approval not satisfied</strong> under the Third Party Financing Addendum — same lender-statement requirement.</li><li><strong>Termination under Paragraph A of the HOA addendum</strong> (Addendum for Property Subject to Mandatory Membership in a Property Owners' Association).</li><li><strong>Termination under Paragraph 7B(2)</strong> of the contract, relating to the Seller's Disclosure Notice.</li><li><strong>Termination under Paragraph (3) of the appraisal addendum</strong> (TREC 49-1), with a copy of the appraisal already delivered to the seller.</li><li><strong>Termination under Paragraph 6.D.</strong> of the contract (6.C. for the Residential Condominium Contract) for uncured title objections.</li><li><strong>Other</strong> — the buyer identifies the specific paragraph number relied on.</li></ol><h2>What it doesn't do</h2><p>The form states directly: \"This notice is not an election of remedies. Release of the earnest money is governed by the contract.\" Checking a box and delivering the notice documents that the buyer considers the contract terminated — it doesn't itself decide whether the earnest money gets released, or to whom. That's a separate step governed by the underlying contract.</p><h2>The attorney warning</h2><p>The form carries its own bolded caution: \"CONSULT AN ATTORNEY BEFORE SIGNING: TREC rules prohibit real estate license holders from giving legal advice. READ THIS FORM CAREFULLY.\" Agents can help identify which paragraph procedurally applies, but shouldn't advise on the legal merits of whether a given ground actually holds up.</p>",
+  "faq": [
+    {
+      "q": "What is TREC Form 38-8 called?",
+      "a": "The Notice of Buyer's Termination of Contract. The current version is dated 02-10-2025 and replaces TREC Form 38-7."
+    },
+    {
+      "q": "Do I have to specify why I'm terminating on TREC 38-8?",
+      "a": "Yes. The form requires checking one of eight specific grounds — including a catch-all \"Other\" box where the buyer identifies the exact contract or addendum paragraph relied on."
+    },
+    {
+      "q": "Does TREC 38-8 guarantee the buyer gets the earnest money back?",
+      "a": "No. The form explicitly states it \"is not an election of remedies\" and that release of earnest money is governed by the contract, not by the notice itself."
+    },
+    {
+      "q": "What do I need to attach if terminating for financing reasons on TREC 38-8?",
+      "a": "The buyer must have already delivered the lender's written statement giving the reason(s) for the Buyer Approval or Property Approval failure — that document has to precede or accompany the notice, not follow it."
+    },
+    {
+      "q": "Can an agent tell a buyer which box to check on TREC 38-8?",
+      "a": "Agents can help identify which paragraph or addendum procedurally applies, but the form itself warns to consult an attorney before signing since TREC rules prohibit license holders from giving legal advice."
+    }
+  ]
+}

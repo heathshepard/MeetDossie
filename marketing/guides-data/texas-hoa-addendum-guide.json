@@ -1,0 +1,36 @@
+{
+  "slug": "texas-hoa-addendum-guide",
+  "title": "Texas HOA Addendum (TREC 36-11): Subdivision Information Explained",
+  "title_html": "Texas <em>HOA Addendum</em> (TREC 36-11): Subdivision Information Explained",
+  "meta_title": "TREC 36-11 HOA Addendum — Subdivision Information & Termination Rights",
+  "meta_description": "How the TREC 36-11 Addendum for Property Subject to Mandatory Membership in a Property Owners Association works — the four delivery options and the buyer's 3-day termination right.",
+  "eyebrow": "TREC Form 36-11",
+  "deck": "Four ways to handle mandatory HOA disclosure — and the 3-day termination right most agents don't track.",
+  "calculator_blurb": "The core option-period, earnest-money, title, and closing deadlines still apply on top of this addendum — run them through the calculator below. This addendum's own day-count fields are filled in by the parties on the form itself.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 36-11 HOA Addendum — the four Subdivision Information delivery options and the buyer's 3-day termination right.",
+  "body_html": "<p>The <strong>Addendum for Property Subject to Mandatory Membership in a Property Owners Association (TREC No. 36-11)</strong> attaches when a property requires mandatory HOA membership. The form states plainly at the top: <strong>\"NOT FOR USE WITH CONDOMINIUMS.\"</strong> The current version is dated 05-04-2026 and replaces TREC No. 36-10.</p><h2>What \"Subdivision Information\" means</h2><p>The addendum defines the term precisely: \"a current copy of the restrictions applying to the subdivision and bylaws and rules of the Association, and (ii) a resale certificate, all of which are described by Section 207.003 of the Texas Property Code.\"</p><h2>Paragraph A — four ways to handle delivery</h2><p>The parties check exactly one of four boxes:</p><ol><li><strong>Seller delivers.</strong> Within a negotiated number of days after the effective date, seller obtains, pays for, and delivers the Subdivision Information. If delivered, buyer may terminate within 3 days after receiving it, or before closing — whichever comes first — and earnest money is refunded. If buyer never receives it, buyer's sole remedy is to terminate any time before closing, earnest money refunded.</li><li><strong>Buyer obtains it.</strong> Within a negotiated number of days after the effective date, buyer obtains the Subdivision Information at buyer's own expense. Buyer is deemed to receive it on the date of actual receipt or the date specified, whichever is earlier. Same 3-day post-receipt (or pre-closing) termination right, earnest money refunded.</li><li><strong>Buyer already has it.</strong> Buyer received and approved the Subdivision Information before signing the contract. Buyer checks whether they require an updated resale certificate; if so, seller must deliver it (at buyer's expense) within 10 days after receiving payment for it. If seller misses that window, buyer may terminate and get earnest money back.</li><li><strong>Buyer waives it.</strong> Buyer doesn't require delivery of the Subdivision Information at all.</li></ol><p>The form also authorizes the title company or its agent to act on the parties' behalf to obtain the Subdivision Information — <strong>but only after receiving the required fee from whichever party is obligated to pay it.</strong></p><div class=\"callout\"><strong>The number to track:</strong> whichever delivery option is checked, the buyer's termination window after actually receiving the Subdivision Information is fixed at <strong>3 days</strong> (or before closing, whichever is first) — that part of the form isn't a blank.</div><h2>Paragraph B — material changes</h2><p>If the seller becomes aware of any material change in the Subdivision Information, they must promptly notify the buyer. The buyer may then terminate before closing, with earnest money refunded, if either (i) any of the Subdivision Information provided \"was not true,\" or (ii) a material adverse change occurs before closing.</p><h2>Paragraph C — fees and deposits for reserves</h2><p>The buyer pays HOA fees, deposits, reserves, and other charges tied to the property transfer, up to a dollar cap the parties negotiate and write into the form; the seller pays anything above that cap. This provision does not apply to regular periodic maintenance fees, assessments, or dues that are prorated elsewhere in the contract, or to the costs already covered under Paragraphs A and D of this addendum.</p><h2>Paragraph D — authorization</h2><p>The seller authorizes the association to release the Subdivision Information and any updated resale certificate to the buyer, title company, or any broker on the sale. If the buyer waives the Subdivision Information but the title company still needs information from the association (dues status, special assessments, covenant violations, right-of-first-refusal waivers), the parties check whether buyer or seller pays the title company's cost of obtaining it.</p><h2>Notice to buyer regarding repairs by the association</h2><p>The form closes with a plain warning: \"The Association may have the sole responsibility to make certain repairs to the Property. If you are concerned about the condition of any part of the Property which the Association is required to repair, you should not sign the contract unless you are satisfied that the Association will make the desired repairs.\"</p>",
+  "faq": [
+    {
+      "q": "Can the HOA addendum be used with a condo?",
+      "a": "No. The form states explicitly: \"NOT FOR USE WITH CONDOMINIUMS.\""
+    },
+    {
+      "q": "How long does a buyer have to terminate after receiving HOA Subdivision Information?",
+      "a": "3 days after receiving the Subdivision Information, or prior to closing — whichever occurs first. This 3-day window is fixed on the form itself; the number of days the seller or buyer has to first obtain the information is what's negotiated and left blank."
+    },
+    {
+      "q": "What happens if the seller never delivers the HOA information under Option 1?",
+      "a": "If the seller is obligated to deliver the Subdivision Information and doesn't, the buyer's sole remedy is to terminate the contract at any time prior to closing, with earnest money refunded."
+    },
+    {
+      "q": "Who pays HOA transfer fees under the TREC HOA addendum?",
+      "a": "The buyer pays association fees, deposits, reserves, and other transfer-related charges up to a dollar amount negotiated and written into Paragraph C; the seller pays any amount above that cap. Regular prorated dues are handled separately and aren't covered by this paragraph."
+    },
+    {
+      "q": "What is \"Subdivision Information\" under TREC 36-11?",
+      "a": "A current copy of the subdivision's restrictions and the association's bylaws and rules, plus a resale certificate — all as described by Section 207.003 of the Texas Property Code."
+    }
+  ],
+  "related_guides": ["texas-earnest-money-rules", "trec-form-20-17-guide", "texas-real-estate-closing-checklist"]
+}

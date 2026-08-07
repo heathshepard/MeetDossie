@@ -1,0 +1,36 @@
+{
+  "slug": "texas-short-sale-addendum-guide",
+  "title": "Texas Short Sale Addendum (TREC 45-2): Lienholder Consent Explained",
+  "title_html": "Texas <em>Short Sale Addendum</em> (TREC 45-2): Lienholder Consent Explained",
+  "meta_title": "TREC 45-2 Short Sale Addendum — Lienholder Consent Deadline Explained",
+  "meta_description": "How the TREC 45-2 Short Sale Addendum works: what makes a sale a \"short sale,\" the lienholder consent deadline, and how it interacts with the option period.",
+  "eyebrow": "TREC Form 45-2",
+  "deck": "Why a short sale contract doesn't really start until the lienholder says yes.",
+  "calculator_blurb": "Run your contract's option period, earnest money, title, and closing dates through the calculator below. The lienholder consent deadline in Paragraph D is a separate date the parties fill in on the addendum itself.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 45-2 Short Sale Addendum — the lienholder consent deadline and how it interacts with the option period.",
+  "body_html": "<p>The <strong>Short Sale Addendum (TREC No. 45-2)</strong> is dated 02-19-2021 and replaces TREC No. 45-1.</p><h2>What makes it a \"short sale\" (Paragraph A)</h2><p>The addendum defines the term for contract purposes: \"Seller's net proceeds at closing will be insufficient to pay the balance of Seller's mortgage loan; and Seller requires: (a) the consent of the lienholder to sell the Property pursuant to this contract; and (b) the lienholder's agreement to: (i) accept Seller's net proceeds in full satisfaction of Seller's liability under the mortgage loan; and (ii) provide Seller an executed release of lien against the Property in a recordable format.\"</p><h2>\"Seller's net proceeds,\" defined</h2><p>Paragraph B: \"Seller's net proceeds\" means the Sales Price less Seller's Expenses under Paragraph 12 of the contract, and less the seller's obligation to pay any brokerage fees.</p><h2>The contract is binding immediately — but contingent (Paragraph C)</h2><p>The underlying contract is binding upon execution, and earnest money and the option fee are due as the contract otherwise provides. But the whole deal is contingent on the seller satisfying Paragraph A(2) — getting the lienholder's consent and agreement. The seller must \"apply promptly for and make every reasonable effort to obtain Lienholder's Consent and Agreement,\" furnishing whatever the lienholder requires. Neither party has to perform under the contract while this contingency is open, except as the addendum otherwise provides.</p><h2>Paragraph D — the consent deadline</h2><p>The parties fill in a specific date on the form. If the seller doesn't notify the buyer that Lienholder's Consent and Agreement has been obtained by that date, <strong>the contract terminates and earnest money is refunded to the buyer.</strong> If consent is obtained, the seller must notify the buyer immediately — and for purposes of performance, the contract's effective date changes to the date of that notice (the \"Amended Effective Date\").</p><h2>Paragraph E — if the lienholder says no</h2><p>If the lienholder refuses or withdraws its consent before closing and funding, the contract terminates and earnest money is refunded. The seller must promptly notify the buyer of any refusal or withdrawal.</p><h2>Paragraph F — how this interacts with the option period</h2><p>If the buyer has the unrestricted right to terminate under Paragraph 5 of the contract (the option period), the clock for giving notice of that termination begins on the contract's original effective date, keeps running through the Amended Effective Date, and ends when the buyer's unrestricted right expires under Paragraph 5. The consent contingency doesn't reset the option-period clock.</p><div class=\"callout\"><strong>Time is of the essence.</strong> Paragraph G states plainly: \"For the purposes of this Addendum, time is of the essence. Strict compliance with the times for performance stated in this Addendum is required.\"</div><h2>Paragraphs H-I</h2><p>The seller authorizes any lienholder to give the buyer or buyer's representatives status updates on the consent request. If more than one lienholder or loan is secured by the property, the addendum applies separately to each one.</p>",
+  "faq": [
+    {
+      "q": "What makes a Texas sale a \"short sale\" under TREC 45-2?",
+      "a": "Per the addendum's own definition: the seller's net proceeds at closing won't cover the mortgage balance, and the seller needs the lienholder's consent to sell plus the lienholder's agreement to accept the net proceeds in full satisfaction and provide a recordable release of lien."
+    },
+    {
+      "q": "Is earnest money still due on a short sale contract before the lienholder consents?",
+      "a": "Yes. Paragraph C states the contract is binding upon execution and earnest money and the option fee must be paid as the contract provides — the short sale contingency doesn't delay those payments."
+    },
+    {
+      "q": "What happens if the lienholder never responds by the deadline in the Short Sale Addendum?",
+      "a": "If the seller doesn't notify the buyer that Lienholder's Consent and Agreement was obtained by the date written into Paragraph D, the contract terminates and the earnest money is refunded to the buyer."
+    },
+    {
+      "q": "Does getting lienholder consent reset the option period on a short sale?",
+      "a": "No. Per Paragraph F, if the buyer has the unrestricted right to terminate under Paragraph 5, that window begins on the contract's original effective date, continues running after the Amended Effective Date, and ends at the expiration of the buyer's unrestricted right under Paragraph 5 — it isn't restarted by the lienholder's consent."
+    },
+    {
+      "q": "What if there's more than one lender on a Texas short sale?",
+      "a": "Per Paragraph I, if there's more than one lienholder or loan secured by the property, the Short Sale Addendum applies separately to each lienholder."
+    }
+  ],
+  "related_guides": ["texas-earnest-money-rules", "texas-option-period-explained", "trec-form-20-17-guide"]
+}

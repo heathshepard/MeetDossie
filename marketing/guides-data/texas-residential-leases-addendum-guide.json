@@ -1,0 +1,36 @@
+{
+  "slug": "texas-residential-leases-addendum-guide",
+  "title": "Texas Residential Leases Addendum (TREC 51-1): Selling a Tenant-Occupied Property",
+  "title_html": "Texas <em>Residential Leases</em> Addendum (TREC 51-1): Selling a Tenant-Occupied Property",
+  "meta_title": "TREC 51-1 Addendum Regarding Residential Leases — Texas Investor Sale Guide",
+  "meta_description": "How the TREC 51-1 Addendum Regarding Residential Leases handles an existing tenant when a Texas investment property sells — termination vs. assignment, security deposits, and seller representations.",
+  "eyebrow": "TREC Form 51-1",
+  "deck": "Selling a rental with a tenant already in it means somebody has to deal with the lease. This form decides who.",
+  "calculator_blurb": "The underlying contract's option period and closing deadlines still run on their own track — check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 51-1 Addendum Regarding Residential Leases — termination vs. assignment of an existing tenant lease, security deposit transfer, and seller representations.",
+  "body_html": "<p>The <strong>Addendum Regarding Residential Leases (TREC No. 51-1)</strong>, dated 11-07-2022, is built for investment property sales where a tenant is already in place. It defines \"Residential Lease\" broadly — \"any lease of the Property to a tenant including any addendum, amendment, or move-in condition form\" — and states directly that the seller may not execute a new lease or amend an existing one without the buyer's written consent once the contract is signed.</p><h2>Only two paths for the tenant's status at closing</h2><p>The form forces a single choice between two boxes:</p><ul><li><strong>A. Termination:</strong> all Residential Leases must be terminated by closing, and the seller delivers possession per Paragraph 10 of the contract with no tenant or other person in possession. The form immediately caveats itself: <strong>\"This paragraph will not amend or terminate any existing lease. Consult an attorney and refer to the Residential Leases for rights to terminate before agreeing to this provision.\"</strong> Checking this box doesn't actually end the lease — it just states the deal's expectation that it will be ended some other way before closing.</li><li><strong>B. Assignment and Assumption:</strong> the existing lease is assigned by the seller and assumed by the buyer at closing — the buyer becomes the new landlord under the same lease terms.</li></ul><h2>What Option B requires</h2><p>If the parties check Assignment and Assumption, the addendum adds several mechanical steps:</p><ol><li><strong>Delivery of the lease itself</strong> — buyer already has copies, or seller must provide them within <strong>3 days after the Effective Date</strong>, with a buyer termination right (earnest money refunded) if the buyer doesn't get them by a negotiated deadline. A separate checkbox covers an oral lease, disclosed by tenant name, rental amount, and term.</li><li><strong>Security deposit transfer</strong> — at closing, the seller transfers any security deposit (as defined under §92.102, Property Code) to the buyer, and the buyer delivers a signed statement to the tenant acknowledging the buyer has acquired the property, is now responsible for returning the deposit, and stating the exact dollar amount held.</li><li><strong>Seller's knowledge representations</strong> — to the seller's knowledge, the lease is in full force and effect; no tenant is in default or violation; no tenant has prepaid rent; no tenant is entitled to a rent offset; there are no outstanding tenant claims against the seller; there are no pending tenant disputes; and there are no side agreements or rights between landlord and tenant outside the lease itself. Any exceptions must be explained directly on the form.</li></ol><div class=\"callout\"><strong>What happens if one of those representations turns out to be false:</strong> Paragraph B(4) requires the seller to notify the buyer promptly and cure the problem within 7 days. If it's still untrue after that window, the buyer's <strong>sole remedy</strong> is to terminate within 5 days after the 7-day cure period expires — earnest money refunded. The Closing Date extends daily as needed to give both sides room to exercise these notice rights.</div>",
+  "faq": [
+    {
+      "q": "What happens to an existing tenant when a Texas rental property sells?",
+      "a": "TREC 51-1 forces a choice between two outcomes: all leases terminate by closing (with the form's own caveat that checking that box doesn't itself end any lease — it just sets the deal's expectation), or the existing lease is assigned to the buyer, who becomes the new landlord under the same terms."
+    },
+    {
+      "q": "Does checking \"Termination\" on TREC 51-1 actually cancel the tenant's lease?",
+      "a": "No. The form states directly: \"This paragraph will not amend or terminate any existing lease. Consult an attorney and refer to the Residential Leases for rights to terminate before agreeing to this provision.\" It's a contract expectation, not a termination mechanism."
+    },
+    {
+      "q": "Who handles the tenant's security deposit when a rental sells?",
+      "a": "Under the Assignment and Assumption option, the seller transfers the security deposit to the buyer at closing, and the buyer delivers a signed statement to the tenant confirming the acquisition, the buyer's responsibility for the deposit, and the exact dollar amount held — as defined under §92.102, Property Code."
+    },
+    {
+      "q": "What representations does the seller make about the lease?",
+      "a": "To the seller's knowledge: the lease is in full force and effect, no tenant is in default, no rent has been prepaid, no tenant is owed a rent offset, there are no outstanding tenant claims or pending disputes, and there are no side agreements outside the written lease."
+    },
+    {
+      "q": "What can the buyer do if a seller's lease representation turns out to be false?",
+      "a": "The seller must cure it within 7 days of notice. If it's still untrue after that, the buyer's sole remedy under TREC 51-1 is to terminate the contract within 5 days after the cure period ends, with earnest money refunded."
+    }
+  ],
+  "related_guides": ["texas-temporary-residential-lease-guide", "texas-fixture-leases-addendum-guide", "trec-form-20-17-guide"]
+}

@@ -1,0 +1,29 @@
+{
+  "slug": "is-earnest-money-due-on-weekends-texas",
+  "title": "Is Earnest Money Due on Weekends in Texas?",
+  "title_html": "Is <em>Earnest Money</em> Due on Weekends in Texas?",
+  "meta_title": "Is the Texas Earnest Money Deadline Due on a Weekend? — Rollover Rules Explained",
+  "meta_description": "If the earnest money deadline under TREC ¶ 5A lands on a Saturday, Sunday, or Legal Holiday (Texas Gov't Code §662.003), it rolls forward. Here's how that differs from the option period.",
+  "deck": "Earnest money rolls. The option period doesn't. Mixing those up is the single most expensive mistake in TREC day-counting.",
+  "updated_at": "2026-08-07",
+  "tldr": "No — if the earnest money deadline under TREC 20-19 Paragraph 5A lands on a Saturday, Sunday, or Legal Holiday (as defined by Texas Government Code §662.003(a), (b)(4), (b)(6)), Paragraph 5A(2) automatically rolls it forward to the next day that isn't one of those. That's the opposite of how the option period works, which — like title, survey, financing, and closing deadlines — does not roll. Confusing the two is one of the most common — and most expensive — day-counting mistakes agents make.",
+  "body_html": "<h2>The default rule: rollover applies</h2><p>Earnest money is governed by Paragraph 5A of the TREC contract, which sets a deadline as a number of days after the Effective Date — the default is 3 days. That deadline is subject to Paragraph 5A(2)'s rollover rule: if the calculated date lands on a Saturday, Sunday, or Legal Holiday (as defined by Texas Government Code §662.003(a), (b)(4), and (b)(6)), the deadline automatically moves forward to the next day that isn't one of those.</p><p>Practically, that means a buyer whose 3-day earnest money deadline would otherwise fall on a Saturday actually has until the following Monday (or Tuesday, if Monday is itself a Legal Holiday) to get the funds to the escrow agent.</p><h2>Why this trips people up: rollover is the narrow exception, not the rule</h2><p>Most agents assume the rollover rule applies broadly across TREC deadlines. It doesn't. Paragraph 5A(2) is scoped to just three things: earnest money, the option fee, and additional earnest money. Title commitment review, survey delivery, financing notices, and the closing date are all fixed calendar dates with no rollover — same as the option period under Paragraph 5B. Agents who assume every TREC deadline behaves the same way risk either granting a party an extension that doesn't exist (applying rollover to a title, survey, financing, or closing deadline) or missing a deadline that actually did roll (treating earnest money or the option fee like everything else).</p><h2>What counts as a rollover-triggering holiday</h2><p>Paragraph 5A(2) doesn't actually say \"federal holiday\" — it references \"Legal Holiday,\" defined by Texas Government Code §662.003(a), (b)(4), and (b)(6). That list tracks the standard federal holidays but isn't identical to it: it also adds Juneteenth and the Friday after Thanksgiving, neither of which is a federal holiday, and both of which DO trigger rollover under ¶ 5A(2). Other Texas-specific state observances — like Confederate Heroes Day or Texas Independence Day — fall outside §662.003(a)/(b)(4)/(b)(6), so title companies generally don't treat those as rollover days.</p><h2>Calendar days, not business days, in the count itself</h2><p>Before rollover even comes into play, remember the underlying day-count for earnest money is calendar days, not business days — weekends are included in getting to the deadline date in the first place. Rollover only kicks in at the end, if the resulting date itself happens to land on a non-business day.</p><h2>Confirm receipt, not just delivery</h2><p>Whatever the deadline turns out to be after rollover, what matters operationally is the escrow agent's confirmed receipt of the funds — not the buyer's claim that they sent them. \"I wired it Friday\" isn't the same as the title company confirming they received and applied the funds. Confirm escrow receipt in writing within the deadline window.</p>",
+  "faq": [
+    {
+      "q": "If the earnest money deadline falls on a Saturday, when is it actually due?",
+      "a": "It rolls forward under Paragraph 5A(2) to the next day that isn't a Saturday, Sunday, or Legal Holiday (Texas Government Code §662.003(a), (b)(4), (b)(6)) — typically the following Monday, unless that Monday is itself a Legal Holiday, in which case it rolls again to Tuesday."
+    },
+    {
+      "q": "Does the same rollover rule apply to the option period?",
+      "a": "No. The option period under Paragraph 5B never rolls — same as title, survey, financing, and closing deadlines. Paragraph 5A(2)'s rollover rule is scoped only to earnest money and the option fee, and the option period always ends on its exact calendar day, even if that day is a weekend or Legal Holiday."
+    },
+    {
+      "q": "Are Texas state holidays counted for earnest money rollover?",
+      "a": "It depends which one. Paragraph 5A(2) references \"Legal Holiday\" as defined by Texas Government Code §662.003(a), (b)(4), and (b)(6) — not federal holidays specifically. That list includes Juneteenth and the Friday after Thanksgiving, and both DO trigger rollover even though neither is a federal holiday. Other Texas-specific state observances, like Confederate Heroes Day or Texas Independence Day, fall outside that statutory list, so title companies don't treat them as rollover days."
+    },
+    {
+      "q": "Is the earnest money deadline counted in calendar days or business days?",
+      "a": "Calendar days. Weekends are included when counting toward the deadline date itself — rollover only comes into play afterward, if that resulting date happens to land on a non-business day."
+    }
+  ]
+}

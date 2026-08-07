@@ -1,0 +1,36 @@
+{
+  "slug": "trec-49-1-appraisal-addendum-guide",
+  "title": "TREC 49-1: Addendum Concerning Right to Terminate Due to Lender's Appraisal",
+  "title_html": "TREC 49-1: <em>Right to Terminate</em> Due to Lender's Appraisal",
+  "meta_title": "TREC 49-1 Appraisal Addendum — The Three Boxes Explained",
+  "meta_description": "How the TREC 49-1 Addendum Concerning Right to Terminate Due to Lender's Appraisal works — the Waiver, Partial Waiver, and Additional Right to Terminate options, and when it applies.",
+  "eyebrow": "TREC Form 49-1",
+  "deck": "Three checkboxes decide what happens if the lender's appraisal comes in low — most agents have never actually read them.",
+  "calculator_blurb": "Whichever option is checked, the day-count field in Paragraph (3) still needs to run correctly — check it against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 49-1 — the Waiver, Partial Waiver, and Additional Right to Terminate options for a low lender appraisal.",
+  "body_html": "<p>The <strong>Addendum Concerning Right to Terminate Due to Lender's Appraisal (TREC No. 49-1)</strong> is dated 11-15-18 on the form itself; TREC's landing page lists an Effective Date of 03/01/2019. The form only applies under two conditions stated directly on its header: <strong>(1) the Third Party Financing Addendum is attached to the contract, and (2) the transaction does not involve FHA-insured or VA-guaranteed financing.</strong></p><h2>Why FHA and VA loans use a different mechanism</h2><p>The form itself draws the line: \"The financing described in the Third Party Financing Addendum attached to the contract for the sale of the above-referenced Property does not involve FHA or VA financing.\" FHA and VA transactions handle a low appraisal through Paragraph 4 of the Third Party Financing Addendum (TREC 40-11) instead of this form.</p><h2>Check one box only</h2><ol><li><strong>(1) Waiver.</strong> Buyer waives the right to terminate under Paragraph 2B of the Third Party Financing Addendum if Property Approval isn't obtained because the appraisal's opinion of value doesn't satisfy the lender's underwriting requirements. If the lender reduces the loan amount because of the appraisal, the cash portion of the Sales Price increases by the amount the loan was reduced.</li><li><strong>(2) Partial Waiver.</strong> Same waiver, but conditioned on two things both being true: Property Approval fails because of the appraised opinion of value, AND that opinion of value is at or above a dollar figure the parties write into the form. Below that number, the buyer keeps the Paragraph 2B termination right. The same cash-portion-increase mechanic applies if the waiver is triggered.</li><li><strong>(3) Additional Right to Terminate.</strong> This one runs the opposite direction — it adds a right rather than waiving one. In addition to Paragraph 2B rights, the buyer may terminate within a negotiated number of days after the Effective Date if (i) the appraised value, according to the appraisal obtained by Buyer's lender, is less than a dollar figure written into the form, and (ii) the buyer delivers a copy of the appraisal to the seller. If the buyer terminates under this box, earnest money is refunded.</li></ol><div class=\"callout\"><strong>All three dollar/day figures are blanks.</strong> The opinion-of-value threshold in (2), the appraised-value threshold in (3), and the day-count in (3) are all negotiated by the parties and filled in on the form — none of them default to a specific number.</div><h2>How this connects to the Notice of Buyer's Termination (TREC 38-8)</h2><p>TREC 38-8 lists \"termination under Paragraph (3) of the Addendum Concerning Right to Terminate Due to Lender's Appraisal\" as one of its eight grounds for a buyer to terminate — and it requires the buyer to have already delivered a copy of the appraisal to the seller. That requirement traces directly back to condition (ii) in this addendum's Paragraph (3): the appraisal copy has to go to the seller as part of the termination, not sometime after.</p><h2>What this doesn't cover</h2><p>Nothing on this form addresses what happens if the buyer doesn't attach it at all. Without this addendum, a low appraisal that also causes Property Approval to fail under the Third Party Financing Addendum still falls back to Paragraph 2B's standard termination mechanics — the 3rd-day-before-Closing deadline and the notice-plus-lender-statement requirement.</p>",
+  "faq": [
+    {
+      "q": "What is TREC 49-1?",
+      "a": "The Addendum Concerning Right to Terminate Due to Lender's Appraisal. It's used only when the Third Party Financing Addendum is attached and the transaction does not involve FHA-insured or VA-guaranteed financing, and it lets the parties negotiate what happens to the buyer's termination rights if the lender's appraisal comes in below expectations."
+    },
+    {
+      "q": "When can TREC 49-1 be used?",
+      "a": "Only when both conditions on the form's header are met: the Third Party Financing Addendum is attached to the contract, and the financing is not FHA-insured or VA-guaranteed. FHA/VA transactions instead use Paragraph 4 of the Third Party Financing Addendum (TREC 40-11) to handle a low appraisal."
+    },
+    {
+      "q": "What's the difference between the three boxes on TREC 49-1?",
+      "a": "Box (1) is a full waiver of the buyer's Paragraph 2B termination right if the appraisal doesn't satisfy underwriting. Box (2) is the same waiver, but only if the appraised opinion of value is at or above a negotiated dollar threshold. Box (3) goes the other direction — it adds a termination right beyond Paragraph 2B if the appraised value comes in below a negotiated dollar figure and the buyer delivers a copy of the appraisal to the seller."
+    },
+    {
+      "q": "What has to happen for the buyer to terminate under box (3)?",
+      "a": "Two things: the appraised value (per the appraisal obtained by the buyer's lender) has to be less than the dollar figure written into the form, and the buyer has to deliver a copy of the appraisal to the seller. If both are true and the buyer terminates within the negotiated day window, earnest money is refunded."
+    },
+    {
+      "q": "Does TREC 49-1 apply to FHA or VA loans?",
+      "a": "No. The form's own header states it's for use only when the transaction does not involve FHA-insured or VA-guaranteed financing. FHA and VA transactions use Paragraph 4 of the Third Party Financing Addendum instead."
+    }
+  ],
+  "related_guides": ["texas-third-party-financing-addendum", "texas-notice-of-buyers-termination", "texas-option-period-explained"]
+}

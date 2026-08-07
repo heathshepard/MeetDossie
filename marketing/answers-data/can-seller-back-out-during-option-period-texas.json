@@ -1,0 +1,29 @@
+{
+  "slug": "can-seller-back-out-during-option-period-texas",
+  "title": "Can a Seller Back Out of a Contract During the Option Period in Texas?",
+  "title_html": "Can a <em>Seller Back Out</em> During the Option Period in Texas?",
+  "meta_title": "Can a Texas Seller Cancel During the Option Period? — What TREC's Forms Show",
+  "meta_description": "The Texas option period is written as a buyer-only right. Here's what TREC's own termination-notice forms show about whether a seller can use it too.",
+  "deck": "The option period is built as a one-way door. Here's what the forms actually show about which way it opens.",
+  "updated_at": "2026-08-06",
+  "tldr": "Based on TREC's own forms, no. The option period under Paragraph 5B is consistently described as the buyer's right — the buyer pays a fee for the right to terminate for any reason. TREC's Notice of Seller's Termination of Contract (Form 50-0) gives the seller exactly two grounds to check, and neither one is a no-cause right tied to the option period. If a seller wants out during that window, they'd need to point to one of the two grounds that form actually offers, or to some other basis outside what's covered in the source material reviewed here.",
+  "body_html": "<h2>The option period is framed as a buyer right, not a mutual one</h2><p>Every description of Paragraph 5B in TREC's contract structure runs the same direction: the buyer pays an option fee for the right to terminate the contract for any reason during the option period. Nothing in that structure gives the seller a parallel no-cause termination right during the same window. The option fee is consideration paid <em>to</em> the seller specifically in exchange for holding the deal open for the buyer's benefit — it isn't a mutual escape hatch.</p><h2>What TREC's seller-termination form actually offers</h2><p>TREC publishes a specific form for a seller who wants to formally terminate: the Notice of Seller's Termination of Contract (TREC No. 50-0). It gives the seller exactly two checkboxes:</p><ol><li><strong>Earnest money not delivered.</strong> The buyer failed to deliver the earnest money within the time required under Paragraph 5 of the contract, before the seller provides the notice.</li><li><strong>Other.</strong> The seller identifies the specific paragraph number of the contract or addendum they're relying on.</li></ol><p>Compare that to the buyer's version — the Notice of Buyer's Termination of Contract (TREC No. 38-8) — which lists eight specific grounds, including the unrestricted right under Paragraph 5 itself. The seller's form has no equivalent box. The shorter list reflects a real structural asymmetry in the promulgated contract: buyers get more built-in, cause-based (and one no-cause) termination rights than sellers do.</p><h2>What this means in practice</h2><p>If a seller wants to walk away during the buyer's option period, the sourced forms don't show a matching \"for any reason\" right sitting in Paragraph 5B for the seller to use. The seller's own termination notice only supports two things: the buyer's failure to timely deliver earnest money, or a specific paragraph elsewhere in the contract or an addendum that's actually been triggered. Neither of those is \"the option period is open, so I can cancel too.\"</p><div class=\"callout\"><strong>What isn't addressed here:</strong> whether a seller could negotiate a separate, mutual no-cause termination right into a specific deal via the Amendment to Contract form, or what remedies either side has outside the two TREC termination-notice forms, isn't covered in the source material for this page. If that scenario comes up on an actual file, it's a question for a Texas real estate attorney, not something to answer from these forms alone.</div>",
+  "faq": [
+    {
+      "q": "Does the Texas option period give the seller a right to cancel too?",
+      "a": "No. TREC's forms consistently describe the option period as the buyer's right — paid for with the option fee — not a mutual right. The seller's own termination-notice form (TREC 50-0) doesn't include an option-period box."
+    },
+    {
+      "q": "What grounds can a Texas seller actually use to terminate a contract?",
+      "a": "Per TREC Form 50-0, exactly two: the buyer's failure to timely deliver earnest money under Paragraph 5, or \"Other,\" where the seller identifies the specific paragraph of the contract or an addendum they're relying on."
+    },
+    {
+      "q": "Why does the buyer's termination form have eight grounds and the seller's only two?",
+      "a": "The shorter list reflects a structural asymmetry in the promulgated TREC contract — it simply builds in more cause-based (and one no-cause) termination rights for buyers than it gives sellers."
+    },
+    {
+      "q": "Can a seller use the buyer's earnest money as a reason to terminate during the option period?",
+      "a": "That ground exists on TREC 50-0 independent of the option period — it applies whenever the buyer misses the earnest money deadline under Paragraph 5, regardless of whether the option period is still open."
+    }
+  ]
+}

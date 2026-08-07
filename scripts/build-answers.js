@@ -87,6 +87,7 @@ function template(g) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/assets/posthog-loader.js"></script>
 
 <script type="application/ld+json">${renderArticleSchema(g)}</script>
 <script type="application/ld+json">${renderBreadcrumbSchema(g.slug, g.title)}</script>
@@ -207,6 +208,24 @@ ${g.faq && g.faq.length ? `
 <p class="legal">
   This page is provided as-is for educational purposes. It is not legal advice. Always verify deadlines and contract interpretations against your executed contract and confer with your broker or a Texas real estate attorney for binding interpretations. <a href="/">meetdossie.com</a>
 </p>
+
+<script>
+// Analytics: fire answer_page_viewed with page_type/slug so Pierce can compare
+// which answers actually get traffic. Wrapped in posthog:ready — see
+// founding.html for why (pre-boot stub queue isn't reliably read by array.js).
+(function () {
+  try {
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('answer_page_viewed', {
+          page_type: 'answer',
+          page_slug: ${JSON.stringify(g.slug)},
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+</script>
 
 </body>
 </html>

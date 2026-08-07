@@ -1,0 +1,36 @@
+{
+  "slug": "texas-groundwater-surface-water-rights-disclosure-guide",
+  "title": "Texas Groundwater & Surface Water Rights Disclosure (TREC 61-0) Explained",
+  "title_html": "Texas <em>Groundwater & Surface Water Rights</em> Disclosure (TREC 61-0) Explained",
+  "meta_title": "TREC 61-0 Water Rights Disclosure — Wells, Groundwater Districts & Surface Water",
+  "meta_description": "How the TREC 61-0 Seller's Disclosure About Groundwater and Surface Water Rights works — water well counts, Groundwater District status, and severed mineral-style water rights.",
+  "eyebrow": "TREC Form 61-0",
+  "deck": "Owning the land doesn't always mean owning the water under it. TREC's newest disclosure spells out what the seller actually knows.",
+  "calculator_blurb": "This is a statutory disclosure, not a contract-deadline form — the underlying contract's option period and closing dates run on their own track. Check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 61-0 Seller's Disclosure About Groundwater and Surface Water Rights — water wells, Groundwater District status, and severed water rights.",
+  "body_html": "<p>The <strong>Seller's Disclosure About Groundwater and Surface Water Rights (TREC No. 61-0)</strong> is dated 05-04-2026 on the form and is a <strong>promulgated</strong> (mandatory-form-category) disclosure, unlike some of TREC's other water-related notices. It opens with its own scope limit: \"THIS NOTICE IS A DISCLOSURE OF SELLER'S KNOWLEDGE ABOUT GROUNDWATER AND SURFACE WATER RIGHTS ON THE PROPERTY AS OF THE DATE SIGNED BY SELLER... IT IS NOT A WARRANTY OF ANY KIND BY SELLER OR SELLER'S AGENTS.\"</p><h2>The form's own definitions matter</h2><p>Paragraph 1 defines four terms with built-in notes worth knowing before reading the rest of the form:</p><ul><li><strong>Groundwater</strong> — water percolating below the surface, usually in aquifers, accessed by Water Wells. The form's own note: unless severed from the surface estate, Groundwater is owned by the surface landowner, who may access it by drilling a well in compliance with the applicable Groundwater District, if any.</li><li><strong>Groundwater District</strong> — a local or regional Groundwater Conservation District, Underground Water Conservation District, Subsidence District, or similar authority regulating wells. The form notes not all Texas land sits in one.</li><li><strong>Surface Water</strong> — water in lakes, rivers, creeks, streams, bays, estuaries, and arms of the Gulf of Mexico.</li><li><strong>Surface Water Rights</strong> — a TCEQ-administered permit, certified filing, or certificate of adjudication authorizing diversion, impoundment, or use of Surface Water. The form notes not all surface water use requires one.</li></ul><h2>Groundwater and well questions the seller has to answer</h2><p>Paragraph 2 asks whether any portion of the property sits in a Groundwater District (yes/no/unknown, with the district's name and website if known), and whether the seller is aware of one or more water wells on the property. If wells exist, the seller discloses the total count, how many are currently in use, how many are capped/covered/plugged/abandoned, and any known registration or permit numbers from a Groundwater District. It also asks whether each well is owned/operated solely by the seller for the property's own benefit, or shared — naming the owner/operator, beneficiary, and any governing agreement if not.</p><p>Three more yes/no questions round out the groundwater section: whether the property receives water from a well located on <strong>another</strong> property (excluding city, MUD, water supply corporation, or private water company service); whether a well on the property relies on groundwater rights owned or leased from land <strong>outside</strong> the property; and whether any groundwater rights have been <strong>severed, sold, or leased</strong> — in whole or in part, with or without well-drilling rights.</p><h2>Surface water questions</h2><p>Paragraph 3 asks whether the seller owns any Surface Water Right associated with the property (with the permit/filing/adjudication number and any co-ownership breakdown if yes), and whether there's a pond, lake, or water tank on the property — whether or not it currently holds water.</p><div class=\"callout\"><strong>The form's own closing notices are direct about its limits:</strong> the seller may not have complete knowledge of the Water Rights affecting the property; those rights may be held by others; Groundwater District rules vary district to district and some carry their own ad valorem taxing authority; and if either party needs to reserve, except, or separately convey Water Rights, the form tells both sides to consult an attorney before signing a binding contract.</div>",
+  "faq": [
+    {
+      "q": "Is the groundwater and surface water rights disclosure mandatory in Texas?",
+      "a": "TREC No. 61-0 is a promulgated form, which puts it in TREC's mandatory-use category rather than the voluntary-use category some of TREC's other notices fall into."
+    },
+    {
+      "q": "Who owns the groundwater under a Texas property?",
+      "a": "Per the form's own note: unless severed from the surface estate, groundwater is owned by the surface landowner, who may access it by drilling a well in compliance with the rules of the applicable Groundwater District, if any exists over that land."
+    },
+    {
+      "q": "What has to be disclosed about water wells on a Texas property?",
+      "a": "The total number of wells known to the seller, how many are currently in use, how many are capped or abandoned, any known Groundwater District registration or permit numbers, and — if not solely seller-owned for the property's benefit — who owns/operates each well and under what agreement."
+    },
+    {
+      "q": "Does every Texas property sit in a Groundwater District?",
+      "a": "No. The form's own note states not all land in Texas is subject to a Groundwater District — Paragraph 2A asks the seller to disclose whether the specific property does."
+    },
+    {
+      "q": "What if groundwater rights on the property have been sold separately from the land?",
+      "a": "TREC 61-0 Paragraph 2F asks directly whether the seller is aware of any groundwater rights having been severed, sold, or leased — in whole or in part, with or without the right to drill or operate a well — and asks for a description if so."
+    }
+  ],
+  "related_guides": ["texas-farm-and-ranch-contract-guide", "texas-sellers-disclosure-notice-guide", "texas-unimproved-property-contract-guide"]
+}

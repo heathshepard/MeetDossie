@@ -1,0 +1,36 @@
+{
+  "slug": "texas-notice-of-sellers-termination-guide",
+  "title": "TREC 50-0: Notice of Seller's Termination of Contract, Explained",
+  "title_html": "TREC 50-0: <em>Notice of Seller's Termination</em> of Contract, Explained",
+  "meta_title": "TREC 50-0 Notice of Seller's Termination — The Two Grounds Explained",
+  "meta_description": "How the TREC 50-0 Notice of Seller's Termination of Contract works — the two checkboxes, how it compares to the buyer's version, and what it doesn't decide.",
+  "eyebrow": "TREC Form 50-0",
+  "deck": "Sellers get two boxes to check, not eight — here's why the list is so much shorter than the buyer's version.",
+  "calculator_blurb": "Before sending this notice, confirm the earnest money deadline actually passed — run it through the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 50-0 — the two grounds a seller can check to formally terminate, and how it compares to TREC 38-8.",
+  "body_html": "<p>The <strong>Notice of Seller's Termination of Contract (TREC No. 50-0)</strong> is dated 8-13-18, and TREC's landing page lists the same date, 08/13/2018, as its Effective Date. This is the seller-side counterpart to the Notice of Buyer's Termination of Contract (TREC 38-8) — but with far fewer options.</p><h2>Only two grounds, not eight</h2><p>The form gives the seller exactly two checkboxes:</p><ol><li><strong>Earnest money not delivered.</strong> \"Buyer failed to deliver the earnest money within the time required under Paragraph 5 of the contract and before the time Seller provided this notice to Buyer.\"</li><li><strong>Other.</strong> The seller identifies the specific paragraph number of the contract or addendum being relied on, in a blank space provided.</li></ol><p>By comparison, the buyer's version (TREC 38-8) lists eight specific grounds — the option period, financing failure, the HOA addendum, the Seller's Disclosure Notice paragraph, the appraisal addendum, uncured title objections, and an \"Other\" catch-all. The shorter seller's list reflects that the standard contract simply gives buyers more built-in, cause-based termination rights than it gives sellers — a seller's main built-in right under the promulgated contract is the buyer's failure to timely deliver earnest money.</p><h2>Same \"not an election of remedies\" language</h2><p>Like the buyer's version, this form states directly: \"This notice is not an election of remedies. Release of the earnest money is governed by the contract.\" Sending this notice documents that the seller considers the contract terminated — it doesn't by itself resolve who gets the earnest money.</p><h2>Same attorney warning</h2><p>The form carries the identical bolded caution as the buyer's version: \"CONSULT AN ATTORNEY BEFORE SIGNING: TREC rules prohibit real estate license holders from giving legal advice. READ THIS FORM CAREFULLY.\"</p><div class=\"callout\"><strong>Check the timing before you send this.</strong> Ground (1) only applies if the buyer's earnest money deadline under Paragraph 5 had already passed before the seller delivers this notice. Sending it early — before the deadline actually expires — doesn't fit the box as written.</div>",
+  "faq": [
+    {
+      "q": "What are the two grounds a seller can check on TREC 50-0?",
+      "a": "(1) The buyer failed to deliver earnest money within the time required under Paragraph 5 of the contract, before the seller provided the notice. (2) \"Other\" — the seller identifies the specific paragraph number of the contract or addendum being relied on."
+    },
+    {
+      "q": "How is TREC 50-0 different from TREC 38-8 (Notice of Buyer's Termination)?",
+      "a": "TREC 38-8 gives buyers eight specific grounds to check, reflecting the buyer's option period, financing addendum, HOA addendum, appraisal addendum, and title-objection rights. TREC 50-0 gives sellers only two boxes, since the standard contract gives sellers far fewer built-in, cause-based termination rights."
+    },
+    {
+      "q": "Does TREC 50-0 guarantee the seller keeps the earnest money?",
+      "a": "No. The form states directly that it \"is not an election of remedies\" and that release of the earnest money is governed by the contract, not by this notice itself."
+    },
+    {
+      "q": "What has to be true before a seller can use ground (1) on TREC 50-0?",
+      "a": "The buyer's earnest money deadline under Paragraph 5 of the contract must have already passed before the seller delivers this notice."
+    },
+    {
+      "q": "Can a real estate agent tell a seller which box to check on TREC 50-0?",
+      "a": "The form itself warns to consult an attorney before signing, noting TREC rules prohibit license holders from giving legal advice. Agents can identify which paragraph procedurally applies but shouldn't advise on the legal merits of a termination."
+    }
+  ],
+  "related_guides": ["texas-notice-of-buyers-termination", "texas-earnest-money-rules", "trec-form-20-17-guide"]
+}

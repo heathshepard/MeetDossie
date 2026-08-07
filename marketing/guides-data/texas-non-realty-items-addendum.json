@@ -1,0 +1,36 @@
+{
+  "slug": "texas-non-realty-items-addendum",
+  "title": "Texas Non-Realty Items Addendum (TREC 57-0): When to Use It",
+  "title_html": "Texas <em>Non-Realty Items Addendum</em> (TREC 57-0): When to Use It",
+  "meta_title": "TREC 57-0 Non-Realty Items Addendum — Texas Agent Guide",
+  "meta_description": "The three-paragraph TREC 57-0 Non-Realty Items Addendum: what it covers, what it warrants, and why it's a voluntary-use form rather than a promulgated one.",
+  "eyebrow": "TREC Form 57-0",
+  "deck": "The short form that keeps a hot tub, shed, or riding mower out of a title dispute.",
+  "show_calculator": false,
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 57-0 Non-Realty Items Addendum — what it covers and why it's a voluntary-use form.",
+  "body_html": "<p>Unlike most of the forms in a Texas contract file, the <strong>Non-Realty Items Addendum (TREC No. 57-0)</strong> isn't a mandatory promulgated form — the header on the form itself reads \"APPROVED BY THE TEXAS REAL ESTATE COMMISSION (TREC) FOR VOLUNTARY USE,\" a different designation than the \"PROMULGATED BY THE TEXAS REAL ESTATE COMMISSION (TREC)\" language on forms like the contract itself or the financing and short sale addenda. TREC's forms library lists this form under Contract Addenda with a listed page effective date of September 3, 2025; the printed form text itself carries a revision date of 10-10-11, with no indication of a text revision since.</p><h2>What the form is for</h2><p>The addendum is a short bill-of-sale-style attachment for personal property that's part of the deal but isn't already covered elsewhere in the contract. It's used when a seller is conveying items like a hot tub, shed, appliances, or similar personal property outside the base contract's built-in property description.</p><h2>Paragraph A — the property and the price</h2><p>The form's own language: \"For an additional sum of $_______ and other and good valuable consideration, Seller shall convey to Buyer at closing the following personal property (specify each item carefully, include description, model numbers, serial numbers, location, and other information).\" The form provides blank lines for each item to be listed individually.</p><h2>Paragraph B — ownership warranty</h2><p>\"Seller represents and warrants that Seller owns the personal property described in Paragraph A free and clear of all encumbrances.\"</p><h2>Paragraph C — no condition warranty</h2><p>\"Seller does not warrant or guarantee the condition or future performance of the personal property conveyed by this document.\" This is the operative distinction from the seller's disclosures elsewhere in the file: the seller is confirming clean title to the item, not its working condition.</p><div class=\"callout\"><strong>Verify before use:</strong> because this form's printed text is dated 2011 with no visible revision since, while TREC's forms page lists a 2025 effective date for the broader forms package, confirm you're pulling the current PDF directly from trec.texas.gov before attaching it to a file rather than relying on a cached or saved copy.</div>",
+  "faq": [
+    {
+      "q": "Is the Non-Realty Items Addendum a required TREC form?",
+      "a": "No. It's approved by TREC for voluntary use, not promulgated as mandatory — a different designation than forms like the contract itself or the Third Party Financing Addendum."
+    },
+    {
+      "q": "What does the Non-Realty Items Addendum cover?",
+      "a": "Personal property the seller is conveying to the buyer at closing that isn't already described elsewhere in the contract — specified item by item with description, model numbers, serial numbers, and location."
+    },
+    {
+      "q": "Does the seller warrant the condition of items on the Non-Realty Items Addendum?",
+      "a": "No. Paragraph C states the seller does not warrant or guarantee the condition or future performance of the personal property conveyed. Paragraph B only warrants that the seller owns the items free and clear of encumbrances."
+    },
+    {
+      "q": "How is the payment for non-realty items structured?",
+      "a": "Paragraph A frames it as an additional sum plus other and good valuable consideration, conveyed to the buyer at closing — the dollar amount is filled in by the parties on the form."
+    },
+    {
+      "q": "Do I need a real estate attorney to use the Non-Realty Items Addendum?",
+      "a": "The form itself doesn't require it, but for anything beyond straightforward personal property, confirm with your broker or a Texas real estate attorney — especially if ownership or lien status of the item is in question."
+    }
+  ],
+  "related_guides": ["texas-earnest-money-rules", "trec-form-20-17-guide"]
+}

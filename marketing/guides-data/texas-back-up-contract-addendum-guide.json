@@ -1,0 +1,36 @@
+{
+  "slug": "texas-back-up-contract-addendum-guide",
+  "title": "Texas Back-Up Contract Addendum (TREC 11-9) and the Removal Notice (62-0)",
+  "title_html": "Texas <em>Back-Up Contract</em> Addendum (TREC 11-9) and the Removal Notice (62-0)",
+  "meta_title": "TREC 11-9 Back-Up Contract Addendum — Amended Effective Date Explained",
+  "meta_description": "How the TREC 11-9 Addendum for \"Back-Up\" Contract works — the Amended Effective Date mechanic, additional earnest money, and the companion 62-0 notice that removes the contingency.",
+  "eyebrow": "TREC Forms 11-9 & 62-0",
+  "deck": "A second contract that isn't really live until the first one dies. Here's how TREC times that switch.",
+  "calculator_blurb": "Once the Amended Effective Date kicks in, the underlying contract's option period and closing deadlines start running from that new date — plug it into the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 11-9 Addendum for \"Back-Up\" Contract and the companion 62-0 removal notice — how the Amended Effective Date mechanic works.",
+  "body_html": "<p>The <strong>Addendum for \"Back-Up\" Contract (TREC No. 11-9)</strong> is dated 05-04-2026 on the form and replaces TREC No. 11-8. It attaches to a second contract on a property that already has a signed first contract — letting the seller line up a backup buyer without the two contracts conflicting.</p><h2>The Back-Up Contract is binding immediately — but performance isn't</h2><p>Paragraph A states the Back-Up Contract is binding on execution, and the buyer delivers the standard earnest money and option fee per Paragraph 5 of the underlying contract — plus an additional earnest money amount and additional option fee, delivered to the escrow agent within a negotiated number of days after what the form calls the <strong>Amended Effective Date</strong> (defined below). Paragraphs B–F handle the mechanics around that additional money the same way the standard contract handles Paragraph 5: weekend/holiday rollover, funds applied first to the additional option fee then the additional earnest money, seller's authorization to release the additional option fee at any time, and the consequences of missing either deadline — seller can terminate or pursue Paragraph 15 remedies for a missed additional earnest money deadline, and buyer loses the unrestricted right to terminate under Paragraph 5(B) of the underlying contract for a missed additional option fee.</p><h2>The contingency and the Amended Effective Date</h2><p>Paragraph G is the core mechanic: the Back-Up Contract is contingent on the termination of a previous contract on the same property (the \"First Contract,\" identified by its own date on the form). <strong>Neither party is required to perform</strong> under the Back-Up Contract while that contingency is in place.</p><p>Paragraph H sets a deadline: if the First Contract doesn't terminate by a stated date, the Back-Up Contract itself terminates and the earnest money is refunded to the buyer. Seller must notify the buyer immediately once the First Contract does terminate. That notice date becomes the new <strong>Amended Effective Date</strong> of the Back-Up Contract — meaning the clock on the Back-Up Contract's own deadlines (option period, financing, etc.) doesn't start running from the original signing date, it restarts from the day the seller delivers notice that the First Contract is dead.</p><div class=\"callout\"><strong>What doesn't reset the clock:</strong> Paragraph I states an amendment or modification of the First Contract will not terminate it — so a buyer under the Back-Up Contract can't treat a simple amendment to the first deal as the trigger that starts their own contract running.</div><p>Paragraph J clarifies the buyer's unrestricted termination window under the Back-Up Contract: it begins on the original Effective Date, continues after the Amended Effective Date, and ends when the buyer's unrestricted right to terminate expires — so time spent waiting for the First Contract to die isn't necessarily added back on top. Paragraph K makes time of the essence for the whole addendum, with strict compliance required.</p><h2>62-0 — the notice that flips the switch</h2><p>TREC No. 62-0, dated 05-04-2026, is the <strong>Seller's Notice to Buyer of Removal of Contingency Under Addendum for \"Back-Up\" Contract</strong> — the actual document a seller delivers under Paragraph H to trigger everything above. It states three things directly: (1) the First Contract is terminated; (2) the Back-Up Contract is no longer subject to the Paragraph G contingency; and (3) the Amended Effective Date of the Back-Up Contract is the date inserted on the notice (delivered per Paragraph 21 of the underlying contract). The form also carries Additional Option Fee Receipt and Additional Earnest Money Receipt blocks for the escrow agent to acknowledge.</p>",
+  "faq": [
+    {
+      "q": "Is a back-up contract binding before the first contract falls through?",
+      "a": "Yes — TREC 11-9 states the Back-Up Contract is binding upon execution by the parties. What's contingent is performance, not the existence of the contract: neither party is required to perform while it's contingent on the First Contract's termination."
+    },
+    {
+      "q": "What is the Amended Effective Date on a Texas back-up contract?",
+      "a": "The date the seller delivers notice to the buyer that the First Contract has terminated. From that point, the Back-Up Contract's own performance clock (option period, financing deadlines, etc.) runs from the Amended Effective Date rather than the original signing date."
+    },
+    {
+      "q": "What is TREC Form 62-0?",
+      "a": "The Seller's Notice to Buyer of Removal of Contingency Under Addendum for \"Back-Up\" Contract — the document sellers use to formally notify a back-up buyer that the first contract terminated, the contingency is removed, and to state the Amended Effective Date."
+    },
+    {
+      "q": "What happens if the first contract just gets amended instead of terminated?",
+      "a": "Nothing changes for the back-up buyer. TREC 11-9 states directly that an amendment or modification of the First Contract will not terminate it — the contingency stays in place until the First Contract actually ends."
+    },
+    {
+      "q": "What if the first contract never falls through?",
+      "a": "Paragraph H sets an outside date on the form. If the First Contract hasn't terminated by that date, the Back-Up Contract itself terminates and the buyer's earnest money is refunded."
+    }
+  ],
+  "related_guides": ["trec-form-20-17-guide", "texas-notice-of-sellers-termination-guide", "trec-amendment-to-contract-guide"]
+}

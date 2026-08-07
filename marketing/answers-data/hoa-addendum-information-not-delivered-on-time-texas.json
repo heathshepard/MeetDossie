@@ -1,0 +1,29 @@
+{
+  "slug": "hoa-addendum-information-not-delivered-on-time-texas",
+  "title": "What Happens If the HOA Addendum Information Isn't Delivered on Time in Texas?",
+  "title_html": "What Happens If <em>HOA Addendum</em> Information Isn't Delivered on Time?",
+  "meta_title": "TREC HOA Addendum — What Happens If Subdivision Information Is Late or Missing",
+  "meta_description": "TREC 36-11 gives buyers different remedies depending on which delivery option was checked when HOA Subdivision Information doesn't show up on time.",
+  "deck": "The answer depends entirely on which of the four boxes was checked — and one box has no late-delivery scenario at all.",
+  "updated_at": "2026-08-06",
+  "tldr": "It depends which of the four delivery options the parties checked in Paragraph A of TREC's HOA addendum (Form 36-11). If the seller was obligated to deliver the Subdivision Information and never does, the buyer's sole remedy is to terminate any time before closing, with earnest money refunded. If the buyer already had the information but needs an updated resale certificate and the seller misses the 10-day window to provide it, the buyer can also terminate and get earnest money back. Once actually received (on time or late), the buyer's termination window is a fixed 3 days after receipt, or before closing — whichever comes first.",
+  "body_html": "<h2>Start with which box was checked</h2><p>TREC's Addendum for Property Subject to Mandatory Membership in a Property Owners Association (Form 36-11) gives the parties four options in Paragraph A for handling delivery of the Subdivision Information — a current copy of the subdivision's restrictions plus the association's bylaws, rules, and a resale certificate. What happens if that information is late or never shows up depends on which option is in play.</p><h2>Option 1 — seller delivers</h2><p>If the seller is obligated to obtain, pay for, and deliver the Subdivision Information within the negotiated window and never does, the buyer's sole remedy is to terminate the contract at any time before closing, with earnest money refunded. If it is delivered — even close to the wire — the buyer's termination window is fixed at 3 days after receipt, or before closing, whichever comes first.</p><h2>Option 2 — buyer obtains it</h2><p>Here the buyer is responsible for obtaining the Subdivision Information at their own expense. The buyer is deemed to receive it on the date of actual receipt or a specified date, whichever is earlier, and the same 3-day (or before-closing) termination window applies once received.</p><h2>Option 3 — buyer already has it, but needs an updated resale certificate</h2><p>If the buyer received and approved the Subdivision Information before signing but requires an updated resale certificate, the seller must deliver it — at the buyer's expense — within 10 days after receiving payment for it. If the seller misses that 10-day window, the buyer may terminate and get the earnest money back.</p><h2>Option 4 — buyer waives it</h2><p>If the buyer doesn't require delivery of the Subdivision Information at all, there's nothing to be late — this option doesn't have a late-delivery scenario.</p><h2>The number that doesn't change</h2><p>Whichever delivery option is checked, once the buyer actually has the Subdivision Information in hand, the termination window after that is a fixed 3 days (or before closing, whichever is first) — that part of the form isn't negotiated. What's negotiated and left blank is only the number of days the seller or buyer initially has to go obtain it.</p><h2>Material changes are a separate issue</h2><p>Separately from late delivery, if the seller becomes aware of a material change in the Subdivision Information after it's been provided, the seller must promptly notify the buyer — and the buyer may terminate before closing, with earnest money refunded, if the information provided \"was not true\" or a material adverse change occurs before closing.</p>",
+  "faq": [
+    {
+      "q": "What happens if the seller never delivers the HOA Subdivision Information?",
+      "a": "Under the delivery-by-seller option, the buyer's sole remedy is to terminate the contract at any time before closing, with earnest money refunded."
+    },
+    {
+      "q": "How long does a buyer have to terminate after actually receiving the HOA information?",
+      "a": "3 days after receipt, or before closing — whichever comes first. That window is fixed on the form regardless of which delivery option was checked."
+    },
+    {
+      "q": "What if the buyer waived the HOA Subdivision Information requirement?",
+      "a": "Then there's no delivery obligation to miss — the buyer opted out of requiring it in the first place."
+    },
+    {
+      "q": "What if the seller is late delivering an updated resale certificate?",
+      "a": "If the buyer already had the original Subdivision Information but requested an updated resale certificate, the seller has 10 days after receiving payment to deliver it. Missing that window lets the buyer terminate and recover earnest money."
+    }
+  ]
+}

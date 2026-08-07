@@ -1,0 +1,36 @@
+{
+  "slug": "trec-amendment-to-contract-guide",
+  "title": "TREC Amendment to Contract (Form 39-11): What It Actually Changes",
+  "title_html": "TREC <em>Amendment to Contract</em> (Form 39-11): What It Actually Changes",
+  "meta_title": "TREC 39-11 Amendment to Contract — The Ten Checkboxes Explained",
+  "meta_description": "How the TREC Amendment to Contract (Form 39-11, effective 07/01/2026, replacing 39-10) works — the ten things it can change on an already-executed contract.",
+  "eyebrow": "TREC Form 39-11",
+  "deck": "Ten checkboxes — the entire menu of things you're allowed to amend on a signed TREC contract.",
+  "show_calculator": false,
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 39-11 Amendment to Contract — the ten checkboxes that cover every way to change an already-signed contract.",
+  "body_html": "<p>TREC's Amendment form is renumbering: the version effective 07/01/2026 is <strong>TREC No. 39-11</strong>, replacing TREC No. 39-10 (the printed form text carries a revision date of 05-04-2026). It's used to modify a contract after it has already been signed by the parties — the form frames it as: \"Seller and Buyer amend the contract as follows,\" with ten checkboxes covering the full range of changes TREC's form allows.</p><h2>The ten things you can check</h2><ol><li><strong>Sales price.</strong> Broken into cash portion payable at closing, the sum of financing described in the contract, and the total sales price (the sum of both).</li><li><strong>Additional repairs and treatments</strong> the seller will complete at seller's expense, beyond what the contract already requires. The form notes Paragraph 7 of the contract governs completion, documentation, and transfer of warranties for repairs and treatments.</li><li><strong>Closing date</strong> — the date in Paragraph 9 of the contract.</li><li><strong>The amount in Paragraph 12A(1)(b)</strong> of the contract.</li><li><strong>The amounts in Paragraph 12B</strong> — how much seller and/or buyer will pay, each as either a flat dollar amount or a percentage of the sales price.</li><li><strong>Cost of lender-required repairs and treatment</strong>, itemized on an attached list, split by dollar amount between seller and buyer.</li><li><strong>An additional option fee</strong> the buyer pays the seller to extend the unrestricted right to terminate the contract, through a specific date and time (the form specifies 5:00 p.m.) — with a checkbox for whether this additional fee will or will not be credited to the sales price.</li><li><strong>Buyer waives the unrestricted right to terminate</strong> the contract for which the option fee was originally paid.</li><li><strong>The date for buyer to give written notice</strong> that Buyer cannot obtain Buyer Approval, as set forth in the Third Party Financing Addendum, changed to a new date.</li><li><strong>Other modifications</strong> — with the form's own caution printed directly beside the checkbox: \"Real estate brokers and sales agents are prohibited from practicing law.\"</li></ol><div class=\"callout\"><strong>Consult an attorney before signing.</strong> The form repeats this warning in bold directly above the signature block: \"TREC rules prohibit real estate brokers and sales agents from giving legal advice. READ THIS FORM CAREFULLY.\"</div><h2>Execution line</h2><p>The form closes with: \"EXECUTED the ____ day of ____________, 20____. (BROKER: FILL IN THE DATE OF FINAL ACCEPTANCE.)\" — a date distinct from the original contract's Effective Date, and one the form explicitly assigns to the broker to complete.</p>",
+  "faq": [
+    {
+      "q": "What is the current TREC form number for a contract amendment?",
+      "a": "TREC No. 39-11, effective 07/01/2026, replacing TREC No. 39-10. TREC form numbers get renumbered periodically — always confirm the current number and version on trec.texas.gov before use."
+    },
+    {
+      "q": "Can an Amendment to Contract change the closing date?",
+      "a": "Yes — checkbox (3) on the form changes the date in Paragraph 9 of the contract."
+    },
+    {
+      "q": "Can a buyer extend the option period using the Amendment form?",
+      "a": "Yes. Checkbox (7) lets the buyer pay the seller an additional option fee to extend the unrestricted right to terminate through a specified date at 5:00 p.m., with a checkbox for whether that additional fee will be credited to the sales price."
+    },
+    {
+      "q": "Can an agent draft custom language in the \"Other Modifications\" box?",
+      "a": "The form allows it, but prints its own caution directly next to the checkbox: real estate brokers and sales agents are prohibited from practicing law. For anything beyond simple business terms, involve an attorney."
+    },
+    {
+      "q": "Who fills in the execution date on the Amendment to Contract?",
+      "a": "The form specifically instructs: \"BROKER: FILL IN THE DATE OF FINAL ACCEPTANCE\" on the executed line at the bottom of the form."
+    }
+  ],
+  "related_guides": ["texas-option-period-explained", "trec-form-20-17-guide", "texas-earnest-money-rules"]
+}

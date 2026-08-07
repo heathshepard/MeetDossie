@@ -1,0 +1,36 @@
+{
+  "slug": "texas-unimproved-property-contract-guide",
+  "title": "Texas Unimproved Property Contract (TREC 9-18): What's Different From a Resale Contract",
+  "title_html": "Texas <em>Unimproved Property Contract</em> (TREC 9-18): What's Different",
+  "meta_title": "TREC 9-18 Unimproved Property Contract — How It Differs From 20-19",
+  "meta_description": "How the TREC 9-18 Unimproved Property Contract works for raw/platted land sales in Texas — property description, natural resource leases, and what it leaves out compared to a resale contract.",
+  "eyebrow": "TREC Form 9-18",
+  "deck": "Selling land instead of a house changes more than the property description — here's what the form actually adds and drops.",
+  "calculator_blurb": "The option period, earnest money, and title deadlines run the same way as any other TREC contract — check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 9-18 Unimproved Property Contract — how a raw-land sale differs from a standard resale contract.",
+  "body_html": "<p>The <strong>Unimproved Property Contract (TREC No. 9-18)</strong> is dated 05-04-2026 on the form itself; TREC's landing page lists an Effective Date of 07/01/2026. It replaces TREC No. 9-17. The form carries its own notice at the top: <strong>\"NOTICE: Not For Use For Condominium Transactions.\"</strong></p><h2>What \"unimproved\" means on this form</h2><p>TREC's landing page describes this contract as applying to \"property that does not have physical buildings, additions or fixtures on the land,\" generally used for property that \"has been platted (has a recorded Lot/Block legal description).\"</p><h2>Property description works differently</h2><p>Paragraph 2 describes the Property by Lot, Block, and Addition — the same platted-subdivision format used on the standard resale contract — rather than by structure or improvements, since there typically aren't any. Reservations for oil, gas, or other minerals, water, timber, or other interests are handled \"in accordance with an attached addendum,\" same as TREC's other current contracts.</p><h2>Natural Resource Leases get their own paragraph</h2><p>Paragraph 4B defines a \"Natural Resource Lease\" as \"an existing oil and gas, mineral, geothermal, water, wind, or other natural resource lease affecting the Property to which Seller is a party.\" If the seller is a party to one, the form requires a choice: either the seller has already delivered copies of all Natural Resource Leases, or the seller must deliver them within 3 days after the Effective Date — with a buyer termination right (earnest money refunded) if they aren't delivered within a negotiated number of days after the buyer actually receives them.</p><h2>What's missing compared to the Farm and Ranch Contract</h2><p>The Unimproved Property Contract's Paragraph 7 (Property Condition) does not include a dedicated \"Seller's Disclosure Notice Pursuant to §5.008, Texas Property Code\" paragraph with its own checkbox options — a section that does appear as its own lettered paragraph on the Farm and Ranch Contract (TREC 25-17). Paragraph 7E on the Unimproved Property Contract instead runs a shorter Seller's Disclosure checklist covering flooding, pending litigation, environmental hazards, dumpsites/underground tanks, wetlands, threatened/endangered species, floodplain status, and oak wilt — plus a separate Paragraph 7F for the Seller's Disclosure About Groundwater and Surface Water Rights.</p><div class=\"callout\"><strong>Flagged for confirmation:</strong> the form itself doesn't state why the §5.008 Seller's Disclosure Notice paragraph is structured differently on this contract than on the Farm and Ranch Contract — only that it isn't broken out the same way. Whether unimproved/vacant land sales are exempt from Property Code §5.008 disclosure requirements is a question for Texas Property Code §5.008(e) directly, not something sourced from trec.texas.gov's form text. Don't state an exemption as fact without pulling that statute.</div><h2>Survey and title sections track the standard contract closely</h2><p>Paragraph 6 (Title Policy and Survey) uses the same three survey options, the same Commitment/Exception Document delivery timelines, and the same buyer-objection structure as TREC's other current promulgated contracts. Paragraph 6E(2) points sellers concerned about mandatory HOA membership toward the separate Addendum for Property Subject to Mandatory Membership in a Property Owners Association (TREC 36-11) — the same cross-reference used on the resale and other contract forms.</p><h2>Closing, default, and everything downstream</h2><p>Paragraphs 9 through 21 — Closing, Possession, Special Provisions, Settlement and Expenses, Prorations and Rollback Taxes, Casualty Loss, Default, Mediation, Attorney's Fees, Escrow, Representations, Governmental Requirements, and Notices — track the same structure and language as TREC's other current residential and land contracts.</p>",
+  "faq": [
+    {
+      "q": "What's the difference between TREC 9-18 and a standard resale contract?",
+      "a": "The core structure is nearly identical, but 9-18 describes the Property by Lot/Block/Addition without an improvements list, adds a dedicated Natural Resource Lease provision in Paragraph 4B, and doesn't include the Farm and Ranch Contract's standalone Seller's Disclosure Notice paragraph."
+    },
+    {
+      "q": "Can TREC 9-18 be used for a condo?",
+      "a": "No. The form states directly at the top: \"NOTICE: Not For Use For Condominium Transactions.\""
+    },
+    {
+      "q": "What is a Natural Resource Lease under TREC 9-18?",
+      "a": "Paragraph 4B defines it as an existing oil and gas, mineral, geothermal, water, wind, or other natural resource lease affecting the Property to which the Seller is a party. If one exists, the seller must either have already delivered copies to the buyer or deliver them within 3 days after the Effective Date."
+    },
+    {
+      "q": "Does TREC 9-18 include the Seller's Disclosure Notice?",
+      "a": "It doesn't include a standalone Seller's Disclosure Notice (§5.008) paragraph the way the Farm and Ranch Contract does. Paragraph 7E instead runs a shorter Seller's Disclosure checklist. Whether the statute itself exempts unimproved land sales is a separate question sourced from Texas Property Code §5.008(e), not from the TREC form text."
+    },
+    {
+      "q": "What TREC form does 9-18 replace?",
+      "a": "TREC No. 9-17."
+    }
+  ],
+  "related_guides": ["trec-form-20-17-guide", "texas-hoa-addendum-guide", "texas-third-party-financing-addendum"]
+}

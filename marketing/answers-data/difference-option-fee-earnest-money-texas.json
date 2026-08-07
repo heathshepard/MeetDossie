@@ -1,0 +1,29 @@
+{
+  "slug": "difference-option-fee-earnest-money-texas",
+  "title": "What's the Difference Between the Option Fee and Earnest Money in Texas?",
+  "title_html": "<em>Option Fee</em> vs. <em>Earnest Money</em> in Texas: What's the Difference?",
+  "meta_title": "Option Fee vs. Earnest Money in Texas — Two Deposits, Two Rules",
+  "meta_description": "The option fee and earnest money are both paid under TREC ¶ 5A, but they're held differently, refunded differently, and serve completely different purposes.",
+  "deck": "Same paragraph, same check sometimes — two completely different deposits with two completely different rules.",
+  "updated_at": "2026-08-06",
+  "tldr": "Both are set up in TREC Paragraph 5A, but they're different deposits with different rules. The option fee is non-refundable consideration paid to the seller for the buyer's right to terminate during the option period; it's forfeited if the deal doesn't close, unless the parties checked the box crediting it to the sales price. Earnest money is a refundable good-faith deposit held by the escrow agent (usually the title company) and is refunded to the buyer whenever the buyer terminates under an actual contract right.",
+  "body_html": "<h2>Side by side</h2><table class=\"compare-table\"><thead><tr><th>Feature</th><th>Option fee</th><th>Earnest money</th></tr></thead><tbody><tr><td>Purpose</td><td>Consideration for the option-period right</td><td>Good-faith deposit toward the sale</td></tr><tr><td>Refundable if buyer terminates during the option period?</td><td>No</td><td>Yes</td></tr><tr><td>Held by</td><td>Seller</td><td>Escrow agent (title company)</td></tr><tr><td>Credited to sales price at closing?</td><td>Only if the corresponding box in ¶ 5A is checked</td><td>Yes — applied to closing costs or down payment</td></tr></tbody></table><h2>Why the option fee isn't refundable</h2><p>The option fee is what the buyer pays for the right itself — the right to walk away for any reason during the option period. Because it's consideration for a right the buyer is actually getting (whether or not they use it), the seller keeps it even if the buyer terminates during the option period. The only way it comes back to the buyer is if the deal actually closes and the parties checked the box in Paragraph 5A crediting the option fee toward the sales price.</p><h2>Why earnest money is different</h2><p>Earnest money is a signal of good-faith commitment toward the purchase, not payment for a specific right. It's held by a neutral third party — the escrow agent, typically the title company — rather than going directly to the seller. It's generally refundable to the buyer any time the buyer terminates under an actual right in the contract: during the option period, for unresolved title objections, for a financing failure under the Third Party Financing Addendum, or for a casualty loss before closing.</p><h2>Where they overlap</h2><p>Both deposits get set up in the same paragraph of the contract — Paragraph 5A — and are often written in on the same form at the same time the contract is signed. That's likely why the two get confused. But they move in opposite directions if the deal falls apart during the option period: the buyer gets earnest money back, and the seller keeps the option fee.</p>",
+  "faq": [
+    {
+      "q": "If a buyer terminates during the option period, do they get their money back?",
+      "a": "The earnest money, yes — it's refunded. The option fee, no — it's non-refundable consideration for the right to terminate, and the seller keeps it."
+    },
+    {
+      "q": "Who holds the option fee versus earnest money in Texas?",
+      "a": "The option fee is paid directly to the seller. Earnest money is held by a neutral escrow agent, typically the title company, in a trust account."
+    },
+    {
+      "q": "Can the option fee be credited toward the sales price?",
+      "a": "Only if the parties checked the box for that in Paragraph 5A, and only if the deal actually closes. If the deal terminates during the option period, the fee isn't credited — the seller simply keeps it."
+    },
+    {
+      "q": "Are the option fee and earnest money set up in the same paragraph of the contract?",
+      "a": "Yes, both are addressed in Paragraph 5A of the TREC contract, which is likely why the two get confused despite having opposite refund rules."
+    }
+  ]
+}

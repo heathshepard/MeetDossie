@@ -1,0 +1,36 @@
+{
+  "slug": "texas-fixture-leases-addendum-guide",
+  "title": "Texas Fixture Leases Addendum (TREC 52-1): Solar Panels, Propane Tanks & More",
+  "title_html": "Texas <em>Fixture Leases</em> Addendum (TREC 52-1): Solar Panels, Propane Tanks & More",
+  "meta_title": "TREC 52-1 Fixture Leases Addendum — Solar Panels, Propane Tanks, Security Systems",
+  "meta_description": "How the TREC 52-1 Addendum Regarding Fixture Leases handles leased solar panels, propane tanks, water softeners, and security systems in a Texas home sale.",
+  "eyebrow": "TREC Form 52-1",
+  "deck": "Solar panels bolted to the roof aren't always owned by the seller. This is the form that sorts out who's actually stuck with the lease.",
+  "calculator_blurb": "The underlying contract's option period and closing deadlines still run on their own track — check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 52-1 Addendum Regarding Fixture Leases — how leased solar panels, propane tanks, water softeners, and security systems get assumed or removed before closing.",
+  "body_html": "<p>The <strong>Addendum Regarding Fixture Leases (TREC No. 52-1)</strong> is dated 11-07-2022. It exists because not every fixture attached to a house is actually owned by the seller — solar panels, propane tanks, water softeners, and security systems are commonly leased, and a standard resale contract's fixtures language doesn't cover a lease the seller doesn't own outright.</p><h2>What counts as a \"Leased Fixture\"</h2><p>Paragraph A defines Leased Fixtures as fixtures in or on the property that the seller leases and does <strong>not</strong> own — the form's own checkbox examples are solar panels, propane tanks, water softener, and security system, plus an open line for anything else. All rights to them are governed by whatever Fixture Lease is actually in place.</p><h2>Assumption is negotiated cost by cost</h2><p>Paragraph A(1) has the buyer assume, and the seller assign, whichever specific Fixture Leases are checked. The cost split isn't automatic — the form has the buyer pay the first negotiated dollar amount of any cost necessary to assume or receive an assignment of the leases, with the seller covering the remainder. Both parties agree to sign whatever documents the lessor requires to complete the assumption or assignment.</p><h2>What happens to fixtures the buyer doesn't assume</h2><p>Paragraph A(2) addresses Leased Fixtures the buyer isn't taking on: the seller will or will not remove them prior to closing (checkbox), and if removed, the seller is responsible for repairing any resulting damage to the property. The form adds a direct notice: <strong>any Leased Fixture that stays behind remains subject to the lessor's rights under the Fixture Lease</strong> — buying the house doesn't extinguish the lessor's claim on equipment the buyer didn't formally assume.</p><h2>Delivery of the actual lease documents</h2><p>Paragraph B has three options: buyer already has copies of all the Fixture Leases being assumed; buyer hasn't received them yet, in which case the seller must provide copies within <strong>5 days after the Effective Date</strong>, and the buyer gets a termination right within 7 days after receiving them (earnest money refunded); or the seller discloses an <strong>oral</strong> Fixture Lease, identifying the lessee's name, rental amount, and term directly on the form or an attached exhibit.</p><div class=\"callout\"><strong>Liens follow the same logic as the assumption decision:</strong> Paragraph C states there will be no liens or security interests against Leased Fixtures left unsatisfied out of the sale proceeds — except for Leased Fixtures covered by leases the buyer has actually agreed to assume.</div><p>The addendum closes with a plain notice that seller and buyer should consult with the lessor and their own attorneys regarding assignment, assumption, or termination of any Fixture Lease — TREC doesn't resolve the lessor's own contract terms through this form, it only coordinates the transaction around them.</p>",
+  "faq": [
+    {
+      "q": "When does the Fixture Leases Addendum apply?",
+      "a": "When the property has fixtures the seller leases rather than owns outright — the form's own examples are solar panels, propane tanks, water softeners, and security systems."
+    },
+    {
+      "q": "Who pays to assume a leased solar panel system in a Texas home sale?",
+      "a": "It's negotiated. Paragraph A(1) has the buyer pay the first negotiated dollar amount of the cost to assume or receive an assignment of the Fixture Lease, with the seller paying whatever remains."
+    },
+    {
+      "q": "What if the buyer doesn't want to assume a leased fixture?",
+      "a": "The seller either removes it before closing (repairing any resulting damage) or leaves it in place — but the form notes any Leased Fixture left behind stays subject to the lessor's rights under the Fixture Lease, regardless of who now owns the house."
+    },
+    {
+      "q": "How long does the seller have to deliver copies of the fixture leases?",
+      "a": "5 days after the Effective Date, if the buyer hasn't already received them. The buyer then has 7 days after receiving the leases to terminate the contract, with earnest money refunded."
+    },
+    {
+      "q": "Does this addendum resolve disputes with the fixture's lessor?",
+      "a": "No. It coordinates the transaction, but the form directs both seller and buyer to consult with the lessor and their own attorneys regarding assignment, assumption, or termination of the actual Fixture Lease."
+    }
+  ],
+  "related_guides": ["texas-non-realty-items-addendum", "texas-hoa-addendum-guide", "trec-form-20-17-guide"]
+}

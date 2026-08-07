@@ -1,0 +1,29 @@
+{
+  "slug": "attorney-needed-for-real-estate-amendment-texas",
+  "title": "Do I Need an Attorney to Write a Real Estate Amendment in Texas?",
+  "title_html": "Do I Need an <em>Attorney</em> to Write a Real Estate Amendment in Texas?",
+  "meta_title": "Do You Need an Attorney for a TREC Amendment? — What the Form Itself Says",
+  "meta_description": "TREC's own Amendment to Contract form warns to consult an attorney before signing — and bars agents from drafting custom language in the Other Modifications box.",
+  "deck": "The form answers this one itself, in bold, twice.",
+  "updated_at": "2026-08-06",
+  "tldr": "Not for filling in the standard checkboxes on TREC's Amendment to Contract form — those are pre-written by TREC (price, closing date, repairs, option fee extension, and so on). But the form itself carries a bolded warning to consult an attorney before signing, and specifically prohibits real estate agents from practicing law when drafting custom language in the \"Other Modifications\" box. For anything beyond the form's built-in checkboxes, the form's own text says to involve an attorney.",
+  "body_html": "<h2>What the form itself says</h2><p>TREC's Amendment to Contract (currently Form 39-11) repeats the same warning in bold directly above the signature block: \"CONSULT AN ATTORNEY BEFORE SIGNING: TREC rules prohibit real estate brokers and sales agents from giving legal advice. READ THIS FORM CAREFULLY.\" That's the form's own answer, not a generalization — it's printed on the document itself.</p><h2>The standard checkboxes don't require custom drafting</h2><p>Most amendments don't involve writing original legal language at all. The form gives nine pre-written checkbox options covering the overwhelming majority of what actually needs to change on a signed contract: sales price, additional repairs under Paragraph 7, the closing date, financing-related dollar amounts, an additional option fee to extend the unrestricted termination right (with its own 5:00 p.m. deadline field), a buyer's waiver of that right, and a changed financing-notice date. Filling in a blank on one of these pre-built boxes isn't drafting legal language — it's completing a form TREC already wrote.</p><h2>Where the line actually gets drawn: \"Other Modifications\"</h2><p>The tenth checkbox — \"Other Modifications\" — is where custom language goes, and it's also where the form places its most specific caution: printed directly beside that checkbox is the warning that \"real estate brokers and sales agents are prohibited from practicing law.\" That's a narrower, sharper warning than the general attorney-consult language above the signature block — it's aimed specifically at agents who might be tempted to draft custom contract terms themselves.</p><h2>Bottom line from the form's own text</h2><p>For the nine standard, pre-written checkboxes, the form doesn't say an attorney is required to use them. For anything going into \"Other Modifications\" beyond simple, unambiguous business terms, the form's own printed caution is explicit: agents aren't permitted to draft that language, because doing so would be practicing law.</p>",
+  "faq": [
+    {
+      "q": "Does TREC's Amendment form require an attorney to fill in the standard checkboxes?",
+      "a": "The form doesn't state that requirement for its nine pre-written checkboxes — sales price, closing date, repairs, and so on are TREC's own language with blanks to fill in, not custom drafting."
+    },
+    {
+      "q": "Can a real estate agent write custom terms in the \"Other Modifications\" box?",
+      "a": "The form allows the box to be used, but prints its own caution directly beside it: real estate brokers and sales agents are prohibited from practicing law. For anything beyond simple business terms, the form points to an attorney."
+    },
+    {
+      "q": "What warning does the Amendment to Contract form give about legal advice?",
+      "a": "It states in bold, directly above the signature block: \"CONSULT AN ATTORNEY BEFORE SIGNING: TREC rules prohibit real estate brokers and sales agents from giving legal advice. READ THIS FORM CAREFULLY.\""
+    },
+    {
+      "q": "Is filling in a dollar amount on a pre-written amendment checkbox the same as drafting legal language?",
+      "a": "No — TREC already wrote the operative language for those nine checkboxes. Completing a blank within TREC's own pre-approved wording is different from originating custom contract terms in the \"Other Modifications\" box."
+    }
+  ]
+}

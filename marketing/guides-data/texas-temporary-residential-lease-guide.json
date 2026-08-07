@@ -1,0 +1,36 @@
+{
+  "slug": "texas-temporary-residential-lease-guide",
+  "title": "Texas Temporary Residential Leases (TREC 16-7 & 15-7): Buyer vs. Seller Possession",
+  "title_html": "Texas <em>Temporary Residential Leases</em>: Buyer vs. Seller Possession",
+  "meta_title": "TREC 16-7 & 15-7 — Buyer's and Seller's Temporary Residential Leases",
+  "meta_description": "How TREC's two temporary residential lease forms work — Buyer's Temporary Residential Lease (16-7) for early possession before closing, Seller's Temporary Residential Lease (15-7) for staying after closing.",
+  "eyebrow": "TREC Forms 16-7 & 15-7",
+  "deck": "Two leases, two directions — one lets the buyer move in early, the other lets the seller stay put.",
+  "calculator_blurb": "Both leases are capped at 90 days by the forms themselves — check your closing timeline against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 16-7 and 15-7 — the temporary lease forms for early buyer possession and post-closing seller occupancy.",
+  "body_html": "<p>TREC publishes two mirror-image lease forms for short-term possession around a closing: the <strong>Buyer's Temporary Residential Lease (TREC No. 16-7)</strong> and the <strong>Seller's Temporary Residential Lease (TREC No. 15-7)</strong>. Both are dated 11-03-2025 on the form itself; TREC's landing pages list an Effective Date of 01/05/2026 for both. 16-7 replaces TREC No. 16-6; 15-7 replaces TREC No. 15-6. <strong>Both forms are capped at 90 days by their own notice line</strong> — 16-7 is \"for use only when BUYER occupies the property for no more than 90 days PRIOR to the closing,\" and 15-7 is \"for use only when SELLER occupies the property for no more than 90 days AFTER the closing.\"</p><h2>The roles flip depending on which lease</h2><p>On the Buyer's Temporary Residential Lease (16-7), the seller is Landlord and the buyer is Tenant — the buyer moves in before the sale closes. On the Seller's Temporary Residential Lease (15-7), the buyer is Landlord and the seller is Tenant — the seller stays after the sale closes. Both leases attach to the same underlying purchase Contract and reference it directly.</p><h2>Rent works differently depending on direction</h2><p>Under the Buyer's Lease (16-7), the tenant-buyer pays the <strong>full anticipated rental amount upfront at lease commencement</strong> — covering the period from the commencement date through the Contract's Closing Date. If the actual lease term ends up different from the anticipated term, any additional rent or reimbursement is settled at closing. The form is explicit that \"no portion of the rental will be applied to payment of any items covered by the Contract.\"</p><p>Under the Seller's Lease (15-7), the tenant-seller pays rent <strong>at the time of funding of the sale</strong> — the daily rate excludes the day of closing itself — and the tenant isn't entitled to a rent refund if the lease ends early due to their own default or voluntary surrender.</p><h2>Deposits and termination mechanics also differ</h2><p>On the Buyer's Lease, the deposit is paid before or at lease commencement, and the form notes it \"must be in addition to the earnest money under the Contract.\" If the lease is terminated before closing, the landlord-seller can use the deposit against tenant obligations and must refund any unused portion within 30 days after the tenant surrenders possession and gives a forwarding address. If the lease instead runs to closing and funding, the deposit is refunded to the tenant-buyer at closing.</p><p>The Buyer's Lease terminates on whichever happens first: (a) closing and funding of the sale, (b) termination of the Contract before closing, (c) the tenant's default under the lease, or (d) the tenant's default under the Contract. The Seller's Lease has a simpler termination trigger: expiration of the lease term specified in Paragraph 3, or the tenant's default under the lease.</p><h2>What both forms share</h2><ul><li><strong>Default:</strong> if the tenant fails to perform and doesn't begin fixing it within 24 hours of the landlord's notice, the tenant is in default.</li><li><strong>Holding over:</strong> any possession after termination creates a tenancy at sufferance, not a renewal, and the tenant owes a daily damages rate on top of any other remedies.</li><li><strong>Smoke alarms:</strong> both forms include the line \"Tenant expressly waives Landlord's duty to inspect and repair smoke alarms,\" even though the Texas Property Code otherwise requires landlords to install smoke alarms in certain locations at the landlord's expense.</li><li><strong>Security devices:</strong> both forms note that the Texas Property Code's security-device requirements don't apply to a residential lease with a term of 90 days or less.</li><li><strong>Insurance:</strong> both carry the same warning — \"CONSULT YOUR INSURANCE AGENT; POSSESSION OF THE PROPERTY BY [BUYER/SELLER] AS TENANT MAY CHANGE INSURANCE POLICY COVERAGE.\"</li><li><strong>Consult your attorney:</strong> both state plainly that real estate license holders cannot give legal advice and that the tenant should consult an attorney before signing if they don't understand the lease's effect.</li></ul>",
+  "faq": [
+    {
+      "q": "What's the maximum term for TREC's temporary residential lease forms?",
+      "a": "90 days. Both forms state it in their own notice line — 16-7 for the buyer occupying before closing, 15-7 for the seller occupying after closing."
+    },
+    {
+      "q": "What's the difference between TREC 16-7 and TREC 15-7?",
+      "a": "16-7 (Buyer's Temporary Residential Lease) lets the buyer move in before the sale closes, with the seller as landlord. 15-7 (Seller's Temporary Residential Lease) lets the seller stay after the sale closes, with the buyer as landlord. Rent timing, deposit handling, and termination triggers differ between the two."
+    },
+    {
+      "q": "When is rent due under the Buyer's Temporary Residential Lease?",
+      "a": "Upfront, at lease commencement, for the full anticipated term (commencement date through the Contract's Closing Date). Any difference between the anticipated and actual term is trued up at closing."
+    },
+    {
+      "q": "Does the temporary lease deposit count as part of the earnest money?",
+      "a": "No. The Buyer's Temporary Residential Lease states the deposit must be in addition to the earnest money under the Contract — they're separate funds."
+    },
+    {
+      "q": "Do TREC's temporary residential leases require smoke alarm inspections?",
+      "a": "No. Both forms include the line \"Tenant expressly waives Landlord's duty to inspect and repair smoke alarms,\" even though the Texas Property Code otherwise requires landlords to install smoke alarms in certain locations."
+    }
+  ],
+  "related_guides": ["texas-real-estate-closing-checklist", "trec-form-20-17-guide", "texas-earnest-money-rules"]
+}

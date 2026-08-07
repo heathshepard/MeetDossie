@@ -1,0 +1,36 @@
+{
+  "slug": "texas-mineral-rights-reservation-addendum",
+  "title": "Texas Mineral Rights Reservation Addendum (TREC 44-3) Explained",
+  "title_html": "Texas <em>Mineral Rights Reservation</em> Addendum (TREC 44-3) Explained",
+  "meta_title": "TREC 44-3 Mineral Rights Addendum — Reservation of Oil, Gas & Minerals",
+  "meta_description": "How the TREC 44-3 Addendum for Reservation of Oil, Gas, and Other Minerals works — what the Mineral Estate includes, how sellers reserve it, and what surface rights they can waive.",
+  "eyebrow": "TREC Form 44-3",
+  "deck": "Almost every Texas sale touches mineral rights somewhere in the chain of title. This is the form that reserves them.",
+  "calculator_blurb": "This addendum doesn't add its own contract deadlines — the underlying contract's option period, earnest money, and closing dates still control. Check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 44-3 Addendum for Reservation of Oil, Gas, and Other Minerals — what the Mineral Estate covers and how a seller reserves it.",
+  "body_html": "<p>The <strong>Addendum for Reservation of Oil, Gas, and Other Minerals (TREC No. 44-3)</strong> is dated 11-07-2022 on the form and replaces TREC No. 44-2. Its own notice is blunt about when to use it: <strong>\"For use ONLY if Seller reserves all or a portion of the Mineral Estate.\"</strong> If the seller is conveying everything, this addendum doesn't attach at all.</p><h2>What \"Mineral Estate\" actually means on this form</h2><p>Paragraph A defines it precisely: \"all oil, gas, and other minerals in and under and that may be produced from the Property, any royalty under any existing or future mineral lease covering any part of the Property, executive rights (including the right to sign a mineral lease covering any part of the Property), implied rights of ingress and egress, exploration and development rights, production and drilling rights, mineral lease payments, and all related rights and benefits.\"</p><p>It draws a specific line on what's excluded: <strong>water, sand, gravel, limestone, building stone, caliche, surface shale, near-surface lignite, and iron are NOT part of the Mineral Estate</strong> — but the Mineral Estate DOES include the reasonable use of those surface materials for mining, drilling, exploring, operating, developing, or removing the oil, gas, and other minerals.</p><h2>Two ways to reserve, one checkbox</h2><p>Paragraph B gives the seller exactly two reservation options (check one):</p><ol><li><strong>Reserve all</strong> of the Mineral Estate the seller owns.</li><li><strong>Reserve an undivided interest</strong> — a blank for a specific percentage or fraction. The form adds a direct note here: if the seller doesn't own the entire Mineral Estate to begin with, the seller reserves only that percentage or fraction of whatever interest the seller actually has.</li></ol><h2>Surface access — a separate election with a default</h2><p>Paragraph C asks whether the seller does or does not waive rights of ingress and egress and reasonable use of the property (including surface materials) for mining, drilling, exploring, operating, developing, or removing the minerals. Two things worth flagging directly from the form text:</p><ul><li>Surface rights held by <strong>other</strong> owners of the Mineral Estate who aren't parties to this transaction — including existing mineral lessees — are <strong>not affected</strong> by whatever the seller elects here.</li><li><strong>If Paragraph C is left blank</strong>, the form treats that as an election to convey all surface rights described in the paragraph. Silence here isn't neutral — it defaults to conveying, not reserving.</li></ul><h2>Existing mineral lessee contact info</h2><p>Paragraph D requires that if the seller does <strong>not</strong> reserve all of their interest in the Mineral Estate, the seller must, within 7 days after the Effective Date, give the buyer the current contact information for any existing mineral lessee known to the seller.</p><div class=\"callout\"><strong>The form's own warning, verbatim:</strong> \"A full examination of the title to the Property completed by an attorney with expertise in this area is the only proper means for determining title to the Mineral Estate with certainty. In addition, attempts to convey or reserve certain interest out of the Mineral Estate separately from other rights and benefits owned by Seller may have unintended consequences.\" The form closes with the standard TREC caution: agents can't practice law, and both sides are \"strongly encouraged to consult an attorney with expertise in this area\" if there are questions about mineral rights.</div>",
+  "faq": [
+    {
+      "q": "When does the mineral rights addendum get used?",
+      "a": "Only when the seller is reserving all or part of the Mineral Estate. TREC No. 44-3's own notice states it's \"For use ONLY if Seller reserves all or a portion of the Mineral Estate\" — if seller conveys everything, this addendum doesn't attach."
+    },
+    {
+      "q": "What counts as the Mineral Estate under TREC 44-3?",
+      "a": "Oil, gas, and other minerals in, under, and produced from the property, plus royalties, executive rights, ingress/egress rights, and exploration/production/development rights. It specifically excludes water, sand, gravel, limestone, building stone, caliche, surface shale, near-surface lignite, and iron — though it does include reasonable surface use of those materials to extract the minerals."
+      },
+    {
+      "q": "What happens if the seller doesn't check a box for surface access rights?",
+      "a": "Paragraph C states that if the seller doesn't complete that section, it's treated as an election to convey all the surface rights described in that paragraph — the default is conveying, not reserving."
+    },
+    {
+      "q": "Does reserving mineral rights affect an existing mineral lessee's surface access?",
+      "a": "No. The form states directly that surface rights held by other owners of the Mineral Estate who aren't parties to the transaction — including existing mineral lessees — are not affected by the seller's election under Paragraph C."
+    },
+    {
+      "q": "Does the seller have to tell the buyer about an existing mineral lease?",
+      "a": "If the seller doesn't reserve all of their mineral interest, yes — Paragraph D requires the seller to give the buyer the current contact information for any existing mineral lessee known to the seller, within 7 days after the Effective Date."
+    }
+  ],
+  "related_guides": ["trec-form-20-17-guide", "texas-farm-and-ranch-contract-guide", "trec-amendment-to-contract-guide"]
+}

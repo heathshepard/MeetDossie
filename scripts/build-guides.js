@@ -15,6 +15,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'marketing', 'guides-data');
+const ANSWERS_DATA_DIR = path.join(ROOT, 'marketing', 'answers-data');
 const OUT_DIR = path.join(ROOT, 'guides');
 const SITEMAP = path.join(ROOT, 'sitemap.xml');
 
@@ -120,6 +121,7 @@ function template(g, allGuides) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/calculator-widget.css">
+<script src="/assets/posthog-loader.js"></script>
 
 <script type="application/ld+json">${renderArticleSchema(g)}</script>
 <script type="application/ld+json">${renderBreadcrumbSchema(g.slug, g.title)}</script>
@@ -211,7 +213,7 @@ main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px s
 
 <nav>
   <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
-  <a href="/founding" class="nav-cta">Founding Member — $29/mo</a>
+  <a href="/app" class="nav-cta">Get Started</a>
 </nav>
 
 <div class="crumbs">
@@ -237,7 +239,7 @@ ${calculatorBlock}
 <section class="cta-block">
   <h2>${escapeHtml(g.cta_title || 'Stop tracking deadlines manually.')}</h2>
   <p>${escapeHtml(g.cta_sub || 'Dossie tracks every TREC deadline for every active deal — plus follow-ups, document QA, and contract scanning. Built for Texas agents.')}</p>
-  <a class="cta-btn" href="/founding">Lock in $29/mo founding pricing →</a>
+  <a class="cta-btn" href="/app">Start for $79/mo →</a>
 </section>
 
 ${g.faq && g.faq.length ? `
@@ -254,6 +256,24 @@ ${renderRelated(g.related_guides, allGuides)}
 
 ${g.show_calculator !== false ? '<script src="/assets/trec-engine.js"></script>\n<script src="/assets/calculator-widget.js"></script>' : ''}
 
+<script>
+// Analytics: fire guide_page_viewed with page_type/slug so Pierce can compare
+// which guides actually get traffic. Wrapped in posthog:ready — see
+// founding.html for why (pre-boot stub queue isn't reliably read by array.js).
+(function () {
+  try {
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('guide_page_viewed', {
+          page_type: 'guide',
+          page_slug: ${JSON.stringify(g.slug)},
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+</script>
+
 </body>
 </html>
 `;
@@ -266,6 +286,19 @@ function loadGuides() {
     const data = JSON.parse(raw);
     if (!data.slug) data.slug = f.replace(/\.json$/, '');
     return data;
+  });
+}
+
+// Answer pages (marketing/answers-data/*.json -> /answers/<slug>) are built by a
+// separate script, but the sitemap needs their slugs too so those live pages
+// don't silently drop out of search. Same read-the-data-dir pattern as guides.
+function loadAnswerSlugs() {
+  if (!fs.existsSync(ANSWERS_DATA_DIR)) return [];
+  const files = fs.readdirSync(ANSWERS_DATA_DIR).filter((f) => f.endsWith('.json'));
+  return files.map((f) => {
+    const raw = fs.readFileSync(path.join(ANSWERS_DATA_DIR, f), 'utf8');
+    const data = JSON.parse(raw);
+    return data.slug || f.replace(/\.json$/, '');
   });
 }
 
@@ -316,7 +349,7 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 </head><body>
 <nav>
   <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
-  <a href="/founding" class="nav-cta">Founding Member — $29/mo</a>
+  <a href="/app" class="nav-cta">Get Started</a>
 </nav>
 <header>
   <div class="eyebrow">For Texas agents</div>
@@ -332,14 +365,25 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 
 function writeSitemap(allGuides) {
   const lastmod = new Date().toISOString().split('T')[0];
+  const answerSlugs = loadAnswerSlugs();
   const urls = [
     'https://meetdossie.com/',
+    'https://meetdossie.com/learn',
+    'https://meetdossie.com/faq',
+    'https://meetdossie.com/help',
+    'https://meetdossie.com/app/help',
     'https://meetdossie.com/calculator',
     'https://meetdossie.com/founding',
     'https://meetdossie.com/agents/',
     'https://meetdossie.com/coordinators/',
     'https://meetdossie.com/guides/',
     ...allGuides.map((g) => `https://meetdossie.com/guides/${g.slug}`),
+    // guides/trec-july-2026 is a hand-authored page (not driven by a
+    // marketing/guides-data/*.json file), so it doesn't show up in allGuides.
+    // It's still a live route — keep it listed.
+    'https://meetdossie.com/guides/trec-july-2026',
+    'https://meetdossie.com/answers/',
+    ...answerSlugs.map((slug) => `https://meetdossie.com/answers/${slug}`),
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

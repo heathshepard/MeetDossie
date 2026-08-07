@@ -1,0 +1,29 @@
+{
+  "slug": "does-amendment-need-both-signatures-texas",
+  "title": "Does the Amendment to Contract Need Both Parties' Signatures in Texas?",
+  "title_html": "Does the <em>Amendment to Contract</em> Need Both Signatures in Texas?",
+  "meta_title": "Does a TREC Amendment Need Both Signatures? — Executed vs. Signed",
+  "meta_description": "A TREC Amendment to Contract isn't executed until both the buyer and seller sign it. A one-sided signature — even minutes before a deadline — doesn't count.",
+  "deck": "Signed by one party isn't the same as executed. A four-fifty-five deadline case shows exactly why the difference matters.",
+  "updated_at": "2026-08-06",
+  "tldr": "Yes. A TREC Amendment to Contract has to be signed by both the seller and the buyer to be considered executed. A one-sided signature doesn't count for anything — including preserving a deadline. TREC's guidance on repair amendments during the option period makes this explicit: a buyer-signed, seller-unsigned amendment at 4:55 PM on the option-expiry day is not an executed amendment.",
+  "body_html": "<h2>The form itself is framed as a two-party agreement</h2><p>The Amendment to Contract (currently TREC Form 39-11, effective 07/01/2026, replacing Form 39-10) is used to modify a contract that both parties already signed. The form's own opening language frames every change as something \"Seller and Buyer amend the contract as follows\" — not something either party can do unilaterally. The signature block at the bottom is where that gets made official: \"EXECUTED the ____ day of ____________, 20____,\" with an instruction for the broker to fill in the date of final acceptance — the date the amendment actually becomes binding, distinct from when either individual party first signed it.</p><h2>A signed-but-one-sided amendment isn't executed</h2><p>This isn't just a formality — it has real consequences on a live deal. The clearest example comes from repair amendments negotiated during the option period: those have to be executed, meaning signed by both parties, before the option period expires in order to count. A buyer who signs their half but doesn't get the seller's signature back before the deadline hasn't actually locked anything in. A buyer-signed, seller-unsigned amendment sitting at 4:55 PM on the option-expiry day is not an executed amendment — it's just a proposal one side has agreed to.</p><h2>Why this matters beyond repairs</h2><p>The same logic applies to any of the ten types of changes the Amendment form covers — sales price, closing date, an additional option fee to extend the unrestricted right to terminate, a waiver of that right, or a changed financing-notice date. None of those changes are effective on the strength of one party's signature. If a deadline depends on an amendment being in place, don't treat a signature from only one side as good enough — confirm both signatures are back before you rely on it.</p>",
+  "faq": [
+    {
+      "q": "Is a TREC amendment binding if only the buyer has signed it?",
+      "a": "No. An amendment isn't executed until both the seller and the buyer have signed. A one-sided signature doesn't make the change effective."
+    },
+    {
+      "q": "What's the risk of relying on a one-sided signed amendment near a deadline?",
+      "a": "If a right depends on the amendment being executed by a certain deadline — like a repair agreement before the option period expires — a signature from only one party doesn't preserve that right. The clock keeps running as if nothing was agreed."
+    },
+    {
+      "q": "Who fills in the execution date on a TREC amendment?",
+      "a": "The form specifically instructs the broker to fill in the date of final acceptance on the execution line at the bottom of the form, once both parties have signed."
+    },
+    {
+      "q": "Does this two-signature requirement apply to all ten types of changes on the Amendment form?",
+      "a": "Yes — sales price changes, closing date changes, additional option fees, waivers of the option right, financing-notice date changes, and everything else on the form all require both parties' signatures to be effective."
+    }
+  ]
+}

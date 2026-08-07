@@ -1,0 +1,36 @@
+{
+  "slug": "texas-sale-of-other-property-addendum-guide",
+  "title": "TREC 10-6: Addendum for Sale of Other Property by Buyer, Explained",
+  "title_html": "TREC 10-6: <em>Sale of Other Property by Buyer</em> Addendum, Explained",
+  "meta_title": "TREC 10-6 Addendum — The Buyer's Contingency & Seller's Kick-Out Right",
+  "meta_description": "How the TREC 10-6 Addendum for Sale of Other Property by Buyer works — the contingency, the seller's kick-out notice, and how the buyer waives it.",
+  "eyebrow": "TREC Form 10-6",
+  "deck": "The contingency that lets a buyer close on your listing — and the kick-out clause that lets you keep showing it.",
+  "calculator_blurb": "The contingency date and the kick-out response window both need to land before the Closing Date — check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 10-6 — the buyer's home-sale contingency and the seller's kick-out right to require waiver.",
+  "body_html": "<p>The <strong>Addendum for Sale of Other Property by Buyer (TREC No. 10-6)</strong> is dated 12-05-11 and replaces TREC No. 10-5. TREC's landing page describes its purpose directly: \"This Addendum is used if the Buyers will be unable to buy the new property unless their existing property is sold and closed.\"</p><h2>Paragraph A — the contingency</h2><p>The contract becomes contingent on the buyer receiving proceeds from the sale of a specific property (address filled in) by a specific date (the Contingency). If the Contingency isn't satisfied or waived by that date, the contract terminates automatically and earnest money is refunded to the buyer. The form itself flags the obvious trap: \"NOTICE: The date inserted in this Paragraph should be no later than the Closing Date specified in Paragraph 9 of the contract.\"</p><h2>Paragraph B — the seller's kick-out right</h2><p>If the seller accepts a written offer to sell the property to someone else (a backup offer), the seller must notify the buyer of two things at once: (1) that the seller accepted the other offer, and (2) that the seller now requires the buyer to waive the Contingency. The buyer then has a negotiated number of days after that notice to waive — or the contract terminates automatically and earnest money is refunded to the buyer.</p><h2>Paragraph C — how the buyer waives</h2><p>Waiver only happens two ways at once: the buyer notifies the seller of the waiver, <strong>and</strong> deposits an additional dollar amount with the escrow agent as additional earnest money. Both are required — notice alone doesn't waive the Contingency.</p><h2>Paragraph D — what happens if the buyer waives and then can't close</h2><p>If the buyer waives the Contingency and then fails to close and fund solely because their other property's sale didn't come through, the buyer is in default, and the seller can pursue the remedies under Paragraph 15 of the contract — the same default remedies (specific performance, or terminate and keep earnest money) as any other buyer default.</p><div class=\"callout\"><strong>Time is of the essence.</strong> Paragraph E states it directly: \"For purposes of this Addendum time is of the essence; strict compliance with the times for performance stated herein is required.\" The Contingency date and the kick-out response window aren't soft deadlines.</div>",
+  "faq": [
+    {
+      "q": "What is the kick-out clause on TREC 10-6?",
+      "a": "Paragraph B. If the seller accepts another written offer to sell the property, the seller must notify the buyer of both the acceptance and the requirement to waive the Contingency. The buyer must waive within a negotiated number of days after that notice or the contract terminates automatically and earnest money is refunded."
+    },
+    {
+      "q": "How does a buyer waive the home-sale contingency under TREC 10-6?",
+      "a": "Two things are required at once, per Paragraph C: the buyer must notify the seller of the waiver, and deposit an additional negotiated dollar amount with the escrow agent as additional earnest money. Notice alone does not waive the Contingency."
+    },
+    {
+      "q": "What happens if a buyer waives the contingency and then can't close?",
+      "a": "Per Paragraph D, if the buyer waives the Contingency and then fails to close and fund solely due to non-receipt of proceeds from their own property's sale, the buyer is in default and the seller may exercise the remedies under Paragraph 15 of the contract."
+    },
+    {
+      "q": "What date should go in Paragraph A of TREC 10-6?",
+      "a": "The form's own notice says the date should be no later than the Closing Date specified in Paragraph 9 of the contract."
+    },
+    {
+      "q": "Does waiving the contingency require just a notice, or something more?",
+      "a": "Something more. Per Paragraph C, the buyer must both notify the seller of the waiver and deposit an additional dollar amount with the escrow agent as additional earnest money — the two happen together, not one or the other."
+    }
+  ],
+  "related_guides": ["texas-earnest-money-rules", "texas-option-period-explained", "trec-deadline-calculator"]
+}

@@ -1,0 +1,32 @@
+{
+  "slug": "texas-1031-exchange-addendum-guide",
+  "title": "Texas 1031 Exchange Addendum (TREC 60-0): What the Form Actually Does",
+  "title_html": "Texas <em>1031 Exchange</em> Addendum (TREC 60-0): What the Form Actually Does",
+  "meta_title": "TREC 60-0 Section 1031 Exchange Addendum — Texas Contract Guide",
+  "meta_description": "TREC No. 60-0 is a two-paragraph addendum that flags a Section 1031 exchange in a Texas contract and protects the non-exchanging party from added cost or delay — it doesn't set exchange deadlines or IRS mechanics.",
+  "eyebrow": "TREC Form 60-0",
+  "deck": "The addendum is two paragraphs long. Everything about deadlines, qualified intermediaries, and identification windows lives outside it.",
+  "calculator_blurb": "This addendum doesn't add its own contract deadlines — the underlying option period, earnest money, and closing dates still run the same way. Check them against the calculator below.",
+  "updated_at": "2026-08-06",
+  "related_blurb": "TREC 60-0 Addendum for Section 1031 Exchange — a short cooperation clause, not a substitute for IRS exchange mechanics.",
+  "body_html": "<p>The <strong>Addendum for Section 1031 Exchange (TREC No. 60-0)</strong>, dated 11-04-2024 on the form, is one of TREC's shortest addenda — two substantive paragraphs — and it's worth being precise about what it does and doesn't cover.</p><h2>What the form actually says</h2><p>Paragraph A is a checkbox: seller or buyer intends to use the property to accomplish an exchange of like-kind properties under Section 1031 of the Internal Revenue Code, as amended. Paragraph B is the entire operative commitment: <strong>\"The parties will reasonably cooperate to accomplish the exchange provided: (i) the non-exchanging party will not incur any additional expense or liability; and (ii) closing will not be delayed as a result of the exchange.\"</strong></p><h2>What it protects — and what it doesn't build</h2><p>That's the whole mechanism: a cooperation promise, bounded by two protections for whichever party <strong>isn't</strong> doing the exchange — no added cost, no added liability, and no delay to the Closing Date on their account. The form itself doesn't set an identification deadline, name a qualified intermediary, describe replacement-property rules, or reference any IRS timeline. Those mechanics come entirely from federal tax law and the exchanging party's own qualified intermediary arrangement — none of it is sourced from this TREC form, and none of it should be assumed or filled in without a tax professional's input. If a client is actually planning a 1031 exchange, this addendum documents the transaction's cooperation terms; it is not a substitute for exchange guidance from a CPA, 1031 qualified intermediary, or tax attorney.</p><div class=\"callout\"><strong>What this means for a listing or buyer-rep agreement:</strong> attaching TREC 60-0 signals the deal to the title company and the other side, and it locks in that the non-exchanging party won't be asked to eat extra cost or a delayed closing to accommodate the exchange. It does not, by itself, make the exchange happen — that's on the exchanging party's own tax and intermediary team, working outside this contract.</div>",
+  "faq": [
+    {
+      "q": "Does the TREC 1031 Exchange Addendum set the exchange deadlines?",
+      "a": "No. TREC No. 60-0 is two paragraphs — a checkbox naming which party intends the exchange, and a cooperation clause. It doesn't contain the IRS identification or closing deadlines, qualified intermediary requirements, or replacement-property rules that govern the actual exchange."
+    },
+    {
+      "q": "What does the 1031 exchange addendum protect the other party from?",
+      "a": "Paragraph B protects the non-exchanging party from two things specifically: incurring additional expense or liability because of the exchange, and having the Closing Date delayed as a result of it."
+    },
+    {
+      "q": "Do I need a tax professional if a client wants to attach the 1031 exchange addendum?",
+      "a": "Yes. The addendum only documents contractual cooperation — it doesn't perform or structure the exchange. The actual exchange mechanics run through federal tax law and a qualified intermediary, outside the scope of this TREC form."
+    },
+    {
+      "q": "Can either the buyer or the seller use the 1031 exchange addendum?",
+      "a": "Yes. Paragraph A lets either party check the box, since either the buyer or the seller could be the one accomplishing a like-kind exchange under Section 1031."
+    }
+  ],
+  "related_guides": ["texas-seller-financing-addendum-guide", "trec-form-20-17-guide", "texas-farm-and-ranch-contract-guide"]
+}
