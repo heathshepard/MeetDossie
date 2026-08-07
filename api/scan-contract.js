@@ -483,9 +483,10 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for either: (1) an explicit date, OR (2) a number of days (e.g., "within 10 days after effective date"). If you find a day count, calculate the deadline by adding those days to the contractEffectiveDate and return in yyyy-MM-dd format. If you find an explicit date, return it in yyyy-MM-dd format. If neither exists, return null. Do your best here, but this is a secondary check only — deterministic code re-derives this field from debugParagraph6C afterward and overrides a wrong or missing value, the same way optionDays is re-derived from debugParagraph5B. Getting this exactly right yourself is not critical; populating debugParagraph6C correctly is.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
 - loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
-- earnestMoneyReceiptDate — EARNEST MONEY RECEIPT BLOCK: TREC 20-x contracts end with a signature-block page titled "OPTION FEE RECEIPT" / "EARNEST MONEY RECEIPT" / "CONTRACT RECEIPT" / "ADDITIONAL EARNEST MONEY RECEIPT" (usually the very last page of the PDF, filled in by hand/DocuSign by the title company's escrow officer AFTER the contract is signed, not part of the numbered paragraphs 1-23). Find the "EARNEST MONEY RECEIPT" section specifically (do not confuse with "OPTION FEE RECEIPT" above it or "CONTRACT RECEIPT" below it — they are three separate boxes on the same page, each with their OWN handwritten date that is often DIFFERENT from the other two). It reads "Receipt of $[amount] earnest money in the form of [check#] is acknowledged" followed by "Escrow Agent / Received by / Email Address / Date/Time" signature line. Extract the date from THAT SPECIFIC "Date/Time" field, directly under "EARNEST MONEY RECEIPT" (e.g. "8/6/26" -> "2026-08-06") into earnestMoneyReceiptDate.
-  CRITICAL — DO NOT SUBSTITUTE THE CONTRACT EFFECTIVE DATE: this is a completely different date from contractEffectiveDate (which is near the signatures on the main contract, several pages earlier) and from the printed form-revision date stamp at the top of every page (e.g. "05-04-2026" next to "Page X of Y"). If you cannot find a handwritten date specifically in the EARNEST MONEY RECEIPT box, return null — never fall back to the effective date, the page-header date stamp, the option fee receipt date, or the contract receipt date, even though they're nearby and may look similar. All three receipt boxes are commonly signed on different days.
-  ALWAYS populate debugEarnestMoneyReceiptBlock with the exact verbatim text you read from the EARNEST MONEY RECEIPT box only (not the option fee or contract receipt boxes), including the handwritten Date/Time exactly as written — this is critical for troubleshooting a misread.
+- earnestMoneyReceiptDate — EARNEST MONEY RECEIPT BLOCK: TREC 20-x contracts end with a signature-block page titled "OPTION FEE RECEIPT" / "EARNEST MONEY RECEIPT" / "CONTRACT RECEIPT" / "ADDITIONAL EARNEST MONEY RECEIPT" (usually the very last page of the PDF, filled in by hand/DocuSign by the title company's escrow officer AFTER the contract is signed, not part of the numbered paragraphs 1-23). Find the "EARNEST MONEY RECEIPT" section specifically (do not confuse with "OPTION FEE RECEIPT" above it or "CONTRACT RECEIPT" below it — they are three separate boxes on the same page, each with their OWN handwritten date that CAN be different from the other two, though escrow officers commonly fill all three boxes in one sitting so the dates frequently match). It reads "Receipt of $[amount] earnest money in the form of [check#] is acknowledged" followed by "Escrow Agent / Received by / Email Address / Date/Time" signature line. Extract the date from THAT SPECIFIC "Date/Time" field, directly under "EARNEST MONEY RECEIPT" (e.g. "8/6/26" -> "2026-08-06") into earnestMoneyReceiptDate.
+  CRITICAL — DO NOT SUBSTITUTE THE CONTRACT EFFECTIVE DATE: this is a completely different date from contractEffectiveDate (which is near the signatures on the main contract, several pages earlier) and from the printed form-revision date stamp at the top of every page (e.g. "05-04-2026" next to "Page X of Y"). If you cannot find a handwritten date specifically in the EARNEST MONEY RECEIPT box, return null — never fall back to the effective date or the page-header date stamp.
+  CRITICAL — READ THE DIGIT SHAPES CAREFULLY, THIS HANDWRITING IS EASY TO MISREAD: a slanted "1" is commonly misread as an "11", and a "3" is commonly misread as a "2" with a stray pen mark, so "1/30/23" gets misread as "11/20/23" — a real, confirmed failure mode. Do not pattern-match to "a plausible-looking date"; trace each individual digit. Then CROSS-CHECK: read the handwritten "Date" fields in the neighboring OPTION FEE RECEIPT box (above) and CONTRACT RECEIPT box (below) on the same page too. Escrow officers very often fill all three boxes in one sitting, so those two dates are frequently IDENTICAL to the correct EARNEST MONEY RECEIPT date — if your first read of the EARNEST MONEY RECEIPT date disagrees with a clearer, more confident read of either neighboring date, that is a signal to re-examine your first read, not proof the dates differ. Only keep them as genuinely different if you can clearly and confidently read distinct digits in each box. Never copy a neighboring box's date when the EARNEST MONEY RECEIPT box's own Date/Time field is truly blank — this cross-check is for resolving an ambiguous/hard-to-read date already present in the box, not for filling in a missing one.
+  ALWAYS populate debugEarnestMoneyReceiptBlock with the exact verbatim text you read from the EARNEST MONEY RECEIPT box only (not the option fee or contract receipt boxes), including the handwritten Date/Time exactly as written — this is critical for troubleshooting a misread. Also populate debugOptionFeeReceiptDate and debugContractReceiptDate with the verbatim handwritten date (or null) from those two neighboring boxes, used only for the cross-check above.
 
 BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
 
@@ -544,6 +545,8 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "loanApprovalDeadline": string | null,       // yyyy-MM-dd; effective + financingDays
     "earnestMoneyReceiptDate": string | null,    // yyyy-MM-dd; date the escrow agent/title company acknowledged RECEIPT of the earnest money (see EARNEST MONEY RECEIPT BLOCK below) — NOT the same as the deadline to deliver it, NOT the contract effective date
     "debugEarnestMoneyReceiptBlock": string | null,  // DEBUG ONLY: ALWAYS POPULATE IF THE PAGE EXISTS. Verbatim text of the EARNEST MONEY RECEIPT box only (not option fee / contract receipt), including the handwritten Date/Time exactly as written.
+    "debugOptionFeeReceiptDate": string | null,  // DEBUG ONLY: verbatim handwritten Date from the neighboring OPTION FEE RECEIPT box, used only to cross-check a hard-to-read earnestMoneyReceiptDate. Null if that box's date is blank.
+    "debugContractReceiptDate": string | null,   // DEBUG ONLY: verbatim handwritten Date from the neighboring CONTRACT RECEIPT box, used only to cross-check a hard-to-read earnestMoneyReceiptDate. Null if that box's date is blank.
     "buyerAgent": string | null,                 // buyer's associate/agent name from broker info block
     "listingAgent": string | null,               // listing associate/agent name from broker info block
     "parties": {
@@ -658,6 +661,8 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "loanApprovalDeadline": number,
     "earnestMoneyReceiptDate": number,
     "debugEarnestMoneyReceiptBlock": number,
+    "debugOptionFeeReceiptDate": number,
+    "debugContractReceiptDate": number,
     "buyerAgent": number,
     "listingAgent": number,
     "parties.buyerAgentEmail": number,
@@ -784,6 +789,8 @@ function emptyResult(warning) {
       loanApprovalDeadline: null,
       earnestMoneyReceiptDate: null,
       debugEarnestMoneyReceiptBlock: null,
+      debugOptionFeeReceiptDate: null,
+      debugContractReceiptDate: null,
       buyerAgent: null,
       listingAgent: null,
       parties: {
@@ -1064,11 +1071,52 @@ async function scanContract(pdfBase64) {
     }
   }
 
+  // CRITICAL: Cross-check earnestMoneyReceiptDate against the two neighboring
+  // receipt boxes on the same page (debugOptionFeeReceiptDate /
+  // debugContractReceiptDate). Confirmed real failure mode 2026-08-07: a
+  // handwritten "1/30/23" was misread by the model as "11/20/23" — a
+  // plausible-looking but wrong date, not a blank field, so the null-fallback
+  // guard above never catches it. Escrow officers commonly sign all three
+  // boxes on a page in one sitting, so when the two neighboring dates agree
+  // with EACH OTHER but disagree with the model's own earnestMoneyReceiptDate
+  // read, that consensus is more trustworthy than the lone outlier — same
+  // "deterministic backstop beats a single free-form LLM read" pattern as the
+  // optionDays/earnestMoney/optionFee regex backstops above. If the two
+  // neighbors disagree with each other too, there's no consensus to trust —
+  // leave earnestMoneyReceiptDate exactly as extracted.
+  const parseHandwrittenDate = (raw) => {
+    if (typeof raw !== 'string') return null;
+    const m = raw.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{2,4})/);
+    if (!m) return null;
+    let [, mo, day, yr] = m;
+    mo = parseInt(mo, 10); day = parseInt(day, 10);
+    yr = yr.length === 2 ? 2000 + parseInt(yr, 10) : parseInt(yr, 10);
+    if (mo < 1 || mo > 12 || day < 1 || day > 31) return null;
+    return `${yr}-${String(mo).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+  const optionFeeReceiptDate = parseHandwrittenDate(extracted.debugOptionFeeReceiptDate);
+  const contractReceiptDate = parseHandwrittenDate(extracted.debugContractReceiptDate);
+  let earnestMoneyReceiptDateOverridden = false;
+  if (
+    optionFeeReceiptDate && contractReceiptDate &&
+    optionFeeReceiptDate === contractReceiptDate &&
+    extracted.earnestMoneyReceiptDate && extracted.earnestMoneyReceiptDate !== optionFeeReceiptDate
+  ) {
+    extracted.earnestMoneyReceiptDateModelRead = extracted.earnestMoneyReceiptDate; // debug trail only
+    extracted.earnestMoneyReceiptDate = optionFeeReceiptDate;
+    earnestMoneyReceiptDateOverridden = true;
+  }
+
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
 
   // Set confidence to 1.0 for auto-populated possessionDate (derived from closingDate)
   if (possessionAutoPopulated && extracted.possessionDate) {
     confidence.possessionDate = 1.0;
+  }
+  // Two-box consensus beats the model's own single read — same reasoning as
+  // possessionDate above.
+  if (earnestMoneyReceiptDateOverridden) {
+    confidence.earnestMoneyReceiptDate = Math.max(0.8, typeof confidence.earnestMoneyReceiptDate === 'number' ? confidence.earnestMoneyReceiptDate : 0);
   }
 
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.filter((w) => typeof w === 'string') : [];
