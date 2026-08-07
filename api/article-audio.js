@@ -173,10 +173,16 @@ module.exports = async (req, res) => {
     : text;
 
   try {
+    // eleven_turbo_v2_5, not eleven_multilingual_v2 — this is a live click-and-
+    // wait request, not an async cron render. multilingual_v2 (used for short
+    // pre-rendered voiceover clips in cron-render-videos.js) took 58-90s to
+    // synthesize a full article here; turbo is ElevenLabs' low-latency model
+    // and is what the other user-facing endpoints (api/voice/tts.js,
+    // api/speak.js) already use for exactly this reason.
     const { buffer, provider } = await generateSpeech(finalText, {
       elevenLabsVoiceId: LUNA_VOICE_ID,
       persona: 'luna',
-      elevenLabsModelId: 'eleven_multilingual_v2',
+      elevenLabsModelId: 'eleven_turbo_v2_5',
       voiceSettings: { stability: 0.5, similarity_boost: 0.75 },
     });
 
