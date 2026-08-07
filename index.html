@@ -134,6 +134,45 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
  .hero-title { letter-spacing: -1px; }
  .door { padding: 32px 28px; }
 }
+
+/* ---- Showcase: See Dossie in action ---- */
+.showcase { padding: 96px 28px 88px; background: var(--bg); border-top: 1px solid var(--border-light); }
+.showcase-head { text-align: center; max-width: 640px; margin: 0 auto 56px; }
+.showcase-eyebrow { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--coral-deep); text-transform: uppercase; margin-bottom: 14px; }
+.showcase-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(30px, 4vw, 44px); font-weight: 600; letter-spacing: -0.5px; color: var(--text-primary); line-height: 1.15; }
+.showcase-title em { font-style: italic; background: linear-gradient(135deg, var(--blush-deep) 0%, var(--sage-deep) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.showcase-sub { font-size: 15px; color: var(--text-secondary); margin-top: 14px; line-height: 1.7; }
+
+.browser-frame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(26,26,46,0.08); }
+.browser-chrome { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--bg-warm); border-bottom: 1px solid var(--border-light); }
+.browser-chrome .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.browser-chrome .dot-r { background: #E8836B; }
+.browser-chrome .dot-y { background: #C9A96E; }
+.browser-chrome .dot-g { background: #8BA888; }
+.browser-url { margin-left: 10px; font-size: 11.5px; color: var(--text-light); background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 100px; padding: 3px 12px; font-weight: 500; }
+.browser-frame img { display: block; width: 100%; height: auto; }
+
+.showcase-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px; align-items: center; max-width: 1180px; margin: 0 auto 72px; }
+.showcase-hero .browser-frame { border-radius: 20px; }
+.showcase-tag { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; background: var(--blush-light); color: var(--blush-deep); border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 18px; }
+.showcase-hero-caption h3 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 2.6vw, 30px); font-weight: 600; letter-spacing: -0.3px; color: var(--text-primary); line-height: 1.25; margin-bottom: 14px; }
+.showcase-hero-caption p { font-size: 14.5px; color: var(--text-secondary); line-height: 1.75; }
+
+.showcase-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1180px; margin: 0 auto; }
+.showcase-card .browser-frame { border-radius: 14px; margin-bottom: 16px; }
+.showcase-card h4 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.showcase-card p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+
+@media (max-width: 980px) {
+ .showcase-hero { grid-template-columns: 1fr; gap: 28px; }
+ .showcase-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+ .showcase { padding: 64px 20px 56px; }
+ .showcase-head { margin-bottom: 40px; }
+ .showcase-hero { margin-bottom: 48px; }
+ .showcase-grid { grid-template-columns: 1fr; gap: 32px; }
+}
 </style>
 </head>
 <body>
@@ -198,6 +237,64 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="proof-item"><div class="proof-num">96%</div><div class="proof-label">Cost savings vs. human TC</div></div>
   <div class="proof-item"><div class="proof-num">3x</div><div class="proof-label">TC capacity increase</div></div>
   <div class="proof-item"><div class="proof-num">0</div><div class="proof-label">Missed deadlines</div></div>
+ </div>
+</section>
+
+<section class="showcase">
+ <div class="showcase-head">
+  <span class="showcase-eyebrow">See Dossie in action</span>
+  <h2 class="showcase-title">Real screens. <em>Real transactions.</em></h2>
+  <p class="showcase-sub">No mockups, no stock photos — this is Dossie doing the actual work, on an actual file.</p>
+ </div>
+
+ <div class="showcase-hero">
+  <div class="browser-frame">
+   <div class="browser-chrome">
+    <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+    <span class="browser-url">meetdossie.com/workspace</span>
+   </div>
+   <img src="/assets/product/contract-scan.jpg" alt="Dossie scanning a TREC contract and flagging missing signatures, initials, and blank required fields" loading="lazy" width="1440" height="900">
+  </div>
+  <div class="showcase-hero-caption">
+   <span class="showcase-tag">The 8-second scan</span>
+   <h3>Upload a contract. Dossie reads the whole thing.</h3>
+   <p>Drop in any TREC contract and Dossie pulls every field automatically — then tells you exactly what's still missing: signatures, initials, blank required fields, addenda. No retyping a single line.</p>
+  </div>
+ </div>
+
+ <div class="showcase-grid">
+  <div class="showcase-card">
+   <div class="browser-frame">
+    <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+    <img src="/assets/product/morning-brief.jpg" alt="Dossie's Morning Brief showing active dossiers and escalated follow-ups" loading="lazy" width="1440" height="900">
+   </div>
+   <h4>Morning Brief</h4>
+   <p>Every deal, prioritized, before your coffee's done.</p>
+  </div>
+  <div class="showcase-card">
+   <div class="browser-frame">
+    <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+    <img src="/assets/product/pipeline.jpg" alt="Dossie's Pipeline dashboard organized by transaction stage" loading="lazy" width="1440" height="900">
+   </div>
+   <h4>Pipeline</h4>
+   <p>Every file, every stage, one board.</p>
+  </div>
+  <div class="showcase-card">
+   <div class="browser-frame">
+    <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+    <img src="/assets/product/deadlines.jpg" alt="Dossie tracking TREC deadlines computed automatically from contract dates" loading="lazy" width="1440" height="900">
+   </div>
+   <h4>Deadline Tracking</h4>
+   <p>TREC dates, computed and watched automatically.</p>
+  </div>
+  <div class="showcase-card">
+   <div class="browser-frame">
+    <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+    <img src="/assets/product/esign.jpg" alt="Sending a document for e-signature directly from Dossie" loading="lazy" width="1440" height="900">
+   </div>
+   <h4>E-Signature</h4>
+   <p>Send for signature in two clicks. No extra software.</p>
+  </div>
  </div>
 </section>
 
