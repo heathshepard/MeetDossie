@@ -23,7 +23,8 @@
     },
     {
       "h": "3. Flag, don't guess",
-      "p": "Missing signatures, missing initials, and blank required fields get marked <strong>Needs review</strong> — Dossie never assumes a page is complete just because it's present."
+      "p": "Missing signatures, missing initials, and blank required fields get marked \"Needs review\" — Dossie never assumes a page is complete just because it's present.",
+      "p_html": "Missing signatures, missing initials, and blank required fields get marked <strong>Needs review</strong> — Dossie never assumes a page is complete just because it's present."
     }
   ],
   "callout": "Dossie never guesses that a signature is there. If a page is missing an initial, it tells you before your client does.",
