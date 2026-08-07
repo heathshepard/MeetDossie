@@ -2261,6 +2261,19 @@
     .detail-apv-fail { color: var(--fail); }
     .detail-apv-not_run { color: var(--txt-faint); }
 
+    /* ===== WEBSITE ANALYTICS modal tables (2026-08-07, Atlas) ===== */
+    .analytics-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .analytics-table th {
+      text-align: left; color: var(--txt-faint); font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase; font-size: 9px;
+      padding: 4px 6px; border-bottom: 1px solid var(--line);
+    }
+    .analytics-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); color: var(--txt-primary); }
+    .analytics-table td.num { text-align: right; }
+    .analytics-table tr:last-child td { border-bottom: none; }
+    .analytics-empty { text-align: center; color: var(--txt-faint); font-size: 11px; padding: 10px; font-style: italic; }
+    .analytics-refresh-note { font-size: 9px; color: var(--txt-faint); text-align: right; margin-top: 6px; }
+
     /* Activity row: chevron + clickable */
     .activity-row { cursor: pointer; transition: background 0.15s; }
     .activity-row:hover { background: rgba(0, 229, 255, 0.04); }
@@ -3429,20 +3442,49 @@
           </div>
         </div>
 
-        <!-- WEBSITE TRAFFIC, AGENT KNOWLEDGE, TREC WATCH: cut from the homepage
-             (mission-control consolidation, item 4). Traffic was a passive metric,
-             not an "outstanding work" signal. Knowledge is reference material, not
-             status. TREC Watch is Texas-real-estate-content-specific, not a
-             cross-venture project-status signal — it belongs under a Dossie
-             drill-down, but that drill-down surface doesn't exist yet, so for now
-             it's simply off the top level per Heath's explicit instruction (build
-             it when/if a Dossie drill-down view gets built). Their loader functions
-             (loadTrafficToday/loadKnowledge/loadTrecWatch) are left defined but no
-             longer called — null-guarded, dead-safe, zero behavior change if
-             something else still references them.
+        <!-- AGENT KNOWLEDGE, TREC WATCH: cut from the homepage (mission-control
+             consolidation, item 4). Knowledge is reference material, not status.
+             TREC Watch is Texas-real-estate-content-specific, not a cross-venture
+             project-status signal — it belongs under a Dossie drill-down, but that
+             drill-down surface doesn't exist yet, so for now it's simply off the
+             top level per Heath's explicit instruction (build it when/if a Dossie
+             drill-down view gets built). Their loader functions (loadKnowledge/
+             loadTrecWatch) are left defined but no longer called — null-guarded,
+             dead-safe, zero behavior change if something else still references them.
              PENDING APPROVALS (heath_actions) moved into the WORK ITEMS panel above
              (item 2). AGENT STATUS (instance-list) + AGENT THROUGHPUT moved into the
              unified AGENTS panel above (item 1). -->
+
+        <!-- WEBSITE ANALYTICS (2026-08-07, Atlas) — re-added as a secondary panel
+             (still passive, not "outstanding work", so it stays out of the primary
+             work grid per item 4's reasoning) but now embedded rather than a link
+             out. Full breakdown (pages/sources/geography/30-day trend) lives in an
+             in-page modal, not a separate /ventures/webpage-analytics destination —
+             Jarvis is meant to be mission control, not a router to other pages.
+             founding_funnel from the API response is intentionally NOT rendered —
+             the Founding tier closed to new signups 2026-08-04 (CLAUDE.md Section 5),
+             so a conversion funnel into it is stale. Flagged to Heath; not deleted
+             server-side in case it's repointed at a live funnel later. -->
+        <div class="panel" id="analytics-panel">
+          <div class="panel-title traffic-title-row">
+            <span>WEBSITE ANALYTICS</span>
+            <span class="traffic-link" id="analytics-full-report-link">FULL REPORT →</span>
+          </div>
+          <div class="money-grid">
+            <div class="money-cell">
+              <div class="money-val" id="an-pageviews">—</div>
+              <div class="money-lbl">Pageviews (7d)</div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="an-uniques">—</div>
+              <div class="money-lbl">Uniques (7d)</div>
+            </div>
+            <div class="money-cell">
+              <div class="money-val" id="an-top-source" style="font-size:13px;">—</div>
+              <div class="money-lbl">Top Source</div>
+            </div>
+          </div>
+        </div>
 
         <!-- PROJECTS LEDGER (SOP locked 2026-06-22) — building / recent shipped / all. -->
         <div class="panel" id="projects-panel">
@@ -4361,15 +4403,19 @@
       // 2026-08-06 mission-control consolidation: loadActions() (heath-actions-list)
       // dropped from init — actions-panel was a true duplicate of approvalsPanel
       // (both read heath_actions; approvalsPanel has the real approve/reject/snooze
-      // buttons). loadTrafficToday/loadKnowledge/loadTrecWatch dropped — their panels
-      // are off the homepage now (item 4). The functions themselves are untouched
-      // and null-guard on a missing container, so nothing else that still calls
-      // them (e.g. the knowledge-lessons modal) breaks.
+      // buttons). loadKnowledge/loadTrecWatch dropped — their panels are off the
+      // homepage now (item 4). The functions themselves are untouched and
+      // null-guard on a missing container, so nothing else that still calls them
+      // (e.g. the knowledge-lessons modal) breaks.
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
       loadMergeQueue().catch(() => {});
       loadInFlightWork().catch(() => {});
       loadPendingApprovals().catch(() => {});
+      // WEBSITE ANALYTICS (2026-08-07) — embedded panel, replaces the old
+      // top-line-card-with-external-link. Cache is 5m server-side so a 5m
+      // poll interval below matches it exactly.
+      loadWebsiteAnalytics().catch(() => {});
       // loadActiveAgents() dropped from init 2026-08-06 (Atlas) — active_agents
       // has zero writers; see removed "Running" subpanel note above. Function
       // stays defined (harmless) in case that table gets wired up for real.
@@ -4403,6 +4449,7 @@
       setInterval(() => { loadDailyDebrief().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadCustomerActivity().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
+      setInterval(() => { loadWebsiteAnalytics().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
       setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
@@ -6170,43 +6217,122 @@
       set('venture-dossie-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
     }
 
-    // ===== WEBSITE TRAFFIC (today) =====
-    // Top-line numbers from PostHog for the Jarvis card. Full dashboard at
-    // /ventures/webpage-analytics. Endpoint caches 60s server-side so this
-    // is cheap to poll.
-    async function loadTrafficToday() {
+    // ===== WEBSITE ANALYTICS (2026-08-07, Atlas) =====
+    // 7-day snapshot from PostHog, embedded in Jarvis — replaces the old
+    // /ventures/webpage-analytics standalone page + top-line-card-with-link
+    // pattern. Single fetch of the full snapshot powers both the compact
+    // panel and the "Full Report" detail modal (server caches 5m, so this is
+    // cheap to poll and cheap to re-open). founding_funnel is fetched but
+    // deliberately not rendered — see the panel comment above.
+    let __analyticsSnapshotCache = null;
+    async function loadWebsiteAnalytics() {
       try {
-        const res = await fetch(`${API_BASE}/api/webpage-analytics-today`, {
+        const res = await fetch(`${API_BASE}/api/webpage-analytics-snapshot`, {
           headers: { Authorization: await getAuthHeader() },
         });
         if (!res.ok) return;
         const data = await res.json();
-        renderTrafficToday(data);
+        if (!data.ok) return;
+        __analyticsSnapshotCache = data;
+        renderWebsiteAnalyticsSummary(data);
       } catch (err) {
-        console.warn('[jarvis] loadTrafficToday failed', err);
+        console.warn('[jarvis] loadWebsiteAnalytics failed', err);
       }
     }
 
-    function renderTrafficToday(d) {
+    function renderWebsiteAnalyticsSummary(d) {
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-      set('traffic-pv',       d.pageviews_today != null ? Number(d.pageviews_today).toLocaleString() : '—');
-      set('traffic-uniques',  d.unique_visitors_today != null ? Number(d.unique_visitors_today).toLocaleString() : '—');
-      set('traffic-source',   d.top_source_today || '—');
-      set('traffic-founding', d.founding_pageviews_today != null ? Number(d.founding_pageviews_today).toLocaleString() : '—');
-      // Delta chip vs yesterday.
-      const delta = document.getElementById('traffic-delta');
-      if (delta) {
-        if (d.delta_pct_vs_yesterday == null) {
-          delta.textContent = '';
-          delta.className = 'traffic-delta';
-        } else {
-          const dp = Number(d.delta_pct_vs_yesterday);
-          const sign = dp > 0 ? '+' : '';
-          delta.textContent = `(${sign}${dp}%)`;
-          delta.className = 'traffic-delta ' + (dp >= 0 ? 'up' : 'down');
-        }
-      }
+      const s = d.summary_7d || {};
+      set('an-pageviews', s.total_pageviews != null ? Number(s.total_pageviews).toLocaleString() : '—');
+      set('an-uniques', s.unique_visitors != null ? Number(s.unique_visitors).toLocaleString() : '—');
+      set('an-top-source', s.top_source || '—');
     }
+
+    function openAnalyticsDetailModal() {
+      const d = __analyticsSnapshotCache;
+      if (!d) return;
+      const s = d.summary_7d || {};
+      const fmtDur = (sec) => {
+        const n = Math.max(0, Math.round(Number(sec) || 0));
+        if (n === 0) return '0s';
+        if (n < 60) return n + 's';
+        return `${Math.floor(n / 60)}m ${n % 60}s`;
+      };
+      const rowsPages = (d.traffic_by_page || []).slice(0, 10).map(p => `
+        <tr>
+          <td><code>${escapeHtml(p.path)}</code></td>
+          <td class="num">${Number(p.pageviews).toLocaleString()}</td>
+          <td class="num">${Number(p.unique_visitors).toLocaleString()}</td>
+        </tr>`).join('');
+      const rowsSources = (d.traffic_by_source || []).slice(0, 8).map(sr => `
+        <tr>
+          <td>${escapeHtml(sr.source)}</td>
+          <td class="num">${Number(sr.sessions).toLocaleString()}</td>
+          <td class="num">${sr.founding_conversion_pct}%</td>
+        </tr>`).join('');
+      const rowsGeo = (d.geography || []).slice(0, 6).map(g => `
+        <tr><td>${escapeHtml(g.country)}</td><td class="num">${Number(g.unique_visitors).toLocaleString()}</td></tr>`).join('');
+      const daily = d.daily_traffic || [];
+      const dailyTotal = daily.reduce((a, x) => a + (Number(x.pageviews) || 0), 0);
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'detail-modal-backdrop';
+      backdrop.innerHTML = `
+        <div class="detail-modal">
+          <div class="detail-header">
+            <div class="detail-title-block">
+              <span class="detail-agent-badge">7-DAY</span>
+              <div class="detail-title">Website Analytics</div>
+            </div>
+            <button class="detail-close" aria-label="Close">×</button>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Pageviews</div><div class="detail-cell-val">${(s.total_pageviews || 0).toLocaleString()}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Unique Visitors</div><div class="detail-cell-val">${(s.unique_visitors || 0).toLocaleString()}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Avg Session</div><div class="detail-cell-val">${fmtDur(s.avg_session_seconds)}</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Bounce Rate</div><div class="detail-cell-val">${s.bounce_rate_pct != null ? s.bounce_rate_pct + '%' : '—'}</div></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">Top Pages (7d)</div>
+            <table class="analytics-table">
+              <thead><tr><th>Path</th><th class="num" style="text-align:right;">Views</th><th class="num" style="text-align:right;">Uniques</th></tr></thead>
+              <tbody>${rowsPages || '<tr><td colspan="3" class="analytics-empty">No pageviews yet.</td></tr>'}</tbody>
+            </table>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">Traffic by Source (7d)</div>
+            <table class="analytics-table">
+              <thead><tr><th>Source</th><th class="num" style="text-align:right;">Sessions</th><th class="num" style="text-align:right;">/founding conv.</th></tr></thead>
+              <tbody>${rowsSources || '<tr><td colspan="3" class="analytics-empty">No source data yet.</td></tr>'}</tbody>
+            </table>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">Geography (7d)</div>
+            <table class="analytics-table">
+              <thead><tr><th>Country</th><th class="num" style="text-align:right;">Uniques</th></tr></thead>
+              <tbody>${rowsGeo || '<tr><td colspan="2" class="analytics-empty">No geography data yet.</td></tr>'}</tbody>
+            </table>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-label">30-Day Trend</div>
+            <div class="detail-section-body">${daily.length ? `${daily.length} days tracked, ${dailyTotal.toLocaleString()} total pageviews. Last day: ${daily[daily.length - 1].date} — ${Number(daily[daily.length - 1].pageviews).toLocaleString()} pv.` : 'No pageviews recorded in the last 30 days.'}</div>
+          </div>
+          <div class="analytics-refresh-note">Generated ${d.generated_at ? new Date(d.generated_at).toLocaleString() : '—'} · cached 5m</div>
+        </div>
+      `;
+      const close = () => backdrop.remove();
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      backdrop.querySelector('.detail-close').addEventListener('click', close);
+      document.body.appendChild(backdrop);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const link = document.getElementById('analytics-full-report-link');
+      if (link) link.addEventListener('click', () => {
+        if (!__analyticsSnapshotCache) { loadWebsiteAnalytics().then(() => openAnalyticsDetailModal()); }
+        else openAnalyticsDetailModal();
+      });
+    });
 
     function renderActivity(activity) {
       const feed = document.getElementById('activity-feed');
