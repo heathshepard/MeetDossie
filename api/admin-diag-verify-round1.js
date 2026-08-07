@@ -26,7 +26,15 @@ module.exports = async function handler(req, res) {
   if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
-  const cols = ['id', 'dossier_number', 'property_address', 'stage', 'status', 'role', 'seller_name', 'buyer_name', 'parties', 'earnest_money_confirmed_at', 'created_at'].join(',');
-  const result = await supabaseFetch(`/rest/v1/transactions?select=${cols}&property_address=ilike.*Wild+Cherry*&order=created_at.desc&limit=10`);
+  if (req.method === 'DELETE') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const ids = Array.isArray(body.ids) ? body.ids : [];
+    if (!ids.length) return res.status(400).json({ ok: false, error: 'ids[] required' });
+    const idList = ids.map((id) => `"${id}"`).join(',');
+    const del = await supabaseFetch(`/rest/v1/transactions?id=in.(${idList})`, { method: 'DELETE' });
+    return res.status(del.ok ? 200 : 500).json({ ok: del.ok, deletedCount: ids.length, details: del.data });
+  }
+  const cols = ['id', 'dossier_number', 'property_address', 'stage', 'status', 'role', 'user_id', 'created_at'].join(',');
+  const result = await supabaseFetch(`/rest/v1/transactions?select=${cols}&property_address=ilike.*Wild+Cherry*&order=created_at.desc&limit=50`);
   return res.status(result.ok ? 200 : 500).json({ ok: result.ok, rows: result.data });
 };
