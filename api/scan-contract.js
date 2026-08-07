@@ -483,6 +483,7 @@ EXTENDED FIELDS (top-level, look across the whole contract + any attached addend
 - surveyDeadline — date by which seller must deliver an existing survey or buyer must obtain one. Look in Paragraph 6C ("Survey") for either: (1) an explicit date, OR (2) a number of days (e.g., "within 10 days after effective date"). If you find a day count, calculate the deadline by adding those days to the contractEffectiveDate and return in yyyy-MM-dd format. If you find an explicit date, return it in yyyy-MM-dd format. If neither exists, return null. Do your best here, but this is a secondary check only — deterministic code re-derives this field from debugParagraph6C afterward and overrides a wrong or missing value, the same way optionDays is re-derived from debugParagraph5B. Getting this exactly right yourself is not critical; populating debugParagraph6C correctly is.
 - hoaDocumentDeadline — date by which HOA resale certificate / subdivision documents must be delivered, from the HOA Addendum. Null when no HOA addendum.
 - loanApprovalDeadline — date the buyer's third-party financing approval must be obtained, derived from effective date + financingDays when both are known. Null otherwise.
+- earnestMoneyReceiptDate — EARNEST MONEY RECEIPT BLOCK: TREC 20-x contracts end with a signature-block page titled "OPTION FEE RECEIPT" / "EARNEST MONEY RECEIPT" / "CONTRACT RECEIPT" / "ADDITIONAL EARNEST MONEY RECEIPT" (usually the very last page of the PDF, filled in by hand/DocuSign by the title company's escrow officer AFTER the contract is signed, not part of the numbered paragraphs 1-23). Find the "EARNEST MONEY RECEIPT" section specifically (do not confuse with "OPTION FEE RECEIPT" above it or "CONTRACT RECEIPT" below it — they are three separate boxes on the same page). It reads "Receipt of $[amount] earnest money in the form of [check#] is acknowledged" followed by "Escrow Agent / Received by / Email Address / Date/Time" signature line. Extract the date from that "Date/Time" field (e.g. "8/6/26" -> "2026-08-06") into earnestMoneyReceiptDate. This is a scanned/handwritten or e-signed date — read it carefully. If the EARNEST MONEY RECEIPT box exists but its Date/Time field is blank (not yet acknowledged by the title company), return null — do not use the option fee receipt date or contract receipt date instead.
 
 BROKER BLOCK DISAMBIGUATION — READ CAREFULLY BEFORE EXTRACTING AGENT FIELDS:
 
@@ -539,6 +540,7 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "surveyDeadline": string | null,             // yyyy-MM-dd if computable from 6C
     "hoaDocumentDeadline": string | null,        // yyyy-MM-dd from HOA addendum
     "loanApprovalDeadline": string | null,       // yyyy-MM-dd; effective + financingDays
+    "earnestMoneyReceiptDate": string | null,    // yyyy-MM-dd; date the escrow agent/title company acknowledged RECEIPT of the earnest money (see EARNEST MONEY RECEIPT BLOCK below) — NOT the same as the deadline to deliver it
     "buyerAgent": string | null,                 // buyer's associate/agent name from broker info block
     "listingAgent": string | null,               // listing associate/agent name from broker info block
     "parties": {
@@ -651,6 +653,7 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "surveyDeadline": number,
     "hoaDocumentDeadline": number,
     "loanApprovalDeadline": number,
+    "earnestMoneyReceiptDate": number,
     "buyerAgent": number,
     "listingAgent": number,
     "parties.buyerAgentEmail": number,
@@ -775,6 +778,7 @@ function emptyResult(warning) {
       surveyDeadline: null,
       hoaDocumentDeadline: null,
       loanApprovalDeadline: null,
+      earnestMoneyReceiptDate: null,
       buyerAgent: null,
       listingAgent: null,
       parties: {
