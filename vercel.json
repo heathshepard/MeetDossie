@@ -440,10 +440,6 @@
     },
     "api/cron-regression-suite.js": {
       "maxDuration": 120
-    },
-    "api/article-audio.js": {
-      "maxDuration": 30,
-      "includeFiles": "marketing/{guides-data,answers-data}/*.json"
     }
   },
   "crons": [
