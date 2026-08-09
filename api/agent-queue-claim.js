@@ -37,9 +37,15 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
+// Full 12-agent roster (.claude/agents/*.md) + 'cole' + 'any'.
+// brokerage/sawyer/warden/content-verifier added 2026-08-09
+// (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE) — missing here meant
+// scripts/agent-queue-poller.js could never actually claim a row for them
+// even after being taught to spawn them (this endpoint would 400 first).
 const VALID_AGENTS = new Set([
   'cole','atlas','carter','sage','pierce',
-  'hadley','quinn','sterling','ridge','any',
+  'hadley','quinn','sterling','ridge',
+  'brokerage','sawyer','warden','content-verifier','any',
 ]);
 
 function cors(res) {

@@ -10,7 +10,8 @@
 // Body:
 //   {
 //     target_agent: "carter" | "atlas" | "hadley" | "pierce" | "sage"
-//                 | "quinn" | "ridge" | "sterling",
+//                 | "quinn" | "ridge" | "sterling" | "brokerage" | "sawyer"
+//                 | "warden" | "content-verifier",
 //     title: string (max 280 chars),
 //     description: string (the task brief; max 8000 chars),
 //     priority: 1-5 (1 = highest; default 3),
@@ -32,8 +33,13 @@ const CRON_SECRET               = process.env.CRON_SECRET;
 
 const HEATH_TENANT_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
 
+// Full 12-agent roster (.claude/agents/*.md). brokerage/sawyer/warden/
+// content-verifier added 2026-08-09 (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE) — this
+// is the endpoint _jarvis_tools.js's spawn_agent tool posts to, so it was the
+// actual server-side wall blocking Jarvis from ever reaching those 4 agents.
 const VALID_AGENTS = new Set([
   'carter', 'atlas', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling',
+  'brokerage', 'sawyer', 'warden', 'content-verifier',
 ]);
 
 // Pre-flight dup-build rejection patterns (atlas 2026-06-27 codebase-facts

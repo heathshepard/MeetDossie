@@ -131,20 +131,29 @@ async function snapshotQueue(supabase) {
 
 // ─── 3. DISPATCH-HEALTH ALERT ────────────────────────────────────────────────
 //
-// New architecture (2026-06-25): cron-agent-queue-dispatch (every 2 min) is
-// the actual claimer. It calls Anthropic for each ready row and writes the
-// result back to agent_queue. We no longer ping Heath about idle local
-// pollers — that pattern is dead.
+// REWRITTEN 2026-08-09 (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE). cron-agent-queue-
+// dispatch.js no longer claims specialist-agent rows at all (see that file's
+// header) — scripts/agent-queue-poller.js on Heath's 24/7 PC is now the sole
+// real claimer for that category, plus claude-code-worker.js for
+// task_type-tagged (Jarvis) rows. The old check here
+// (`completed_by_agent_session = 'cron-agent-queue-dispatch'`) would now
+// ALWAYS read "dead" even when the poller is working perfectly fine —
+// self-inflicted false alerts. Fixed to check for ANY row that got claimed
+// recently (started_at >= cutoff), regardless of which consumer claimed it.
+// That's the actual health signal: "is something claiming ready work",
+// not "is this one specific (now-retired) claimer alive".
 //
 // What CAN go wrong now:
-//   - The dispatch cron stops running (Vercel cap, deploy regression, env-var
-//     wipe). Symptom: agent_queue_ready has rows but none get claimed.
-//   - Anthropic returns errors and rows ping-pong between pending/in_progress.
-//     Symptom: same row sits in `agent_queue_ready` for >10 min.
+//   - agent-queue-poller.js stops running on Heath's PC (crash outlasting
+//     Task Scheduler's RestartCount, PC off/asleep, CRON_SECRET missing).
+//     Symptom: agent_queue_ready has rows but none get claimed.
+//   - claude-code-worker.js (task_type/Jarvis lane) has the equivalent
+//     problem for its own rows.
 //
 // We alert when EITHER symptom holds:
 //   - There exist ready rows older than DISPATCH_STUCK_MIN, AND
-//   - cron-agent-queue-dispatch hasn't completed any row in the same window.
+//   - nothing in agent_queue has been claimed (started_at) in the same
+//     window.
 //
 // Throttled to once per DISPATCH_ALERT_THROTTLE_MIN (60 min) so the same stuck
 // state doesn't spam.
@@ -172,17 +181,19 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
     return { alerted: false, reason: 'ready_rows_fresh' };
   }
 
-  // Did the dispatcher claim anything in the same window? If yes, it's alive
-  // — the old ready rows might be unsupported agents or repeated errors,
-  // which is a different problem.
-  const { data: recentCompletes } = await supabase
+  // Did ANY claimer (agent-queue-poller.js, claude-code-worker.js — the
+  // stateless dispatch cron no longer claims specialist rows, see its
+  // header) pick up work in the same window? started_at flips the moment a
+  // row is claimed, regardless of who claimed it or whether it's finished
+  // yet — that's the right signal for "is something alive", not completion,
+  // since a real agent task can legitimately run for many minutes.
+  const { data: recentClaims } = await supabase
     .from('agent_queue')
     .select('id', { count: 'exact', head: false })
-    .eq('completed_by_agent_session', 'cron-agent-queue-dispatch')
-    .gte('completed_at', stuckCutoff)
+    .gte('started_at', stuckCutoff)
     .limit(1);
 
-  const dispatcherAlive = Array.isArray(recentCompletes) && recentCompletes.length > 0;
+  const dispatcherAlive = Array.isArray(recentClaims) && recentClaims.length > 0;
   if (dispatcherAlive) {
     return { alerted: false, reason: 'dispatcher_alive', stuck_ready: oldReady.length };
   }
@@ -274,9 +285,10 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
     (Date.now() - new Date(oldReady[0].created_at).getTime()) / 60000,
   );
   await tg(
-    `[queue watchdog] Dispatcher appears stuck: ${oldReady.length} ready task(s) older than ${DISPATCH_STUCK_MIN}min ` +
+    `[queue watchdog] Nothing is claiming ready work: ${oldReady.length} ready task(s) older than ${DISPATCH_STUCK_MIN}min ` +
       `(oldest ${oldestAgeMin}min, ${oldReady[0].agent_name} / "${(oldReady[0].task_subject || '').slice(0, 60)}") ` +
-      `AND no dispatch-cron completions in same window. Check /api/cron-agent-queue-dispatch logs.`,
+      `AND no claims in same window. Check scripts/agent-queue-poller.js is running on your PC ` +
+      `(Get-ScheduledTask -TaskName AgentQueuePoller) and claude-code-worker.js if it's a task_type row.`,
   );
 
   // Persist the alert timestamp so the throttle holds across ticks.

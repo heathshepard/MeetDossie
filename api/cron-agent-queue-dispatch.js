@@ -4,6 +4,33 @@
 // =============================================================================
 // Vercel Serverless Function: /api/cron-agent-queue-dispatch
 //
+// RETIRED AS A ROW-CLAIMER, 2026-08-09 (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE).
+//
+// Heath's directive: his PC runs 24/7 by design specifically so real
+// Claude Code work (scripts/agent-queue-poller.js — full file/git/bash/tool
+// access) can happen anytime. This cron's stateless "fast but fake" Anthropic
+// /v1/messages call (no tools, no file access) must NEVER win the race for
+// work meant for a real named agent. Investigation on 2026-08-09 found that
+// literally 100% of non-task_type agent_queue traffic (367/367 rows sampled)
+// belongs to one of the 12 real specialist agents in .claude/agents/*.md —
+// there is no remaining category this cron can legitimately answer with a
+// shallow tool-less reply. So AGENT_EXCLUDE_LIST below now excludes every
+// known specialist + 'cole' (Jarvis-chat) from the fetch query entirely —
+// this cron never even claims those rows, let alone answers them. What's
+// LEFT running here on its 2-min schedule:
+//   1. The self-heal sweep (unsticks in_progress rows orphaned by a dead
+//      worker — still valuable, still immediate, unaffected by this change).
+//   2. A backstop for a genuinely unrecognized agent_name (typo, new agent
+//      added to the queue schema before it's added to AGENT_EXCLUDE_LIST) —
+//      such a row still gets fetched, and since it won't be in SUPPORTED
+//      either, it's marked 'blocked' with unsupported_agent:<name> instead
+//      of silently vanishing. It is NOT given a fake Anthropic reply.
+// Do not delete this file — cron-agent-queue-tick.js's watchdog and
+// cron-agent-queue-orphan-reset.js both reference it, and re-enabling
+// row-claiming here (if the poller architecture ever changes) is a one-line
+// revert of the query filter below.
+//
+// ORIGINAL HEADER (pre-2026-08-09), kept for history:
 // The MISSING CONSUMER PIECE for the agent_queue. The existing
 // cron-agent-queue-tick is a stale-sweeper only; cron-process-agent-requests
 // drains agent_requests (different table, fed by Sage webhook). This cron
@@ -12,7 +39,8 @@
 //
 // HOW IT WORKS
 //   1. SELECT FROM agent_queue_ready (pending + deps satisfied), oldest-first
-//      within priority.
+//      within priority, EXCLUDING every known specialist agent + 'cole'
+//      (2026-08-09 — see above; previously only excluded task_type rows).
 //   2. For each row: claim (pending -> in_progress), call Anthropic, then
 //      complete via the SHARED core (api/_lib/agent-queue-complete-core.js) —
 //      that's what routes a successful completion to 'pending_audit' instead
@@ -34,6 +62,7 @@
 // OWNER
 //   Atlas, 2026-06-25 (SV-ENG-AGENT-QUEUE-PRODUCER). Work-stealing +
 //   audit-loop integration 2026-08-06 (SV-ENG-AGENT-QUEUE-AUDIT-LOOP).
+//   Retired as row-claimer 2026-08-09 (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE).
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { createClient } = require('@supabase/supabase-js');
@@ -49,6 +78,16 @@ const MAX_PER_RUN  = 4;        // rows pulled per ready-view fetch (refilled as 
 const MAX_TOKENS   = 1500;
 const FETCH_TIMEOUT_MS = 45000;
 const WALL_CLOCK_BUDGET_MS = 50000; // leaves margin under the 60s function cap (see vercel.json maxDuration)
+
+// Every real named agent (.claude/agents/*.md, 2026-08-09) + 'cole' (Jarvis
+// chat's agent_name). This cron's fetch query excludes ALL of these — see
+// the retirement note at the top of this file. Kept as one list so adding a
+// 13th agent later means updating exactly one place.
+const KNOWN_SPECIALIST_AGENTS = [
+  'atlas', 'brokerage', 'carter', 'content-verifier', 'hadley', 'pierce',
+  'quinn', 'ridge', 'sage', 'sawyer', 'sterling', 'warden',
+];
+const AGENT_QUERY_EXCLUDE = [...KNOWN_SPECIALIST_AGENTS, 'cole'];
 
 const AGENT_PROMPTS = {
   carter:   require('./_lib/agent-prompts/carter.js'),
@@ -352,9 +391,17 @@ async function handler(req, res) {
     // agent_name='cole' is not in SUPPORTED, blocked it in ~2s with
     // "unsupported_agent:cole" almost every time — a 100% Jarvis Build-mode
     // failure mode found + fixed 2026-08-09 (SV-ENG-AGENT-QUEUE-JARVIS-RACE).
+    //
+    // agent_name NOT IN (...) rows belong to real named specialists — Heath's
+    // PC runs 24/7 specifically so scripts/agent-queue-poller.js (real tool
+    // access) handles those, never this stateless cron. See the retirement
+    // note at the top of this file (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE,
+    // 2026-08-09). Given the current agent roster this excludes everything —
+    // this fetch will normally return zero rows.
     const { ok, data } = await sb(
       `agent_queue_ready?select=id,agent_name,task_subject,task_brief,priority,depends_on,metadata,venture` +
       `&metadata->>task_type=is.null` +
+      `&agent_name=not.in.(${AGENT_QUERY_EXCLUDE.join(',')})` +
       `&order=priority.asc,created_at.asc&limit=${MAX_PER_RUN}`,
     );
     if (!ok) break;

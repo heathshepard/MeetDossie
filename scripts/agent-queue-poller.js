@@ -49,6 +49,21 @@
 //   parsed by completeAudit() and mapped to status:'completed' (pass) or
 //   status:'pending' + metadata._audit_failure_reason (fail — routes back
 //   to the original agent automatically since agent_name never changed).
+//
+// SOLE REAL CONSUMER FOR SPECIALIST-AGENT WORK (2026-08-09,
+// SV-ENG-AGENT-QUEUE-NO-FAKE-RACE)
+//   Heath's directive: his PC runs 24/7 by design specifically so this
+//   poller (real tool/file/git access) is always available. api/cron-agent-
+//   queue-dispatch.js — the Vercel-cron "fast but fake" stateless Anthropic
+//   text-only responder — now explicitly excludes every named specialist
+//   agent from its fetch query (see that file's header) and NEVER races this
+//   poller for that work again. This file is now the sole real claimer for
+//   all 12 agents in .claude/agents/*.md (task_type-tagged Jarvis-chat rows
+//   are a separate lane owned by claude-code-worker.js, unaffected by this
+//   change). See REQUIRE_AUTONOMOUS_TAG below for the one behavior change
+//   that made this actually work end-to-end — most real queue rows were
+//   never tagged autonomous and would otherwise sit unclaimed forever now
+//   that the fake responder isn't quietly catching them anymore.
 
 'use strict';
 
@@ -97,7 +112,16 @@ const SPAWN_MAX_BUDGET_USD = parseFloat(process.env.SPAWN_MAX_BUDGET_USD || '5')
 
 // Agents the poller will spawn locally. Cole intentionally not here — Cole is
 // the user-facing chief of staff and is always interactive.
-const SPAWNABLE_AGENTS = new Set(['carter', 'atlas', 'sage', 'pierce', 'hadley', 'quinn', 'sterling', 'ridge']);
+// Full 12-agent roster per .claude/agents/*.md — brokerage/sawyer/warden/
+// content-verifier added 2026-08-09 (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE); they
+// were missing here (and from _jarvis_tools.js's spawn_agent enum, and from
+// api/cole-enqueue.js + api/agent-queue-claim.js's VALID_AGENTS — all fixed
+// same day) which meant Jarvis/Cole could never actually reach them through
+// the async queue even though the agent definitions existed.
+const SPAWNABLE_AGENTS = new Set([
+  'carter', 'atlas', 'sage', 'pierce', 'hadley', 'quinn', 'sterling', 'ridge',
+  'brokerage', 'sawyer', 'warden', 'content-verifier',
+]);
 
 // Resolve claude.exe direct (avoid the .cmd shim — Node 18.20/20.12 closed
 // CVE-2024-27980 by refusing to spawn .cmd/.bat without shell:true, which
@@ -143,12 +167,39 @@ function claudeChildEnv() {
   return env;
 }
 
-// Safety gate: only auto-spawn tasks explicitly marked autonomous. Heath wants
-// "agents never idle" but many queued tasks require approvals / customer
-// contact / browser sessions the headless agent can't do. Tasks must have
-// metadata.autonomous=true OR metadata.is_smoke_test=true to be claimed.
-// Cole + Heath can still hand-walk the rest interactively.
+// AUTONOMOUS_ONLY controls WHICH CLAIM STRATEGY this poller uses:
+//   true  (default) — peek the ready queue, then claim a SPECIFIC agent's
+//                      next task (scoped, ordered by priority).
+//   false            — claim via {agent:'any'}, which picks across ALL
+//                      agents currently idle in agent_state. Reserved for
+//                      diagnostics (see claimNext()).
+// This is orthogonal to whether a row is claimed at all — see
+// REQUIRE_AUTONOMOUS_TAG below for that.
 const AUTONOMOUS_ONLY = (process.env.AUTONOMOUS_ONLY || 'true').toLowerCase() !== 'false';
+
+// Tag gate — RETIRED AS DEFAULT 2026-08-09 (SV-ENG-AGENT-QUEUE-NO-FAKE-RACE).
+// Originally: only claim rows tagged metadata.autonomous=true or
+// is_smoke_test=true, on the theory some queued tasks need human review
+// (customer contact, spend, approvals) before an unattended headless agent
+// acts, and Cole/Heath would hand-walk the rest interactively.
+// In practice, audited 2026-08-09: NO current producer ever sets that tag —
+// not api/cole-enqueue.js (no field for it), not api/cron-autonomous-loop.js's
+// dispatch() (no field for it either). Of the last 300 agent_queue rows, 203
+// (68%) had no autonomous tag. The tag gate's actual effect was that those
+// 203 real specialist-agent tasks were silently ceded every time to
+// cron-agent-queue-dispatch.js's stateless, tool-less Anthropic call — the
+// exact "fast but fake" outcome Heath ruled out. Upstream guardrails already
+// gate what's safe to enqueue before it's a queue row at all: cole-enqueue.js
+// requires an explicit human-chosen agent + written brief (Cole/Heath already
+// in the loop by construction), and cron-autonomous-loop.js runs its own
+// spend/legal/strategy-pivot regex guardrail (see GUARDRAIL_PATTERNS in that
+// file) and Telegrams Heath instead of enqueueing anything that trips it. So
+// the tag gate was redundant with those, not an independent safety layer.
+// Since Heath's PC runs 24/7 specifically so this poller is always the real
+// consumer, the tag gate is off by default now. Set
+// REQUIRE_AUTONOMOUS_TAG=true (env) to restore the old strict behavior as an
+// instant rollback if this turns out to be wrong.
+const REQUIRE_AUTONOMOUS_TAG = (process.env.REQUIRE_AUTONOMOUS_TAG || 'false').toLowerCase() === 'true';
 
 // ---- Logging ----------------------------------------------------------------
 
@@ -429,8 +480,14 @@ async function peekReady() {
   // /api/agent-queue-peek returns ready tasks with metadata. If the endpoint
   // is not deployed yet (404 on prod before staging→main), return null so
   // claimNext can fall back gracefully.
+  // autonomous_only param dropped 2026-08-09 (REQUIRE_AUTONOMOUS_TAG default
+  // false, see that const's comment) — this poller is now the sole real
+  // consumer for specialist-agent rows and must see ALL of them, tagged or
+  // not. Local re-filter below applies the tag ONLY if REQUIRE_AUTONOMOUS_TAG
+  // is explicitly turned back on.
+  const peekQuery = REQUIRE_AUTONOMOUS_TAG ? '?autonomous_only=1&limit=20' : '?limit=20';
   try {
-    const r = await fetch(`${API_BASE}/api/agent-queue-peek?autonomous_only=1&limit=20`, {
+    const r = await fetch(`${API_BASE}/api/agent-queue-peek${peekQuery}`, {
       headers: { 'Authorization': `Bearer ${CRON_SECRET}` },
     });
     if (!r.ok) {
@@ -494,24 +551,28 @@ async function claimNext() {
     });
     const claimed = r.task;
     if (!claimed) return null;
-    const cm = claimed.metadata || {};
-    if (!(cm.autonomous === true || cm.is_smoke_test === true)) {
-      // Concurrent insert or stale peek — release back to pending via complete
-      // with a 'released' note. The cron-tick will set it back to pending on
-      // its next sweep (stale-sweep treats blocked rows w/ note as releasable).
-      log(`claim race: got non-autonomous row ${claimed.id} — marking blocked for re-review`, 'WARN');
-      try {
-        await post('/api/agent-queue-complete', {
-          id: claimed.id,
-          status: 'blocked',
-          result_summary: 'Released by poller — task not tagged autonomous. Cole/Heath to retag if safe.',
-          completed_by_agent_session: SESSION_ID,
-          metadata: { _released_by_poller: true },
-        });
-      } catch (e) {
-        log(`release-via-complete failed: ${e.message}`, 'ERROR');
+    // Tag re-check only when REQUIRE_AUTONOMOUS_TAG is explicitly on
+    // (rollback lever — default off since 2026-08-09, see that const).
+    if (REQUIRE_AUTONOMOUS_TAG) {
+      const cm = claimed.metadata || {};
+      if (!(cm.autonomous === true || cm.is_smoke_test === true)) {
+        // Concurrent insert or stale peek — release back to pending via complete
+        // with a 'released' note. The cron-tick will set it back to pending on
+        // its next sweep (stale-sweep treats blocked rows w/ note as releasable).
+        log(`claim race: got non-autonomous row ${claimed.id} — marking blocked for re-review`, 'WARN');
+        try {
+          await post('/api/agent-queue-complete', {
+            id: claimed.id,
+            status: 'blocked',
+            result_summary: 'Released by poller — task not tagged autonomous. Cole/Heath to retag if safe.',
+            completed_by_agent_session: SESSION_ID,
+            metadata: { _released_by_poller: true },
+          });
+        } catch (e) {
+          log(`release-via-complete failed: ${e.message}`, 'ERROR');
+        }
+        return null;
       }
-      return null;
     }
     return claimed;
   }

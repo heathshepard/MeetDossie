@@ -279,7 +279,7 @@ const ALL_TOOLS = [
   {
     name: 'spawn_agent',
     description:
-      "Queue an async task for one of Heath's named agents (Carter, Atlas, Hadley, Pierce, Sage, Quinn, Ridge, Sterling). "
+      "Queue an async task for one of Heath's named agents (Carter, Atlas, Hadley, Pierce, Sage, Quinn, Ridge, Sterling, Brokerage, Sawyer, Warden, Content-Verifier). "
       + "AUTO-ROUTE work requests to the correct agent even when Heath doesn't name them. "
       + "Routing table by request pattern: "
       + "(fix/build/ship code, infra, deploy, schema, env, cron, performance) -> atlas; "
@@ -289,17 +289,21 @@ const ALL_TOOLS = [
       + "(QA test, Playwright, verify, sign-in flow) -> quinn; "
       + "(cron health, uptime, KPI alert, watchdog, SLO) -> ridge; "
       + "(stock, crypto, portfolio, rebalance, market move) -> sterling; "
-      + "(product UI, React, Dossie frontend, dashboard hero, dossier card) -> carter (drafts) THEN atlas (ships, depends_on=carter_queue_id). "
+      + "(product UI, React, Dossie frontend, dashboard hero, dossier card) -> carter (drafts) THEN atlas (ships, depends_on=carter_queue_id); "
+      + "(Heath's real-estate brokerage practice — SABOR/connectMLS, zipForm packets, an offer/net sheet on his own listing, client correspondence in his voice) -> brokerage; "
+      + "(Sawyer consulting business codebase — connectors, scorecard automation, its own dashboard) -> sawyer; "
+      + "(fact-check a client-facing message before it's sent — disclosures, deal terms, proposal numbers) -> warden; "
+      + "(review marketing copy for fabricated specifics/customer counts/unshipped features before it ships) -> content-verifier. "
       + "Multi-agent chains: spawn the chain in the SAME turn using depends_on. Example: 'draft a memo on X and ship the schema' -> spawn hadley first, then atlas with depends_on=[hadley_queue_id]. "
       + "DO NOT spawn for: factual questions answerable from HUD/project_context ('how many founders', 'what's our MRR'), status queries about running agents ('what's Atlas working on'), or casual/emotional chat ('how was the trip'). "
       + "When the request is genuinely ambiguous (could be a question OR a work assignment), ask Heath: 'Want me to queue [agent] for this, or just answer from what I know?' "
-      + "Writes a row to agent_queue (and a matching jarvis_future_builds entry so it shows on the HUD).",
+      + "Writes a row to agent_queue (and a matching jarvis_future_builds entry so it shows on the HUD). Picked up by scripts/agent-queue-poller.js on Heath's PC (real tool access), not by any stateless cron.",
     input_schema: {
       type: 'object',
       properties: {
         target_agent: {
           type: 'string',
-          enum: ['carter', 'atlas', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling'],
+          enum: ['carter', 'atlas', 'hadley', 'pierce', 'sage', 'quinn', 'ridge', 'sterling', 'brokerage', 'sawyer', 'warden', 'content-verifier'],
           description: 'Which specialist agent to queue the task for. Pick from the routing table even if Heath did not name them.',
         },
         title: {
@@ -1018,7 +1022,7 @@ async function tool_spawn_agent(input, ctx) {
         future_build_id: data.future_build_id,
         target_agent: data.target_agent,
         priority: data.priority,
-        eta: '~2 minutes (next dispatch tick)',
+        eta: '~1 minute (next agent-queue-poller.js tick on Heath\'s PC)',
       },
     };
   } catch (err) {
