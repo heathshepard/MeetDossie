@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://meetdossie.com/</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/learn</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/faq</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/help</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/app/help</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/calculator</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/founding</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/agents/</loc><lastmod>2026-08-09</lastmod></url>
@@ -18,9 +22,12 @@
   <url><loc>https://meetdossie.com/guides/texas-earnest-money-rules</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-executory-contract-for-deed-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-farm-and-ranch-contract-guide</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/texas-firpta-withholding-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-fixture-leases-addendum-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-groundwater-surface-water-rights-disclosure-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-hoa-addendum-guide</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/texas-hoa-foreclosure-lien-guide</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/texas-hoa-resale-certificate-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-hydrostatic-testing-addendum-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-lead-based-paint-disclosure-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-loan-assumption-addenda-guide</loc><lastmod>2026-08-09</lastmod></url>
@@ -31,8 +38,11 @@
   <url><loc>https://meetdossie.com/guides/texas-notice-of-sellers-termination-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-option-period-calculator</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-option-period-explained</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/texas-pid-disclosure-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-property-inspection-report-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-real-estate-closing-checklist</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/texas-real-estate-recovery-trust-account-guide</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/texas-real-estate-wire-fraud-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-residential-leases-addendum-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-sale-of-other-property-addendum-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/texas-seller-financing-addendum-guide</loc><lastmod>2026-08-09</lastmod></url>
@@ -52,6 +62,7 @@
   <url><loc>https://meetdossie.com/guides/trec-form-20-17-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/trid-closing-disclosure-three-day-rule-guide</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/guides/what-does-a-tc-do-texas</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/guides/trec-july-2026</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/answers/</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/answers/attorney-needed-for-real-estate-amendment-texas</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/answers/best-tc-software-texas-agents</loc><lastmod>2026-08-09</lastmod></url>
@@ -69,4 +80,12 @@
   <url><loc>https://meetdossie.com/answers/what-is-a-transaction-coordinator-texas</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/answers/what-is-notice-of-sellers-termination-texas</loc><lastmod>2026-08-09</lastmod></url>
   <url><loc>https://meetdossie.com/answers/what-is-trec-form-38-8-used-for</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-closing-checklist</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-closing-milestones</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-contract-scanning</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-deadline-tracking</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-email-drafts</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-esignatures</loc><lastmod>2026-08-09</lastmod></url>
+  <url><loc>https://meetdossie.com/features/how-dossie-handles-net-sheets</loc><lastmod>2026-08-09</lastmod></url>
 </urlset>
