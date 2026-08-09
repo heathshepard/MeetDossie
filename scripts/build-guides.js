@@ -251,7 +251,7 @@ ${calculatorBlock}
 <section class="cta-block">
   <h2>${escapeHtml(g.cta_title || 'Stop tracking deadlines manually.')}</h2>
   <p>${escapeHtml(g.cta_sub || 'Dossie tracks every TREC deadline for every active deal — plus follow-ups, document QA, and contract scanning. Built for Texas agents.')}</p>
-  <a class="cta-btn" href="/app">Start for $79/mo →</a>
+  <a class="cta-btn" href="/app">Start for $149/mo →</a>
 </section>
 
 ${g.faq && g.faq.length ? `

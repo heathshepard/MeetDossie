@@ -715,13 +715,13 @@ async function runDataHealth() {
 
   // 4a: Active subscriptions count vs CLAUDE.md MRR claim
   // The subscriptions table stores plan name only (price stored in Stripe).
-  // We infer MRR from the plan column: founding=$29, solo=$79, team=$199.
+  // We infer MRR from the plan column: founding=$29, solo=$149, team=$349.
   {
     const startedAt = Date.now();
     const subRes = await sb(
       `/rest/v1/subscriptions?select=id,plan,status&status=eq.active&limit=200`
     );
-    const PLAN_PRICE_DOLLARS = { founding: 29, solo: 79, team: 199, brokerage: 0 };
+    const PLAN_PRICE_DOLLARS = { founding: 29, solo: 149, team: 349, brokerage: 0 };
     let activeCount = 0;
     const byPlan = {};
     let mrrDollars = 0;

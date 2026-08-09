@@ -85,14 +85,14 @@ export default async function handler(req, res) {
     ]);
 
     // MRR — best-effort. We don't have an amount column; infer from plan/price.
-    // Founding = $29, Solo monthly = $79, Team monthly = $199.
+    // Founding = $29, Solo monthly = $149, Team monthly = $349.
     const PRICE_MAP = {
       price_1TPxxNL920SKTEEiN7Gphq8T: 29, // founding
     };
     const PLAN_MAP = {
       founding: 29,
-      solo_monthly: 79,
-      team_monthly: 199,
+      solo_monthly: 149,
+      team_monthly: 349,
       solo_annual: 39,
       team_annual: 119,
     };

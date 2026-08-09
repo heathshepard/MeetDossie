@@ -65,7 +65,7 @@ async function tg(text) {
 // ─── KPI fetchers ────────────────────────────────────────────────────────
 
 // MRR — sum of active founding/regular subscription prices.
-// Founding members are $29; non-founding solo $79; team $199 etc.
+// Founding members are $29; non-founding solo $149; team $349 etc.
 // We pull all active subscriptions and sum their "price" column if present,
 // else apply a price-by-plan map.
 async function getMrr() {
@@ -77,8 +77,8 @@ async function getMrr() {
   const PRICE_MAP = {
     founding: 29,
     founding_friend: 1,
-    solo: 79,
-    team: 199,
+    solo: 149,
+    team: 349,
     brokerage: 199,
   };
   const { ok, data } = await sb('/rest/v1/subscriptions?status=eq.active&select=plan');

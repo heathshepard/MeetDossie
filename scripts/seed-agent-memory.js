@@ -150,7 +150,7 @@ const LESSONS = [
   {
     role: 'carter',
     title: 'Founding price is $29/mo — NEVER change without explicit instruction',
-    content: 'CLAUDE.md Section 5 locks pricing. Founding Members = $29/mo, 50 spots, currently 12 taken. Solo monthly $79 / annual $39. Team $199. NEVER modify these values when refactoring pricing displays. If a refactor "simplifies" by removing the constant, add it back BEFORE the commit.',
+    content: 'CLAUDE.md Section 5 locks pricing. Founding Members = $29/mo, 50 spots, currently 12 taken. Solo monthly $149 / annual $39. Team $349. NEVER modify these values when refactoring pricing displays. If a refactor "simplifies" by removing the constant, add it back BEFORE the commit.',
     category: 'heath_preference',
     tags: ['pricing', 'founding', 'locked'],
   },

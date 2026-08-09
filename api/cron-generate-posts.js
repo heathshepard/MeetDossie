@@ -148,7 +148,7 @@ If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm de
 
 ### Pricing (locked, real)
 - Founding: $29/mo (25 spots total, __FOUNDING_COUNT__ taken, __FOUNDING_REMAINING__ remaining) — cap reduced from 50 → 25 on 2026-07-09, locked
-- Solo: $79/mo, Team: $199/mo, Brokerage: custom
+- Solo: $149/mo, Team: $349/mo, Brokerage: custom
 
 ## What to flag
 

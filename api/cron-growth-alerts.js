@@ -26,7 +26,7 @@ const BENCHMARKS = [
   { id: 'founding_30', metric: 'founding_count', threshold: 30, message: '30 founding members! Start collecting formal testimonials. Paid ads prep begins.' },
   { id: 'founding_38', metric: 'founding_count', threshold: 38, message: '38 founding members - 12 spots left. Launch FB/IG retargeting at $5-10/day NOW.' },
   { id: 'founding_45', metric: 'founding_count', threshold: 45, message: '45 founding members - 5 spots left! Announce scarcity publicly. Last call posts.' },
-  { id: 'founding_50', metric: 'founding_count', threshold: 50, message: 'FOUNDING FULL! Close /founding page, activate $79/mo pricing, launch affiliate program.' },
+  { id: 'founding_50', metric: 'founding_count', threshold: 50, message: 'FOUNDING FULL! Close /founding page, activate $149/mo pricing, launch affiliate program.' },
   { id: 'mrr_500',     metric: 'mrr_cents',      threshold: 50000,  message: '$500 MRR hit! First paid ad budget unlocked. Start $5/day FB retargeting.' },
   { id: 'mrr_1000',    metric: 'mrr_cents',      threshold: 100000, message: '$1,000 MRR! Consider part-time CS hire. Expand LinkedIn outreach to brokers.' },
   { id: 'mrr_2500',    metric: 'mrr_cents',      threshold: 250000, message: '$2,500 MRR! Statewide Texas expansion push. Begin Houston/DFW/Austin geo-targeted ads.' },

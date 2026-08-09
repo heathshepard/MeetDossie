@@ -91,13 +91,13 @@ export default async function handler(req, res) {
     const team = subs.filter(s => s.plan === 'team').length;
     const totalCustomers = subs.length;
 
-    // MRR: founding @ $29, founding_friend @ $1, solo @ $79, team @ $199
-    const PLAN_AMOUNTS = { founding: 29, founding_friend: 1, solo: 79, team: 199 };
+    // MRR: founding @ $29, founding_friend @ $1, solo @ $149, team @ $349
+    const PLAN_AMOUNTS = { founding: 29, founding_friend: 1, solo: 149, team: 349 };
     const dossieMrr =
       (founding * 29) +
       (foundingFriend * 1) +
-      (solo * 79) +
-      (team * 199);
+      (solo * 149) +
+      (team * 349);
     const totalMrr = dossieMrr; // only one live company right now
 
     // --- MRR Sparkline: cumulative MRR by month over last 6 months ---

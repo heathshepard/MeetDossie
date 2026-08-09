@@ -48,8 +48,8 @@ const VERIFIED_PAIN_POINTS = [
 const VERIFIED_PRICING = [
   '$29/month founding price (locked while subscription stays active)',
   '50 founding spots total',
-  '$79/mo Solo tier monthly, $39/mo annual',
-  '$199/mo Team tier (3 seats, max 8 at $35/seat extra), $119/mo annual',
+  '$149/mo Solo tier monthly, $39/mo annual',
+  '$349/mo Team tier (3 seats, max 8 at $35/seat extra), $119/mo annual',
   'Brokerage tier custom',
 ];
 

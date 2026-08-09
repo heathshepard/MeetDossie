@@ -267,7 +267,7 @@ main.article > .intro p { font-size: 17px; color: var(--text-primary); line-heig
 <section class="cta-block">
   <h2>${escapeHtml(f.cta_title || 'See it on your own contract.')}</h2>
   <p>${escapeHtml(f.cta_sub || 'Dossie handles the busywork on every active deal — built for Texas agents.')}</p>
-  <a class="cta-btn" href="/app">Start for $79/mo →</a>
+  <a class="cta-btn" href="/app">Start for $149/mo →</a>
 </section>
 
 ${f.faq && f.faq.length ? `
