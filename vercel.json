@@ -476,14 +476,6 @@
       "schedule": "30 11 * * *"
     },
     {
-      "path": "/api/cron-sage-regenerate",
-      "schedule": "0 0 1 1 *"
-    },
-    {
-      "path": "/api/cron-sage-first-comment",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-heath-publish-digest",
       "schedule": "0 7 * * *"
     },
@@ -520,16 +512,8 @@
       "schedule": "0 12 * * *"
     },
     {
-      "path": "/api/cron-weekly-newsletter-draft",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-newsletter-draft-reminder",
       "schedule": "0 21 * * 4"
-    },
-    {
-      "path": "/api/cron-weekly-newsletter",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-coverage-check",
@@ -580,10 +564,6 @@
       "schedule": "0 14 * * 1"
     },
     {
-      "path": "/api/cron-send-referral-blast",
-      "schedule": "30 13 9 6 *"
-    },
-    {
       "path": "/api/cron-reddit-scanner",
       "schedule": "0 0 1 1 *"
     },
@@ -594,10 +574,6 @@
     {
       "path": "/api/cron-assemble-skits",
       "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron-thursday-blast",
-      "schedule": "30 13 10 6 *"
     },
     {
       "path": "/api/cron-daily-platform-health",
@@ -620,24 +596,12 @@
       "schedule": "0 14 * * 1"
     },
     {
-      "path": "/api/cron-queue-tutorial-reels",
-      "schedule": "0 0 1 1 *"
-    },
-    {
-      "path": "/api/cron-engagement-veto-mode",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-mission-watchdog",
       "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron-morning-ops-digest",
       "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-dossie-qa-loop",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-cron-fire-verifier",
@@ -658,10 +622,6 @@
     {
       "path": "/api/cron-pull-post-analytics",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron-auto-populate-weekly-improvements",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-kpi-drift-detector",
@@ -686,10 +646,6 @@
     {
       "path": "/api/cron-agent-queue-tick",
       "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/cron-money-pulse-snapshot",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-daily-debrief",
@@ -758,10 +714,6 @@
     {
       "path": "/api/cron-support-ticket-alert",
       "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-automap-pending-documents",
-      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-apply-approved-improvements",
