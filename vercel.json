@@ -307,12 +307,6 @@
     "api/cron-sage-autonomous-review.js": {
       "maxDuration": 60
     },
-    "api/cron-sage-regenerate.js": {
-      "maxDuration": 60
-    },
-    "api/cron-sage-first-comment.js": {
-      "maxDuration": 30
-    },
     "api/cron-heath-publish-digest.js": {
       "maxDuration": 30
     },
@@ -321,12 +315,6 @@
     },
     "api/cron-morning-ops-digest.js": {
       "maxDuration": 30
-    },
-    "api/cron-engagement-veto-mode.js": {
-      "maxDuration": 60
-    },
-    "api/cron-dossie-qa-loop.js": {
-      "maxDuration": 90
     },
     "api/cron-cron-fire-verifier.js": {
       "maxDuration": 120
@@ -362,9 +350,6 @@
       "maxDuration": 30
     },
     "api/cron-send-outbound-emails.js": {
-      "maxDuration": 30
-    },
-    "api/cron-money-pulse-snapshot.js": {
       "maxDuration": 30
     },
     "api/cron-daily-debrief.js": {
@@ -421,9 +406,6 @@
     },
     "api/cron-support-ticket-alert.js": {
       "maxDuration": 60
-    },
-    "api/cron-automap-pending-documents.js": {
-      "maxDuration": 300
     },
     "api/cron-apply-approved-improvements.js": {
       "maxDuration": 60
