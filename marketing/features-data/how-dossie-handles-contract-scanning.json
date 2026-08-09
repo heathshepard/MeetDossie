@@ -40,5 +40,5 @@
       "a": "Missing signatures, missing initials on individual pages, and blank required fields. Dossie surfaces these instead of silently treating the contract as complete."
     }
   ],
-  "related_features": ["how-dossie-handles-deadline-tracking", "how-dossie-handles-esignatures"]
+  "related_features": ["how-dossie-handles-deadline-tracking", "how-dossie-handles-esignatures", "how-dossie-handles-closing-milestones"]
 }

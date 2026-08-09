@@ -1,0 +1,52 @@
+{
+  "slug": "how-dossie-handles-email-drafts",
+  "title": "How Dossie Handles Email Drafts",
+  "title_html": "How Dossie Handles <em>Email Drafts</em>",
+  "meta_title": "How Dossie Drafts Client Emails Automatically — Dossie",
+  "meta_description": "Dossie queues the emails a file needs next — welcome, lender intro, option reminder, clear to close — pre-filled with the property, dates, and names from the dossier, ready to review and send.",
+  "eyebrow": "Product feature",
+  "deck": "No blank page. Dossie watches the stage and timing of every file and queues the email that should go out next — subject and body already written from the dossier's own dates and names.",
+  "image": "/assets/product/email-drafts.png",
+  "image_alt": "Dossie's email draft review panel, pre-filled with a welcome email for a buyer including property address and key contract dates",
+  "image_caption": "A welcome email, drafted from the dossier - property, dates, and greeting already in place.",
+  "updated_at": "2026-08-08",
+  "related_blurb": "Dossie queues the next email a file needs and pre-fills it from the dossier - property, dates, and names already written in.",
+  "intro_html": "<p>Every file needs a string of the same emails - welcome the client, loop in the lender, remind everyone the option period is closing, confirm clear to close. Dossie tracks which of those a file needs next and writes the first draft itself, pulling the property address, the buyer or seller's name, and every date straight off the contract Dossie already scanned. Nothing sends on its own - review it, edit it, then send it from your own inbox.</p>",
+  "steps": [
+    {
+      "h": "1. Dossie queues what's next",
+      "p": "Based on the stage and timing of each file, Dossie surfaces the drafts that should be prepared now - grouped by dossier, with the reason it's queued right there next to it."
+    },
+    {
+      "h": "2. Choose a dossier and a template",
+      "p": "Eight templates cover the life of a file - welcome email, lender introduction, title company order, option period reminder, financing deadline reminder, clear to close, closing day, and post-closing thank you.",
+      "p_html": "Eight templates cover the life of a file - welcome email, lender introduction, title company order, option period reminder, financing deadline reminder, clear to close, closing day, and post-closing thank you."
+    },
+    {
+      "h": "3. Review, edit, and send",
+      "p": "Subject and body arrive pre-filled from the dossier - property address, contract dates, and the client's name already in place. Edit anything, then Copy, open it in Gmail/Outlook/Apple Mail, or send it straight from Dossie - either way it's logged to the dossier's history."
+    }
+  ],
+  "callout": "If a required name is missing from the dossier - the lender contact, the buyer's name - Dossie says so instead of guessing, and tells you exactly what to add first.",
+  "cta_title": "Stop writing the same email from scratch.",
+  "cta_sub": "Dossie queues, drafts, and pre-fills the emails every file needs - built for Texas agents.",
+  "faq": [
+    {
+      "q": "Does Dossie send emails automatically?",
+      "a": "No - every draft is queued for your review first. Send it straight from Dossie, or Copy / open it in Gmail, Outlook, or Apple Mail and send it from your own inbox. Either way it logs to the dossier's history."
+    },
+    {
+      "q": "What information does Dossie pre-fill in a draft?",
+      "a": "The property address, the client's name, and every relevant date - effective date, earnest money due, option period end, financing deadline, closing date - computed from the contract Dossie already scanned."
+    },
+    {
+      "q": "What email templates are available?",
+      "a": "Eight: welcome email, lender introduction, title company order, option period reminder, financing deadline reminder, clear to close notification, closing day confirmation, and post-closing thank you."
+    },
+    {
+      "q": "What happens if Dossie is missing information it needs for a draft?",
+      "a": "Dossie tells you exactly what's missing - like the lender contact's name or the buyer's name - and lets you add it to the dossier before it writes the draft. It never guesses or sends a draft addressed to no one."
+    }
+  ],
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-deadline-tracking", "how-dossie-handles-closing-milestones"]
+}

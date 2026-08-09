@@ -214,3 +214,5 @@ execute-pipeline-test.sh
 *.passphrase
 __pycache__/
 *.pyc
+
+.env*

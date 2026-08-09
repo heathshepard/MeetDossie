@@ -39,5 +39,5 @@
       "a": "Dossie already knows who's the buyer's agent and who's the seller's agent on a file, so it prefills the correct recipient and signature fields automatically instead of requiring manual field placement."
     }
   ],
-  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-deadline-tracking"]
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-deadline-tracking", "how-dossie-handles-closing-milestones"]
 }

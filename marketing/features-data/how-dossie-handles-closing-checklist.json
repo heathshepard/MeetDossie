@@ -1,0 +1,48 @@
+{
+  "slug": "how-dossie-handles-closing-checklist",
+  "title": "How Dossie Handles the Closing Checklist",
+  "title_html": "How Dossie Handles the <em>Closing Checklist</em>",
+  "meta_title": "How Dossie's Pre-Closing Checklist Keeps Nothing Slipping — Dossie",
+  "meta_description": "Every dossier gets a closing checklist built for its side of the deal — CD reviewed, payoff confirmed, walkthrough done — checked off one at a time before the deal closes.",
+  "eyebrow": "Product feature",
+  "deck": "The last mile of a deal is where things get missed. Dossie's closing checklist is built for whichever side you're on — buyer or seller — and stays visible until every item is checked.",
+  "image": "/assets/product/closing-checklist.png",
+  "image_alt": "Dossie's closing checklist showing pre-closing tasks checked and unchecked inside a dossier",
+  "image_caption": "A dossier mid-close — two items verified, two still open.",
+  "updated_at": "2026-08-07",
+  "related_blurb": "A side-specific pre-closing checklist that stays visible in every dossier until every item is verified.",
+  "intro_html": "<p>The days right before closing are when a missed step actually costs something — an unconfirmed payoff, a walkthrough nobody did, keys nobody arranged. Dossie's closing checklist lives in every dossier and shows the exact list for that side of the deal, buyer or seller, so nothing gets confirmed from memory.</p>",
+  "steps": [
+    {
+      "h": "1. The right list, automatically",
+      "p": "Buyer-side dossiers get buyer tasks — CD reviewed, prorations verified, final walkthrough, repairs confirmed. Seller-side dossiers get seller tasks — CD reviewed, net proceeds matched, payoff confirmed, keys ready."
+    },
+    {
+      "h": "2. Check items off as they're verified",
+      "p": "Click any item to mark it done — it turns green with a strikethrough, so what's left is obvious at a glance."
+    },
+    {
+      "h": "3. Nothing closes the loop on its own",
+      "p": "The checklist doesn't auto-check anything — every item stays open until an agent confirms it, which is the whole point.",
+      "p_html": "The checklist doesn't auto-check anything — every item stays open until an agent confirms it, which is the whole point."
+    }
+  ],
+  "callout": "Buyer and seller dossiers show different checklists on purpose — a buyer doesn't need \"keys ready for delivery,\" and a seller doesn't need \"final walkthrough completed.\"",
+  "cta_title": "Don't let the last mile slip.",
+  "cta_sub": "Dossie tracks the exact pre-closing tasks for whichever side of the deal you're on — built for Texas agents.",
+  "faq": [
+    {
+      "q": "Does the closing checklist look different for buyers and sellers?",
+      "a": "Yes. Buyer-side items include things like final walkthrough and repair verification; seller-side items include net proceeds matching the net sheet and confirming the mortgage payoff. Each dossier only shows the list for its own side."
+    },
+    {
+      "q": "Does anything on the checklist check itself automatically?",
+      "a": "No — every item is a manual confirmation. Dossie tracks deadlines and flags documents automatically elsewhere, but closing verification is intentionally something the agent confirms by hand."
+    },
+    {
+      "q": "Where does the closing checklist live?",
+      "a": "Inside every dossier, in its own Closing section — reachable from the dossier's section nav alongside Deadlines, Offers, and Documents."
+    }
+  ],
+  "related_features": ["how-dossie-handles-net-sheets", "how-dossie-handles-closing-milestones", "how-dossie-handles-deadline-tracking"]
+}

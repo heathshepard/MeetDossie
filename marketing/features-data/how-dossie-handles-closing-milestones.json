@@ -1,0 +1,52 @@
+{
+  "slug": "how-dossie-handles-closing-milestones",
+  "title": "How Dossie Handles Closing Milestones",
+  "title_html": "How Dossie Handles <em>Closing Milestones</em>",
+  "meta_title": "How Dossie Turns Under Contract, Clear to Close & Closed Into Shareable Cards — Dossie",
+  "meta_description": "Every time a dossier hits Under Contract, Clear to Close, or Closed, Dossie generates a branded, privacy-safe shareable card — ready to post in one click.",
+  "eyebrow": "Product feature",
+  "deck": "Under Contract. Clear to Close. Closed. Every real milestone becomes a beautiful, branded card — built to share, not just to file away.",
+  "image": "/assets/product/milestone-card.jpg",
+  "image_alt": "Dossie's shareable closing milestone card, generated automatically the moment a dossier moves to Under Contract",
+  "image_caption": "The Under Contract card, mid-celebration — city and state only, ready to post.",
+  "updated_at": "2026-08-07",
+  "related_blurb": "Every Under Contract, Clear to Close, and Closed milestone becomes a branded, privacy-safe card ready to share in one click.",
+  "intro_html": "<p>Moving a deal forward is worth celebrating — and worth marketing. The moment a dossier crosses into <strong>Under Contract</strong>, <strong>Clear to Close</strong>, or <strong>Closed</strong>, Dossie draws a branded 1080×1080 card on the spot: no designer, no Canva template, no remembering to make one before the moment's gone.</p>",
+  "steps": [
+    {
+      "h": "1. Move the stage",
+      "p": "Advance a dossier — or manually move it — into Under Contract, Clear to Close, or Closed, the same way you already track the deal.",
+      "p_html": "Advance a dossier — or manually move it — into <strong>Under Contract</strong>, <strong>Clear to Close</strong>, or <strong>Closed</strong>, the same way you already track the deal."
+    },
+    {
+      "h": "2. The card draws itself",
+      "p": "Dossie pops a celebration card built for that exact milestone: headline, subhead, city and state, gold border, Dossie mark — all on-brand, no template to fill in."
+    },
+    {
+      "h": "3. Share it in one click",
+      "p": "Share straight to Instagram or Facebook, copy the image, or download the PNG — the card is also saved to the dossier's Milestones tab so it's never lost."
+    }
+  ],
+  "callout": "Privacy-safe by design: the card shows only city and state — never the buyer or seller's name, never the street address, never the sale price.",
+  "cta_title": "Turn your next closing into a post.",
+  "cta_sub": "Dossie generates a branded, shareable card the moment a deal hits a real milestone — built for Texas agents.",
+  "faq": [
+    {
+      "q": "Which milestones generate a shareable card?",
+      "a": "Three: Under Contract, Clear to Close, and Closed. Each has its own headline and subhead, drawn fresh every time a dossier reaches that stage."
+    },
+    {
+      "q": "Is any private deal information shown on the card?",
+      "a": "No. The card shows only the property's city and state — never buyer or seller names, the street address, or the sale price. It's built to be safe to post publicly."
+    },
+    {
+      "q": "Where do past milestone cards go after I share them?",
+      "a": "Every card is saved to that dossier's Milestones section automatically, so you can reopen, re-download, or re-share it later without redoing the work."
+    },
+    {
+      "q": "Can I share the card from my phone?",
+      "a": "Yes — on mobile, the share buttons open your device's native share sheet straight to Instagram or Facebook. On desktop, Dossie downloads the PNG so you can attach it yourself."
+    }
+  ],
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-deadline-tracking", "how-dossie-handles-esignatures"]
+}

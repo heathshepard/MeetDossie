@@ -1,0 +1,52 @@
+{
+  "slug": "how-dossie-handles-net-sheets",
+  "title": "How Dossie Handles Seller Net Sheets",
+  "title_html": "How Dossie Handles <em>Seller Net Sheets</em>",
+  "meta_title": "How Dossie Calculates a Seller's Net Sheet — Dossie",
+  "meta_description": "Dossie pre-fills the seller's net sheet from the scanned contract — sale price, commission, option fee credit — then calculates estimated net proceeds line by line.",
+  "eyebrow": "Product feature",
+  "deck": "Sale price and commission come straight off the scanned contract. Fill in the rest — payoff, escrow, title, HOA — and Dossie does the math, line by line, down to the dollar.",
+  "image": "/assets/product/net-sheet.png",
+  "image_alt": "Dossie's Seller Net Sheet panel showing a full deduction breakdown and estimated net proceeds",
+  "image_caption": "A real net sheet, calculated — every line item, down to Estimated Net Proceeds.",
+  "updated_at": "2026-08-07",
+  "related_blurb": "Sale price and commission pre-fill from the contract; Dossie calculates estimated seller net proceeds line by line.",
+  "intro_html": "<p>A seller wants one number: what do I walk away with? Dossie's net sheet gets there without a spreadsheet — sale price, commission percentage, and option fee credit pull straight from the contract Dossie already scanned, and the handful of numbers that never live on a contract (mortgage payoff, escrow fee, title policy, HOA transfer fee) are yours to drop in.</p>",
+  "steps": [
+    {
+      "h": "1. Open Net Sheet from the Offers section",
+      "p": "Inside any seller-side dossier, click Net Sheet — sale price, commission percentage, and option fee credit are already filled in from the scanned contract."
+    },
+    {
+      "h": "2. Add what isn't on the contract",
+      "p": "Mortgage payoff, escrow and closing fees, title policy, HOA transfer fee, home warranty reimbursement, survey cost, agreed repairs — the numbers only the agent has, entered once."
+    },
+    {
+      "h": "3. Calculate, print, or download",
+      "p": "Dossie totals every deduction and credit into a line-item breakdown ending in Estimated Net Proceeds — then Print / Download hands the seller a clean copy.",
+      "p_html": "Dossie totals every deduction and credit into a line-item breakdown ending in <strong>Estimated Net Proceeds</strong> — then Print / Download hands the seller a clean copy."
+    }
+  ],
+  "callout": "Every net sheet is an estimate, not a closing figure — actual numbers settle at the closing disclosure. But it's the same math, done before the seller has to ask.",
+  "cta_title": "Answer \"what do I walk away with\" in one click.",
+  "cta_sub": "Dossie calculates a full seller net sheet from the scanned contract plus a handful of your own numbers — built for Texas agents.",
+  "faq": [
+    {
+      "q": "What does Dossie pre-fill on the net sheet automatically?",
+      "a": "Sale price, commission percentage (when a listing agreement was scanned), and the option fee credit — all pulled from the contract Dossie already read. Everything else — mortgage payoff, escrow fee, title policy, HOA transfer fee, home warranty reimbursement, survey cost, agreed repairs — isn't on a TREC contract, so it's entered manually."
+    },
+    {
+      "q": "Is the net sheet a guaranteed closing figure?",
+      "a": "No — it's an estimate built for planning conversations with the seller. The actual net proceeds are finalized on the closing disclosure at settlement."
+    },
+    {
+      "q": "Can I give the seller a copy?",
+      "a": "Yes — Print / Download opens a clean, formatted version of the net sheet ready to print or save as a PDF."
+    },
+    {
+      "q": "Does the net sheet work for buyer-side dossiers?",
+      "a": "Net sheets are a seller-side tool — they live in the Offers section of listing dossiers, since that's where \"what do I net\" is the seller's question, not the buyer's."
+    }
+  ],
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-closing-checklist", "how-dossie-handles-closing-milestones"]
+}

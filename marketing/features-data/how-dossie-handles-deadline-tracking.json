@@ -39,5 +39,5 @@
       "a": "Yes — those warnings are surfaced on the dossier automatically alongside the computed deadlines, not as a separate manual step."
     }
   ],
-  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-esignatures"]
+  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-esignatures", "how-dossie-handles-closing-milestones"]
 }
