@@ -1,0 +1,36 @@
+{
+  "slug": "texas-consumer-protection-notice-guide",
+  "title": "TREC Consumer Protection Notice (CN 1-5): What It Is and Where It Must Be Posted",
+  "title_html": "TREC <em>Consumer Protection Notice</em> (CN 1-5): What It Is and Where It Must Be Posted",
+  "meta_title": "TREC Consumer Protection Notice CN 1-5 — Posting Rules for Texas Agents",
+  "meta_description": "The TREC Consumer Protection Notice (currently CN 1-5) isn't a contract form — it's a mandatory posting. Who has to display it, where, and what it says.",
+  "eyebrow": "TREC Form CN 1-5",
+  "deck": "The one TREC document that isn't about a transaction at all — it's about compliance in your office and on your website.",
+  "show_calculator": false,
+  "updated_at": "2026-08-08",
+  "related_blurb": "TREC Consumer Protection Notice (CN 1-5) — who has to post it, where, and what it says.",
+  "body_html": "<p>New licensees and new brokers run into the <strong>Consumer Protection Notice</strong> before they ever get near a contract — it's the notice TREC requires posted in the office and linked from the website, separate from anything signed in a transaction. The current version is <strong>TREC No. CN 1-5</strong>, adopted by reference in TREC's own rule at 22 TAC §531.18, and it became mandatory for use on <strong>September 1, 2023</strong>, replacing CN 1-4. The update was driven by legislation from the 88th Texas Legislature and removed a reference to the real estate inspection recovery fund, which was repealed that session. The form itself carries no separate printed revision date — just the \"CN 1-5\" designation at the bottom of the page.</p><h2>Who has to provide it</h2><p>Per 22 TAC §531.18, <strong>real estate brokers, sales agents, inspectors, and easement or right-of-way (ERW) agents</strong> must all provide the Consumer Protection Notice. In practice, a broker's physical posting at the office satisfies the display requirement for agents working out of that location — the rule ties the office posting to \"each place of business the broker maintains.\" The website and social-media link requirement applies separately to whichever license holder maintains that particular site or profile.</p><h2>Where it has to be posted</h2><p>The rule spells out two required channels, plus a specific carve-out for social media:</p><ul><li><strong>In the office.</strong> Displayed in a readily noticeable location in each place of business the broker maintains.</li><li><strong>On the website.</strong> A link on the homepage of each business website, in a readily noticeable place, labeled either <strong>\"Texas Real Estate Commission Consumer Protection Notice\"</strong> in at least 10-point font, or <strong>\"TREC Consumer Protection Notice\"</strong> in at least 12-point font.</li><li><strong>On social media,</strong> if the profile qualifies as a business website. The link can sit on the account holder's profile itself, or on a separate page or website reached through a direct link from the platform or profile.</li></ul><p>Linking directly to TREC's own hosted copy of the form means the link stays current automatically whenever TREC updates the notice — the URL doesn't change even when the form version does. Agents or brokers who instead uploaded their own PDF copy of an older version needed to manually swap it out for CN 1-5.</p><h2>What the notice actually says</h2><p>The Consumer Protection Notice is short — a single page. It tells consumers, in TREC's own language:</p><ul><li>TREC regulates real estate brokers and sales agents, real estate inspectors, easement and right-of-way agents, and timeshare interest providers.</li><li>Consumers can find more information and check a license holder's status at www.trec.texas.gov.</li><li>Consumers can send a complaint against a license holder to TREC, using a complaint form available on TREC's website.</li><li>TREC administers the <strong>Real Estate Recovery Trust Account</strong>, which may be used to satisfy a civil court judgment against a broker, sales agent, or ERW agent, if certain requirements are met.</li><li>Real estate inspectors are required to maintain <strong>errors and omissions insurance</strong> to cover losses from a negligent or incompetent inspection — with a note that inspectors may limit liability through contract provisions, and consumers who don't understand a contract's terms should consult an attorney.</li></ul><p>It closes with TREC's mailing address and phone number for questions about a license holder's activities, the complaint process, or the Recovery Trust Account.</p><div class=\"callout\"><strong>Verify before you post it:</strong> because TREC has revised this notice more than once as regulations tied to it changed (CN 1-2, then 1-3, then 1-4, now 1-5), pull the current PDF directly from trec.texas.gov before printing a new copy for the office or re-uploading it to a website, rather than relying on a saved or cached file.</div>",
+  "faq": [
+    {
+      "q": "What is the TREC Consumer Protection Notice?",
+      "a": "A short, one-page notice TREC requires license holders to post — it tells consumers what TREC regulates, how to check a license holder's status or file a complaint, and how the Real Estate Recovery Trust Account and inspector errors-and-omissions insurance work. It isn't part of any purchase contract."
+    },
+    {
+      "q": "What form number is the current Consumer Protection Notice?",
+      "a": "CN 1-5. It became mandatory September 1, 2023, replacing CN 1-4, per 22 TAC §531.18 and TREC's own published update. The change removed a reference to the real estate inspection recovery fund, which was repealed that legislative session."
+    },
+    {
+      "q": "Who has to post the Consumer Protection Notice?",
+      "a": "Real estate brokers, sales agents, inspectors, and easement or right-of-way (ERW) agents, per 22 TAC §531.18. A broker's office posting covers agents working from that location; the website and social-media link requirement applies to whichever license holder maintains that site or profile."
+    },
+    {
+      "q": "Where does the Consumer Protection Notice have to be posted?",
+      "a": "In a readily noticeable location at each place of business the broker maintains, and as a link on the homepage of each business website — labeled 'Texas Real Estate Commission Consumer Protection Notice' in at least 10-point font, or 'TREC Consumer Protection Notice' in at least 12-point font. If a social media profile qualifies as a business website, the link can sit on the profile or on a linked page."
+    },
+    {
+      "q": "Do I need to update my website if I already link to TREC's own copy of the notice?",
+      "a": "No. Linking directly to TREC's hosted PDF means the link stays current automatically when TREC revises the form, since the URL doesn't change between versions. Only license holders who uploaded their own copy of an older version need to manually replace it."
+    }
+  ],
+  "related_guides": ["texas-non-realty-items-addendum", "texas-trec-brokerage-compensation-2026-guide"]
+}
