@@ -34,7 +34,7 @@ Sources used:
 |---|---|
 | Current form is **CN 1-5** (not CN 1-4) | 22 TAC §531.18 text (LII mirror): "The Commission adopts by reference the Consumer Protection Notice, TREC No. CN 1-5"; corroborated by the live PDF at trec.texas.gov itself printing "CN 1-5" at the bottom of the single page |
 | Full verbatim text of the notice | Read directly off the fetched CN 1-5 PDF (one page, page-image render — quoted in the guide from that direct read, not reconstructed) |
-| Who must provide it: brokers, sales agents, inspectors, and easement/right-of-way (ERW) agents | 22 TAC §531.18 rule text (LII mirror) |
+| Who must provide it: brokers, sales agents, inspectors, and easement/right-of-way (ERW) agents | TREC's "3 Places You May Need to Update the Consumer Protection Notice" article (TREC's own explanatory gloss naming these four categories) — not verbatim §531.18 text; the rule itself says only "each license holder," and Chapter 531's own definition of "license holder" is narrower (broker/sales agent), so the four-category framing is TREC's explanatory language elsewhere on their site, not a direct quote of the rule |
 | Posting requirement: displayed in a readily noticeable location in each place of business the broker maintains | 22 TAC §531.18 rule text (LII mirror) |
 | Website requirement: link on homepage, labeled either "Texas Real Estate Commission Consumer Protection Notice" (≥10pt) or "TREC Consumer Protection Notice" (≥12pt) | 22 TAC §531.18 rule text (LII mirror) |
 | Social media: link may live on the account holder's profile, or on a separate page/website reached via a direct link from the platform or profile | 22 TAC §531.18 rule text (LII mirror) |
