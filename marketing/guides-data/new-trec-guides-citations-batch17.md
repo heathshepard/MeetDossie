@@ -229,3 +229,46 @@ TREC's own public materials and by the TAMU/State-Bar-authored article, so it's 
 as reliable, but a future pass with full access to §1101.606(a)'s cross-references or 22 TAC
 Chapter 535's recovery-fund rules could tighten the citation further if it ever matters for a
 hostile-audience (attorney) read.
+
+## Corrections from Hadley review, 2026-08-09
+
+Two issues Hadley caught independently, both fixed in the guide's `body_html`:
+
+**1. The $3.5M reversion-to-general-fund claim was stated in present tense but the rule
+was repealed.** The earlier research pass above (see the SB 1577 bullet under "Trust
+Account balance") noted the $3.5M ceiling/reversion figure from the TAMU article and
+assumed it was "still operative" because the article stated it without flagging repeal.
+Hadley independently pulled the actual SB 1577 bill analysis and the Texas Comptroller's
+Manual of Accounts for Fund 0971 (the Trust Account's fund number) and confirmed SB
+1577 **repealed** the requirement that any balance above $3.5 million revert to the state's
+general fund at fiscal year-end — effective **January 1, 2024**, the same effective date the
+guide already cites for the cap increases. That was a genuine gap in the earlier pass: the
+TAMU secondary source reported the old $3.5M rule without noting SB 1577 killed it, and
+that got carried into the guide uncritically.
+
+Fix: the guide no longer states the $3.5M reversion rule as current law. It's now framed as
+historical ("Under the pre-2024 rule..."), with the repeal explicitly attributed to SB 1577 in
+the same sentence that already carries the cap-increase citation. The $3.4M balance figure
+itself is untouched — that's a factual snapshot from the May 2023 TREC staff report, not a
+statement about current reversion mechanics.
+
+**2. The "2 years from judgment" TREC-claim deadline needed attribution softening, not
+removal.** Hadley re-read §1101.601 and §§1101.605–1101.610 in full and confirmed what
+this file already flagged in the "Ambiguity" section above: no statutory subsection sets a
+2-year clock running from the judgment date. §1101.606 instead sets a 20-day post-notice
+wait, then a 1-year hearing-scheduling deadline. The 2-year-from-judgment claim is real —
+it appears on TREC's own site and in the TAMU article, both already cited above — but the
+guide previously presented it in a bulleted list sitting directly between two other bullets
+that both carry hard §-numbered statutory citations, with nothing distinguishing which one
+wasn't codified the same way.
+
+Fix: the bullet now ends with an explicit parenthetical — "(per TREC's own published
+guidance — this specific deadline isn't set out in a separate numbered statute section the
+way the caps and suit deadline are)" — so a reader (or an attorney fact-checking the page)
+isn't misled into treating it as equally citable to its statutory neighbors.
+
+This agent did not independently re-pull the SB 1577 bill analysis or the Comptroller's
+Fund 0971 manual — that verification was done by Hadley and is taken as given per the
+review finding. Fix 2 relies on the §1101.605–.610 statutory read already documented
+above in this file, which independently corroborates Hadley's finding that no numbered
+subsection sets the 2-year-from-judgment clock.
