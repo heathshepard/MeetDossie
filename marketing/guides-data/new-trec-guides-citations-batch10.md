@@ -178,3 +178,60 @@ grep) and Government Code Chapter 573 (fetched fresh via the same API pattern, s
 the code prefix from `PR` to `GV`). Confirms the method generalizes across Texas codes,
 not just Property Code — useful for any future guide that needs to resolve a
 statute's own cross-reference into a different code.
+
+---
+
+## Hadley legal-review corrections (2026-08-08)
+
+Two accuracy fixes made to the shipped guide after Hadley flagged them on review.
+Re-fetched `https://tcss.legis.texas.gov/resources/PR/htm/PR.5.htm` fresh for this pass
+to re-verify both against the live statute text rather than relying on the batch-10 table
+above.
+
+**Fix 1 — § 5.062(e) is an unconditional exclusion, not part of the (e)-(g) term-length
+test.** The original guide draft bundled § 5.062(e) into the same "§ 5.062(e)-(g)" bullet
+as the ≤3-year lease-purchase narrowing in (f)-(g), which reads as if (e) is also
+conditioned on a three-year-or-less term. It isn't. The statute text of § 5.062(e) reads:
+"Sections 5.066, 5.067, 5.071, 5.075, 5.079, 5.081, and 5.082 do not apply to an
+executory contract described by Subsection (a)(2)" — no term-length condition anywhere in
+that subsection. The term-length test lives entirely in (f): "only the following sections
+apply to an executory contract described by Subsection (a)(2) if the term of the contract
+is three years or less and the purchaser and seller...have not been parties to an
+executory contract to purchase the property...for longer than three years." (e) and (f)
+are sequential, independent rules — (e) strips six sections from every § 5.062(a)(2)
+lease-option unconditionally, and (f)-(g) then narrows the remaining applicable sections
+further, but only for the short-term/no-prior-history subset. Guide now states these as
+two separate bullets instead of one bundled bullet, plus a callout on the § 5.066/§ 5.081
+consequence for rent-to-own files specifically.
+
+Note on scope: the task brief that flagged this (relayed from Hadley) listed six excluded
+sections — §§ 5.066, 5.067, 5.071, 5.075, 5.079, 5.081 — omitting § 5.082. Re-checked the
+statute text directly (quoted above): § 5.062(e) excludes **seven** sections, including §
+5.082 (the purchaser's right to request a payoff balance). Guide corrected to list all
+seven, not six, since that's what the statute actually says.
+
+| Claim | Source |
+|---|---|
+| § 5.062(e) unconditionally excludes §§ 5.066, 5.067, 5.071, 5.075, 5.079, 5.081, and 5.082 for any § 5.062(a)(2) lease-option, regardless of term length — no duration or prior-history condition appears in subsection (e) itself | Statute text, § 5.062(e), quoted verbatim above; re-fetched and re-read in full for this correction |
+| § 5.062(f)'s three-year/no-longer-prior-history test is a separate, additional condition that applies only to (f)'s own narrower list (§§ 5.063–5.065, § 5.073 except (a)(2), §§ 5.083 and 5.085) — it does not gate § 5.062(e) | Statute text, § 5.062(f), quoted verbatim above |
+
+**Fix 2 — the "no § 5.086" note needed the relocation, not just the gap.** The batch-10
+table above already noted "No Section 5.086 exists...the numbering jumps from § 5.085
+directly to § 5.087," which is true but incomplete — it doesn't explain where § 5.086
+went or that it's still live law. Re-fetched Subchapter A of the same chapter file and
+found § 5.0205, "EQUITABLE INTEREST DISCLOSURE," with trailing history text reading:
+"Added by Acts 2017, 85th Leg., R.S., Ch. 974 (S.B. 2212), Sec. 4, eff. September 1,
+2017. Transferred, redesignated and amended from Property Code, Section 5.086 by Acts
+2023, 88th Leg., R.S., Ch. 94 (S.B. 1577), Sec. 27, eff. January 1, 2024." The
+relocated section requires written disclosure, before a contract, to (1) any potential
+buyer that the discloser is only selling an option or assigning an interest and doesn't
+hold legal title, and (2) the property's actual owner that the discloser intends to sell
+that option or assign that interest — directly relevant to a TC handling an assignment or
+flip of a contract-for-deed interest. Guide now names § 5.0205 and the relocation instead
+of only noting the gap.
+
+| Claim | Source |
+|---|---|
+| § 5.086 ("Equitable Interest Disclosure," added 2017) was transferred, redesignated, and amended to § 5.0205 (Subchapter A) by the 88th Legislature, Acts 2023, Ch. 94 (S.B. 1577), Sec. 27, effective January 1, 2024 | Statute text, § 5.0205 trailing history block, quoted verbatim above |
+| § 5.0205 requires written disclosure before a contract to (1) a potential buyer that the person is selling only an option or assigning an interest and lacks legal title, and (2) the property owner that the person intends to sell that option or assign that interest | Statute text, § 5.0205(1)-(2), quoted in full above |
+| § 5.086's original 2017 enactment (S.B. 2212, 85th Leg.) predates its 2024 relocation | Statute text, § 5.0205 trailing history block |
