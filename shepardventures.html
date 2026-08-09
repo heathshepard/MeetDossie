@@ -1353,6 +1353,21 @@
     const voiceLoop = (() => {
       const container = null; // set in bootstrap after initOrb
       const statusEl = document.getElementById('orb-status');
+      // No dedicated transcript panel exists in this page's markup — the
+      // pipeline below referenced transcriptEl/renderTranscript as if one
+      // did, which threw ReferenceError (undeclared identifiers) and
+      // silently killed every turn right after STT succeeded, before the
+      // chat reply or TTS ever ran. Route the transcript into the existing
+      // hint caption under the orb instead of adding new UI.
+      const transcriptEl = document.getElementById('orb-hint');
+      function renderTranscript(userText, assistantText) {
+        try {
+          console.log('[voice] user:', userText, '| assistant:', assistantText);
+          if (transcriptEl) {
+            transcriptEl.textContent = assistantText || (userText ? `"${userText}"` : '');
+          }
+        } catch (e) { /* non-fatal — never let a display glitch break the loop */ }
+      }
       let state = 'idle';
       const STATE_LABELS = {
         idle:      'STANDING BY',
@@ -1395,6 +1410,29 @@
 
       function setIntensity(v) {
         if (window.setOrbIntensity) window.setOrbIntensity(v);
+      }
+
+      // Drives the orb's amplitude visualization while recording. Was
+      // referenced via requestAnimationFrame(micTick) but never defined —
+      // threw "micTick is not defined" as an uncaught rejection out of
+      // startRecording() on every single tap (recording itself still
+      // started since this runs after mediaRecorder.start(), but the orb
+      // never pulsed with the mic level, and the console error would fail
+      // any strict console-error smoke test).
+      function micTick() {
+        if (state !== 'recording') return;
+        if (micAnalyser && micDataArray) {
+          micAnalyser.getByteTimeDomainData(micDataArray);
+          let sum = 0;
+          for (let i = 0; i < micDataArray.length; i++) {
+            const v = (micDataArray[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / micDataArray.length);
+          smoothedMic = smoothedMic * (1 - MIC_ALPHA) + rms * MIC_ALPHA;
+          setIntensity(Math.min(1, smoothedMic * 4.0));
+        }
+        micRaf = requestAnimationFrame(micTick);
       }
 
       async function startRecording() {
