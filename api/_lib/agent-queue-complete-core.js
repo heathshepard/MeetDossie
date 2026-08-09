@@ -95,7 +95,7 @@ async function completeTask(supabase, opts) {
 
   const { data: existing, error: loadErr } = await supabase
     .from('agent_queue')
-    .select('id, agent_name, status, metadata')
+    .select('id, agent_name, status, metadata, result_summary')
     .eq('id', id)
     .single();
 
@@ -105,12 +105,26 @@ async function completeTask(supabase, opts) {
   const isAuditCompletion = existingMeta._is_audit_claim === true;
   let merged = { ...existingMeta, ...extraMeta };
   let escalated = false;
+  // Default: use whatever this call passed. Overridden below for the audit-
+  // PASS case, where it must NOT win (see comment there).
+  let finalResultSummary = result_summary;
 
   if (isAuditCompletion) {
     // ── AUDIT VERDICT ──────────────────────────────────────────────────
     if (status === 'completed') {
       merged._audit_verdict = 'pass';
       merged._audit_passed_at = new Date().toISOString();
+      // BUG FOUND 2026-08-09 verifying the Jarvis Build-mode round trip
+      // (SV-ENG-AGENT-QUEUE-JARVIS-RACE): this branch used to fall through
+      // to the unconditional update below, which wrote Quinn's audit
+      // narrative ("...AUDIT_VERDICT: PASS") into result_summary — the SAME
+      // column jarvis-claude-code.js reads back to Heath as the answer. A
+      // passing audit silently replaced the real answer with Quinn's QA
+      // note on every single Build-mode request that reached this gate.
+      // Keep the original agent's result_summary; file the auditor's text
+      // as metadata instead, still fully visible on the row for review.
+      merged._audit_note = result_summary;
+      finalResultSummary = existing.result_summary || '';
     } else if (status === 'pending') {
       const failCount = Number(existingMeta._audit_fail_count || 0) + 1;
       merged._audit_fail_count = failCount;
@@ -143,7 +157,7 @@ async function completeTask(supabase, opts) {
       status,
       completed_at: (status === 'completed' || status === 'blocked' || status === 'cancelled') ? now : null,
       completed_by_agent_session,
-      result_summary,
+      result_summary: finalResultSummary,
       metadata: merged,
     })
     .eq('id', id)

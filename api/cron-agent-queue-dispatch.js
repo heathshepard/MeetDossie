@@ -344,8 +344,17 @@ async function handler(req, res) {
   }
 
   while (Date.now() - startedAt < WALL_CLOCK_BUDGET_MS) {
+    // metadata->>task_type rows (jarvis_chat, fable_script_gen, etc.) belong
+    // EXCLUSIVELY to claude-code-worker.js on Heath's PC — they need real
+    // filesystem/git/tool access, not a stateless Anthropic /v1/messages call.
+    // Before this filter, this cron raced the PC worker for every such row
+    // (own priority=1 for jarvis_chat put it first in line) and, since
+    // agent_name='cole' is not in SUPPORTED, blocked it in ~2s with
+    // "unsupported_agent:cole" almost every time — a 100% Jarvis Build-mode
+    // failure mode found + fixed 2026-08-09 (SV-ENG-AGENT-QUEUE-JARVIS-RACE).
     const { ok, data } = await sb(
       `agent_queue_ready?select=id,agent_name,task_subject,task_brief,priority,depends_on,metadata,venture` +
+      `&metadata->>task_type=is.null` +
       `&order=priority.asc,created_at.asc&limit=${MAX_PER_RUN}`,
     );
     if (!ok) break;

@@ -99,17 +99,49 @@ const SPAWN_MAX_BUDGET_USD = parseFloat(process.env.SPAWN_MAX_BUDGET_USD || '5')
 // the user-facing chief of staff and is always interactive.
 const SPAWNABLE_AGENTS = new Set(['carter', 'atlas', 'sage', 'pierce', 'hadley', 'quinn', 'sterling', 'ridge']);
 
-// Resolve claude.exe direct (avoid the .cmd shim — shell:true on Windows
-// mangles argv via cmd.exe quoting). Falls back to PATH lookup if the well-
-// known npm-global path isn't there.
-const CLAUDE_EXE_DIRECT = path.join(
-  process.env.APPDATA || path.join(HOME_DIR, 'AppData', 'Roaming'),
-  'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe'
-);
+// Resolve claude.exe direct (avoid the .cmd shim — Node 18.20/20.12 closed
+// CVE-2024-27980 by refusing to spawn .cmd/.bat without shell:true, which
+// throws EINVAL). Checked in order: the native installer's actual location
+// on this machine (%USERPROFILE%\.local\bin\claude.exe) first, then the
+// older npm-global layout as fallback. This mirrors the fix already applied
+// in scripts/claude-code-task-handlers/_lib/claude-spawn.js — this file had
+// only the npm-global check, which doesn't exist on this machine anymore, so
+// every spawn silently fell through to 'claude.cmd' + shell:false and threw
+// EINVAL before Claude ever started. Found + fixed 2026-08-09 while
+// verifying the Jarvis Build-mode round trip end-to-end
+// (SV-ENG-AGENT-QUEUE-JARVIS-RACE).
+const CLAUDE_EXE_CANDIDATES = [
+  path.join(HOME_DIR, '.local', 'bin', 'claude.exe'),
+  path.join(
+    process.env.APPDATA || path.join(HOME_DIR, 'AppData', 'Roaming'),
+    'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe'
+  ),
+];
 const CLAUDE_BIN = (() => {
-  try { if (fs.existsSync(CLAUDE_EXE_DIRECT)) return CLAUDE_EXE_DIRECT; } catch {}
+  for (const c of CLAUDE_EXE_CANDIDATES) {
+    try { if (fs.existsSync(c)) return c; } catch {}
+  }
   return process.platform === 'win32' ? 'claude.cmd' : 'claude';
 })();
+// If we still fell back to the .cmd shim, we MUST spawn with shell:true or
+// every call dies before Claude starts (see comment above).
+const CLAUDE_NEEDS_SHELL = process.platform === 'win32' && /\.(cmd|bat)$/i.test(CLAUDE_BIN);
+
+// This poller exists so agent work runs under Heath's Max subscription
+// (OAuth login) instead of pay-per-token/broken API-key billing. If
+// ANTHROPIC_API_KEY is sitting in .env.local (it is — pulled from Vercel as
+// the literal write-only placeholder "[SENSITIVE]", not a real key) or
+// anywhere else in this process's env, the CLI silently prefers it over the
+// claude.ai login and every spawn fails with "Invalid API key". Strip it
+// from the child specifically, mirroring _lib/claude-spawn.js. Found + fixed
+// 2026-08-09 (SV-ENG-AGENT-QUEUE-JARVIS-RACE) — this is what was breaking
+// every Quinn audit-loop spawn.
+const CLAUDE_AUTH_OVERRIDE_VARS = ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY', 'ANTHROPIC_AUTH_TOKEN'];
+function claudeChildEnv() {
+  const env = { ...process.env };
+  for (const k of CLAUDE_AUTH_OVERRIDE_VARS) delete env[k];
+  return env;
+}
 
 // Safety gate: only auto-spawn tasks explicitly marked autonomous. Heath wants
 // "agents never idle" but many queued tasks require approvals / customer
@@ -280,8 +312,11 @@ async function spawnAgent(task) {
 
     const child = spawn(CLAUDE_BIN, args, {
       cwd: REPO_DIR,
-      env: process.env,
-      shell: false,                // crucial — avoid cmd.exe argv mangling
+      env: claudeChildEnv(),
+      // shell:false avoids cmd.exe argv mangling when we resolved the real
+      // .exe (the common case). Only the claude.cmd fallback needs
+      // shell:true — without it, Node throws EINVAL before Claude starts.
+      shell: CLAUDE_NEEDS_SHELL,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -404,7 +439,17 @@ async function peekReady() {
       return null;
     }
     const j = await r.json();
-    return j.tasks || [];
+    const tasks = j.tasks || [];
+    // Rows carrying metadata.task_type (jarvis_chat, fable_script_gen, etc.)
+    // belong EXCLUSIVELY to claude-code-worker.js — its handler contract
+    // needs a specific task_type-keyed function, not a bare `claude --agent`
+    // spawn. Before this filter, this poller (same-machine, tighter default
+    // POLL_MS than claude-code-worker's own loop) usually won the race for
+    // any such row, claimed it, found agent_name='cole' not in
+    // SPAWNABLE_AGENTS, and blocked it in milliseconds — a 100% Jarvis
+    // Build-mode failure mode found + fixed 2026-08-09
+    // (SV-ENG-AGENT-QUEUE-JARVIS-RACE).
+    return tasks.filter((t) => !(t && t.metadata && typeof t.metadata.task_type === 'string'));
   } catch (e) {
     log(`peek error: ${e.message}`, 'WARN');
     return null;
