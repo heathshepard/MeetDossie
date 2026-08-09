@@ -1475,8 +1475,8 @@
       }
 
             function stopRecording() {
-        if (!recognition) return;
-        try { recognition.stop(); } catch (_) {}
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+        try { mediaRecorder.stop(); } catch (_) {}
       }
 
       function cleanupStream() {
