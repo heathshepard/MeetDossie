@@ -44,7 +44,7 @@ const CRON_SECRET               = process.env.CRON_SECRET;
 
 const FROM_EMAIL   = 'heath@meetdossie.com';
 const REPLY_TO     = 'heath@meetdossie.com';
-const SUBJECT      = '6:47pm again?';
+const SUBJECT      = '$400 per file?';
 const FOUNDING_URL = 'https://meetdossie.com/founding?utm_source=cold-email&utm_medium=email';
 const UNSUB_URL    = 'https://meetdossie.com/unsubscribe';
 const NW_ADDRESS   = 'Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731';
@@ -255,22 +255,19 @@ function selectKwLeads(count, excluded, dateKey) {
 function buildText(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   const spotsText = typeof foundingRemaining === 'number'
-    ? `${foundingRemaining} of ${FOUNDING_COHORT_CAP} spots left`
-    : `${FOUNDING_COHORT_CAP} founding spots at $29/mo`;
-  return `It's 6:47pm Thursday in ${city} and you're still in the car.
+    ? `Only ${foundingRemaining} founding spots left`
+    : `${FOUNDING_COHORT_CAP} founding spots available`;
+  return `Hey - quick question.
 
-The lender kicked back another required-repair list. Your seller wants an option-period amendment out tonight. That second appraisal is still "pending review." And there's an offer you owe back on a different file.
+What are you paying per file for TC work right now? $350? $400?
 
-I'm a working KW agent - I've sat in that exact parking lot. So I built Dossie to handle the tracking, drafting, and reminder layer of those moments. She queues the amendment, watches the appraisal clock, drafts the repair-response email. You stay on the negotiation.
+I'm an agent in ${city} and I got tired of that math. So I built an AI transaction coordinator. She drafts amendments, tracks every deadline, and sends the follow-up emails you keep forgetting. $29/mo flat, unlimited files.
 
-13 Texas agents are already on. Brittney closed 49 deals with her.
+If that math works for you: ${FOUNDING_URL}
 
-Worth a reply if that sounds like a normal week?
+${spotsText} at $29/mo, locked for life. No pressure - just reply "not interested" and I won't email again.
 
 - Heath
-KW City View / KW Boerne
-
-P.S. Founding rate $29/mo, locked for the life of your subscription. ${spotsText}. If it's not for you, no worries - just reply "not now". ${FOUNDING_URL}
 
 ---
 Unsubscribe: ${unsub}
@@ -281,23 +278,20 @@ ${NW_ADDRESS}
 function buildHtml(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   const spotsText = typeof foundingRemaining === 'number'
-    ? `${foundingRemaining} of ${FOUNDING_COHORT_CAP} spots left`
-    : `${FOUNDING_COHORT_CAP} founding spots at $29/mo`;
+    ? `Only ${foundingRemaining} founding spots left`
+    : `${FOUNDING_COHORT_CAP} founding spots available`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
-<p>It's 6:47pm Thursday in ${city} and you're still in the car.</p>
+<p>Hey - quick question.</p>
 
-<p>The lender kicked back another required-repair list. Your seller wants an option-period amendment out tonight. That second appraisal is still "pending review." And there's an offer you owe back on a different file.</p>
+<p>What are you paying per file for TC work right now? $350? $400?</p>
 
-<p>I'm a working KW agent - I've sat in that exact parking lot. So I built Dossie to handle the tracking, drafting, and reminder layer of those moments. She queues the amendment, watches the appraisal clock, drafts the repair-response email. You stay on the negotiation.</p>
+<p>I'm an agent in ${city} and I got tired of that math. So I built an AI transaction coordinator. She drafts amendments, tracks every deadline, and sends the follow-up emails you keep forgetting. $29/mo flat, unlimited files.</p>
 
-<p>13 Texas agents are already on. Brittney closed 49 deals with her.</p>
+<p>If that math works for you: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
 
-<p>Worth a reply if that sounds like a normal week?</p>
+<p style="color: #555;">${spotsText} at $29/mo, locked for life. No pressure - just reply "not interested" and I won't email again.</p>
 
-<p>- Heath<br>
-KW City View / KW Boerne</p>
-
-<p style="color: #555;">P.S. Founding rate $29/mo, locked for the life of your subscription. ${spotsText}. If it's not for you, no worries - just reply "not now". <a href="${FOUNDING_URL}">Founding details</a>.</p>
+<p>- Heath</p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">
@@ -357,6 +351,22 @@ async function loadExclusionSet() {
   return excluded;
 }
 
+async function loadWarmedLeads() {
+  const warmed = new Set();
+  try {
+    const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString();
+    const url = `${SUPABASE_URL}/rest/v1/warm_touch_queue?select=lead_email&status=eq.engaged&engaged_at=lte.${threeDaysAgo}&limit=500`;
+    const r = await fetch(url, { headers: sbHeaders() });
+    if (r.ok) {
+      const rows = await r.json();
+      if (Array.isArray(rows)) rows.forEach(x => { if (x.lead_email) warmed.add(x.lead_email.toLowerCase()); });
+    }
+  } catch (e) {
+    // Non-fatal — warm touch is a preference, not a requirement
+  }
+  return warmed;
+}
+
 async function selectLeads(count, excluded) {
   const all = loadLeads();
   const selected = [];
@@ -403,13 +413,20 @@ async function selectLeads(count, excluded) {
     return false;
   };
 
-  take(tier1) || take(tier2) || take(tier3);
+  // Warm-touch priority: leads engaged on social >= 3 days ago go first.
+  const warmed = await loadWarmedLeads();
+  const warmedTier = all.filter(r =>
+    isValidLead(r) && warmed.has((r.email || '').toLowerCase())
+  );
+
+  take(warmedTier) || take(tier1) || take(tier2) || take(tier3);
 
   return {
     selected,
     tier1_avail: tier1.length,
     tier2_avail: tier2.length,
     tier3_avail: tier3.length,
+    warmed_avail: warmedTier.length,
   };
 }
 
@@ -625,8 +642,8 @@ async function handler(req, res) {
           campaign: 'sa-cold-daily-warmup',
           batch: batchId,
           touch: 1,
-          hook: '2-brutal-thursday-evening',
-          subject_variant: 'B',
+          hook: '3-cost-comparison',
+          subject_variant: 'C',
           first_name: titleFirstName(lead.name),
           city,
           brokerage: (lead.brokerage || '').trim(),
