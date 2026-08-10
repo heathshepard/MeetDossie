@@ -83,6 +83,7 @@ export default async function handler(req, res) {
   const q = req.query || {};
   const windowHours = Math.max(1, Math.min(168, parseInt(q.window_hours, 10) || 24));
   const since = new Date(Date.now() - windowHours * 3600 * 1000).toISOString();
+  const since14d = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
 
   try {
     // 2026-07-01 source swap — agent_task_queue and agent_workers are DEAD
@@ -101,10 +102,14 @@ export default async function handler(req, res) {
       sbGet(
         `agent_spawn_metrics?select=agent_role,model,cache_hit,cache_read_tokens,cache_creation_tokens,uncached_input_tokens,output_tokens,total_cost_usd,baseline_cost_usd,savings_usd,duration_ms,ts&tenant_id=eq.${tenantId}&ts=gte.${encodeURIComponent(since)}&limit=20000`
       ).catch(() => []),
-      // Blocked count is NOT windowed — Heath needs to see every blocked task,
-      // not just ones blocked in the last N hours (Jarvis mission-control
-      // consolidation, 2026-08-06). Backs the AGENTS panel's blocked-count badge.
-      sbGet(`agent_queue?select=id&status=eq.blocked&limit=5000`).catch(() => []),
+      // Blocked count: 14-day recency floor (STALE-DATA FILTER 2026-08-10 —
+      // Heath: dashboard was showing 51 blocked rows going back to 2026-06-17,
+      // 54 days old, permanently inflating this badge). The 2026-08-06 "not
+      // windowed" choice below was well-intentioned (don't silently hide a
+      // real blocker) but had no ceiling at all, so weeks-dead rows never
+      // aged out. Display-layer only — DB rows are untouched, still fully
+      // queryable for history. Backs the AGENTS panel's blocked-count badge.
+      sbGet(`agent_queue?select=id&status=eq.blocked&created_at=gte.${encodeURIComponent(since14d)}&limit=5000`).catch(() => []),
     ]);
     // Normalize agent_queue.agent_name -> agent_role (for downstream bucket lookup).
     for (const q of queued)      q.agent_role = q.agent_name;
