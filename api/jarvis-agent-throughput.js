@@ -16,6 +16,7 @@
 // Owner: Atlas (atlas_5, 2026-06-20 Agent Speed Unlock).
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+const { isInternalTaskNoise } = require('./_lib/internal-task-filter.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -109,7 +110,10 @@ export default async function handler(req, res) {
       // real blocker) but had no ceiling at all, so weeks-dead rows never
       // aged out. Display-layer only — DB rows are untouched, still fully
       // queryable for history. Backs the AGENTS panel's blocked-count badge.
-      sbGet(`agent_queue?select=id&status=eq.blocked&created_at=gte.${encodeURIComponent(since14d)}&limit=5000`).catch(() => []),
+      // task_subject added 2026-08-10 so the count below can also strip
+      // internal QA/verification noise (see _lib/internal-task-filter.js) —
+      // Heath: "17 blocked agents... I don't know what the fuck that is."
+      sbGet(`agent_queue?select=id,task_subject&status=eq.blocked&created_at=gte.${encodeURIComponent(since14d)}&limit=5000`).catch(() => []),
     ]);
     // Normalize agent_queue.agent_name -> agent_role (for downstream bucket lookup).
     for (const q of queued)      q.agent_role = q.agent_name;
@@ -228,7 +232,13 @@ export default async function handler(req, res) {
       savings_usd:            0,
       projected_daily_cost:   0,
       projected_monthly_cost: 0,
-      total_blocked:          Array.isArray(blockedRows) ? blockedRows.length : 0,
+      // Stopgap noise filter (2026-08-10) — excludes internal QA/verification
+      // rows (agents testing their own changes) from the count Heath sees.
+      // Real fix is a schema-level is_internal flag; see
+      // _lib/internal-task-filter.js for detail.
+      total_blocked: Array.isArray(blockedRows)
+        ? blockedRows.filter((r) => !isInternalTaskNoise(r.task_subject)).length
+        : 0,
     };
     for (const role of VALID_ROLES) {
       const b = byRole[role];

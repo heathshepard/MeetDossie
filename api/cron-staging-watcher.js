@@ -114,6 +114,35 @@ async function ghFetch(path) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// PLAIN-ENGLISH MERGE QUEUE TITLES (Carter, 2026-08-10 — Heath dashboard
+// teardown: "shows cryptic entries like 'disable cold email cron'... it
+// needs to be written in plain English"). Raw commit subjects use
+// conventional-commit prefixes (fix(scope):, feat(scope):) that mean
+// nothing to Heath. This strips that engineering prefix for the title, and
+// carries the commit body (the paragraph most agents already write
+// explaining WHY) through as `description` so the merge queue card can show
+// real context instead of just a one-line jargon subject.
+function humanizeCommitTitle(line) {
+  if (!line) return line;
+  // "fix(scan-contract): sharpen EM receipt..." -> "Sharpen EM receipt..."
+  const stripped = line.replace(/^\s*[a-z]+(\([^)]*\))?!?:\s*/i, '');
+  const text = stripped || line;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function commitBodyAsDescription(rawMessage) {
+  if (!rawMessage) return '';
+  const lines = rawMessage.split('\n').slice(1); // drop the subject line
+  const kept = [];
+  for (const l of lines) {
+    // Drop trailer lines (Co-Authored-By, Claude-Session, etc.) — internal
+    // attribution, not something Heath needs to read to decide on a merge.
+    if (/^(Co-Authored-By|Claude-Session):/i.test(l.trim())) continue;
+    kept.push(l);
+  }
+  return kept.join('\n').trim().slice(0, 1200);
+}
+
 async function getStagingHead() {
   // GET /repos/{owner}/{repo}/branches/{branch}
   const { ok, status, data } = await ghFetch(`/repos/${GITHUB_REPO}/branches/${STAGING_BRANCH}`);
@@ -121,10 +150,12 @@ async function getStagingHead() {
     return { ok: false, status, error: `github_branch_fetch_${status}` };
   }
   const c = data.commit;
+  const rawMessage = (c.commit && c.commit.message) || null;
   return {
     ok: true,
     sha: c.sha,
-    message: (c.commit && c.commit.message) ? c.commit.message.split('\n')[0] : null,
+    message: rawMessage ? rawMessage.split('\n')[0] : null,
+    raw_message: rawMessage,
     author: (c.commit && c.commit.author && c.commit.author.name) || (c.author && c.author.login) || null,
     committed_at: (c.commit && c.commit.committer && c.commit.committer.date) || null,
   };
@@ -140,12 +171,16 @@ async function getCommitsBetween(baseSha, headSha) {
     return { ok: false, status, error: `github_compare_${status}` };
   }
   // GitHub returns oldest→newest. Cap so a long absence doesn't blast Heath.
-  const commits = data.commits.slice(-MAX_COMMITS_PER_TICK).map((c) => ({
-    sha: c.sha,
-    message: (c.commit && c.commit.message) ? c.commit.message.split('\n')[0] : null,
-    author: (c.commit && c.commit.author && c.commit.author.name) || (c.author && c.author.login) || null,
-    committed_at: (c.commit && c.commit.committer && c.commit.committer.date) || null,
-  }));
+  const commits = data.commits.slice(-MAX_COMMITS_PER_TICK).map((c) => {
+    const rawMessage = (c.commit && c.commit.message) || null;
+    return {
+      sha: c.sha,
+      message: rawMessage ? rawMessage.split('\n')[0] : null,
+      raw_message: rawMessage,
+      author: (c.commit && c.commit.author && c.commit.author.name) || (c.author && c.author.login) || null,
+      committed_at: (c.commit && c.commit.committer && c.commit.committer.date) || null,
+    };
+  });
   return { ok: true, commits };
 }
 
@@ -187,7 +222,8 @@ async function addToMergeQueue(commit) {
       },
       body: JSON.stringify({
         sha: commit.sha,
-        title: commit.message || `Merge ${commit.sha.slice(0, 7)}`,
+        title: humanizeCommitTitle(commit.message) || `Merge ${commit.sha.slice(0, 7)}`,
+        description: commitBodyAsDescription(commit.raw_message),
         commit_author: commit.author,
         committed_at: commit.committed_at,
       }),

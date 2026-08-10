@@ -2,75 +2,37 @@
 // ============================================================================
 // GET /api/jarvis-in-flight-work
 //
-// The unified "in-flight work" view from the Jarvis mission-control proposal
-// (2026-08-06, item 5) — one feed merging:
-//   - agent_queue   (in_progress + blocked agent tasks)
-//   - merge_queue   (unmerged staging->main commits + sign-off status)
-//   - heath_todo    (Heath's pending/snoozed action items)
-//   - live git diff (main..staging commit count, per repo — GitHub Compare
-//                     API, no local clone required, same pattern as
-//                     cron-merge-queue-backfill.js)
+// The IN-FLIGHT WORK panel — "what is being worked on right now." Redesigned
+// 2026-08-10 per Heath's dashboard teardown: this used to merge agent_queue
+// (in_progress + blocked, 14-day cutoff) + merge_queue + heath_todo into one
+// list nested under business-line groups, which produced 46 items including
+// week-old blocked rows and cryptic internal task IDs — not a real-time
+// "what's active" view.
 //
-// This is a READ view — completion happens via /api/jarvis-mark-complete
-// (or the per-item Done button on the HUD, which calls that same endpoint
-// with an exact {source,id}).
+// Scope, per spec: ONLY agent_queue rows with status='in_progress' — genuinely
+// running right now. No blocked, no done/cancelled/completed, no merge_queue,
+// no heath_todo (those live in MERGE QUEUE and WORK ITEMS respectively). A
+// row disappears from this list the moment the agent's status changes away
+// from in_progress — no manual "Done" button, nothing to mark, it's just live.
 //
-// Every item gets `age_minutes` and a `stale` flag so the HUD can sort by
-// staleness and visually flag blockers, per the proposal's staleness-as-a-
-// first-class-signal principle. Staleness thresholds differ per source
-// because "still running" means different things for an agent task vs. a
-// merge candidate vs. a todo:
-//   agent_queue (in_progress) stale after 30 min  — agents should move fast
-//   agent_queue (blocked)     stale after 0 min   — blocked is ALWAYS surfaced hot
-//   merge_queue               stale after 24h     — merges wait on human sign-off
-//   heath_todo                stale after 48h     — Heath's own backlog
+// Internal QA/verification noise (agents testing their own changes, e.g.
+// "BL panel verify 1786381769910") is filtered via the same heuristic used
+// by jarvis-agent-throughput.js — see _lib/internal-task-filter.js for why
+// this is a stopgap, not the real fix.
 //
 // Auth: Bearer Supabase JWT.
 // Owner: Atlas — Jarvis mission-control consolidation, 2026-08-06.
+//        Redesigned Carter, 2026-08-10 (Heath dashboard teardown).
 // ============================================================================
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+const { isInternalTaskNoise } = require('./_lib/internal-task-filter.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
 const REPOS = ['heathshepard/MeetDossie', 'heathshepard/Dossie'];
-
-// STALE-DATA FILTER 2026-08-10 (Heath: dashboard redesign pass). agent_queue
-// had 51 'blocked' rows going back to 2026-06-17 (54 days old) with no
-// recency filter at all — every one of them rendered at the top of this
-// panel forever (blocked always sorts first, see the sort below), so the
-// "live" view was permanently dominated by weeks-old dead rows. This is a
-// DISPLAY-layer cutoff only — the underlying agent_queue rows are untouched,
-// still fully queryable for history. Only applied to `blocked`; `in_progress`
-// stays unfiltered since a genuinely still-running task should never be
-// hidden regardless of age (an old in-progress row is its own bug, not a
-// clutter problem).
-const BLOCKED_RECENCY_DAYS = 14;
-
-// BUSINESS-LINE GROUPING 2026-08-10 (Heath: "I need this to be much more
-// organized... one consistent way to see what's happening in Dossie vs
-// Brokerage"). This panel used to be a flat, ungrouped list sitting next to
-// (but disconnected from) the BUSINESS LINES panel, which groups agent_queue
-// by the same taxonomy. Every item returned here now carries a
-// `business_line` so the HUD can nest this same flat list under the exact
-// business-line sections BUSINESS LINES already renders — one taxonomy, one
-// set of labels, used by both panels, instead of two panels each inventing
-// their own grouping (or no grouping at all).
-// `agent_queue.business_line` is a brand-new nullable column (added today,
-// 2026-08-10 migration) — most existing rows predate it and are still null.
-// `venture` is the older free-text field every source already carries;
-// where it happens to match the business_line enum, use it as the
-// fallback so historical rows land in their real bucket instead of the
-// generic "Shepard Ventures HQ" catch-all. merge_queue has neither column
-// (it's deploy plumbing, not per-venture work) — always HQ.
-const BUSINESS_LINES = ['dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures'];
-function resolveBusinessLine(businessLineVal, ventureVal) {
-  if (businessLineVal && BUSINESS_LINES.includes(businessLineVal)) return businessLineVal;
-  if (ventureVal && BUSINESS_LINES.includes(ventureVal)) return ventureVal;
-  return 'shepard-ventures';
-}
 
 export const config = { api: { bodyParser: true }, maxDuration: 15 };
 
@@ -134,101 +96,35 @@ export default async function handler(req, res) {
   }
 
   try {
-    const blockedCutoff = new Date(Date.now() - BLOCKED_RECENCY_DAYS * 24 * 3600 * 1000).toISOString();
-    const [inProgressRows, blockedRows, mergeRows, todoRows, ...gitDiffs] = await Promise.all([
+    const [inProgressRows, ...gitDiffs] = await Promise.all([
       sbGet(
-        'agent_queue?select=id,agent_name,task_subject,priority,venture,business_line,status,created_at,started_at' +
+        'agent_queue?select=id,agent_name,task_subject,priority,venture,status,created_at,started_at' +
         '&status=eq.in_progress&order=priority.asc&limit=200'
-      ).catch(() => []),
-      sbGet(
-        'agent_queue?select=id,agent_name,task_subject,priority,venture,business_line,status,created_at,started_at' +
-        `&status=eq.blocked&created_at=gte.${encodeURIComponent(blockedCutoff)}&order=priority.asc&limit=200`
-      ).catch(() => []),
-      sbGet(
-        'merge_queue?select=id,commit_sha,title,all_green,atlas_apv_status,quinn_qa_status,ridge_status,hadley_status,sage_demo_status,created_at' +
-        '&merged_to_main=eq.false&order=created_at.asc&limit=100'
-      ).catch(() => []),
-      sbGet(
-        'heath_todo?select=id,title,priority,venture,status,created_at,snoozed_until' +
-        '&status=in.(pending,snoozed)&order=priority.asc&limit=200'
       ).catch(() => []),
       ...REPOS.map((r) => ghCompareAheadBy(r, 'main', 'staging')),
     ]);
 
-    const items = [];
-    const agentRows = [...(inProgressRows || []), ...(blockedRows || [])];
-
-    for (const t of agentRows) {
-      const age = ageMinutes(t.started_at || t.created_at);
-      const blocked = t.status === 'blocked';
-      items.push({
-        source: 'agent_queue',
-        id: t.id,
-        title: `[${t.agent_name}] ${t.task_subject}`,
-        status: t.status,
-        priority: t.priority,
-        venture: t.venture,
-        business_line: resolveBusinessLine(t.business_line, t.venture),
-        created_at: t.created_at,
-        age_minutes: age,
-        blocked,
-        stale: blocked ? true : (age != null && age > 30),
-      });
-    }
-
-    for (const m of mergeRows || []) {
-      const age = ageMinutes(m.created_at);
-      const signoffs = [m.atlas_apv_status, m.quinn_qa_status, m.ridge_status, m.hadley_status, m.sage_demo_status];
-      const passCount = signoffs.filter((s) => s === 'pass').length;
-      items.push({
-        source: 'merge_queue',
-        id: m.id,
-        title: m.title || m.commit_sha,
-        status: m.all_green ? 'ready_to_merge' : `signoff_${passCount}/5`,
-        commit_sha: (m.commit_sha || '').slice(0, 7),
-        business_line: 'shepard-ventures',
-        created_at: m.created_at,
-        age_minutes: age,
-        blocked: false,
-        stale: age != null && age > 24 * 60,
-      });
-    }
-
-    for (const td of todoRows || []) {
-      const age = ageMinutes(td.created_at);
-      items.push({
-        source: 'heath_todo',
-        id: td.id,
-        title: td.title,
-        status: td.status,
-        priority: td.priority,
-        venture: td.venture,
-        business_line: resolveBusinessLine(null, td.venture),
-        created_at: td.created_at,
-        age_minutes: age,
-        blocked: false,
-        stale: age != null && age > 48 * 60,
-      });
-    }
-
-    // Sort: blocked first, then most stale first.
-    items.sort((a, b) => {
-      if (a.blocked !== b.blocked) return a.blocked ? -1 : 1;
-      return (b.age_minutes || 0) - (a.age_minutes || 0);
-    });
-
-    const counts = {
-      agent_in_progress: (agentRows || []).filter((t) => t.status === 'in_progress').length,
-      agent_blocked: (agentRows || []).filter((t) => t.status === 'blocked').length,
-      merge_pending: (mergeRows || []).length,
-      todo_pending: (todoRows || []).length,
-      total: items.length,
-    };
+    const items = (inProgressRows || [])
+      .filter((t) => !isInternalTaskNoise(t.task_subject))
+      .map((t) => {
+        const age = ageMinutes(t.started_at || t.created_at);
+        return {
+          source: 'agent_queue',
+          id: t.id,
+          agent: t.agent_name,
+          title: t.task_subject || '(no description)',
+          status: t.status,
+          created_at: t.created_at,
+          age_minutes: age,
+        };
+      })
+      // Longest-running first — the ones most likely to actually be worth a look.
+      .sort((a, b) => (b.age_minutes || 0) - (a.age_minutes || 0));
 
     return res.status(200).json({
       ok: true,
       items,
-      counts,
+      counts: { total: items.length },
       git_diffs: gitDiffs,
       updated_at: new Date().toISOString(),
     });

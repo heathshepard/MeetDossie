@@ -199,23 +199,14 @@
     @media (min-width: 900px) {
       /* Secondary (lower-priority) panels reflow into a responsive multi-
          column layout instead of one long stacked column.
-         PACKING FIX 2026-08-06 (Heath: "sections are randomly placed... a
-         lot of dead space, let's close it up"). The 8 panels here vary a
-         lot in natural height — money-panel/quick-ask-panel are ~3 lines,
-         calendar/activity/projects/future-builds are data lists that can
-         run long. That was a `display:grid` with `align-items:start`,
-         which stops an individual short panel from being STRETCHED, but
-         does nothing about the ROW TRACK itself: grid gives every item in
-         a row the same track height (= the tallest item placed in that
-         row), so a short panel next to a tall one still leaves a visible
-         empty gap below it — that's the "random placement" Heath's
-         describing. Grid can't fix this without explicit row-spans per
-         panel (would need real content-height measurement to tune).
-         CSS multi-column layout has no row concept — each column stacks
-         its panels top-to-bottom independently, so a short panel is
-         immediately followed by the next panel with no forced gap. That's
-         the standard no-JS fix for uneven-height card grids ("masonry"-
-         style packing). break-inside:avoid on each panel (below) stops a
+         PACKING FIX 2026-08-06, panel count reduced 2026-08-10 (Heath
+         dashboard teardown — BUSINESS LINES, FUTURE BUILDS, DAILY DEBRIEF,
+         ASK A SPECIALIST, CUSTOMER ACTIVITY, PROJECTS LEDGER, ACTIVITY LOG,
+         MONEY PULSE, WEBSITE ANALYTICS, TREC WATCH all removed — CALENDAR
+         is the only .dash-secondary panel left today). The multi-column
+         "masonry" packing below is now a no-op with one panel but is left
+         in place — harmless, and correct again the moment a panel gets
+         added back here. break-inside:avoid on each panel (below) stops a
          panel from being visually split across two columns. */
       .dash-secondary { display: block; columns: 240px 3; column-gap: 16px; }
       /* Multi-column has no vertical "gap" between stacked items in the same
@@ -1112,117 +1103,8 @@
       color: #7dd3fc;
     }
 
-    /* ===== TREC WATCH PANEL ===== */
-    .trec-watch-list { display: flex; flex-direction: column; gap: 8px; }
-    .trec-watch-empty { font-size: 12px; color: var(--txt-faint); text-align: center; padding: 12px; }
-    .trec-watch-item {
-      padding: 10px 12px;
-      background: rgba(201, 169, 110, 0.05);
-      border: 1px solid rgba(201, 169, 110, 0.2);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .trec-watch-item:hover { background: rgba(201, 169, 110, 0.08); border-color: #C9A96E; }
-    .trec-watch-item.unread { border-left: 3px solid #C9A96E; }
-    .trec-watch-item-title { font-size: 12px; font-weight: 600; color: var(--txt-primary); margin-bottom: 4px; }
-    .trec-watch-item-meta { font-size: 10px; color: var(--txt-mute); display: flex; justify-content: space-between; gap: 8px; }
-    .trec-watch-severity {
-      display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-      border-radius: 3px; padding: 2px 6px;
-    }
-    .trec-watch-severity.critical { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239,68,68,0.4); color: #f87171; }
-    .trec-watch-severity.action_required { background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251,191,36,0.4); color: #fbbf24; }
-    .trec-watch-severity.informational { background: rgba(201, 169, 110, 0.1); border: 1px solid rgba(201,169,110,0.3); color: #C9A96E; }
 
     /* ===== FUTURE BUILDS PANEL ===== */
-    .panel-title.future-builds-title-row {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    }
-    .panel-action-btn {
-      background: transparent;
-      border: 1px solid rgba(77, 208, 225, 0.3);
-      color: var(--cyan);
-      border-radius: 4px;
-      width: 24px; height: 24px;
-      font-size: 14px; font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .panel-action-btn:hover {
-      background: rgba(77, 208, 225, 0.15);
-      border-color: var(--cyan);
-    }
-    .future-builds-list {
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .future-builds-empty {
-      font-size: 12px; color: var(--txt-faint); text-align: center; padding: 12px;
-    }
-    .future-build-item {
-      padding: 10px 12px;
-      background: rgba(77, 208, 225, 0.05);
-      border: 1px solid rgba(77, 208, 225, 0.15);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .future-build-item:hover {
-      background: rgba(77, 208, 225, 0.08);
-      border-color: var(--cyan);
-    }
-    .future-build-item-title {
-      font-size: 12px; font-weight: 600;
-      color: var(--txt-primary);
-      margin-bottom: 4px;
-    }
-    .future-build-item-meta {
-      font-size: 10px;
-      color: var(--txt-mute);
-      display: flex; justify-content: space-between;
-    }
-    .future-build-status {
-      display: inline-block;
-      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-      background: rgba(77, 208, 225, 0.1);
-      border: 1px solid rgba(77, 208, 225, 0.2);
-      border-radius: 3px;
-      padding: 2px 6px;
-      color: var(--cyan);
-    }
-    .future-build-stalled-chip {
-      display: inline-block;
-      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-      background: rgba(255, 165, 0, 0.12);
-      border: 1px solid rgba(255, 165, 0, 0.4);
-      border-radius: 3px;
-      padding: 2px 6px;
-      color: #ffb347;
-      margin-left: 6px;
-    }
-    .future-builds-filter-row {
-      display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
-    }
-    .future-builds-filter-chip {
-      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
-      background: transparent;
-      border: 1px solid rgba(77, 208, 225, 0.25);
-      border-radius: 12px;
-      padding: 3px 10px;
-      color: var(--txt-mute);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .future-builds-filter-chip:hover {
-      border-color: var(--cyan);
-      color: var(--cyan);
-    }
-    .future-builds-filter-chip.active {
-      background: rgba(77, 208, 225, 0.15);
-      border-color: var(--cyan);
-      color: var(--cyan);
-    }
-
     /* ===== MERGE QUEUE PANEL ===== */
     .panel-title.merge-queue-title-row {
       display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -1268,6 +1150,16 @@
       line-height: 1.3;
       flex: 1;
     }
+    .merge-queue-desc {
+      font-size: 12px; line-height: 1.45;
+      color: var(--txt-mute);
+      white-space: pre-wrap; word-wrap: break-word;
+      max-height: 140px; overflow-y: auto;
+    }
+    .merge-queue-waiting {
+      font-size: 11px; color: var(--warn);
+      letter-spacing: 0.02em;
+    }
     .merge-queue-signoff-badges {
       display: flex; gap: 4px; flex-wrap: wrap;
     }
@@ -1311,15 +1203,15 @@
       color: var(--txt-mute);
       border-color: rgba(77, 208, 225, 0.15);
     }
-    .merge-btn.fix-issues {
-      background: linear-gradient(135deg, rgba(232, 131, 107, 0.15), rgba(232, 131, 107, 0.05));
-      border-color: rgba(232, 131, 107, 0.3);
-      color: var(--fail);
+    .merge-btn.merge-anyway {
+      background: linear-gradient(135deg, rgba(232, 185, 100, 0.2), rgba(232, 185, 100, 0.08));
+      border-color: rgba(232, 185, 100, 0.4);
+      color: var(--warn);
     }
-    .merge-btn.fix-issues:hover:not(:disabled) {
-      background: linear-gradient(135deg, rgba(232, 131, 107, 0.25), rgba(232, 131, 107, 0.1));
-      border-color: var(--fail);
-      box-shadow: 0 0 8px rgba(232, 131, 107, 0.2);
+    .merge-btn.merge-anyway:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(232, 185, 100, 0.3), rgba(232, 185, 100, 0.12));
+      border-color: var(--warn);
+      box-shadow: 0 0 8px rgba(232, 185, 100, 0.25);
     }
 
     /* ===== TO-DO PANEL ===== */
@@ -1388,84 +1280,6 @@
     .todo-btn.done { color: var(--ok); border-color: var(--ok); }
     .todo-btn.done:hover { background: rgba(139, 168, 136, 0.10); }
     .todo-btn:disabled { opacity: 0.5; cursor: wait; }
-
-    /* ===== MONEY PULSE ===== */
-    .money-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-    .money-cell {
-      text-align: center;
-      padding: 10px 4px;
-      background: rgba(0, 229, 255, 0.04);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-    .money-val {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 22px; line-height: 1.1;
-      color: var(--gold);
-      text-shadow: 0 0 8px rgba(201, 169, 110, 0.35);
-    }
-    .money-lbl {
-      font-size: 9px; letter-spacing: 0.18em;
-      color: var(--txt-faint);
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
-
-    /* ===== WEBSITE TRAFFIC (today) — shares money-* styles ===== */
-    .traffic-title-row {
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .traffic-link {
-      color: var(--cyan-bright, #00e5ff);
-      font-size: 9px; letter-spacing: 0.15em;
-      text-decoration: none;
-    }
-    .traffic-link:hover { text-decoration: underline; }
-    .traffic-delta {
-      font-size: 10px; margin-left: 4px; letter-spacing: 0;
-    }
-    .traffic-delta.up { color: var(--ok, #8ba888); }
-    .traffic-delta.down { color: #e57373; }
-
-    /* ===== ACTIVITY FEED ===== */
-    .activity-feed {
-      display: flex; flex-direction: column; gap: 6px;
-      max-height: 260px; overflow-y: auto;
-    }
-    .activity-empty {
-      font-size: 12px; color: var(--txt-mute);
-      text-align: center; padding: 12px 0;
-    }
-    .activity-row {
-      display: grid; grid-template-columns: auto 1fr auto;
-      gap: 8px; align-items: center;
-      padding: 6px 4px;
-      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
-      font-size: 11px;
-    }
-    .activity-row:last-child { border-bottom: none; }
-    .activity-agent {
-      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--cyan-bright);
-      min-width: 52px;
-    }
-    .activity-task {
-      color: var(--txt-mute);
-      line-height: 1.35;
-      overflow: hidden; text-overflow: ellipsis;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    }
-    .activity-ts {
-      font-size: 9px; letter-spacing: 0.1em;
-      color: var(--txt-faint);
-      white-space: nowrap;
-    }
-    .activity-status-completed { color: var(--ok); }
-    .activity-status-failed { color: var(--fail); }
-    .activity-status-working { color: var(--cyan-bright); }
 
     /* ===== AGENT THROUGHPUT PANEL (Speed Unlock, atlas_5, 2026-06-20) ===== */
     .throughput-totals {
@@ -1723,76 +1537,6 @@
     }
     .pending-modal-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
-    /* ===== DAILY DEBRIEF PANEL (Tier 1 Widget #2) ===== */
-    .debrief-headline {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 16px; line-height: 1.35;
-      color: var(--gold);
-      text-align: left;
-      padding: 6px 0 10px;
-      border-bottom: 1px solid rgba(201, 169, 110, 0.25);
-      margin-bottom: 8px;
-    }
-    .debrief-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-    }
-    .debrief-cell {
-      padding: 8px 10px;
-      background: rgba(0, 229, 255, 0.04);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-    .debrief-cell-val {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 20px; line-height: 1.1;
-      color: var(--cyan-bright);
-    }
-    .debrief-cell-lbl {
-      font-size: 9px; letter-spacing: 0.16em;
-      color: var(--txt-faint);
-      text-transform: uppercase;
-      margin-top: 3px;
-    }
-    .debrief-names {
-      font-size: 11px; color: var(--txt-mute);
-      margin-top: 4px;
-      line-height: 1.35;
-    }
-
-    /* ===== CUSTOMER ACTIVITY PANEL (Tier 1 Widget #3) ===== */
-    .cust-feed { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
-    .cust-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 12px 0; }
-    .cust-row {
-      display: grid; grid-template-columns: auto 1fr auto;
-      gap: 8px; align-items: start;
-      padding: 7px 4px;
-      border-bottom: 1px solid rgba(77, 208, 225, 0.06);
-      font-size: 12px;
-    }
-    .cust-row:last-child { border-bottom: none; }
-    .cust-row.new-event {
-      animation: cust-flash 1.4s ease-out;
-    }
-    @keyframes cust-flash {
-      0%   { background: rgba(0, 229, 255, 0.20); }
-      100% { background: transparent; }
-    }
-    .cust-kind {
-      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--cyan-bright);
-      min-width: 56px;
-      padding-top: 2px;
-    }
-    .cust-kind.signin { color: var(--ok); }
-    .cust-kind.transaction { color: var(--gold); }
-    .cust-kind.subscription { color: var(--gold); }
-    .cust-kind.founding_application { color: var(--rose); }
-    .cust-kind.milestone { color: var(--gold); }
-    .cust-kind.document { color: var(--cyan); }
-    .cust-text { color: var(--txt-primary); line-height: 1.35; }
-    .cust-ts { font-size: 9px; color: var(--txt-faint); white-space: nowrap; padding-top: 2px; }
-
     /* ===== AUTH GATE ===== */
     .auth-gate {
       position: fixed; inset: 0;
@@ -2026,44 +1770,6 @@
       flex-shrink: 0;
     }
 
-    /* ===== QUICK-ASK CARDS (Tier 2 Widget #3) ===== */
-    .quick-ask-row {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-    }
-    .qa-card {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 14px 8px;
-      min-height: 80px;
-      background: rgba(0, 229, 255, 0.04);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      color: var(--txt-primary);
-      cursor: pointer;
-      transition: all 0.18s ease;
-      text-align: center;
-    }
-    .qa-card:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.10); box-shadow: 0 0 14px var(--cyan-dim); transform: translateY(-1px); }
-    .qa-card:active { transform: scale(0.97); }
-    .qa-card.firing { border-color: var(--gold); box-shadow: 0 0 14px rgba(201, 169, 110, 0.4); }
-    .qa-card-icon {
-      width: 22px; height: 22px;
-      color: var(--cyan-bright);
-      filter: drop-shadow(0 0 4px var(--cyan-glow));
-    }
-    .qa-card.firing .qa-card-icon { color: var(--gold); }
-    .qa-card-name {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
-      color: var(--cyan-bright);
-      text-transform: uppercase;
-    }
-    .qa-card.firing .qa-card-name { color: var(--gold); }
-    .qa-card-sub {
-      font-size: 9px; color: var(--txt-faint);
-      letter-spacing: 0.06em;
-      line-height: 1.2;
-    }
-
-
     /* ===== AGENTS IN FLIGHT PANEL (Tier 2) — live agent-status display ===== */
     .agent-panel {
       display: flex; flex-direction: column; gap: 8px;
@@ -2275,27 +1981,6 @@
     .detail-apv-fail { color: var(--fail); }
     .detail-apv-not_run { color: var(--txt-faint); }
 
-    /* ===== WEBSITE ANALYTICS modal tables (2026-08-07, Atlas) ===== */
-    .analytics-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .analytics-table th {
-      text-align: left; color: var(--txt-faint); font-weight: 500;
-      letter-spacing: 0.06em; text-transform: uppercase; font-size: 9px;
-      padding: 4px 6px; border-bottom: 1px solid var(--line);
-    }
-    .analytics-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); color: var(--txt-primary); }
-    .analytics-table td.num { text-align: right; }
-    .analytics-table tr:last-child td { border-bottom: none; }
-    .analytics-empty { text-align: center; color: var(--txt-faint); font-size: 11px; padding: 10px; font-style: italic; }
-    .analytics-refresh-note { font-size: 9px; color: var(--txt-faint); text-align: right; margin-top: 6px; }
-
-    /* Activity row: chevron + clickable */
-    .activity-row { cursor: pointer; transition: background 0.15s; }
-    .activity-row:hover { background: rgba(0, 229, 255, 0.04); }
-    .activity-chevron {
-      color: var(--txt-faint);
-      font-size: 14px; line-height: 1;
-    }
-
     /* ===== AGENT INSTANCE CARDS (SOP 2026-06-22) ===== */
     #instance-list {
       display: flex; flex-direction: column; gap: 8px;
@@ -2430,37 +2115,6 @@
       padding: 4px 0;
       font-style: italic;
     }
-    .project-card {
-      cursor: pointer;
-      padding: 8px 10px;
-      background: rgba(5, 8, 16, 0.35);
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      margin-bottom: 6px;
-      transition: border-color 0.15s, background 0.15s;
-      display: flex; flex-direction: column; gap: 4px;
-    }
-    .project-card:hover { border-color: var(--cyan-bright); background: rgba(0, 229, 255, 0.04); }
-    .project-card.building { border-left: 3px solid var(--cyan-bright); }
-    .project-card.shipped { border-left: 3px solid var(--ok); }
-    .project-card.shelved,
-    .project-card.cancelled { border-left: 3px solid var(--txt-faint); opacity: 0.6; }
-    .project-title {
-      font-size: 12px; line-height: 1.35; color: var(--txt-primary);
-      font-weight: 500;
-    }
-    .project-meta {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      font-size: 10px; color: var(--txt-faint);
-      letter-spacing: 0.04em;
-    }
-    .project-meta .project-pct { color: var(--cyan); }
-    .project-meta .gold-tag {
-      color: var(--gold);
-      font-family: 'Courier New', monospace;
-      font-size: 9px;
-    }
-
     /* ===== AGENT KNOWLEDGE (Shared Memory Pool, SOP 2026-06-22) ===== */
     .knowledge-list { display: flex; flex-direction: column; gap: 5px; }
     .knowledge-row {
@@ -2544,24 +2198,10 @@
     .lesson-action-btn.approve { color: var(--ok); border-color: var(--ok); }
     .lesson-action-btn.contest { color: #f08; border-color: #f08; }
 
-    /* ===== Quick-Ask voice input modal (compact prompt) ===== */
-    .quick-ask-modal {
-      max-width: 500px;
-    }
-    .quick-ask-input {
-      width: 100%;
-      min-height: 80px;
-      padding: 10px 12px;
-      background: rgba(5, 8, 16, 0.6);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      color: var(--txt-primary);
-      font-family: inherit;
-      font-size: 13px; line-height: 1.45;
-      resize: vertical;
-      box-sizing: border-box;
-    }
-    .quick-ask-input:focus { outline: none; border-color: var(--cyan-bright); box-shadow: 0 0 0 1px var(--cyan-bright); }
+    /* ===== Compact action row shared by Calendar's event modal (Start
+       Call / Dismiss). Formerly also used by the removed "Ask A Specialist"
+       quick-ask modal (2026-08-10) — .quick-ask-modal/-input/-listening/
+       -answer/-citations went with it; -actions/-btn stayed, still live. ===== */
     .quick-ask-actions {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
       margin-top: 10px;
@@ -2581,33 +2221,6 @@
     .quick-ask-btn.primary { color: var(--cyan-bright); border-color: var(--cyan-bright); }
     .quick-ask-btn.primary:hover { background: rgba(0, 229, 255, 0.10); }
     .quick-ask-btn:disabled { opacity: 0.5; cursor: wait; }
-    .quick-ask-listening {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 12px;
-      background: rgba(0, 229, 255, 0.08);
-      border: 1px solid var(--cyan-bright);
-      border-radius: 8px;
-      font-size: 11px; color: var(--cyan-bright);
-      letter-spacing: 0.14em; text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    .quick-ask-listening .live-dot { background: var(--cyan-bright); box-shadow: 0 0 8px var(--cyan-bright); }
-    .quick-ask-answer {
-      font-size: 12px; line-height: 1.5;
-      color: var(--txt-primary);
-      background: rgba(5, 8, 16, 0.5);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px 12px;
-      max-height: 280px; overflow-y: auto;
-    }
-    .quick-ask-citations {
-      margin-top: 8px;
-      font-size: 10px; color: var(--txt-faint);
-      letter-spacing: 0.06em;
-    }
-    .quick-ask-citations a { color: var(--cyan); text-decoration: none; }
-    .quick-ask-citations a:hover { text-decoration: underline; }
 
     /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
        Full-width bar above the two-column layout. Dossie is real data (money
@@ -2680,64 +2293,6 @@
       font-size: 9px; padding: 1px 6px; border-radius: 3px;
       background: rgba(77, 208, 225, 0.1); color: var(--txt-mute);
     }
-    /* ===== BUSINESS LINES panel (SV-ENG-JARVIS-TASK-VIZ, 2026-08-10) =====
-       One collapsible .bl-section per business line, each with 3 status
-       groups (running/queued/recently completed). Reuses panel/glass tokens
-       rather than inventing a new visual language. */
-    .business-lines-list { display: flex; flex-direction: column; gap: 10px; }
-    .bl-section {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      overflow: hidden;
-      background: rgba(77, 208, 225, 0.03);
-    }
-    .bl-header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none;
-    }
-    .bl-header:hover { background: rgba(0, 229, 255, 0.04); }
-    .bl-title {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--cyan-bright);
-    }
-    .bl-counts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .bl-count-chip {
-      font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: 0.06em;
-      padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line);
-      color: var(--txt-mute); white-space: nowrap;
-    }
-    .bl-count-chip.running { color: var(--cyan-bright); border-color: rgba(0, 229, 255, 0.3); }
-    .bl-count-chip.queued { color: var(--txt-mute); }
-    .bl-count-chip.completed { color: var(--ok); border-color: rgba(139, 168, 136, 0.3); }
-    .bl-count-chip.blocked { color: var(--fail); border-color: rgba(232, 94, 94, 0.4); }
-    .bl-chevron { flex-shrink: 0; color: var(--txt-faint); transition: transform 0.15s; }
-    .bl-section.collapsed .bl-chevron { transform: rotate(-90deg); }
-    .bl-section.collapsed .bl-body { display: none; }
-    .bl-body {
-      padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px;
-      border-top: 1px solid var(--line);
-    }
-    .bl-group { display: flex; flex-direction: column; gap: 5px; padding-top: 8px; }
-    .bl-group-label {
-      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--txt-faint);
-    }
-    .bl-task-row {
-      display: flex; flex-direction: column; gap: 2px;
-      padding: 6px 8px; border-radius: 6px;
-      background: rgba(255, 255, 255, 0.02); border: 1px solid var(--line);
-      font-size: 12px;
-    }
-    .bl-task-row.bl-task-running { border-color: rgba(0, 229, 255, 0.25); }
-    .bl-task-row.bl-task-completed { border-color: rgba(139, 168, 136, 0.25); }
-    .bl-task-row.bl-task-blocked { border-color: rgba(232, 94, 94, 0.35); background: rgba(232, 94, 94, 0.05); }
-    .bl-task-top { display: flex; justify-content: space-between; gap: 8px; }
-    .bl-task-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
-    .bl-task-ts { color: var(--txt-faint); font-size: 10px; white-space: nowrap; }
-    .bl-task-subject { color: var(--txt-primary); line-height: 1.3; }
-    .bl-empty { font-size: 11px; color: var(--txt-mute); padding: 4px 0; }
-
     .panel-blocked-badge {
       font-family: 'Inter', sans-serif;
       font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -2750,10 +2305,10 @@
       background: rgba(232, 94, 94, 0.1);
     }
 
-    /* ===== IN-FLIGHT WORK (new unified view, item 5) =====
-       agent_queue (in_progress/blocked) + merge_queue (unmerged) +
-       heath_todo (pending/snoozed) + live main..staging diff count, merged
-       into one sortable-by-staleness feed. Blocked rows get the hot flag. */
+    /* ===== IN-FLIGHT WORK (redesigned 2026-08-10, Heath dashboard teardown) =====
+       agent_queue rows with status=in_progress ONLY — genuinely active work,
+       right now. A row disappears the moment the agent's status moves on;
+       no manual "done" interaction. Flat list, no business-line grouping. */
     .inflight-git-row {
       display: flex; gap: 10px; flex-wrap: wrap;
       font-size: 11px; color: var(--txt-mute);
@@ -2765,11 +2320,7 @@
       background: rgba(77, 208, 225, 0.08); border: 1px solid var(--line);
       font-family: 'Courier New', monospace;
     }
-    /* IN-FLIGHT WORK now nests under the same business-line .bl-section groups
-       BUSINESS LINES uses (BUSINESS-LINE GROUPING 2026-08-10) instead of one
-       flat list — gap/max-height bumped to fit group headers. */
     .inflight-list { display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; }
-    .inflight-list .bl-body { gap: 8px; }
     .inflight-item {
       display: flex; flex-direction: column; gap: 4px;
       background: rgba(77, 208, 225, 0.04);
@@ -2791,16 +2342,6 @@
       padding: 1px 6px; border-radius: 3px;
       background: rgba(77, 208, 225, 0.1); color: var(--cyan);
     }
-    .inflight-age.stale { color: var(--warn); }
-    .inflight-age.blocked { color: var(--fail); }
-    .inflight-done-btn {
-      font-family: inherit; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 3px 8px; border-radius: 4px; cursor: pointer;
-      background: rgba(139, 168, 136, 0.12); border: 1px solid rgba(139, 168, 136, 0.4);
-      color: var(--ok);
-    }
-    .inflight-done-btn:hover:not(:disabled) { background: rgba(139, 168, 136, 0.22); }
-    .inflight-done-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .inflight-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 16px 0; }
 
     /* ===== UTIL ===== */
@@ -2822,10 +2363,6 @@
         padding: 10px;
         gap: 12px;
       }
-      /* Reflow Daily Debrief stat grid to single column on narrow portrait. */
-      .debrief-grid { grid-template-columns: 1fr; }
-      /* Stack Ask-a-Specialist cards 2-wide instead of 3-wide so labels fit. */
-      .quick-ask-row { grid-template-columns: repeat(2, 1fr); }
       /* Pending modal actions stack on tiny screens (Approve/Snooze/Reject). */
       .pending-modal-actions { grid-template-columns: 1fr; }
       /* Tighter panel padding. */
@@ -2850,9 +2387,6 @@
       .instance-meta { font-size: 10px; flex-wrap: wrap; row-gap: 2px; }
       .instance-progress-track { height: 5px; }
 
-      .project-card { padding: 10px 12px; gap: 6px; }
-      .project-title { font-size: 13px; }
-      .project-meta { font-size: 10px; flex-wrap: wrap; row-gap: 2px; }
       .ledger-section-label { font-size: 10px; }
 
       /* Checklist modal — tighter padding + full-height scroll on tiny screens. */
@@ -3446,165 +2980,6 @@
             <div class="cal-empty">Loading…</div>
           </div>
         </div>
-
-        <!-- QUICK-ASK CARDS (Tier 2 Widget #3) — route a quick voice/text question to a specialist. -->
-        <div class="panel" id="quick-ask-panel">
-          <div class="panel-title">ASK A SPECIALIST</div>
-          <div class="quick-ask-row">
-            <button class="qa-card" data-specialist="hadley" aria-label="Ask Hadley">
-              <svg class="qa-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6l9-4 9 4-9 4-9-4z"/>
-                <path d="M3 6v6c0 4 4 7 9 7s9-3 9-7V6"/>
-              </svg>
-              <span class="qa-card-name">Hadley</span>
-              <span class="qa-card-sub">Legal · TREC</span>
-            </button>
-            <button class="qa-card" data-specialist="sterling" aria-label="Ask Sterling">
-              <svg class="qa-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 17 9 11 13 15 21 7"/>
-                <polyline points="14 7 21 7 21 14"/>
-              </svg>
-              <span class="qa-card-name">Sterling</span>
-              <span class="qa-card-sub">Markets · Stocks</span>
-            </button>
-            <button class="qa-card" data-specialist="pierce" aria-label="Ask Pierce">
-              <svg class="qa-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="7" r="3.5"/>
-                <path d="M5 21c0-4 3-7 7-7s7 3 7 7"/>
-              </svg>
-              <span class="qa-card-name">Pierce</span>
-              <span class="qa-card-sub">Growth · CS</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- DAILY DEBRIEF (Tier 1 Widget #2) — glanceable summary of today's activity. -->
-        <div class="panel" id="debrief-panel">
-          <div class="panel-title">DAILY DEBRIEF</div>
-          <div id="debrief-headline" class="debrief-headline">Loading…</div>
-          <div id="debrief-grid" class="debrief-grid"></div>
-        </div>
-
-        <!-- CUSTOMER ACTIVITY FEED (Tier 1 Widget #3) — last 20 customer events. -->
-        <div class="panel" id="customer-panel">
-          <div class="panel-title">CUSTOMER ACTIVITY</div>
-          <div id="cust-feed" class="cust-feed">
-            <div class="cust-empty">Loading…</div>
-          </div>
-        </div>
-
-        <!-- ACTIONS FOR YOU + TO-DO: merged into the WORK ITEMS panel above
-             (mission-control consolidation, item 2). actions-body/actions-meta
-             (heath-actions-list) were a true duplicate of the Heath Actions
-             subsection below — dropped rather than kept as a 3rd render path.
-             todo-body/todo-meta moved into WORK ITEMS's To-Do subsection. -->
-
-        <!-- MONEY PULSE: live MRR, customers, ships today. From /api/jarvis-tickers. -->
-        <div class="panel" id="money-panel">
-          <div class="panel-title">MONEY PULSE</div>
-          <div class="money-grid">
-            <div class="money-cell">
-              <div class="money-val" id="money-mrr">—</div>
-              <div class="money-lbl">MRR</div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="money-cust">—</div>
-              <div class="money-lbl">Customers</div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="money-ship">—</div>
-              <div class="money-lbl">Shipped Today</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AGENT KNOWLEDGE, TREC WATCH: cut from the homepage (mission-control
-             consolidation, item 4). Knowledge is reference material, not status.
-             TREC Watch is Texas-real-estate-content-specific, not a cross-venture
-             project-status signal — it belongs under a Dossie drill-down, but that
-             drill-down surface doesn't exist yet, so for now it's simply off the
-             top level per Heath's explicit instruction (build it when/if a Dossie
-             drill-down view gets built). Their loader functions (loadKnowledge/
-             loadTrecWatch) are left defined but no longer called — null-guarded,
-             dead-safe, zero behavior change if something else still references them.
-             PENDING APPROVALS (heath_actions) moved into the WORK ITEMS panel above
-             (item 2). AGENT STATUS (instance-list) + AGENT THROUGHPUT moved into the
-             unified AGENTS panel above (item 1). -->
-
-        <!-- WEBSITE ANALYTICS (2026-08-07, Atlas) — re-added as a secondary panel
-             (still passive, not "outstanding work", so it stays out of the primary
-             work grid per item 4's reasoning) but now embedded rather than a link
-             out. Full breakdown (pages/sources/geography/30-day trend) lives in an
-             in-page modal, not a separate /ventures/webpage-analytics destination —
-             Jarvis is meant to be mission control, not a router to other pages.
-             founding_funnel from the API response is intentionally NOT rendered —
-             the Founding tier closed to new signups 2026-08-04 (CLAUDE.md Section 5),
-             so a conversion funnel into it is stale. Flagged to Heath; not deleted
-             server-side in case it's repointed at a live funnel later. -->
-        <div class="panel" id="analytics-panel">
-          <div class="panel-title traffic-title-row">
-            <span>WEBSITE ANALYTICS</span>
-            <span class="traffic-link" id="analytics-full-report-link">FULL REPORT →</span>
-          </div>
-          <div class="money-grid">
-            <div class="money-cell">
-              <div class="money-val" id="an-pageviews">—</div>
-              <div class="money-lbl">Pageviews (7d)</div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="an-uniques">—</div>
-              <div class="money-lbl">Uniques (7d)</div>
-            </div>
-            <div class="money-cell">
-              <div class="money-val" id="an-top-source" style="font-size:13px;">—</div>
-              <div class="money-lbl">Top Source</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- PROJECTS LEDGER (SOP locked 2026-06-22) — building / recent shipped / all. -->
-        <div class="panel" id="projects-panel">
-          <div class="panel-title">PROJECTS LEDGER</div>
-          <div id="projects-ledger">
-            <div class="ledger-empty">Loading projects…</div>
-          </div>
-        </div>
-
-        <!-- ACTIVITY LOG: chronological feed of agent work (DoD addendum 2026-06-21). -->
-        <div class="panel" id="activity-panel">
-          <div class="panel-title">ACTIVITY LOG</div>
-          <div id="activity-feed" class="activity-feed">
-            <div class="activity-empty">Loading…</div>
-          </div>
-        </div>
-
-        <!-- BUSINESS LINES: agent_queue rows grouped by business_line (dossie/
-             sawyer/brokerage/trading/shepard-ventures), then by status group
-             (running/queued/recently completed). Initial snapshot from
-             /api/jarvis-business-line-tasks, kept live off the EXISTING
-             agent_queue_stream Realtime channel (subscribeAgentEvents() —
-             no separate polling loop). Atlas, 2026-08-10 (SV-ENG-JARVIS-TASK-VIZ). -->
-        <div class="panel" id="business-lines-panel">
-          <div class="panel-title">BUSINESS LINES</div>
-          <div id="business-lines-list" class="business-lines-list">
-            <div class="bl-empty">Loading…</div>
-          </div>
-        </div>
-
-        <!-- FUTURE BUILDS: Idea queue → DoD drafting → building → shipped. -->
-        <div class="panel" id="future-builds-panel">
-          <div class="panel-title future-builds-title-row">
-            <span>FUTURE BUILDS</span>
-            <button id="future-builds-add-btn" class="panel-action-btn" aria-label="Add Idea">+</button>
-          </div>
-          <div class="future-builds-filter-row" id="future-builds-filter-row">
-            <button class="future-builds-filter-chip active" data-filter="all">All</button>
-            <button class="future-builds-filter-chip" data-filter="stalled">Stalled</button>
-          </div>
-          <div id="future-builds-list" class="future-builds-list">
-            <div class="future-builds-empty">Loading ideas…</div>
-          </div>
-        </div>
       </div>
     </main>
 
@@ -3629,80 +3004,6 @@
   </div>
 
   <div id="toast" class="toast"></div>
-
-  <!-- FUTURE BUILD DETAIL MODAL -->
-  <div id="future-build-modal-overlay" class="modal-overlay hidden">
-    <div class="modal-card">
-      <div class="modal-title" id="future-build-modal-title">Build Idea</div>
-      <div class="modal-section">
-        <div class="modal-label">Title</div>
-        <div class="modal-value" id="future-build-modal-title-val">—</div>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Description</div>
-        <div class="modal-value body" id="future-build-modal-desc">—</div>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Source</div>
-        <div class="modal-value" id="future-build-modal-source">—</div>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Score</div>
-        <div class="modal-value" id="future-build-modal-score">—</div>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Status</div>
-        <select class="modal-input" id="future-build-modal-status">
-          <option value="idea">idea</option>
-          <option value="queued">queued</option>
-          <option value="dod_drafting">dod_drafting</option>
-          <option value="building">building</option>
-          <option value="shipped">shipped</option>
-          <option value="rejected">rejected</option>
-        </select>
-      </div>
-      <div class="modal-section" id="future-build-modal-doc-section" style="display:none;">
-        <div class="modal-label">Research</div>
-        <a class="modal-link" id="future-build-modal-doc-link" target="_blank">View Doc</a>
-      </div>
-      <div class="modal-section" id="future-build-modal-prereq-section" style="display:none;">
-        <div class="modal-label">Blocker</div>
-        <div class="modal-value" id="future-build-modal-prereq">—</div>
-      </div>
-      <div class="modal-buttons">
-        <button class="modal-btn send" id="future-build-modal-save-btn">Save Status</button>
-        <button class="modal-btn cancel" id="future-build-modal-close-btn">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ADD FUTURE BUILD MODAL -->
-  <div id="add-future-build-modal-overlay" class="modal-overlay hidden">
-    <div class="modal-card">
-      <div class="modal-title">Add Future Build Idea</div>
-      <div class="modal-section">
-        <div class="modal-label">Title *</div>
-        <input class="modal-input" id="add-build-title" type="text" placeholder="e.g., SOI Relationship Memory" />
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Description</div>
-        <textarea class="modal-input" id="add-build-desc" placeholder="What does it do?" rows="4"></textarea>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Source *</div>
-        <select class="modal-input" id="add-build-source">
-          <option value="Heath direct idea">Heath direct idea</option>
-          <option value="pierce_5 research">pierce_5 research</option>
-          <option value="customer request">customer request</option>
-          <option value="atlas finding">atlas finding</option>
-        </select>
-      </div>
-      <div class="modal-buttons">
-        <button class="modal-btn send" id="add-build-submit-btn">Create Idea</button>
-        <button class="modal-btn cancel" id="add-build-cancel-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
 
   <!-- EMAIL APPROVAL MODAL -->
   <div id="email-modal-overlay" class="modal-overlay hidden">
@@ -4488,77 +3789,51 @@
       // Start conversation
       await startConversation();
       subscribeAgentEvents();
-      // Hydrate side panels (to-do + money + activity). Fire-and-forget — never block UI.
-      // 2026-08-06 mission-control consolidation: loadActions() (heath-actions-list)
-      // dropped from init — actions-panel was a true duplicate of approvalsPanel
-      // (both read heath_actions; approvalsPanel has the real approve/reject/snooze
-      // buttons). loadKnowledge/loadTrecWatch dropped — their panels are off the
-      // homepage now (item 4). The functions themselves are untouched and
-      // null-guard on a missing container, so nothing else that still calls them
-      // (e.g. the knowledge-lessons modal) breaks.
+      // Hydrate side panels. Fire-and-forget — never block UI.
+      // 2026-08-10 dashboard teardown (Heath): BUSINESS LINES, FUTURE BUILDS,
+      // DAILY DEBRIEF, ASK A SPECIALIST, CUSTOMER ACTIVITY, PROJECTS LEDGER,
+      // ACTIVITY LOG, MONEY PULSE, WEBSITE ANALYTICS, TREC WATCH panels
+      // removed — none communicated anything useful, several never worked.
+      // Their loaders/renderers/API routes were removed with them (routes
+      // still used elsewhere — webpage-analytics-snapshot.js, jarvis-quick-
+      // ask.js, jarvis-mark-complete.js — were left in place).
       loadTodo().catch(() => {});
       loadTickers().catch(() => {});
       loadMergeQueue().catch(() => {});
       loadInFlightWork().catch(() => {});
       loadPendingApprovals().catch(() => {});
-      // WEBSITE ANALYTICS (2026-08-07) — embedded panel, replaces the old
-      // top-line-card-with-external-link. Cache is 5m server-side so a 5m
-      // poll interval below matches it exactly.
-      loadWebsiteAnalytics().catch(() => {});
-      // loadActiveAgents() dropped from init 2026-08-06 (Atlas) — active_agents
-      // has zero writers; see removed "Running" subpanel note above. Function
-      // stays defined (harmless) in case that table gets wired up for real.
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
       try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
-      loadDailyDebrief().catch(() => {});
-      loadCustomerActivity().catch(() => {});
       // Tier 2 hydrations
       loadCalendar().catch(() => {});
       loadAgentLedger().catch(() => {});
-      // SOP 2026-06-22 — agent instance + projects ledger
+      // SOP 2026-06-22 — agent instances
       loadInstances().catch(() => {});
-      loadProjects().catch(() => {});
       subscribeInstanceEvents();
-      // BUSINESS LINES panel initial snapshot — kept live via
-      // mergeBusinessLineEvent() inside subscribeAgentEvents() above.
-      loadBusinessLineTasks().catch(() => {});
       // Refresh cadences per spec:
-      //   tickers (money/activity log) — 30s
+      //   tickers (venture rollup strip) — 30s
       //   to-do — 60s
       //   merge queue — 30s (high priority)
-      //   in-flight work — 45s (high priority, cross-source)
+      //   in-flight work — 45s (high priority)
       //   pending approvals — 30s (high priority)
-      //   daily debrief — 60s
-      //   customer activity — 30s polling + realtime subscription below
       //   calendar — 5m (slow-changing)
       //   agent ledger — 30s polling backup (realtime is the primary)
-      //   instances + projects — 30s polling backup, realtime primary
+      //   instances — 30s polling backup, realtime primary
       setInterval(() => { loadTickers().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadMergeQueue().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInFlightWork().then(() => trackPollSuccess()).catch(() => {}); }, 45000);
       setInterval(() => { loadPendingApprovals().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
-      setInterval(() => { loadDailyDebrief().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
-      setInterval(() => { loadCustomerActivity().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadCalendar().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
-      setInterval(() => { loadWebsiteAnalytics().then(() => trackPollSuccess()).catch(() => {}); }, 300000);
       setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
-      setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
-      setInterval(() => { loadBusinessLineTasks().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel (now nested in AGENTS)
       loadThroughput().then(() => trackPollSuccess()).catch(() => {});
       setInterval(() => { loadThroughput().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
-      // Future Builds: idea queue panel
-      loadFutureBuilds().catch(() => {});
-      wireFutureBuildsPanel();
-      setInterval(() => { loadFutureBuilds().then(() => trackPollSuccess()).catch(() => {}); }, 120000); // 2 min
-      subscribeCustomerEvents();
       wireQuickActions();
       wireChatInput();
       // Tier 2 wirings
       wireVoiceBrief();
-      wireQuickAskCards();
       // Heartbeat freshness tracking
       initHeartbeat();
     }
@@ -6281,8 +5556,10 @@
       }
     }
 
-    // ===== MONEY PULSE + ACTIVITY FEED =====
-    // Both come from a single /api/jarvis-tickers round-trip.
+    // ===== VENTURE ROLLUP STRIP (Dossie card) =====
+    // /api/jarvis-tickers feeds the top-level venture strip only — the
+    // MONEY PULSE and ACTIVITY LOG panels that used to share this response
+    // were removed 2026-08-10 (Heath dashboard teardown).
     async function loadTickers() {
       try {
         const res = await fetch(`${API_BASE}/api/jarvis-tickers`, {
@@ -6291,7 +5568,6 @@
         if (!res.ok) return;
         const data = await res.json();
         renderMoney(data.header || {});
-        renderActivity(data.activity || []);
       } catch (err) {
         console.warn('[jarvis] loadTickers failed', err);
       }
@@ -6299,177 +5575,9 @@
 
     function renderMoney(h) {
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-      set('money-mrr',  h.mrr_usd != null ? `$${h.mrr_usd}` : '—');
-      set('money-cust', h.customer_count != null ? String(h.customer_count) : '—');
-      set('money-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
-      // VENTURE ROLLUP STRIP — Dossie card (mission-control consolidation, item 7).
-      // Same jarvis-tickers payload, just also mirrored into the top strip.
-      // No separate fetch — Dossie is real data; Rust/Sawyer stay static placeholders.
       set('venture-dossie-mrr',  h.mrr_usd != null ? `$${h.mrr_usd}` : '—');
       set('venture-dossie-cust', h.customer_count != null ? String(h.customer_count) : '—');
       set('venture-dossie-ship', h.shipped_today != null ? String(h.shipped_today) : '—');
-    }
-
-    // ===== WEBSITE ANALYTICS (2026-08-07, Atlas) =====
-    // 7-day snapshot from PostHog, embedded in Jarvis — replaces the old
-    // /ventures/webpage-analytics standalone page + top-line-card-with-link
-    // pattern. Single fetch of the full snapshot powers both the compact
-    // panel and the "Full Report" detail modal (server caches 5m, so this is
-    // cheap to poll and cheap to re-open). founding_funnel is fetched but
-    // deliberately not rendered — see the panel comment above.
-    let __analyticsSnapshotCache = null;
-    async function loadWebsiteAnalytics() {
-      try {
-        const res = await fetch(`${API_BASE}/api/webpage-analytics-snapshot`, {
-          headers: { Authorization: await getAuthHeader() },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.ok) return;
-        __analyticsSnapshotCache = data;
-        renderWebsiteAnalyticsSummary(data);
-      } catch (err) {
-        console.warn('[jarvis] loadWebsiteAnalytics failed', err);
-      }
-    }
-
-    function renderWebsiteAnalyticsSummary(d) {
-      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-      const s = d.summary_7d || {};
-      set('an-pageviews', s.total_pageviews != null ? Number(s.total_pageviews).toLocaleString() : '—');
-      set('an-uniques', s.unique_visitors != null ? Number(s.unique_visitors).toLocaleString() : '—');
-      set('an-top-source', s.top_source || '—');
-    }
-
-    function openAnalyticsDetailModal() {
-      const d = __analyticsSnapshotCache;
-      if (!d) return;
-      const s = d.summary_7d || {};
-      const fmtDur = (sec) => {
-        const n = Math.max(0, Math.round(Number(sec) || 0));
-        if (n === 0) return '0s';
-        if (n < 60) return n + 's';
-        return `${Math.floor(n / 60)}m ${n % 60}s`;
-      };
-      const rowsPages = (d.traffic_by_page || []).slice(0, 10).map(p => `
-        <tr>
-          <td><code>${escapeHtml(p.path)}</code></td>
-          <td class="num">${Number(p.pageviews).toLocaleString()}</td>
-          <td class="num">${Number(p.unique_visitors).toLocaleString()}</td>
-        </tr>`).join('');
-      const rowsSources = (d.traffic_by_source || []).slice(0, 8).map(sr => `
-        <tr>
-          <td>${escapeHtml(sr.source)}</td>
-          <td class="num">${Number(sr.sessions).toLocaleString()}</td>
-          <td class="num">${sr.founding_conversion_pct}%</td>
-        </tr>`).join('');
-      const rowsGeo = (d.geography || []).slice(0, 6).map(g => `
-        <tr><td>${escapeHtml(g.country)}</td><td class="num">${Number(g.unique_visitors).toLocaleString()}</td></tr>`).join('');
-      const daily = d.daily_traffic || [];
-      const dailyTotal = daily.reduce((a, x) => a + (Number(x.pageviews) || 0), 0);
-
-      const backdrop = document.createElement('div');
-      backdrop.className = 'detail-modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="detail-modal">
-          <div class="detail-header">
-            <div class="detail-title-block">
-              <span class="detail-agent-badge">7-DAY</span>
-              <div class="detail-title">Website Analytics</div>
-            </div>
-            <button class="detail-close" aria-label="Close">×</button>
-          </div>
-          <div class="detail-grid">
-            <div class="detail-cell"><div class="detail-cell-label">Pageviews</div><div class="detail-cell-val">${(s.total_pageviews || 0).toLocaleString()}</div></div>
-            <div class="detail-cell"><div class="detail-cell-label">Unique Visitors</div><div class="detail-cell-val">${(s.unique_visitors || 0).toLocaleString()}</div></div>
-            <div class="detail-cell"><div class="detail-cell-label">Avg Session</div><div class="detail-cell-val">${fmtDur(s.avg_session_seconds)}</div></div>
-            <div class="detail-cell"><div class="detail-cell-label">Bounce Rate</div><div class="detail-cell-val">${s.bounce_rate_pct != null ? s.bounce_rate_pct + '%' : '—'}</div></div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-label">Top Pages (7d)</div>
-            <table class="analytics-table">
-              <thead><tr><th>Path</th><th class="num" style="text-align:right;">Views</th><th class="num" style="text-align:right;">Uniques</th></tr></thead>
-              <tbody>${rowsPages || '<tr><td colspan="3" class="analytics-empty">No pageviews yet.</td></tr>'}</tbody>
-            </table>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-label">Traffic by Source (7d)</div>
-            <table class="analytics-table">
-              <thead><tr><th>Source</th><th class="num" style="text-align:right;">Sessions</th><th class="num" style="text-align:right;">/founding conv.</th></tr></thead>
-              <tbody>${rowsSources || '<tr><td colspan="3" class="analytics-empty">No source data yet.</td></tr>'}</tbody>
-            </table>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-label">Geography (7d)</div>
-            <table class="analytics-table">
-              <thead><tr><th>Country</th><th class="num" style="text-align:right;">Uniques</th></tr></thead>
-              <tbody>${rowsGeo || '<tr><td colspan="2" class="analytics-empty">No geography data yet.</td></tr>'}</tbody>
-            </table>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-label">30-Day Trend</div>
-            <div class="detail-section-body">${daily.length ? `${daily.length} days tracked, ${dailyTotal.toLocaleString()} total pageviews. Last day: ${daily[daily.length - 1].date} — ${Number(daily[daily.length - 1].pageviews).toLocaleString()} pv.` : 'No pageviews recorded in the last 30 days.'}</div>
-          </div>
-          <div class="analytics-refresh-note">Generated ${d.generated_at ? new Date(d.generated_at).toLocaleString() : '—'} · cached 5m</div>
-        </div>
-      `;
-      const close = () => backdrop.remove();
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-      backdrop.querySelector('.detail-close').addEventListener('click', close);
-      document.body.appendChild(backdrop);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const link = document.getElementById('analytics-full-report-link');
-      if (link) link.addEventListener('click', () => {
-        if (!__analyticsSnapshotCache) { loadWebsiteAnalytics().then(() => openAnalyticsDetailModal()); }
-        else openAnalyticsDetailModal();
-      });
-    });
-
-    function renderActivity(activity) {
-      const feed = document.getElementById('activity-feed');
-      if (!feed) return;
-      if (!activity.length) {
-        feed.innerHTML = `<div class="activity-empty">No recent activity.</div>`;
-        return;
-      }
-      const now = Date.now();
-      const fmtAgo = (iso) => {
-        if (!iso) return '';
-        const ms = now - new Date(iso).getTime();
-        const s = Math.max(1, Math.floor(ms / 1000));
-        if (s < 60) return `${s}s`;
-        const m = Math.floor(s / 60);
-        if (m < 60) return `${m}m`;
-        const h = Math.floor(m / 60);
-        if (h < 24) return `${h}h`;
-        return `${Math.floor(h / 24)}d`;
-      };
-      const rows = activity.slice(0, 30).map(a => {
-        const status = (a.status || '').toLowerCase();
-        const statusClass = status === 'completed' ? 'activity-status-completed'
-                          : status === 'failed'    ? 'activity-status-failed'
-                          : status === 'working'   ? 'activity-status-working'
-                          : '';
-        const agent = (a.agent || '?').toString();
-        const summary = (a.summary || '(idle)').toString();
-        const ago = fmtAgo(a.ts);
-        return `<div class="activity-row">
-          <div class="activity-agent ${statusClass}" data-agent></div>
-          <div class="activity-task" data-task></div>
-          <div class="activity-ts" data-ts></div>
-        </div>`;
-      }).join('');
-      feed.innerHTML = rows;
-      // Set text via textContent for XSS safety.
-      const rowEls = feed.querySelectorAll('.activity-row');
-      rowEls.forEach((row, i) => {
-        const a = activity[i];
-        row.querySelector('[data-agent]').textContent = (a.agent || '?').toString();
-        row.querySelector('[data-task]').textContent = (a.summary || '(idle)').toString();
-        row.querySelector('[data-ts]').textContent = fmtAgo(a.ts);
-      });
     }
 
     // ===== PENDING APPROVALS (Tier 1 Widget #1) =====
@@ -6532,11 +5640,26 @@
         return;
       }
 
+      // Plain-English "who hasn't signed off yet" line (Carter, 2026-08-10 —
+      // replaces the disabled "FIX FAILURES" button, which read as "there's
+      // no way to merge this" even though Heath can always choose to merge
+      // anyway — he's the final gate per CLAUDE.md, not the QA checks).
+      const SIGNOFF_LABELS = {
+        atlas_apv_status: 'Atlas', quinn_qa_status: 'Quinn', ridge_status: 'Ridge',
+        hadley_status: 'Hadley', sage_demo_status: 'Sage',
+      };
+      function waitingOnText(item) {
+        const waiting = Object.keys(SIGNOFF_LABELS).filter((k) => item[k] !== 'pass');
+        if (!waiting.length) return '';
+        return 'Waiting on: ' + waiting.map((k) => SIGNOFF_LABELS[k]).join(', ');
+      }
+
       list.innerHTML = '';
       for (const item of items) {
         const row = document.createElement('div');
         row.className = 'merge-queue-item' + (item.all_green ? ' all-green' : '');
         const sha = item.commit_sha.slice(0, 7);
+        const desc = (item.description || '').trim();
         row.innerHTML = `
           <div class="merge-queue-header">
             <div>
@@ -6544,6 +5667,7 @@
               <div class="merge-queue-sha">${sha}</div>
             </div>
           </div>
+          ${desc ? `<div class="merge-queue-desc">${escapeHtml(desc)}</div>` : ''}
           <div class="merge-queue-signoff-badges">
             <span class="signoff-badge ${item.atlas_apv_status}" data-type="atlas_apv" title="Atlas APV">
               ${item.atlas_apv_status === 'pass' ? '✓' : item.atlas_apv_status === 'fail' ? '✗' : '◯'}
@@ -6566,11 +5690,11 @@
               Sage
             </span>
           </div>
+          ${item.all_green ? '' : `<div class="merge-queue-waiting">${escapeHtml(waitingOnText(item))}</div>`}
           <div class="merge-queue-buttons">
-            <button class="merge-btn ${item.all_green ? '' : 'fix-issues'}" ${item.all_green ? '' : 'disabled'} data-sha="${sha}" data-action="${item.all_green ? 'merge' : 'fix'}">
-              ${item.all_green ? 'MERGE TO MAIN' : 'FIX FAILURES'}
+            <button class="merge-btn ${item.all_green ? '' : 'merge-anyway'}" data-sha="${sha}" data-action="merge">
+              ${item.all_green ? 'MERGE TO MAIN' : 'MERGE ANYWAY'}
             </button>
-            <button class="merge-btn" data-sha="${sha}" data-action="details">DETAILS</button>
           </div>
         `;
 
@@ -6582,12 +5706,10 @@
           });
         });
 
-        // Wire up action buttons
+        // Wire up merge action (always live — Heath is the final gate, not
+        // the QA checks; a non-green item just gets a stronger confirm).
         row.querySelector('[data-action="merge"]')?.addEventListener('click', () => {
           mergeStagingToMain(item);
-        });
-        row.querySelector('[data-action="details"]')?.addEventListener('click', () => {
-          showMergeQueueDetails(item);
         });
 
         list.appendChild(row);
@@ -6598,11 +5720,13 @@
       }
     }
 
-    // ===== IN-FLIGHT WORK — unified view (mission-control consolidation, item 5) =====
-    // Merges agent_queue (in_progress/blocked) + merge_queue (unmerged) +
-    // heath_todo (pending/snoozed) + live main..staging diff count per repo.
-    // Server (/api/jarvis-in-flight-work) already sorts blocked-first then
-    // staleness-descending; this just renders what comes back.
+    // ===== IN-FLIGHT WORK — redesigned 2026-08-10 (Heath dashboard teardown) =====
+    // "What's being worked on, right now" — nothing else. Server
+    // (/api/jarvis-in-flight-work) already scopes this to genuinely active
+    // agent_queue rows (status=in_progress only, internal QA noise
+    // filtered) and sorts longest-running first. Flat list, no grouping, no
+    // manual "done" — a row disappears on its own the moment the agent's
+    // status moves on (next 45s poll or the agent_queue realtime push).
     let inFlightCache = [];
     async function loadInFlightWork() {
       const list = document.getElementById('inflight-list');
@@ -6628,21 +5752,6 @@
       void gitRow; // rendered inside renderInFlightWork
     }
 
-    // BUSINESS-LINE GROUPING 2026-08-10 — kept as a plain array/object (not a
-    // dependency on the BUSINESS_LINE_ORDER/LABELS consts declared further
-    // down near renderBusinessLines) so this function has no load-order
-    // requirement on where in the file it's defined; both places must stay
-    // in sync if a business line is ever added/renamed.
-    const INFLIGHT_BL_ORDER = ['dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures'];
-    const INFLIGHT_BL_LABELS = {
-      dossie: 'Dossie',
-      sawyer: 'Sawyer',
-      brokerage: 'Brokerage',
-      trading: 'Trading',
-      'shepard-ventures': 'Shepard Ventures HQ',
-    };
-    const inflightCollapsed = new Set(); // business_line keys currently collapsed by hand
-
     function renderInFlightWork(items, gitDiffs) {
       const list = document.getElementById('inflight-list');
       const gitRow = document.getElementById('inflight-git-row');
@@ -6658,137 +5767,31 @@
       }
 
       if (!items || items.length === 0) {
-        list.innerHTML = `<div class="inflight-empty">Nothing in flight. Clear board.</div>`;
+        list.innerHTML = `<div class="inflight-empty">Nothing actively running right now.</div>`;
         return;
       }
 
-      const sourceLabel = { agent_queue: 'AGENT', merge_queue: 'MERGE', heath_todo: 'TODO' };
       const ageText = (it) => it.age_minutes == null ? ''
-        : it.age_minutes < 60 ? `${it.age_minutes}m ago`
-        : it.age_minutes < 1440 ? `${Math.round(it.age_minutes / 60)}h ago`
-        : `${Math.round(it.age_minutes / 1440)}d ago`;
+        : it.age_minutes < 60 ? `${it.age_minutes}m` : `${Math.round(it.age_minutes / 60)}h`;
 
-      function itemRowHtml(it) {
-        const cls = ['inflight-item'];
-        if (it.blocked) cls.push('blocked');
-        else if (it.stale) cls.push('stale');
-        const ageCls = it.blocked ? 'blocked' : (it.stale ? 'stale' : '');
-        return `
-          <div class="${cls.join(' ')}" data-source="${escapeHtml(it.source)}" data-id="${escapeHtml(it.id)}">
-            <div class="inflight-item-top">
-              <span class="inflight-source-pill">${sourceLabel[it.source] || it.source}</span>
-              <div class="inflight-item-title"></div>
-              <button class="inflight-done-btn" data-act="done">Done</button>
-            </div>
-            <div class="inflight-item-meta">
-              <span>${escapeHtml(it.status || '')}</span>
-              <span class="inflight-age ${ageCls}">${ageText(it)}</span>
-            </div>
+      list.innerHTML = items.map((it) => `
+        <div class="inflight-item" data-id="${escapeHtml(it.id)}">
+          <div class="inflight-item-top">
+            <span class="inflight-source-pill">${escapeHtml(it.agent || '?')}</span>
+            <div class="inflight-item-title"></div>
           </div>
-        `;
-      }
-
-      // Group by the same business_line taxonomy BUSINESS LINES uses — one
-      // consistent way to answer "what's happening in Dossie / Brokerage /
-      // etc.", instead of this panel being a flat list disconnected from
-      // that grouping (Heath's core complaint, 2026-08-10 dashboard pass).
-      const groups = {};
-      INFLIGHT_BL_ORDER.forEach((bl) => { groups[bl] = []; });
-      items.forEach((it) => {
-        const bl = INFLIGHT_BL_ORDER.includes(it.business_line) ? it.business_line : 'shepard-ventures';
-        groups[bl].push(it);
-      });
-
-      // Groups with a blocked item surface first (matches the old flat
-      // list's "blocked always first" rule); within that tier, business
-      // lines with no items just don't render at all — density pass,
-      // nothing empty taking up shelf space.
-      const orderedBls = INFLIGHT_BL_ORDER
-        .filter((bl) => groups[bl].length > 0)
-        .sort((a, b) => {
-          const aBlocked = groups[a].some((it) => it.blocked);
-          const bBlocked = groups[b].some((it) => it.blocked);
-          if (aBlocked !== bBlocked) return aBlocked ? -1 : 1;
-          return INFLIGHT_BL_ORDER.indexOf(a) - INFLIGHT_BL_ORDER.indexOf(b);
-        });
-
-      list.innerHTML = orderedBls.map((bl) => {
-        const rows = groups[bl];
-        const blockedCount = rows.filter((r) => r.blocked).length;
-        // Default-collapse groups with nothing blocked in them (density —
-        // Heath: "very busy... a lot of dead space" — the fix is fewer
-        // always-expanded sections, not more margin). Anything blocked
-        // always starts expanded so it can't be missed, and any group the
-        // user has manually toggled keeps that state across re-renders.
-        const manuallySet = inflightCollapsed.has(bl) || inflightCollapsed.has(`!${bl}`);
-        const collapsed = manuallySet ? inflightCollapsed.has(bl) : blockedCount === 0;
-        return `
-          <div class="bl-section${collapsed ? ' collapsed' : ''}" data-bl="${bl}">
-            <div class="bl-header" data-bl-toggle="${bl}">
-              <span class="bl-title">${INFLIGHT_BL_LABELS[bl]}</span>
-              <span class="bl-counts">
-                ${blockedCount ? `<span class="bl-count-chip blocked">${blockedCount} blocked</span>` : ''}
-                <span class="bl-count-chip queued">${rows.length} item${rows.length === 1 ? '' : 's'}</span>
-              </span>
-              <svg class="bl-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <div class="bl-body">${rows.map(itemRowHtml).join('')}</div>
+          <div class="inflight-item-meta">
+            <span>running${ageText(it) ? ' · ' + ageText(it) : ''}</span>
           </div>
-        `;
-      }).join('');
+        </div>
+      `).join('');
 
-      // Collapse toggles.
-      list.querySelectorAll('[data-bl-toggle]').forEach((header) => {
-        header.addEventListener('click', () => {
-          const bl = header.dataset.blToggle;
-          const section = header.closest('.bl-section');
-          const nowCollapsed = !section.classList.contains('collapsed');
-          section.classList.toggle('collapsed');
-          // Record explicit user intent (both "collapsed" and "expanded" are
-          // meaningful overrides of the blocked-count default above).
-          inflightCollapsed.delete(bl);
-          inflightCollapsed.delete(`!${bl}`);
-          inflightCollapsed.add(nowCollapsed ? bl : `!${bl}`);
-        });
-      });
-
-      // Set title via textContent for XSS safety, then wire Done buttons.
+      // Set title via textContent for XSS safety.
       const rowEls = list.querySelectorAll('.inflight-item');
       rowEls.forEach((row) => {
-        const it = items.find((i) => String(i.id) === row.dataset.id && i.source === row.dataset.source);
+        const it = items.find((i) => String(i.id) === row.dataset.id);
         if (!it) return;
-        row.querySelector('.inflight-item-title').textContent = it.title || '(untitled)';
-        row.querySelector('.inflight-done-btn').addEventListener('click', async (e) => {
-          const btn = e.currentTarget;
-          btn.disabled = true;
-          btn.textContent = '…';
-          try {
-            const res = await fetch(`${API_BASE}/api/jarvis-mark-complete`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: await getAuthHeader(),
-              },
-              body: JSON.stringify({ source: it.source, id: it.id }),
-            });
-            if (res.ok) {
-              row.remove();
-              loadInFlightWork().catch(() => {});
-              // Completing an agent_queue/heath_todo/merge_queue row can also
-              // affect the WORK ITEMS + merge queue panels — refresh those too.
-              loadMergeQueue().catch(() => {});
-              loadTodo().catch(() => {});
-            } else {
-              btn.disabled = false;
-              btn.textContent = 'Done';
-              showToast(`Couldn't mark done (${res.status}).`);
-            }
-          } catch (err) {
-            btn.disabled = false;
-            btn.textContent = 'Done';
-            showToast('Offline — try again.');
-          }
-        });
+        row.querySelector('.inflight-item-title').textContent = it.title || '(no description)';
       });
     }
 
@@ -6875,7 +5878,8 @@
 
 
     async function mergeStagingToMain(item) {
-      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}`);
+      const warn = item.all_green ? '' : `\n\nHeads up: not everyone has signed off yet — see the panel for who's still pending. This will still merge to main if you confirm.`;
+      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}${warn}`);
       if (!confirmed) return;
 
       const btn = document.querySelector(`[data-sha="${item.commit_sha.slice(0, 7)}"][data-action="merge"]`);
@@ -6919,11 +5923,6 @@
       let text = `${type.toUpperCase()} — ${status.toUpperCase()}\n`;
       if (evidence) text += `Evidence: ${evidence}\n`;
       if (notes) text += `Notes: ${notes}\n`;
-      showToast(text);
-    }
-
-    function showMergeQueueDetails(item) {
-      let text = `Commit: ${item.commit_sha}\nAuthor: ${item.commit_author || 'unknown'}\nCreated: ${new Date(item.created_at).toLocaleString()}`;
       showToast(text);
     }
 
@@ -7184,86 +6183,6 @@
       pendingModalOpenItem = null;
     }
 
-    // ===== DAILY DEBRIEF (Tier 1 Widget #2) =====
-    async function loadDailyDebrief() {
-      const head = document.getElementById('debrief-headline');
-      const grid = document.getElementById('debrief-grid');
-      if (!head || !grid) return;
-      try {
-        const res = await fetch(`${API_BASE}/api/jarvis-daily-debrief`, {
-          headers: { Authorization: await getAuthHeader() },
-        });
-        if (!res.ok) {
-          head.textContent = `Couldn't load (${res.status}).`;
-          grid.innerHTML = '';
-          return;
-        }
-        const data = await res.json();
-        renderDebrief(data);
-      } catch (err) {
-        console.warn('[jarvis] loadDailyDebrief failed', err);
-        head.textContent = 'Offline.';
-      }
-    }
-
-    function renderDebrief(d) {
-      const head = document.getElementById('debrief-headline');
-      const grid = document.getElementById('debrief-grid');
-      if (!head || !grid) return;
-      head.textContent = d.headline || '';
-      const cells = [
-        { val: d.closed_deals?.count || 0,           lbl: 'Closed Deals',     extra: (d.closed_deals?.names || []).slice(0, 3).join(', ') },
-        { val: d.new_signups?.count || 0,            lbl: 'New Signups',      extra: (d.new_signups?.names || []).slice(0, 3).join(', ') },
-        { val: d.customer_activity?.documents_uploaded || 0, lbl: 'Docs Uploaded' },
-        { val: d.customer_activity?.dossiers_created || 0,   lbl: 'Dossiers Created' },
-        { val: d.customer_activity?.milestones_shared || 0,  lbl: 'Cards Shared' },
-        { val: d.agent_completions?.count || 0,      lbl: 'Agent Tasks Done' },
-        { val: d.outbound?.emails_sent || 0,         lbl: 'Emails Sent' },
-        { val: d.outbound?.social_posts_published || 0, lbl: 'Social Posts' },
-      ];
-      grid.innerHTML = '';
-      for (const c of cells) {
-        const el = document.createElement('div');
-        el.className = 'debrief-cell';
-        el.innerHTML = `
-          <div class="debrief-cell-val" data-val></div>
-          <div class="debrief-cell-lbl" data-lbl></div>
-          ${c.extra ? '<div class="debrief-names" data-extra></div>' : ''}
-        `;
-        el.querySelector('[data-val]').textContent = String(c.val);
-        el.querySelector('[data-lbl]').textContent = c.lbl;
-        const ex = el.querySelector('[data-extra]');
-        if (ex) ex.textContent = c.extra;
-        grid.appendChild(el);
-      }
-    }
-
-    // ===== CUSTOMER ACTIVITY FEED (Tier 1 Widget #3) =====
-    let custFeedCache = []; // last rendered events
-    async function loadCustomerActivity() {
-      const feed = document.getElementById('cust-feed');
-      if (!feed) return;
-      let renderedOk = false;
-      try {
-        const res = await fetch(`${API_BASE}/api/jarvis-customer-activity?limit=20`, {
-          headers: { Authorization: await getAuthHeader() },
-        });
-        if (!res.ok) {
-          feed.innerHTML = `<div class="cust-empty">Couldn't load (${res.status}).</div>`;
-          return;
-        }
-        const data = await res.json();
-        custFeedCache = data.events || [];
-        renderCustomerFeed(custFeedCache);
-        renderedOk = true;
-      } catch (err) {
-        console.warn('[jarvis] loadCustomerActivity failed', err && err.message ? err.message : err);
-        if (!renderedOk) {
-          feed.innerHTML = `<div class="cust-empty">Offline.</div>`;
-        }
-      }
-    }
-
     function fmtAgo(iso) {
       if (!iso) return '';
       const ms = Date.now() - new Date(iso).getTime();
@@ -7312,76 +6231,6 @@
       // Update heartbeat pill every 5 seconds
       heartbeatCheckInterval = setInterval(updateHeartbeatStatus, 5000);
       updateHeartbeatStatus(); // initial render
-    }
-
-    function renderCustomerFeed(events) {
-      const feed = document.getElementById('cust-feed');
-      if (!feed) return;
-      if (!events.length) {
-        feed.innerHTML = `<div class="cust-empty">No recent customer activity.</div>`;
-        return;
-      }
-      feed.innerHTML = '';
-      for (const ev of events) {
-        const row = document.createElement('div');
-        row.className = 'cust-row';
-        row.innerHTML = `
-          <div class="cust-kind ${ev.kind}" data-kind></div>
-          <div class="cust-text" data-text></div>
-          <div class="cust-ts" data-ts></div>
-        `;
-        row.querySelector('[data-kind]').textContent = ev.kind || '';
-        row.querySelector('[data-text]').textContent = ev.text || '';
-        row.querySelector('[data-ts]').textContent = fmtAgo(ev.ts);
-        feed.appendChild(row);
-      }
-    }
-
-    function prependCustomerEvent(ev) {
-      // Used by realtime subscription. Drops in a row at the top with flash.
-      const feed = document.getElementById('cust-feed');
-      if (!feed) return;
-      // Dedup by ts+kind+actor.
-      const key = `${ev.ts}|${ev.kind}|${ev.actor}`;
-      if (custFeedCache.some(e => `${e.ts}|${e.kind}|${e.actor}` === key)) return;
-      custFeedCache.unshift(ev);
-      custFeedCache = custFeedCache.slice(0, 20);
-      // Render with flash on the new row.
-      renderCustomerFeed(custFeedCache);
-      const firstRow = feed.querySelector('.cust-row');
-      if (firstRow) firstRow.classList.add('new-event');
-    }
-
-    function subscribeCustomerEvents() {
-      // Supabase Realtime: postgres_changes on the tables we care about.
-      // We listen INSERTs on documents, transactions, dossier_milestones,
-      // founding_applications, subscriptions, and last_seen_at UPDATEs on profiles.
-      // Each event triggers a re-fetch (cheap, debounced 2s) so the formatted
-      // row uses the same shape as the polling code.
-      if (!supabase) return;
-      let debounceTimer = null;
-      const debounceRefresh = () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          loadCustomerActivity().catch(() => {});
-          debounceTimer = null;
-        }, 2000);
-      };
-      try {
-        const ch = supabase
-          .channel('jarvis-cust-activity')
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'documents' },                    debounceRefresh)
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' },                 debounceRefresh)
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dossier_milestones' },           debounceRefresh)
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'founding_applications' },        debounceRefresh)
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'subscriptions' },                debounceRefresh)
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'last_seen_at=gt.1970-01-01' }, debounceRefresh)
-          .subscribe();
-        // Keep the channel reference for cleanup if we add sign-out flow later.
-        window.__jarvisCustChannel = ch;
-      } catch (err) {
-        console.warn('[jarvis] subscribeCustomerEvents failed', err);
-      }
     }
 
     // ===== QUICK ACTIONS (Tier 1 Widget #4) =====
@@ -8242,203 +7091,6 @@
     }
 
     // =========================================================================
-    // TIER 2 — QUICK-ASK CARDS (Widget #3)
-    // =========================================================================
-    function wireQuickAskCards() {
-      const cards = document.querySelectorAll('.qa-card');
-      cards.forEach((card) => {
-        card.addEventListener('click', () => {
-          const specialist = card.dataset.specialist;
-          if (!specialist) return;
-          openQuickAskModal(specialist);
-        });
-      });
-    }
-
-    function openQuickAskModal(specialist) {
-      const titleByAgent = { hadley: 'Ask Hadley', sterling: 'Ask Sterling', pierce: 'Ask Pierce' };
-      const subByAgent = {
-        hadley: 'Legal & TREC questions. Cites her knowledge base.',
-        sterling: 'Markets, stocks, crypto, catalysts. Plain talk.',
-        pierce: 'Growth, customer success, founder outreach.',
-      };
-      const backdrop = document.createElement('div');
-      backdrop.className = 'detail-modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="detail-modal quick-ask-modal">
-          <div class="detail-header">
-            <div class="detail-title-block">
-              <span class="detail-agent-badge">${escapeHtml(specialist)}</span>
-              <div class="detail-title">${escapeHtml(titleByAgent[specialist])}</div>
-              <div style="font-size:11px;color:var(--txt-faint);margin-top:2px;">${escapeHtml(subByAgent[specialist])}</div>
-            </div>
-            <button class="detail-close" aria-label="Close">×</button>
-          </div>
-          <div id="qa-listening" class="quick-ask-listening hidden">
-            <span class="live-dot"></span><span>Listening · tap stop when done</span>
-          </div>
-          <textarea class="quick-ask-input" id="qa-input" placeholder="Type your question or tap the mic..."></textarea>
-          <div class="quick-ask-actions">
-            <button class="quick-ask-btn" id="qa-mic">🎙 Voice</button>
-            <button class="quick-ask-btn primary" id="qa-send">Ask ${escapeHtml(specialist[0].toUpperCase() + specialist.slice(1))}</button>
-          </div>
-          <div id="qa-answer-wrap" class="hidden" style="margin-top:14px;">
-            <div class="detail-section-label">Answer</div>
-            <div class="quick-ask-answer" id="qa-answer"></div>
-            <div class="quick-ask-citations" id="qa-citations"></div>
-          </div>
-        </div>
-      `;
-      const close = () => {
-        try { qaStopRecording(); } catch {}
-        try { if (window.__qaAudio) { window.__qaAudio.pause(); window.__qaAudio = null; } } catch {}
-        backdrop.remove();
-      };
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-      backdrop.querySelector('.detail-close').addEventListener('click', close);
-      backdrop.querySelector('#qa-mic').addEventListener('click', () => qaToggleRecording(backdrop));
-      backdrop.querySelector('#qa-send').addEventListener('click', () => qaSend(specialist, backdrop));
-      backdrop.querySelector('#qa-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault();
-          qaSend(specialist, backdrop);
-        }
-      });
-      document.body.appendChild(backdrop);
-      backdrop.querySelector('#qa-input').focus();
-    }
-
-    // Mic capture for the quick-ask modal (reuses STT pipeline).
-    let qaMediaRecorder = null;
-    let qaChunks = [];
-    async function qaToggleRecording(modal) {
-      const btn = modal.querySelector('#qa-mic');
-      const listening = modal.querySelector('#qa-listening');
-      const input = modal.querySelector('#qa-input');
-      if (qaMediaRecorder && qaMediaRecorder.state === 'recording') {
-        qaStopRecording();
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        qaChunks = [];
-        qaMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-        qaMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) qaChunks.push(e.data); };
-        qaMediaRecorder.onstop = async () => {
-          stream.getTracks().forEach(t => t.stop());
-          listening.classList.add('hidden');
-          btn.textContent = '🎙 Voice';
-          if (qaChunks.length === 0) return;
-          const blob = new Blob(qaChunks, { type: 'audio/webm' });
-          input.value = 'Transcribing…';
-          input.disabled = true;
-          try {
-            const form = new FormData();
-            form.append('audio', blob, 'qa.webm');
-            const res = await fetch(`${API_BASE}/api/jarvis-voice?op=stt`, {
-              method: 'POST',
-              headers: { Authorization: await getAuthHeader() },
-              body: form,
-            });
-            if (res.ok) {
-              const data = await res.json();
-              input.value = data.transcript || '';
-            } else {
-              input.value = '';
-              showToast('Transcription failed');
-            }
-          } catch (err) {
-            input.value = '';
-            showToast('Transcription error');
-          } finally {
-            input.disabled = false;
-            input.focus();
-          }
-        };
-        qaMediaRecorder.start();
-        listening.classList.remove('hidden');
-        btn.textContent = '⏹ Stop';
-      } catch (err) {
-        console.warn('[jarvis] qa mic failed', err);
-        showToast('Mic blocked');
-      }
-    }
-    function qaStopRecording() {
-      if (qaMediaRecorder && qaMediaRecorder.state === 'recording') {
-        qaMediaRecorder.stop();
-      }
-      qaMediaRecorder = null;
-    }
-
-    async function qaSend(specialist, modal) {
-      const input = modal.querySelector('#qa-input');
-      const sendBtn = modal.querySelector('#qa-send');
-      const micBtn = modal.querySelector('#qa-mic');
-      const answerWrap = modal.querySelector('#qa-answer-wrap');
-      const answerEl = modal.querySelector('#qa-answer');
-      const citationsEl = modal.querySelector('#qa-citations');
-      const question = (input.value || '').trim();
-      if (!question) { input.focus(); return; }
-      sendBtn.disabled = true; micBtn.disabled = true;
-      sendBtn.textContent = 'Asking…';
-      try {
-        const res = await fetch(`${API_BASE}/api/jarvis-quick-ask`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: await getAuthHeader(),
-          },
-          body: JSON.stringify({ specialist, question, speak: true }),
-        });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '');
-          answerWrap.classList.remove('hidden');
-          answerEl.textContent = `Couldn't reach ${specialist} (${res.status}). ${txt.slice(0, 200)}`;
-          return;
-        }
-        const ct = res.headers.get('Content-Type') || '';
-        if (ct.startsWith('audio/')) {
-          const answerText = decodeURIComponent(res.headers.get('X-Answer-Text') || '');
-          const citationsHdr = res.headers.get('X-Citations');
-          answerWrap.classList.remove('hidden');
-          answerEl.textContent = answerText || '(answer in audio)';
-          if (citationsHdr) {
-            try {
-              const cites = JSON.parse(decodeURIComponent(citationsHdr));
-              if (Array.isArray(cites) && cites.length) {
-                citationsEl.innerHTML = 'Sources: ' + cites.map(c =>
-                  c.url ? `<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener">${escapeHtml(c.source || c.url)}</a>` : escapeHtml(c.source || '')
-                ).join(' · ');
-              }
-            } catch {}
-          }
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          if (window.__qaAudio) { try { window.__qaAudio.pause(); } catch {} }
-          const audio = new Audio(url);
-          window.__qaAudio = audio;
-          audio.onended = () => { URL.revokeObjectURL(url); window.__qaAudio = null; };
-          audio.play().catch(() => {});
-        } else {
-          const data = await res.json();
-          answerWrap.classList.remove('hidden');
-          answerEl.textContent = data.answer || '(no answer)';
-          if (Array.isArray(data.citations) && data.citations.length) {
-            citationsEl.innerHTML = 'Sources: ' + data.citations.map(c =>
-              c.url ? `<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener">${escapeHtml(c.source || c.url)}</a>` : escapeHtml(c.source || '')
-            ).join(' · ');
-          }
-        }
-      } catch (err) {
-        answerWrap.classList.remove('hidden');
-        answerEl.textContent = `Error: ${err.message}`;
-      } finally {
-        sendBtn.disabled = false; micBtn.disabled = false;
-        sendBtn.textContent = `Ask ${specialist[0].toUpperCase() + specialist.slice(1)}`;
-      }
-    }
-
-    // =========================================================================
     // TIER 2 — AGENT LEDGER UPGRADE (per DoD ADDENDUM 2026-06-21)
     // =========================================================================
     // Live state per agent — keyed by agent_name.
@@ -8457,7 +7109,6 @@
         const sorted = [...events].reverse();
         sorted.forEach((e) => mergeLedgerEvent(e));
         renderAgentRows();
-        renderActivityLog(events);
         wireAgentRowClicks();
       } catch (err) {
         console.warn('[jarvis] loadAgentLedger failed', err);
@@ -8609,56 +7260,6 @@
       document.body.appendChild(backdrop);
     }
 
-    // ===== Activity log render upgrade =====
-    function renderActivityLog(events) {
-      const feed = document.getElementById('activity-feed');
-      if (!feed) return;
-      if (!events.length) {
-        feed.innerHTML = `<div class="activity-empty">No recent activity.</div>`;
-        return;
-      }
-      feed.innerHTML = '';
-      events.slice(0, 50).forEach((e) => {
-        const status = (e.status || e.event_type || '').toLowerCase();
-        const statusClass = status === 'completed' ? 'activity-status-completed'
-                          : status === 'failed'    ? 'activity-status-failed'
-                          : 'activity-status-working';
-        const icon = status === 'completed' ? '✓'
-                   : status === 'failed'    ? '✗'
-                   : '•';
-        const row = document.createElement('div');
-        row.className = 'activity-row';
-        row.innerHTML = `
-          <div class="activity-agent ${statusClass}" data-agent></div>
-          <div class="activity-task" data-task></div>
-          <div class="activity-ts" data-ts></div>
-        `;
-        row.querySelector('[data-agent]').textContent = `${icon} ${e.agent_name || '?'}`;
-        row.querySelector('[data-task]').textContent = e.task_title || e.summary || '(no detail)';
-        row.querySelector('[data-ts]').textContent = fmtAgo(e.created_at);
-        row.addEventListener('click', () => openActivityEventModal(e));
-        feed.appendChild(row);
-      });
-    }
-
-    function openActivityEventModal(e) {
-      const state = {
-        status: e.status || e.event_type,
-        task_title: e.task_title,
-        summary: e.summary,
-        prompt: e.prompt,
-        result_summary: e.result_summary,
-        commit_sha: e.commit_sha,
-        files_touched: e.files_touched,
-        screenshot_paths: e.screenshot_paths,
-        apv_status: e.apv_status,
-        token_cost_cents: e.token_cost_cents,
-        started_at: e.started_at,
-        completed_at: e.completed_at,
-      };
-      openAgentDetailModal(e.agent_name || '?', state);
-    }
-
     // ===== Realtime agent events =====
     // Source-swapped 2026-07-01: was subscribing to dead `jarvis_agent_events` (last
     // write 2026-06-26). Now subscribes to the live `agent_queue` table which is
@@ -8682,10 +7283,6 @@
               event_type: payload.eventType,
               created_at: row.completed_at || row.started_at || row.created_at,
             });
-            // BUSINESS LINES panel (SV-ENG-JARVIS-TASK-VIZ, 2026-08-10) — needs
-            // the full row (id, business_line, priority, ...) that onAgentEvent's
-            // reshaped object above drops, so it reads straight off payload.
-            try { mergeBusinessLineEvent(payload); } catch (err) { console.warn('[jarvis] mergeBusinessLineEvent failed', err.message); }
           },
         )
         .subscribe((status) => {
@@ -8717,240 +7314,11 @@
       mergeLedgerEvent(event);
       renderAgentRows();
       scheduleInstancesRefresh();
-      // Re-render the activity feed by prepending this event to the rendered list.
-      const feed = document.getElementById('activity-feed');
-      if (!feed) return;
-      const status = (event.status || event.event_type || '').toLowerCase();
-      const statusClass = status === 'completed' ? 'activity-status-completed'
-                        : status === 'failed'    ? 'activity-status-failed'
-                        : 'activity-status-working';
-      const icon = status === 'completed' ? '✓'
-                 : status === 'failed'    ? '✗'
-                 : '•';
-      const row = document.createElement('div');
-      row.className = 'activity-row';
-      row.innerHTML = `
-        <div class="activity-agent ${statusClass}" data-agent></div>
-        <div class="activity-task" data-task></div>
-        <div class="activity-ts" data-ts></div>
-      `;
-      row.querySelector('[data-agent]').textContent = `${icon} ${event.agent_name || '?'}`;
-      row.querySelector('[data-task]').textContent = event.task_title || event.summary || '(no detail)';
-      row.querySelector('[data-ts]').textContent = fmtAgo(event.created_at);
-      row.addEventListener('click', () => openActivityEventModal(event));
-      // Clear empty state, then prepend.
-      const empty = feed.querySelector('.activity-empty');
-      if (empty) empty.remove();
-      feed.prepend(row);
-      // Trim to 50.
-      while (feed.querySelectorAll('.activity-row').length > 50) {
-        feed.lastElementChild.remove();
-      }
     }
 
     // Back-compat alias used by some boot paths.
     function updateAgentRow(event) {
       onAgentEvent(event);
-    }
-
-    // =========================================================================
-    // BUSINESS LINES panel (SV-ENG-JARVIS-TASK-VIZ, 2026-08-10)
-    // =========================================================================
-    // agent_queue rows grouped by business_line, then by status (running/
-    // queued/recently completed). Initial snapshot loaded from
-    // /api/jarvis-business-line-tasks; kept live by feeding every
-    // agent_queue_stream Realtime event (subscribeAgentEvents() above) into
-    // the same in-memory map — no separate polling loop for this panel.
-    // -------------------------------------------------------------------------
-    const BUSINESS_LINE_ORDER = ['dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures'];
-    const BUSINESS_LINE_LABELS = {
-      dossie: 'Dossie',
-      sawyer: 'Sawyer',
-      brokerage: 'Brokerage',
-      trading: 'Trading',
-      'shepard-ventures': 'Shepard Ventures HQ',
-    };
-    const bizLineTasksById = new Map(); // agent_queue.id -> row
-    const bizLineCollapsed = new Set(); // business_line keys currently collapsed
-    let bizLineDefaultsSeeded = false; // set true after the first render's auto-collapse pass
-
-    // PERSISTENCE (2026-08-10, Quinn QA gap): a manual expand/collapse must
-    // survive a real page reload, not just the 30s in-page poll re-render.
-    // Only explicit user toggles are written here — untouched business lines
-    // stay on the auto-collapse-if-zero-activity default every load.
-    const BIZLINE_COLLAPSE_STORAGE_KEY = 'jarvis_bizline_collapsed_v1';
-    function loadBizLineOverrides() {
-      try {
-        const raw = localStorage.getItem(BIZLINE_COLLAPSE_STORAGE_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        return (parsed && typeof parsed === 'object') ? parsed : {};
-      } catch (err) {
-        return {}; // localStorage unavailable (private mode/quota) — falls back to defaults every load
-      }
-    }
-    function saveBizLineOverride(bl, collapsed) {
-      try {
-        const overrides = loadBizLineOverrides();
-        overrides[bl] = collapsed;
-        localStorage.setItem(BIZLINE_COLLAPSE_STORAGE_KEY, JSON.stringify(overrides));
-      } catch (err) {
-        // in-memory state still works this session even if persistence fails
-      }
-    }
-    const bizLineUserOverrides = loadBizLineOverrides(); // { [bl]: boolean } explicit choices from a prior session
-
-    function bizLineOf(row) {
-      // Same fallback chain as the server's resolveBusinessLine()
-      // (jarvis-business-line-tasks.js / jarvis-in-flight-work.js): prefer
-      // the new business_line column, fall back to the older `venture`
-      // field for pre-migration rows, else the HQ catch-all.
-      const bl = row && row.business_line;
-      if (bl && BUSINESS_LINE_ORDER.includes(bl)) return bl;
-      const v = row && row.venture;
-      if (v && BUSINESS_LINE_ORDER.includes(v)) return v;
-      return 'shepard-ventures';
-    }
-
-    async function loadBusinessLineTasks() {
-      if (!session?.access_token) return;
-      try {
-        const data = await authedFetch('/api/jarvis-business-line-tasks?completed_window_hours=24&completed_limit=20');
-        if (!data?.ok) return;
-        bizLineTasksById.clear();
-        Object.values(data.business_lines || {}).forEach((bucket) => {
-          ['running', 'queued', 'blocked', 'recently_completed'].forEach((k) => {
-            (bucket[k] || []).forEach((row) => bizLineTasksById.set(row.id, row));
-          });
-        });
-        renderBusinessLines();
-      } catch (err) {
-        console.warn('[jarvis] loadBusinessLineTasks failed', err.message);
-        const list = document.getElementById('business-lines-list');
-        if (list) list.innerHTML = `<div class="bl-empty">Business line data unavailable.</div>`;
-      }
-    }
-
-    // Fed by onAgentEvent() below — every agent_queue_stream row change
-    // (INSERT/UPDATE/DELETE) updates this map in real time, so a freshly
-    // dispatched task shows up under RUNNING/QUEUED within the same
-    // Realtime push that already drives the ACTIVITY LOG + AGENT STATUS
-    // panels, no extra fetch.
-    function mergeBusinessLineEvent(payload) {
-      const eventType = payload.eventType;
-      const row = payload.new || payload.old;
-      if (!row || !row.id) return;
-      if (eventType === 'DELETE') {
-        bizLineTasksById.delete(row.id);
-      } else {
-        bizLineTasksById.set(row.id, row);
-      }
-      renderBusinessLines();
-    }
-
-    function renderBlGroup(label, rows, kind) {
-      if (!rows.length) {
-        return `<div class="bl-group"><div class="bl-group-label">${label}</div><div class="bl-empty">—</div></div>`;
-      }
-      const rowsHtml = rows.map((r) => `
-        <div class="bl-task-row bl-task-${kind}">
-          <div class="bl-task-top">
-            <span class="bl-task-agent">${escapeHtml(r.agent_name || '?')}</span>
-            <span class="bl-task-ts">${fmtAgo(r.completed_at || r.started_at || r.created_at)}</span>
-          </div>
-          <div class="bl-task-subject">${escapeHtml(r.task_subject || '(no subject)')}</div>
-        </div>
-      `).join('');
-      return `<div class="bl-group"><div class="bl-group-label">${label} (${rows.length})</div>${rowsHtml}</div>`;
-    }
-
-    function renderBusinessLines() {
-      const container = document.getElementById('business-lines-list');
-      if (!container) return;
-
-      const now = Date.now();
-      const buckets = {};
-      BUSINESS_LINE_ORDER.forEach((bl) => { buckets[bl] = { running: [], queued: [], blocked: [], recently_completed: [] }; });
-
-      bizLineTasksById.forEach((row) => {
-        const bl = bizLineOf(row);
-        if (row.status === 'in_progress') {
-          buckets[bl].running.push(row);
-        } else if (row.status === 'blocked') {
-          // Own group now (STALE-DATA FILTER + blocked-visibility fix,
-          // 2026-08-10) — was folded into "queued" before, which is why a
-          // blocked task read no differently than a task simply waiting its
-          // turn. Matches IN-FLIGHT WORK's "blocked always surfaces hot".
-          buckets[bl].blocked.push(row);
-        } else if (row.status === 'pending') {
-          buckets[bl].queued.push(row);
-        } else if (row.status === 'completed') {
-          const completedAt = row.completed_at ? new Date(row.completed_at).getTime() : 0;
-          if (now - completedAt <= 24 * 3600 * 1000) buckets[bl].recently_completed.push(row);
-        }
-        // cancelled/failed rows aren't shown in this panel — running/queued/
-        // blocked/recently-completed only, per spec.
-      });
-
-      // DENSITY PASS 2026-08-10 (Heath: "very busy... a lot of dead space").
-      // Only 2 of 5 business lines carry any real activity today — the other
-      // 3 always rendered as a fully-expanded section of nothing but four
-      // "—" placeholder rows, which is dead space dressed up as content.
-      // Auto-collapse zero-activity lines ONCE on first render only (not on
-      // every re-render — a manual expand/collapse Heath makes must stick
-      // even if that line goes quiet again a moment later).
-      if (!bizLineDefaultsSeeded) {
-        BUSINESS_LINE_ORDER.forEach((bl) => {
-          if (Object.prototype.hasOwnProperty.call(bizLineUserOverrides, bl)) {
-            // User manually expanded/collapsed this line in a prior session —
-            // that choice wins over the zero-activity default, every load.
-            if (bizLineUserOverrides[bl]) bizLineCollapsed.add(bl); else bizLineCollapsed.delete(bl);
-            return;
-          }
-          const b = buckets[bl];
-          const total = b.running.length + b.queued.length + b.blocked.length + b.recently_completed.length;
-          if (total === 0) bizLineCollapsed.add(bl);
-        });
-        bizLineDefaultsSeeded = true;
-      }
-
-      container.innerHTML = '';
-      BUSINESS_LINE_ORDER.forEach((bl) => {
-        const b = buckets[bl];
-        b.running.sort((x, y) => new Date(y.started_at || y.created_at) - new Date(x.started_at || x.created_at));
-        b.queued.sort((x, y) => (x.priority - y.priority) || (new Date(x.created_at) - new Date(y.created_at)));
-        b.blocked.sort((x, y) => (x.priority - y.priority) || (new Date(x.created_at) - new Date(y.created_at)));
-        b.recently_completed.sort((x, y) => new Date(y.completed_at || 0) - new Date(x.completed_at || 0));
-        b.recently_completed = b.recently_completed.slice(0, 20);
-
-        const section = document.createElement('div');
-        section.className = 'bl-section' + (bizLineCollapsed.has(bl) ? ' collapsed' : '');
-        section.dataset.bl = bl;
-        section.innerHTML = `
-          <div class="bl-header" data-bl-toggle="${bl}">
-            <span class="bl-title">${BUSINESS_LINE_LABELS[bl]}</span>
-            <span class="bl-counts">
-              ${b.blocked.length ? `<span class="bl-count-chip blocked">${b.blocked.length} blocked</span>` : ''}
-              <span class="bl-count-chip running">${b.running.length} running</span>
-              <span class="bl-count-chip queued">${b.queued.length} queued</span>
-              <span class="bl-count-chip completed">${b.recently_completed.length} done (24h)</span>
-            </span>
-            <svg class="bl-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-          <div class="bl-body">
-            ${renderBlGroup('Blocked', b.blocked, 'blocked')}
-            ${renderBlGroup('Running', b.running, 'running')}
-            ${renderBlGroup('Queued', b.queued, 'queued')}
-            ${renderBlGroup('Recently Completed (24h)', b.recently_completed, 'completed')}
-          </div>
-        `;
-        section.querySelector('.bl-header').addEventListener('click', () => {
-          if (bizLineCollapsed.has(bl)) bizLineCollapsed.delete(bl); else bizLineCollapsed.add(bl);
-          section.classList.toggle('collapsed');
-          saveBizLineOverride(bl, bizLineCollapsed.has(bl));
-        });
-        container.appendChild(section);
-      });
     }
 
     // =========================================================================
@@ -9174,193 +7542,6 @@
           }
         )
         .subscribe();
-      supabase
-        .channel(`jarvis_projects:${tenant.id}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'jarvis_projects', filter: `tenant_id=eq.${tenant.id}` },
-          () => { loadProjects().catch(() => {}); }
-        )
-        .subscribe();
-    }
-
-    // ----- PROJECTS LEDGER -----
-    // atlas sweep 2026-06-26: more resilient loader.
-    // (a) don't gate on `tenant` (server resolves tenant from JWT — client tenant cache may not be hydrated yet)
-    // (b) show diagnostic on failure, not opaque "unavailable"
-    // (c) one auto-retry after 2s if first attempt fails (handles cold-start)
-    async function loadProjects(attempt) {
-      attempt = attempt || 1;
-      if (!session?.access_token) {
-        const el = document.getElementById('projects-ledger');
-        if (el) el.innerHTML = `<div class="ledger-empty">Sign in to load projects.</div>`;
-        return;
-      }
-      try {
-        const data = await authedFetch('/api/jarvis-list-projects?shipped_window_days=30');
-        if (!data?.ok) {
-          const el = document.getElementById('projects-ledger');
-          if (el) el.innerHTML = `<div class="ledger-empty">Projects unavailable: ${escapeHtml(data?.error || 'unknown')}</div>`;
-          return;
-        }
-        renderProjectsLedger(data);
-      } catch (err) {
-        const msg = err && err.message ? err.message : 'unknown';
-        console.warn('[jarvis] loadProjects failed (attempt ' + attempt + ')', msg);
-        if (attempt < 2) {
-          setTimeout(() => loadProjects(attempt + 1), 2000);
-          return;
-        }
-        const el = document.getElementById('projects-ledger');
-        if (el) el.innerHTML = `<div class="ledger-empty">Projects API: ${escapeHtml(msg.slice(0, 80))}</div>`;
-      }
-    }
-
-    function renderProjectsLedger(data) {
-      const el = document.getElementById('projects-ledger');
-      if (!el) return;
-      const building = data.building || [];
-      const recent = data.recent_shipped || [];
-      const all = data.all || [];
-      const sections = [];
-      sections.push(`
-        <div class="ledger-section">
-          <div class="ledger-section-label building">Building (${building.length})</div>
-          ${building.length === 0
-            ? '<div class="ledger-empty">Nothing actively building.</div>'
-            : building.map(b => buildProjectCardHtml(b.project, b.progress_pct, b.completed_items, b.total_items)).join('')}
-        </div>
-      `);
-      sections.push(`
-        <div class="ledger-section">
-          <div class="ledger-section-label shipped">Recently Shipped · last 30 days (${recent.length})</div>
-          ${recent.length === 0
-            ? '<div class="ledger-empty">Nothing shipped yet.</div>'
-            : recent.map(r => buildProjectCardHtml(r.project)).join('')}
-        </div>
-      `);
-      // Show "all" only if there's anything outside the building+recent buckets.
-      const buildingIds = new Set(building.map(b => b.project.id));
-      const recentIds = new Set(recent.map(r => r.project.id));
-      const other = all.filter(a => !buildingIds.has(a.project.id) && !recentIds.has(a.project.id));
-      if (other.length > 0) {
-        sections.push(`
-          <div class="ledger-section">
-            <div class="ledger-section-label">All History (${other.length})</div>
-            ${other.slice(0, 25).map(o => buildProjectCardHtml(o.project)).join('')}
-          </div>
-        `);
-      }
-      el.innerHTML = sections.join('');
-      el.querySelectorAll('.project-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const id = card.getAttribute('data-project-id');
-          if (id) openProjectHistoryModal(id);
-        });
-      });
-    }
-
-    function buildProjectCardHtml(project, progressPct, doneItems, totalItems) {
-      const status = (project.status || 'building').toLowerCase();
-      const pctTxt = (progressPct != null)
-        ? `<span class="project-pct">${progressPct}% (${doneItems}/${totalItems})</span>`
-        : '';
-      const goldTxt = project.gold_tag
-        ? `<span class="gold-tag">${escapeHtml(project.gold_tag)}</span>`
-        : '';
-      const tsTxt = status === 'shipped' && project.completed_at
-        ? `shipped ${fmtAgo(project.completed_at)} ago`
-        : `started ${fmtAgo(project.spawned_at)} ago`;
-      return `
-        <div class="project-card ${status}" data-project-id="${escapeHtml(project.id)}">
-          <div class="project-title">${escapeHtml(project.title || '(untitled)')}</div>
-          <div class="project-meta">
-            <span>${pctTxt} ${goldTxt}</span>
-            <span>${escapeHtml(tsTxt)}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    async function openProjectHistoryModal(projectId) {
-      let project = null;
-      let instances = [];
-      try {
-        const sbUrl = window.__JARVIS_SB_URL;
-        const sbKey = window.__JARVIS_SB_KEY;
-        const token = session?.access_token;
-        const projRes = await fetch(`${sbUrl}/rest/v1/jarvis_projects?select=*&id=eq.${projectId}&limit=1`, {
-          headers: { apikey: sbKey, Authorization: `Bearer ${token || sbKey}` },
-        });
-        if (projRes.ok) {
-          const rows = await projRes.json();
-          project = rows[0] || null;
-        }
-        const instRes = await fetch(`${sbUrl}/rest/v1/jarvis_agent_instances?select=*&project_id=eq.${projectId}&order=spawned_at.desc&limit=50`, {
-          headers: { apikey: sbKey, Authorization: `Bearer ${token || sbKey}` },
-        });
-        if (instRes.ok) instances = await instRes.json();
-      } catch (err) {
-        console.warn('[jarvis] project modal load failed', err.message);
-      }
-      if (!project) {
-        showToast('Project not found.');
-        return;
-      }
-      const backdrop = document.createElement('div');
-      backdrop.className = 'detail-modal-backdrop';
-      const status = (project.status || 'building').toLowerCase();
-      backdrop.innerHTML = `
-        <div class="detail-modal">
-          <div class="detail-header">
-            <div class="detail-title-block">
-              <span class="detail-agent-badge">project</span>
-              <div class="detail-title">${escapeHtml(project.title || '(untitled)')}</div>
-              <div style="font-size:10px;letter-spacing:0.16em;color:var(--txt-faint);text-transform:uppercase;margin-top:4px;">${escapeHtml(status)}${project.gold_tag ? ' · ' + escapeHtml(project.gold_tag) : ''}</div>
-            </div>
-            <button class="detail-close" aria-label="Close">×</button>
-          </div>
-          ${project.description ? `
-          <div class="detail-section">
-            <div class="detail-section-label">Description</div>
-            <div class="detail-section-body">${escapeHtml(project.description)}</div>
-          </div>` : ''}
-          ${project.evidence_summary ? `
-          <div class="detail-section">
-            <div class="detail-section-label">Evidence Summary</div>
-            <div class="detail-section-body">${escapeHtml(project.evidence_summary)}</div>
-          </div>` : ''}
-          <div class="detail-section">
-            <div class="detail-section-label">Agent Instances (${instances.length})</div>
-            <div class="checklist-list">
-              ${instances.length === 0 ? '<div class="ledger-empty">No instances yet.</div>' : instances.map(i => `
-                <div class="checklist-item-row ${i.status}" data-instance-id="${escapeHtml(i.id)}">
-                  <div class="checklist-icon">${i.status === 'completed' ? '✅' : i.status === 'failed' ? '❌' : i.status === 'cancelled' ? '⛔' : '🔄'}</div>
-                  <div class="checklist-item-title">${escapeHtml(i.instance_id || i.agent_role)}</div>
-                  <span class="checklist-item-meta">${i.completed_at ? fmtAgo(i.completed_at) + ' ago' : 'running ' + fmtElapsed(i.spawned_at)}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          <div class="detail-grid">
-            <div class="detail-cell"><div class="detail-cell-label">Spawned</div><div class="detail-cell-val">${escapeHtml(project.spawned_at ? new Date(project.spawned_at).toLocaleString() : '—')}</div></div>
-            <div class="detail-cell"><div class="detail-cell-label">Completed</div><div class="detail-cell-val">${escapeHtml(project.completed_at ? new Date(project.completed_at).toLocaleString() : '—')}</div></div>
-          </div>
-        </div>
-      `;
-      const close = () => backdrop.remove();
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-      backdrop.querySelector('.detail-close').addEventListener('click', close);
-      // Wire instance rows to open checklist modal
-      backdrop.querySelectorAll('.checklist-item-row[data-instance-id]').forEach(row => {
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', () => {
-          const id = row.getAttribute('data-instance-id');
-          backdrop.remove();
-          openInstanceChecklistModal(id);
-        });
-      });
-      document.body.appendChild(backdrop);
     }
 
     // ===== AGENT KNOWLEDGE — Shared Memory Pool (SOP 2026-06-22) =====
@@ -9508,254 +7689,6 @@
         c3.appendChild(c3v); c3.appendChild(mix); row.appendChild(c3);
         rowsEl.appendChild(row);
       }
-    }
-
-    // ===== TREC WATCH FUNCTIONS (SV-TREC-SCANNER-001, atlas 2026-07-08) =====
-    async function loadTrecWatch() {
-      const listEl = document.getElementById('trec-watch-list');
-      if (!listEl) return;
-      try {
-        const data = await authedFetch('/api/trec-updates');
-        if (!data || !data.ok) {
-          listEl.innerHTML = '<div class="trec-watch-empty">Failed to load TREC updates.</div>';
-          return;
-        }
-        const items = Array.isArray(data.updates) ? data.updates : [];
-        if (items.length === 0) {
-          listEl.innerHTML = '<div class="trec-watch-empty">No TREC updates yet. Scanner runs nightly at 3am CT.</div>';
-          return;
-        }
-        listEl.innerHTML = items.slice(0, 10).map(u => {
-          const sev = (u.severity || 'informational').toLowerCase();
-          const sevLabel = sev === 'critical' ? 'Critical' : sev === 'action_required' ? 'Action' : 'Info';
-          const unread = !u.read_at ? 'unread' : '';
-          const eff = u.effective_date ? ` · eff ${u.effective_date}` : '';
-          const forms = (u.affects_forms && u.affects_forms.length) ? ` · ${u.affects_forms.join(', ')}` : '';
-          return `<div class="trec-watch-item ${unread}" data-url="${escapeHtml(u.source_url || '')}" data-notif-id="${u.notification_id || ''}">
-            <div class="trec-watch-item-title">${escapeHtml(u.title || '')}</div>
-            <div class="trec-watch-item-meta">
-              <span class="trec-watch-severity ${sev}">${sevLabel}</span>
-              <span>${escapeHtml((u.source_type || '').replace('trec_', ''))}${eff}${forms}</span>
-            </div>
-          </div>`;
-        }).join('');
-        listEl.querySelectorAll('.trec-watch-item').forEach(el => {
-          el.addEventListener('click', async () => {
-            const url = el.getAttribute('data-url');
-            const notifId = el.getAttribute('data-notif-id');
-            if (notifId) {
-              try { await authedFetch('/api/trec-updates/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: notifId }) }); } catch {}
-              el.classList.remove('unread');
-            }
-            if (url) window.open(url, '_blank', 'noopener,noreferrer');
-          });
-        });
-      } catch (err) {
-        console.warn('[jarvis] loadTrecWatch failed', err && err.message);
-        listEl.innerHTML = '<div class="trec-watch-empty">Offline.</div>';
-      }
-    }
-
-    // ===== FUTURE BUILDS FUNCTIONS (carter_14 scope fix) =====
-    async function loadFutureBuilds() {
-      if (!session?.access_token) return;
-      const listEl = document.getElementById('future-builds-list');
-      if (!listEl) return;
-      try {
-        const data = await authedFetch('/api/jarvis-future-builds-list');
-        if (!data?.ok) {
-          listEl.innerHTML = '<div class="future-builds-empty">Failed to load ideas.</div>';
-          return;
-        }
-        renderFutureBuilds(data.builds || {});
-      } catch (err) {
-        console.warn('[jarvis] loadFutureBuilds failed', err.message);
-        listEl.innerHTML = '<div class="future-builds-empty">Offline.</div>';
-      }
-    }
-
-    function isStalledBuild(b) {
-      return !!(b && typeof b.description === 'string' && /\[stalled:true/i.test(b.description));
-    }
-
-    function renderFutureBuilds(grouped, filterOverride) {
-      const listEl = document.getElementById('future-builds-list');
-      if (!listEl) return;
-      // Cache for filter chip handler
-      window.__futureBuildsCache = grouped;
-      const filter = filterOverride || window.__futureBuildsFilter || 'all';
-      window.__futureBuildsFilter = filter;
-      // Update chip active state
-      document.querySelectorAll('#future-builds-filter-row .future-builds-filter-chip').forEach(chip => {
-        if (chip.dataset.filter === filter) chip.classList.add('active');
-        else chip.classList.remove('active');
-      });
-      const items = [];
-      const statusOrder = ['idea', 'queued', 'dod_drafting', 'building', 'shipped', 'rejected'];
-      for (const status of statusOrder) {
-        const builds = grouped[status] || [];
-        for (const build of builds) {
-          items.push(build);
-        }
-      }
-      const visible = filter === 'stalled' ? items.filter(isStalledBuild) : items;
-      if (visible.length === 0) {
-        listEl.innerHTML = '<div class="future-builds-empty">' +
-          (filter === 'stalled' ? 'No stalled items.' : 'No ideas yet. Tap + to add one.') +
-          '</div>';
-        return;
-      }
-      listEl.innerHTML = visible.map(b => `
-        <div class="future-build-item" data-build-id="${b.id}">
-          <div class="future-build-item-title">${escapeHtml(b.title)}${isStalledBuild(b) ? '<span class="future-build-stalled-chip">stalled</span>' : ''}</div>
-          <div class="future-build-item-meta">
-            <span class="future-build-status">${b.status}</span>
-            <span>${escapeHtml(b.source || '—')}</span>
-          </div>
-        </div>
-      `).join('');
-      listEl.querySelectorAll('.future-build-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const id = item.getAttribute('data-build-id');
-          const build = visible.find(b => b.id === id);
-          if (build) showFutureBuildsModal(build);
-        });
-      });
-    }
-
-    function showFutureBuildsModal(build) {
-      const overlay = document.getElementById('future-build-modal-overlay');
-      if (!overlay) return;
-      document.getElementById('future-build-modal-title-val').textContent = build.title || '—';
-      document.getElementById('future-build-modal-desc').textContent = build.description || '—';
-      document.getElementById('future-build-modal-source').textContent = build.source || '—';
-      document.getElementById('future-build-modal-score').textContent = build.score !== null ? String(build.score) : '—';
-      const statusSel = document.getElementById('future-build-modal-status');
-      if (statusSel) statusSel.value = build.status || 'idea';
-      const docSection = document.getElementById('future-build-modal-doc-section');
-      if (build.source_doc_path && docSection) {
-        docSection.style.display = 'flex';
-        const link = document.getElementById('future-build-modal-doc-link');
-        if (link) link.href = build.source_doc_path;
-      } else if (docSection) {
-        docSection.style.display = 'none';
-      }
-      const prereqSection = document.getElementById('future-build-modal-prereq-section');
-      if (build.prerequisite && prereqSection) {
-        prereqSection.style.display = 'flex';
-        document.getElementById('future-build-modal-prereq').textContent = build.prerequisite;
-      } else if (prereqSection) {
-        prereqSection.style.display = 'none';
-      }
-      overlay.classList.remove('hidden');
-      const saveBtn = document.getElementById('future-build-modal-save-btn');
-      if (saveBtn) {
-        saveBtn.onclick = async () => {
-          const newStatus = statusSel.value || 'idea';
-          if (newStatus === build.status) {
-            overlay.classList.add('hidden');
-            return;
-          }
-          try {
-            const res = await authedFetch('/api/jarvis-future-builds-update', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: build.id, status: newStatus }),
-            });
-            if (res?.ok) {
-              overlay.classList.add('hidden');
-              await loadFutureBuilds();
-            }
-          } catch (err) {
-            console.warn('[jarvis] updateFutureBuild failed', err.message);
-          }
-        };
-      }
-      const closeBtn = document.getElementById('future-build-modal-close-btn');
-      if (closeBtn) {
-        closeBtn.onclick = () => overlay.classList.add('hidden');
-      }
-    }
-
-    function showAddFutureBuildModal() {
-      const overlay = document.getElementById('add-future-build-modal-overlay');
-      if (!overlay) return;
-      document.getElementById('add-build-title').value = '';
-      document.getElementById('add-build-desc').value = '';
-      document.getElementById('add-build-source').value = 'Heath direct idea';
-      overlay.classList.remove('hidden');
-      const submitBtn = document.getElementById('add-build-submit-btn');
-      if (submitBtn) {
-        submitBtn.onclick = async () => {
-          const title = document.getElementById('add-build-title').value.trim();
-          const desc = document.getElementById('add-build-desc').value.trim();
-          const source = document.getElementById('add-build-source').value || 'Heath direct idea';
-          if (!title || !source) {
-            alert('Title and source are required.');
-            return;
-          }
-          try {
-            const res = await authedFetch('/api/jarvis-future-builds-create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                title,
-                description: desc || null,
-                source,
-              }),
-            });
-            if (res?.ok) {
-              overlay.classList.add('hidden');
-              await loadFutureBuilds();
-            }
-          } catch (err) {
-            console.warn('[jarvis] createFutureBuild failed', err.message);
-          }
-        };
-      }
-      const cancelBtn = document.getElementById('add-build-cancel-btn');
-      if (cancelBtn) {
-        cancelBtn.onclick = () => overlay.classList.add('hidden');
-      }
-    }
-
-    function wireFutureBuildsPanel() {
-      const addBtn = document.getElementById('future-builds-add-btn');
-      if (addBtn && !addBtn.__jarvisWired) {
-        addBtn.addEventListener('click', showAddFutureBuildModal);
-        addBtn.__jarvisWired = true;
-      }
-      const detailOverlay = document.getElementById('future-build-modal-overlay');
-      const addOverlay = document.getElementById('add-future-build-modal-overlay');
-      if (detailOverlay && !detailOverlay.__jarvisWired) {
-        detailOverlay.addEventListener('click', (e) => {
-          if (e.target === detailOverlay) detailOverlay.classList.add('hidden');
-        });
-        detailOverlay.__jarvisWired = true;
-      }
-      if (addOverlay && !addOverlay.__jarvisWired) {
-        addOverlay.addEventListener('click', (e) => {
-          if (e.target === addOverlay) addOverlay.classList.add('hidden');
-        });
-        addOverlay.__jarvisWired = true;
-      }
-      document.querySelectorAll('.future-builds-tab').forEach(tab => {
-        if (tab.__jarvisWired) return;
-        tab.addEventListener('click', (e) => {
-          const status = e.target.dataset.status;
-          renderFutureBuilds(window.__futureBuildsCache || {}, status);
-        });
-        tab.__jarvisWired = true;
-      });
-      // Stalled / All filter chips (Atlas, 2026-06-25)
-      document.querySelectorAll('#future-builds-filter-row .future-builds-filter-chip').forEach(chip => {
-        if (chip.__jarvisWired) return;
-        chip.addEventListener('click', (e) => {
-          const filter = e.currentTarget.dataset.filter || 'all';
-          renderFutureBuilds(window.__futureBuildsCache || {}, filter);
-        });
-        chip.__jarvisWired = true;
-      });
     }
 
     function renderKnowledgePanel(data) {
@@ -9960,8 +7893,19 @@
           if (error) throw error;
 
           // Show pending now, plus snoozed actions whose snoozed_until has passed.
+          // STALE-ACTION CUTOFF (2026-08-10, Heath dashboard teardown): "Atlas
+          // install Android Studio" / "approve GitHub Actions CI" sat here 35-45
+          // days with no context — nothing was ever expiring. Display-layer only
+          // (matches the same pattern used for the blocked-count badge and
+          // In-Flight Work elsewhere in this file) — DB rows are untouched, still
+          // queryable for history. 30 days: long enough that a real ask from
+          // this week never gets hidden, short enough that month-old asks stop
+          // cluttering the one list Heath actually checks.
+          const STALE_ACTION_DAYS = 30;
+          const staleCutoff = Date.now() - STALE_ACTION_DAYS * 24 * 3600 * 1000;
           const now = new Date();
           const visible = (actions || []).filter((a) => {
+            if (a.created_at && new Date(a.created_at).getTime() < staleCutoff) return false;
             if (a.status === 'pending') return true;
             if (a.status === 'snoozed' && a.snoozed_until) {
               return new Date(a.snoozed_until) <= now;
@@ -10011,14 +7955,21 @@
         const badgeClass = priority;
         const timeAgo = this.formatTimeAgo(new Date(action.created_at));
         const rawDesc = action.body || '';
-        const desc = rawDesc.length > 200 ? rawDesc.substring(0, 200) + '…' : rawDesc;
+        // Plain-English fallback (2026-08-10, Heath: "I don't know what that
+        // is") for the rows where whoever queued this never wrote a body —
+        // still tells Heath who's asking and that it needs a decision, even
+        // if it can't explain the specific ask. Real fix is requiring body
+        // text at insert time; out of scope for this UI pass.
+        const desc = rawDesc
+          ? (rawDesc.length > 200 ? rawDesc.substring(0, 200) + '…' : rawDesc)
+          : `${action.source || 'An agent'} is waiting on your decision here — no further detail was provided.`;
         return `
           <div class="approval-card ${priorityClass}" data-action-id="${action.id}">
             <div class="approval-header">
               <div class="approval-title">${this.escapeHtml(action.title || 'Untitled')}</div>
               <span class="approval-badge ${badgeClass}">${this.escapeHtml(priority.toUpperCase())}</span>
             </div>
-            ${desc ? `<div class="approval-desc">${this.escapeHtml(desc)}</div>` : ''}
+            <div class="approval-desc">${this.escapeHtml(desc)}</div>
             <div class="approval-meta">
               <span class="approval-source">via ${this.escapeHtml(action.source || 'unknown')}</span>
               <span class="approval-time">queued ${timeAgo}</span>

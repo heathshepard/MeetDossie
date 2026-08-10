@@ -8,8 +8,12 @@
 //   4. founding_applications where status='pending'
 //   5. decision_queue where status='open' (generic Heath-decision bucket)
 //   6. hadley_unanswered_questions where answered_at IS NULL  (Hadley wants Heath's review on legal Qs)
-//   7. heath_actions where status IN ('pending','snoozed' [due])  (generic Heath-action queue —
-//      Atlas/Carter ship items, manual tasks, anything queued for Heath's yes/no by name)
+//
+// heath_actions is DELIBERATELY NOT included here (removed 2026-08-10, Heath
+// dashboard teardown). It used to be merged into this feed AND rendered by
+// its own dedicated "Heath Actions" panel (approvalsPanel in jarvis-pwa.html)
+// — the exact same rows showing up twice in two different subsections of
+// WORK ITEMS. heath_actions now has exactly one render path: approvalsPanel.
 //
 // Heath-only (email gate via the standard middleware).
 // GET only. Auto-refresh from the PWA every 30s.
@@ -72,26 +76,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const heathActionsFilter = `tenant_id=eq.${authUser.userId}&status=in.(pending,snoozed)`;
-    const [socials, emails, outboundEmails, foundings, decisions, hadleyQs, heathActions] = await Promise.all([
+    const [socials, emails, outboundEmails, foundings, decisions, hadleyQs] = await Promise.all([
       sbGet(`social_posts?select=id,platform,hook,content,persona,topic,created_at,status,source_type,verifier_result&status=in.(draft,pending_approval)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`email_queue?select=id,to_email,to_name,subject,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`outbound_email_queue?select=id,to_email,subject,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`founding_applications?select=id,name,email,brokerage,market,transactions_12mo,why,created_at,status&status=eq.pending&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`decision_queue?select=id,decision_type,title,description,required_by,created_at,status,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&status=eq.open&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`hadley_unanswered_questions?select=id,question_text,form_context,asked_at,answered_at,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&answered_at=is.null&order=asked_at.asc&limit=25`).catch(() => []),
-      sbGet(`heath_actions?select=id,title,body,source,priority,created_at,snoozed_until,status,deadline,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&${heathActionsFilter}&order=created_at.asc&limit=50`).catch(() => []),
     ]);
-
-    // Filter heath_actions: pending now, plus snoozed actions whose snoozed_until has passed.
-    const now = new Date();
-    const visibleHeathActions = (heathActions || []).filter((a) => {
-      if (a.status === 'pending') return true;
-      if (a.status === 'snoozed' && a.snoozed_until) {
-        return new Date(a.snoozed_until) <= now;
-      }
-      return false;
-    });
 
     const items = [];
 
@@ -224,28 +216,6 @@ export default async function handler(req, res) {
       });
     }
 
-    for (const r of visibleHeathActions) {
-      const priority = (r.priority || 'soon').toLowerCase();
-      items.push({
-        id: `heath_action:${r.id}`,
-        source: 'heath_action',
-        source_id: r.id,
-        title: r.title || '(untitled)',
-        subtitle: `${(r.source || 'unknown').toUpperCase()} · ${priority.toUpperCase()}${r.deadline ? ' · due ' + r.deadline.slice(0,10) : ''}`,
-        agent: r.source || 'Jarvis',
-        waiting_minutes: minutesAgo(r.created_at),
-        created_at: r.created_at,
-        approve_endpoint: '/api/jarvis-approve',
-        approve_payload: { kind: 'heath_action', id: r.id },
-        reply_supported: true,
-        ask_detail_supported: true,
-        heath_reply_text: r.heath_reply_text || null,
-        heath_reply_at: r.heath_reply_at || null,
-        heath_ask_for_detail_at: r.heath_ask_for_detail_at || null,
-        details: { body: r.body, priority: r.priority, deadline: r.deadline, snoozed_until: r.snoozed_until },
-      });
-    }
-
     // Age-out policy: items older than 7 days are excluded from the "pending approvals"
     // count — they're stale and misrepresent what Heath actually needs to look at right
     // now. We still surface them behind `stale_items` so nothing silently disappears.
@@ -275,7 +245,6 @@ export default async function handler(req, res) {
         founding_applications: foundings.length,
         decision_queue: decisions.length,
         hadley_questions: hadleyQs.length,
-        heath_actions: visibleHeathActions.length,
       },
       items: freshItems,
       stale_items: staleItems,
