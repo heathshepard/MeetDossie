@@ -37,6 +37,41 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
 const REPOS = ['heathshepard/MeetDossie', 'heathshepard/Dossie'];
 
+// STALE-DATA FILTER 2026-08-10 (Heath: dashboard redesign pass). agent_queue
+// had 51 'blocked' rows going back to 2026-06-17 (54 days old) with no
+// recency filter at all — every one of them rendered at the top of this
+// panel forever (blocked always sorts first, see the sort below), so the
+// "live" view was permanently dominated by weeks-old dead rows. This is a
+// DISPLAY-layer cutoff only — the underlying agent_queue rows are untouched,
+// still fully queryable for history. Only applied to `blocked`; `in_progress`
+// stays unfiltered since a genuinely still-running task should never be
+// hidden regardless of age (an old in-progress row is its own bug, not a
+// clutter problem).
+const BLOCKED_RECENCY_DAYS = 14;
+
+// BUSINESS-LINE GROUPING 2026-08-10 (Heath: "I need this to be much more
+// organized... one consistent way to see what's happening in Dossie vs
+// Brokerage"). This panel used to be a flat, ungrouped list sitting next to
+// (but disconnected from) the BUSINESS LINES panel, which groups agent_queue
+// by the same taxonomy. Every item returned here now carries a
+// `business_line` so the HUD can nest this same flat list under the exact
+// business-line sections BUSINESS LINES already renders — one taxonomy, one
+// set of labels, used by both panels, instead of two panels each inventing
+// their own grouping (or no grouping at all).
+// `agent_queue.business_line` is a brand-new nullable column (added today,
+// 2026-08-10 migration) — most existing rows predate it and are still null.
+// `venture` is the older free-text field every source already carries;
+// where it happens to match the business_line enum, use it as the
+// fallback so historical rows land in their real bucket instead of the
+// generic "Shepard Ventures HQ" catch-all. merge_queue has neither column
+// (it's deploy plumbing, not per-venture work) — always HQ.
+const BUSINESS_LINES = ['dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures'];
+function resolveBusinessLine(businessLineVal, ventureVal) {
+  if (businessLineVal && BUSINESS_LINES.includes(businessLineVal)) return businessLineVal;
+  if (ventureVal && BUSINESS_LINES.includes(ventureVal)) return ventureVal;
+  return 'shepard-ventures';
+}
+
 export const config = { api: { bodyParser: true }, maxDuration: 15 };
 
 function applyCors(req, res) {
@@ -99,10 +134,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [agentRows, mergeRows, todoRows, ...gitDiffs] = await Promise.all([
+    const blockedCutoff = new Date(Date.now() - BLOCKED_RECENCY_DAYS * 24 * 3600 * 1000).toISOString();
+    const [inProgressRows, blockedRows, mergeRows, todoRows, ...gitDiffs] = await Promise.all([
       sbGet(
-        'agent_queue?select=id,agent_name,task_subject,priority,venture,status,created_at,started_at' +
-        '&status=in.(in_progress,blocked)&order=priority.asc&limit=200'
+        'agent_queue?select=id,agent_name,task_subject,priority,venture,business_line,status,created_at,started_at' +
+        '&status=eq.in_progress&order=priority.asc&limit=200'
+      ).catch(() => []),
+      sbGet(
+        'agent_queue?select=id,agent_name,task_subject,priority,venture,business_line,status,created_at,started_at' +
+        `&status=eq.blocked&created_at=gte.${encodeURIComponent(blockedCutoff)}&order=priority.asc&limit=200`
       ).catch(() => []),
       sbGet(
         'merge_queue?select=id,commit_sha,title,all_green,atlas_apv_status,quinn_qa_status,ridge_status,hadley_status,sage_demo_status,created_at' +
@@ -116,8 +156,9 @@ export default async function handler(req, res) {
     ]);
 
     const items = [];
+    const agentRows = [...(inProgressRows || []), ...(blockedRows || [])];
 
-    for (const t of agentRows || []) {
+    for (const t of agentRows) {
       const age = ageMinutes(t.started_at || t.created_at);
       const blocked = t.status === 'blocked';
       items.push({
@@ -127,6 +168,7 @@ export default async function handler(req, res) {
         status: t.status,
         priority: t.priority,
         venture: t.venture,
+        business_line: resolveBusinessLine(t.business_line, t.venture),
         created_at: t.created_at,
         age_minutes: age,
         blocked,
@@ -144,6 +186,7 @@ export default async function handler(req, res) {
         title: m.title || m.commit_sha,
         status: m.all_green ? 'ready_to_merge' : `signoff_${passCount}/5`,
         commit_sha: (m.commit_sha || '').slice(0, 7),
+        business_line: 'shepard-ventures',
         created_at: m.created_at,
         age_minutes: age,
         blocked: false,
@@ -160,6 +203,7 @@ export default async function handler(req, res) {
         status: td.status,
         priority: td.priority,
         venture: td.venture,
+        business_line: resolveBusinessLine(null, td.venture),
         created_at: td.created_at,
         age_minutes: age,
         blocked: false,

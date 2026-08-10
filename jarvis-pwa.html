@@ -266,8 +266,22 @@
        toast/approval-toast/cal-toast stack (200+). */
     .orb-wrap {
       position: fixed;
-      right: 16px;
-      bottom: 16px;
+      /* SAFE-AREA FIX 2026-08-10 (Heath: "the globe is halfway off the screen
+         at the bottom right... instead of floating"). The 2026-08-06 fix set
+         a bare `right:16px; bottom:16px`, which is correct against the
+         LAYOUT viewport but ignores the device safe area entirely — on any
+         phone with a notch/home-indicator/gesture-nav bar (this is installed
+         as a home-screen PWA, `viewport-fit=cover` is already set in the
+         <meta viewport> tag above specifically to unlock env(safe-area-*)),
+         a flat 16px inset sits INSIDE the unsafe zone: the bottom ~16-34px
+         (home indicator) and right-side unsafe strip (landscape notch) can
+         render the orb partially behind system chrome, reading exactly as
+         "halfway off the screen." max() keeps the existing 16px on any
+         device with no safe area (desktop, older phones — env() resolves to
+         0 there, so max(16px, 0) === 16px, byte-identical to the old rule)
+         and only grows the inset on devices that actually need it. */
+      right: max(16px, env(safe-area-inset-right));
+      bottom: max(16px, env(safe-area-inset-bottom));
       z-index: 40;
       /* Compact floating size — matches the already-tuned desktop values,
          now applied at all viewport widths instead of only >=900px. */
@@ -2696,6 +2710,7 @@
     .bl-count-chip.running { color: var(--cyan-bright); border-color: rgba(0, 229, 255, 0.3); }
     .bl-count-chip.queued { color: var(--txt-mute); }
     .bl-count-chip.completed { color: var(--ok); border-color: rgba(139, 168, 136, 0.3); }
+    .bl-count-chip.blocked { color: var(--fail); border-color: rgba(232, 94, 94, 0.4); }
     .bl-chevron { flex-shrink: 0; color: var(--txt-faint); transition: transform 0.15s; }
     .bl-section.collapsed .bl-chevron { transform: rotate(-90deg); }
     .bl-section.collapsed .bl-body { display: none; }
@@ -2716,6 +2731,7 @@
     }
     .bl-task-row.bl-task-running { border-color: rgba(0, 229, 255, 0.25); }
     .bl-task-row.bl-task-completed { border-color: rgba(139, 168, 136, 0.25); }
+    .bl-task-row.bl-task-blocked { border-color: rgba(232, 94, 94, 0.35); background: rgba(232, 94, 94, 0.05); }
     .bl-task-top { display: flex; justify-content: space-between; gap: 8px; }
     .bl-task-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
     .bl-task-ts { color: var(--txt-faint); font-size: 10px; white-space: nowrap; }
@@ -2749,7 +2765,11 @@
       background: rgba(77, 208, 225, 0.08); border: 1px solid var(--line);
       font-family: 'Courier New', monospace;
     }
-    .inflight-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+    /* IN-FLIGHT WORK now nests under the same business-line .bl-section groups
+       BUSINESS LINES uses (BUSINESS-LINE GROUPING 2026-08-10) instead of one
+       flat list — gap/max-height bumped to fit group headers. */
+    .inflight-list { display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; }
+    .inflight-list .bl-body { gap: 8px; }
     .inflight-item {
       display: flex; flex-direction: column; gap: 4px;
       background: rgba(77, 208, 225, 0.04);
@@ -6608,6 +6628,21 @@
       void gitRow; // rendered inside renderInFlightWork
     }
 
+    // BUSINESS-LINE GROUPING 2026-08-10 — kept as a plain array/object (not a
+    // dependency on the BUSINESS_LINE_ORDER/LABELS consts declared further
+    // down near renderBusinessLines) so this function has no load-order
+    // requirement on where in the file it's defined; both places must stay
+    // in sync if a business line is ever added/renamed.
+    const INFLIGHT_BL_ORDER = ['dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures'];
+    const INFLIGHT_BL_LABELS = {
+      dossie: 'Dossie',
+      sawyer: 'Sawyer',
+      brokerage: 'Brokerage',
+      trading: 'Trading',
+      'shepard-ventures': 'Shepard Ventures HQ',
+    };
+    const inflightCollapsed = new Set(); // business_line keys currently collapsed by hand
+
     function renderInFlightWork(items, gitDiffs) {
       const list = document.getElementById('inflight-list');
       const gitRow = document.getElementById('inflight-git-row');
@@ -6628,14 +6663,15 @@
       }
 
       const sourceLabel = { agent_queue: 'AGENT', merge_queue: 'MERGE', heath_todo: 'TODO' };
-      list.innerHTML = items.map(it => {
+      const ageText = (it) => it.age_minutes == null ? ''
+        : it.age_minutes < 60 ? `${it.age_minutes}m ago`
+        : it.age_minutes < 1440 ? `${Math.round(it.age_minutes / 60)}h ago`
+        : `${Math.round(it.age_minutes / 1440)}d ago`;
+
+      function itemRowHtml(it) {
         const cls = ['inflight-item'];
         if (it.blocked) cls.push('blocked');
         else if (it.stale) cls.push('stale');
-        const ageTxt = it.age_minutes == null ? ''
-          : it.age_minutes < 60 ? `${it.age_minutes}m ago`
-          : it.age_minutes < 1440 ? `${Math.round(it.age_minutes / 60)}h ago`
-          : `${Math.round(it.age_minutes / 1440)}d ago`;
         const ageCls = it.blocked ? 'blocked' : (it.stale ? 'stale' : '');
         return `
           <div class="${cls.join(' ')}" data-source="${escapeHtml(it.source)}" data-id="${escapeHtml(it.id)}">
@@ -6646,16 +6682,81 @@
             </div>
             <div class="inflight-item-meta">
               <span>${escapeHtml(it.status || '')}</span>
-              <span class="inflight-age ${ageCls}">${ageTxt}</span>
+              <span class="inflight-age ${ageCls}">${ageText(it)}</span>
             </div>
+          </div>
+        `;
+      }
+
+      // Group by the same business_line taxonomy BUSINESS LINES uses — one
+      // consistent way to answer "what's happening in Dossie / Brokerage /
+      // etc.", instead of this panel being a flat list disconnected from
+      // that grouping (Heath's core complaint, 2026-08-10 dashboard pass).
+      const groups = {};
+      INFLIGHT_BL_ORDER.forEach((bl) => { groups[bl] = []; });
+      items.forEach((it) => {
+        const bl = INFLIGHT_BL_ORDER.includes(it.business_line) ? it.business_line : 'shepard-ventures';
+        groups[bl].push(it);
+      });
+
+      // Groups with a blocked item surface first (matches the old flat
+      // list's "blocked always first" rule); within that tier, business
+      // lines with no items just don't render at all — density pass,
+      // nothing empty taking up shelf space.
+      const orderedBls = INFLIGHT_BL_ORDER
+        .filter((bl) => groups[bl].length > 0)
+        .sort((a, b) => {
+          const aBlocked = groups[a].some((it) => it.blocked);
+          const bBlocked = groups[b].some((it) => it.blocked);
+          if (aBlocked !== bBlocked) return aBlocked ? -1 : 1;
+          return INFLIGHT_BL_ORDER.indexOf(a) - INFLIGHT_BL_ORDER.indexOf(b);
+        });
+
+      list.innerHTML = orderedBls.map((bl) => {
+        const rows = groups[bl];
+        const blockedCount = rows.filter((r) => r.blocked).length;
+        // Default-collapse groups with nothing blocked in them (density —
+        // Heath: "very busy... a lot of dead space" — the fix is fewer
+        // always-expanded sections, not more margin). Anything blocked
+        // always starts expanded so it can't be missed, and any group the
+        // user has manually toggled keeps that state across re-renders.
+        const manuallySet = inflightCollapsed.has(bl) || inflightCollapsed.has(`!${bl}`);
+        const collapsed = manuallySet ? inflightCollapsed.has(bl) : blockedCount === 0;
+        return `
+          <div class="bl-section${collapsed ? ' collapsed' : ''}" data-bl="${bl}">
+            <div class="bl-header" data-bl-toggle="${bl}">
+              <span class="bl-title">${INFLIGHT_BL_LABELS[bl]}</span>
+              <span class="bl-counts">
+                ${blockedCount ? `<span class="bl-count-chip blocked">${blockedCount} blocked</span>` : ''}
+                <span class="bl-count-chip queued">${rows.length} item${rows.length === 1 ? '' : 's'}</span>
+              </span>
+              <svg class="bl-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="bl-body">${rows.map(itemRowHtml).join('')}</div>
           </div>
         `;
       }).join('');
 
+      // Collapse toggles.
+      list.querySelectorAll('[data-bl-toggle]').forEach((header) => {
+        header.addEventListener('click', () => {
+          const bl = header.dataset.blToggle;
+          const section = header.closest('.bl-section');
+          const nowCollapsed = !section.classList.contains('collapsed');
+          section.classList.toggle('collapsed');
+          // Record explicit user intent (both "collapsed" and "expanded" are
+          // meaningful overrides of the blocked-count default above).
+          inflightCollapsed.delete(bl);
+          inflightCollapsed.delete(`!${bl}`);
+          inflightCollapsed.add(nowCollapsed ? bl : `!${bl}`);
+        });
+      });
+
       // Set title via textContent for XSS safety, then wire Done buttons.
       const rowEls = list.querySelectorAll('.inflight-item');
-      rowEls.forEach((row, i) => {
-        const it = items[i];
+      rowEls.forEach((row) => {
+        const it = items.find((i) => String(i.id) === row.dataset.id && i.source === row.dataset.source);
+        if (!it) return;
         row.querySelector('.inflight-item-title').textContent = it.title || '(untitled)';
         row.querySelector('.inflight-done-btn').addEventListener('click', async (e) => {
           const btn = e.currentTarget;
@@ -8670,11 +8771,19 @@
       'shepard-ventures': 'Shepard Ventures HQ',
     };
     const bizLineTasksById = new Map(); // agent_queue.id -> row
-    const bizLineCollapsed = new Set(); // business_line keys currently collapsed (default: all expanded)
+    const bizLineCollapsed = new Set(); // business_line keys currently collapsed
+    let bizLineDefaultsSeeded = false; // set true after the first render's auto-collapse pass
 
     function bizLineOf(row) {
+      // Same fallback chain as the server's resolveBusinessLine()
+      // (jarvis-business-line-tasks.js / jarvis-in-flight-work.js): prefer
+      // the new business_line column, fall back to the older `venture`
+      // field for pre-migration rows, else the HQ catch-all.
       const bl = row && row.business_line;
-      return (bl && BUSINESS_LINE_ORDER.includes(bl)) ? bl : 'shepard-ventures';
+      if (bl && BUSINESS_LINE_ORDER.includes(bl)) return bl;
+      const v = row && row.venture;
+      if (v && BUSINESS_LINE_ORDER.includes(v)) return v;
+      return 'shepard-ventures';
     }
 
     async function loadBusinessLineTasks() {
@@ -8684,7 +8793,7 @@
         if (!data?.ok) return;
         bizLineTasksById.clear();
         Object.values(data.business_lines || {}).forEach((bucket) => {
-          ['running', 'queued', 'recently_completed'].forEach((k) => {
+          ['running', 'queued', 'blocked', 'recently_completed'].forEach((k) => {
             (bucket[k] || []).forEach((row) => bizLineTasksById.set(row.id, row));
           });
         });
@@ -8735,27 +8844,50 @@
 
       const now = Date.now();
       const buckets = {};
-      BUSINESS_LINE_ORDER.forEach((bl) => { buckets[bl] = { running: [], queued: [], recently_completed: [] }; });
+      BUSINESS_LINE_ORDER.forEach((bl) => { buckets[bl] = { running: [], queued: [], blocked: [], recently_completed: [] }; });
 
       bizLineTasksById.forEach((row) => {
         const bl = bizLineOf(row);
         if (row.status === 'in_progress') {
           buckets[bl].running.push(row);
-        } else if (row.status === 'pending' || row.status === 'blocked') {
+        } else if (row.status === 'blocked') {
+          // Own group now (STALE-DATA FILTER + blocked-visibility fix,
+          // 2026-08-10) — was folded into "queued" before, which is why a
+          // blocked task read no differently than a task simply waiting its
+          // turn. Matches IN-FLIGHT WORK's "blocked always surfaces hot".
+          buckets[bl].blocked.push(row);
+        } else if (row.status === 'pending') {
           buckets[bl].queued.push(row);
         } else if (row.status === 'completed') {
           const completedAt = row.completed_at ? new Date(row.completed_at).getTime() : 0;
           if (now - completedAt <= 24 * 3600 * 1000) buckets[bl].recently_completed.push(row);
         }
         // cancelled/failed rows aren't shown in this panel — running/queued/
-        // recently-completed only, per spec.
+        // blocked/recently-completed only, per spec.
       });
+
+      // DENSITY PASS 2026-08-10 (Heath: "very busy... a lot of dead space").
+      // Only 2 of 5 business lines carry any real activity today — the other
+      // 3 always rendered as a fully-expanded section of nothing but four
+      // "—" placeholder rows, which is dead space dressed up as content.
+      // Auto-collapse zero-activity lines ONCE on first render only (not on
+      // every re-render — a manual expand/collapse Heath makes must stick
+      // even if that line goes quiet again a moment later).
+      if (!bizLineDefaultsSeeded) {
+        BUSINESS_LINE_ORDER.forEach((bl) => {
+          const b = buckets[bl];
+          const total = b.running.length + b.queued.length + b.blocked.length + b.recently_completed.length;
+          if (total === 0) bizLineCollapsed.add(bl);
+        });
+        bizLineDefaultsSeeded = true;
+      }
 
       container.innerHTML = '';
       BUSINESS_LINE_ORDER.forEach((bl) => {
         const b = buckets[bl];
         b.running.sort((x, y) => new Date(y.started_at || y.created_at) - new Date(x.started_at || x.created_at));
         b.queued.sort((x, y) => (x.priority - y.priority) || (new Date(x.created_at) - new Date(y.created_at)));
+        b.blocked.sort((x, y) => (x.priority - y.priority) || (new Date(x.created_at) - new Date(y.created_at)));
         b.recently_completed.sort((x, y) => new Date(y.completed_at || 0) - new Date(x.completed_at || 0));
         b.recently_completed = b.recently_completed.slice(0, 20);
 
@@ -8766,6 +8898,7 @@
           <div class="bl-header" data-bl-toggle="${bl}">
             <span class="bl-title">${BUSINESS_LINE_LABELS[bl]}</span>
             <span class="bl-counts">
+              ${b.blocked.length ? `<span class="bl-count-chip blocked">${b.blocked.length} blocked</span>` : ''}
               <span class="bl-count-chip running">${b.running.length} running</span>
               <span class="bl-count-chip queued">${b.queued.length} queued</span>
               <span class="bl-count-chip completed">${b.recently_completed.length} done (24h)</span>
@@ -8773,6 +8906,7 @@
             <svg class="bl-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div class="bl-body">
+            ${renderBlGroup('Blocked', b.blocked, 'blocked')}
             ${renderBlGroup('Running', b.running, 'running')}
             ${renderBlGroup('Queued', b.queued, 'queued')}
             ${renderBlGroup('Recently Completed (24h)', b.recently_completed, 'completed')}
