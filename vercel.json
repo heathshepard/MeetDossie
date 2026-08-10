@@ -420,6 +420,10 @@
       "maxDuration": 60,
       "includeFiles": "data/{sa-realtor-leads-final-v2.csv,kw-only-thursday-2026-07-10.csv,kw-only-friday-2026-07-11.csv}"
     },
+    "api/cron-warm-touch-queue.js": {
+      "maxDuration": 30,
+      "includeFiles": "data/sa-realtor-leads-final-v2.csv"
+    },
     "api/cron-regression-suite.js": {
       "maxDuration": 120
     }
@@ -711,6 +715,10 @@
     },
     {
       "path": "/api/cron-cold-email-daily-batch",
+      "schedule": "0 0 1 1 *"
+    },
+    {
+      "path": "/api/cron-warm-touch-queue",
       "schedule": "0 0 1 1 *"
     },
     {
