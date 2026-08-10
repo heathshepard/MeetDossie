@@ -5569,6 +5569,16 @@
         if (!waiting.length) return '';
         return 'Waiting on: ' + waiting.map((k) => SIGNOFF_LABELS[k]).join(', ');
       }
+      // Client-side title cleanup as a fallback for rows inserted before
+      // cron-staging-watcher.js started stripping the conventional-commit
+      // prefix server-side (2026-08-10) — so already-queued items read
+      // plain-English immediately too, not just new ones going forward.
+      function humanizeTitle(t) {
+        if (!t) return t;
+        const stripped = t.replace(/^\s*[a-z]+(\([^)]*\))?!?:\s*/i, '');
+        const text = stripped || t;
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      }
 
       list.innerHTML = '';
       for (const item of items) {
@@ -5579,7 +5589,7 @@
         row.innerHTML = `
           <div class="merge-queue-header">
             <div>
-              <div class="merge-queue-title">${escapeHtml(item.title || `Merge ${sha}`)}</div>
+              <div class="merge-queue-title">${escapeHtml(humanizeTitle(item.title) || `Merge ${sha}`)}</div>
               <div class="merge-queue-sha">${sha}</div>
             </div>
           </div>
