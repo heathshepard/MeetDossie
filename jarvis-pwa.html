@@ -2826,7 +2826,6 @@
               <input type="file" id="chat-attach-input" class="hidden" accept="image/*,application/pdf,.txt,.md,.csv,.json,.docx,.doc" multiple />
               <input type="text" id="chat-text-input" class="chat-input" placeholder="Type a message…" autocomplete="off" />
               <button id="chat-reply-toggle" class="chat-reply-toggle" data-mode="voice" aria-label="Toggle voice or text reply" title="Toggle Jarvis voice reply">VOICE</button>
-              <button id="chat-engine-toggle" class="chat-reply-toggle" data-engine="quick" aria-label="Toggle quick or build mode" title="QUICK: fast answers, cannot touch files. BUILD: real Claude Code on your PC — reads/edits the repo, slower.">QUICK</button>
               <button id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="22" y1="2" x2="11" y2="13"/>
@@ -4395,66 +4394,17 @@
         appendMessage('user', transcript);
         pttStatus.textContent = 'Thinking…';
 
-        // ===== Route: BUILD mode -> the real Claude Code bridge =====
-        // Added 2026-08-04. Before this, BUILD only applied to the typed-text
-        // send path — talking to Jarvis always fell through to Quick mode
-        // regardless of the toggle, which is how Heath got a confident-sounding
-        // "I've spawned Carter" reply that left no trace anywhere. Voice IS
-        // the primary interface this UI was built for, so this has to route
-        // the same way typing does.
-        if (getChatEngine() === 'build') {
-          try {
-            await runBridgeVoiceChat(transcript);
-          } catch (err) {
-            console.error('[jarvis] build-mode voice chat failed:', err);
-            speakFallback(`Build mode hit an error: ${err.message}`, /*resume*/true);
-          }
-          return;
+        // Every voice turn goes to the live Cole session through the
+        // jarvis-bridge channel — see the "Live session bridge" comment
+        // above askBridge(). Cole decides on its own whether to answer
+        // directly or dispatch an agent, same as the terminal session does.
+        try {
+          await runBridgeVoiceChat(transcript);
+        } catch (err) {
+          console.error('[jarvis] bridge voice chat failed:', err);
+          speakFallback(`Hit an error reaching Cole: ${err.message}`, /*resume*/true);
         }
-
-        // ===== Route: tool-likely turn -> non-streaming chat (tool_use); else stream =====
-        // Streaming endpoint doesn't support tool_use (yet). If the message
-        // hints at needing a tool, route to the non-streaming /op=chat which
-        // does the full Anthropic tool-use loop. Latency penalty: ~500ms.
-        const TOOL_INTENT_RE = /\b(mrr|customers?|subscribers?|brittney|miki|search|google|browse|telegram|sms|message|email|spawn|atlas|carter|hadley|pierce|sage|quinn|ridge|sterling|jarvis|remind|reminder|todo|calendar|schedule|today|brief|dashboard|status|posts?|pending|approve|approval|how many|how much|what's our|when did|find|look up|check on)\b/i;
-        const isToolIntent = TOOL_INTENT_RE.test(transcript);
-
-        if (isToolIntent) {
-          console.log('[jarvis] tool-intent detected -> non-streaming chat');
-          try {
-            await runLegacyChatTTS(transcript);
-          } catch (err) {
-            console.error('[jarvis] non-streaming chat failed:', err);
-            speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
-          }
-          return;
-        }
-
-        // ===== STREAMING chat + TTS pipeline =====
-        // Server streams Claude tokens, extracts sentences, fires ElevenLabs
-        // TTS per sentence, pipes audio chunks down via SSE. Client appends
-        // text live + plays each sentence's audio sequentially. First audio
-        // typically starts ~1.0-1.5s after the user finishes speaking.
-        const streamResult = await runStreamingChatTTS({
-          conversationId,
-          transcript,
-        });
-
-        if (streamResult.fallback) {
-          // Stream broke before any audio — fall back to legacy chat+tts path
-          console.warn('[jarvis] streaming failed, using legacy path:', streamResult.error);
-          await runLegacyChatTTS(transcript).catch(async (err) => {
-            console.error('[jarvis] legacy fallback also failed:', err);
-            speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
-          });
-          return;
-        }
-        if (streamResult.conversationId) {
-          conversationId = streamResult.conversationId;
-          convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
-          lsSetLastConv(conversationId);
-        }
-        // Audio playback chain handles resumeListening() onended of last clip.
+        return;
       } catch (outer) {
         console.error('[jarvis] handleUtteranceBlob outer error', outer);
         await resumeListening();
@@ -5058,47 +5008,13 @@
       appendMessage('user', transcript);
       pttStatus.textContent = 'Thinking…';
 
-      // BUILD mode — see the matching branch in onPttClick for why this
-      // exists in both voice entry points.
-      if (getChatEngine() === 'build') {
-        try {
-          await runBridgeVoiceChat(transcript);
-        } catch (err) {
-          console.error('[jarvis] build-mode voice chat failed (walkie-talkie):', err);
-          setPttState('error');
-          pttStatus.textContent = err.message;
-          speakFallback(`Build mode hit an error: ${err.message}`, /*resume*/false);
-        }
-        return;
-      }
-
+      // Every turn goes to the live Cole session through the jarvis-bridge
+      // channel — see the "Live session bridge" comment above askBridge().
       let reply = '';
       try {
-        const ctxExt = await ensureContextLoaded(false);
-        const chatRes = await fetch(`${API_BASE}/api/jarvis-voice?op=chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: await getAuthHeader(),
-          },
-          body: JSON.stringify({
-            conversation_id: conversationId,
-            message: transcript,
-            system_prompt_extension: ctxExt || undefined,
-            client_context: buildClientContext(),
-          }),
-        });
-        const chatData = await chatRes.json();
-        if (!chatRes.ok || !chatData.ok) {
-          throw new Error(chatData?.error || `Chat failed (${chatRes.status})`);
-        }
-        reply = chatData.response || '';
-        if (chatData.conversation_id) {
-          conversationId = chatData.conversation_id;
-          convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
-          lsSetLastConv(conversationId);
-        }
+        reply = await askBridge(transcript, { statusVerb: 'Thinking' });
       } catch (err) {
+        console.error('[jarvis] bridge chat failed (walkie-talkie):', err);
         setPttState('error');
         pttStatus.textContent = err.message;
         showToast(`Chat: ${err.message}`);
@@ -6254,27 +6170,9 @@
           // Ensure the PTT state is 'thinking' so the user sees Jarvis is responding.
           try { setPttState('thinking'); pttStatus.textContent = 'Thinking…'; } catch {}
           try {
-            if (getChatEngine() === 'build') {
-              await runBridgeVoiceChat(prompt);
-              chip.classList.remove('firing');
-              bar.querySelectorAll('.qa-chip').forEach((c) => { c.disabled = false; });
-              return;
-            }
-            const result = await runStreamingChatTTS({
-              conversationId,
-              transcript: prompt,
-            });
-            if (result && result.fallback) {
-              // Legacy fallback path: same as voice loop.
-              try { await runLegacyChatTTS(prompt); } catch (err) {
-                console.warn('[jarvis] quick action legacy fallback failed', err);
-                speakFallback('Connection hiccup, sir.', /*resume*/false);
-              }
-            } else if (result && result.conversationId) {
-              conversationId = result.conversationId;
-              convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
-              lsSetLastConv(conversationId);
-            }
+            // Every turn goes to the live Cole session — see the "Live
+            // session bridge" comment above askBridge().
+            await runBridgeVoiceChat(prompt);
           } catch (err) {
             console.warn('[jarvis] quick action failed', err);
             showToast('Quick action failed');
@@ -6319,99 +6217,57 @@
       }
     }
 
-    // ---- Chat engine (Quick vs Build) — 2026-08-04 -------------------------
-    // QUICK hits /api/jarvis-voice: fast, but that Claude has no filesystem,
-    // no repo, no git — it can talk, not act. BUILD routes through
-    // agent_queue to the claude-code-worker on Heath's PC, so the reply comes
-    // from a real Claude Code session that can read/edit files and run
-    // commands. BUILD is slower (a CLI process spins up) and does nothing if
-    // the PC is off, so it is opt-in rather than the default.
-    const CHAT_ENGINE_LS_KEY = 'jarvis_chat_engine';
-    const BUILD_SESSION_LS_PREFIX = 'jarvis_build_session_';
-    const BUILD_PROJECT_LS_KEY = 'jarvis_build_project';
-
-    function getChatEngine() {
-      try {
-        return localStorage.getItem(CHAT_ENGINE_LS_KEY) === 'build' ? 'build' : 'quick';
-      } catch { return 'quick'; }
-    }
-    function setChatEngine(engine) {
-      try { localStorage.setItem(CHAT_ENGINE_LS_KEY, engine === 'build' ? 'build' : 'quick'); } catch {}
-      const btn = document.getElementById('chat-engine-toggle');
-      if (btn) {
-        btn.dataset.engine = engine;
-        btn.textContent = engine === 'build' ? 'BUILD' : 'QUICK';
-        btn.title = engine === 'build'
-          ? 'BUILD: real Claude Code on your PC — reads/edits the repo, slower, needs the PC on (tap to switch to Quick)'
-          : 'QUICK: fast answers, cannot touch files (tap to switch to Build)';
-      }
-    }
-    function getBuildProject() {
-      try { return localStorage.getItem(BUILD_PROJECT_LS_KEY) || 'meetdossie'; } catch { return 'meetdossie'; }
-    }
-    function getBuildSessionId(project) {
-      try { return localStorage.getItem(BUILD_SESSION_LS_PREFIX + project) || null; } catch { return null; }
-    }
-    function setBuildSessionId(project, sessionId) {
-      try {
-        if (sessionId) localStorage.setItem(BUILD_SESSION_LS_PREFIX + project, sessionId);
-        else localStorage.removeItem(BUILD_SESSION_LS_PREFIX + project);
-      } catch {}
-    }
-
-    // Ask through the real Claude Code bridge and poll until it answers.
-    // Claude Code can genuinely take minutes on a real task; Vercel functions
-    // cannot, so the API hands back a queue_id immediately and this polls.
-    // Returns the answer text — callers decide what to do with it (append a
-    // bubble, speak it, both). This is the ONE place that talks to
-    // /api/jarvis-claude-code; both the typed-text path and the voice path
-    // call through here so BUILD mode behaves identically either way.
+    // ---- Live session bridge — 2026-08-10 ----------------------------------
+    // Every voice/text turn goes to the SAME live Claude Code session Heath
+    // already runs in his terminal (Cole) — same tools, same agent-dispatch,
+    // same Playwright access. There is no separate "fast but can't touch
+    // files" engine to pick anymore (that used to be Quick mode, hitting
+    // /api/jarvis-voice directly); Cole decides on its own whether to answer
+    // directly or dispatch an agent, same as the terminal session already
+    // does. See scripts/jarvis-bridge/server.ts for the channel that makes
+    // this work and api/jarvis-bridge-turn.js for the transport.
     async function askBridge(message, opts = {}) {
-      const project = getBuildProject();
-      const body = {
-        message,
-        project,
-        session_id: getBuildSessionId(project),
-      };
-      const startRes = await fetch(`${API_BASE}/api/jarvis-claude-code`, {
+      const startRes = await fetch(`${API_BASE}/api/jarvis-bridge-turn`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: await getAuthHeader(),
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ message }),
       });
       const start = await startRes.json();
       if (!startRes.ok || !start.ok) {
-        throw new Error(start?.error || `Build request failed (${startRes.status})`);
-      }
-      if (start.pc_online === false) {
-        try { pttStatus.textContent = 'Your PC looks offline — queued, will run once it wakes…'; } catch {}
+        throw new Error(start?.error || `Request failed (${startRes.status})`);
       }
 
-      const POLL_MS = 3000;
-      const MAX_WAIT_MS = 9 * 60 * 1000; // Claude Code's own spawn timeout is 10min
+      const POLL_MS = 1500; // matches the local channel's own poll interval
+      const MAX_WAIT_MS = 9 * 60 * 1000;
       const startedAt = Date.now();
+      let toldOffline = false;
 
       while (Date.now() - startedAt < MAX_WAIT_MS) {
         await new Promise((r) => setTimeout(r, POLL_MS));
         const pollRes = await fetch(
-          `${API_BASE}/api/jarvis-claude-code?id=${encodeURIComponent(start.queue_id)}`,
+          `${API_BASE}/api/jarvis-bridge-turn?id=${encodeURIComponent(start.turn_id)}`,
           { headers: { Authorization: await getAuthHeader() } }
         );
         const poll = await pollRes.json();
 
-        if (poll.status === 'completed') {
-          if (poll.session_id) setBuildSessionId(project, poll.session_id);
-          else if (poll.session_reset) setBuildSessionId(project, null);
-          return poll.answer || '(no answer returned)';
+        if (poll.status === 'answered') {
+          return poll.reply || '(no answer returned)';
         }
-        if (poll.status === 'failed' || poll.status === 'blocked') {
-          throw new Error(poll.error || 'Build task did not complete');
+        if (poll.status === 'error' || poll.status === 'expired') {
+          throw new Error(poll.error || 'The live session did not answer in time.');
         }
-        const elapsedS = Math.round((Date.now() - startedAt) / 1000);
-        const label = opts.statusVerb || 'Building';
-        try { pttStatus.textContent = `${label}… ${elapsedS}s`; } catch {}
+        if (poll.bridge_offline && !toldOffline) {
+          toldOffline = true;
+          try { pttStatus.textContent = "Cole's terminal isn't running right now — will answer once it's back…"; } catch {}
+        }
+        if (!poll.bridge_offline) {
+          const elapsedS = Math.round((Date.now() - startedAt) / 1000);
+          const label = opts.statusVerb || 'Thinking';
+          try { pttStatus.textContent = `${label}… ${elapsedS}s`; } catch {}
+        }
       }
       throw new Error('Timed out waiting for a reply — it may still finish; check again shortly.');
     }
@@ -6604,7 +6460,6 @@
       const attachBtn = document.getElementById('chat-attach-btn');
       const fileInput = document.getElementById('chat-attach-input');
       const toggleBtn = document.getElementById('chat-reply-toggle');
-      const engineBtn = document.getElementById('chat-engine-toggle');
       if (!textInput || !sendBtn) return;
 
       // Initialize toggle state from localStorage.
@@ -6614,19 +6469,6 @@
           const next = toggleBtn.dataset.mode === 'voice' ? 'text' : 'voice';
           setReplyMode(next);
           showToast(next === 'voice' ? 'Jarvis will speak replies aloud.' : 'Text-only replies.', 1400);
-        });
-      }
-      setChatEngine(getChatEngine());
-      if (engineBtn) {
-        engineBtn.addEventListener('click', () => {
-          const next = engineBtn.dataset.engine === 'build' ? 'quick' : 'build';
-          setChatEngine(next);
-          showToast(
-            next === 'build'
-              ? 'Build mode: real Claude Code on your PC. Slower — it has to think and act.'
-              : 'Quick mode: fast answers, cannot touch files.',
-            2200
-          );
         });
       }
 
@@ -6761,27 +6603,46 @@
         try { setPttState('thinking'); pttStatus.textContent = 'Thinking…'; } catch {}
 
         try {
-          if (getChatEngine() === 'build') {
-            // Build mode: real Claude Code on Heath's PC. Text-only for now —
-            // TTS on a multi-minute reply is a separate problem (streaming a
-            // synthesized voice for an answer that arrives all at once, long
-            // after it was "said") and not worth solving before this ships.
-            await runBridgeChat(message);
-          } else if (getReplyMode() === 'text') {
+          // Every typed message goes to the live Cole session — see the
+          // "Live session bridge" comment above askBridge(). The bridge
+          // doesn't carry image attachments yet (fast-follow); text still
+          // sends either way, just say so.
+          if (imageBase64) {
+            showToast("Attachments aren't wired to the live session yet — sending the text only.", 2600);
+          }
+          if (getReplyMode() === 'text') {
             // Text-only — no TTS, no mic resume.
-            await runTextOnlyChat(message, { imageBase64, imageMediaType });
+            await runBridgeChat(message);
           } else {
-            // Voice reply — reuse the streaming TTS pipeline (same as voice loop).
-            const result = await runStreamingChatTTS({ conversationId, transcript: message, imageBase64, imageMediaType });
-            if (result && result.fallback) {
-              try { await runLegacyChatTTS(message); } catch (err) {
-                console.warn('[jarvis] chat input legacy fallback failed', err);
-                speakFallback('Connection hiccup, sir.', /*resume*/false);
+            // Voice reply.
+            const answer = await askBridge(message, { statusVerb: 'Thinking' });
+            appendMessage('assistant', answer);
+            setPttState('speaking');
+            pttStatus.textContent = 'Speaking…';
+            try {
+              const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: await getAuthHeader() },
+                body: JSON.stringify({ text: answer }),
+              });
+              if (!ttsRes.ok) {
+                const errBody = await ttsRes.json().catch(() => ({}));
+                if (errBody.fallback === 'speech-synthesis') {
+                  speakFallback(answer, /*resume*/false);
+                } else {
+                  throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
+                }
+              } else {
+                const audioBlob = await ttsRes.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.onended = () => { URL.revokeObjectURL(audioUrl); setPttState('idle'); };
+                audio.onerror = () => { setPttState('idle'); };
+                await audio.play();
               }
-            } else if (result && result.conversationId) {
-              conversationId = result.conversationId;
-              convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
-              lsSetLastConv(conversationId);
+            } catch (err) {
+              console.warn('[jarvis] chat input TTS failed', err);
+              speakFallback(answer, /*resume*/false);
             }
           }
         } catch (err) {

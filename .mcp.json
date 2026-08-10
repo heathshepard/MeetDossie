@@ -13,6 +13,10 @@
         "C:\\Users\\Heath\\.jarvis-browser-profile",
         "--headless"
       ]
+    },
+    "jarvis-bridge": {
+      "command": "bun",
+      "args": ["scripts/jarvis-bridge/server.ts"]
     }
   }
 }
