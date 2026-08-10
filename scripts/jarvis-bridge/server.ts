@@ -124,8 +124,23 @@ async function listTurns(): Promise<{ name: string }[]> {
   return (await res.json()) as { name: string }[]
 }
 
+// Confirmed 2026-08-10: Supabase Storage's object GET is served through a
+// CDN edge cache that does NOT reliably respect a fresh upload for anywhere
+// from several seconds up to ~90s, regardless of the cache-control we send —
+// a real write can read back stale on the exact same URL long after it
+// landed. Cache-bust every read with a throwaway query param (the object
+// path/identity is unaffected; Storage ignores unknown query params for
+// resolving the object, but a CDN keying on full URL treats it as a fresh
+// entry) and mark uploads no-store so nothing legitimately caches them.
+function bust(url: string): string {
+  return `${url}${url.includes('?') ? '&' : '?'}_cb=${Date.now()}`
+}
+
 async function getTurn(id: string): Promise<Turn | null> {
-  const res = await fetch(sb(`object/${BUCKET}/${PREFIX}${id}.json`), { headers: authHeaders() })
+  const res = await fetch(bust(sb(`object/${BUCKET}/${PREFIX}${id}.json`)), {
+    headers: authHeaders({ 'Cache-Control': 'no-cache' }),
+    cache: 'no-store',
+  })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`get failed: ${res.status} ${await res.text()}`)
   return (await res.json()) as Turn
@@ -134,7 +149,11 @@ async function getTurn(id: string): Promise<Turn | null> {
 async function putTurn(id: string, turn: Turn): Promise<void> {
   const res = await fetch(sb(`object/${BUCKET}/${PREFIX}${id}.json`), {
     method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json', 'x-upsert': 'true' }),
+    headers: authHeaders({
+      'Content-Type': 'application/json',
+      'x-upsert': 'true',
+      'cache-control': 'no-cache, no-store, max-age=0, must-revalidate',
+    }),
     body: JSON.stringify(turn),
   })
   if (!res.ok) throw new Error(`put failed: ${res.status} ${await res.text()}`)

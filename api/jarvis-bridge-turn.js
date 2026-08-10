@@ -70,15 +70,26 @@ function storageHeaders(extra) {
 async function putTurn(id, turn) {
   const res = await fetch(storageUrl(`object/${BUCKET}/${PREFIX}${id}.json`), {
     method: 'POST',
-    headers: storageHeaders({ 'Content-Type': 'application/json', 'x-upsert': 'true' }),
+    headers: storageHeaders({
+      'Content-Type': 'application/json',
+      'x-upsert': 'true',
+      'cache-control': 'no-cache, no-store, max-age=0, must-revalidate',
+    }),
     body: JSON.stringify(turn),
   });
   if (!res.ok) throw new Error(`storage put failed: ${res.status} ${await res.text()}`);
 }
 
+// Confirmed 2026-08-10: Supabase Storage's object GET is served through a CDN
+// edge cache that can serve a stale copy for seconds to ~90s after a real
+// write, on the exact same URL, regardless of cache-control sent on upload.
+// Cache-bust every read — see the matching comment in
+// scripts/jarvis-bridge/server.ts (the other half of this bridge hits the
+// same issue polling the same bucket).
 async function getTurn(id) {
-  const res = await fetch(storageUrl(`object/${BUCKET}/${PREFIX}${id}.json`), {
-    headers: storageHeaders(),
+  const res = await fetch(storageUrl(`object/${BUCKET}/${PREFIX}${id}.json?_cb=${Date.now()}`), {
+    headers: storageHeaders({ 'Cache-Control': 'no-cache' }),
+    cache: 'no-store',
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`storage get failed: ${res.status} ${await res.text()}`);
