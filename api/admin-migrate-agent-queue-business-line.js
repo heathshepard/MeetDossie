@@ -4,19 +4,18 @@
 // touched.
 //
 // DDL isn't reachable through PostgREST (no generic SQL-exec RPC is deployed
-// on this project), so this connects directly to Postgres with `pg`, using
-// POSTGRES_URL_NON_POOLING (bypasses PgBouncer — safer for DDL than the
-// pooled POSTGRES_URL). Mirrors the SQL tracked at
+// on this project), so this runs directly against Postgres via the shared
+// api/_lib/pg-admin.js helper (POSTGRES_URL_NON_POOLING, bypasses PgBouncer —
+// safer for DDL than the pooled POSTGRES_URL). Mirrors the SQL tracked at
 // supabase/migrations/20260810_agent_queue_business_line.sql.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
 //
 // Owner: Atlas, 2026-08-10 (SV-ENG-JARVIS-TASK-VIZ)
 
-const { Client } = require('pg');
+const { runAdminSql } = require('./_lib/pg-admin');
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const CONNECTION_STRING = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
 
 const SQL = `
 ALTER TABLE agent_queue ADD COLUMN IF NOT EXISTS business_line TEXT;
@@ -39,41 +38,19 @@ module.exports = async function handler(req, res) {
   if (!isVercelCron && !isManualAuth) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
-  if (!CONNECTION_STRING) {
-    return res.status(503).json({ ok: false, error: 'postgres_connection_env_missing' });
-  }
-
-  // Supabase's pooler/direct endpoints present a chain Node's default CA
-  // store doesn't fully trust from a serverless sandbox — same failure mode
-  // documented across Supabase+node-postgres integrations ("self-signed
-  // certificate in certificate chain"). The client-level `ssl` option alone
-  // didn't clear it (some pg/undici TLS paths on Vercel's Node runtime read
-  // the process-global setting instead), so this also flips the global flag
-  // for the life of this one request. This is a one-time, CRON_SECRET-gated
-  // admin migration hitting our own project's DB, not a general outbound
-  // TLS relaxation — restored immediately after, contained to this handler.
-  const prevTlsFlag = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  const client = new Client({
-    connectionString: CONNECTION_STRING,
-    ssl: { rejectUnauthorized: false, require: true },
-  });
 
   try {
-    await client.connect();
-    await client.query(SQL);
+    await runAdminSql(SQL);
     return res.status(200).json({
       ok: true,
       message: 'agent_queue.business_line column + constraint + index added successfully',
     });
   } catch (err) {
-    return res.status(500).json({
+    const status = err.message === 'postgres_connection_env_missing' ? 503 : 500;
+    return res.status(status).json({
       ok: false,
       error: 'Failed to add business_line column',
       details: err.message,
     });
-  } finally {
-    await client.end().catch(() => {});
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTlsFlag;
   }
 };
