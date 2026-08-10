@@ -15,6 +15,7 @@
 // ============================================================================
 
 const { createClient } = require('@supabase/supabase-js');
+const { resolveBusinessLine } = require('./business-line');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -181,6 +182,11 @@ async function readDispatches({ target, limit = 20, since }) {
  * @param {number}   [opts.priority=3] 1 (critical) – 5 (background)
  * @param {string[]} [opts.depends_on] Array of prerequisite task UUIDs
  * @param {string}   [opts.venture]    One of VALID_VENTURES (default 'general')
+ * @param {string}   [opts.business_line] Override for cross-cutting agents
+ *                                    (cole/warden/content-verifier) — one of
+ *                                    dossie|sawyer|brokerage|trading|
+ *                                    shepard-ventures. Ignored for agents
+ *                                    with a fixed mapping (see business-line.js).
  * @param {object}   [opts.metadata]   Arbitrary JSONB payload
  * @returns {Promise<{ok: boolean, id?: string, queued_at?: string, position_in_agent_queue?: number, error?: string}>}
  */
@@ -191,6 +197,7 @@ async function queueTask({
   priority = 3,
   depends_on = [],
   venture = 'general',
+  business_line,
   metadata = {},
 } = {}) {
   // --- Validate inputs ---
@@ -233,6 +240,8 @@ async function queueTask({
     ? metadata
     : {};
 
+  const businessLine = resolveBusinessLine(agentNorm, business_line);
+
   // --- Insert with retry ---
   const MAX_ATTEMPTS = 3;
   const BASE_DELAY_MS = 500;
@@ -250,6 +259,7 @@ async function queueTask({
           priority: pri,
           depends_on: deps,
           venture: ventureNorm,
+          business_line: businessLine,
           metadata: meta,
         })
         .select('id, created_at')
@@ -290,6 +300,7 @@ async function queueTask({
       agent: agentNorm,
       priority: pri,
       venture: ventureNorm,
+      business_line: businessLine,
       position_in_agent_queue: (ahead || 0) + 1, // 1-indexed
     };
   }

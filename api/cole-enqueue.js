@@ -27,6 +27,8 @@
 //
 // OWNER: Atlas, 2026-06-25 (SV-ENG-AGENT-QUEUE-PRODUCER).
 
+const { resolveBusinessLine } = require('./_lib/business-line');
+
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET               = process.env.CRON_SECRET;
@@ -187,6 +189,7 @@ module.exports = async function handler(req, res) {
   const priority    = Number.isFinite(body.priority) ? Math.max(1, Math.min(5, Math.floor(body.priority))) : 3;
   const dependsOn   = Array.isArray(body.depends_on) ? body.depends_on.filter(x => typeof x === 'string') : [];
   const venture     = (body.venture && String(body.venture).trim()) || 'general';
+  const businessLine = resolveBusinessLine(targetAgent, body.business_line);
   const source      = (body.source && String(body.source).trim()) || 'cole-enqueue';
   const createFutureBuild = body.create_future_build === false ? false : true;
 
@@ -259,6 +262,7 @@ module.exports = async function handler(req, res) {
     priority,
     depends_on: dependsOn,
     venture,
+    business_line: businessLine,
     status: 'pending',
     metadata: {
       source,
@@ -289,5 +293,6 @@ module.exports = async function handler(req, res) {
     target_agent: targetAgent,
     priority,
     depends_on: dependsOn,
+    business_line: businessLine,
   });
 };

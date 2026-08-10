@@ -26,6 +26,7 @@
 // Owner: Atlas (SV-ENG-AGENT-QUEUE / 2026-06-17)
 
 const { createClient } = require('@supabase/supabase-js');
+const { resolveBusinessLine } = require('./_lib/business-line');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -131,6 +132,8 @@ module.exports = async function handler(req, res) {
   const metadata = (body.metadata && typeof body.metadata === 'object') ? body.metadata : {};
   metadata._queued_by = auth.principal;
 
+  const businessLine = resolveBusinessLine(agent, body.business_line);
+
   // Insert.
   const { data, error } = await supabase
     .from('agent_queue')
@@ -141,6 +144,7 @@ module.exports = async function handler(req, res) {
       priority,
       depends_on,
       venture,
+      business_line: businessLine,
       metadata,
     })
     .select('id, created_at')
@@ -165,6 +169,7 @@ module.exports = async function handler(req, res) {
     agent,
     priority,
     venture,
+    business_line: businessLine,
     position_in_agent_queue: (ahead || 0) + 1, // 1-indexed
   });
 };

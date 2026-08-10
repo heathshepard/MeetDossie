@@ -32,6 +32,7 @@
 // =============================================================================
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { resolveBusinessLine } = require('./_lib/business-line');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -127,6 +128,7 @@ async function enqueueAgentTask(candidate, agent) {
       task_brief: briefLines,
       priority: priorityFromImpact(candidate.impact_score),
       venture: 'dossie',
+      business_line: resolveBusinessLine(agent),
       status: 'pending',
       metadata: {
         source: 'self_improvement_candidate',

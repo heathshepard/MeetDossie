@@ -39,6 +39,7 @@
 //   Atlas, 2026-06-25 (SV-ENG-AGENT-QUEUE-PRODUCER).
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { resolveBusinessLine } = require('./_lib/business-line');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -157,6 +158,7 @@ function buildPayload({ agent, title, brief, priority, venture, sourceTable, sou
     task_brief: (brief || '(no brief)').slice(0, 8000),
     priority: typeof priority === 'number' ? priority : 3,
     venture: venture || 'general',
+    business_line: resolveBusinessLine(agent),
     status: 'pending',
     depends_on: Array.isArray(dependsOn) && dependsOn.length ? dependsOn : [],
     metadata: meta,

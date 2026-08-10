@@ -48,6 +48,8 @@
 // OWNER: Atlas, 2026-07-07 (SV-CLAUDE-CODE-CLI-WORKER).
 // =============================================================================
 
+const { resolveBusinessLine } = require('./_lib/business-line');
+
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET               = process.env.CRON_SECRET;
@@ -184,6 +186,7 @@ module.exports = async function handler(req, res) {
     priority,
     depends_on: [],
     venture: 'general',
+    business_line: resolveBusinessLine(agentName),
     status: 'pending',
     metadata: {
       // These flags are what makes the worker actually pick it up:

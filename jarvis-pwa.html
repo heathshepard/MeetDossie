@@ -2666,6 +2666,62 @@
       font-size: 9px; padding: 1px 6px; border-radius: 3px;
       background: rgba(77, 208, 225, 0.1); color: var(--txt-mute);
     }
+    /* ===== BUSINESS LINES panel (SV-ENG-JARVIS-TASK-VIZ, 2026-08-10) =====
+       One collapsible .bl-section per business line, each with 3 status
+       groups (running/queued/recently completed). Reuses panel/glass tokens
+       rather than inventing a new visual language. */
+    .business-lines-list { display: flex; flex-direction: column; gap: 10px; }
+    .bl-section {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(77, 208, 225, 0.03);
+    }
+    .bl-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none;
+    }
+    .bl-header:hover { background: rgba(0, 229, 255, 0.04); }
+    .bl-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--cyan-bright);
+    }
+    .bl-counts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .bl-count-chip {
+      font-family: 'Inter', sans-serif; font-size: 9px; letter-spacing: 0.06em;
+      padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line);
+      color: var(--txt-mute); white-space: nowrap;
+    }
+    .bl-count-chip.running { color: var(--cyan-bright); border-color: rgba(0, 229, 255, 0.3); }
+    .bl-count-chip.queued { color: var(--txt-mute); }
+    .bl-count-chip.completed { color: var(--ok); border-color: rgba(139, 168, 136, 0.3); }
+    .bl-chevron { flex-shrink: 0; color: var(--txt-faint); transition: transform 0.15s; }
+    .bl-section.collapsed .bl-chevron { transform: rotate(-90deg); }
+    .bl-section.collapsed .bl-body { display: none; }
+    .bl-body {
+      padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px;
+      border-top: 1px solid var(--line);
+    }
+    .bl-group { display: flex; flex-direction: column; gap: 5px; padding-top: 8px; }
+    .bl-group-label {
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--txt-faint);
+    }
+    .bl-task-row {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 6px 8px; border-radius: 6px;
+      background: rgba(255, 255, 255, 0.02); border: 1px solid var(--line);
+      font-size: 12px;
+    }
+    .bl-task-row.bl-task-running { border-color: rgba(0, 229, 255, 0.25); }
+    .bl-task-row.bl-task-completed { border-color: rgba(139, 168, 136, 0.25); }
+    .bl-task-top { display: flex; justify-content: space-between; gap: 8px; }
+    .bl-task-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
+    .bl-task-ts { color: var(--txt-faint); font-size: 10px; white-space: nowrap; }
+    .bl-task-subject { color: var(--txt-primary); line-height: 1.3; }
+    .bl-empty { font-size: 11px; color: var(--txt-mute); padding: 4px 0; }
+
     .panel-blocked-badge {
       font-family: 'Inter', sans-serif;
       font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -3499,6 +3555,19 @@
           <div class="panel-title">ACTIVITY LOG</div>
           <div id="activity-feed" class="activity-feed">
             <div class="activity-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- BUSINESS LINES: agent_queue rows grouped by business_line (dossie/
+             sawyer/brokerage/trading/shepard-ventures), then by status group
+             (running/queued/recently completed). Initial snapshot from
+             /api/jarvis-business-line-tasks, kept live off the EXISTING
+             agent_queue_stream Realtime channel (subscribeAgentEvents() —
+             no separate polling loop). Atlas, 2026-08-10 (SV-ENG-JARVIS-TASK-VIZ). -->
+        <div class="panel" id="business-lines-panel">
+          <div class="panel-title">BUSINESS LINES</div>
+          <div id="business-lines-list" class="business-lines-list">
+            <div class="bl-empty">Loading…</div>
           </div>
         </div>
 
@@ -4430,6 +4499,9 @@
       loadInstances().catch(() => {});
       loadProjects().catch(() => {});
       subscribeInstanceEvents();
+      // BUSINESS LINES panel initial snapshot — kept live via
+      // mergeBusinessLineEvent() inside subscribeAgentEvents() above.
+      loadBusinessLineTasks().catch(() => {});
       // Refresh cadences per spec:
       //   tickers (money/activity log) — 30s
       //   to-do — 60s
@@ -4453,6 +4525,7 @@
       setInterval(() => { loadAgentLedger().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInstances().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadProjects().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
+      setInterval(() => { loadBusinessLineTasks().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       // Agent Speed Unlock (atlas_5, 2026-06-20) — throughput panel (now nested in AGENTS)
       loadThroughput().then(() => trackPollSuccess()).catch(() => {});
       setInterval(() => { loadThroughput().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
@@ -8508,6 +8581,10 @@
               event_type: payload.eventType,
               created_at: row.completed_at || row.started_at || row.created_at,
             });
+            // BUSINESS LINES panel (SV-ENG-JARVIS-TASK-VIZ, 2026-08-10) — needs
+            // the full row (id, business_line, priority, ...) that onAgentEvent's
+            // reshaped object above drops, so it reads straight off payload.
+            try { mergeBusinessLineEvent(payload); } catch (err) { console.warn('[jarvis] mergeBusinessLineEvent failed', err.message); }
           },
         )
         .subscribe((status) => {
@@ -8573,6 +8650,140 @@
     // Back-compat alias used by some boot paths.
     function updateAgentRow(event) {
       onAgentEvent(event);
+    }
+
+    // =========================================================================
+    // BUSINESS LINES panel (SV-ENG-JARVIS-TASK-VIZ, 2026-08-10)
+    // =========================================================================
+    // agent_queue rows grouped by business_line, then by status (running/
+    // queued/recently completed). Initial snapshot loaded from
+    // /api/jarvis-business-line-tasks; kept live by feeding every
+    // agent_queue_stream Realtime event (subscribeAgentEvents() above) into
+    // the same in-memory map — no separate polling loop for this panel.
+    // -------------------------------------------------------------------------
+    const BUSINESS_LINE_ORDER = ['dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures'];
+    const BUSINESS_LINE_LABELS = {
+      dossie: 'Dossie',
+      sawyer: 'Sawyer',
+      brokerage: 'Brokerage',
+      trading: 'Trading',
+      'shepard-ventures': 'Shepard Ventures HQ',
+    };
+    const bizLineTasksById = new Map(); // agent_queue.id -> row
+    const bizLineCollapsed = new Set(); // business_line keys currently collapsed (default: all expanded)
+
+    function bizLineOf(row) {
+      const bl = row && row.business_line;
+      return (bl && BUSINESS_LINE_ORDER.includes(bl)) ? bl : 'shepard-ventures';
+    }
+
+    async function loadBusinessLineTasks() {
+      if (!session?.access_token) return;
+      try {
+        const data = await authedFetch('/api/jarvis-business-line-tasks?completed_window_hours=24&completed_limit=20');
+        if (!data?.ok) return;
+        bizLineTasksById.clear();
+        Object.values(data.business_lines || {}).forEach((bucket) => {
+          ['running', 'queued', 'recently_completed'].forEach((k) => {
+            (bucket[k] || []).forEach((row) => bizLineTasksById.set(row.id, row));
+          });
+        });
+        renderBusinessLines();
+      } catch (err) {
+        console.warn('[jarvis] loadBusinessLineTasks failed', err.message);
+        const list = document.getElementById('business-lines-list');
+        if (list) list.innerHTML = `<div class="bl-empty">Business line data unavailable.</div>`;
+      }
+    }
+
+    // Fed by onAgentEvent() below — every agent_queue_stream row change
+    // (INSERT/UPDATE/DELETE) updates this map in real time, so a freshly
+    // dispatched task shows up under RUNNING/QUEUED within the same
+    // Realtime push that already drives the ACTIVITY LOG + AGENT STATUS
+    // panels, no extra fetch.
+    function mergeBusinessLineEvent(payload) {
+      const eventType = payload.eventType;
+      const row = payload.new || payload.old;
+      if (!row || !row.id) return;
+      if (eventType === 'DELETE') {
+        bizLineTasksById.delete(row.id);
+      } else {
+        bizLineTasksById.set(row.id, row);
+      }
+      renderBusinessLines();
+    }
+
+    function renderBlGroup(label, rows, kind) {
+      if (!rows.length) {
+        return `<div class="bl-group"><div class="bl-group-label">${label}</div><div class="bl-empty">—</div></div>`;
+      }
+      const rowsHtml = rows.map((r) => `
+        <div class="bl-task-row bl-task-${kind}">
+          <div class="bl-task-top">
+            <span class="bl-task-agent">${escapeHtml(r.agent_name || '?')}</span>
+            <span class="bl-task-ts">${fmtAgo(r.completed_at || r.started_at || r.created_at)}</span>
+          </div>
+          <div class="bl-task-subject">${escapeHtml(r.task_subject || '(no subject)')}</div>
+        </div>
+      `).join('');
+      return `<div class="bl-group"><div class="bl-group-label">${label} (${rows.length})</div>${rowsHtml}</div>`;
+    }
+
+    function renderBusinessLines() {
+      const container = document.getElementById('business-lines-list');
+      if (!container) return;
+
+      const now = Date.now();
+      const buckets = {};
+      BUSINESS_LINE_ORDER.forEach((bl) => { buckets[bl] = { running: [], queued: [], recently_completed: [] }; });
+
+      bizLineTasksById.forEach((row) => {
+        const bl = bizLineOf(row);
+        if (row.status === 'in_progress') {
+          buckets[bl].running.push(row);
+        } else if (row.status === 'pending' || row.status === 'blocked') {
+          buckets[bl].queued.push(row);
+        } else if (row.status === 'completed') {
+          const completedAt = row.completed_at ? new Date(row.completed_at).getTime() : 0;
+          if (now - completedAt <= 24 * 3600 * 1000) buckets[bl].recently_completed.push(row);
+        }
+        // cancelled/failed rows aren't shown in this panel — running/queued/
+        // recently-completed only, per spec.
+      });
+
+      container.innerHTML = '';
+      BUSINESS_LINE_ORDER.forEach((bl) => {
+        const b = buckets[bl];
+        b.running.sort((x, y) => new Date(y.started_at || y.created_at) - new Date(x.started_at || x.created_at));
+        b.queued.sort((x, y) => (x.priority - y.priority) || (new Date(x.created_at) - new Date(y.created_at)));
+        b.recently_completed.sort((x, y) => new Date(y.completed_at || 0) - new Date(x.completed_at || 0));
+        b.recently_completed = b.recently_completed.slice(0, 20);
+
+        const section = document.createElement('div');
+        section.className = 'bl-section' + (bizLineCollapsed.has(bl) ? ' collapsed' : '');
+        section.dataset.bl = bl;
+        section.innerHTML = `
+          <div class="bl-header" data-bl-toggle="${bl}">
+            <span class="bl-title">${BUSINESS_LINE_LABELS[bl]}</span>
+            <span class="bl-counts">
+              <span class="bl-count-chip running">${b.running.length} running</span>
+              <span class="bl-count-chip queued">${b.queued.length} queued</span>
+              <span class="bl-count-chip completed">${b.recently_completed.length} done (24h)</span>
+            </span>
+            <svg class="bl-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="bl-body">
+            ${renderBlGroup('Running', b.running, 'running')}
+            ${renderBlGroup('Queued', b.queued, 'queued')}
+            ${renderBlGroup('Recently Completed (24h)', b.recently_completed, 'completed')}
+          </div>
+        `;
+        section.querySelector('.bl-header').addEventListener('click', () => {
+          if (bizLineCollapsed.has(bl)) bizLineCollapsed.delete(bl); else bizLineCollapsed.add(bl);
+          section.classList.toggle('collapsed');
+        });
+        container.appendChild(section);
+      });
     }
 
     // =========================================================================
