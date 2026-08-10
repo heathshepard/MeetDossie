@@ -18,6 +18,7 @@
 // Owner: Atlas (atlas_1, 2026-06-22 SOP build).
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+const { isInternalTaskNoise } = require('./_lib/internal-task-filter.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -147,12 +148,19 @@ export default async function handler(req, res) {
         const queueRows = await sbGet(
           `agent_queue?select=id,agent_name,task_subject,status,started_at,completed_at,created_at,result_summary&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=${limit}`
         );
-        // Deduplicate: keep the most recent row per (agent_name).
+        // Deduplicate: keep the most recent NON-NOISE row per (agent_name).
+        // 2026-08-10 (Heath dashboard teardown): this used to pick the
+        // literal most recent row regardless of content, which surfaced
+        // internal QA/verification runs (e.g. "BL-PANEL-VERIFY-1786...")
+        // as if they were Carter's/Quinn's/Atlas's real current work —
+        // same stopgap heuristic as the Agents blocked-count badge; see
+        // _lib/internal-task-filter.js for why this isn't the real fix.
         const seen = new Set();
         const synth = [];
         for (const row of queueRows) {
           const key = String(row.agent_name || '').toLowerCase();
           if (!key || seen.has(key)) continue;
+          if (isInternalTaskNoise(row.task_subject)) continue;
           seen.add(key);
           synth.push({
             instance: {
