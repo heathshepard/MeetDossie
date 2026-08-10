@@ -229,6 +229,26 @@ module.exports = async function handler(req, res) {
       file_size: buffer.length,
     });
 
+    // Keep transactions.iabs_delivered_at in sync with reality — see
+    // insert-document-row.js for the full explanation. Only set if unset.
+    if (documentType === 'iabs-form') {
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/transactions?id=eq.${encodeURIComponent(transactionIdRaw)}&iabs_delivered_at=is.null`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ iabs_delivered_at: new Date().toISOString() }),
+        }
+      ).catch((err) => {
+        console.warn('[upload-document] iabs_delivered_at sync failed (non-fatal):', err && err.message);
+      });
+    }
+
     const signedUrl = await supabaseStorageSignedUrl(storagePath, 3600);
 
     return res.status(200).json({

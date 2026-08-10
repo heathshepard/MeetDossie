@@ -706,10 +706,32 @@ module.exports = async function handler(req, res) {
               } else {
                 console.log('[esign-webhook] wire fraud warning acknowledged for document', docRow.id);
               }
+            } else if (docType === 'iabs-form' && sr.transaction_id) {
+              // 2026-08-10 — Keep transactions.iabs_delivered_at in sync with reality.
+              // Root cause of the 104 Wild Cherry false-positive reminder: this flag
+              // was only ever set by the agent telling Dossie in chat ("I delivered
+              // the IABS"). When the IABS is instead completed through DocuSeal
+              // e-signature, nothing set the flag, so cron-followup kept nagging
+              // even after the form was signed. Only set it if unset — never
+              // overwrite an earlier, possibly more accurate, timestamp.
+              const iabsRes = await supa(
+                `transactions?id=eq.${encodeURIComponent(sr.transaction_id)}&iabs_delivered_at=is.null`,
+                {
+                  method: 'PATCH',
+                  body: JSON.stringify({ iabs_delivered_at: new Date().toISOString() }),
+                  headers: { Prefer: 'return=minimal' },
+                }
+              );
+              if (!iabsRes.ok) {
+                const iabsText = await iabsRes.text().catch(() => '');
+                console.warn('[esign-webhook] iabs_delivered_at update failed:', iabsRes.status, iabsText.slice(0, 200));
+              } else {
+                console.log('[esign-webhook] iabs_delivered_at set for transaction', sr.transaction_id);
+              }
             }
           }
         } catch (err) {
-          console.error('[esign-webhook] wire fraud ack error (non-fatal):', err && err.message);
+          console.error('[esign-webhook] wire fraud / iabs ack error (non-fatal):', err && err.message);
         }
       }
     }

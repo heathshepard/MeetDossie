@@ -54,6 +54,49 @@ async function sendResendEmail({ from, to, subject, html }) {
 const escapeHtml = (s) =>
   String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// Document-linked follow-ups: action items that are really just "go deliver
+// this document" nudges. Before nagging (or escalating) one of these, check
+// whether the document is actually still missing — both the transaction's
+// own delivery flag AND the documents table directly, since the flag alone
+// can drift out of sync with what's really in the dossier (confirmed root
+// cause of the 2026-08-10 104 Wild Cherry false positive: iabs_delivered_at
+// was set correctly, but this cron never looked at it or at documents before
+// sending "please send this over" for a form that was already on file).
+// Extend this list if other reminders start chasing a specific document type.
+const DOCUMENT_FOLLOWUPS = [
+  {
+    match: /\biabs\b|information about brokerage services/i,
+    transactionFlag: 'iabs_delivered_at',
+    documentType: 'iabs-form',
+    label: 'IABS',
+  },
+];
+
+function findDocumentFollowup(item) {
+  const haystack = `${item.email_subject || ''} ${item.description || ''}`;
+  return DOCUMENT_FOLLOWUPS.find((cfg) => cfg.match.test(haystack)) || null;
+}
+
+// Returns { resolved, document } — resolved is true if the transaction's own
+// delivery flag is set OR a matching document already exists in the dossier.
+async function checkDocumentFollowupResolved(transactionId, cfg) {
+  if (!transactionId) return { resolved: false, document: null };
+
+  const [{ data: txRows }, { data: docRows }] = await Promise.all([
+    supabaseFetch(
+      `/rest/v1/transactions?id=eq.${encodeURIComponent(transactionId)}&select=${encodeURIComponent(cfg.transactionFlag)}&limit=1`,
+    ),
+    supabaseFetch(
+      `/rest/v1/documents?transaction_id=eq.${encodeURIComponent(transactionId)}&document_type=eq.${encodeURIComponent(cfg.documentType)}&order=created_at.desc&limit=1`,
+    ),
+  ]);
+
+  const flagSet = Array.isArray(txRows) && txRows[0] && Boolean(txRows[0][cfg.transactionFlag]);
+  const document = Array.isArray(docRows) && docRows[0] ? docRows[0] : null;
+
+  return { resolved: Boolean(flagSet) || Boolean(document), document };
+}
+
 module.exports = withTelemetry('cron-followup', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
@@ -70,7 +113,7 @@ module.exports = withTelemetry('cron-followup', async function handler(req, res)
 
   const now = new Date();
   const today = now.toISOString().split('T')[0];
-  const summary = { checked: 0, markedOverdue: 0, followUpsSent: 0, escalated: 0 };
+  const summary = { checked: 0, markedOverdue: 0, followUpsSent: 0, escalated: 0, autoResolved: 0 };
 
   // Resolve demo user_ids so we can exclude their action items.
   const { data: demoProfiles } = await supabaseFetch(
@@ -106,6 +149,30 @@ module.exports = withTelemetry('cron-followup', async function handler(req, res)
           body: JSON.stringify({ status: 'overdue', updated_at: now.toISOString() }),
         });
         if (ok) summary.markedOverdue++;
+      }
+
+      // Document-linked follow-up: check reality before nagging or escalating.
+      // If the document this item is chasing is already on file (or the
+      // transaction's own delivery flag is set), the item is done — resolve
+      // it and skip straight to the next item. This is what stops the false
+      // positive: without it, a stale action_item keeps firing "please send
+      // this over" purely off its own due_date, with zero awareness that the
+      // thing it's chasing already showed up in Documents days ago.
+      const docFollowup = findDocumentFollowup(item);
+      let docCheck = null;
+      if (docFollowup) {
+        docCheck = await checkDocumentFollowupResolved(item.transaction_id, docFollowup);
+        if (docCheck.resolved) {
+          if (item.status !== 'completed') {
+            const { ok } = await supabaseFetch(`/rest/v1/action_items?id=eq.${encodeURIComponent(item.id)}`, {
+              method: 'PATCH',
+              headers: { Prefer: 'return=minimal' },
+              body: JSON.stringify({ status: 'completed', updated_at: now.toISOString() }),
+            });
+            if (ok) summary.autoResolved++;
+          }
+          continue;
+        }
       }
 
       // Auto-follow-up at 48h+, with 24h throttle and a 3-attempt cap.
@@ -159,11 +226,27 @@ module.exports = withTelemetry('cron-followup', async function handler(req, res)
           const dealLine = propertyAddress
             ? `<p style="font-size:14px;color:#7A7468;margin:0 0 18px;">Re: <strong>${escapeHtml(propertyAddress)}</strong></p>`
             : '';
+
+          // Document-linked reminders that are still genuinely open (checked
+          // above — docFollowup is only non-null here when unresolved) get a
+          // direct call-to-action instead of leaving the recipient to hunt
+          // for the deal themselves. This reuses the workspace URL, the same
+          // place the "Send for sig." button already lives — Heath's ask was
+          // that a legitimate reminder should help the recipient act on it,
+          // not just nag in prose.
+          const ctaHtml = docFollowup
+            ? `<p style="margin:0 0 16px;">
+                 <a href="https://meetdossie.com/workspace" style="display:inline-block;background:#1A1A2E;color:#F5E6E0;padding:12px 20px;border-radius:6px;text-decoration:none;font-size:14px;">Open the workspace to send it</a>
+               </p>
+               <p style="margin:0 0 16px;font-size:13px;color:#7A7468;">Find ${escapeHtml(propertyAddress || 'the deal')} in the sidebar, then use <strong>Send for sig.</strong> on the ${escapeHtml(docFollowup.label)} form under Documents.</p>`
+            : '';
+
           const html = `
             <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">
               <p>${greeting},</p>
               ${dealLine}
               ${bodyHtml}
+              ${ctaHtml}
               <p style="margin:0 0 16px;">- Dossie</p>
               <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E0D8; font-size: 12px; color: #9CA8B4; line-height: 1.6;">
                 If you don't see future emails from Dossie, please check your spam folder and mark dossie@meetdossie.com as a safe sender.
