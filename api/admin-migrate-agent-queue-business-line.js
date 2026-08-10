@@ -46,10 +46,14 @@ module.exports = async function handler(req, res) {
   // Supabase's pooler/direct endpoints present a chain Node's default CA
   // store doesn't fully trust from a serverless sandbox — same failure mode
   // documented across Supabase+node-postgres integrations ("self-signed
-  // certificate in certificate chain"). This is a one-time, CRON_SECRET-
-  // gated admin migration hitting our own project's DB, not a general
-  // outbound TLS relaxation, so disabling verification for this single
-  // connection is an acceptable, contained tradeoff.
+  // certificate in certificate chain"). The client-level `ssl` option alone
+  // didn't clear it (some pg/undici TLS paths on Vercel's Node runtime read
+  // the process-global setting instead), so this also flips the global flag
+  // for the life of this one request. This is a one-time, CRON_SECRET-gated
+  // admin migration hitting our own project's DB, not a general outbound
+  // TLS relaxation — restored immediately after, contained to this handler.
+  const prevTlsFlag = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   const client = new Client({
     connectionString: CONNECTION_STRING,
     ssl: { rejectUnauthorized: false, require: true },
@@ -74,5 +78,6 @@ module.exports = async function handler(req, res) {
     });
   } finally {
     await client.end().catch(() => {});
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTlsFlag;
   }
 };
