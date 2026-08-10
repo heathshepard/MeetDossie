@@ -5,7 +5,7 @@
 1. `dossier_milestones` storing `canvas_data_url` in DB → migrate to Supabase Storage.
 2. Stripe checkout sessions expire 24h → create permanent Payment Links.
 3. Zernio `zernio_post_id` not captured (response shape mismatch).
-4. Lifestyle video Zernio post creation not fully wired (upload works, post creation pending).
+4. ~~Lifestyle video Zernio post creation not fully wired~~ — RESOLVED 2026-08-10. `generate-lifestyle-video.py` upload (`put_status=200`) + `--auto-post` post creation were already fully wired since 2026-05-06 (commit 67c499cb): correct `platforms[]`/`publishNow` schema, `lookup_zernio_account_id()` matches the same `zernio_accounts` query pattern as `cron-publish-approved.js`. `--auto-post` is opt-in by design ("safe explicit-opt-in" — it posts directly to real IG/FB with no Telegram review gate, unlike the `video_library`/`cron-post-videos.js` flow). 2026-08-10: hardened `post_id` extraction to match the multi-shape parsing `cron-publish-approved.js` uses (was only checking `.id`/`.postId`, silently printing `post_id=None` on other valid response shapes) — new `extract_zernio_post_id()` + "unverified" flag when a 2xx response carries no recognized id. Not live-tested end-to-end (would render a real video + create a real IG/FB post — real spend + customer-facing side effect); escalate to Heath before running `--auto-post` live.
 5. MCP server not published to npm or registries.
 
 ---
@@ -18,7 +18,7 @@
 - TikTok automation (manual only until ~May 20, 2026)
 - Zernio analytics feedback loop (`post_analytics` table specced, not built)
 - Brevo email nurture sequence (segmented agent vs TC)
-- Lifestyle video Zernio video-post creation (upload works `put_status=200`; post creation `--auto-post` opt-in only)
+- ~~Lifestyle video Zernio video-post creation~~ — see KNOWN TECH DEBT item 4, RESOLVED 2026-08-10. `--auto-post` opt-in is intentional, not a gap.
 - **Amendment drafting** — LIVE incl. NL entry. `api/draft-amendment.js` handles TREC 39-10 (closing_date/option_extension/price_change). NL: Talk to Dossie → `extract-form-fields.js` → `fill-form.js`. Wired 2026-05-28.
 - **Fill-and-sign Phase 2** — interactive drag-drop sig/date/initials placement UI on PDF canvas before DocuSeal. Phase 1 auto-places; Phase 2 = visual control. Not built.
 - **Fill-and-sign remaining generators** — HOA Addendum (TREC 36-11), Lead-Based Paint (OP-L), Seller's Disclosure (OP-H). PDFs in `Dossie Forms/TREC Base/`, no JS generators.
@@ -45,7 +45,7 @@
 1. MCP server registry submissions (Smithery ✅ live; MCPT + OpenTools pending)
 2. Brevo email nurture (agent vs TC segmented)
 3. Zernio analytics feedback loop
-4. Lifestyle video Zernio post creation (upload works; post creation pending)
+4. ~~Lifestyle video Zernio post creation~~ — done (see KNOWN TECH DEBT item 4)
 5. TikTok automation gate flip (~May 20, 2026)
 
 (Done 2026-05-07: Stripe Payment Links, brokerage compliance send, LinkedIn Zernio, first-time onboarding checklist, MCP server npm+HTTP.)

@@ -858,6 +858,58 @@ def zernio_create_post(api_key: str, platform: str, account_id: str, content: st
         return {"ok": False, "error": str(e)}
 
 
+def extract_zernio_post_id(body: Optional[dict]) -> Optional[str]:
+    """Pull the created post's ID out of a Zernio /posts response, trying every
+    shape observed in production (see api/cron-publish-approved.js, which hit
+    a new shape as recently as 2026-06-06). Zernio's schema isn't stable, so a
+    narrow `.get('id')` silently prints post_id=None on a successful post that
+    used a different shape. Mirrors the JS extraction logic 1:1 so both call
+    sites agree on what "captured" means.
+
+    Documented response shapes seen so far:
+      { id, ... }
+      { post_id, ... }
+      { postId, ... }
+      { data: { id, ... } }
+      { data: { post_id, ... } } / { data: { postId, ... } }
+      { posts: [ { id, ... } ] }        <- multi-platform fan-out
+      { results: [ { id, ... } ] }
+      { post: { _id, platforms: [ { _id, ... } ] } }   <- 2026-06-06 shape
+    """
+    if not isinstance(body, dict):
+        return None
+    data = body
+    candidates = [
+        data.get("id"),
+        data.get("post_id"),
+        data.get("postId"),
+        (data.get("post") or {}).get("_id") if isinstance(data.get("post"), dict) else None,
+        (data.get("data") or {}).get("id") if isinstance(data.get("data"), dict) else None,
+        (data.get("data") or {}).get("post_id") if isinstance(data.get("data"), dict) else None,
+        (data.get("data") or {}).get("postId") if isinstance(data.get("data"), dict) else None,
+    ]
+    posts = data.get("posts")
+    if isinstance(posts, list) and posts and isinstance(posts[0], dict):
+        candidates.append(posts[0].get("id"))
+    results = data.get("results")
+    if isinstance(results, list) and results and isinstance(results[0], dict):
+        candidates.append(results[0].get("id"))
+    inner_data = data.get("data")
+    if isinstance(inner_data, dict):
+        inner_posts = inner_data.get("posts")
+        if isinstance(inner_posts, list) and inner_posts and isinstance(inner_posts[0], dict):
+            candidates.append(inner_posts[0].get("id"))
+    post_obj = data.get("post")
+    if isinstance(post_obj, dict):
+        platforms = post_obj.get("platforms")
+        if isinstance(platforms, list) and platforms and isinstance(platforms[0], dict):
+            candidates.append(platforms[0].get("_id"))
+    for c in candidates:
+        if c:
+            return c
+    return None
+
+
 def lookup_zernio_account_id(platform: str) -> Optional[str]:
     """Read the account_id for the given platform from public.zernio_accounts.
     Uses the anon key (table is readable by anon for active rows)."""
@@ -2366,9 +2418,18 @@ def main():
                     res = zernio_create_post(zernio_key, plat, account_id, caption,
                                              media_items, publish_now=True)
                     if res.get("ok"):
-                        post_id = (res.get("body") or {}).get("id") or (res.get("body") or {}).get("postId")
-                        print(f"[zernio-post] {plat}: published (post_id={post_id})")
-                        post_results.append({"platform": plat, "ok": True, "post_id": post_id})
+                        post_id = extract_zernio_post_id(res.get("body"))
+                        if post_id:
+                            print(f"[zernio-post] {plat}: published (post_id={post_id})")
+                            post_results.append({"platform": plat, "ok": True, "post_id": post_id})
+                        else:
+                            # 2xx with no id we recognize — matches the "unverified" state
+                            # cron-publish-approved.js flags instead of silently treating
+                            # a None post_id as success.
+                            print(f"[zernio-post] {plat}: 2xx but NO post_id in response — "
+                                  f"treating as unverified. body={json.dumps(res.get('body'))[:400]}")
+                            post_results.append({"platform": plat, "ok": True, "post_id": None,
+                                                 "unverified": True})
                     else:
                         print(f"[zernio-post] {plat}: FAIL status={res.get('status')} err={str(res.get('error', ''))[:300]}")
                         post_results.append({"platform": plat, "ok": False,
