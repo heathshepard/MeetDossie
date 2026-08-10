@@ -1,7 +1,7 @@
 // One-time migration: add nullable business_line column + check constraint +
-// index to public.agent_queue. Run this ONCE manually via CRON_SECRET curl.
-// Safe to leave in place / re-run — every clause is IF NOT EXISTS / DROP-then-
-// ADD, no data touched.
+// index to public.agent_queue. Applied live 2026-08-10. Safe to leave in
+// place / re-run — every clause is IF NOT EXISTS / DROP-then-ADD, no data
+// touched.
 //
 // DDL isn't reachable through PostgREST (no generic SQL-exec RPC is deployed
 // on this project), so this connects directly to Postgres with `pg`, using
@@ -71,10 +71,6 @@ module.exports = async function handler(req, res) {
       ok: false,
       error: 'Failed to add business_line column',
       details: err.message,
-      code: err.code,
-      hasNonPooling: !!process.env.POSTGRES_URL_NON_POOLING,
-      hasPooled: !!process.env.POSTGRES_URL,
-      usedVar: process.env.POSTGRES_URL_NON_POOLING ? 'POSTGRES_URL_NON_POOLING' : (process.env.POSTGRES_URL ? 'POSTGRES_URL' : 'none'),
     });
   } finally {
     await client.end().catch(() => {});
