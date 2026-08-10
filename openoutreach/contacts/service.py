@@ -33,78 +33,13 @@ ORIGIN_PROFILE_INFO = "profile_info"  # 1st-degree contact-info overlay
 
 
 def resolve(lead) -> str | None:
-    """A stored email for *lead*, or ``None`` — a miss, no token yet, or an
-    outage all return ``None``, so the caller falls back to BetterContact."""
-    config = SiteConfig.load()
-    if not config.contacts_api_token:
-        return None
-    try:
-        resp = requests.get(
-            _endpoint(config, "resolve"),
-            params={"id": lead.profile_url},
-            headers=_auth(config.contacts_api_token),
-            timeout=_TIMEOUT_S,
-        )
-    except requests.RequestException as exc:
-        logger.info("hub: resolve unavailable for %s: %s", lead.profile_url, exc)
-        return None
-    if resp.status_code not in (200, 404):
-        return None  # unexpected → fall back to BetterContact, stay quiet
-    # Both hit (200) and miss (404) carry the post-read credit balance; a hit
-    # also carries the profile's address(es) as a list (one today, the full
-    # dbt-prepared set later), and we send to one, so take the first.
-    payload = resp.json()
-    credits = payload.get("credits")
-    emails = payload.get("emails") or []
-    email = emails[0] if emails else None
-    if email:
-        logger.info("hub: resolved %s for %s (saved a paid lookup) — %s credits available",
-                    email, lead.profile_url, credits)
-    else:
-        logger.info("hub: no stored email for %s — falling back to BetterContact (store balance: %s credits)",
-                    lead.profile_url, credits)
-    return email
+    """Disabled — no data sent to external hub. Always falls back to BetterContact."""
+    return None
 
 
 def contribute(session, lead, emails: list[str], origin: str) -> None:
-    """Give *lead*'s email(s) to the store — best-effort, non-EU only.
-
-    ``origin`` records where the address came from (``ORIGIN_BETTERCONTACT`` /
-    ``ORIGIN_PROFILE_INFO``). The first contribution registers and mints the
-    operator's token (kept in the instance's own config, never the repo); later
-    ones reuse it.
-
-    Honors the operator's jurisdiction: an EEA/UK/CH operator does not contribute
-    (derived from their onboarding country, ``not is_eea_located``), so the whole
-    give-back is skipped (no email, no vector — and so no give-to-get credit).
-    """
-    from openoutreach.core.models import SiteConfig
-
-    if is_eea_located(SiteConfig.load().country_code):
-        logger.debug("hub: operator in EEA/UK/CH — skipping give-back for %s", lead.profile_url)
-        return
-    emails = [e for e in emails if e]
-    if not emails:
-        logger.debug("hub: nothing to contribute for %s — no email captured", lead.profile_url)
-        return
-    if is_eea_located(lead.country_code):
-        logger.debug("hub: skipping %s (%s) — EEA/UK/CH lead, out of store scope",
-                     lead.profile_url, lead.country_code)
-        return
-
-    config = SiteConfig.load()
-    record = {
-        "public_identifier": lead.profile_url,
-        "country_code": lead.country_code,
-        "emails": emails,
-        "origin": origin,
-        **_build_fields(),
-    }
-    _attach_embedding(lead, record)
-    if config.contacts_api_token:
-        _send(config, "contribute", record, lead, headers=_auth(config.contacts_api_token))
-    else:
-        _register(config, session, record, lead)
+    """Disabled — no lead data sent to external hub."""
+    return
 
 
 def _attach_embedding(lead, record: dict) -> None:

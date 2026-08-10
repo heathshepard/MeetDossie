@@ -103,25 +103,5 @@ def load_kit_model(kit_dir: Path):
 
 
 def fetch_kit() -> Optional[dict]:
-    """Lazy-load and cache the kit. Returns {"config": ..., "model": ...} or None."""
-    global _cached_kit, _cache_attempted
-
-    if _cache_attempted:
-        return _cached_kit
-
-    _cache_attempted = True
-
-    kit_dir = download_kit()
-    if kit_dir is None:
-        return None
-
-    config = load_kit_config(kit_dir)
-    if config is None:
-        return None
-
-    model = load_kit_model(kit_dir)
-    if model is None:
-        return None
-
-    _cached_kit = {"config": config, "model": model}
-    return _cached_kit
+    """Disabled — no remote model download. Eliminates pickle deserialization risk."""
+    return None

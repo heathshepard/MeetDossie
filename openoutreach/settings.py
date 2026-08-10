@@ -15,11 +15,11 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 BASE_DIR = ROOT_DIR
 
-SECRET_KEY = "openoutreach-local-dev-key-change-in-production"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "openoutreach-local-dev-key-change-in-production")
 
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in ("true", "1")
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.sites",

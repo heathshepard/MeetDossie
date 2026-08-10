@@ -151,27 +151,12 @@ def run_daemon(session):
 
     cfg = CAMPAIGN_CONFIG
 
-    # Load the pre-trained kit for freemium campaigns: create/refresh the freemium
-    # Campaign, seed its leads, and hand the kit model to the qualifier builder.
-    # Seed embeddings come from Lead-Finder discovery, so freshly-seeded leads stay
-    # dormant in the kit-ranked pool until discovery embeds them.
-    from openoutreach.core.ml.hub import fetch_kit
-    from openoutreach.core.setup.freemium import import_freemium_campaign, seed_profiles
-
-    kit = fetch_kit()
-    if kit:
-        freemium_campaign = import_freemium_campaign(kit["config"])
-        if freemium_campaign:
-            prev_campaign = session.campaign
-            session.campaign = freemium_campaign
-            seed_profiles(session, kit["config"])
-            session.campaign = prev_campaign
-            # The freemium campaign was just linked to the operator — drop the
-            # cached campaign list so it's picked up below.
-            session.__dict__.pop("campaigns", None)
+    # Freemium campaign disabled — no external kit download, no promotional
+    # emails sent from this operator's mailbox.
+    kit = None
 
     qualifiers = _build_qualifiers(
-        session.campaigns, cfg, kit_model=kit["model"] if kit else None,
+        session.campaigns, cfg, kit_model=None,
     )
 
     campaigns = session.campaigns
