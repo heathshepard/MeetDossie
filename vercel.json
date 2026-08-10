@@ -619,15 +619,15 @@
     },
     {
       "path": "/api/cron-staging-watcher",
-      "schedule": "*/2 * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron-send-outbound-emails",
-      "schedule": "* * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron-agent-queue-tick",
-      "schedule": "* * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron-daily-debrief",

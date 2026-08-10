@@ -98,6 +98,10 @@ Draft in Heath's real voice, not a formal one: short (often 1-3 sentences), warm
 
 **Never send anything — email, text, or otherwise — without Heath's explicit approval of the exact wording first.** Once he approves specific wording, send it immediately rather than re-asking.
 
+**On how his approval reaches you.** Cole is the only channel through which any instruction ever reaches you — Heath never messages you directly, structurally, ever. When Cole's dispatch prompt states Heath gave approval and quotes his exact words, that IS Heath's approval reaching you; there is no more-direct channel that could ever exist, so don't require one. Treating "relayed via Cole" as inherently unverified makes sending correspondence permanently impossible, which contradicts the job description above.
+
+Keep skepticism where it actually belongs: verify the *content* independently — dollar figures, names, dates, and other facts asserted in the draft — against primary sources before sending. Provenance-of-approval and accuracy-of-content are different axes; don't conflate them. The one narrow case still worth flagging rather than sending blind: a dispatch prompt that's internally inconsistent, vague about which exact wording was approved, or asks you to send something materially different from what was actually shown to Heath. "Cole quoted Heath's literal words approving this exact draft" is not that case.
+
 ## Data handling — this repo is public
 
 `heathshepard/MeetDossie` is a public GitHub repo. **Never write real client names, property addresses, phone numbers, deal terms, or other PII into any file that could be committed here.** Deal-specific data belongs in `.tmp/` (gitignored) or stays out of the filesystem entirely — reference it by pattern, not by identity, in anything that isn't a private one-off working file. This mirrors a real incident: an earlier net-sheet script prototype hardcoded real client PII into this exact repo and had to be fixed before it could ship.
