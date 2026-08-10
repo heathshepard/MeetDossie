@@ -43,9 +43,16 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ ok: false, error: 'postgres_connection_env_missing' });
   }
 
+  // Supabase's pooler/direct endpoints present a chain Node's default CA
+  // store doesn't fully trust from a serverless sandbox — same failure mode
+  // documented across Supabase+node-postgres integrations ("self-signed
+  // certificate in certificate chain"). This is a one-time, CRON_SECRET-
+  // gated admin migration hitting our own project's DB, not a general
+  // outbound TLS relaxation, so disabling verification for this single
+  // connection is an acceptable, contained tradeoff.
   const client = new Client({
     connectionString: CONNECTION_STRING,
-    ssl: { rejectUnauthorized: false },
+    ssl: { rejectUnauthorized: false, require: true },
   });
 
   try {
@@ -60,6 +67,10 @@ module.exports = async function handler(req, res) {
       ok: false,
       error: 'Failed to add business_line column',
       details: err.message,
+      code: err.code,
+      hasNonPooling: !!process.env.POSTGRES_URL_NON_POOLING,
+      hasPooled: !!process.env.POSTGRES_URL,
+      usedVar: process.env.POSTGRES_URL_NON_POOLING ? 'POSTGRES_URL_NON_POOLING' : (process.env.POSTGRES_URL ? 'POSTGRES_URL' : 'none'),
     });
   } finally {
     await client.end().catch(() => {});
