@@ -8774,6 +8774,32 @@
     const bizLineCollapsed = new Set(); // business_line keys currently collapsed
     let bizLineDefaultsSeeded = false; // set true after the first render's auto-collapse pass
 
+    // PERSISTENCE (2026-08-10, Quinn QA gap): a manual expand/collapse must
+    // survive a real page reload, not just the 30s in-page poll re-render.
+    // Only explicit user toggles are written here — untouched business lines
+    // stay on the auto-collapse-if-zero-activity default every load.
+    const BIZLINE_COLLAPSE_STORAGE_KEY = 'jarvis_bizline_collapsed_v1';
+    function loadBizLineOverrides() {
+      try {
+        const raw = localStorage.getItem(BIZLINE_COLLAPSE_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+      } catch (err) {
+        return {}; // localStorage unavailable (private mode/quota) — falls back to defaults every load
+      }
+    }
+    function saveBizLineOverride(bl, collapsed) {
+      try {
+        const overrides = loadBizLineOverrides();
+        overrides[bl] = collapsed;
+        localStorage.setItem(BIZLINE_COLLAPSE_STORAGE_KEY, JSON.stringify(overrides));
+      } catch (err) {
+        // in-memory state still works this session even if persistence fails
+      }
+    }
+    const bizLineUserOverrides = loadBizLineOverrides(); // { [bl]: boolean } explicit choices from a prior session
+
     function bizLineOf(row) {
       // Same fallback chain as the server's resolveBusinessLine()
       // (jarvis-business-line-tasks.js / jarvis-in-flight-work.js): prefer
@@ -8875,6 +8901,12 @@
       // even if that line goes quiet again a moment later).
       if (!bizLineDefaultsSeeded) {
         BUSINESS_LINE_ORDER.forEach((bl) => {
+          if (Object.prototype.hasOwnProperty.call(bizLineUserOverrides, bl)) {
+            // User manually expanded/collapsed this line in a prior session —
+            // that choice wins over the zero-activity default, every load.
+            if (bizLineUserOverrides[bl]) bizLineCollapsed.add(bl); else bizLineCollapsed.delete(bl);
+            return;
+          }
           const b = buckets[bl];
           const total = b.running.length + b.queued.length + b.blocked.length + b.recently_completed.length;
           if (total === 0) bizLineCollapsed.add(bl);
@@ -8915,6 +8947,7 @@
         section.querySelector('.bl-header').addEventListener('click', () => {
           if (bizLineCollapsed.has(bl)) bizLineCollapsed.delete(bl); else bizLineCollapsed.add(bl);
           section.classList.toggle('collapsed');
+          saveBizLineOverride(bl, bizLineCollapsed.has(bl));
         });
         container.appendChild(section);
       });
