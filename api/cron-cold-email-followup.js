@@ -81,14 +81,16 @@ function touch2Html(city, email) {
 // ── Touch 3: Social proof + specific value ──────────────────────────
 
 function touch3Subject() {
-  return 'what Brittney said';
+  return 'the control freak problem';
 }
 
 function touch3Text(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
-  return `One of our founding members, Brittney, told me she used to spend Sunday nights prepping her Monday amendment stack. Now Dossie drafts them while she's at dinner.
+  return `One of our founding members - a broker doing 80 transactions a year - told me: "the lack of systems I have in place isn't sustainable."
 
-That's the part that surprised me too when I built it. It's not just tracking deadlines - she drafts the actual emails and amendments. You review and send.
+That's exactly why I built Dossie. She's not a generic task app. She knows TREC deadlines, drafts the actual amendment emails, and follows up so you don't have to.
+
+The agents using her aren't delegating and hoping. They're reviewing what she drafted and hitting send. Big difference.
 
 If you're closing 2+ deals a month, the $29 pays for itself on the first file: ${FOUNDING_URL}
 
@@ -103,9 +105,11 @@ ${NW_ADDRESS}
 function touch3Html(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
-<p>One of our founding members, Brittney, told me she used to spend Sunday nights prepping her Monday amendment stack. Now Dossie drafts them while she's at dinner.</p>
+<p>One of our founding members - a broker doing 80 transactions a year - told me: "the lack of systems I have in place isn't sustainable."</p>
 
-<p>That's the part that surprised me too when I built it. It's not just tracking deadlines - she drafts the actual emails and amendments. You review and send.</p>
+<p>That's exactly why I built Dossie. She's not a generic task app. She knows TREC deadlines, drafts the actual amendment emails, and follows up so you don't have to.</p>
+
+<p>The agents using her aren't delegating and hoping. They're reviewing what she drafted and hitting send. Big difference.</p>
 
 <p>If you're closing 2+ deals a month, the $29 pays for itself on the first file: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
 
@@ -162,7 +166,7 @@ function touch4Html(city, email) {
 
 const TOUCHES = {
   2: { subject: touch2Subject, text: touch2Text, html: touch2Html, hook: 'followup-bump' },
-  3: { subject: touch3Subject, text: touch3Text, html: touch3Html, hook: 'followup-social-proof' },
+  3: { subject: touch3Subject, text: touch3Text, html: touch3Html, hook: 'followup-control-freak' },
   4: { subject: touch4Subject, text: touch4Text, html: touch4Html, hook: 'followup-breakup' },
 };
 
