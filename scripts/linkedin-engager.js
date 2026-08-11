@@ -40,6 +40,8 @@ try {
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
   os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data'
@@ -54,6 +56,7 @@ const SEARCH_QUERIES = [
 ];
 
 const POSTS_PER_SEARCH = 5;
+const WARM_TOUCH_BATCH = 10;
 
 // ─── Seen dedup ───────────────────────────────────────────────────────────────
 
@@ -252,6 +255,140 @@ async function runSearch(page, query, seenIds, maxPosts) {
   return { liked, commented };
 }
 
+// ─── Warm-touch queue helpers ────────────────────────────────────────────────
+
+function sbHeaders() {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function fetchWarmTouchLeads() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[linkedin-engager] Supabase not configured for warm-touch mode');
+    return [];
+  }
+  const url = `${SUPABASE_URL}/rest/v1/warm_touch_queue?status=eq.pending&platform=eq.linkedin&order=created_at.asc&limit=${WARM_TOUCH_BATCH}`;
+  const r = await fetch(url, { headers: sbHeaders() });
+  if (!r.ok) {
+    console.error('[linkedin-engager] Failed to fetch warm-touch leads:', r.status);
+    return [];
+  }
+  const rows = await r.json();
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function markLeadEngaged(leadId) {
+  const url = `${SUPABASE_URL}/rest/v1/warm_touch_queue?id=eq.${leadId}`;
+  await fetch(url, {
+    method: 'PATCH',
+    headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'engaged', engaged_at: new Date().toISOString() }),
+  });
+}
+
+async function markLeadNotFound(leadId) {
+  const url = `${SUPABASE_URL}/rest/v1/warm_touch_queue?id=eq.${leadId}`;
+  await fetch(url, {
+    method: 'PATCH',
+    headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'not_found' }),
+  });
+}
+
+async function searchAndEngageLead(page, lead, seenIds) {
+  const name = lead.lead_name;
+  const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(name + ' real estate')}&sortBy=date_posted`;
+  console.log(`[linkedin-engager] Warm-touch: searching for "${name}"`);
+
+  await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+  const currentUrl = page.url();
+  if (currentUrl.includes('/login') || currentUrl.includes('/authwall')) {
+    console.warn('[linkedin-engager] Redirected to login');
+    return false;
+  }
+
+  try {
+    await page.waitForSelector('[data-urn]', { timeout: 8000 });
+  } catch {
+    console.warn(`[linkedin-engager] No posts found for "${name}"`);
+    return false;
+  }
+
+  await page.evaluate(() => window.scrollBy(0, 800));
+  await page.waitForLoadState('networkidle').catch(() => {});
+
+  const posts = await page.evaluate(() => {
+    const results = [];
+    const articles = document.querySelectorAll('div.search-results__list > li, div[data-urn]');
+    for (const article of articles) {
+      const urn = article.getAttribute('data-urn') || article.querySelector('[data-urn]')?.getAttribute('data-urn');
+      if (!urn) continue;
+      const text = article.innerText?.slice(0, 600) || '';
+      results.push({ urn, text });
+      if (results.length >= 3) break;
+    }
+    return results;
+  });
+
+  if (!posts.length) return false;
+
+  let engaged = false;
+  for (const post of posts) {
+    if (seenIds.has(post.urn)) continue;
+
+    try {
+      const likeBtn = page.locator(`[data-urn="${post.urn}"] button[aria-label*="Like"], [data-urn="${post.urn}"] button[aria-label*="React"]`).first();
+      const likeVisible = await likeBtn.isVisible({ timeout: 3000 }).catch(() => false);
+      if (likeVisible) {
+        const label = await likeBtn.getAttribute('aria-label').catch(() => '');
+        if (!label.toLowerCase().includes('unlike') && !label.toLowerCase().includes('remove')) {
+          await likeBtn.click();
+          await page.waitForTimeout(2000);
+          engaged = true;
+          console.log(`[linkedin-engager] Warm-touch liked post by "${name}"`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[linkedin-engager] Could not like post for "${name}":`, err.message);
+    }
+
+    seenIds.add(post.urn);
+    if (engaged) break;
+  }
+
+  return engaged;
+}
+
+async function runWarmTouchMode(page, seenIds) {
+  const leads = await fetchWarmTouchLeads();
+  if (!leads.length) {
+    console.log('[linkedin-engager] No pending warm-touch leads');
+    return { engaged: 0, not_found: 0 };
+  }
+
+  console.log(`[linkedin-engager] Warm-touch: ${leads.length} leads to engage`);
+  let engaged = 0;
+  let notFound = 0;
+
+  for (const lead of leads) {
+    const found = await searchAndEngageLead(page, lead, seenIds);
+    if (found) {
+      await markLeadEngaged(lead.id);
+      engaged++;
+    } else {
+      await markLeadNotFound(lead.id);
+      notFound++;
+    }
+    await new Promise(r => setTimeout(r, 3000));
+  }
+
+  return { engaged, not_found: notFound };
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -311,25 +448,36 @@ async function main() {
     }
   }
 
+  const warmTouchMode = process.argv.includes('--warm-touch');
   let totalLiked = 0;
   let totalCommented = 0;
+  let warmResult = null;
 
   try {
-    for (const query of SEARCH_QUERIES) {
-      const { liked, commented } = await runSearch(page, query, seenIds, POSTS_PER_SEARCH).catch(err => {
-        console.warn(`[linkedin-engager] Error on query "${query}":`, err.message);
-        return { liked: 0, commented: 0 };
-      });
-      totalLiked += liked;
-      totalCommented += commented;
+    if (warmTouchMode) {
+      warmResult = await runWarmTouchMode(page, seenIds);
       saveSeen(seenIds);
-      await new Promise(r => setTimeout(r, 3000));
+    }
+
+    if (!process.argv.includes('--warm-touch-only')) {
+      for (const query of SEARCH_QUERIES) {
+        const { liked, commented } = await runSearch(page, query, seenIds, POSTS_PER_SEARCH).catch(err => {
+          console.warn(`[linkedin-engager] Error on query "${query}":`, err.message);
+          return { liked: 0, commented: 0 };
+        });
+        totalLiked += liked;
+        totalCommented += commented;
+        saveSeen(seenIds);
+        await new Promise(r => setTimeout(r, 3000));
+      }
     }
   } finally {
     await context.close();
   }
 
-  const summary = `LinkedIn engagement complete: liked ${totalLiked} posts, commented ${totalCommented}`;
+  const parts = [`LinkedIn engagement: liked ${totalLiked}, commented ${totalCommented}`];
+  if (warmResult) parts.push(`warm-touch: ${warmResult.engaged} engaged, ${warmResult.not_found} not found`);
+  const summary = parts.join(' | ');
   console.log(`[linkedin-engager] ${summary}`);
   await sendTelegram(summary);
 }

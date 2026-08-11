@@ -439,6 +439,9 @@
     },
     "api/admin-migrate-content-pipeline-queue.js": {
       "maxDuration": 30
+    },
+    "api/cron-cold-email-followup.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -733,6 +736,10 @@
     {
       "path": "/api/cron-warm-touch-queue",
       "schedule": "0 0 1 1 *"
+    },
+    {
+      "path": "/api/cron-cold-email-followup",
+      "schedule": "0 15 * * 1-5"
     },
     {
       "path": "/api/cron-unsubscribe-spike-monitor",
