@@ -52,13 +52,38 @@ const PREFIX = 'turns/';
 const MAX_MESSAGE = 4000;
 // Optional inbound image (Jarvis chat attach button — jarvis-pwa.html
 // resizeImageForVision caps at 1024px before this ever gets here, so a
-// typical JPEG lands well under this). Kept comfortably below Vercel's
-// hard 4.5MB request-body limit once JSON overhead is counted.
-const MAX_IMAGE_BASE64 = 4_000_000; // ~4MB base64 chars ≈ ~3MB decoded
-// NOTE: the `jarvis-bridge` Supabase Storage bucket has its own
-// file_size_limit (raised to 6MB on 2026-08-11 — was 64KB, set for
-// text-only turn JSON before images existed, and silently 413'd anything
-// bigger). If this cap is ever raised, the bucket limit needs raising too:
+// typical JPEG lands well under this).
+//
+// This number is bounded by a wall that can't be moved: Vercel Functions
+// have a hard, non-configurable 4.5MB (4,500,000 byte) request-body cap —
+// confirmed against Vercel's own docs 2026-08-11, applies on every plan,
+// enforced before this handler ever runs (413 FUNCTION_PAYLOAD_TOO_LARGE).
+// No `bodyParser.sizeLimit`, no runtime config, nothing in this repo can
+// raise it — the only way past it is to stop sending the image through
+// this function at all (client uploads straight to Storage, function only
+// carries a path — same pattern as the jarvis-attachments bucket below).
+// Until that redesign happens, this constant IS the real ceiling.
+//
+// Budget against the 4,500,000-byte wall, conservatively assuming decimal
+// MB (the smaller of the two possible readings of "4.5MB"):
+//   4,500,000  hard cap
+//    - 4,000   MAX_MESSAGE (worst case, chars == bytes, all ASCII-safe here)
+//    -   150   JSON structure (keys/quotes/braces/media-type string)
+//    - 300,000 safety margin (~6.7%) for measurement slop / header framing
+//   -----------
+//    4,195,850 -> rounded down to a clean 4,200,000
+// Decoded this is ~3.15MB of actual image bytes — modest vs the old
+// 4,000,000/~3MB, but it's the genuine safe max for this transport, not an
+// arbitrary pick. In practice it's moot: resizeImageForVision never lets a
+// real photo/screenshot get anywhere near this (1024px JPEG/PNG output is
+// typically 100KB-1.5MB), so this only ever fires on a pathological input.
+const MAX_IMAGE_BASE64 = 4_200_000; // ~4.2MB base64 chars ≈ ~3.15MB decoded
+// NOTE: the `jarvis-bridge` Supabase Storage bucket's file_size_limit is
+// NOT the binding constraint here — confirmed 2026-08-11 it's 8MB (raised
+// from 6MB same session for headroom), comfortably above the ~4.2MB worst
+// case turn JSON this endpoint ever writes. The Vercel 4.5MB wall above is
+// hit first, every time. If MAX_IMAGE_BASE64 above is ever raised past
+// ~4.3M, re-verify the bucket limit still clears it:
 //   PUT {SUPABASE_URL}/storage/v1/bucket/jarvis-bridge  { file_size_limit }
 
 // If nothing has picked the turn up (delivered_at unset) after this long,
