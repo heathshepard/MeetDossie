@@ -442,6 +442,10 @@
     },
     "api/cron-cold-email-followup.js": {
       "maxDuration": 30
+    },
+    "api/cron-warm-touch-populate.js": {
+      "maxDuration": 30,
+      "includeFiles": "data/sa-realtor-leads-final-v2.csv"
     }
   },
   "crons": [
@@ -744,6 +748,10 @@
     {
       "path": "/api/cron-cold-email-followup",
       "schedule": "0 15 * * 1-5"
+    },
+    {
+      "path": "/api/cron-warm-touch-populate",
+      "schedule": "0 12 * * 1-5"
     },
     {
       "path": "/api/cron-unsubscribe-spike-monitor",
