@@ -22,7 +22,10 @@
 //
 // POST /api/jarvis-bridge-turn
 //   Authorization: Bearer <supabase user JWT>   (Heath only)
-//   Body: { message }
+//   Body: { message, image_base64?, image_media_type? }
+//   image_base64 is raw base64 (no data: prefix) of an attached photo —
+//   see jarvis-pwa.html's chat attach button / resizeImageForVision, which
+//   already caps images at 1024px before they reach this endpoint.
 //   -> 202 { ok, turn_id, poll_url }
 //
 // GET /api/jarvis-bridge-turn?id=<turn_id>
@@ -47,6 +50,16 @@ const OWNER_EMAIL = 'heath.shepard@kw.com';
 const BUCKET = 'jarvis-bridge';
 const PREFIX = 'turns/';
 const MAX_MESSAGE = 4000;
+// Optional inbound image (Jarvis chat attach button — jarvis-pwa.html
+// resizeImageForVision caps at 1024px before this ever gets here, so a
+// typical JPEG lands well under this). Kept comfortably below Vercel's
+// hard 4.5MB request-body limit once JSON overhead is counted.
+const MAX_IMAGE_BASE64 = 4_000_000; // ~4MB base64 chars ≈ ~3MB decoded
+// NOTE: the `jarvis-bridge` Supabase Storage bucket has its own
+// file_size_limit (raised to 6MB on 2026-08-11 — was 64KB, set for
+// text-only turn JSON before images existed, and silently 413'd anything
+// bigger). If this cap is ever raised, the bucket limit needs raising too:
+//   PUT {SUPABASE_URL}/storage/v1/bucket/jarvis-bridge  { file_size_limit }
 
 // If nothing has picked the turn up (delivered_at unset) after this long,
 // the local channel process is almost certainly not running — tell the UI
@@ -183,12 +196,28 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'message_too_long', max: MAX_MESSAGE });
   }
 
+  // Optional image (Jarvis chat attach button). image_base64 is raw base64,
+  // no "data:image/...;base64," prefix — matches what jarvis-pwa.html's
+  // resizeImageForVision already produces client-side. This endpoint just
+  // relays it through the turn object; scripts/jarvis-bridge/server.ts (the
+  // process actually running on Heath's machine) is what decodes it to a
+  // local file and hands the receiving session a real path to Read.
+  const imageBase64 = body.image_base64 ? String(body.image_base64) : undefined;
+  const imageMediaType = body.image_media_type ? String(body.image_media_type) : undefined;
+  if (imageBase64 && imageBase64.length > MAX_IMAGE_BASE64) {
+    return res.status(400).json({ ok: false, error: 'image_too_large', max_base64_chars: MAX_IMAGE_BASE64 });
+  }
+  if (imageBase64 && !/^image\/(jpeg|jpg|png|webp|gif)$/i.test(imageMediaType || '')) {
+    return res.status(400).json({ ok: false, error: 'unsupported_image_media_type' });
+  }
+
   const turnId = `turn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   try {
     await putTurn(turnId, {
       status: 'pending',
       user_message: message,
+      ...(imageBase64 ? { image_base64: imageBase64, image_media_type: imageMediaType || 'image/jpeg' } : {}),
       created_at: new Date().toISOString(),
     });
   } catch (err) {
