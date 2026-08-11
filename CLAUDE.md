@@ -559,3 +559,4 @@ Topic depth lives here. Read before working in that area — don't carry the who
 | `docs/ENV.md` | Env var values, Zernio account IDs, Stripe + ImprovMX details. |
 | `docs/INCIDENT-LOG.md` | Past incidents and their prevention rules — Brittney 2026-05-08, Stripe webhook gap. |
 | `docs/DEMO-ACCOUNTS.md` | Demo passwords, persona mapping, analytics exclusion rule. |
+| `docs/CONTENT-PIPELINE.md` | Nightly guide/feature/answer page generation — topic selection, agent research contract, Telegram approve/reject flow, promotion to `marketing/*-data/`. |

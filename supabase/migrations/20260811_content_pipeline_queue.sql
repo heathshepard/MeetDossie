@@ -1,0 +1,94 @@
+-- ============================================================================
+-- content_pipeline_queue — nightly unattended content-page pipeline
+--
+-- Purpose: Heath's directive (2026-08-11) — generate new guide/feature/answer
+-- pages overnight (11pm-6am CDT) with the SAME quality bar as the manual
+-- batches built earlier that night (real primary-source research + citations,
+-- Hadley-style fact verification), land them in a review queue, and NEVER
+-- auto-publish. Heath approves/rejects each morning via Telegram.
+--
+-- Flow:
+--   1. api/cron-generate-pages.js (nightly, 05:30 UTC) picks 2-4 genuinely
+--      new topics (deduped against marketing/*-data/*.json AND this table),
+--      inserts one row per topic here (status='researching'), and enqueues a
+--      matching agent_queue task (hadley for guide/answer, carter for
+--      feature) that does the real research + writing.
+--   2. The spawned agent (via scripts/agent-queue-poller.js — real Claude
+--      Code session, real tool use) submits the finished page via
+--      POST /api/content-pipeline-submit -> status='pending_review'.
+--   3. api/cron-content-pipeline-review.js (every 20 min) sends each
+--      pending_review row to Heath via Telegram (DossieMarketingBot) with
+--      Approve/Reject buttons -> telegram_sent_at stamped.
+--   4. api/telegram-webhook.js handles cpage_approve_<id> / cpage_reject_<id>
+--      -> status='approved' | 'rejected'.
+--   5. api/cron-content-pipeline-promote.js (every 20 min) finds status=
+--      'approved' rows and enqueues an atlas agent_queue task to write the
+--      JSON into the REAL marketing/<type>-data/ dir, run the matching
+--      build-*.js script, and git commit+push to staging (real git access
+--      lives on Heath's PC via the poller, not in this serverless function).
+--      Atlas confirms via POST /api/content-pipeline-submit {status:
+--      'promoted'} -> status='promoted', promoted_at stamped.
+--
+-- Terminal states: rejected (discarded, never retried), promoted (live),
+-- failed (research/generation/promotion broke — logged with `error`, never
+-- silently retried the same topic).
+--
+-- Owner: Atlas, 2026-08-11 (SV-ENG-NIGHTLY-CONTENT-PIPELINE)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS content_pipeline_queue (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  night_batch_id        TEXT NOT NULL,
+  page_type             TEXT NOT NULL
+                        CHECK (page_type IN ('guide', 'feature', 'answer')),
+  topic                 TEXT NOT NULL CHECK (length(topic) <= 300),
+  slug                  TEXT,
+  status                TEXT NOT NULL DEFAULT 'researching'
+                        CHECK (status IN (
+                          'researching', 'pending_review', 'approved',
+                          'rejected', 'promoted', 'failed'
+                        )),
+  json_data             JSONB,
+  sources               JSONB NOT NULL DEFAULT '[]'::jsonb,
+  excerpt               TEXT,
+  generation_task_id    UUID REFERENCES agent_queue(id) ON DELETE SET NULL,
+  promote_task_id       UUID REFERENCES agent_queue(id) ON DELETE SET NULL,
+  rejection_reason      TEXT,
+  error                 TEXT,
+  telegram_sent_at      TIMESTAMPTZ,
+  telegram_message_id   BIGINT,
+  reviewed_at           TIMESTAMPTZ,
+  promoted_at           TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_pipeline_queue_status
+  ON content_pipeline_queue (status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_content_pipeline_queue_pending_review
+  ON content_pipeline_queue (telegram_sent_at)
+  WHERE status = 'pending_review';
+
+CREATE INDEX IF NOT EXISTS idx_content_pipeline_queue_approved
+  ON content_pipeline_queue (status)
+  WHERE status = 'approved';
+
+CREATE INDEX IF NOT EXISTS idx_content_pipeline_queue_type_slug
+  ON content_pipeline_queue (page_type, slug);
+
+CREATE INDEX IF NOT EXISTS idx_content_pipeline_queue_batch
+  ON content_pipeline_queue (night_batch_id);
+
+COMMENT ON TABLE content_pipeline_queue IS
+  'Nightly unattended content-page pipeline pending-review zone. Rows here NEVER auto-publish -- promotion to the live marketing/*-data/ dirs only happens after Heath approves via Telegram AND the atlas promote task confirms the git push.';
+COMMENT ON COLUMN content_pipeline_queue.json_data IS
+  'Full page payload matching the exact schema scripts/build-guides.js, build-features.js, or build-answers.js expects for this page_type -- see docs/CONTENT-PIPELINE.md.';
+COMMENT ON COLUMN content_pipeline_queue.sources IS
+  'Array of {label, url} primary-source citations the generating agent verified (TREC forms, Texas statutes, etc.) -- surfaced in the Telegram approval message.';
+COMMENT ON COLUMN content_pipeline_queue.night_batch_id IS
+  'Groups all rows generated by the same nightly cron run, e.g. nightly-2026-08-11, so the batch Telegram summary and logs can be traced together.';
+
+-- Service-role only -- same posture as agent_queue / agent_state. Every
+-- consumer is a CRON_SECRET-gated API endpoint, no client-side/anon reads.
+ALTER TABLE content_pipeline_queue ENABLE ROW LEVEL SECURITY;
