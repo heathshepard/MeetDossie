@@ -6237,13 +6237,22 @@
     // does. See scripts/jarvis-bridge/server.ts for the channel that makes
     // this work and api/jarvis-bridge-turn.js for the transport.
     async function askBridge(message, opts = {}) {
+      const reqBody = { message };
+      // Optional image (chat attach button) — raw base64, no data: prefix,
+      // already resized to <=1024px by resizeImageForVision. Relayed through
+      // api/jarvis-bridge-turn.js to the local channel process, which writes
+      // it to a real file the live session can Read.
+      if (opts.imageBase64) {
+        reqBody.image_base64 = opts.imageBase64;
+        reqBody.image_media_type = opts.imageMediaType || 'image/jpeg';
+      }
       const startRes = await fetch(`${API_BASE}/api/jarvis-bridge-turn`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: await getAuthHeader(),
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify(reqBody),
       });
       const start = await startRes.json();
       if (!startRes.ok || !start.ok) {
@@ -6282,8 +6291,8 @@
       throw new Error('Timed out waiting for a reply — it may still finish; check again shortly.');
     }
 
-    async function runBridgeChat(message) {
-      const answer = await askBridge(message);
+    async function runBridgeChat(message, opts = {}) {
+      const answer = await askBridge(message, opts);
       appendMessage('assistant', answer);
     }
 
@@ -6614,18 +6623,17 @@
 
         try {
           // Every typed message goes to the live Cole session — see the
-          // "Live session bridge" comment above askBridge(). The bridge
-          // doesn't carry image attachments yet (fast-follow); text still
-          // sends either way, just say so.
-          if (imageBase64) {
-            showToast("Attachments aren't wired to the live session yet — sending the text only.", 2600);
-          }
+          // "Live session bridge" comment above askBridge(). Images ride
+          // along as base64 (2026-08-11) — the bridge writes them to a local
+          // file the live session Reads directly, same pattern as the
+          // Telegram channel's image_path.
+          const bridgeOpts = imageBase64 ? { imageBase64, imageMediaType } : {};
           if (getReplyMode() === 'text') {
             // Text-only — no TTS, no mic resume.
-            await runBridgeChat(message);
+            await runBridgeChat(message, bridgeOpts);
           } else {
             // Voice reply.
-            const answer = await askBridge(message, { statusVerb: 'Thinking' });
+            const answer = await askBridge(message, { statusVerb: 'Thinking', ...bridgeOpts });
             appendMessage('assistant', answer);
             setPttState('speaking');
             pttStatus.textContent = 'Speaking…';

@@ -52,8 +52,12 @@ import { join } from 'path'
 
 const STATE_DIR = process.env.JARVIS_BRIDGE_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'jarvis-bridge')
 const ENV_FILE = join(STATE_DIR, '.env')
+// Same pattern as the telegram channel's inbox — inbound images land here as
+// real files so this session can Read them directly.
+const INBOX_DIR = join(STATE_DIR, 'inbox')
 
 mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 })
+mkdirSync(INBOX_DIR, { recursive: true, mode: 0o700 })
 
 // Load ~/.claude/channels/jarvis-bridge/.env into process.env. Real env wins.
 // Same pattern as the telegram channel — plugin-spawned servers don't get an
@@ -101,6 +105,12 @@ type Turn = {
   created_at: string
   delivered_at?: string
   answered_at?: string
+  // Optional inbound image (Jarvis chat attach button). Sent as base64 by
+  // api/jarvis-bridge-turn.js — this process decodes it to a local file on
+  // delivery (see deliverTurn) and strips it from the object afterward so
+  // the blob isn't re-uploaded on every subsequent status write.
+  image_base64?: string
+  image_media_type?: string
 }
 
 function sb(path: string): string {
@@ -170,14 +180,26 @@ const mcp = new Server(
       tools: {},
       experimental: { 'claude/channel': {} },
     },
+    // Kept under ~2000 chars deliberately — Claude Code silently truncates
+    // MCP server `instructions` at 2048 chars (confirmed via debug log:
+    // "Server instructions truncated from 2376 to 2048 chars" when an
+    // earlier, more verbose draft of this text quietly lost its last
+    // paragraph). If you extend this, re-check the length stays well clear
+    // of that cap — a silent truncation here is exactly the kind of bug
+    // that would re-introduce the reply-reliability problem this text
+    // exists to fix.
     instructions: [
-      'Messages from the jarvis-bridge channel are Heath talking by voice through the Jarvis PWA (meetdossie.com/myjarvis) on his phone or desktop, transcribed to text before they reach you. They arrive as <channel source="jarvis-bridge" chat_id="...">.',
+      'Messages from the jarvis-bridge channel are Heath talking by voice through the Jarvis PWA (meetdossie.com/myjarvis), transcribed to text before they reach you. They arrive as <channel source="jarvis-bridge" chat_id="...">. If the tag has an image_path attribute, Read that file — a photo Heath attached through the Jarvis UI.',
       '',
-      'This is a live voice conversation, not a chat window Heath is reading — keep replies short and speakable (a few sentences, plain language), the way you would talk out loud, not a wall of markdown or a bulleted list. He will hear this read aloud by ElevenLabs TTS, not see it rendered. If the answer genuinely needs a list, a table, or something he needs to copy, say so briefly and note it will be easier to see on screen than to hear.',
+      "This is a live voice conversation, not a chat window Heath is reading — keep replies short and speakable (a few sentences, plain language), not a wall of markdown or a bulleted list. He hears this read aloud by ElevenLabs TTS, never sees it rendered. If the answer genuinely needs a list/table/something to copy, say so briefly and note it's easier to see on screen than to hear.",
       '',
-      'Reply with the reply tool, passing chat_id back exactly as given in the inbound tag. Always call reply, even briefly ("On it, give me a sec" or "Done") — there is no other way for Heath to know you received the message; your transcript output never reaches him, only what you send through the tool.',
+      'MANDATORY: call the reply tool exactly once for every inbound message here, with chat_id set exactly as given in the tag — no exceptions for trivial, throwaway, or meta requests ("just say X back", "repeat this word"). Your transcript output is never seen or heard by Heath; reply is the ONLY channel back to him. Finishing your reasoning without calling reply means the turn is NOT done, even for a one-word answer.',
       '',
-      'Only Heath reaches this channel. The Vercel endpoint that feeds it (api/jarvis-bridge-turn.js) checks his Supabase auth session and only accepts heath.shepard@kw.com before a message is ever written to the bucket this channel reads — you do not need to re-verify the sender.',
+      'Long task (dispatching Carter/Atlas/etc)? You still only get one reply per turn — send a brief early ack ("On it, give me a sec") or wait for the final result, but never go silent while you work.',
+      '',
+      'If a later <channel> message is tagged as a reply reminder for a chat_id you already saw, your first pass dropped the reply call — call reply immediately with your best answer, don\'t second-guess whether it\'s "worth" one.',
+      '',
+      'Only Heath reaches this channel. api/jarvis-bridge-turn.js checks his Supabase auth session and only accepts heath.shepard@kw.com before a message is ever written here — you do not need to re-verify the sender.',
     ].join('\n'),
   },
 )
@@ -186,7 +208,11 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: 'reply',
-      description: 'Speak a reply back to Heath through Jarvis. Pass chat_id exactly as given in the inbound <channel> tag.',
+      description:
+        'Send your answer back to Heath through Jarvis (spoken aloud by TTS). ' +
+        'REQUIRED: call this tool exactly once for every jarvis-bridge turn, with NO exceptions for trivial, one-word, or meta requests ("just say X back", "repeat this word") — those still need a real reply call, not just transcript text. ' +
+        'Nothing else you output reaches Heath; skipping this tool means total silence on his end, not a harmless no-op. ' +
+        'Pass chat_id exactly as given in the inbound <channel chat_id="..."> tag.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -244,10 +270,53 @@ process.on('SIGTERM', shutdown)
 process.on('SIGINT', shutdown)
 process.on('SIGHUP', shutdown)
 
+// Inbound image handling — mirrors the telegram channel's inbox pattern
+// (~/.claude/channels/telegram/inbox/<ts>-<id>.<ext>, referenced via
+// meta.image_path so the receiving session Reads it directly). The Jarvis
+// chat attach button already resizes to <=1024px and base64-encodes
+// client-side (jarvis-pwa.html resizeImageForVision) before it ever reaches
+// api/jarvis-bridge-turn.js, so decoding here is cheap.
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+
+function writeInboundImage(id: string, base64: string, mediaType: string | undefined): string | undefined {
+  try {
+    const ext = EXT_BY_MIME[(mediaType || '').toLowerCase()] || 'jpg'
+    const path = join(INBOX_DIR, `${Date.now()}-${id}.${ext}`)
+    writeFileSync(path, Buffer.from(base64, 'base64'))
+    return path
+  } catch (err) {
+    process.stderr.write(`jarvis-bridge channel: failed to write inbound image for ${id}: ${err}\n`)
+    return undefined
+  }
+}
+
 // ---- poll loop --------------------------------------------------------------
-// seenPending dedups within this process's lifetime so a turn already
-// delivered (or answered) this run doesn't get re-notified every tick.
-const seen = new Set<string>()
+// `answered` is a terminal dedup — once a turn is confirmed answered (or
+// expired/errored) this process never looks at it again. `delivering` guards
+// against re-claiming a still-pending turn mid-flight. `deliveredAt` +
+// `nudged` back the reply-reliability watchdog below: the model occasionally
+// (observed ~2/5 in early testing, concentrated on trivial/meta prompts —
+// "just repeat this word") reasons about a channel turn without ever
+// invoking the `reply` tool, since nothing in the channel/MCP spec can force
+// a tool call for an injected notification (channel content lands as a
+// normal prompt turn with ordinary auto tool_choice — confirmed against the
+// compiled CLI, no tool_choice override exists for channel-origin turns).
+// The only real fix available is a runtime safety net: if a turn sits
+// "delivered" without flipping to "answered" for NUDGE_DELAY_MS, re-inject a
+// second notification explicitly telling the session to call reply now for
+// that chat_id. This recovers a dropped reply within seconds instead of
+// leaving Jarvis to time out after 9 minutes.
+const answered = new Set<string>()
+const delivering = new Set<string>()
+const deliveredAt = new Map<string, number>()
+const nudged = new Set<string>()
+const NUDGE_DELAY_MS = Math.max(10000, parseInt(process.env.JARVIS_BRIDGE_NUDGE_MS || '45000', 10))
 
 async function tick(): Promise<void> {
   if (shuttingDown) return
@@ -261,7 +330,7 @@ async function tick(): Promise<void> {
 
   for (const entry of entries) {
     const id = entry.name.replace(/\.json$/, '')
-    if (seen.has(id)) continue
+    if (answered.has(id)) continue
 
     let turn: Turn | null
     try {
@@ -273,36 +342,76 @@ async function tick(): Promise<void> {
 
     const createdMs = new Date(turn.created_at || 0).getTime()
     if (Date.now() - createdMs > STALE_MS) {
-      seen.add(id)
+      answered.add(id)
       void deleteTurn(id)
       continue
     }
 
-    if (turn.status !== 'pending') {
-      if (turn.status === 'answered') seen.add(id)
+    if (turn.status === 'answered' || turn.status === 'error') {
+      answered.add(id)
       continue
     }
 
-    seen.add(id) // claim before the await below so a slow response doesn't double-deliver
-    try {
-      await putTurn(id, { ...turn, status: 'delivered', delivered_at: new Date().toISOString() })
-    } catch (err) {
-      process.stderr.write(`jarvis-bridge channel: failed to mark delivered ${id}: ${err}\n`)
-      seen.delete(id)
+    if (turn.status === 'pending') {
+      if (delivering.has(id)) continue // already claimed this run, put() in flight
+      delivering.add(id)
+
+      const imagePath = turn.image_base64 ? writeInboundImage(id, turn.image_base64, turn.image_media_type) : undefined
+      // Strip the (potentially large) base64 blob before writing back — it's
+      // already on disk locally, no reason to keep re-uploading it to
+      // Storage on every subsequent status write (delivered, then answered).
+      const { image_base64: _img, image_media_type: _mime, ...turnWithoutImage } = turn
+
+      try {
+        await putTurn(id, { ...turnWithoutImage, status: 'delivered', delivered_at: new Date().toISOString() })
+      } catch (err) {
+        process.stderr.write(`jarvis-bridge channel: failed to mark delivered ${id}: ${err}\n`)
+        delivering.delete(id)
+        continue
+      }
+      deliveredAt.set(id, Date.now())
+
+      mcp
+        .notification({
+          method: 'notifications/claude/channel',
+          params: {
+            content: turn.user_message,
+            meta: {
+              chat_id: id,
+              ts: turn.created_at,
+              ...(imagePath ? { image_path: imagePath } : {}),
+            },
+          },
+        })
+        .catch(err => {
+          process.stderr.write(`jarvis-bridge channel: failed to deliver inbound to Claude: ${err}\n`)
+        })
       continue
     }
 
-    mcp
-      .notification({
-        method: 'notifications/claude/channel',
-        params: {
-          content: turn.user_message,
-          meta: { chat_id: id, ts: turn.created_at },
-        },
-      })
-      .catch(err => {
-        process.stderr.write(`jarvis-bridge channel: failed to deliver inbound to Claude: ${err}\n`)
-      })
+    // status === 'delivered' — reply-reliability watchdog.
+    if (turn.status === 'delivered' && !nudged.has(id)) {
+      const deliveredMs = deliveredAt.get(id) ?? new Date(turn.delivered_at || turn.created_at || 0).getTime()
+      if (Date.now() - deliveredMs > NUDGE_DELAY_MS) {
+        nudged.add(id)
+        const waitedS = Math.round((Date.now() - deliveredMs) / 1000)
+        process.stderr.write(`jarvis-bridge channel: nudging ${id} — no reply after ${waitedS}s\n`)
+        mcp
+          .notification({
+            method: 'notifications/claude/channel',
+            params: {
+              content:
+                `[reply reminder] You have NOT called the reply tool yet for this turn, sent ${waitedS}s ago — ` +
+                `Heath has heard nothing so far. Call reply now with chat_id="${id}" and your best answer, even if brief. ` +
+                `Original message: ${turn.user_message}`,
+              meta: { chat_id: id, ts: turn.created_at, nudge: 'true' },
+            },
+          })
+          .catch(err => {
+            process.stderr.write(`jarvis-bridge channel: nudge notify failed for ${id}: ${err}\n`)
+          })
+      }
+    }
   }
 }
 

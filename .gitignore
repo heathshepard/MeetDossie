@@ -197,6 +197,16 @@ scripts/sessions/
 .tmp-smoke/
 today-apv-test.html
 
+# Atlas/Quinn QA run-output dirs — screenshots taken against real accounts
+# routinely contain real client PII (property addresses, buyer/seller names).
+# Forward-looking only: does NOT retroactively untrack the ~459 pre-existing
+# files already committed under scripts/atlas-runs/ from earlier FB/Reddit
+# automation runs (no client PII) — see 2026-08-11 gitignore audit. History is
+# not rewritten per repo policy; this just stops new PII screenshots from
+# being swept in by a future broad `git add`.
+scripts/atlas-runs/
+scripts/_quinn_shots/
+
 # Ad-hoc .tmp-* scratch files — historically leaked DocuSeal + CRON secrets (2026-06-27)
 # Anything matching this pattern stays local-only forever
 .tmp/
@@ -216,3 +226,7 @@ __pycache__/
 *.pyc
 
 .env*
+
+# Archived one-off debug/exploration scripts + Playwright run artifacts —
+# throwaway, never worth tracking, but kept on disk (not deleted)
+scripts/_archive/
