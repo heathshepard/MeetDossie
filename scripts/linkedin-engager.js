@@ -389,6 +389,86 @@ async function runWarmTouchMode(page, seenIds) {
   return { engaged, not_found: notFound };
 }
 
+// ─── Post approved LinkedIn posts ───────────────────────────────────────────
+
+async function postApprovedLinkedIn(page) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[linkedin-engager] Supabase not configured for --post-approved');
+    return 0;
+  }
+
+  // Fetch one approved linkedin_personal post (oldest first)
+  const url = `${SUPABASE_URL}/rest/v1/social_posts?platform=eq.linkedin_personal&status=eq.approved&order=created_at.asc&limit=1`;
+  const r = await fetch(url, { headers: sbHeaders() });
+  if (!r.ok) {
+    console.error('[linkedin-engager] Failed to fetch approved posts:', r.status);
+    return 0;
+  }
+  const rows = await r.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    console.log('[linkedin-engager] No approved linkedin_personal posts to publish');
+    return 0;
+  }
+
+  const post = rows[0];
+  const postContent = post.content || '';
+  if (!postContent.trim()) {
+    console.warn('[linkedin-engager] Approved post has empty content, skipping:', post.post_id);
+    return 0;
+  }
+
+  console.log(`[linkedin-engager] Posting approved post: ${post.post_id} (${postContent.length} chars)`);
+
+  try {
+    // Navigate to LinkedIn feed
+    await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+    const currentUrl = page.url();
+    if (currentUrl.includes('/login') || currentUrl.includes('/authwall')) {
+      console.warn('[linkedin-engager] Redirected to login - cannot post. Check DossieBot profile.');
+      return 0;
+    }
+
+    // Click "Start a post" button
+    const startPostBtn = page.locator('button.share-box-feed-entry__trigger, button:has-text("Start a post")').first();
+    await startPostBtn.waitFor({ state: 'visible', timeout: 10000 });
+    await startPostBtn.click();
+
+    // Wait for the post editor modal and text area
+    const editor = page.locator('.ql-editor, div[role="textbox"], div[contenteditable="true"]').first();
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+    await editor.click();
+
+    // Type the post content
+    await page.keyboard.type(postContent, { delay: 15 });
+
+    // Wait 2 seconds before clicking Post
+    await page.waitForTimeout(2000);
+
+    // Click the Post button
+    const postBtn = page.locator('button.share-actions__primary-action, button:has-text("Post")').first();
+    await postBtn.waitFor({ state: 'visible', timeout: 10000 });
+    await postBtn.click();
+
+    // Wait for confirmation
+    await page.waitForTimeout(3000);
+
+    // Mark as posted in Supabase
+    const patchUrl = `${SUPABASE_URL}/rest/v1/social_posts?id=eq.${post.id}`;
+    await fetch(patchUrl, {
+      method: 'PATCH',
+      headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'posted', posted_at: new Date().toISOString() }),
+    });
+
+    console.log(`[linkedin-engager] Successfully posted: ${post.post_id}`);
+    return 1;
+  } catch (err) {
+    console.error(`[linkedin-engager] Failed to post ${post.post_id}:`, err.message);
+    return 0;
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -452,6 +532,7 @@ async function main() {
   let totalLiked = 0;
   let totalCommented = 0;
   let warmResult = null;
+  let postApprovedCount = 0;
 
   try {
     if (warmTouchMode) {
@@ -471,12 +552,20 @@ async function main() {
         await new Promise(r => setTimeout(r, 3000));
       }
     }
+
+    // Post approved LinkedIn personal posts
+    if (process.argv.includes('--post-approved')) {
+      const posted = await postApprovedLinkedIn(page);
+      console.log(`[linkedin-engager] Posted ${posted} LinkedIn posts`);
+      postApprovedCount = posted;
+    }
   } finally {
     await context.close();
   }
 
   const parts = [`LinkedIn engagement: liked ${totalLiked}, commented ${totalCommented}`];
   if (warmResult) parts.push(`warm-touch: ${warmResult.engaged} engaged, ${warmResult.not_found} not found`);
+  if (postApprovedCount > 0) parts.push(`posted: ${postApprovedCount} approved`);
   const summary = parts.join(' | ');
   console.log(`[linkedin-engager] ${summary}`);
   await sendTelegram(summary);

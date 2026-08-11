@@ -446,6 +446,9 @@
     "api/cron-warm-touch-populate.js": {
       "maxDuration": 30,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
+    },
+    "api/cron-generate-heath-linkedin.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -816,6 +819,10 @@
     {
       "path": "/api/cron-content-pipeline-promote",
       "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron-generate-heath-linkedin",
+      "schedule": "0 11 * * 1-5"
     }
   ]
 }
