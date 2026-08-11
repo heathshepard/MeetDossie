@@ -49,6 +49,7 @@ import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprot
 import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
+import { findYoutubeVideoId, buildYoutubeContextBlock } from './youtube-context.js'
 
 const STATE_DIR = process.env.JARVIS_BRIDGE_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'jarvis-bridge')
 const ENV_FILE = join(STATE_DIR, '.env')
@@ -59,24 +60,41 @@ const INBOX_DIR = join(STATE_DIR, 'inbox')
 mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 })
 mkdirSync(INBOX_DIR, { recursive: true, mode: 0o700 })
 
-// Load ~/.claude/channels/jarvis-bridge/.env into process.env. Real env wins.
-// Same pattern as the telegram channel — plugin-spawned servers don't get an
-// env block from Claude Code, so this is where the credentials live.
+// Load ~/.claude/channels/jarvis-bridge/.env into process.env — THIS FILE
+// always wins for the keys it defines, full stop.
+//
+// Originally this only filled in undefined/`[SENSITIVE]` slots ("real env
+// wins"), on the assumption that whatever was already in process.env was a
+// deliberate, trustworthy override. That assumption broke silently: Bun
+// auto-loads `.env`/`.env.local` from its CWD before this script's first
+// line ever runs, and when this process is spawned from the MeetDossie repo
+// root (exactly what `.mcp.json`'s relative `scripts/jarvis-bridge/server.ts`
+// path requires), Bun picks up the repo's `.env.local` — which has a stray
+// SECOND `SUPABASE_SERVICE_ROLE_KEY=<your service role key from Vercel>`
+// placeholder line further down the file. Standard dotenv last-line-wins
+// semantics mean that placeholder silently clobbers the real key BEFORE this
+// loop ever runs, `process.env.SUPABASE_SERVICE_ROLE_KEY` is neither
+// undefined nor `[SENSITIVE]` (it's literally the placeholder string), so
+// the old guard let it stand — every Storage call then failed with
+// `403 Invalid Compact JWS`, silently, since nothing here surfaces to Heath
+// except a stderr line in a process he isn't watching. Confirmed 2026-08-11
+// while testing the image-cap raise: this is why the channel wasn't
+// answering, unrelated to that fix. This file is dedicated, single-purpose,
+// and curated correctly — it should never lose to whatever an unrelated
+// ambient `.env.local` happens to auto-load.
 try {
   chmodSync(ENV_FILE, 0o600)
   for (const line of readFileSync(ENV_FILE, 'utf8').split('\n')) {
     const m = line.match(/^(\w+)=(.*)$/)
-    // "Real env wins" — except Vercel's literal `[SENSITIVE]` placeholder,
-    // which can leak into the ambient shell (e.g. from `vercel env pull`
-    // done earlier in the same terminal) and is never a usable value.
-    if (m && (process.env[m[1]] === undefined || process.env[m[1]] === '[SENSITIVE]')) {
-      process.env[m[1]] = m[2]
-    }
+    if (m) process.env[m[1]] = m[2]
   }
 } catch {}
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+// Optional — only needed for the YouTube audio-transcription fallback path
+// (youtube-context.ts Path B). Captions-only path (Path A) doesn't need it.
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const BUCKET = 'jarvis-bridge'
 const PREFIX = 'turns/'
 const POLL_MS = Math.max(500, parseInt(process.env.JARVIS_BRIDGE_POLL_MS || '1500', 10))
@@ -327,7 +345,6 @@ async function tick(): Promise<void> {
     process.stderr.write(`jarvis-bridge channel: list failed: ${err}\n`)
     return
   }
-
   for (const entry of entries) {
     const id = entry.name.replace(/\.json$/, '')
     if (answered.has(id)) continue
@@ -369,13 +386,39 @@ async function tick(): Promise<void> {
         delivering.delete(id)
         continue
       }
-      deliveredAt.set(id, Date.now())
+      // NOTE: deliveredAt (used by the reply-reliability nudge below) is
+      // intentionally NOT set here. Marking the Storage object 'delivered'
+      // immediately is what keeps Jarvis's phone-side poll from showing a
+      // false "Cole isn't listening" (api/jarvis-bridge-turn.js's
+      // PICKUP_TIMEOUT_MS=20s watches turn.status, not the notification).
+      // But if this message contains a YouTube link, buildYoutubeContextBlock
+      // below can take 10-60s (headless browser + possible audio-STT
+      // fallback) BEFORE the model ever sees the turn — starting the
+      // reply-nudge clock now would fire a "you haven't replied" nudge for a
+      // turn the model hasn't been notified of yet. deliveredAt is set right
+      // before the actual notification() call instead, a few lines down.
 
+      let contentToDeliver = turn.user_message
+      const yt = findYoutubeVideoId(turn.user_message)
+      if (yt) {
+        try {
+          const ytBlock = await buildYoutubeContextBlock(turn.user_message, ELEVENLABS_API_KEY)
+          if (ytBlock) contentToDeliver = `${turn.user_message}\n\n${ytBlock}`
+        } catch (err) {
+          process.stderr.write(`jarvis-bridge channel: youtube context build failed for ${id}: ${err}\n`)
+        }
+      }
+
+      deliveredAt.set(id, Date.now())
+      // Now that deliveredAt is set (and the model is about to actually be
+      // notified), release the in-flight guard so the watchdog below can
+      // time this turn normally on future ticks.
+      delivering.delete(id)
       mcp
         .notification({
           method: 'notifications/claude/channel',
           params: {
-            content: turn.user_message,
+            content: contentToDeliver,
             meta: {
               chat_id: id,
               ts: turn.created_at,
@@ -389,8 +432,13 @@ async function tick(): Promise<void> {
       continue
     }
 
-    // status === 'delivered' — reply-reliability watchdog.
-    if (turn.status === 'delivered' && !nudged.has(id)) {
+    // status === 'delivered' — reply-reliability watchdog. Skipped while
+    // `delivering` still holds this id — that means another in-progress tick
+    // is still building enriched content (e.g. a YouTube transcript) for it
+    // and hasn't actually notified the model yet; deliveredAt isn't set until
+    // that notification fires, so timing off turn.delivered_at here would
+    // nudge for a turn the model was never shown.
+    if (turn.status === 'delivered' && !nudged.has(id) && !delivering.has(id)) {
       const deliveredMs = deliveredAt.get(id) ?? new Date(turn.delivered_at || turn.created_at || 0).getTime()
       if (Date.now() - deliveredMs > NUDGE_DELAY_MS) {
         nudged.add(id)
