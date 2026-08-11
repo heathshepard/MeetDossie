@@ -248,6 +248,20 @@ async function loadFiredReminders(transactionId) {
   return set;
 }
 
+// Belt-and-suspenders existence check — same fix applied in cron-followup.js
+// for the 2026-08-10 104 Wild Cherry false positive. A transaction-level
+// "received" flag can drift out of sync with what's actually in the dossier
+// (e.g. document uploaded/scanned but the flag never got set). Before this
+// cron tells an agent "documents not yet received," it also checks the
+// documents table directly so a real upload can't be reported as missing.
+async function hasDocumentOnFile(transactionId, documentType) {
+  if (!transactionId || !documentType) return false;
+  const r = await supabaseFetch(
+    `/rest/v1/documents?transaction_id=eq.${encodeURIComponent(transactionId)}&document_type=eq.${encodeURIComponent(documentType)}&limit=1`,
+  );
+  return r.ok && Array.isArray(r.data) && r.data.length > 0;
+}
+
 async function recordReminder(row) {
   const r = await supabaseFetch('/rest/v1/deadline_reminders', {
     method: 'POST',
@@ -508,7 +522,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
         // BLOCK 7 conditional: hoa_document_deadline within T-3 and HOA docs
         // not yet received.
         // -----------------------------------------------------------------------
-        if (tx.hoa_document_deadline && !tx.hoa_docs_received_at) {
+        if (tx.hoa_document_deadline && !tx.hoa_docs_received_at && !(await hasDocumentOnFile(tx.id, 'hoa-docs'))) {
           const hoaYmd = String(tx.hoa_document_deadline).slice(0, 10);
           const t3Date = addDaysYMD(today, 3);
           if (hoaYmd === t3Date) {

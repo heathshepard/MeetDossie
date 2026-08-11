@@ -57,7 +57,7 @@ Before recommending any tool/library/service install, check: (1) CLAUDE.md Secti
 | Telegram | Two bots | **Claudy** (`TELEGRAM_BOT_TOKEN`) personal+DONE. **DossieMarketingBot** (`TELEGRAM_MARKETING_BOT_TOKEN`) post approve/reject. |
 
 **Repo layout — TWO repos:**
-- `C:\Users\Heath\Projects\Dossie` — React source. Build here. *(not cloned on this machine as of 2026-07-28)*
+- `C:\Users\Heath\Projects\Dossie` — React source. Build here. *(cloned and confirmed present as of 2026-08-11)*
 - `C:\Users\Heath\Projects\MeetDossie` — Vercel deploy. Push here. Cron functions, API routes, scripts, Media live here.
 
 Paths corrected 2026-07-28 — the Windows profile is `Heath`, not `Heath Shepard`, and the repos live under `Projects\`, not `Desktop\`. Under WSL these are `/mnt/c/Users/Heath/Projects/...`.
@@ -527,10 +527,7 @@ is `Heath`, not `Heath Shepard`.
 | Repo | Windows path | WSL path | Present? |
 |---|---|---|---|
 | MeetDossie | `C:\Users\Heath\Projects\MeetDossie` | `/mnt/c/Users/Heath/Projects/MeetDossie` | yes |
-| Dossie | `C:\Users\Heath\Projects\Dossie` | `/mnt/c/Users/Heath/Projects/Dossie` | **not cloned yet** |
-
-`Dossie.bat` exits with a message rather than opening the wrong directory until
-that repo is cloned.
+| Dossie | `C:\Users\Heath\Projects\Dossie` | `/mnt/c/Users/Heath/Projects/Dossie` | yes (confirmed 2026-08-11) |
 
 `--continue` resumes most recent session per cwd. **Caveat:** model swap (Opus ↔ Sonnet ↔ Haiku) starts fresh session — "save state to memory" before swap.
 

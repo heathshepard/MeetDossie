@@ -62,13 +62,55 @@ const escapeHtml = (s) =>
 // cause of the 2026-08-10 104 Wild Cherry false positive: iabs_delivered_at
 // was set correctly, but this cron never looked at it or at documents before
 // sending "please send this over" for a form that was already on file).
-// Extend this list if other reminders start chasing a specific document type.
+//
+// Generalized 2026-08-11 beyond IABS to every document type that has a
+// matching transaction-level delivery/received flag (see the field enum in
+// api/chat.js) — the same false-positive class applies to any of these, not
+// just IABS. transactionFlag/documentType names are verified against the
+// live schema; a doc type is deliberately left OFF this list rather than
+// guessing a flag name that doesn't exist.
 const DOCUMENT_FOLLOWUPS = [
   {
     match: /\biabs\b|information about brokerage services/i,
     transactionFlag: 'iabs_delivered_at',
     documentType: 'iabs-form',
     label: 'IABS',
+  },
+  {
+    match: /seller'?s?\s+disclosure|\bsdn\b/i,
+    transactionFlag: 'sellers_disclosure_received_at',
+    documentType: 'trec-sellers-disclosure',
+    label: "Seller's Disclosure Notice",
+  },
+  {
+    match: /buyer representation/i,
+    transactionFlag: 'buyer_rep_signed_at',
+    documentType: 'trec-buyer-representation',
+    label: 'Buyer Representation Agreement',
+  },
+  {
+    match: /title commitment/i,
+    transactionFlag: 'title_commitment_received_at',
+    documentType: 'title-commitment',
+    label: 'Title Commitment',
+  },
+  {
+    match: /\bsurvey\b/i,
+    transactionFlag: 'survey_received_at',
+    documentType: 'survey',
+    label: 'Survey',
+  },
+  {
+    match: /pre-?approval/i,
+    transactionFlag: 'pre_approval_received',
+    documentType: 'pre-approval-letter',
+    label: 'Pre-Approval Letter',
+  },
+  {
+    match: /\bhoa\b.*(docs|documents|addendum)/i,
+    transactionFlag: 'hoa_docs_received_at',
+    documentType: 'trec-hoa-addendum',
+    label: 'HOA Documents',
   },
 ];
 
@@ -95,6 +137,22 @@ async function checkDocumentFollowupResolved(transactionId, cfg) {
   const document = Array.isArray(docRows) && docRows[0] ? docRows[0] : null;
 
   return { resolved: Boolean(flagSet) || Boolean(document), document };
+}
+
+// Document-linked reminders never auto-send to the client. item.assigned_to_email
+// on these items is the CLIENT the original email went to (sendEmail() in the
+// app writes it that way) — auto re-sending them a nag every 48h with no human
+// review is exactly what Heath asked us to stop doing. Instead we look up the
+// AGENT who owns the dossier (profiles.id = item.user_id) and put a
+// ready-to-review draft in front of THEM; they decide if/when/how to actually
+// reach the client. Same human-in-the-loop shape as the content-pipeline
+// Telegram approval.
+async function getAgentContact(userId) {
+  if (!userId) return null;
+  const { data } = await supabaseFetch(
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=email,full_name&limit=1`,
+  );
+  return Array.isArray(data) && data[0] ? data[0] : null;
 }
 
 module.exports = withTelemetry('cron-followup', async function handler(req, res) {
@@ -176,7 +234,12 @@ module.exports = withTelemetry('cron-followup', async function handler(req, res)
       }
 
       // Auto-follow-up at 48h+, with 24h throttle and a 3-attempt cap.
-      if (daysOverdue >= 2 && item.assigned_to_email && (item.follow_up_count || 0) < 3) {
+      // Document-linked items (docFollowup set + still unresolved) NEVER
+      // auto-send to the client — see getAgentContact() above for why. They
+      // route to the agent-review branch instead, which requires only
+      // item.user_id (not item.assigned_to_email).
+      const hasFollowUpTarget = docFollowup ? Boolean(item.user_id) : Boolean(item.assigned_to_email);
+      if (daysOverdue >= 2 && hasFollowUpTarget && (item.follow_up_count || 0) < 3) {
         const lastFollowUp = item.last_follow_up_at ? new Date(item.last_follow_up_at) : null;
         const hoursSinceFollowUp = lastFollowUp ? (now - lastFollowUp) / (1000 * 60 * 60) : Infinity;
 
@@ -196,69 +259,99 @@ module.exports = withTelemetry('cron-followup', async function handler(req, res)
             }
           }
 
-          const firstName = item.assigned_to_name
-            ? item.assigned_to_name.trim().split(/\s+/)[0]
-            : (item.assigned_to_email ? item.assigned_to_email.split('@')[0] : null);
-          const greeting = firstName ? `Hi ${escapeHtml(firstName)}` : 'Hi';
-          const dealTag = propertyAddress ? ` — ${propertyAddress}` : '';
-          const subject = item.email_subject
-            ? `Re: ${item.email_subject}`
-            : `Following up${dealTag}`;
-
-          // Use the stored email body when available. It contains the full
-          // drafted email text Dossie wrote when the action item was created.
-          // Only fall back to a generic message if email_body is missing.
-          let bodyHtml;
-          if (item.email_body && item.email_body.trim()) {
-            const bodyText = item.email_body.trim();
-            const paragraphs = bodyText
-              .split(/\n\n+/)
-              .map((p) => `<p style="margin:0 0 16px;">${escapeHtml(p.replace(/\n/g, ' '))}</p>`)
-              .join('');
-            bodyHtml = paragraphs;
+          let sent;
+          if (docFollowup) {
+            // Agent-review path: a still-missing document never gets an
+            // automatic client-facing send. Instead the AGENT gets a
+            // ready-to-review draft — the exact text that would have gone
+            // to the client, plus a suggested e-signature request as the
+            // natural next action — and decides if/when to actually send.
+            const agent = await getAgentContact(item.user_id);
+            if (agent && agent.email) {
+              const agentFirstName = agent.full_name ? agent.full_name.trim().split(/\s+/)[0] : null;
+              const dealTag = propertyAddress ? ` — ${propertyAddress}` : '';
+              const subject = `Review before sending: ${docFollowup.label} still missing${dealTag}`;
+              const draftBodyHtml = item.email_body && item.email_body.trim()
+                ? item.email_body.trim().split(/\n\n+/)
+                    .map((p) => `<p style="margin:0 0 16px;">${escapeHtml(p.replace(/\n/g, ' '))}</p>`)
+                    .join('')
+                : `<p style="margin:0 0 16px;">No draft text was saved with this reminder — open the dossier to write one.</p>`;
+              const html = `
+                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">
+                  <p>Hi${agentFirstName ? ` ${escapeHtml(agentFirstName)}` : ''},</p>
+                  <p style="margin:0 0 16px;">The <strong>${escapeHtml(docFollowup.label)}</strong> still isn't on file${propertyAddress ? ` for <strong>${escapeHtml(propertyAddress)}</strong>` : ''}. I checked both the dossier's documents and the delivery flag — neither shows it received, so I'm not sending anything to ${escapeHtml(item.assigned_to_name || item.assigned_to_email || 'the client')} automatically. Here's the draft I'd have sent, ready for you to review:</p>
+                  <div style="margin:0 0 16px;padding:16px 18px;background:#F8F4EC;border:1px solid #EAE1D8;border-radius:8px;">
+                    ${draftBodyHtml}
+                  </div>
+                  <p style="margin:0 0 16px;">
+                    <a href="https://meetdossie.com/workspace" style="display:inline-block;background:#1A1A2E;color:#F5E6E0;padding:12px 20px;border-radius:6px;text-decoration:none;font-size:14px;">Open the workspace</a>
+                  </p>
+                  <p style="margin:0 0 16px;font-size:13px;color:#7A7468;">Find ${escapeHtml(propertyAddress || 'the deal')} in the sidebar. You can send this draft as-is from Emails, or request it by e-signature instead using <strong>Send for sig.</strong> on the ${escapeHtml(docFollowup.label)} form under Documents — often the faster way to actually collect it.</p>
+                  <p style="margin:0 0 16px;">- Dossie</p>
+                </div>
+              `;
+              sent = await sendResendEmail({
+                from: 'Dossie <dossie@meetdossie.com>',
+                to: agent.email,
+                subject,
+                html,
+              });
+            } else {
+              sent = { ok: false, error: 'agent_contact_not_found' };
+            }
           } else {
-            const dealRef = propertyAddress
-              ? ` regarding <strong>${escapeHtml(propertyAddress)}</strong>`
+            // Existing client-facing path — unrelated to document collection
+            // (e.g. "checking in" follow-ups on a plain action item).
+            const firstName = item.assigned_to_name
+              ? item.assigned_to_name.trim().split(/\s+/)[0]
+              : (item.assigned_to_email ? item.assigned_to_email.split('@')[0] : null);
+            const greeting = firstName ? `Hi ${escapeHtml(firstName)}` : 'Hi';
+            const dealTag = propertyAddress ? ` — ${propertyAddress}` : '';
+            const subject = item.email_subject
+              ? `Re: ${item.email_subject}`
+              : `Following up${dealTag}`;
+
+            // Use the stored email body when available. It contains the full
+            // drafted email text Dossie wrote when the action item was created.
+            // Only fall back to a generic message if email_body is missing.
+            let bodyHtml;
+            if (item.email_body && item.email_body.trim()) {
+              const bodyText = item.email_body.trim();
+              const paragraphs = bodyText
+                .split(/\n\n+/)
+                .map((p) => `<p style="margin:0 0 16px;">${escapeHtml(p.replace(/\n/g, ' '))}</p>`)
+                .join('');
+              bodyHtml = paragraphs;
+            } else {
+              const dealRef = propertyAddress
+                ? ` regarding <strong>${escapeHtml(propertyAddress)}</strong>`
+                : '';
+              bodyHtml = `<p style="margin:0 0 16px;">I wanted to check in${dealRef}. Is there anything you need from me to keep things moving? Just let me know and I'll get right on it.</p>`;
+            }
+
+            const dealLine = propertyAddress
+              ? `<p style="font-size:14px;color:#7A7468;margin:0 0 18px;">Re: <strong>${escapeHtml(propertyAddress)}</strong></p>`
               : '';
-            bodyHtml = `<p style="margin:0 0 16px;">I wanted to check in${dealRef}. Is there anything you need from me to keep things moving? Just let me know and I'll get right on it.</p>`;
+
+            const html = `
+              <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">
+                <p>${greeting},</p>
+                ${dealLine}
+                ${bodyHtml}
+                <p style="margin:0 0 16px;">- Dossie</p>
+                <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E0D8; font-size: 12px; color: #9CA8B4; line-height: 1.6;">
+                  If you don't see future emails from Dossie, please check your spam folder and mark dossie@meetdossie.com as a safe sender.
+                </div>
+              </div>
+            `;
+            sent = await sendResendEmail({
+              from: 'Dossie <dossie@meetdossie.com>',
+              to: item.assigned_to_email,
+              subject,
+              html,
+            });
           }
 
-          const dealLine = propertyAddress
-            ? `<p style="font-size:14px;color:#7A7468;margin:0 0 18px;">Re: <strong>${escapeHtml(propertyAddress)}</strong></p>`
-            : '';
-
-          // Document-linked reminders that are still genuinely open (checked
-          // above — docFollowup is only non-null here when unresolved) get a
-          // direct call-to-action instead of leaving the recipient to hunt
-          // for the deal themselves. This reuses the workspace URL, the same
-          // place the "Send for sig." button already lives — Heath's ask was
-          // that a legitimate reminder should help the recipient act on it,
-          // not just nag in prose.
-          const ctaHtml = docFollowup
-            ? `<p style="margin:0 0 16px;">
-                 <a href="https://meetdossie.com/workspace" style="display:inline-block;background:#1A1A2E;color:#F5E6E0;padding:12px 20px;border-radius:6px;text-decoration:none;font-size:14px;">Open the workspace to send it</a>
-               </p>
-               <p style="margin:0 0 16px;font-size:13px;color:#7A7468;">Find ${escapeHtml(propertyAddress || 'the deal')} in the sidebar, then use <strong>Send for sig.</strong> on the ${escapeHtml(docFollowup.label)} form under Documents.</p>`
-            : '';
-
-          const html = `
-            <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1C2B3A; line-height: 1.7;">
-              <p>${greeting},</p>
-              ${dealLine}
-              ${bodyHtml}
-              ${ctaHtml}
-              <p style="margin:0 0 16px;">- Dossie</p>
-              <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E0D8; font-size: 12px; color: #9CA8B4; line-height: 1.6;">
-                If you don't see future emails from Dossie, please check your spam folder and mark dossie@meetdossie.com as a safe sender.
-              </div>
-            </div>
-          `;
-          const sent = await sendResendEmail({
-            from: 'Dossie <dossie@meetdossie.com>',
-            to: item.assigned_to_email,
-            subject,
-            html,
-          });
           if (sent.ok) {
             await supabaseFetch(`/rest/v1/action_items?id=eq.${encodeURIComponent(item.id)}`, {
               method: 'PATCH',
