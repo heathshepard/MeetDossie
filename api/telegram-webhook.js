@@ -758,6 +758,54 @@ async function handleCallbackQuery(cb) {
     return handleGroupPostCallback(groupPost[1], groupPost[2], callbackId, chatId, messageId, originalBody);
   }
 
+  // Nightly content pipeline approval flow: cpage_approve_<id> / cpage_reject_<id>
+  // See docs/CONTENT-PIPELINE.md. Approve only flips status='approved' --
+  // the actual promotion (write JSON, run build script, git push) happens
+  // separately via cron-content-pipeline-promote.js -> a real atlas
+  // agent_queue task, never directly from this serverless function.
+  const cpage = data.match(/^cpage_(approve|reject)_(.+)$/);
+  if (cpage) {
+    const action = cpage[1];
+    const rowId = cpage[2];
+    const originalBody = String(message?.text || '');
+
+    const { data: rows } = await supabaseFetch(
+      `/rest/v1/content_pipeline_queue?id=eq.${encodeURIComponent(rowId)}&limit=1`,
+    );
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!row) {
+      if (callbackId) await answerCallback(callbackId, 'Page not found');
+      return;
+    }
+    if (row.status !== 'pending_review') {
+      if (callbackId) await answerCallback(callbackId, `Already ${row.status}`);
+      return;
+    }
+
+    if (action === 'approve') {
+      await supabaseFetch(`/rest/v1/content_pipeline_queue?id=eq.${encodeURIComponent(rowId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'approved', reviewed_at: new Date().toISOString() }),
+      });
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n✅ APPROVED — promoting to staging shortly (build + commit + push runs via atlas).`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Approved');
+    } else {
+      await supabaseFetch(`/rest/v1/content_pipeline_queue?id=eq.${encodeURIComponent(rowId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'rejected', reviewed_at: new Date().toISOString(), rejection_reason: 'heath_rejected' }),
+      });
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ REJECTED — discarded, this topic will not be auto-resurfaced.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Rejected');
+    }
+    return;
+  }
+
   // Check for retry button
   const retry = data.match(/^retry_(.+)$/);
   if (retry) {

@@ -426,6 +426,19 @@
     },
     "api/cron-regression-suite.js": {
       "maxDuration": 120
+    },
+    "api/cron-generate-pages.js": {
+      "maxDuration": 60,
+      "includeFiles": "marketing/{guides-data,features-data,answers-data}/*.json"
+    },
+    "api/cron-content-pipeline-review.js": {
+      "maxDuration": 30
+    },
+    "api/cron-content-pipeline-promote.js": {
+      "maxDuration": 30
+    },
+    "api/admin-migrate-content-pipeline-queue.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -772,6 +785,18 @@
     {
       "path": "/api/cron-storage-retention",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron-generate-pages",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron-content-pipeline-review",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron-content-pipeline-promote",
+      "schedule": "*/20 * * * *"
     }
   ]
 }
