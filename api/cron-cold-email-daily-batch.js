@@ -254,20 +254,15 @@ function selectKwLeads(count, excluded, dateKey) {
 
 function buildText(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
-  const spotsText = typeof foundingRemaining === 'number'
-    ? `Only ${foundingRemaining} founding spots left`
-    : `${FOUNDING_COHORT_CAP} founding spots available`;
-  return `Hey - quick question.
+  return `Hey — what do you pay per file for TC work? $350? $400?
 
-What are you paying per file for TC work right now? $350? $400?
+I'm an agent in ${city}. Got tired of that math so I built an AI that does it. Her name's Dossie. TREC forms, amendments, deadline tracking, follow-up emails — $29/mo flat, unlimited files.
 
-I'm an agent in ${city} and I got tired of that math. So I built an AI transaction coordinator. She drafts amendments, tracks every deadline, and sends the follow-up emails you keep forgetting. $29/mo flat, unlimited files.
+If that math works: ${FOUNDING_URL}
 
-If that math works for you: ${FOUNDING_URL}
+Not interested? Reply and I won't email again.
 
-${spotsText} at $29/mo, locked for life. No pressure - just reply "not interested" and I won't email again.
-
-- Heath
+Heath
 
 ---
 Unsubscribe: ${unsub}
@@ -277,21 +272,16 @@ ${NW_ADDRESS}
 
 function buildHtml(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
-  const spotsText = typeof foundingRemaining === 'number'
-    ? `Only ${foundingRemaining} founding spots left`
-    : `${FOUNDING_COHORT_CAP} founding spots available`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
-<p>Hey - quick question.</p>
+<p>Hey &mdash; what do you pay per file for TC work? $350? $400?</p>
 
-<p>What are you paying per file for TC work right now? $350? $400?</p>
+<p>I'm an agent in ${city}. Got tired of that math so I built an AI that does it. Her name's Dossie. TREC forms, amendments, deadline tracking, follow-up emails &mdash; $29/mo flat, unlimited files.</p>
 
-<p>I'm an agent in ${city} and I got tired of that math. So I built an AI transaction coordinator. She drafts amendments, tracks every deadline, and sends the follow-up emails you keep forgetting. $29/mo flat, unlimited files.</p>
+<p>If that math works: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
 
-<p>If that math works for you: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>Not interested? Reply and I won't email again.</p>
 
-<p style="color: #555;">${spotsText} at $29/mo, locked for life. No pressure - just reply "not interested" and I won't email again.</p>
-
-<p>- Heath</p>
+<p>Heath</p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">

@@ -46,13 +46,15 @@ function touch2Subject() {
 
 function touch2Text(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
-  return `Hey - sent you a note a few days ago about what you're paying per file for TC work.
+  return `Hey — following up on my note about TC costs.
 
-Not trying to be pushy. I built Dossie because I was tired of the $400/file math myself. She handles amendments, deadlines, and follow-up emails for $29/mo flat.
+Short version: I built an AI transaction coordinator. Does what a $400/file TC does. $29/mo flat. 10 Texas agents pay for her right now.
 
-If the timing's wrong, no worries at all. Just reply "not now" and I'll leave you be.
+Worth 2 minutes if you're doing 2+ deals a month: ${FOUNDING_URL}
 
-- Heath
+Not your thing? Just reply and I'll stop.
+
+Heath
 
 ---
 Unsubscribe: ${unsub}
@@ -63,13 +65,15 @@ ${NW_ADDRESS}
 function touch2Html(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
-<p>Hey - sent you a note a few days ago about what you're paying per file for TC work.</p>
+<p>Hey &mdash; following up on my note about TC costs.</p>
 
-<p>Not trying to be pushy. I built Dossie because I was tired of the $400/file math myself. She handles amendments, deadlines, and follow-up emails for $29/mo flat.</p>
+<p>Short version: I built an AI transaction coordinator. Does what a $400/file TC does. $29/mo flat. 10 Texas agents pay for her right now.</p>
 
-<p>If the timing's wrong, no worries at all. Just reply "not now" and I'll leave you be.</p>
+<p>Worth 2 minutes if you're doing 2+ deals a month: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
 
-<p>- Heath</p>
+<p>Not your thing? Just reply and I'll stop.</p>
+
+<p>Heath</p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">
@@ -86,15 +90,15 @@ function touch3Subject() {
 
 function touch3Text(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
-  return `One of our founding members - a broker doing 80 transactions a year - told me: "the lack of systems I have in place isn't sustainable."
+  return `One of our members — broker, 80 deals a year — told me straight up: "the lack of systems I have in place isn't sustainable."
 
-That's exactly why I built Dossie. She's not a generic task app. She knows TREC deadlines, drafts the actual amendment emails, and follows up so you don't have to.
+That's the agent Dossie was built for. She knows TREC deadlines. Drafts the amendment emails. Follows up so nothing slips.
 
-The agents using her aren't delegating and hoping. They're reviewing what she drafted and hitting send. Big difference.
+You review what she drafted. Hit send. Done.
 
-If you're closing 2+ deals a month, the $29 pays for itself on the first file: ${FOUNDING_URL}
+If the paperwork side is eating your time: ${FOUNDING_URL}
 
-- Heath
+Heath
 
 ---
 Unsubscribe: ${unsub}
@@ -105,15 +109,15 @@ ${NW_ADDRESS}
 function touch3Html(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
-<p>One of our founding members - a broker doing 80 transactions a year - told me: "the lack of systems I have in place isn't sustainable."</p>
+<p>One of our members &mdash; broker, 80 deals a year &mdash; told me straight up: "the lack of systems I have in place isn't sustainable."</p>
 
-<p>That's exactly why I built Dossie. She's not a generic task app. She knows TREC deadlines, drafts the actual amendment emails, and follows up so you don't have to.</p>
+<p>That's the agent Dossie was built for. She knows TREC deadlines. Drafts the amendment emails. Follows up so nothing slips.</p>
 
-<p>The agents using her aren't delegating and hoping. They're reviewing what she drafted and hitting send. Big difference.</p>
+<p>You review what she drafted. Hit send. Done.</p>
 
-<p>If you're closing 2+ deals a month, the $29 pays for itself on the first file: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>If the paperwork side is eating your time: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
 
-<p>- Heath</p>
+<p>Heath</p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">
@@ -130,13 +134,13 @@ function touch4Subject() {
 
 function touch4Text(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
-  return `Hey - this is my last email. I don't want to be that guy.
+  return `Hey — last one from me on this.
 
-If you ever need an AI transaction coordinator that handles the paperwork side for $29/mo, the link's here: ${FOUNDING_URL}
+If you ever want an AI TC that handles the paperwork side for $29/mo, link's here: ${FOUNDING_URL}
 
-No follow-up, no drip campaign. If the timing's ever right, you know where to find me.
+Not following up again. If it ever makes sense, you know where I am.
 
-- Heath
+Heath
 
 ---
 Unsubscribe: ${unsub}
@@ -147,13 +151,13 @@ ${NW_ADDRESS}
 function touch4Html(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
-<p>Hey - this is my last email. I don't want to be that guy.</p>
+<p>Hey &mdash; last one from me on this.</p>
 
-<p>If you ever need an AI transaction coordinator that handles the paperwork side for $29/mo, the link's here: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>If you ever want an AI TC that handles the paperwork side for $29/mo, link's here: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
 
-<p>No follow-up, no drip campaign. If the timing's ever right, you know where to find me.</p>
+<p>Not following up again. If it ever makes sense, you know where I am.</p>
 
-<p>- Heath</p>
+<p>Heath</p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">
