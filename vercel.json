@@ -714,6 +714,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron-email-to-dossier",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron-support-ticket-alert",
       "schedule": "*/30 * * * *"
     },
