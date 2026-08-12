@@ -1156,28 +1156,8 @@
       white-space: pre-wrap; word-wrap: break-word;
       max-height: 140px; overflow-y: auto;
     }
-    .merge-queue-waiting {
-      font-size: 11px; color: var(--warn);
-      letter-spacing: 0.02em;
-    }
-    .merge-queue-signoff-badges {
-      display: flex; gap: 4px; flex-wrap: wrap;
-    }
-    .signoff-badge {
-      font-size: 9px; padding: 2px 5px;
-      border-radius: 3px;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex; align-items: center; gap: 2px;
-    }
-    .signoff-badge.not-run { background: rgba(77, 208, 225, 0.1); color: var(--txt-mute); border: 1px solid rgba(77, 208, 225, 0.15); }
-    .signoff-badge.pass { background: rgba(139, 168, 136, 0.15); color: var(--ok); border: 1px solid rgba(139, 168, 136, 0.3); }
-    .signoff-badge.fail { background: rgba(232, 94, 94, 0.15); color: var(--fail); border: 1px solid rgba(232, 94, 94, 0.3); }
-    .signoff-badge:hover { opacity: 0.85; }
     .merge-queue-buttons {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      display: grid; grid-template-columns: 1fr; gap: 6px;
     }
     .merge-btn {
       font-family: inherit;
@@ -1203,17 +1183,6 @@
       color: var(--txt-mute);
       border-color: rgba(77, 208, 225, 0.15);
     }
-    .merge-btn.merge-anyway {
-      background: linear-gradient(135deg, rgba(232, 185, 100, 0.2), rgba(232, 185, 100, 0.08));
-      border-color: rgba(232, 185, 100, 0.4);
-      color: var(--warn);
-    }
-    .merge-btn.merge-anyway:hover:not(:disabled) {
-      background: linear-gradient(135deg, rgba(232, 185, 100, 0.3), rgba(232, 185, 100, 0.12));
-      border-color: var(--warn);
-      box-shadow: 0 0 8px rgba(232, 185, 100, 0.25);
-    }
-
     /* ===== TO-DO PANEL ===== */
     .panel-title.todo-title-row {
       display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -5945,7 +5914,11 @@
       try {
         const auth = await getAuthHeader();
         if (!auth) return;
-        const res = await fetch(`${API_BASE}/api/merge-queue-list?filter=pending`, {
+        // filter=ready: only commits with quinn_qa_status='pass' — Quinn's
+        // Playwright pass is the only real, working gate (Carter, 2026-08-12,
+        // per Heath: "if I see it on there I know ... it's ready to be merged
+        // because it's safe"). Anything not yet QA'd stays out of this panel.
+        const res = await fetch(`${API_BASE}/api/merge-queue-list?filter=ready`, {
           headers: { Authorization: auth },
         });
         if (!res.ok) return;
@@ -5963,24 +5936,11 @@
       if (!list) return;
 
       if (!items.length) {
-        list.innerHTML = `<div class="merge-queue-empty">All merged · Next: staging...</div>`;
+        list.innerHTML = `<div class="merge-queue-empty">Nothing ready to merge yet.</div>`;
         if (badge) badge.textContent = '0';
         return;
       }
 
-      // Plain-English "who hasn't signed off yet" line (Carter, 2026-08-10 —
-      // replaces the disabled "FIX FAILURES" button, which read as "there's
-      // no way to merge this" even though Heath can always choose to merge
-      // anyway — he's the final gate per CLAUDE.md, not the QA checks).
-      const SIGNOFF_LABELS = {
-        atlas_apv_status: 'Atlas', quinn_qa_status: 'Quinn', ridge_status: 'Ridge',
-        hadley_status: 'Hadley', sage_demo_status: 'Sage',
-      };
-      function waitingOnText(item) {
-        const waiting = Object.keys(SIGNOFF_LABELS).filter((k) => item[k] !== 'pass');
-        if (!waiting.length) return '';
-        return 'Waiting on: ' + waiting.map((k) => SIGNOFF_LABELS[k]).join(', ');
-      }
       // Client-side title cleanup as a fallback for rows inserted before
       // cron-staging-watcher.js started stripping the conventional-commit
       // prefix server-side (2026-08-10) — so already-queued items read
@@ -5995,57 +5955,25 @@
       list.innerHTML = '';
       for (const item of items) {
         const row = document.createElement('div');
-        row.className = 'merge-queue-item' + (item.all_green ? ' all-green' : '');
+        // Every row in this panel is quinn_qa_status='pass' by construction
+        // (filter=ready, server-side) — always render the "verified" state.
+        row.className = 'merge-queue-item all-green';
         const sha = item.commit_sha.slice(0, 7);
         const desc = (item.description || '').trim();
         row.innerHTML = `
           <div class="merge-queue-header">
             <div>
               <div class="merge-queue-title">${escapeHtml(humanizeTitle(item.title) || `Merge ${sha}`)}</div>
-              <div class="merge-queue-sha">${sha}</div>
+              <div class="merge-queue-sha">${sha} · QA verified by Quinn</div>
             </div>
           </div>
           ${desc ? `<div class="merge-queue-desc">${escapeHtml(desc)}</div>` : ''}
-          <div class="merge-queue-signoff-badges">
-            <span class="signoff-badge ${item.atlas_apv_status}" data-type="atlas_apv" title="Atlas APV">
-              ${item.atlas_apv_status === 'pass' ? '✓' : item.atlas_apv_status === 'fail' ? '✗' : '◯'}
-              Atlas
-            </span>
-            <span class="signoff-badge ${item.quinn_qa_status}" data-type="quinn_qa" title="Quinn QA">
-              ${item.quinn_qa_status === 'pass' ? '✓' : item.quinn_qa_status === 'fail' ? '✗' : '◯'}
-              Quinn
-            </span>
-            <span class="signoff-badge ${item.ridge_status}" data-type="ridge" title="Ridge">
-              ${item.ridge_status === 'pass' ? '✓' : item.ridge_status === 'fail' ? '✗' : '◯'}
-              Ridge
-            </span>
-            <span class="signoff-badge ${item.hadley_status}" data-type="hadley" title="Hadley">
-              ${item.hadley_status === 'pass' ? '✓' : item.hadley_status === 'fail' ? '✗' : '◯'}
-              Hadley
-            </span>
-            <span class="signoff-badge ${item.sage_demo_status}" data-type="sage_demo" title="Sage Demo">
-              ${item.sage_demo_status === 'pass' ? '✓' : item.sage_demo_status === 'fail' ? '✗' : '◯'}
-              Sage
-            </span>
-          </div>
-          ${item.all_green ? '' : `<div class="merge-queue-waiting">${escapeHtml(waitingOnText(item))}</div>`}
           <div class="merge-queue-buttons">
-            <button class="merge-btn ${item.all_green ? '' : 'merge-anyway'}" data-sha="${sha}" data-action="merge">
-              ${item.all_green ? 'MERGE TO MAIN' : 'MERGE ANYWAY'}
-            </button>
+            <button class="merge-btn" data-sha="${sha}" data-action="merge">MERGE</button>
           </div>
         `;
 
-        // Wire up badge clicks to show evidence
-        row.querySelectorAll('.signoff-badge').forEach(badge => {
-          badge.addEventListener('click', () => {
-            const type = badge.getAttribute('data-type');
-            showMergeQueueEvidence(item, type);
-          });
-        });
-
-        // Wire up merge action (always live — Heath is the final gate, not
-        // the QA checks; a non-green item just gets a stronger confirm).
+        // Wire up merge action.
         row.querySelector('[data-action="merge"]')?.addEventListener('click', () => {
           mergeStagingToMain(item);
         });
@@ -6216,8 +6144,7 @@
 
 
     async function mergeStagingToMain(item) {
-      const warn = item.all_green ? '' : `\n\nHeads up: not everyone has signed off yet — see the panel for who's still pending. This will still merge to main if you confirm.`;
-      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}${warn}`);
+      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}`);
       if (!confirmed) return;
 
       const btn = document.querySelector(`[data-sha="${item.commit_sha.slice(0, 7)}"][data-action="merge"]`);
@@ -6251,17 +6178,6 @@
         showToast('Merge failed: network error');
         if (btn) btn.disabled = false;
       }
-    }
-
-    function showMergeQueueEvidence(item, type) {
-      const status = item[`${type}_status`];
-      const evidence = item[`${type}_evidence_url`];
-      const notes = item[`${type}_notes`];
-
-      let text = `${type.toUpperCase()} — ${status.toUpperCase()}\n`;
-      if (evidence) text += `Evidence: ${evidence}\n`;
-      if (notes) text += `Notes: ${notes}\n`;
-      showToast(text);
     }
 
     // escapeHtml is defined later in this module (null-safe version).
@@ -6336,8 +6252,25 @@
         const rejectBtn = card.querySelector('[data-act="reject"]');
         if (rejectBtn) rejectBtn.addEventListener('click', openReplyPanel);
 
+        // Root cause of "Ask Detail does nothing" (Carter, 2026-08-12): for
+        // content kinds (drafted emails/posts) the full content already
+        // exists right now in `details` — the old handler instead fired an
+        // async /api/jarvis-approval-ask-detail call that queued a background
+        // agent task and just toasted "stay tuned", with nothing rendering
+        // on screen. Show the real content immediately for those kinds;
+        // keep the async agent hand-off only for kinds that genuinely need
+        // an agent's judgment to expand (hadley_question, decision, heath_action).
         const askBtn = card.querySelector('[data-act="ask-detail"]');
-        if (askBtn) askBtn.addEventListener('click', () => onPendingAskDetail(it, card));
+        if (askBtn) {
+          askBtn.addEventListener('click', () => {
+            const kind = it.approve_payload?.kind;
+            if (PENDING_CONTENT_KINDS.has(kind)) {
+              openPendingModal(it);
+            } else {
+              onPendingAskDetail(it, card);
+            }
+          });
+        }
 
         card.querySelector('[data-act="details"]').addEventListener('click', () => openPendingModal(it));
 
@@ -6481,6 +6414,86 @@
       }
     }
 
+    // Renders raw HTML email content down to readable plain text for the
+    // modal (which sets it via textContent — no injection risk, whitespace
+    // preserved by .pending-modal-body { white-space: pre-wrap }).
+    function stripHtml(html) {
+      if (!html) return '';
+      return html
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<hr[^>]*>/gi, '\n---\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    // Content kinds that already carry the FULL, final content in `details`
+    // (a fully-drafted email or post) — Details/Ask Detail should show that
+    // content immediately, no agent round-trip needed.
+    const PENDING_CONTENT_KINDS = new Set(['outbound_email', 'email_queue', 'social_post', 'sage_research_draft', 'founding_application']);
+
+    // Plain-text rendering of item.details for the pending-approval modal.
+    // Root cause fixed here (Carter, 2026-08-12): the modal used to dump
+    // JSON.stringify(item.details) for everything, and for outbound_email /
+    // email_queue rows `details` never even included the email body — Heath
+    // had no way to read what he was approving. This renders the real
+    // subject/recipient/body for email kinds, and a readable fallback for
+    // everything else.
+    function formatPendingDetails(item) {
+      const d = item.details || {};
+      const kind = item.approve_payload?.kind;
+
+      if (kind === 'outbound_email') {
+        return [
+          `To: ${d.to_email || '(unknown)'}`,
+          d.from_email ? `From: ${d.from_email}` : null,
+          `Subject: ${d.subject || '(no subject)'}`,
+          '',
+          d.body_text || stripHtml(d.body_html) || '(no body content)',
+        ].filter((l) => l !== null).join('\n');
+      }
+
+      if (kind === 'email_queue') {
+        return [
+          `To: ${d.to_email || '(unknown)'}`,
+          `Subject: ${d.subject || '(no subject)'}`,
+          '',
+          d.body || stripHtml(d.body_html) || '(no body content)',
+        ].join('\n');
+      }
+
+      if (kind === 'social_post' || kind === 'sage_research_draft') {
+        return [
+          d.platform ? `Platform: ${d.platform}` : null,
+          d.persona ? `Persona: ${d.persona}` : null,
+          d.topic ? `Topic: ${d.topic}` : null,
+          '',
+          d.full_content || item.subtitle || '(no content)',
+        ].filter((l) => l !== null).join('\n');
+      }
+
+      if (kind === 'founding_application') {
+        return [
+          `Name: ${d.name || ''}`,
+          `Email: ${d.email || ''}`,
+          `Brokerage: ${d.brokerage || ''}`,
+          `Market: ${d.market || ''}`,
+          `Transactions/12mo: ${d.transactions_12mo ?? ''}`,
+          '',
+          d.why || '',
+        ].join('\n');
+      }
+
+      return Object.keys(d).length ? JSON.stringify(d, null, 2) : (item.subtitle || '(no additional detail)');
+    }
+
     let pendingModalOpenItem = null;
     function openPendingModal(item) {
       pendingModalOpenItem = item;
@@ -6500,8 +6513,7 @@
         </div>
       `;
       modal.querySelector('[data-title]').textContent = item.title || '(item)';
-      const body = item.details ? JSON.stringify(item.details, null, 2) : (item.subtitle || '');
-      modal.querySelector('[data-body]').textContent = body;
+      modal.querySelector('[data-body]').textContent = formatPendingDetails(item);
       modal.querySelector('[data-act="approve"]').addEventListener('click', async () => {
         await onPendingAction(item, 'approve');
         closePendingModal();

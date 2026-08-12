@@ -78,8 +78,8 @@ export default async function handler(req, res) {
   try {
     const [socials, emails, outboundEmails, foundings, decisions, hadleyQs] = await Promise.all([
       sbGet(`social_posts?select=id,platform,hook,content,persona,topic,created_at,status,source_type,verifier_result&status=in.(draft,pending_approval)&order=created_at.asc&limit=25`).catch(() => []),
-      sbGet(`email_queue?select=id,to_email,to_name,subject,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
-      sbGet(`outbound_email_queue?select=id,to_email,subject,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
+      sbGet(`email_queue?select=id,to_email,to_name,subject,body,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
+      sbGet(`outbound_email_queue?select=id,to_email,from_email,subject,body_text,body_html,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`founding_applications?select=id,name,email,brokerage,market,transactions_12mo,why,created_at,status&status=eq.pending&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`decision_queue?select=id,decision_type,title,description,required_by,created_at,status,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&status=eq.open&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`hadley_unanswered_questions?select=id,question_text,form_context,asked_at,answered_at,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&answered_at=is.null&order=asked_at.asc&limit=25`).catch(() => []),
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
         approve_payload: { kind: 'email_queue', id: r.id },
         reply_supported: false,
         ask_detail_supported: true,
-        details: { to_email: r.to_email, subject: r.subject, template_type: r.template_type },
+        details: { to_email: r.to_email, subject: r.subject, template_type: r.template_type, body: r.body },
       });
     }
 
@@ -152,7 +152,13 @@ export default async function handler(req, res) {
         approve_payload: { kind: 'outbound_email', id: r.id },
         reply_supported: false,
         ask_detail_supported: true,
-        details: { to_email: r.to_email, subject: r.subject },
+        details: {
+          to_email: r.to_email,
+          from_email: r.from_email,
+          subject: r.subject,
+          body_text: r.body_text,
+          body_html: r.body_html,
+        },
       });
     }
 

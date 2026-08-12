@@ -4,14 +4,23 @@
  * Update one sign-off slot for a merge_queue row.
  * Called by sign-off agents (Atlas, Quinn, Ridge, Hadley, Sage) when they complete.
  *
- * Body:
+ * Body — identify the row EITHER by merge_queue_id OR by commit sha:
  *   {
- *     merge_queue_id: "<uuid>",
+ *     merge_queue_id?: "<uuid>",
+ *     sha?: "<full-or-short-commit-sha>",   // looked up against commit_sha; if no
+ *                                           // row exists yet for this sha, one is
+ *                                           // created (same behavior as
+ *                                           // /api/merge-queue-add) so callers like
+ *                                           // Quinn don't need to know the row's id
+ *                                           // or call merge-queue-add first.
  *     signoff_type: "atlas_apv" | "quinn_qa" | "ridge" | "hadley" | "sage_demo",
  *     status: "pass" | "fail" | "not_run",
  *     evidence_url?: "https://...",
  *     notes?: "failure details"
  *   }
+ *
+ * This is a single-field update — it only ever writes the one signoff_type
+ * passed in (`${signoff_type}_status` etc.), never all five at once.
  *
  * Returns:
  *   { ok: true, merge_queue_id, signoff_type, status, all_green }
@@ -43,10 +52,10 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'missing supabase env' });
   }
 
-  const { merge_queue_id, signoff_type, status, evidence_url, notes } = req.body || {};
+  let { merge_queue_id, sha, signoff_type, status, evidence_url, notes } = req.body || {};
 
-  if (!merge_queue_id || typeof merge_queue_id !== 'string') {
-    return res.status(400).json({ error: 'merge_queue_id required' });
+  if (!merge_queue_id && (!sha || typeof sha !== 'string' || sha.length < 7)) {
+    return res.status(400).json({ error: 'merge_queue_id or sha (min 7 chars) required' });
   }
   if (!VALID_SIGNOFF_TYPES.includes(signoff_type)) {
     return res.status(400).json({ error: `invalid signoff_type. must be one of: ${VALID_SIGNOFF_TYPES.join(',')}` });
@@ -58,6 +67,35 @@ module.exports = async function handler(req, res) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
+    // Resolve sha -> merge_queue_id, creating the row if it doesn't exist yet
+    // (mirrors /api/merge-queue-add so callers like Quinn never 404 just
+    // because cron-staging-watcher hasn't inserted the row yet).
+    if (!merge_queue_id && sha) {
+      const { data: found, error: findErr } = await supabase
+        .from('merge_queue')
+        .select('id')
+        .or(`commit_sha.eq.${sha},commit_sha.ilike.${sha}%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (findErr) {
+        return res.status(500).json({ error: findErr.message });
+      }
+
+      if (found && found.length > 0) {
+        merge_queue_id = found[0].id;
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from('merge_queue')
+          .insert({ commit_sha: sha, title: `Merge ${sha.slice(0, 7)}` })
+          .select('id');
+        if (insertErr) {
+          return res.status(500).json({ error: 'auto-create row failed: ' + insertErr.message });
+        }
+        merge_queue_id = inserted[0].id;
+      }
+    }
+
     // Build update object dynamically based on signoff_type
     const update = {
       [`${signoff_type}_status`]: status,

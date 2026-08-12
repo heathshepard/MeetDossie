@@ -3,6 +3,11 @@
  *
  * List all merge_queue rows, filtered by:
  * - ?filter=pending (default) — merged_to_main=false, sorted by created_at DESC
+ * - ?filter=ready — merged_to_main=false AND quinn_qa_status='pass', sorted by created_at DESC.
+ *   This is the only real, working gate in practice (Quinn actually runs Playwright
+ *   against staging). The Jarvis Merge Queue panel uses this filter — see CLAUDE.md
+ *   deploy workflow. Rows without a Quinn PASS are still tracked in `pending` for
+ *   other consumers but are intentionally hidden from the merge-ready panel.
  * - ?filter=recent — merged_to_main=true, last 10, sorted by merged_at DESC
  * - ?filter=all — all, sorted by created_at DESC
  *
@@ -58,6 +63,8 @@ module.exports = async function handler(req, res) {
 
     if (filter === 'pending') {
       query = query.eq('merged_to_main', false).order('created_at', { ascending: false });
+    } else if (filter === 'ready') {
+      query = query.eq('merged_to_main', false).eq('quinn_qa_status', 'pass').order('created_at', { ascending: false });
     } else if (filter === 'recent') {
       query = query.eq('merged_to_main', true).order('merged_at', { ascending: false }).limit(10);
     } else if (filter === 'all') {
