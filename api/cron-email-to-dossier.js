@@ -26,6 +26,26 @@
 // button in /myjarvis). We send ONE Telegram alert the first time we see
 // invalid_grant so that state doesn't sit silently broken for days.
 //
+// ENTITLEMENT GATE (added 2026-08-12, Heath via Cole mid-build): this is a
+// paid add-on, not a free/built-in feature — it maps to the existing "Reply
+// Monitoring — $10/mo" add-on already listed in docs/PRICING-HISTORY.md and
+// shown (as a disabled "Coming Soon" card) in Dossie's Settings > Add-ons.
+// NEITHER the other listed add-ons (AI Autopilot, Compliance Vault) NOR this
+// one have any backend gating built anywhere in this repo today -- they are
+// UI-only placeholders with a disabled checkbox. There was no existing
+// pattern to copy. Rather than invent Stripe wiring or a self-serve toggle
+// (explicitly out of scope per Heath's note), this gate reads a boolean off
+// subscriptions.metadata (existing jsonb column, no schema change needed --
+// see the note above loadGoogleTokens for why: this environment has no path
+// to run ALTER TABLE against the live DB). A proper subscriptions.reply_monitoring_enabled
+// column is the intended real home for this flag; see
+// supabase/migrations/20260812_reply_monitoring_addon.sql (written, NOT YET
+// APPLIED to the live DB -- needs Heath or an agent with DB admin access to
+// run it, then this file should switch to reading the real column).
+// Per-transaction-owner check (isReplyMonitoringEnabled(userId)) so this is
+// already shaped correctly for the day this cron covers more than one
+// mailbox -- today only HEATH_KW_USER_ID is ever checked.
+//
 // Auth: Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 // Schedule: vercel.json — every 15 min (matches cron-relevance-watcher.js)
 
@@ -41,15 +61,40 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const GMAIL_ACCOUNT = 'heath.shepard@kw.com';
-// Same hardcoded id cron-relevance-watcher.js uses -- this KW mailbox account
-// has no profiles row (Heath uses Dossie as its builder, not the signup
-// path), so there's nothing to join through. Confirmed 2026-08-06 via
-// auth.users, reconfirmed live 2026-08-12.
+// Same hardcoded id cron-relevance-watcher.js uses. (That file's comment says
+// this account has no profiles row -- reconfirmed 2026-08-12 that it now
+// does: profiles.id=0cd05e2f-... exists, plan='founding'. Leaving
+// cron-relevance-watcher.js's comment alone, not this cron's problem to fix.)
 const HEATH_KW_USER_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
 const HEATH_TELEGRAM_CHAT_ID = '7874782923';
 
 const MAX_CANDIDATES = 50;
 const MAX_SUMMARIZE_CALLS = 20; // cost guardrail, same discipline as relevance-watcher
+
+// --------------------------------------------------------------------------
+// Entitlement gate — see file header. Interim: subscriptions.metadata.reply_
+// monitoring_enabled (jsonb boolean, same key name the real column will use
+// once supabase/migrations/20260812_reply_monitoring_addon.sql is applied,
+// so swapping the read source later is a one-line change). Heath's own KW
+// account is the builder/dogfood account, not a paying add-on subscriber --
+// always enabled for HEATH_KW_USER_ID, never gated behind its own price.
+// --------------------------------------------------------------------------
+
+async function isReplyMonitoringEnabled(userId) {
+  if (userId === HEATH_KW_USER_ID) return true; // builder/dogfood account, never gated
+  try {
+    const res = await supaFetch(
+      `subscriptions?select=metadata&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=updated_at.desc&limit=1`,
+    );
+    if (!res.ok) return false;
+    const rows = await res.json().catch(() => []);
+    return !!(rows && rows[0] && rows[0].metadata && rows[0].metadata.reply_monitoring_enabled === true);
+  } catch (err) {
+    // Any error -> NOT entitled. Fail closed, never fail open on a paid gate.
+    console.warn('[cron-email-to-dossier] entitlement check failed, failing closed', err.message);
+    return false;
+  }
+}
 
 // --------------------------------------------------------------------------
 // Supabase
@@ -316,6 +361,15 @@ async function handler(req, res) {
   }
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return res.status(200).json({ ok: true, status: 'skipped', reason: 'GOOGLE_CLIENT_ID/SECRET not set' });
+  }
+
+  // Paid add-on gate ("Reply Monitoring") — only run the pipeline for
+  // entitled accounts. Today this cron only ever looks at HEATH_KW_USER_ID's
+  // mailbox, so a single check up front is equivalent to per-deal checks;
+  // when this covers more than one mailbox, gate per deal owner instead of
+  // (or in addition to) here.
+  if (!(await isReplyMonitoringEnabled(HEATH_KW_USER_ID))) {
+    return res.status(200).json({ ok: true, status: 'skipped', reason: 'reply_monitoring_not_enabled', user_id: HEATH_KW_USER_ID });
   }
 
   const stats = { candidates: 0, matched: 0, filed: 0, summarize_errors: 0, patch_failures: 0 };
