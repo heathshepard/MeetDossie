@@ -1326,6 +1326,68 @@
     }
     .jt-edit-title:focus, .jt-edit-detail:focus { outline: none; border-color: var(--cyan-bright); }
 
+    /* ===== BALLS IN THE AIR BOARD (jarvis_balls table, 2026-08-12) =====
+       Pinned above the TO-DO panel -- one row per active thread Heath is
+       juggling. Same collapse/expand interaction language as .jt-* (prefixed
+       jb- to avoid collisions), plus a color-coded business tag and a
+       court flag (your move = warm/red, waiting on someone = cool/neutral). */
+    .jb-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+    .jb-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 14px 0; }
+    .jb-item {
+      background: rgba(0, 229, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .jb-item-head {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      cursor: pointer;
+    }
+    .jb-toggle {
+      background: transparent; border: none; color: var(--txt-faint);
+      font-size: 12px; cursor: pointer; padding: 0; width: 14px; flex-shrink: 0;
+    }
+    .jb-tag {
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+      border: 1px solid currentColor;
+    }
+    .jb-tag.brokerage { color: var(--gold); }
+    .jb-tag.dossie { color: var(--rose); }
+    .jb-tag.rust { color: var(--ok); }
+    .jb-tag.sawyer { color: var(--cyan-bright); }
+    .jb-tag.jarvis { color: var(--txt-mute); }
+    .jb-name {
+      flex: 1 1 auto; min-width: 120px;
+      font-size: 13px; color: var(--txt-primary);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .jb-court {
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .jb-court.mine { color: var(--fail); border: 1px solid var(--fail); background: rgba(232, 94, 94, 0.08); }
+    .jb-court.other { color: var(--cyan); border: 1px solid var(--line-strong); }
+    .jb-elapsed {
+      font-size: 9px; letter-spacing: 0.08em;
+      padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+      color: var(--txt-faint); border: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .jb-elapsed.stale { color: var(--warn); border-color: var(--warn); }
+    .jb-elapsed.very-stale { color: var(--fail); border-color: var(--fail); }
+    .jb-del-btn {
+      background: transparent; border: 1px solid var(--line); border-radius: 5px;
+      color: var(--txt-mute); font-size: 11px; cursor: pointer;
+      width: 22px; height: 22px; line-height: 1; padding: 0; flex-shrink: 0;
+    }
+    .jb-del-btn:hover { color: var(--fail); border-color: var(--fail); }
+    .jb-item-body { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(77, 208, 225, 0.08); display: flex; flex-direction: column; gap: 6px; }
+    .jb-item-body.hidden { display: none; }
+    .jb-status-note { font-size: 12px; line-height: 1.45; color: var(--txt-mute); white-space: pre-wrap; word-wrap: break-word; }
+    .jb-item-meta { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-faint); }
+
     /* ===== PANEL DRAG-AND-DROP REORDER (v1, 2026-08-12) =====
        draggable="true" is set at runtime (initPanelDragDrop() in the boot
        script) directly on each .panel-title bar -- dragging the title moves
@@ -2912,8 +2974,27 @@
            row instead of one long scroll. Every panel/id below is unchanged, only the
            wrapping container moved. -->
       <div class="dash-primary">
-        <!-- JARVIS TO-DO — added 2026-08-12 per Heath's ask, pinned first so it's
-             "at the top". Backed by public.jarvis_todos (see migration
+        <!-- BALLS IN THE AIR — added 2026-08-12 per Heath's ask, pinned front-and-
+             center above the TO-DO panel. Backed by public.jarvis_balls (see
+             migration 20260812_jarvis_balls.sql) -- one row per active thread/deal
+             Heath is juggling across Brokerage/Dossie/Rust/Sawyer/Jarvis. Primary
+             write path is conversational: Jarvis updates court/status_note directly
+             via its Supabase MCP access when Heath reports progress out loud
+             ("I sent that to John"). No manual add/edit UI here by design (v1,
+             kept simple per the approved scope) -- a dismiss button is the only
+             manual control, for clearing a resolved thread. -->
+        <div class="panel panel-featured" id="jarvis-balls-panel">
+          <div class="panel-title todo-title-row">
+            <span>BALLS IN THE AIR</span>
+            <span class="pending-count-badge zero" id="jb-count">0</span>
+          </div>
+          <div id="jb-list" class="jb-list">
+            <div class="jb-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- JARVIS TO-DO — added 2026-08-12 per Heath's ask, pinned near the top
+             (second panel, right below BALLS IN THE AIR). Backed by public.jarvis_todos (see migration
              20260812_jarvis_todos.sql) -- a plain, real, multi-item list Heath can
              add/edit/remove from this UI AND that Jarvis can write to directly
              during conversation via the jarvis-bridge session's generic Supabase
@@ -3892,6 +3973,9 @@
       loadPendingApprovals().catch(() => {});
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
       try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
+      // BALLS IN THE AIR board (jarvis_balls) — 2026-08-12
+      loadJarvisBalls().catch(() => {});
+      subscribeJarvisBallsRealtime();
       // JARVIS TO-DO panel (jarvis_todos) — 2026-08-12
       wireJarvisTodoInput();
       loadJarvisTodos().catch(() => {});
@@ -3906,6 +3990,7 @@
       //   tickers (venture rollup strip) — 30s
       //   to-do — 60s
       //   jarvis to-do list — 20s poll (realtime is primary; this is the safety net)
+      //   balls in the air — 20s poll (realtime is primary; also re-renders elapsed-time badges)
       //   merge queue — 30s (high priority)
       //   in-flight work — 45s (high priority)
       //   pending approvals — 30s (high priority)
@@ -3915,6 +4000,7 @@
       setInterval(() => { loadTickers().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
       setInterval(() => { loadJarvisTodos().then(() => trackPollSuccess()).catch(() => {}); }, 20000);
+      setInterval(() => { loadJarvisBalls().then(() => trackPollSuccess()).catch(() => {}); }, 20000);
       setInterval(() => { loadMergeQueue().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInFlightWork().then(() => trackPollSuccess()).catch(() => {}); }, 45000);
       setInterval(() => { loadPendingApprovals().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
@@ -5564,6 +5650,133 @@
       } catch (err) {
         console.warn('[jarvis] todo action failed', err);
         btns.forEach(b => { b.disabled = false; });
+      }
+    }
+
+    // ===== BALLS IN THE AIR BOARD (public.jarvis_balls, 2026-08-12) =====
+    // One row per active thread Heath is juggling across his businesses.
+    // Primary write path is conversational (Jarvis updates court/status_note
+    // directly via its Supabase MCP access) -- this panel is read + expand +
+    // dismiss only, no manual add/edit form (v1, per approved scope). Same
+    // realtime + poll-fallback pattern as jarvis_todos below.
+    let jarvisBalls = [];
+    let jarvisBallsChannel = null;
+    const jbExpanded = new Set();
+
+    function formatJbElapsed(iso) {
+      if (!iso) return { text: '—', level: 'ok' };
+      const ms = Date.now() - new Date(iso).getTime();
+      const mins = Math.floor(ms / 60000);
+      const hours = Math.floor(mins / 60);
+      const days = Math.floor(hours / 24);
+      let text;
+      if (days > 0) text = `${days}d ${hours % 24}h`;
+      else if (hours > 0) text = `${hours}h ${mins % 60}m`;
+      else text = `${Math.max(mins, 0)}m`;
+      const level = hours >= 48 ? 'very-stale' : hours >= 24 ? 'stale' : 'ok';
+      return { text, level };
+    }
+
+    async function loadJarvisBalls() {
+      const list = document.getElementById('jb-list');
+      if (!list || !supabase) return;
+      try {
+        const { data, error } = await supabase
+          .from('jarvis_balls')
+          .select('id, name, business_tag, court, status_note, last_updated, created_at')
+          .order('last_updated', { ascending: true }); // longest-waiting first -- the whole point
+        if (error) throw error;
+        jarvisBalls = data || [];
+        renderJarvisBalls();
+      } catch (err) {
+        console.warn('[jarvis] loadJarvisBalls failed', err);
+        if (!jarvisBalls.length) list.innerHTML = `<div class="jb-empty">Couldn't load.</div>`;
+      }
+    }
+
+    function renderJarvisBalls() {
+      const list = document.getElementById('jb-list');
+      const count = document.getElementById('jb-count');
+      if (!list) return;
+      if (count) {
+        count.textContent = String(jarvisBalls.length);
+        count.classList.toggle('zero', jarvisBalls.length === 0);
+      }
+      if (!jarvisBalls.length) {
+        list.innerHTML = `<div class="jb-empty">Nothing in the air right now.</div>`;
+        return;
+      }
+      list.innerHTML = '';
+      jarvisBalls.forEach((b) => {
+        const expanded = jbExpanded.has(b.id);
+        const mine = (b.court || '').trim().toLowerCase() === 'you';
+        const elapsed = formatJbElapsed(b.last_updated);
+        const row = document.createElement('div');
+        row.className = 'jb-item';
+        row.dataset.id = b.id;
+        const lastUpdatedStr = b.last_updated
+          ? new Date(b.last_updated).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '—';
+        const createdStr = b.created_at
+          ? new Date(b.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '—';
+        row.innerHTML = `
+          <div class="jb-item-head">
+            <button class="jb-toggle" aria-expanded="${expanded}">${expanded ? '▾' : '▸'}</button>
+            <span class="jb-tag ${escapeHtml(b.business_tag || '')}"></span>
+            <span class="jb-name"></span>
+            <span class="jb-court ${mine ? 'mine' : 'other'}"></span>
+            <span class="jb-elapsed ${elapsed.level}">${elapsed.text}</span>
+            <button class="jb-del-btn" title="Dismiss / resolved">✕</button>
+          </div>
+          <div class="jb-item-body ${expanded ? '' : 'hidden'}">
+            <div class="jb-status-note"></div>
+            <div class="jb-item-meta">Since ${lastUpdatedStr} · added ${createdStr}</div>
+          </div>
+        `;
+        row.querySelector('.jb-tag').textContent = b.business_tag || '—';
+        row.querySelector('.jb-name').textContent = b.name;
+        row.querySelector('.jb-court').textContent = mine ? 'Your move' : `Waiting on ${b.court}`;
+        row.querySelector('.jb-status-note').textContent = b.status_note || '(no detail)';
+        list.appendChild(row);
+
+        const head = row.querySelector('.jb-item-head');
+        head.addEventListener('click', (e) => {
+          if (e.target.closest('.jb-del-btn')) return;
+          toggleJbExpand(b.id);
+        });
+        row.querySelector('.jb-del-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteJb(b.id); });
+      });
+    }
+
+    function toggleJbExpand(id) {
+      if (jbExpanded.has(id)) jbExpanded.delete(id); else jbExpanded.add(id);
+      renderJarvisBalls();
+    }
+
+    async function deleteJb(id) {
+      try {
+        const { error } = await supabase.from('jarvis_balls').delete().eq('id', id);
+        if (error) throw error;
+        jbExpanded.delete(id);
+        await loadJarvisBalls();
+      } catch (err) {
+        console.warn('[jarvis] deleteJb failed', err);
+        showToast('Could not dismiss.');
+      }
+    }
+
+    function subscribeJarvisBallsRealtime() {
+      if (!supabase || jarvisBallsChannel) return;
+      try {
+        jarvisBallsChannel = supabase
+          .channel('public:jarvis_balls')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'jarvis_balls' }, () => {
+            loadJarvisBalls().catch(() => {});
+          })
+          .subscribe();
+      } catch (err) {
+        console.warn('[jarvis] jarvis_balls realtime subscribe failed', err);
       }
     }
 
