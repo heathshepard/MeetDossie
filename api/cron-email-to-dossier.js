@@ -34,14 +34,9 @@
 // one have any backend gating built anywhere in this repo today -- they are
 // UI-only placeholders with a disabled checkbox. There was no existing
 // pattern to copy. Rather than invent Stripe wiring or a self-serve toggle
-// (explicitly out of scope per Heath's note), this gate reads a boolean off
-// subscriptions.metadata (existing jsonb column, no schema change needed --
-// see the note above loadGoogleTokens for why: this environment has no path
-// to run ALTER TABLE against the live DB). A proper subscriptions.reply_monitoring_enabled
-// column is the intended real home for this flag; see
-// supabase/migrations/20260812_reply_monitoring_addon.sql (written, NOT YET
-// APPLIED to the live DB -- needs Heath or an agent with DB admin access to
-// run it, then this file should switch to reading the real column).
+// (explicitly out of scope per Heath's note), this gate reads
+// subscriptions.reply_monitoring_enabled (real boolean column, added by
+// supabase/migrations/20260812_reply_monitoring_addon.sql, applied 2026-08-12).
 // Per-transaction-owner check (isReplyMonitoringEnabled(userId)) so this is
 // already shaped correctly for the day this cron covers more than one
 // mailbox -- today only HEATH_KW_USER_ID is ever checked.
@@ -72,23 +67,21 @@ const MAX_CANDIDATES = 50;
 const MAX_SUMMARIZE_CALLS = 20; // cost guardrail, same discipline as relevance-watcher
 
 // --------------------------------------------------------------------------
-// Entitlement gate — see file header. Interim: subscriptions.metadata.reply_
-// monitoring_enabled (jsonb boolean, same key name the real column will use
-// once supabase/migrations/20260812_reply_monitoring_addon.sql is applied,
-// so swapping the read source later is a one-line change). Heath's own KW
-// account is the builder/dogfood account, not a paying add-on subscriber --
-// always enabled for HEATH_KW_USER_ID, never gated behind its own price.
+// Entitlement gate — see file header. Reads the real
+// subscriptions.reply_monitoring_enabled column. Heath's own KW account is
+// the builder/dogfood account, not a paying add-on subscriber -- always
+// enabled for HEATH_KW_USER_ID, never gated behind its own price.
 // --------------------------------------------------------------------------
 
 async function isReplyMonitoringEnabled(userId) {
   if (userId === HEATH_KW_USER_ID) return true; // builder/dogfood account, never gated
   try {
     const res = await supaFetch(
-      `subscriptions?select=metadata&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=updated_at.desc&limit=1`,
+      `subscriptions?select=reply_monitoring_enabled&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=updated_at.desc&limit=1`,
     );
     if (!res.ok) return false;
     const rows = await res.json().catch(() => []);
-    return !!(rows && rows[0] && rows[0].metadata && rows[0].metadata.reply_monitoring_enabled === true);
+    return !!(rows && rows[0] && rows[0].reply_monitoring_enabled === true);
   } catch (err) {
     // Any error -> NOT entitled. Fail closed, never fail open on a paid gate.
     console.warn('[cron-email-to-dossier] entitlement check failed, failing closed', err.message);
