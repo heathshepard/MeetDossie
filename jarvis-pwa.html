@@ -1281,6 +1281,94 @@
     .todo-btn.done:hover { background: rgba(139, 168, 136, 0.10); }
     .todo-btn:disabled { opacity: 0.5; cursor: wait; }
 
+    /* ===== JARVIS TO-DO LIST PANEL (jarvis_todos table, 2026-08-12) =====
+       Separate from the heath_todo / .todo-* styles above (single-item agent
+       work queue) -- this is the real, multi-item, manually + voice editable
+       to-do list Heath asked for. Prefixed jt- throughout to avoid colliding
+       with the existing .todo-* classes. */
+    .jt-add-row { display: flex; gap: 8px; }
+    .jt-add-input {
+      flex: 1; min-width: 0;
+      font-family: inherit; font-size: 13px;
+      background: rgba(0, 229, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--txt-primary);
+    }
+    .jt-add-input:focus { outline: none; border-color: var(--cyan-bright); }
+    .jt-add-btn {
+      font-family: inherit; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 0 16px;
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 8px;
+      color: var(--cyan-bright);
+      cursor: pointer;
+    }
+    .jt-add-btn:hover { border-color: var(--cyan-bright); }
+    .jt-add-btn:disabled { opacity: 0.5; cursor: wait; }
+    .jt-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+    .jt-empty { font-size: 12px; color: var(--txt-mute); text-align: center; padding: 14px 0; }
+    .jt-item {
+      background: rgba(0, 229, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .jt-item.done { opacity: 0.55; }
+    .jt-item-head {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer;
+    }
+    .jt-toggle {
+      background: transparent; border: none; color: var(--txt-faint);
+      font-size: 12px; cursor: pointer; padding: 0; width: 14px; flex-shrink: 0;
+    }
+    .jt-item-title {
+      flex: 1; min-width: 0;
+      font-size: 13px; color: var(--txt-primary);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .jt-item.done .jt-item-title { text-decoration: line-through; color: var(--txt-mute); }
+    .jt-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .jt-icon-btn {
+      background: transparent; border: 1px solid var(--line); border-radius: 5px;
+      color: var(--txt-mute); font-size: 11px; cursor: pointer;
+      width: 22px; height: 22px; line-height: 1; padding: 0;
+    }
+    .jt-icon-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .jt-del-btn:hover { color: var(--fail); border-color: var(--fail); }
+    .jt-item-body { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(77, 208, 225, 0.08); display: flex; flex-direction: column; gap: 8px; }
+    .jt-item-body.hidden { display: none; }
+    .jt-item-detail { font-size: 12px; line-height: 1.45; color: var(--txt-mute); white-space: pre-wrap; word-wrap: break-word; }
+    .jt-item-meta { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-faint); }
+    .jt-item-edit-row { display: flex; gap: 6px; }
+    .jt-btn {
+      font-family: inherit; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 6px 10px; background: transparent; border: 1px solid var(--line);
+      border-radius: 6px; color: var(--txt-mute); cursor: pointer;
+    }
+    .jt-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
+    .jt-edit-title, .jt-edit-detail {
+      width: 100%; font-family: inherit; font-size: 12px;
+      background: rgba(0, 229, 255, 0.04); border: 1px solid var(--line);
+      border-radius: 6px; padding: 7px 8px; color: var(--txt-primary); resize: vertical;
+    }
+    .jt-edit-title:focus, .jt-edit-detail:focus { outline: none; border-color: var(--cyan-bright); }
+
+    /* ===== PANEL DRAG-AND-DROP REORDER (v1, 2026-08-12) =====
+       draggable="true" is set at runtime (initPanelDragDrop() in the boot
+       script) directly on each .panel-title bar -- dragging the title moves
+       the whole parent .panel. No extra handle markup needed: title bars
+       only ever contain plain text/badge spans, never interactive buttons,
+       so this never fights a click target. */
+    .panel-title-draggable { cursor: grab; }
+    .panel-title-draggable:active { cursor: grabbing; }
+    .panel-dragging { opacity: 0.35; }
+    .panel-drop-before { box-shadow: inset 0 3px 0 0 var(--cyan-bright); }
+    .panel-drop-after { box-shadow: inset 0 -3px 0 0 var(--cyan-bright); }
+
     /* ===== AGENT THROUGHPUT PANEL (Speed Unlock, atlas_5, 2026-06-20) ===== */
     .throughput-totals {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
@@ -2224,12 +2312,12 @@
 
     /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
        Full-width bar above the two-column layout. Dossie is real data (money
-       pulse); Rust/Sawyer are honest "not tracked yet" placeholders — see
+       pulse); Rust/Sawyer/Brokerage are honest "not tracked yet" placeholders — see
        jarvis-mission-control-proposal item 7/8. Never fake their numbers. */
     .venture-strip {
       grid-area: venture;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 10px;
     }
     @media (max-width: 700px) {
@@ -2678,9 +2766,11 @@
     <main class="main">
       <!-- VENTURE ROLLUP STRIP (mission-control consolidation, item 7) — top-level,
            always visible. Dossie = real data (money pulse, populated by renderMoney()
-           inside loadTickers()). Rust/Sawyer = honest "not tracked yet" placeholders;
-           per the approved proposal, do NOT fake data for them (item 8 defers real
-           tracking infra to a separate scoped build). -->
+           inside loadTickers()). Rust/Sawyer/Brokerage = honest "not tracked yet"
+           placeholders; per the approved proposal, do NOT fake data for them (item 8
+           defers real tracking infra to a separate scoped build). Brokerage added
+           2026-08-12 per Heath — same non-interactive card style as Rust/Sawyer,
+           no new interactivity invented. -->
       <div class="venture-strip" id="venture-strip">
         <div class="venture-card tracked" id="venture-card-dossie">
           <div class="venture-card-header">
@@ -2706,6 +2796,13 @@
             <span class="venture-status-dot"></span>
           </div>
           <div class="venture-untracked-note">Automations business. Lives outside this repo by design (client data). No machine-readable status today. Not tracked here.</div>
+        </div>
+        <div class="venture-card untracked" id="venture-card-brokerage">
+          <div class="venture-card-header">
+            <span class="venture-name">Brokerage</span>
+            <span class="venture-status-dot"></span>
+          </div>
+          <div class="venture-untracked-note">Heath's real estate practice (KW). Separate from this repo — no agent_queue / merge_queue / heath_todo presence yet. Not tracked here.</div>
         </div>
       </div>
 
@@ -2846,6 +2943,29 @@
            row instead of one long scroll. Every panel/id below is unchanged, only the
            wrapping container moved. -->
       <div class="dash-primary">
+        <!-- JARVIS TO-DO — added 2026-08-12 per Heath's ask, pinned first so it's
+             "at the top". Backed by public.jarvis_todos (see migration
+             20260812_jarvis_todos.sql) -- a plain, real, multi-item list Heath can
+             add/edit/remove from this UI AND that Jarvis can write to directly
+             during conversation via the jarvis-bridge session's generic Supabase
+             MCP access (separate task; no bespoke voice parser needed here).
+             Distinct from the "To-Do" subsection inside WORK ITEMS below, which
+             reads heath_todo (an agent-populated single-item work queue) --
+             different table, different purpose, both left untouched. -->
+        <div class="panel panel-featured" id="jarvis-todos-panel">
+          <div class="panel-title todo-title-row">
+            <span>TO-DO</span>
+            <span class="pending-count-badge zero" id="jt-count">0</span>
+          </div>
+          <div class="jt-add-row">
+            <input type="text" id="jt-add-input" class="jt-add-input" placeholder="Add a to-do…" maxlength="200" autocomplete="off" />
+            <button id="jt-add-btn" class="jt-add-btn" type="button">Add</button>
+          </div>
+          <div id="jt-list" class="jt-list">
+            <div class="jt-empty">Loading…</div>
+          </div>
+        </div>
+
         <!-- MERGE QUEUE — PROMOTED TO TOP-LEVEL (mission-control consolidation, item 3).
              Data was already correct (merge_queue is real, auto-populated by
              cron-staging-watcher.js + cron-merge-queue-backfill.js) — it just needed
@@ -3803,6 +3923,10 @@
       loadPendingApprovals().catch(() => {});
       // PENDING APPROVALS panel (heath_actions) — 2026-06-25
       try { approvalsPanel.init(); } catch (err) { console.warn('[jarvis] approvalsPanel init failed', err); }
+      // JARVIS TO-DO panel (jarvis_todos) — 2026-08-12
+      wireJarvisTodoInput();
+      loadJarvisTodos().catch(() => {});
+      subscribeJarvisTodosRealtime();
       // Tier 2 hydrations
       loadCalendar().catch(() => {});
       loadAgentLedger().catch(() => {});
@@ -3812,6 +3936,7 @@
       // Refresh cadences per spec:
       //   tickers (venture rollup strip) — 30s
       //   to-do — 60s
+      //   jarvis to-do list — 20s poll (realtime is primary; this is the safety net)
       //   merge queue — 30s (high priority)
       //   in-flight work — 45s (high priority)
       //   pending approvals — 30s (high priority)
@@ -3820,6 +3945,7 @@
       //   instances — 30s polling backup, realtime primary
       setInterval(() => { loadTickers().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadTodo().then(() => trackPollSuccess()).catch(() => {}); }, 60000);
+      setInterval(() => { loadJarvisTodos().then(() => trackPollSuccess()).catch(() => {}); }, 20000);
       setInterval(() => { loadMergeQueue().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
       setInterval(() => { loadInFlightWork().then(() => trackPollSuccess()).catch(() => {}); }, 45000);
       setInterval(() => { loadPendingApprovals().then(() => trackPollSuccess()).catch(() => {}); }, 30000);
@@ -5470,6 +5596,292 @@
         console.warn('[jarvis] todo action failed', err);
         btns.forEach(b => { b.disabled = false; });
       }
+    }
+
+    // ===== JARVIS TO-DO LIST (public.jarvis_todos, 2026-08-12) =====
+    // Heath's real, multi-item to-do list -- separate from the heath_todo
+    // single-item queue above (.todo-* / loadTodo() / onTodoAction()) and
+    // from heath_actions (approvalsPanel below). Queried directly with the
+    // browser's `supabase` client (RLS: any authenticated user, single-
+    // tenant app) rather than a dedicated API route -- same pattern
+    // approvalsPanel already uses for heath_actions. Jarvis (via the
+    // jarvis-bridge session's generic Supabase MCP access) writes to this
+    // same table directly; realtime + a 20s poll fallback pick that up here.
+    let jarvisTodos = [];
+    let jarvisTodosChannel = null;
+    const jtExpanded = new Set(); // ids currently expanded in the UI
+
+    async function loadJarvisTodos() {
+      const list = document.getElementById('jt-list');
+      if (!list || !supabase) return;
+      try {
+        const { data, error } = await supabase
+          .from('jarvis_todos')
+          .select('id, title, detail, done, created_at, updated_at')
+          .order('done', { ascending: true })
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        jarvisTodos = data || [];
+        renderJarvisTodos();
+      } catch (err) {
+        console.warn('[jarvis] loadJarvisTodos failed', err);
+        if (!jarvisTodos.length) list.innerHTML = `<div class="jt-empty">Couldn't load to-dos.</div>`;
+      }
+    }
+
+    function renderJarvisTodos() {
+      const list = document.getElementById('jt-list');
+      const count = document.getElementById('jt-count');
+      if (!list) return;
+      if (count) {
+        const open = jarvisTodos.filter((t) => !t.done).length;
+        count.textContent = String(open);
+        count.classList.toggle('zero', open === 0);
+      }
+      if (!jarvisTodos.length) {
+        list.innerHTML = `<div class="jt-empty">Nothing on the list. Add one above, or just tell Jarvis.</div>`;
+        return;
+      }
+      list.innerHTML = '';
+      jarvisTodos.forEach((t) => {
+        const expanded = jtExpanded.has(t.id);
+        const row = document.createElement('div');
+        row.className = `jt-item${t.done ? ' done' : ''}`;
+        row.dataset.id = t.id;
+        const created = t.created_at
+          ? new Date(t.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '—';
+        row.innerHTML = `
+          <div class="jt-item-head">
+            <button class="jt-toggle" aria-expanded="${expanded}">${expanded ? '▾' : '▸'}</button>
+            <span class="jt-item-title"></span>
+            <span class="jt-item-actions">
+              <button class="jt-icon-btn jt-done-btn" title="${t.done ? 'Mark not done' : 'Mark done'}">${t.done ? '↺' : '✓'}</button>
+              <button class="jt-icon-btn jt-del-btn" title="Delete">✕</button>
+            </span>
+          </div>
+          <div class="jt-item-body ${expanded ? '' : 'hidden'}">
+            <div class="jt-item-detail"></div>
+            <div class="jt-item-meta">Added ${created}</div>
+            <div class="jt-item-edit-row">
+              <button class="jt-btn jt-edit-btn">Edit</button>
+            </div>
+          </div>
+        `;
+        row.querySelector('.jt-item-title').textContent = t.title;
+        row.querySelector('.jt-item-detail').textContent = t.detail || '(no detail)';
+        list.appendChild(row);
+
+        const head = row.querySelector('.jt-item-head');
+        head.addEventListener('click', (e) => {
+          if (e.target.closest('.jt-item-actions')) return; // don't toggle when clicking done/delete
+          toggleJtExpand(t.id);
+        });
+        row.querySelector('.jt-done-btn').addEventListener('click', (e) => { e.stopPropagation(); setJtDone(t.id, !t.done); });
+        row.querySelector('.jt-del-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteJt(t.id); });
+        const editBtn = row.querySelector('.jt-edit-btn');
+        if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); startJtEdit(row, t); });
+      });
+    }
+
+    function toggleJtExpand(id) {
+      if (jtExpanded.has(id)) jtExpanded.delete(id); else jtExpanded.add(id);
+      renderJarvisTodos();
+    }
+
+    async function addJarvisTodo() {
+      const input = document.getElementById('jt-add-input');
+      const btn = document.getElementById('jt-add-btn');
+      if (!input || !supabase) return;
+      const title = input.value.trim();
+      if (!title) return;
+      if (btn) btn.disabled = true;
+      try {
+        const { error } = await supabase.from('jarvis_todos').insert({ title });
+        if (error) throw error;
+        input.value = '';
+        await loadJarvisTodos();
+      } catch (err) {
+        console.warn('[jarvis] addJarvisTodo failed', err);
+        showToast('Could not add to-do.');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function setJtDone(id, done) {
+      try {
+        const { error } = await supabase.from('jarvis_todos').update({ done }).eq('id', id);
+        if (error) throw error;
+        await loadJarvisTodos();
+      } catch (err) {
+        console.warn('[jarvis] setJtDone failed', err);
+        showToast('Could not update to-do.');
+      }
+    }
+
+    async function deleteJt(id) {
+      try {
+        const { error } = await supabase.from('jarvis_todos').delete().eq('id', id);
+        if (error) throw error;
+        jtExpanded.delete(id);
+        await loadJarvisTodos();
+      } catch (err) {
+        console.warn('[jarvis] deleteJt failed', err);
+        showToast('Could not delete to-do.');
+      }
+    }
+
+    function startJtEdit(row, t) {
+      const body = row.querySelector('.jt-item-body');
+      if (!body) return;
+      body.classList.remove('hidden');
+      body.innerHTML = `
+        <input type="text" class="jt-edit-title" maxlength="200" />
+        <textarea class="jt-edit-detail" rows="3" placeholder="Detail (optional)"></textarea>
+        <div class="jt-item-edit-row">
+          <button class="jt-btn jt-save-btn">Save</button>
+          <button class="jt-btn jt-cancel-btn">Cancel</button>
+        </div>
+      `;
+      body.querySelector('.jt-edit-title').value = t.title || '';
+      body.querySelector('.jt-edit-detail').value = t.detail || '';
+      body.querySelector('.jt-save-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const newTitle = body.querySelector('.jt-edit-title').value.trim();
+        const newDetail = body.querySelector('.jt-edit-detail').value.trim();
+        if (!newTitle) { showToast('Title required.'); return; }
+        try {
+          const { error } = await supabase.from('jarvis_todos').update({ title: newTitle, detail: newDetail || null }).eq('id', t.id);
+          if (error) throw error;
+          jtExpanded.add(t.id);
+          await loadJarvisTodos();
+        } catch (err) {
+          console.warn('[jarvis] jt edit save failed', err);
+          showToast('Could not save.');
+        }
+      });
+      body.querySelector('.jt-cancel-btn').addEventListener('click', (e) => { e.stopPropagation(); renderJarvisTodos(); });
+    }
+
+    function wireJarvisTodoInput() {
+      const btn = document.getElementById('jt-add-btn');
+      const input = document.getElementById('jt-add-input');
+      if (btn && !btn.__wired) { btn.addEventListener('click', addJarvisTodo); btn.__wired = true; }
+      if (input && !input.__wired) {
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addJarvisTodo(); });
+        input.__wired = true;
+      }
+    }
+
+    function subscribeJarvisTodosRealtime() {
+      if (!supabase || jarvisTodosChannel) return;
+      try {
+        jarvisTodosChannel = supabase
+          .channel('public:jarvis_todos')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'jarvis_todos' }, () => {
+            loadJarvisTodos().catch(() => {});
+          })
+          .subscribe();
+      } catch (err) {
+        console.warn('[jarvis] jarvis_todos realtime subscribe failed', err);
+      }
+    }
+
+    // ===== PANEL DRAG-AND-DROP REORDER (v1, 2026-08-12) =====
+    // Lets Heath drag any panel in .dash-primary or .dash-secondary to
+    // reorder it. Order persists per-container in localStorage -- single-
+    // user PWA, no backend sync needed. The drag source is each panel's
+    // .panel-title bar (draggable="true" set here at runtime); dropping
+    // reorders the whole parent .panel. Reordering is scoped within a
+    // container (primary panels reorder among themselves, same for
+    // secondary) -- both containers use CSS multi-column masonry layout, so
+    // moving a panel earlier in DOM order is what actually moves it earlier
+    // on screen.
+    const PANEL_ORDER_KEYS = {
+      'dash-primary': 'jarvis:panelOrder:primary',
+      'dash-secondary': 'jarvis:panelOrder:secondary',
+    };
+
+    function clearPanelDropMarkers() {
+      document.querySelectorAll('.panel-drop-before, .panel-drop-after')
+        .forEach((el) => el.classList.remove('panel-drop-before', 'panel-drop-after'));
+    }
+
+    function savePanelOrder(container, key) {
+      const ids = Array.from(container.children)
+        .filter((el) => el.classList && el.classList.contains('panel') && el.id)
+        .map((el) => el.id);
+      try { localStorage.setItem(key, JSON.stringify(ids)); } catch (_) {}
+    }
+
+    function applySavedPanelOrder(container, key) {
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { saved = []; }
+      if (!Array.isArray(saved) || !saved.length) return;
+      const byId = new Map(Array.from(container.children).filter((el) => el.id).map((el) => [el.id, el]));
+      saved.forEach((id) => {
+        const el = byId.get(id);
+        if (el) container.appendChild(el); // moves to end in saved order; panels not in `saved` (new ones) stay after, original relative order preserved
+      });
+    }
+
+    function initPanelDragDrop() {
+      Object.keys(PANEL_ORDER_KEYS).forEach((cls) => {
+        const container = document.querySelector(`.${cls}`);
+        if (!container) return;
+        const key = PANEL_ORDER_KEYS[cls];
+        applySavedPanelOrder(container, key);
+
+        container.querySelectorAll(':scope > .panel > .panel-title').forEach((title) => {
+          if (title.__jtDragWired) return;
+          title.__jtDragWired = true;
+          title.setAttribute('draggable', 'true');
+          title.classList.add('panel-title-draggable');
+          title.addEventListener('dragstart', (e) => {
+            const panel = title.closest('.panel');
+            if (!panel || !panel.id) return;
+            e.dataTransfer.setData('text/plain', panel.id);
+            e.dataTransfer.effectAllowed = 'move';
+            panel.classList.add('panel-dragging');
+          });
+          title.addEventListener('dragend', () => {
+            const panel = title.closest('.panel');
+            if (panel) panel.classList.remove('panel-dragging');
+            clearPanelDropMarkers();
+          });
+        });
+
+        if (container.__jtDropWired) return;
+        container.__jtDropWired = true;
+
+        container.addEventListener('dragover', (e) => {
+          const dragging = document.querySelector('.panel-dragging');
+          if (!dragging || dragging.parentElement !== container) return;
+          const target = e.target.closest('.panel');
+          e.preventDefault();
+          clearPanelDropMarkers();
+          if (!target || target === dragging) return;
+          const rect = target.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          target.classList.add(before ? 'panel-drop-before' : 'panel-drop-after');
+        });
+
+        container.addEventListener('drop', (e) => {
+          const draggingId = e.dataTransfer.getData('text/plain');
+          const dragging = draggingId && document.getElementById(draggingId);
+          if (!dragging || dragging.parentElement !== container) return;
+          e.preventDefault();
+          const target = e.target.closest('.panel');
+          if (target && target !== dragging) {
+            const rect = target.getBoundingClientRect();
+            const before = (e.clientY - rect.top) < rect.height / 2;
+            container.insertBefore(dragging, before ? target : target.nextSibling);
+          }
+          clearPanelDropMarkers();
+          savePanelOrder(container, key);
+        });
+      });
     }
 
     // ===== VENTURE ROLLUP STRIP (Dossie card) =====
@@ -8038,6 +8450,11 @@
       // Initialize Noisy Mode toggle (Bug 4 fix — restore last-used state from
       // localStorage and wire up the click handler).
       try { initNoisyMode(); } catch (err) { console.warn('[jarvis] noisy init failed', err); }
+
+      // Panel drag-and-drop reorder (v1, 2026-08-12) — runs regardless of
+      // auth state since the panels are static DOM, just applies saved
+      // order + wires listeners.
+      try { initPanelDragDrop(); } catch (err) { console.warn('[jarvis] panel drag-drop init failed', err); }
 
       // Page-lifecycle handlers: release the mic so Telegram dictation / other
       // apps can acquire it whenever the user navigates away or backgrounds the PWA.
