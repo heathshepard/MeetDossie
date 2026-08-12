@@ -99,7 +99,14 @@ async function refreshGoogleAccessToken(refreshToken) {
   });
   if (!r.ok) {
     const t = await r.text().catch(() => '');
-    throw new Error(`google_refresh ${r.status}: ${t.slice(0, 200)}`);
+    const err = new Error(`google_refresh ${r.status}: ${t.slice(0, 200)}`);
+    // Google returns 400 invalid_grant when the refresh token itself has
+    // been revoked/expired (commonly a Workspace admin re-auth policy, not
+    // a code bug -- see api/cron-email-to-dossier.js header comment for the
+    // same failure mode on the Gmail side). Flag it so the caller can tell
+    // "dead token, needs re-consent" apart from a transient Google hiccup.
+    err.isInvalidGrant = r.status === 400 && /invalid_grant/i.test(t);
+    throw err;
   }
   const data = await r.json();
   return data.access_token;
@@ -229,6 +236,7 @@ export default async function handler(req, res) {
 
   // 1. Try Google.
   const gIntegration = await findGoogleIntegration(authUser.userId);
+  let googleAuthBroken = false;
   if (gIntegration && gIntegration.refresh_token) {
     try {
       const accessToken = await refreshGoogleAccessToken(gIntegration.refresh_token);
@@ -242,6 +250,14 @@ export default async function handler(req, res) {
       });
     } catch (err) {
       console.warn('[jarvis-calendar] google fetch failed:', err.message);
+      // A dead/revoked refresh token (invalid_grant) means the row in
+      // user_integrations exists but is useless -- this must surface as
+      // needs_oauth so the "Connect Google Calendar" button re-appears.
+      // Previously this fell through silently and the widget claimed
+      // "Calendar connected" even though nothing was actually working
+      // (confirmed live 2026-08-12 -- Heath had no way to find the
+      // reconnect button because the UI never showed it).
+      if (err.isInvalidGrant) googleAuthBroken = true;
       // fall through to local
     }
   }
@@ -259,20 +275,23 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       source: 'local',
-      needs_oauth: !gIntegration,
+      needs_oauth: !gIntegration || googleAuthBroken,
       events: localEvents,
       window: { start: timeMin, end: timeMax, days },
     });
   }
 
   // 3. Stub.
+  const needsOauth = !gIntegration || googleAuthBroken;
   return res.status(200).json({
     ok: true,
     source: 'stub',
-    needs_oauth: !gIntegration,
+    needs_oauth: needsOauth,
     events: [],
     window: { start: timeMin, end: timeMax, days },
-    message: gIntegration
+    message: googleAuthBroken
+      ? 'Google Calendar connection expired -- reconnect below.'
+      : gIntegration
       ? 'Calendar connected but no events in the next ' + days + ' days.'
       : 'Connect your Google Calendar to see today and tomorrow here.',
   });
