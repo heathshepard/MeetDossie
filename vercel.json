@@ -715,7 +715,7 @@
     },
     {
       "path": "/api/cron-email-to-dossier",
-      "schedule": "*/25 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron-support-ticket-alert",
