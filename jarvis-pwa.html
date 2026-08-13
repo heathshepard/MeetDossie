@@ -22,6 +22,15 @@
       --gold:         #c9a96e;
       --rose:         #E8836B;
       --ok:           #8BA888;
+      /* Aliases for the jarvis_balls court-and-ball redesign (2026-08-13) --
+         same hex values as --rose/--ok above, kept as separate names because
+         "coral"/"sage" read far more clearly as "act now" / "waiting, calm"
+         in that CSS than "rose"/"ok" do. Quinn caught these referencing
+         undefined vars pre-merge (ball rendered as a hollow ring, court text
+         had zero color differentiation) -- fixed by aliasing here instead of
+         renaming every call site. */
+      --coral:        var(--rose);
+      --sage:         var(--ok);
       --warn:         #e8b964;
       --fail:         #e85e5e;
       --glass:        rgba(15, 25, 45, 0.55);
