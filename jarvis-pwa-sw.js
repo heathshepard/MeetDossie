@@ -28,8 +28,29 @@
  * to the file input forces Android Z Fold to show the full picker chooser
  * (One UI default behavior: image/* single = camera, image/* multiple = chooser).
  * v8 forces fresh fetch of jarvis-pwa.html on activate.
+ *
+ * 2026-08-13 (Atlas): cache key bumped to v9 — NOT for a shell-caching bug
+ * this time (the v8 network-only/no-store shell policy below already fetches
+ * jarvis-pwa.html fresh on every real page load/reopen; that part was never
+ * broken). Bumped because tonight's latency fix (jarvis-pwa.html routing +
+ * VAD change, commits f9a16f2f/90742454) shipped to production while Heath's
+ * Jarvis PWA tab was already open and running — confirmed live via fresh
+ * jarvis-bridge Storage turns still hitting the old always-bridge code path
+ * 30+ min after deploy. An already-open tab has the old inline JS resident in
+ * memory; it does not re-fetch/re-run its own <script> tags just because the
+ * server file changed, and this SW's own controllerchange->reload listener
+ * (jarvis-pwa.html, ~line 8590) only fires when a NEW service worker
+ * actually activates -- which requires this file's bytes to change. Since
+ * v8 was untouched by tonight's fix, that self-heal chain never fired for
+ * his already-open session. Bumping this file now (content-only change, no
+ * fetch-strategy change) gives future same-shape fixes the same self-heal
+ * path this comment describes, without Heath needing to manually
+ * close/reopen the app. For TONIGHT's specific fix, closing and reopening
+ * the app (or a hard refresh) is still the immediate unblock -- the v8 shell
+ * policy already fetches fresh content on that next real load regardless of
+ * this SW's own version.
  */
-const CACHE = 'jarvis-pwa-v8-2026-06-28-iter3-multiple-attach';
+const CACHE = 'jarvis-pwa-v9-2026-08-13-latency-fix-propagation';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
